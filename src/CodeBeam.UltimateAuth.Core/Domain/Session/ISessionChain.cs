@@ -10,6 +10,11 @@
         TUserId UserId { get; }
 
         /// <summary>
+        /// Unique identifier of the tenant associated with the current context.
+        /// </summary>
+        string TenantId { get; }
+
+        /// <summary>
         /// Number of refresh rotations performed.
         /// </summary>
         int RotationCount { get; }

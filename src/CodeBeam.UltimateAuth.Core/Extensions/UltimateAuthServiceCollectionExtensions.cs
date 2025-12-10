@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -49,6 +50,7 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
             services.AddSingleton<IValidateOptions<SessionOptions>, SessionOptionsValidator>();
             services.AddSingleton<IValidateOptions<TokenOptions>, TokenOptionsValidator>();
             services.AddSingleton<IValidateOptions<PkceOptions>, PkceOptionsValidator>();
+            services.AddSingleton<IValidateOptions<MultiTenantOptions>, MultiTenantOptionsValidator>();
 
             services.AddOptions<SessionOptions>()
                 .BindConfiguration("UltimateAuth:Session")
@@ -70,6 +72,7 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
             services.AddSingleton<ISessionService, UAuthSessionService>();
             services.AddSingleton<ITokenService, UAuthTokenService>();
             services.AddSingleton<IAuthFlowService, AuthFlowService>();
+            services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
 
             // Future:
             // services.AddSingleton<IPkceService, PkceService>();
