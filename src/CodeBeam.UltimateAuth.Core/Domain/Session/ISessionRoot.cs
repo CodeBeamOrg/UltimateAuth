@@ -10,7 +10,7 @@
         /// <summary>
         /// Unique identifier of the tenant associated with the current context.
         /// </summary>
-        string TenantId { get; }
+        string? TenantId { get; }
 
         /// <summary>
         /// Global revoke flag — invalidates all chains and sessions.

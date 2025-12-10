@@ -4,8 +4,9 @@ namespace CodeBeam.UltimateAuth.Core.Internal
 {
     internal sealed class UAuthSessionRoot<TUserId> : ISessionRoot<TUserId>
     {
-        public UAuthSessionRoot(TUserId userId, bool isRevoked, DateTime? revokedAt, long securityVersion, IReadOnlyList<ISessionChain<TUserId>> chains, DateTime lastUpdatedAt)
+        public UAuthSessionRoot(string? tenantId, TUserId userId, bool isRevoked, DateTime? revokedAt, long securityVersion, IReadOnlyList<ISessionChain<TUserId>> chains, DateTime lastUpdatedAt)
         {
+            TenantId = tenantId;
             UserId = userId;
             IsRevoked = isRevoked;
             RevokedAt = revokedAt;
@@ -14,6 +15,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             LastUpdatedAt = lastUpdatedAt;
         }
 
+        public string? TenantId { get; }
         public TUserId UserId { get; }
         public bool IsRevoked { get; }
         public DateTime? RevokedAt { get; }
@@ -21,9 +23,10 @@ namespace CodeBeam.UltimateAuth.Core.Internal
         public IReadOnlyList<ISessionChain<TUserId>> Chains { get; }
         public DateTime LastUpdatedAt { get; }
 
-        public static UAuthSessionRoot<TUserId> CreateNew(TUserId userId, DateTime now)
+        public static UAuthSessionRoot<TUserId> CreateNew(string? tenantId, TUserId userId, DateTime now)
         {
             return new UAuthSessionRoot<TUserId>(
+                tenantId: tenantId,
                 userId: userId,
                 isRevoked: false,
                 revokedAt: null,
@@ -35,12 +38,17 @@ namespace CodeBeam.UltimateAuth.Core.Internal
 
         public UAuthSessionRoot<TUserId> AddChain(ISessionChain<TUserId> chain, DateTime now)
         {
+            var newList = new List<ISessionChain<TUserId>>(Chains.Count + 1);
+            newList.AddRange(Chains);
+            newList.Add(chain);
+
             return new UAuthSessionRoot<TUserId>(
+                TenantId,
                 UserId,
                 IsRevoked,
                 RevokedAt,
                 SecurityVersion,
-                Chains.Concat(new[] { chain }).ToList(),
+                newList,
                 lastUpdatedAt: now
             );
         }
@@ -48,6 +56,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
         public UAuthSessionRoot<TUserId> WithSecurityVersionIncrement(DateTime now)
         {
             return new UAuthSessionRoot<TUserId>(
+                TenantId,
                 UserId,
                 IsRevoked,
                 RevokedAt,
@@ -60,6 +69,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
         public UAuthSessionRoot<TUserId> WithRevoked(DateTime at)
         {
             return new UAuthSessionRoot<TUserId>(
+                TenantId,
                 UserId,
                 isRevoked: true,
                 revokedAt: at,
@@ -72,6 +82,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
         public UAuthSessionRoot<TUserId> WithUnrevoked(DateTime now)
         {
             return new UAuthSessionRoot<TUserId>(
+                TenantId,
                 UserId,
                 isRevoked: false,
                 revokedAt: null,

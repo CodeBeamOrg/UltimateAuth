@@ -10,12 +10,6 @@
         TUserId UserId { get; }
 
         /// <summary>
-        /// Unique identifier of the tenant associated with the current context.
-        /// </summary>
-        string TenantId { get; }
-
-
-        /// <summary>
         /// When this session was originally created.
         /// </summary>
         DateTime CreatedAt { get; }

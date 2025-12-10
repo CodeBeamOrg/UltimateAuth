@@ -57,6 +57,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             );
         }
 
+        // TODO: WithUpdatedLastSeenAt? Add as optionally used in session validation flow.
         public UAuthSession<TUserId> WithRevoked(DateTime at)
         {
             return new UAuthSession<TUserId>(

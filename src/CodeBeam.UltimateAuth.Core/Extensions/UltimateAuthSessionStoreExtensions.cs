@@ -6,17 +6,8 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
 {
     public static class UltimateAuthSessionStoreExtensions
     {
-        /// <summary>
-        /// Registers a custom session store implementation for UltimateAuth.
-        /// TStore must implement ISessionStore&lt;TUserId&gt;.
-        ///
-        /// Example:
-        ///     services.AddUltimateAuthSessionStore&lt;MyEfStore&lt;Guid&gt;&gt;();
-        /// </summary>
-        public static IServiceCollection AddUltimateAuthSessionStore<TStore>(this IServiceCollection services)
-            where TStore : class
+        public static IServiceCollection AddUltimateAuthSessionStore<TStore>(this IServiceCollection services) where TStore : class
         {
-            // 1) Identify TUserId by scanning interface
             var storeInterface = typeof(TStore)
                 .GetInterfaces()
                 .FirstOrDefault(i =>
@@ -24,19 +15,16 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
                     i.GetGenericTypeDefinition() == typeof(ISessionStore<>));
 
             if (storeInterface is null)
+            {
                 throw new InvalidOperationException(
                     $"{typeof(TStore).Name} must implement ISessionStore<TUserId>.");
+            }
 
             var userIdType = storeInterface.GetGenericArguments()[0];
-
-            // 2) Register concrete instance mapped to ISessionStore<TUserId>
             var typedInterface = typeof(ISessionStore<>).MakeGenericType(userIdType);
-
             services.TryAddScoped(typedInterface, typeof(TStore));
 
-            // 3) Override the factory so SessionService can resolve correct store
-            services.AddSingleton<ISessionStoreFactory>(sp =>
-                new GenericSessionStoreFactory(sp, typedInterface, userIdType));
+            services.AddSingleton<ISessionStoreFactory>(sp => new GenericSessionStoreFactory(sp, userIdType));
 
             return services;
         }
@@ -45,29 +33,27 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
     internal sealed class GenericSessionStoreFactory : ISessionStoreFactory
     {
         private readonly IServiceProvider _sp;
-        private readonly Type _typedStoreInterface;
         private readonly Type _userIdType;
 
-        public GenericSessionStoreFactory(
-            IServiceProvider sp,
-            Type typedStoreInterface,
-            Type userIdType)
+        public GenericSessionStoreFactory(IServiceProvider sp, Type userIdType)
         {
             _sp = sp;
-            _typedStoreInterface = typedStoreInterface;
             _userIdType = userIdType;
         }
 
-        public object CreateStore(Type userIdType)
+        public ISessionStore<TUserId> Create<TUserId>(string tenantId)
         {
-            if (userIdType != _userIdType)
+            if (typeof(TUserId) != _userIdType)
             {
                 throw new InvalidOperationException(
-                    $"SessionStore requested for TUserId='{userIdType.Name}', " +
-                    $"but the registered store only supports TUserId='{_userIdType.Name}'.");
+                    $"SessionStore registered for TUserId='{_userIdType.Name}', " +
+                    $"but requested with TUserId='{typeof(TUserId).Name}'.");
             }
 
-            return _sp.GetRequiredService(_typedStoreInterface);
+            var typed = typeof(ISessionStore<>).MakeGenericType(_userIdType);
+            var store = _sp.GetRequiredService(typed);
+
+            return (ISessionStore<TUserId>)store;
         }
     }
 }

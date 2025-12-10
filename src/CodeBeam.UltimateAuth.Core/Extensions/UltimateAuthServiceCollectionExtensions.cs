@@ -35,7 +35,6 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
         /// </summary>
         public static IServiceCollection AddUltimateAuth(this IServiceCollection services)
         {
-            // Register default empty config
             services.Configure<UltimateAuthOptions>(_ => { });
             return services.AddUltimateAuthInternal();
         }
@@ -52,41 +51,11 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
             services.AddSingleton<IValidateOptions<PkceOptions>, PkceOptionsValidator>();
             services.AddSingleton<IValidateOptions<MultiTenantOptions>, MultiTenantOptionsValidator>();
 
-            services.AddOptions<SessionOptions>()
-                .BindConfiguration("UltimateAuth:Session")
-                .ValidateOnStart();
+            // Binding configurations should be in the server project
 
-            services.AddOptions<TokenOptions>()
-                .BindConfiguration("UltimateAuth:Token")
-                .ValidateOnStart();
-
-            services.AddOptions<LoginOptions>()
-                .BindConfiguration("UltimateAuth:Login")
-                .ValidateOnStart();
-
-            services.AddOptions<PkceOptions>()
-                .BindConfiguration("UltimateAuth:Pkce")
-                .ValidateOnStart();
-
-
-            services.AddSingleton<ISessionService, UAuthSessionService>();
-            services.AddSingleton<ITokenService, UAuthTokenService>();
-            services.AddSingleton<IAuthFlowService, AuthFlowService>();
             services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
-
-            // Future:
-            // services.AddSingleton<IPkceService, PkceService>();
-            // services.AddSingleton<IJwtTokenFactory, JwtTokenFactory>();
-
-            // -----------------------------
-            // 4. Register SessionStore (user must override)
-            // -----------------------------
-            // Default: throws until user provides real implementation
             services.TryAddSingleton<ISessionStoreFactory, DefaultSessionStoreFactory>();
 
-            // -----------------------------
-            // 5. Return enriched DI container
-            // -----------------------------
             return services;
         }
     }

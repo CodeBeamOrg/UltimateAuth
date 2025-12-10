@@ -43,13 +43,17 @@ namespace CodeBeam.UltimateAuth.Core.Internal
 
         public UAuthSessionChain<TUserId> AddRotatedSession(ISession<TUserId> session)
         {
+            var newList = new List<ISession<TUserId>>(Sessions.Count + 1);
+            newList.AddRange(Sessions);
+            newList.Add(session);
+
             return new UAuthSessionChain<TUserId>(
                 ChainId,
                 UserId,
                 RotationCount + 1,
                 SecurityVersionAtCreation,
                 ClaimsSnapshot,
-                sessions: Sessions.Concat(new[] { session }).ToList(),
+                newList,
                 IsRevoked,
                 RevokedAt
             );

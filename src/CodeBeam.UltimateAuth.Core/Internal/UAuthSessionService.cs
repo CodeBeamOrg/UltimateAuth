@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Models;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Internal
 {
@@ -15,9 +16,9 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             _options = options;
         }
 
-        public async Task<SessionResult<TUserId>> CreateLoginSessionAsync(TUserId userId, DeviceInfo device, SessionMetadata? metadata, DateTime now)
+        public async Task<SessionResult<TUserId>> CreateLoginSessionAsync(string? tenantId, TUserId userId, DeviceInfo device, SessionMetadata? metadata, DateTime now)
         {
-            var root = await _store.GetSessionRootAsync(userId) ?? UAuthSessionRoot<TUserId>.CreateNew(userId, now);
+            var root = await _store.GetSessionRootAsync(tenantId, userId) ?? UAuthSessionRoot<TUserId>.CreateNew(tenantId, userId, now);
 
             var session = UAuthSession<TUserId>.CreateNew(
                 userId,
@@ -25,7 +26,7 @@ namespace CodeBeam.UltimateAuth.Core.Internal
                 device,
                 metadata ?? new SessionMetadata(),
                 now,
-                _options.SessionLifetime
+                _options.Lifetime
             );
 
             var chain = UAuthSessionChain<TUserId>.CreateNew(
@@ -35,16 +36,13 @@ namespace CodeBeam.UltimateAuth.Core.Internal
                 claimsSnapshot: null
             );
 
-            // 4) Root'a chain ekle
-            var updatedRoot = root.AddChain(chain, now);
+            var concreteRoot = (UAuthSessionRoot<TUserId>)root;
+            var updatedRoot = concreteRoot.AddChain(chain, now);
 
-            // 5) Store’da sakla
-            await _store.SaveSessionAsync(session);
-            await _store.SaveChainAsync(chain);
-            await _store.SaveSessionRootAsync(updatedRoot);
-
-            // 6) Active session ID set et
-            await _store.SetActiveSessionIdAsync(chain.ChainId, session.SessionId);
+            await _store.SaveSessionAsync(tenantId, session);
+            await _store.SaveChainAsync(tenantId, chain);
+            await _store.SaveSessionRootAsync(tenantId, updatedRoot);
+            await _store.SetActiveSessionIdAsync(tenantId, chain.ChainId, session.SessionId);
 
             return new SessionResult<TUserId>
             {
@@ -54,15 +52,18 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             };
         }
 
-        public async Task<SessionResult<TUserId>> RefreshSessionAsync(AuthSessionId currentSessionId, DateTime now)
+        public async Task<SessionResult<TUserId>> RefreshSessionAsync(string? tenantId, AuthSessionId currentSessionId, DateTime now)
         {
-            var oldSession = await _store.GetSessionAsync(currentSessionId) ?? throw new InvalidOperationException("Session not found");
+            var oldSession = await _store.GetSessionAsync(tenantId, currentSessionId) ?? throw new InvalidOperationException("Session not found");
 
-            var chain = await _store.GetChainAsync(chainId: FindChainIdFromSession(oldSession))
-                        ?? throw new InvalidOperationException("Chain not found");
+            var chainId = await _store.GetChainIdBySessionAsync(tenantId, currentSessionId)
+                     ?? throw new InvalidOperationException("Chain not found");
 
-            var root = await _store.GetSessionRootAsync(oldSession.UserId)
-                       ?? throw new InvalidOperationException("Session root missing");
+            var chain = await _store.GetChainAsync(tenantId, chainId)
+                       ?? throw new InvalidOperationException("Chain missing");
+
+            var root = await _store.GetSessionRootAsync(tenantId, oldSession.UserId)
+                       ?? throw new InvalidOperationException("Root missing");
 
             if (root.IsRevoked)
                 throw new UnauthorizedAccessException("Root revoked");
@@ -82,15 +83,15 @@ namespace CodeBeam.UltimateAuth.Core.Internal
                 oldSession.Device,
                 oldSession.Metadata,
                 now,
-                _options.SessionLifetime
+                _options.Lifetime
             );
 
-            var rotatedChain = chain.AddRotatedSession(newSession);
+            var concreteChain = (UAuthSessionChain<TUserId>)chain;
+            var rotatedChain = concreteChain.AddRotatedSession(newSession);
 
-            await _store.SaveSessionAsync(newSession);
-            await _store.UpdateChainAsync(rotatedChain);
-
-            await _store.SetActiveSessionIdAsync(chain.ChainId, newSession.SessionId);
+            await _store.SaveSessionAsync(tenantId, newSession);
+            await _store.UpdateChainAsync(tenantId, rotatedChain);
+            await _store.SetActiveSessionIdAsync(tenantId, chain.ChainId, newSession.SessionId);
 
             return new SessionResult<TUserId>
             {
@@ -100,31 +101,24 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             };
         }
 
-        private ChainId FindChainIdFromSession(ISession<TUserId> session)
+        public async Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at)
         {
-            // Uygulamalar chain id'yi session metadata'ya koyabilir.
-            // Default implementation bunu store üzerinden lookup ile çözer.
-            throw new NotImplementedException("Store should provide reverse lookup.");
+            await _store.RevokeSessionAsync(tenantId, sessionId, at);
         }
 
-        public async Task RevokeSessionAsync(AuthSessionId sessionId, DateTime at)
+        public async Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTime at)
         {
-            await _store.RevokeSessionAsync(sessionId, at);
+            await _store.RevokeChainAsync(tenantId, chainId, at);
         }
 
-        public async Task RevokeChainAsync(ChainId chainId, DateTime at)
+        public async Task RevokeRootAsync(string? tenantId, TUserId userId, DateTime at)
         {
-            await _store.RevokeChainAsync(chainId, at);
+            await _store.RevokeSessionRootAsync(tenantId, userId, at);
         }
 
-        public async Task RevokeRootAsync(TUserId userId, DateTime at)
+        public async Task<SessionValidationResult<TUserId>> ValidateSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime now)
         {
-            await _store.RevokeSessionRootAsync(userId, at);
-        }
-
-        public async Task<SessionValidationResult<TUserId>> ValidateSessionAsync(AuthSessionId sessionId, DateTime now)
-        {
-            var session = await _store.GetSessionAsync(sessionId);
+            var session = await _store.GetSessionAsync(tenantId, sessionId);
 
             if (session == null)
             {
@@ -134,8 +128,9 @@ namespace CodeBeam.UltimateAuth.Core.Internal
                 };
             }
 
-            var chain = await _store.GetChainAsync(FindChainIdFromSession(session));
-            var root = await _store.GetSessionRootAsync(session.UserId);
+            var chainId = await _store.GetChainIdBySessionAsync(tenantId, sessionId);
+            var chain = chainId == null ? null : await _store.GetChainAsync(tenantId, chainId.Value);
+            var root = await _store.GetSessionRootAsync(tenantId, session.UserId);
 
             var state = ComputeState(session, chain, root, now);
 
@@ -165,13 +160,11 @@ namespace CodeBeam.UltimateAuth.Core.Internal
             return SessionState.Active;
         }
 
-        // ------------------------------------------------------------
-        // LOOKUPS
-        // ------------------------------------------------------------
-        public Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(TUserId userId)
-            => _store.GetChainsByUserAsync(userId);
+        public Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(string? tenantId, TUserId userId)
+            => _store.GetChainsByUserAsync(tenantId, userId);
 
-        public Task<IReadOnlyList<ISession<TUserId>>> GetSessionsAsync(ChainId chainId)
-            => _store.GetSessionsByChainAsync(chainId);
+        public Task<IReadOnlyList<ISession<TUserId>>> GetSessionsAsync(string? tenantId, ChainId chainId)
+            => _store.GetSessionsByChainAsync(tenantId, chainId);
+
     }
 }
