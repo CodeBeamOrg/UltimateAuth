@@ -1,39 +1,59 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
+    /// <summary>
+    /// Represents a device- or login-scoped session chain.
+    /// A chain groups all rotated sessions belonging to a single logical login
+    /// (e.g., a browser instance, mobile app installation, or device fingerprint).
+    /// </summary>
     public interface ISessionChain<TUserId>
     {
+        /// <summary>
+        /// Gets the unique identifier of the session chain.
+        /// </summary>
         ChainId ChainId { get; }
 
         /// <summary>
-        /// The user who owns this device/login-chain.
+        /// Gets the identifier of the user who owns this chain.
+        /// Each chain represents one device/login family for this user.
         /// </summary>
         TUserId UserId { get; }
 
         /// <summary>
-        /// Number of refresh rotations performed.
+        /// Gets the number of refresh token rotations performed within this chain.
         /// </summary>
         int RotationCount { get; }
 
         /// <summary>
-        /// Root.SecurityVersion at chain creation time.
-        /// Used to invalidate whole chains when user-level security changes.
+        /// Gets the user's security version at the time the chain was created.
+        /// If the user's current security version is higher, the entire chain
+        /// becomes invalid (e.g., after password or MFA reset).
         /// </summary>
         long SecurityVersionAtCreation { get; }
 
         /// <summary>
-        /// Claims snapshot for offline / WASM scenarios.
+        /// Gets an optional snapshot of claims taken at chain creation time.
+        /// Useful for offline clients, WASM apps, and environments where
+        /// full user lookup cannot be performed on each request.
         /// </summary>
         IReadOnlyDictionary<string, object>? ClaimsSnapshot { get; }
 
         /// <summary>
-        /// Rotation history. Only newest session is active.
+        /// Gets the list of all rotated sessions created within this chain.
+        /// The newest session is always considered the active one.
         /// </summary>
         IReadOnlyList<ISession<TUserId>> Sessions { get; }
 
         /// <summary>
-        /// Whether this chain is revoked (device-level logout).
+        /// Gets a value indicating whether this chain has been revoked.
+        /// Revoking a chain performs a device-level logout, invalidating
+        /// all sessions it contains.
         /// </summary>
         bool IsRevoked { get; }
+
+        /// <summary>
+        /// Gets the timestamp when the chain was revoked, if applicable.
+        /// </summary>
         DateTime? RevokedAt { get; }
     }
+
 }

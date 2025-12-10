@@ -4,11 +4,27 @@ using Microsoft.Extensions.Options;
 namespace CodeBeam.UltimateAuth.Core.Options
 {
     /// <summary>
-    /// Validates multi-tenant configuration before UltimateAuth services initialize.
-    /// Prevents invalid tenant formats and misconfiguration issues.
+    /// Validates <see cref="MultiTenantOptions"/> at application startup.
+    /// Ensures that tenant configuration values (regex patterns, defaults,
+    /// reserved identifiers, and requirement rules) are logically consistent
+    /// and safe to use before multi-tenant authentication begins.
     /// </summary>
-    public sealed class MultiTenantOptionsValidator : IValidateOptions<MultiTenantOptions>
+    internal sealed class MultiTenantOptionsValidator : IValidateOptions<MultiTenantOptions>
     {
+        /// <summary>
+        /// Performs validation on the provided <see cref="MultiTenantOptions"/> instance.
+        /// This method enforces:
+        /// - valid tenant id regex format,
+        /// - reserved tenant ids matching the regex,
+        /// - default tenant id consistency,
+        /// - requirement rules coherence.
+        /// </summary>
+        /// <param name="name">Optional configuration section name.</param>
+        /// <param name="options">The options instance to validate.</param>
+        /// <returns>
+        /// A <see cref="ValidateOptionsResult"/> indicating success or the
+        /// specific configuration error encountered.
+        /// </returns>
         public ValidateOptionsResult Validate(string? name, MultiTenantOptions options)
         {
             // Multi-tenancy disabled → no validation needed
