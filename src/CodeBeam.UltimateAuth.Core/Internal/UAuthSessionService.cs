@@ -8,9 +8,9 @@ namespace CodeBeam.UltimateAuth.Core.Internal
     internal sealed class UAuthSessionService<TUserId> : ISessionService<TUserId>
     {
         private readonly ISessionStore<TUserId> _store;
-        private readonly SessionOptions _options;
+        private readonly UAuthSessionOptions _options;
 
-        public UAuthSessionService(ISessionStore<TUserId> store, SessionOptions options)
+        public UAuthSessionService(ISessionStore<TUserId> store, UAuthSessionOptions options)
         {
             _store = store;
             _options = options;

@@ -4,7 +4,7 @@
     /// Resolves the tenant id from the request path.
     /// Example pattern: /t/{tenantId}/... → returns the extracted tenant id.
     /// </summary>
-    public sealed class PathTenantResolver : ITenantResolver
+    public sealed class PathTenantResolver : ITenantIdResolver
     {
         private readonly string _prefix;
 

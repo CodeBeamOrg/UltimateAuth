@@ -5,7 +5,7 @@
     /// Implementations may extract the tenant from headers, hostnames,
     /// authentication tokens, or any other application-defined source.
     /// </summary>
-    public interface ITenantResolver
+    public interface ITenantIdResolver
     {
         /// <summary>
         /// Attempts to resolve the tenant id given the contextual request data.

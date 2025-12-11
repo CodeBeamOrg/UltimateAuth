@@ -5,7 +5,7 @@
     /// Example: X-Tenant: foo → returns "foo".
     /// Useful when multi-tenancy is controlled by API gateways or reverse proxies.
     /// </summary>
-    public sealed class HeaderTenantResolver : ITenantResolver
+    public sealed class HeaderTenantResolver : ITenantIdResolver
     {
         private readonly string _headerName;
 

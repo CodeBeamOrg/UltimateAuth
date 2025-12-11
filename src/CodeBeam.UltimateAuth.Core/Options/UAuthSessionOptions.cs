@@ -8,7 +8,7 @@
     /// These values influence how sessions are created, refreshed,
     /// expired, revoked, and grouped into device chains.
     /// </summary>
-    public sealed class SessionOptions
+    public sealed class UAuthSessionOptions
     {
         /// <summary>
         /// The standard lifetime of a session before it expires.

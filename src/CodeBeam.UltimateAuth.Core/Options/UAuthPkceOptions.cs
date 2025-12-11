@@ -5,7 +5,7 @@
     /// authorization flows. Controls how long authorization codes remain
     /// valid before they must be exchanged for tokens.
     /// </summary>
-    public sealed class PkceOptions
+    public sealed class UAuthPkceOptions
     {
         /// <summary>
         /// Lifetime of a PKCE authorization code in seconds.

@@ -5,8 +5,16 @@
     /// Controls whether tenants are required, how they are resolved,
     /// and how tenant identifiers are normalized.
     /// </summary>
-    public sealed class MultiTenantOptions
+    public sealed class UAuthMultiTenantOptions
     {
+        /// <summary>
+        /// Gets or sets the routing mode used to determine how tenant requests are processed.
+        /// </summary>
+        /// <remarks>The routing mode controls whether tenant selection is handled automatically or
+        /// requires explicit configuration. Changing this property affects how authentication requests are routed
+        /// within the application.</remarks>
+        public UAuthTenantRoutingMode RoutingMode { get; set; } = UAuthTenantRoutingMode.Auto;
+
         /// <summary>
         /// Enables multi-tenant mode.
         /// When disabled, all requests operate under a single implicit tenant.

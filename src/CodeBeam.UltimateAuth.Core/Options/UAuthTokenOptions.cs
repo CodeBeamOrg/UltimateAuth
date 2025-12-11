@@ -5,7 +5,7 @@
     /// within UltimateAuth. Includes JWT and opaque token generation,
     /// lifetimes, and cryptographic settings.
     /// </summary>
-    public sealed class TokenOptions
+    public sealed class UAuthTokenOptions
     {
         /// <summary>
         /// Determines whether JWT-format access tokens should be issued.

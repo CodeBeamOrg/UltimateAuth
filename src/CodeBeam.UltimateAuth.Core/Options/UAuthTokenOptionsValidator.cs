@@ -2,9 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Core.Options
 {
-    internal sealed class TokenOptionsValidator : IValidateOptions<TokenOptions>
+    internal sealed class UAuthTokenOptionsValidator : IValidateOptions<UAuthTokenOptions>
     {
-        public ValidateOptionsResult Validate(string? name, TokenOptions options)
+        public ValidateOptionsResult Validate(string? name, UAuthTokenOptions options)
         {
             var errors = new List<string>();
 

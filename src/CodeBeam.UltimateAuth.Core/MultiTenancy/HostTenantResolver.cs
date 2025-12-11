@@ -7,7 +7,7 @@
         /// Example: foo.example.com → returns "foo".
         /// Useful in subdomain-based multi-tenant architectures.
         /// </summary>
-        public sealed class HostTenantResolver : ITenantResolver
+        public sealed class HostTenantResolver : ITenantIdResolver
         {
             /// <summary>
             /// Attempts to resolve the tenant id from the host portion of the incoming request.

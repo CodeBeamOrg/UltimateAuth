@@ -3,7 +3,7 @@
     /// <summary>
     /// Returns a constant tenant id for all resolution requests; useful for single-tenant or statically configured systems.
     /// </summary>
-    public sealed class FixedTenantResolver : ITenantResolver
+    public sealed class FixedTenantResolver : ITenantIdResolver
     {
         private readonly string _tenantId;
 

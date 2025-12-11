@@ -11,31 +11,31 @@ namespace CodeBeam.UltimateAuth.Core.Options
     /// All sub-options are resolved from configuration (appsettings.json)
     /// or through inline setup in AddUltimateAuth().
     /// </summary>
-    public sealed class UltimateAuthOptions
+    public sealed class UAuthOptions
     {
         /// <summary>
         /// Configuration settings for interactive login flows,
         /// including lockout thresholds and failed-attempt policies.
         /// </summary>
-        public LoginOptions Login { get; set; } = new();
+        public UAuthLoginOptions Login { get; set; } = new();
 
         /// <summary>
         /// Settings that control session creation, refresh behavior,
         /// sliding expiration, idle timeouts, device limits, and chain rules.
         /// </summary>
-        public SessionOptions Session { get; set; } = new();
+        public UAuthSessionOptions Session { get; set; } = new();
 
         /// <summary>
         /// Token issuance configuration, including JWT and opaque token
         /// generation, lifetimes, signing keys, and audience/issuer values.
         /// </summary>
-        public TokenOptions Token { get; set; } = new();
+        public UAuthTokenOptions Token { get; set; } = new();
 
         /// <summary>
         /// PKCE (Proof Key for Code Exchange) configuration used for
         /// browser-based login flows and WASM authentication.
         /// </summary>
-        public PkceOptions Pkce { get; set; } = new();
+        public UAuthPkceOptions Pkce { get; set; } = new();
 
         /// <summary>
         /// Event hooks raised during authentication lifecycle events
@@ -47,7 +47,7 @@ namespace CodeBeam.UltimateAuth.Core.Options
         /// Multi-tenancy configuration controlling how tenants are resolved,
         /// validated, and optionally enforced.
         /// </summary>
-        public MultiTenantOptions MultiTenantOptions { get; set; } = new();
+        public UAuthMultiTenantOptions MultiTenantOptions { get; set; } = new();
 
         /// <summary>
         /// Provides converters used to normalize and serialize TUserId

@@ -4,7 +4,7 @@
     /// Configuration settings related to interactive user login behavior,
     /// including lockout policies and failed-attempt thresholds.
     /// </summary>
-    public sealed class LoginOptions
+    public sealed class UAuthLoginOptions
     {
         /// <summary>
         /// Maximum number of consecutive failed login attempts allowed

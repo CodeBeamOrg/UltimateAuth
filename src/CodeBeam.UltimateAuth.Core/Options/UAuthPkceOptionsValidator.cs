@@ -2,9 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Core.Options
 {
-    internal sealed class PkceOptionsValidator : IValidateOptions<PkceOptions>
+    internal sealed class UAuthPkceOptionsValidator : IValidateOptions<UAuthPkceOptions>
     {
-        public ValidateOptionsResult Validate(string? name, PkceOptions options)
+        public ValidateOptionsResult Validate(string? name, UAuthPkceOptions options)
         {
             var errors = new List<string>();
 

@@ -3,15 +3,15 @@
     /// <summary>
     /// Executes multiple tenant resolvers in order; the first resolver returning a non-null tenant id wins.
     /// </summary>
-    public sealed class CompositeTenantResolver : ITenantResolver
+    public sealed class CompositeTenantResolver : ITenantIdResolver
     {
-        private readonly IReadOnlyList<ITenantResolver> _resolvers;
+        private readonly IReadOnlyList<ITenantIdResolver> _resolvers;
 
         /// <summary>
         /// Creates a composite resolver that will evaluate the provided resolvers sequentially.
         /// </summary>
         /// <param name="resolvers">Ordered list of resolvers to execute.</param>
-        public CompositeTenantResolver(IEnumerable<ITenantResolver> resolvers)
+        public CompositeTenantResolver(IEnumerable<ITenantIdResolver> resolvers)
         {
             _resolvers = resolvers.ToList();
         }

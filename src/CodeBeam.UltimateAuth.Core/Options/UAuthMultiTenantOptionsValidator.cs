@@ -4,15 +4,15 @@ using Microsoft.Extensions.Options;
 namespace CodeBeam.UltimateAuth.Core.Options
 {
     /// <summary>
-    /// Validates <see cref="MultiTenantOptions"/> at application startup.
+    /// Validates <see cref="UAuthMultiTenantOptions"/> at application startup.
     /// Ensures that tenant configuration values (regex patterns, defaults,
     /// reserved identifiers, and requirement rules) are logically consistent
     /// and safe to use before multi-tenant authentication begins.
     /// </summary>
-    internal sealed class MultiTenantOptionsValidator : IValidateOptions<MultiTenantOptions>
+    internal sealed class UAuthMultiTenantOptionsValidator : IValidateOptions<UAuthMultiTenantOptions>
     {
         /// <summary>
-        /// Performs validation on the provided <see cref="MultiTenantOptions"/> instance.
+        /// Performs validation on the provided <see cref="UAuthMultiTenantOptions"/> instance.
         /// This method enforces:
         /// - valid tenant id regex format,
         /// - reserved tenant ids matching the regex,
@@ -25,7 +25,7 @@ namespace CodeBeam.UltimateAuth.Core.Options
         /// A <see cref="ValidateOptionsResult"/> indicating success or the
         /// specific configuration error encountered.
         /// </returns>
-        public ValidateOptionsResult Validate(string? name, MultiTenantOptions options)
+        public ValidateOptionsResult Validate(string? name, UAuthMultiTenantOptions options)
         {
             // Multi-tenancy disabled → no validation needed
             if (!options.Enabled)
