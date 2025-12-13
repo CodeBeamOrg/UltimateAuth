@@ -3,7 +3,7 @@
     /// <summary>
     /// Provides a factory abstraction for creating tenant-scoped session store
     /// instances capable of persisting sessions, chains, and session roots.
-    /// Implementations typically resolve concrete <see cref="ISessionStore{TUserId}"/> types from the dependency injection container.
+    /// Implementations typically resolve concrete <see cref="ISessionStoreKernel{TUserId}"/> types from the dependency injection container.
     /// </summary>
     public interface ISessionStoreFactory
     {
@@ -15,11 +15,11 @@
         /// The tenant identifier for multi-tenant environments, or <c>null</c> for single-tenant mode.
         /// </param>
         /// <returns>
-        /// An <see cref="ISessionStore{TUserId}"/> implementation able to perform session persistence operations.
+        /// An <see cref="ISessionStoreKernel{TUserId}"/> implementation able to perform session persistence operations.
         /// </returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown if no compatible session store implementation is registered.
         /// </exception>
-        ISessionStore<TUserId> Create<TUserId>(string? tenantId);
+        ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId);
     }
 }

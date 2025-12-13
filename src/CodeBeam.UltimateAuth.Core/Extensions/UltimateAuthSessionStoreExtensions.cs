@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace CodeBeam.UltimateAuth.Core.Extensions
 {
     /// <summary>
-    /// Provides extension methods for registering a concrete <see cref="ISessionStore{TUserId}"/>
+    /// Provides extension methods for registering a concrete <see cref="ISessionStoreKernel{TUserId}"/>
     /// implementation into the application's dependency injection container.
     /// 
     /// UltimateAuth requires exactly one session store implementation that determines
@@ -34,16 +34,16 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
                 .GetInterfaces()
                 .FirstOrDefault(i =>
                     i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(ISessionStore<>));
+                    i.GetGenericTypeDefinition() == typeof(ISessionStoreKernel<>));
 
             if (storeInterface is null)
             {
                 throw new InvalidOperationException(
-                    $"{typeof(TStore).Name} must implement ISessionStore<TUserId>.");
+                    $"{typeof(TStore).Name} must implement ISessionStoreKernel<TUserId>.");
             }
 
             var userIdType = storeInterface.GetGenericArguments()[0];
-            var typedInterface = typeof(ISessionStore<>).MakeGenericType(userIdType);
+            var typedInterface = typeof(ISessionStoreKernel<>).MakeGenericType(userIdType);
 
             services.TryAddScoped(typedInterface, typeof(TStore));
 
@@ -84,7 +84,7 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
         /// for the specified tenant and user ID type.
         /// Throws if the requested TUserId does not match the registered store's type.
         /// </summary>
-        public ISessionStore<TUserId> Create<TUserId>(string? tenantId)
+        public ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId)
         {
             if (typeof(TUserId) != _userIdType)
             {
@@ -93,10 +93,10 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
                     $"but requested with TUserId='{typeof(TUserId).Name}'.");
             }
 
-            var typed = typeof(ISessionStore<>).MakeGenericType(_userIdType);
+            var typed = typeof(ISessionStoreKernel<>).MakeGenericType(_userIdType);
             var store = _sp.GetRequiredService(typed);
 
-            return (ISessionStore<TUserId>)store;
+            return (ISessionStoreKernel<TUserId>)store;
         }
     }
 }

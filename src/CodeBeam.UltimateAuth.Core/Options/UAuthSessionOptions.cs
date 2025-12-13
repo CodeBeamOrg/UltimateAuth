@@ -18,10 +18,10 @@
 
         /// <summary>
         /// Maximum absolute lifetime a session may have, even when
-        /// sliding expiration is enabled. If set to zero, no hard cap
+        /// sliding expiration is enabled. If null, no hard cap
         /// is applied.
         /// </summary>
-        public TimeSpan MaxLifetime { get; set; } = TimeSpan.Zero;
+        public TimeSpan? MaxLifetime { get; set; }
 
         /// <summary>
         /// When enabled, each refresh extends the session's expiration,
@@ -33,7 +33,7 @@
         /// Maximum allowed idle time before the session becomes invalid.
         /// If null or zero, idle expiration is disabled entirely.
         /// </summary>
-        public TimeSpan? IdleTimeout { get; set; } = TimeSpan.Zero;
+        public TimeSpan? IdleTimeout { get; set; }
 
         /// <summary>
         /// Maximum number of device session chains a single user may have.

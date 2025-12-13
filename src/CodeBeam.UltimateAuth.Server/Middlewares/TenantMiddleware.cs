@@ -1,42 +1,53 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Middlewares
 {
-    public class TenantMiddleware
+    public sealed class TenantMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly ITenantResolver _resolver;
         private readonly UAuthMultiTenantOptions _options;
 
-        public TenantMiddleware(RequestDelegate next, ITenantResolver resolver, UAuthMultiTenantOptions options)
+        public const string TenantContextKey = "__UAuthTenant";
+
+        public TenantMiddleware(
+            RequestDelegate next,
+            ITenantResolver resolver,
+            UAuthMultiTenantOptions options)
         {
             _next = next;
             _resolver = resolver;
             _options = options;
         }
 
-        public async Task InvokeAsync(HttpContext ctx)
+        public async Task InvokeAsync(HttpContext context)
         {
+            UAuthTenantContext tenantContext;
+
             if (!_options.Enabled)
             {
-                await _next(ctx);
-                return;
+                // Single-tenant mode → tenant concept disabled
+                tenantContext = UAuthTenantContext.NotResolved();
             }
-
-            var tenantCtx = await _resolver.ResolveAsync(ctx);
-
-            if (_options.RequireTenant && !tenantCtx.IsResolved)
+            else
             {
-                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await ctx.Response.WriteAsync("Tenant is required but could not be resolved.");
-                return;
+                tenantContext = await _resolver.ResolveAsync(context);
+
+                if (_options.RequireTenant && !tenantContext.IsResolved)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync(
+                        "Tenant is required but could not be resolved.");
+                    return;
+                }
             }
 
-            ctx.Items["Tenant"] = tenantCtx.TenantId;
+            context.Items[TenantContextKey] = tenantContext;
 
-            await _next(ctx);
+            await _next(context);
         }
     }
 }

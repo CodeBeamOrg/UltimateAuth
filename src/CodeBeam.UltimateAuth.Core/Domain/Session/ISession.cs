@@ -31,7 +31,7 @@
         /// Gets the timestamp of the last successful usage.
         /// Used when evaluating sliding expiration policies.
         /// </summary>
-        DateTime LastSeenAt { get; }
+        DateTime? LastSeenAt { get; }
 
         /// <summary>
         /// Gets a value indicating whether this session has been explicitly revoked.

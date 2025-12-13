@@ -8,16 +8,16 @@
     public interface ISessionRoot<TUserId>
     {
         /// <summary>
-        /// Gets the identifier of the user who owns this session root.
-        /// Each user has one root per tenant.
-        /// </summary>
-        TUserId UserId { get; }
-
-        /// <summary>
         /// Gets the tenant identifier associated with this session root.
         /// Used to isolate authentication domains in multi-tenant systems.
         /// </summary>
         string? TenantId { get; }
+
+        /// <summary>
+        /// Gets the identifier of the user who owns this session root.
+        /// Each user has one root per tenant.
+        /// </summary>
+        TUserId UserId { get; }
 
         /// <summary>
         /// Gets a value indicating whether the entire session root is revoked.

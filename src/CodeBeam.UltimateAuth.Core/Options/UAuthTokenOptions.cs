@@ -53,5 +53,11 @@
         /// Controls which clients or APIs are permitted to consume the token.
         /// </summary>
         public string Audience { get; set; } = "UAuthClient";
+
+        /// <summary>
+        /// If true, adds a unique 'jti' (JWT ID) claim to each issued JWT.
+        /// Useful for token replay detection and advanced auditing.
+        /// </summary>
+        public bool AddJwtIdClaim { get; set; } = false;
     }
 }

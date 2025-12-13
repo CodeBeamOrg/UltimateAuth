@@ -10,11 +10,11 @@
         /// <typeparam name="TUserId">The type used to uniquely identify the user.</typeparam>
         /// <returns>Never returns; always throws.</returns>
         /// <exception cref="InvalidOperationException">Thrown when no session store implementation has been configured.</exception>
-        public ISessionStore<TUserId> Create<TUserId>(string? tenantId)
+        public ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId)
         {
             throw new InvalidOperationException(
-                "No ISessionStore<TUserId> implementation registered. " +
-                "Call AddUltimateAuthServer().AddSessionStore<TStore>() to provide a real implementation."
+                "No session store has been configured." +
+                "Call AddUltimateAuthServer().AddSessionStore(...) to register one."
             );
         }
     }

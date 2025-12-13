@@ -5,6 +5,8 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     public class DefaultLoginEndpointHandler : ILoginEndpointHandler
     {
         public Task<IResult> LoginAsync(HttpContext ctx)
-            => Task.FromResult(Results.NotImplemented());
+        {
+            return Task.FromResult<IResult>(Results.StatusCode(StatusCodes.Status501NotImplemented));
+        }
     }
 }

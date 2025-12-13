@@ -38,10 +38,9 @@
         IReadOnlyDictionary<string, object>? ClaimsSnapshot { get; }
 
         /// <summary>
-        /// Gets the list of all rotated sessions created within this chain.
-        /// The newest session is always considered the active one.
+        /// Gets the identifier of the currently active authentication session, if one exists.
         /// </summary>
-        IReadOnlyList<ISession<TUserId>> Sessions { get; }
+        AuthSessionId? ActiveSessionId { get; }
 
         /// <summary>
         /// Gets a value indicating whether this chain has been revoked.

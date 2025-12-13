@@ -8,6 +8,14 @@
     public sealed class SessionMetadata
     {
         /// <summary>
+        /// Represents an empty or uninitialized session metadata instance.
+        /// </summary>
+        /// <remarks>Use this field to represent a default or non-existent session when no metadata is
+        /// available. This instance contains default values for all properties and can be used for comparison or as a
+        /// placeholder.</remarks>
+        public static readonly SessionMetadata Empty = new SessionMetadata();
+
+        /// <summary>
         /// Gets the version of the client application that created the session.
         /// Useful for enforcing upgrade policies or troubleshooting version-related issues.
         /// </summary>

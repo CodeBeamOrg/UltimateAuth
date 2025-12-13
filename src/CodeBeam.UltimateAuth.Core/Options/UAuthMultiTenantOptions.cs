@@ -8,14 +8,6 @@
     public sealed class UAuthMultiTenantOptions
     {
         /// <summary>
-        /// Gets or sets the routing mode used to determine how tenant requests are processed.
-        /// </summary>
-        /// <remarks>The routing mode controls whether tenant selection is handled automatically or
-        /// requires explicit configuration. Changing this property affects how authentication requests are routed
-        /// within the application.</remarks>
-        public UAuthTenantRoutingMode RoutingMode { get; set; } = UAuthTenantRoutingMode.Auto;
-
-        /// <summary>
         /// Enables multi-tenant mode.
         /// When disabled, all requests operate under a single implicit tenant.
         /// </summary>
@@ -25,7 +17,7 @@
         /// If tenant cannot be resolved, this value is used.
         /// If null and RequireTenant = true, request fails.
         /// </summary>
-        public string? DefaultTenantId { get; set; } = "default";
+        public string? DefaultTenantId { get; set; }
 
         /// <summary>
         /// If true, a resolved tenant id must always exist.
@@ -63,5 +55,16 @@
         /// Default: alphanumeric + hyphens allowed.
         /// </summary>
         public string TenantIdRegex { get; set; } = "^[a-zA-Z0-9\\-]+$";
+
+        /// <summary>
+        /// Enables tenant resolution from the URL path and
+        /// exposes auth endpoints under /{tenant}/{routePrefix}/...
+        /// </summary>
+        public bool EnableRoute { get; set; } = true;
+        public bool EnableHeader { get; set; } = false;
+        public bool EnableDomain { get; set; } = false;
+
+        // Header config
+        public string HeaderName { get; set; } = "X-Tenant";
     }
 }

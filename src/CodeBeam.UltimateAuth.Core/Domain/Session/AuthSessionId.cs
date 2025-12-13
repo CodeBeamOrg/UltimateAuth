@@ -10,21 +10,18 @@
         /// Initializes a new <see cref="AuthSessionId"/> using the specified GUID value.
         /// </summary>
         /// <param name="value">The underlying GUID representing the session identifier.</param>
-        public AuthSessionId(Guid value)
+        public AuthSessionId(string value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("SessionId cannot be empty.", nameof(value));
+
             Value = value;
         }
 
         /// <summary>
         /// Gets the underlying GUID value of the session identifier.
         /// </summary>
-        public Guid Value { get; }
-
-        /// <summary>
-        /// Generates a new session identifier using a newly created GUID.
-        /// </summary>
-        /// <returns>A new <see cref="AuthSessionId"/> instance.</returns>
-        public static AuthSessionId New() => new AuthSessionId(Guid.NewGuid());
+        public string Value { get; }
 
         /// <summary>
         /// Determines whether the specified <see cref="AuthSessionId"/> is equal to the current instance.
@@ -43,19 +40,19 @@
         /// <summary>
         /// Returns a hash code based on the underlying GUID value.
         /// </summary>
-        public override int GetHashCode() => Value.GetHashCode();
+        public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value);
 
         /// <summary>
         /// Returns the string representation of the underlying GUID value.
         /// </summary>
         /// <returns>The GUID as a string.</returns>
-        public override string ToString() => Value.ToString();
+        public override string ToString() => Value;
 
         /// <summary>
         /// Converts the <see cref="AuthSessionId"/> to its underlying <see cref="Guid"/>.
         /// </summary>
         /// <param name="id">The session identifier.</param>
         /// <returns>The underlying GUID value.</returns>
-        public static implicit operator Guid(AuthSessionId id) => id.Value;
+        public static implicit operator string(AuthSessionId id) => id.Value;
     }
 }
