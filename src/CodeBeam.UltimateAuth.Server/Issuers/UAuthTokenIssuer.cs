@@ -76,7 +76,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             return new IssuedAccessToken
             {
                 Token = token,
-                TokenType = "opaque",
+                Type = TokenType.Opaque,
                 ExpiresAt = expires,
                 SessionId = sessionId
             };
@@ -117,7 +117,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             return new IssuedAccessToken
             {
                 Token = jwt,
-                TokenType = "jwt",
+                Type = TokenType.Jwt,
                 ExpiresAt = expires,
                 SessionId = context.SessionId
             };

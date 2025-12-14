@@ -31,6 +31,7 @@
         /// Thrown when the input value cannot be parsed into a valid identifier.
         /// </exception>
         TUserId FromString(string value);
+        bool TryFromString(string value, out TUserId userId);
 
         /// <summary>
         /// Reconstructs a typed user identifier from its binary representation.
@@ -41,5 +42,6 @@
         /// Thrown when the input binary value cannot be parsed into a valid identifier.
         /// </exception>
         TUserId FromBytes(byte[] binary);
+        bool TryFromBytes(byte[] binary, out TUserId userId);
     }
 }

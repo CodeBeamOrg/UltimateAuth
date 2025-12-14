@@ -16,11 +16,11 @@
         /// in single-tenant deployments.
         /// </param>
         /// <returns>
-        /// An <see cref="IUserStore{TUserId}"/> implementation capable of user lookup and security metadata retrieval.
+        /// An <see cref="IUAuthUserStore{TUserId}"/> implementation capable of user lookup and security metadata retrieval.
         /// </returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown if no user store implementation has been registered for the given user ID type.
         /// </exception>
-        IUserStore<TUserId> Create<TUserId>(string tenantId);
+        IUAuthUserStore<TUserId> Create<TUserId>(string tenantId);
     }
 }

@@ -9,11 +9,11 @@ namespace CodeBeam.UltimateAuth.Server.Users
     public sealed class UAuthUserAccessor<TUserId> : IUserAccessor
     {
         private readonly ISessionStore<TUserId> _sessionStore;
-        private readonly IUserStore<TUserId> _userStore;
+        private readonly IUAuthUserStore<TUserId> _userStore;
 
         public UAuthUserAccessor(
             ISessionStore<TUserId> sessionStore,
-            IUserStore<TUserId> userStore)
+            IUAuthUserStore<TUserId> userStore)
         {
             _sessionStore = sessionStore;
             _userStore = userStore;

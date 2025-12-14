@@ -10,11 +10,12 @@
         /// </summary>
         public required string Token { get; init; }
 
+        // TODO: TokenKind enum?
         /// <summary>
         /// Token type: "jwt" or "opaque".
         /// Used for diagnostics and middleware behavior.
         /// </summary>
-        public required string TokenType { get; init; }
+        public TokenType Type { get; init; }
 
         /// <summary>
         /// Expiration time of the token.

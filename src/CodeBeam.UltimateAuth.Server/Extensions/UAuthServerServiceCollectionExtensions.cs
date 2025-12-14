@@ -1,10 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core.Extensions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Server.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -83,6 +86,11 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             });
 
             services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
+
+            services.AddScoped(typeof(IUAuthFlowService), typeof(UAuthFlowService<>));
+            services.AddScoped(typeof(IUAuthSessionService<>), typeof(UAuthSessionService<>));
+            services.AddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
+            services.AddScoped(typeof(IUAuthTokenService<>), typeof(UAuthTokenService<>));
 
             // -----------------------------
             // SESSION / TOKEN ISSUERS

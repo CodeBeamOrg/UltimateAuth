@@ -1,11 +1,13 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Abstractions
+﻿using CodeBeam.UltimateAuth.Core.Users;
+
+namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     /// <summary>
     /// Provides minimal user lookup and security metadata required for authentication.
     /// This store does not manage user creation, claims, or profile data — these belong
     /// to higher-level application services outside UltimateAuth.
     /// </summary>
-    public interface IUserStore<TUserId>
+    public interface IUAuthUserStore<TUserId>
     {
         /// <summary>
         /// Retrieves a user by identifier. Returns <c>null</c> if no such user exists.
@@ -13,6 +15,10 @@
         /// <param name="userId">The identifier of the user.</param>
         /// <returns>The user instance or <c>null</c> if not found.</returns>
         Task<IUser<TUserId>?> FindByIdAsync(TUserId userId);
+
+        Task<UserRecord<TUserId>?> FindByUsernameAsync(
+            string username,
+            CancellationToken ct = default);
 
         /// <summary>
         /// Retrieves a user by a login credential such as username or email.
@@ -33,7 +39,7 @@
 
         /// <summary>
         /// Updates the password hash for the specified user. This method is invoked by
-        /// password management services and not by <see cref="ISessionService{TUserId}"/>.
+        /// password management services and not by <see cref="IUAuthSessionService{TUserId}"/>.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="passwordHash">The new password hash value.</param>
@@ -54,5 +60,17 @@
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         Task IncrementSecurityVersionAsync(TUserId userId);
+
+        Task<bool> ExistsByUsernameAsync(
+           string username,
+           CancellationToken ct = default);
+
+        Task CreateAsync(
+            UserRecord<TUserId> user,
+            CancellationToken ct = default);
+
+        Task DeleteAsync(
+            TUserId userId,
+            CancellationToken ct = default);
     }
 }

@@ -71,6 +71,20 @@ namespace CodeBeam.UltimateAuth.Core.Utilities
             };
         }
 
+        public bool TryFromString(string value, out TUserId? id)
+        {
+            try
+            {
+                id = FromString(value);
+                return true;
+            }
+            catch
+            {
+                id = default;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Converts a UTF-8 encoded binary representation back into a user id.
         /// </summary>
@@ -78,6 +92,20 @@ namespace CodeBeam.UltimateAuth.Core.Utilities
         /// <returns>The reconstructed user id.</returns>
         public TUserId FromBytes(byte[] binary) =>
             FromString(Encoding.UTF8.GetString(binary));
+
+        public bool TryFromBytes(byte[] binary, out TUserId? id)
+        {
+            try
+            {
+                id = FromBytes(binary);
+                return true;
+            }
+            catch
+            {
+                id = default;
+                return false;
+            }
+        }
 
     }
 }
