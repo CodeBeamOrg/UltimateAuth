@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contexts;
 using CodeBeam.UltimateAuth.Core.Models;
+using CodeBeam.UltimateAuth.Server.Extensions;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
@@ -18,7 +19,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             _userIdConverter = converterResolver.GetConverter<TUserId>();
         }
 
-        public async Task<TokenIssueResult> IssueAsync(
+        public async Task<AuthTokens> CreateTokensAsync(
             TokenIssueContext<TUserId> context,
             CancellationToken ct = default)
         {
@@ -27,10 +28,14 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var access = await _issuer.IssueAccessTokenAsync(issuerCtx, ct);
             var refresh = await _issuer.IssueRefreshTokenAsync(issuerCtx, ct);
 
-            return TokenIssueResult.From(access, refresh);
+            return new AuthTokens
+            {
+                AccessToken = access,
+                RefreshToken = refresh
+            };
         }
 
-        public async Task<TokenIssueResult> RefreshAsync(
+        public async Task<AuthTokens> RefreshAsync(
             TokenRefreshContext context,
             CancellationToken ct = default)
         {
@@ -43,14 +48,14 @@ namespace CodeBeam.UltimateAuth.Server.Services
             CancellationToken ct = default)
             => await _validator.ValidateAsync<TUserId>(token, type, ct);
 
-        private TokenIssueContext ToIssuerContext(TokenIssueContext<TUserId> src)
+        private TokenIssuerContext ToIssuerContext(TokenIssueContext<TUserId> src)
         {
-            return new TokenIssueContext
+            return new TokenIssuerContext
             {
-                UserId = _userIdConverter.ToString(src.UserId),
+                UserId = _userIdConverter.ToString(src.Session.UserId),
                 TenantId = src.TenantId,
-                SessionId = src.SessionId,
-                Claims = src.Claims
+                SessionId = src.Session.SessionId,
+                Claims = src.Session.Claims.AsClaims()
             };
         }
 

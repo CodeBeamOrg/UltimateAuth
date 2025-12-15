@@ -56,6 +56,8 @@
         /// </summary>
         DeviceInfo Device { get; }
 
+        ClaimsSnapshot Claims { get; }
+
         /// <summary>
         /// Gets session-scoped metadata used for application-specific extensions,
         /// such as tenant data, app version, locale, or CSRF tokens.
@@ -69,5 +71,9 @@
         /// <param name="now">Current timestamp used for comparisons.</param>
         /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
         SessionState GetState(DateTime now);
+
+        bool ShouldUpdateLastSeen(DateTime now);
+        ISession<TUserId> Touch(DateTime now);
+
     }
 }

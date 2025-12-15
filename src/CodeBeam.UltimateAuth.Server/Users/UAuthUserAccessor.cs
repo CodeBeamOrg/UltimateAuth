@@ -43,7 +43,7 @@ namespace CodeBeam.UltimateAuth.Server.Users
             }
 
             // 👤 Load user
-            var user = await _userStore.FindByIdAsync(session.UserId);
+            var user = await _userStore.FindByIdAsync(sessionCtx.TenantId, session.UserId);
 
             if (user is null)
             {

@@ -12,20 +12,22 @@
         public DateTime? RevokedAt { get; }
         public long SecurityVersionAtCreation { get; }
         public DeviceInfo Device { get; }
+        public ClaimsSnapshot Claims { get; }
         public SessionMetadata Metadata { get; }
 
         private UAuthSession(
-            AuthSessionId sessionId,
-            string? tenantId,
-            TUserId userId,
-            DateTime createdAt,
-            DateTime expiresAt,
-            DateTime? lastSeenAt,
-            bool isRevoked,
-            DateTime? revokedAt,
-            long securityVersionAtCreation,
-            DeviceInfo device,
-            SessionMetadata metadata)
+        AuthSessionId sessionId,
+        string? tenantId,
+        TUserId userId,
+        DateTime createdAt,
+        DateTime expiresAt,
+        DateTime? lastSeenAt,
+        bool isRevoked,
+        DateTime? revokedAt,
+        long securityVersionAtCreation,
+        DeviceInfo device,
+        ClaimsSnapshot claims,
+        SessionMetadata metadata)
         {
             SessionId = sessionId;
             TenantId = tenantId;
@@ -37,6 +39,7 @@
             RevokedAt = revokedAt;
             SecurityVersionAtCreation = securityVersionAtCreation;
             Device = device;
+            Claims = claims;
             Metadata = metadata;
         }
 
@@ -46,11 +49,11 @@
             TUserId userId,
             DateTime now,
             DateTime expiresAt,
-            long securityVersion,
             DeviceInfo device,
+            ClaimsSnapshot claims,
             SessionMetadata metadata)
         {
-            return new UAuthSession<TUserId>(
+            return new(
                 sessionId,
                 tenantId,
                 userId,
@@ -59,32 +62,17 @@
                 lastSeenAt: now,
                 isRevoked: false,
                 revokedAt: null,
-                securityVersionAtCreation: securityVersion,
+                securityVersionAtCreation: 0,
                 device: device,
+                claims: claims,
                 metadata: metadata
             );
         }
 
-        public UAuthSession<TUserId> WithLastSeen(DateTime now)
+        public UAuthSession<TUserId> WithSecurityVersion(long version)
         {
-            return new UAuthSession<TUserId>(
-                SessionId,
-                TenantId,
-                UserId,
-                CreatedAt,
-                ExpiresAt,
-                lastSeenAt: now,
-                IsRevoked,
-                RevokedAt,
-                SecurityVersionAtCreation,
-                Device,
-                Metadata
-            );
-        }
-
-        public UAuthSession<TUserId> Revoke(DateTime at)
-        {
-            if (IsRevoked) return this;
+            if (SecurityVersionAtCreation == version)
+                return this;
 
             return new UAuthSession<TUserId>(
                 SessionId,
@@ -93,10 +81,60 @@
                 CreatedAt,
                 ExpiresAt,
                 LastSeenAt,
-                isRevoked: true,
-                revokedAt: at,
+                IsRevoked,
+                RevokedAt,
+                version,
+                Device,
+                Claims,
+                Metadata
+            );
+        }
+
+        public bool ShouldUpdateLastSeen(DateTime now)
+        {
+            if (LastSeenAt is null)
+                return true;
+
+            return (now - LastSeenAt.Value) >= TimeSpan.FromMinutes(1);
+        }
+
+        public ISession<TUserId> Touch(DateTime now)
+        {
+            if (!ShouldUpdateLastSeen(now))
+                return this;
+
+            return new UAuthSession<TUserId>(
+                SessionId,
+                TenantId,
+                UserId,
+                CreatedAt,
+                ExpiresAt,
+                now,
+                IsRevoked,
+                RevokedAt,
                 SecurityVersionAtCreation,
                 Device,
+                Claims,
+                Metadata
+            );
+        }
+
+        public UAuthSession<TUserId> Revoke(DateTime at)
+        {
+            if (IsRevoked) return this;
+
+            return new(
+                SessionId,
+                TenantId,
+                UserId,
+                CreatedAt,
+                ExpiresAt,
+                LastSeenAt,
+                true,
+                at,
+                SecurityVersionAtCreation,
+                Device,
+                Claims,
                 Metadata
             );
         }

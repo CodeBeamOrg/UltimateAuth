@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Core.Models
 {
     public sealed record SessionRefreshResult
     {
-        public IssuedAccessToken AccessToken { get; init; } = default!;
-        public IssuedRefreshToken? RefreshToken { get; init; }
+        public AccessToken AccessToken { get; init; } = default!;
+        public RefreshToken? RefreshToken { get; init; }
     }
 }

@@ -1,34 +1,31 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contexts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Models;
 
 namespace CodeBeam.UltimateAuth.Server.Sessions
 {
-    /// <summary>
-    /// Orchestrates session, chain, and root lifecycles
-    /// according to UltimateAuth security rules.
-    /// </summary>
-    public interface ISessionOrchestrator<TUserId>
+    internal interface ISessionOrchestrator<TUserId>
     {
-        /// <summary>
-        /// Creates a new login session (initial authentication).
-        /// </summary>
-        Task<IssuedSession<TUserId>> CreateLoginSessionAsync(
-            SessionIssueContext<TUserId> context);
+        Task<IssuedSession<TUserId>> CreateLoginSessionAsync(AuthenticatedSessionContext<TUserId> context);
 
-        /// <summary>
-        /// Revokes a single session.
-        /// </summary>
-        Task RevokeSessionAsync(
-            string? tenantId,
-            AuthSessionId sessionId,
-            DateTime at);
+        Task<IssuedSession<TUserId>> RotateSessionAsync(SessionRotationContext<TUserId> context);
 
-        /// <summary>
-        /// Revokes all sessions of a user (global logout).
-        /// </summary>
-        Task RevokeAllSessionsAsync(
-            string? tenantId,
-            TUserId userId,
-            DateTime at);
+        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(SessionValidationContext context);
+
+        Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId);
+
+        Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(string? tenantId, TUserId userId);
+
+        Task<ChainId?> ResolveChainIdAsync(string? tenantId,AuthSessionId sessionId);
+
+        Task<IReadOnlyList<ISession<TUserId>>> GetSessionsAsync(string? tenantId, ChainId chainId);
+
+        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
+
+        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTime at);
+
+        Task RevokeAllChainsAsync(string? tenantId, TUserId userId, ChainId? exceptChainId,DateTime at);
+
+        Task RevokeRootAsync(string? tenantId, TUserId userId, DateTime at);
     }
 }

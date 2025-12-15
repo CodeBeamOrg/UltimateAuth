@@ -21,5 +21,11 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         Task<bool> ValidateCredentialsAsync(
             ValidateCredentialsRequest request,
             CancellationToken cancellationToken = default);
+
+        Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(
+            string? tenantId,
+            string identifier,
+            string secret,
+            CancellationToken cancellationToken = default);
     }
 }

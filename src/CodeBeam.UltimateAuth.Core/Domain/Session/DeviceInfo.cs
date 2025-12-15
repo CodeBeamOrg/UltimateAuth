@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace CodeBeam.UltimateAuth.Core.Domain
 {
     /// <summary>
     /// Represents metadata describing the device or client environment initiating
@@ -7,6 +9,11 @@
     /// </summary>
     public sealed class DeviceInfo
     {
+        /// <summary>
+        /// Gets the unique identifier for the device.
+        /// </summary>
+        public string DeviceId { get; init; } = default!;
+
         /// <summary>
         /// Gets the high-level platform identifier, such as <c>web</c>, <c>mobile</c>,
         /// <c>tablet</c> or <c>iot</c>.
@@ -55,6 +62,34 @@
         /// Gets optional custom metadata supplied by the application.  
         /// Allows additional device attributes not covered by standard fields.
         /// </summary>
-        public Dictionary<string, object>? Custom { get; init; }
+        public Dictionary<string, string>? Custom { get; init; }
+
+        public static DeviceInfo Unknown { get; } = new()
+        {
+            DeviceId = "unknown",
+            Platform = null,
+            Browser = null,
+            IpAddress = null,
+            UserAgent = null,
+            IsTrusted = null
+        };
+
+        /// <summary>
+        /// Determines whether the current device information matches the specified device information based on device
+        /// identifiers.
+        /// </summary>
+        /// <param name="other">The device information to compare with the current instance. Cannot be null.</param>
+        /// <returns>true if the device identifiers are equal; otherwise, false.</returns>
+        public bool Matches(DeviceInfo other)
+        {
+            if (other is null)
+                return false;
+
+            if (DeviceId != other.DeviceId)
+                return false;
+
+            // TODO: UA / IP drift policy
+            return true;
+        }
     }
 }

@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents an issued access token (JWT or opaque).
     /// </summary>
-    public sealed class IssuedAccessToken
+    public sealed class AccessToken
     {
         /// <summary>
         /// The actual token value sent to the client.
@@ -26,5 +26,7 @@
         /// Optional session id this token is bound to (Hybrid / SemiHybrid).
         /// </summary>
         public string? SessionId { get; init; }
+
+        public string? Scope { get; init; }
     }
 }

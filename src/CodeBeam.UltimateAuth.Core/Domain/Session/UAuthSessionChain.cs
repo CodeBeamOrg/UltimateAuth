@@ -7,7 +7,7 @@
         public TUserId UserId { get; }
         public int RotationCount { get; }
         public long SecurityVersionAtCreation { get; }
-        public IReadOnlyDictionary<string, object>? ClaimsSnapshot { get; }
+        public ClaimsSnapshot ClaimsSnapshot { get; }
         public AuthSessionId? ActiveSessionId { get; }
         public bool IsRevoked { get; }
         public DateTime? RevokedAt { get; }
@@ -18,7 +18,7 @@
             TUserId userId,
             int rotationCount,
             long securityVersionAtCreation,
-            IReadOnlyDictionary<string, object>? claimsSnapshot,
+            ClaimsSnapshot claimsSnapshot,
             AuthSessionId? activeSessionId,
             bool isRevoked,
             DateTime? revokedAt)
@@ -39,7 +39,7 @@
             string? tenantId,
             TUserId userId,
             long securityVersion,
-            IReadOnlyDictionary<string, object>? claimsSnapshot = null)
+            ClaimsSnapshot claimsSnapshot)
         {
             return new UAuthSessionChain<TUserId>(
                 chainId,
@@ -54,7 +54,25 @@
             );
         }
 
-        public UAuthSessionChain<TUserId> ActivateSession(AuthSessionId sessionId)
+        public ISessionChain<TUserId> AttachSession(AuthSessionId sessionId)
+        {
+            if (IsRevoked)
+                return this;
+
+            return new UAuthSessionChain<TUserId>(
+                ChainId,
+                TenantId,
+                UserId,
+                RotationCount, // Unchanged on first attach
+                SecurityVersionAtCreation,
+                ClaimsSnapshot,
+                activeSessionId: sessionId,
+                isRevoked: false,
+                revokedAt: null
+            );
+        }
+
+        public ISessionChain<TUserId> RotateSession(AuthSessionId sessionId)
         {
             if (IsRevoked)
                 return this;
@@ -72,7 +90,7 @@
             );
         }
 
-        public UAuthSessionChain<TUserId> Revoke(DateTime at)
+        public ISessionChain<TUserId> Revoke(DateTime at)
         {
             if (IsRevoked)
                 return this;

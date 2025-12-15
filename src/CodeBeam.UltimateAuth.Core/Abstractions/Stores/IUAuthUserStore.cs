@@ -9,14 +9,9 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// </summary>
     public interface IUAuthUserStore<TUserId>
     {
-        /// <summary>
-        /// Retrieves a user by identifier. Returns <c>null</c> if no such user exists.
-        /// </summary>
-        /// <param name="userId">The identifier of the user.</param>
-        /// <returns>The user instance or <c>null</c> if not found.</returns>
-        Task<IUser<TUserId>?> FindByIdAsync(TUserId userId);
+        Task<IUser<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
-        Task<UserRecord<TUserId>?> FindByUsernameAsync(
+        Task<UserRecord<TUserId>?> FindByUsernameAsync(string? tenantId,
             string username,
             CancellationToken ct = default);
 

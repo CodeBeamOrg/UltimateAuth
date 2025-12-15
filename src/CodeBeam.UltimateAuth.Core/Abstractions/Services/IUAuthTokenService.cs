@@ -12,14 +12,14 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// Issues access (and optionally refresh) tokens
         /// for a validated session.
         /// </summary>
-        Task<TokenIssueResult> IssueAsync(
+        Task<AuthTokens> CreateTokensAsync(
             TokenIssueContext<TUserId> context,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Refreshes tokens using a refresh token.
         /// </summary>
-        Task<TokenIssueResult> RefreshAsync(
+        Task<AuthTokens> RefreshAsync(
             TokenRefreshContext context,
             CancellationToken cancellationToken = default);
 

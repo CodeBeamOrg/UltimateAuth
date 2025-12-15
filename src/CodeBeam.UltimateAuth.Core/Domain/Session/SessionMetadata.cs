@@ -28,12 +28,6 @@
         public string? Locale { get; init; }
 
         /// <summary>
-        /// Gets the tenant identifier attached to this session, if applicable.
-        /// This value may override or complement root-level multi-tenant resolution.
-        /// </summary>
-        public string? TenantId { get; init; }
-
-        /// <summary>
         /// Gets a Cross-Site Request Forgery token or other session-scoped secret
         /// used for request integrity validation in web applications.
         /// </summary>

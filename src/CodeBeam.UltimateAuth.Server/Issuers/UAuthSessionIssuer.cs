@@ -23,10 +23,11 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             _options = options.Value;
         }
 
+        // chain is intentionally provided for future policy extensions
         public Task<IssuedSession<TUserId>> IssueAsync(
-            SessionIssueContext<TUserId> context,
-            UAuthSessionChain<TUserId> chain,
-            CancellationToken cancellationToken = default)
+        AuthenticatedSessionContext<TUserId> context,
+        ISessionChain<TUserId> chain,
+        CancellationToken cancellationToken = default)
         {
             if (_options.Mode == UAuthMode.PureJwt)
             {
@@ -43,9 +44,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                     context.Now.Add(_options.Session.MaxLifetime.Value);
 
                 if (absoluteExpiry < expiresAt)
-                {
                     expiresAt = absoluteExpiry;
-                }
             }
 
             var session = UAuthSession<TUserId>.Create(
@@ -54,9 +53,9 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 userId: context.UserId,
                 now: context.Now,
                 expiresAt: expiresAt,
-                securityVersion: context.SecurityVersion,
-                device: context.Device,
-                metadata: SessionMetadata.Empty
+                claims: context.Claims,
+                device: context.DeviceInfo,
+                metadata: context.Metadata
             );
 
             return Task.FromResult(new IssuedSession<TUserId>

@@ -57,13 +57,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         Task SaveChainAsync(string? tenantId, ISessionChain<TUserId> chain);
 
         /// <summary>
-        /// Updates an existing session chain, typically after session rotation or revocation. Implementations must preserve atomicity.
-        /// </summary>
-        /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
-        /// <param name="chain">The updated session chain.</param>
-        Task UpdateChainAsync(string? tenantId, ISessionChain<TUserId> chain);
-
-        /// <summary>
         /// Marks the entire session chain as revoked, invalidating all associated sessions for the device or app family.
         /// </summary>
         /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
@@ -135,6 +128,11 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// <param name="sessionId">The session identifier.</param>
         /// <returns>The chain identifier or <c>null</c>.</returns>
         Task<ChainId?> GetChainIdBySessionAsync(string? tenantId, AuthSessionId sessionId);
-    }
 
+        /// <summary>
+        /// Executes multiple store operations as a single atomic unit.
+        /// Implementations must ensure transactional consistency where supported.
+        /// </summary>
+        Task ExecuteAsync(Func<Task> action);
+    }
 }

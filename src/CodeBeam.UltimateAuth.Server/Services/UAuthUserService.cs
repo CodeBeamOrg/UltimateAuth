@@ -10,15 +10,18 @@ internal sealed class UAuthUserService<TUserId> : IUAuthUserService<TUserId>
     private readonly IUAuthUserStore<TUserId> _userStore;
     private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly IUserIdFactory<TUserId> _userIdFactory;
+    private readonly IUserAuthenticator<TUserId> _authenticator;
 
     public UAuthUserService(
         IUAuthUserStore<TUserId> userStore,
         IUAuthPasswordHasher passwordHasher,
-        IUserIdFactory<TUserId> userIdFactory)
+        IUserIdFactory<TUserId> userIdFactory,
+        IUserAuthenticator<TUserId> authenticator)
     {
         _userStore = userStore;
         _passwordHasher = passwordHasher;
         _userIdFactory = userIdFactory;
+        _authenticator = authenticator;
     }
 
     public async Task<TUserId> RegisterAsync(
@@ -55,7 +58,7 @@ internal sealed class UAuthUserService<TUserId> : IUAuthUserService<TUserId>
         ValidateCredentialsRequest request,
         CancellationToken ct = default)
     {
-        var user = await _userStore.FindByUsernameAsync(request.Identifier, ct);
+        var user = await _userStore.FindByUsernameAsync(request.TenantId, request.Identifier, ct);
         if (user is null)
             return false;
 
@@ -64,10 +67,24 @@ internal sealed class UAuthUserService<TUserId> : IUAuthUserService<TUserId>
             user.PasswordHash);
     }
 
-    public Task DeleteAsync(
+    public async Task DeleteAsync(
         TUserId userId,
         CancellationToken ct = default)
     {
-        return _userStore.DeleteAsync(userId, ct);
+        await _userStore.DeleteAsync(userId, ct);
+    }
+
+    public async Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(
+        string? tenantId,
+        string identifier,
+        string secret,
+        CancellationToken cancellationToken = default)
+    {
+        return await _authenticator.AuthenticateAsync(
+            tenantId,
+            identifier,
+            secret,
+            cancellationToken);
     }
 }
+

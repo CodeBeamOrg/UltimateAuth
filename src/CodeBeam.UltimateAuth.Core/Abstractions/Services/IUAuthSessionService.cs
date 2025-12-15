@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contexts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Models;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
@@ -38,9 +39,25 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
             ChainId chainId,
             DateTime at);
 
+        Task<ChainId?> ResolveChainIdAsync(
+            string? tenantId,
+            AuthSessionId sessionId);
+
+        Task RevokeAllChainsAsync(
+            string? tenantId,
+            TUserId userId,
+            ChainId? exceptChainId,
+            DateTime at);
+        
+        // Hard revoke - admin
         Task RevokeRootAsync(
             string? tenantId,
             TUserId userId,
             DateTime at);
+
+        Task<IssuedSession<TUserId>> IssueSessionAfterAuthenticationAsync(
+            string? tenantId,
+            AuthenticatedSessionContext<TUserId> context,
+            CancellationToken cancellationToken = default);
     }
 }

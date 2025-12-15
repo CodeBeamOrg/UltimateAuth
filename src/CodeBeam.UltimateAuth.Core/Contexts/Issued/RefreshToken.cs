@@ -4,7 +4,7 @@
     /// Represents an issued refresh token.
     /// Always opaque and hashed at rest.
     /// </summary>
-    public sealed class IssuedRefreshToken
+    public sealed class RefreshToken
     {
         /// <summary>
         /// Plain refresh token value (returned to client once).

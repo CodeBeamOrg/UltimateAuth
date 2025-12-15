@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contexts;
+using CodeBeam.UltimateAuth.Core.Models;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
@@ -8,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// </summary>
     public interface ITokenIssuer
     {
-        Task<IssuedAccessToken> IssueAccessTokenAsync(TokenIssueContext context, CancellationToken cancellationToken = default);
-        Task<IssuedRefreshToken?> IssueRefreshTokenAsync(TokenIssueContext context, CancellationToken cancellationToken = default);
+        Task<AccessToken> IssueAccessTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default);
+        Task<RefreshToken?> IssueRefreshTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default);
     }
 }

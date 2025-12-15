@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contexts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Models;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
@@ -28,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             _options = options.Value;
         }
 
-        public Task<IssuedAccessToken> IssueAccessTokenAsync(TokenIssueContext context, CancellationToken cancellationToken = default)
+        public Task<AccessToken> IssueAccessTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default)
         {
             var now = DateTimeOffset.UtcNow;
             var expires = now.Add(_options.Tokens.AccessTokenLifetime);
@@ -50,10 +51,10 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        public Task<IssuedRefreshToken?> IssueRefreshTokenAsync(TokenIssueContext context, CancellationToken cancellationToken = default)
+        public Task<RefreshToken?> IssueRefreshTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default)
         {
             if (_options.Mode == UAuthMode.PureOpaque)
-                return Task.FromResult<IssuedRefreshToken?>(null);
+                return Task.FromResult<RefreshToken?>(null);
 
             var now = DateTimeOffset.UtcNow;
             var expires = now.Add(_options.Tokens.RefreshTokenLifetime);
@@ -61,7 +62,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             string token = _opaqueGenerator.Generate();
             string hash = _tokenHasher.Hash(token);
 
-            return Task.FromResult<IssuedRefreshToken?>(new IssuedRefreshToken
+            return Task.FromResult<RefreshToken?>(new RefreshToken
             {
                 Token = token,
                 TokenHash = hash,
@@ -69,11 +70,11 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             });
         }
 
-        private IssuedAccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)
+        private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)
         {
             string token = _opaqueGenerator.Generate();
 
-            return new IssuedAccessToken
+            return new AccessToken
             {
                 Token = token,
                 Type = TokenType.Opaque,
@@ -82,7 +83,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        private IssuedAccessToken IssueJwtAccessToken(TokenIssueContext context, DateTimeOffset expires)
+        private AccessToken IssueJwtAccessToken(TokenIssuerContext context, DateTimeOffset expires)
         {
             var claims = new List<Claim>
             {
@@ -114,7 +115,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             string jwt = _jwtGenerator.CreateToken(descriptor);
 
-            return new IssuedAccessToken
+            return new AccessToken
             {
                 Token = jwt,
                 Type = TokenType.Jwt,

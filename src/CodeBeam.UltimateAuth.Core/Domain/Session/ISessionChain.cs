@@ -35,7 +35,7 @@
         /// Useful for offline clients, WASM apps, and environments where
         /// full user lookup cannot be performed on each request.
         /// </summary>
-        IReadOnlyDictionary<string, object>? ClaimsSnapshot { get; }
+        ClaimsSnapshot ClaimsSnapshot { get; }
 
         /// <summary>
         /// Gets the identifier of the currently active authentication session, if one exists.
@@ -53,6 +53,10 @@
         /// Gets the timestamp when the chain was revoked, if applicable.
         /// </summary>
         DateTime? RevokedAt { get; }
+
+        ISessionChain<TUserId> AttachSession(AuthSessionId sessionId);
+        ISessionChain<TUserId> RotateSession(AuthSessionId sessionId);
+        ISessionChain<TUserId> Revoke(DateTime at);
     }
 
 }

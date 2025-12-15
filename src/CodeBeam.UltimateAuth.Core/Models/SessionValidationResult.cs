@@ -2,34 +2,43 @@
 
 namespace CodeBeam.UltimateAuth.Core.Models
 {
-    /// <summary>
-    /// Represents the outcome of validating a session, including the resolved session,
-    /// its chain and root structures, and the computed validation state.
-    /// </summary>
-    /// <remarks>
-    /// Session, Chain and Root may be null if validation fails or if the session
-    /// does not exist. State always indicates the final resolved status.
-    /// </remarks>
     public sealed class SessionValidationResult<TUserId>
     {
-        /// <summary>
-        /// The resolved session instance, or null if the session was not found.
-        /// </summary>
-        public ISession<TUserId>? Session { get; init; }
+        public SessionState State { get; }
+        public ISession<TUserId>? Session { get; }
+        public ISessionChain<TUserId>? Chain { get; }
+        public ISessionRoot<TUserId>? Root { get; }
 
-        /// <summary>
-        /// The session chain that owns the session, or null if unavailable.
-        /// </summary>
-        public ISessionChain<TUserId>? Chain { get; init; }
+        private SessionValidationResult(
+        SessionState state,
+        ISession<TUserId>? session,
+        ISessionChain<TUserId>? chain,
+        ISessionRoot<TUserId>? root)
+        {
+            State = state;
+            Session = session;
+            Chain = chain;
+            Root = root;
+        }
 
-        /// <summary>
-        /// The session root associated with the user, or null if unavailable.
-        /// </summary>
-        public ISessionRoot<TUserId>? Root { get; init; }
+        public bool IsValid => State == SessionState.Active;
 
-        /// <summary>
-        /// The final computed validation state for the session.
-        /// </summary>
-        public SessionState State { get; init; }
+        public static SessionValidationResult<TUserId> Active(
+            ISession<TUserId> session,
+            ISessionChain<TUserId> chain,
+            ISessionRoot<TUserId> root)
+            => new(
+                SessionState.Active,
+                session,
+                chain,
+                root);
+
+        public static SessionValidationResult<TUserId> Invalid(
+            SessionState state)
+            => new(
+                state,
+                session: null,
+                chain: null,
+                root: null);
     }
 }
