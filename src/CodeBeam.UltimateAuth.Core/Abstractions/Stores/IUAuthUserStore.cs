@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Users;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {

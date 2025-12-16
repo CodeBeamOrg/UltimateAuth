@@ -1,8 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contexts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Models;
-using CodeBeam.UltimateAuth.Server.Sessions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
@@ -10,8 +9,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
     {
         private readonly ISessionOrchestrator<TUserId> _orchestrator;
 
-        public UAuthSessionService(
-            ISessionOrchestrator<TUserId> orchestrator)
+        public UAuthSessionService(ISessionOrchestrator<TUserId> orchestrator)
         {
             _orchestrator = orchestrator;
         }

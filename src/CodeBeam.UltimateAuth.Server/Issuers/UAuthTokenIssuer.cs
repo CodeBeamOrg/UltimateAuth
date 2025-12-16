@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contexts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Models;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
@@ -29,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             _options = options.Value;
         }
 
-        public Task<AccessToken> IssueAccessTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default)
+        public Task<AccessToken> IssueAccessTokenAsync(TokenIssuanceContext context, CancellationToken cancellationToken = default)
         {
             var now = DateTimeOffset.UtcNow;
             var expires = now.Add(_options.Tokens.AccessTokenLifetime);
@@ -51,7 +51,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        public Task<RefreshToken?> IssueRefreshTokenAsync(TokenIssuerContext context, CancellationToken cancellationToken = default)
+        public Task<RefreshToken?> IssueRefreshTokenAsync(TokenIssuanceContext context, CancellationToken cancellationToken = default)
         {
             if (_options.Mode == UAuthMode.PureOpaque)
                 return Task.FromResult<RefreshToken?>(null);
@@ -83,7 +83,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        private AccessToken IssueJwtAccessToken(TokenIssuerContext context, DateTimeOffset expires)
+        private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, DateTimeOffset expires)
         {
             var claims = new List<Claim>
             {

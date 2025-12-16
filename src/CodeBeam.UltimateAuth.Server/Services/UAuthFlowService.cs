@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contexts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Models;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {

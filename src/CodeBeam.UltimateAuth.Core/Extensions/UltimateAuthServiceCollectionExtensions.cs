@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Core.Utilities;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Extensions

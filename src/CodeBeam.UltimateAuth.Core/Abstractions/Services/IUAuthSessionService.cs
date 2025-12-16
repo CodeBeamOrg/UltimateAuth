@@ -1,6 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contexts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Models;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
@@ -10,54 +9,25 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// <typeparam name="TUserId">The type used to uniquely identify the user.</typeparam>
     public interface IUAuthSessionService<TUserId>
     {
-        // ---------- READ ----------
-        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(
-            string? tenantId,
-            AuthSessionId sessionId,
-            DateTime now);
+        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
 
-        Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(
-            string? tenantId,
-            TUserId userId);
+        Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(string? tenantId, TUserId userId);
 
-        Task<IReadOnlyList<ISession<TUserId>>> GetSessionsAsync(
-            string? tenantId,
-            ChainId chainId);
+        Task<IReadOnlyList<ISession<TUserId>>> GetSessionsAsync(string? tenantId, ChainId chainId);
 
-        Task<ISession<TUserId>?> GetCurrentSessionAsync(
-            string? tenantId,
-            AuthSessionId sessionId);
+        Task<ISession<TUserId>?> GetCurrentSessionAsync(string? tenantId, AuthSessionId sessionId);
 
-        // ---------- WRITE / REVOKE ----------
-        Task RevokeSessionAsync(
-            string? tenantId,
-            AuthSessionId sessionId,
-            DateTime at);
+        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
 
-        Task RevokeChainAsync(
-            string? tenantId,
-            ChainId chainId,
-            DateTime at);
+        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTime at);
 
-        Task<ChainId?> ResolveChainIdAsync(
-            string? tenantId,
-            AuthSessionId sessionId);
+        Task<ChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId);
 
-        Task RevokeAllChainsAsync(
-            string? tenantId,
-            TUserId userId,
-            ChainId? exceptChainId,
-            DateTime at);
+        Task RevokeAllChainsAsync(string? tenantId, TUserId userId, ChainId? exceptChainId, DateTime at);
         
         // Hard revoke - admin
-        Task RevokeRootAsync(
-            string? tenantId,
-            TUserId userId,
-            DateTime at);
+        Task RevokeRootAsync(string? tenantId, TUserId userId, DateTime at);
 
-        Task<IssuedSession<TUserId>> IssueSessionAfterAuthenticationAsync(
-            string? tenantId,
-            AuthenticatedSessionContext<TUserId> context,
-            CancellationToken cancellationToken = default);
+        Task<IssuedSession<TUserId>> IssueSessionAfterAuthenticationAsync(string? tenantId, AuthenticatedSessionContext<TUserId> context, CancellationToken cancellationToken = default);
     }
 }

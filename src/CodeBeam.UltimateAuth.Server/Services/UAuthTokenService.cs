@@ -1,8 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contexts;
-using CodeBeam.UltimateAuth.Core.Models;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
@@ -48,9 +47,9 @@ namespace CodeBeam.UltimateAuth.Server.Services
             CancellationToken ct = default)
             => await _validator.ValidateAsync<TUserId>(token, type, ct);
 
-        private TokenIssuerContext ToIssuerContext(TokenIssueContext<TUserId> src)
+        private TokenIssuanceContext ToIssuerContext(TokenIssueContext<TUserId> src)
         {
-            return new TokenIssuerContext
+            return new TokenIssuanceContext
             {
                 UserId = _userIdConverter.ToString(src.Session.UserId),
                 TenantId = src.TenantId,

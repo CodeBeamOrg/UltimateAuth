@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
     /// <summary>
     /// Represents metadata describing the device or client environment initiating

@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Server.Users;
+﻿using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Middlewares

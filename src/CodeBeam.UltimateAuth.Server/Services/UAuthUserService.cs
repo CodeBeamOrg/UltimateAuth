@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Models;
-using CodeBeam.UltimateAuth.Core.Users;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Users;
 

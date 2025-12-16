@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Models;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {

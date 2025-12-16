@@ -1,5 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Sessions;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Middlewares
