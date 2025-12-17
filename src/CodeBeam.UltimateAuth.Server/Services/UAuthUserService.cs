@@ -46,7 +46,7 @@ internal sealed class UAuthUserService<TUserId> : IUAuthUserService<TUserId>
                 Id = userId,
                 Username = request.Identifier,
                 PasswordHash = hash,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             },
             ct);
 

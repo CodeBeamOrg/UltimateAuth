@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public string? TenantId { get; init; }
         public required TUserId UserId { get; init; }
         public DeviceInfo DeviceInfo { get; init; }
-        public DateTime Now { get; init; }
+        public DateTimeOffset Now { get; init; }
         public ClaimsSnapshot? Claims { get; init; }
         public SessionMetadata Metadata { get; init; }
 

@@ -9,6 +9,12 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     public interface ISessionStoreKernel<TUserId>
     {
         /// <summary>
+        /// Executes multiple store operations as a single atomic unit.
+        /// Implementations must ensure transactional consistency where supported.
+        /// </summary>
+        Task ExecuteAsync(Func<Task> action);
+
+        /// <summary>
         /// Retrieves a session by its identifier within the given tenant context.
         /// </summary>
         /// <param name="tenantId">The tenant identifier, or <c>null</c> for single-tenant mode.</param>
@@ -31,7 +37,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
         /// <param name="sessionId">The session identifier.</param>
         /// <param name="at">The UTC timestamp of revocation.</param>
-        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
+        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at);
         
         /// <summary>
         /// Returns all sessions belonging to the specified chain, ordered according to store implementation rules.
@@ -62,7 +68,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
         /// <param name="chainId">The chain to revoke.</param>
         /// <param name="at">The UTC timestamp of revocation.</param>
-        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTime at);
+        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTimeOffset at);
 
         /// <summary>
         /// Retrieves the active session identifier for the specified chain.  
@@ -112,14 +118,14 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
         /// <param name="userId">The user whose root should be revoked.</param>
         /// <param name="at">The UTC timestamp of revocation.</param>
-        Task RevokeSessionRootAsync(string? tenantId, TUserId userId, DateTime at);
+        Task RevokeSessionRootAsync(string? tenantId, TUserId userId, DateTimeOffset at);
 
         /// <summary>
         /// Removes expired sessions from the store while leaving chains and session roots intact. Cleanup strategy is determined by the store implementation.
         /// </summary>
         /// <param name="tenantId">The tenant identifier, or <c>null</c>.</param>
         /// <param name="now">The current UTC timestamp.</param>
-        Task DeleteExpiredSessionsAsync(string? tenantId, DateTime now);
+        Task DeleteExpiredSessionsAsync(string? tenantId, DateTimeOffset at);
 
         /// <summary>
         /// Retrieves the chain identifier associated with the specified session.
@@ -128,11 +134,5 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// <param name="sessionId">The session identifier.</param>
         /// <returns>The chain identifier or <c>null</c>.</returns>
         Task<ChainId?> GetChainIdBySessionAsync(string? tenantId, AuthSessionId sessionId);
-
-        /// <summary>
-        /// Executes multiple store operations as a single atomic unit.
-        /// Implementations must ensure transactional consistency where supported.
-        /// </summary>
-        Task ExecuteAsync(Func<Task> action);
     }
 }

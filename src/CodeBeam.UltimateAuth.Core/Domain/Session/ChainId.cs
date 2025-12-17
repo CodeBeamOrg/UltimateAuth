@@ -41,6 +41,10 @@
         /// <returns><c>true</c> if the object is a <see cref="ChainId"/> with the same value.</returns>
         public override bool Equals(object? obj) => obj is ChainId other && Equals(other);
 
+        public static bool operator ==(ChainId left, ChainId right) => left.Equals(right);
+
+        public static bool operator !=(ChainId left, ChainId right) => !left.Equals(right);
+
         /// <summary>
         /// Returns a hash code based on the underlying GUID value.
         /// </summary>

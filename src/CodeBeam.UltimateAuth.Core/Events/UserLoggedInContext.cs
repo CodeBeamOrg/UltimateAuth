@@ -28,12 +28,12 @@
         /// <summary>
         /// Gets the timestamp at which the login event occurred.
         /// </summary>
-        public DateTime LoggedInAt { get; }
+        public DateTimeOffset LoggedInAt { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserLoggedInContext{TUserId}"/> class.
         /// </summary>
-        public UserLoggedInContext(TUserId userId, DateTime at)
+        public UserLoggedInContext(TUserId userId, DateTimeOffset at)
         {
             UserId = userId;
             LoggedInAt = at;

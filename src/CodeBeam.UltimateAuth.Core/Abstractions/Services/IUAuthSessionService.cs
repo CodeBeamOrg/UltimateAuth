@@ -9,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// <typeparam name="TUserId">The type used to uniquely identify the user.</typeparam>
     public interface IUAuthSessionService<TUserId>
     {
-        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
+        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at);
 
         Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsAsync(string? tenantId, TUserId userId);
 
@@ -17,16 +17,16 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 
         Task<ISession<TUserId>?> GetCurrentSessionAsync(string? tenantId, AuthSessionId sessionId);
 
-        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTime at);
+        Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at);
 
-        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTime at);
+        Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTimeOffset at);
 
         Task<ChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId);
 
-        Task RevokeAllChainsAsync(string? tenantId, TUserId userId, ChainId? exceptChainId, DateTime at);
+        Task RevokeAllChainsAsync(string? tenantId, TUserId userId, ChainId? exceptChainId, DateTimeOffset at);
         
         // Hard revoke - admin
-        Task RevokeRootAsync(string? tenantId, TUserId userId, DateTime at);
+        Task RevokeRootAsync(string? tenantId, TUserId userId, DateTimeOffset at);
 
         Task<IssuedSession<TUserId>> IssueSessionAfterAuthenticationAsync(string? tenantId, AuthenticatedSessionContext<TUserId> context, CancellationToken cancellationToken = default);
     }

@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
         public bool RequiresMfa { get; init; }
         public bool IsActive { get; init; } = true;
-        public DateTime CreatedAt { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
         public bool IsDeleted { get; init; }
     }
 }

@@ -12,26 +12,30 @@
         /// </summary>
         AuthSessionId SessionId { get; }
 
+        string? TenantId { get; }
+
         /// <summary>
         /// Gets the identifier of the user who owns this session.
         /// </summary>
         TUserId UserId { get; }
 
+        ChainId ChainId { get; }
+
         /// <summary>
         /// Gets the timestamp when this session was originally created.
         /// </summary>
-        DateTime CreatedAt { get; }
+        DateTimeOffset CreatedAt { get; }
 
         /// <summary>
         /// Gets the timestamp when the session becomes invalid due to expiration.
         /// </summary>
-        DateTime ExpiresAt { get; }
+        DateTimeOffset ExpiresAt { get; }
 
         /// <summary>
         /// Gets the timestamp of the last successful usage.
         /// Used when evaluating sliding expiration policies.
         /// </summary>
-        DateTime? LastSeenAt { get; }
+        DateTimeOffset? LastSeenAt { get; }
 
         /// <summary>
         /// Gets a value indicating whether this session has been explicitly revoked.
@@ -41,7 +45,7 @@
         /// <summary>
         /// Gets the timestamp when the session was revoked, if applicable.
         /// </summary>
-        DateTime? RevokedAt { get; }
+        DateTimeOffset? RevokedAt { get; }
 
         /// <summary>
         /// Gets the user's security version at the moment of session creation.
@@ -70,10 +74,10 @@
         /// </summary>
         /// <param name="now">Current timestamp used for comparisons.</param>
         /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
-        SessionState GetState(DateTime now);
+        SessionState GetState(DateTimeOffset now);
 
-        bool ShouldUpdateLastSeen(DateTime now);
-        ISession<TUserId> Touch(DateTime now);
+        bool ShouldUpdateLastSeen(DateTimeOffset now);
+        ISession<TUserId> Touch(DateTimeOffset now);
 
     }
 }

@@ -5,19 +5,19 @@
         public TUserId UserId { get; }
         public string? TenantId { get; }
         public bool IsRevoked { get; }
-        public DateTime? RevokedAt { get; }
+        public DateTimeOffset? RevokedAt { get; }
         public long SecurityVersion { get; }
         public IReadOnlyList<ISessionChain<TUserId>> Chains { get; }
-        public DateTime LastUpdatedAt { get; }
+        public DateTimeOffset LastUpdatedAt { get; }
 
         private UAuthSessionRoot(
             string? tenantId,
             TUserId userId,
             bool isRevoked,
-            DateTime? revokedAt,
+            DateTimeOffset? revokedAt,
             long securityVersion,
             IReadOnlyList<ISessionChain<TUserId>> chains,
-            DateTime lastUpdatedAt)
+            DateTimeOffset lastUpdatedAt)
         {
             TenantId = tenantId;
             UserId = userId;
@@ -28,10 +28,10 @@
             LastUpdatedAt = lastUpdatedAt;
         }
 
-        public static UAuthSessionRoot<TUserId> Create(
+        public static ISessionRoot<TUserId> Create(
             string? tenantId,
             TUserId userId,
-            DateTime issuedAt)
+            DateTimeOffset issuedAt)
         {
             return new UAuthSessionRoot<TUserId>(
                 tenantId,
@@ -44,7 +44,7 @@
             );
         }
 
-        public UAuthSessionRoot<TUserId> Revoke(DateTime at)
+        public ISessionRoot<TUserId> Revoke(DateTimeOffset at)
         {
             if (IsRevoked)
                 return this;
@@ -57,6 +57,22 @@
                 securityVersion: SecurityVersion,
                 chains: Chains,
                 lastUpdatedAt: at
+            );
+        }
+
+        public ISessionRoot<TUserId> AttachChain(ISessionChain<TUserId> chain, DateTimeOffset at)
+        {
+            if (IsRevoked)
+                return this;
+
+            return new UAuthSessionRoot<TUserId>(
+                TenantId,
+                UserId,
+                IsRevoked,
+                RevokedAt,
+                SecurityVersion,
+                Chains.Concat(new[] { chain }).ToArray(),
+                at
             );
         }
 

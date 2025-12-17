@@ -9,6 +9,6 @@
 
         public bool IsEmailConfirmed { get; init; }
 
-        public DateTime CreatedAt { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
     }
 }

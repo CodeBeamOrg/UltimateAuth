@@ -47,7 +47,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
         public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
-            var now = request.At ?? DateTime.UtcNow;
+            var at = request.At ?? DateTimeOffset.UtcNow;
             var device = request.DeviceInfo ?? DeviceInfo.Unknown;
 
             var authResult = await _users.AuthenticateAsync(request.TenantId, request.Identifier, request.Secret, ct);
@@ -62,7 +62,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 {
                     TenantId = request.TenantId,
                     UserId = authResult.UserId!,
-                    Now = now,
+                    Now = at,
                     DeviceInfo = device,
                     Claims = authResult.Claims,
                     ChainId = request.ChainId
@@ -77,7 +77,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                     {
                         TenantId = request.TenantId,
                         Session = sessionResult.Session,
-                        Now = now
+                        At = at
                     },
                     ct);
             }
@@ -87,13 +87,13 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
         public async Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
         {
-            var at = request.At ?? DateTime.UtcNow;
+            var at = request.At ?? DateTimeOffset.UtcNow;
             await _sessions.RevokeSessionAsync(request.TenantId, request.SessionId, at);
         }
 
         public async Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default)
         {
-            var at = request.At ?? DateTime.UtcNow;
+            var at = request.At ?? DateTimeOffset.UtcNow;
 
             if (request.CurrentSessionId is null)
                 throw new InvalidOperationException(

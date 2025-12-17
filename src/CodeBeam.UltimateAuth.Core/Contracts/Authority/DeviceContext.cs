@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Core.Contracts
 {
     public sealed record DeviceContext
     {
@@ -11,6 +13,16 @@
         public string? Platform { get; init; }
 
         public string? UserAgent { get; init; }
+
+        public static DeviceContext From(DeviceInfo info)
+        {
+            return new DeviceContext
+            {
+                DeviceId = info.DeviceId,
+                Platform = info.Platform,
+                UserAgent = info.UserAgent
+            };
+        }
     }
 
 }

@@ -8,6 +8,6 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         public string? TenantId { get; init; }
         public IReadOnlyCollection<Claim> Claims { get; init; } = Array.Empty<Claim>();
         public string? SessionId { get; init; }
-        public DateTime IssuedAt { get; init; }
+        public DateTimeOffset IssuedAt { get; init; }
     }
 }

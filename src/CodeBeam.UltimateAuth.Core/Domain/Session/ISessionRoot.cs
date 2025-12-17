@@ -29,7 +29,7 @@
         /// <summary>
         /// Gets the timestamp when the session root was revoked, if applicable.
         /// </summary>
-        DateTime? RevokedAt { get; }
+        DateTimeOffset? RevokedAt { get; }
 
         /// <summary>
         /// Gets the current security version of the user within this tenant.
@@ -49,6 +49,10 @@
         /// Gets the timestamp when this root structure was last updated.
         /// Useful for caching, concurrency handling, and incremental synchronization.
         /// </summary>
-        DateTime LastUpdatedAt { get; }
+        DateTimeOffset LastUpdatedAt { get; }
+
+        ISessionRoot<TUserId> AttachChain(ISessionChain<TUserId> chain, DateTimeOffset at);
+
+        ISessionRoot<TUserId> Revoke(DateTimeOffset at);
     }
 }

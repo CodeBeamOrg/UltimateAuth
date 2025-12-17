@@ -12,7 +12,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public AuthSessionId? SessionId { get; init; }
         public IReadOnlyCollection<Claim> Claims { get; init; } = Array.Empty<Claim>();
         public TokenInvalidReason? InvalidReason { get; init; }
-        public DateTime? ExpiresAt { get; set; }
+        public DateTimeOffset? ExpiresAt { get; set; }
 
         private TokenValidationResult(
             bool isValid,
@@ -22,7 +22,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
             AuthSessionId? sessionId,
             IReadOnlyCollection<Claim>? claims,
             TokenInvalidReason? invalidReason,
-            DateTime? expiresAt
+            DateTimeOffset? expiresAt
             )
         {
             IsValid = isValid;
@@ -40,7 +40,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
             TUserId userId,
             AuthSessionId? sessionId,
             IReadOnlyCollection<Claim> claims,
-            DateTime? expiresAt)
+            DateTimeOffset? expiresAt)
             => new(
                 isValid: true,
                 type,

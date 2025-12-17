@@ -6,6 +6,6 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     {
         public string? TenantId { get; init; }
         public ISession<TUserId> Session { get; init; } = default!;
-        public DateTime Now { get; init; }
+        public DateTimeOffset At { get; init; }
     }
 }

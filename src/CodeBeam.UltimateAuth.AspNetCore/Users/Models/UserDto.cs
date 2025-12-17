@@ -10,7 +10,7 @@
         public bool IsActive { get; init; }
         public bool IsEmailConfirmed { get; init; }
 
-        public DateTime CreatedAt { get; init; }
-        public DateTime? LastLoginAt { get; init; }
+        public DateTimeOffset CreatedAt { get; init; }
+        public DateTimeOffset? LastLoginAt { get; init; }
     }
 }

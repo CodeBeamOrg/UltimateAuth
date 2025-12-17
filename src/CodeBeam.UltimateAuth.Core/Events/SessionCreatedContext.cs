@@ -32,12 +32,12 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the timestamp on which the session was created.
         /// </summary>
-        public DateTime CreatedAt { get; }
+        public DateTimeOffset CreatedAt { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionCreatedContext{TUserId}"/> class.
         /// </summary>
-        public SessionCreatedContext(TUserId userId, AuthSessionId sessionId, ChainId chainId, DateTime createdAt)
+        public SessionCreatedContext(TUserId userId, AuthSessionId sessionId, ChainId chainId, DateTimeOffset createdAt)
         {
             UserId = userId;
             SessionId = sessionId;

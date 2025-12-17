@@ -27,12 +27,12 @@
         /// <summary>
         /// Gets the timestamp at which the logout occurred.
         /// </summary>
-        public DateTime LoggedOutAt { get; }
+        public DateTimeOffset LoggedOutAt { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserLoggedOutContext{TUserId}"/> class.
         /// </summary>
-        public UserLoggedOutContext(TUserId userId, DateTime at)
+        public UserLoggedOutContext(TUserId userId, DateTimeOffset at)
         {
             UserId = userId;
             LoggedOutAt = at;

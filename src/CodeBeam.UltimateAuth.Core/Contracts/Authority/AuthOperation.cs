@@ -6,6 +6,7 @@
         Access,
         Refresh,
         Revoke,
-        Logout
+        Logout,
+        System
     }
 }

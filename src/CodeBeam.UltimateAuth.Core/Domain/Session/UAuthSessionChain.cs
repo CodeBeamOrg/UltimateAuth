@@ -10,7 +10,7 @@
         public ClaimsSnapshot ClaimsSnapshot { get; }
         public AuthSessionId? ActiveSessionId { get; }
         public bool IsRevoked { get; }
-        public DateTime? RevokedAt { get; }
+        public DateTimeOffset? RevokedAt { get; }
 
         private UAuthSessionChain(
             ChainId chainId,
@@ -21,7 +21,7 @@
             ClaimsSnapshot claimsSnapshot,
             AuthSessionId? activeSessionId,
             bool isRevoked,
-            DateTime? revokedAt)
+            DateTimeOffset? revokedAt)
         {
             ChainId = chainId;
             TenantId = tenantId;
@@ -90,7 +90,7 @@
             );
         }
 
-        public ISessionChain<TUserId> Revoke(DateTime at)
+        public ISessionChain<TUserId> Revoke(DateTimeOffset at)
         {
             if (IsRevoked)
                 return this;

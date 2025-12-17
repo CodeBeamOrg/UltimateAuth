@@ -5,11 +5,12 @@
         public AuthSessionId SessionId { get; }
         public string? TenantId { get; }
         public TUserId UserId { get; }
-        public DateTime CreatedAt { get; }
-        public DateTime ExpiresAt { get; }
-        public DateTime? LastSeenAt { get; }
+        public ChainId ChainId { get; }
+        public DateTimeOffset CreatedAt { get; }
+        public DateTimeOffset ExpiresAt { get; }
+        public DateTimeOffset? LastSeenAt { get; }
         public bool IsRevoked { get; }
-        public DateTime? RevokedAt { get; }
+        public DateTimeOffset? RevokedAt { get; }
         public long SecurityVersionAtCreation { get; }
         public DeviceInfo Device { get; }
         public ClaimsSnapshot Claims { get; }
@@ -19,11 +20,12 @@
         AuthSessionId sessionId,
         string? tenantId,
         TUserId userId,
-        DateTime createdAt,
-        DateTime expiresAt,
-        DateTime? lastSeenAt,
+        ChainId chainId,
+        DateTimeOffset createdAt,
+        DateTimeOffset expiresAt,
+        DateTimeOffset? lastSeenAt,
         bool isRevoked,
-        DateTime? revokedAt,
+        DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
         DeviceInfo device,
         ClaimsSnapshot claims,
@@ -32,6 +34,7 @@
             SessionId = sessionId;
             TenantId = tenantId;
             UserId = userId;
+            ChainId = chainId;
             CreatedAt = createdAt;
             ExpiresAt = expiresAt;
             LastSeenAt = lastSeenAt;
@@ -47,8 +50,9 @@
             AuthSessionId sessionId,
             string? tenantId,
             TUserId userId,
-            DateTime now,
-            DateTime expiresAt,
+            ChainId chainId,
+            DateTimeOffset now,
+            DateTimeOffset expiresAt,
             DeviceInfo device,
             ClaimsSnapshot claims,
             SessionMetadata metadata)
@@ -57,6 +61,7 @@
                 sessionId,
                 tenantId,
                 userId,
+                chainId,
                 createdAt: now,
                 expiresAt: expiresAt,
                 lastSeenAt: now,
@@ -78,6 +83,7 @@
                 SessionId,
                 TenantId,
                 UserId,
+                ChainId,
                 CreatedAt,
                 ExpiresAt,
                 LastSeenAt,
@@ -90,26 +96,27 @@
             );
         }
 
-        public bool ShouldUpdateLastSeen(DateTime now)
+        public bool ShouldUpdateLastSeen(DateTimeOffset at)
         {
             if (LastSeenAt is null)
                 return true;
 
-            return (now - LastSeenAt.Value) >= TimeSpan.FromMinutes(1);
+            return (at - LastSeenAt.Value) >= TimeSpan.FromMinutes(1);
         }
 
-        public ISession<TUserId> Touch(DateTime now)
+        public ISession<TUserId> Touch(DateTimeOffset at)
         {
-            if (!ShouldUpdateLastSeen(now))
+            if (!ShouldUpdateLastSeen(at))
                 return this;
 
             return new UAuthSession<TUserId>(
                 SessionId,
                 TenantId,
                 UserId,
+                ChainId,
                 CreatedAt,
                 ExpiresAt,
-                now,
+                at,
                 IsRevoked,
                 RevokedAt,
                 SecurityVersionAtCreation,
@@ -119,7 +126,7 @@
             );
         }
 
-        public UAuthSession<TUserId> Revoke(DateTime at)
+        public UAuthSession<TUserId> Revoke(DateTimeOffset at)
         {
             if (IsRevoked) return this;
 
@@ -127,6 +134,7 @@
                 SessionId,
                 TenantId,
                 UserId,
+                ChainId,
                 CreatedAt,
                 ExpiresAt,
                 LastSeenAt,
@@ -139,10 +147,10 @@
             );
         }
 
-        public SessionState GetState(DateTime now)
+        public SessionState GetState(DateTimeOffset at)
         {
             if (IsRevoked) return SessionState.Revoked;
-            if (now >= ExpiresAt) return SessionState.Expired;
+            if (at >= ExpiresAt) return SessionState.Expired;
             return SessionState.Active;
         }
     }

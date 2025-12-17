@@ -13,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Core.Domain
 
         public required string Audience { get; init; }
 
-        public required DateTime Expires { get; init; }
+        public required DateTimeOffset Expires { get; init; }
 
         /// <summary>
         /// Signing key material (symmetric or asymmetric).

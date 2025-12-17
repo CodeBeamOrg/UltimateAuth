@@ -38,7 +38,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the timestamp at which the refresh occurred.
         /// </summary>
-        public DateTime RefreshedAt { get; }
+        public DateTimeOffset RefreshedAt { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionRefreshedContext{TUserId}"/> class.
@@ -48,7 +48,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
             AuthSessionId oldSessionId,
             AuthSessionId newSessionId,
             ChainId chainId,
-            DateTime refreshedAt)
+            DateTimeOffset refreshedAt)
         {
             UserId = userId;
             OldSessionId = oldSessionId;

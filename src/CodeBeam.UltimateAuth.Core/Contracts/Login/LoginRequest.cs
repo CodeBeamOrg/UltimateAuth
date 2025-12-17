@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public string? TenantId { get; init; }
         public string Identifier { get; init; } = default!; // username, email etc.
         public string Secret { get; init; } = default!;     // password
-        public DateTime? At { get; init; }
+        public DateTimeOffset? At { get; init; }
         public DeviceInfo DeviceInfo { get; init; }
         public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 

@@ -36,7 +36,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the timestamp at which the session revocation occurred.
         /// </summary>
-        public DateTime RevokedAt { get; }
+        public DateTimeOffset RevokedAt { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionRevokedContext{TUserId}"/> class.
@@ -45,7 +45,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
             TUserId userId,
             AuthSessionId sessionId,
             ChainId chainId,
-            DateTime revokedAt)
+            DateTimeOffset revokedAt)
         {
             UserId = userId;
             SessionId = sessionId;

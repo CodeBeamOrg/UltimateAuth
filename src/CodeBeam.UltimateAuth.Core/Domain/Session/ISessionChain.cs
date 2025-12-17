@@ -52,11 +52,11 @@
         /// <summary>
         /// Gets the timestamp when the chain was revoked, if applicable.
         /// </summary>
-        DateTime? RevokedAt { get; }
+        DateTimeOffset? RevokedAt { get; }
 
         ISessionChain<TUserId> AttachSession(AuthSessionId sessionId);
         ISessionChain<TUserId> RotateSession(AuthSessionId sessionId);
-        ISessionChain<TUserId> Revoke(DateTime at);
+        ISessionChain<TUserId> Revoke(DateTimeOffset at);
     }
 
 }

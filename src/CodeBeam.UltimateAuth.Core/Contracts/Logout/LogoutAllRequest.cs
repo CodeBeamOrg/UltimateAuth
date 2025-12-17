@@ -17,7 +17,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         /// </summary>
         public bool ExceptCurrent { get; init; }
 
-        public DateTime? At { get; init; }
+        public DateTimeOffset? At { get; init; }
     }
 
 }

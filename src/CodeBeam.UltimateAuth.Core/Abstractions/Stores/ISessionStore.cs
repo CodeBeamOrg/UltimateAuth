@@ -37,7 +37,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         Task RevokeSessionAsync(
             string? tenantId,
             AuthSessionId sessionId,
-            DateTime at);
+            DateTimeOffset at);
 
         /// <summary>
         /// Revokes all sessions for a specific user (all devices).
@@ -45,7 +45,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         Task RevokeAllSessionsAsync(
             string? tenantId,
             TUserId userId,
-            DateTime at);
+            DateTimeOffset at);
 
         /// <summary>
         /// Revokes all sessions within a specific chain (single device).
@@ -53,6 +53,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         Task RevokeChainAsync(
             string? tenantId,
             ChainId chainId,
-            DateTime at);
+            DateTimeOffset at);
     }
 }
