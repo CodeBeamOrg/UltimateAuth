@@ -1,7 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using Microsoft.AspNetCore.Http;
 
@@ -30,7 +32,8 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         if (request is null)
             return Results.BadRequest("Invalid login request.");
 
-        var tenantCtx = await _tenantResolver.ResolveAsync(ctx);
+        // Middleware should have already resolved the tenant
+        var tenantCtx = ctx.GetTenantContext();
 
         var flowRequest = request with
         {
@@ -43,18 +46,21 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
         return result.Status switch
         {
-            LoginStatus.Success => Results.Ok(new
+            LoginStatus.Success => Results.Ok(new LoginResponse
             {
-                sessionId = result.SessionId,
-                accessToken = result.AccessToken,
-                refreshToken = result.RefreshToken
+                SessionId = result.SessionId,
+                AccessToken = result.AccessToken,
+                RefreshToken = result.RefreshToken
             }),
 
-            LoginStatus.RequiresContinuation => Results.Accepted(null, result.Continuation),
+            LoginStatus.RequiresContinuation => Results.Ok(new LoginResponse
+            {
+                Continuation = result.Continuation
+            }),
 
             LoginStatus.Failed => Results.Unauthorized(),
 
-            _ => Results.StatusCode(500)
+            _ => Results.StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
 }

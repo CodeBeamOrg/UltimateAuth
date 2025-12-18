@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
@@ -22,11 +23,11 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// Validates a provided refresh token against the stored hash.
         /// Returns true if valid and not expired or revoked.
         /// </summary>
-        Task<bool> ValidateRefreshTokenAsync(
+        Task<RefreshTokenValidationResult<TUserId>> ValidateRefreshTokenAsync(
             string? tenantId,
-            TUserId userId,
-            AuthSessionId sessionId,
-            string providedRefreshToken);
+            string providedRefreshToken,
+            DateTimeOffset now);
+
 
         /// <summary>
         /// Revokes the refresh token associated with the specified session.
