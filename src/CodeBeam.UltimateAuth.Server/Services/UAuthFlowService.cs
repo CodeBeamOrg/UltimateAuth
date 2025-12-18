@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Services
@@ -12,6 +13,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
         private readonly ISessionOrchestrator<TUserId> _orchestrator;
         private readonly ISessionQueryService<TUserId> _queries;
         private readonly ITokenIssuer _tokens;
+        private readonly ITokenStore<TUserId> _tokenStore;
         private readonly IRefreshTokenResolver<TUserId> _refreshTokens;
 
         public UAuthFlowService(
@@ -19,12 +21,14 @@ namespace CodeBeam.UltimateAuth.Server.Services
             ISessionOrchestrator<TUserId> orchestrator,
             ISessionQueryService<TUserId> queries,
             ITokenIssuer tokens,
+            ITokenStore<TUserId> tokenStore,
             IRefreshTokenResolver<TUserId> refreshTokens)
         {
             _users = users;
             _orchestrator = orchestrator;
             _queries = queries;
             _tokens = tokens;
+            _tokenStore = tokenStore;
             _refreshTokens = refreshTokens;
         }
 
@@ -181,43 +185,63 @@ namespace CodeBeam.UltimateAuth.Server.Services
         public async Task<SessionRefreshResult> RefreshSessionAsync(SessionRefreshRequest request, CancellationToken ct = default)
         {
             var now = DateTimeOffset.UtcNow;
-            var resolved = await _refreshTokens.ResolveAsync(request.TenantId, request.RefreshToken, now, ct);
 
-            if (resolved is null)
-                return SessionRefreshResult.Invalid();
+            // Validate refresh token (STORE is authority)
+            var validation = await _tokenStore.ValidateRefreshTokenAsync(
+                request.TenantId,
+                request.RefreshToken,
+                now);
 
-            if (!resolved.IsValid)
+            if (!validation.IsValid)
             {
-                // TODO: Add reuse detection handling here
-                //if (resolved.IsReuseDetected)
-                //{
-                //    await _sessions.RevokeChainAsync(
-                //        tenantId,
-                //        resolved.Chain!.ChainId,
-                //        now);
-                //}
+                if (validation.IsReuseDetected && validation.SessionId is not null)
+                {
+                    var chainId = await _queries.ResolveChainIdAsync(
+                        request.TenantId,
+                        validation.SessionId.Value,
+                        ct);
 
-                //return SessionRefreshResult.ReauthRequired();
+                    if (chainId is not null)
+                    {
+                        var authContext = AuthContext.System(
+                            request.TenantId,
+                            AuthOperation.Revoke,
+                            now);
+
+                        await _orchestrator.ExecuteAsync(
+                            authContext,
+                            new RevokeChainCommand<TUserId>(chainId.Value),
+                            ct);
+                    }
+                }
+
+                return SessionRefreshResult.ReauthRequired();
             }
 
-            var session = resolved.Session;
+            var session = await _queries.GetSessionAsync(request.TenantId, validation.SessionId!.Value);
+
+            if (session is null)
+                return SessionRefreshResult.ReauthRequired();
 
             var rotationContext = new SessionRotationContext<TUserId>
             {
                 TenantId = request.TenantId,
-                CurrentSessionId = session.SessionId,
-                UserId = session.UserId,
+                CurrentSessionId = validation.SessionId!.Value,
+                UserId = validation.UserId!,
                 Now = now
             };
 
-            var authContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Refresh, now, DeviceContext.From(session.Device));
+            var refreshAuthContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Refresh, now, DeviceContext.From(session.Device));
 
-            var issuedSession = await _orchestrator.ExecuteAsync(authContext, new RotateSessionCommand<TUserId>(rotationContext), ct);
+            var issuedSession = await _orchestrator.ExecuteAsync(
+                refreshAuthContext,
+                new RotateSessionCommand<TUserId>(rotationContext),
+                ct);
 
             var tokenContext = new TokenIssuanceContext
             {
                 TenantId = request.TenantId,
-                UserId = session.UserId!.ToString()!,
+                UserId = validation.UserId!.ToString()!,
                 SessionId = issuedSession.Session.SessionId
             };
 

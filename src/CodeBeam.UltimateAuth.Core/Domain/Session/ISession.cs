@@ -78,6 +78,7 @@
 
         bool ShouldUpdateLastSeen(DateTimeOffset now);
         ISession<TUserId> Touch(DateTimeOffset now);
+        ISession<TUserId> Revoke(DateTimeOffset at);
 
     }
 }

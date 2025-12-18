@@ -126,11 +126,11 @@
             );
         }
 
-        public UAuthSession<TUserId> Revoke(DateTimeOffset at)
+        public ISession<TUserId> Revoke(DateTimeOffset at)
         {
             if (IsRevoked) return this;
 
-            return new(
+            return new UAuthSession<TUserId>(
                 SessionId,
                 TenantId,
                 UserId,
