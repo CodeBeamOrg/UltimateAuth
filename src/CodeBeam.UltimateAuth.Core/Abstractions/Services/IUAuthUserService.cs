@@ -3,18 +3,13 @@
 namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     /// <summary>
-    /// Minimal user operations required for authentication.
-    /// Does NOT include role or permission management.
+    /// Defines the minimal user authentication contract expected by UltimateAuth.
+    /// This service does not manage sessions, tokens, or transport concerns.
     /// For user management, CodeBeam.UltimateAuth.Users package is recommended.
     /// </summary>
     public interface IUAuthUserService<TUserId>
     {
-        Task<TUserId> RegisterAsync(RegisterUserRequest request, CancellationToken cancellationToken = default);
-
-        Task DeleteAsync(TUserId userId, CancellationToken cancellationToken = default);
-
-        Task<bool> ValidateCredentialsAsync(ValidateCredentialsRequest request, CancellationToken cancellationToken = default);
-
         Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(string? tenantId, string identifier, string secret, CancellationToken cancellationToken = default);
+        Task<bool> ValidateCredentialsAsync(ValidateCredentialsRequest request, CancellationToken cancellationToken = default);
     }
 }

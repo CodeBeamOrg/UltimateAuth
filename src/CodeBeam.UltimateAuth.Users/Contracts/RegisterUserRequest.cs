@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Server.Users.Contracts
 {
     /// <summary>
     /// Request to register a new user with credentials.

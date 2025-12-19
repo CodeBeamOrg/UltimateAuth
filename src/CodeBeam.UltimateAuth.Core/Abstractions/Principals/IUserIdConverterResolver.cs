@@ -18,6 +18,6 @@
         /// <exception cref="InvalidOperationException">
         /// Thrown if no converter has been registered for the requested user ID type.
         /// </exception>
-        IUserIdConverter<TUserId> GetConverter<TUserId>();
+        IUserIdConverter<TUserId> GetConverter<TUserId>(string? purpose = null);
     }
 }

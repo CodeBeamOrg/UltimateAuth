@@ -12,9 +12,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     {
         Task<IUser<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
-        Task<UserRecord<TUserId>?> FindByUsernameAsync(string? tenantId,
-            string username,
-            CancellationToken ct = default);
+        Task<UserRecord<TUserId>?> FindByUsernameAsync(string? tenantId, string username, CancellationToken ct = default);
 
         /// <summary>
         /// Retrieves a user by a login credential such as username or email.
@@ -22,7 +20,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// </summary>
         /// <param name="login">The login value used to locate the user.</param>
         /// <returns>The user instance or <c>null</c> if not found.</returns>
-        Task<IUser<TUserId>?> FindByLoginAsync(string login);
+        Task<IUser<TUserId>?> FindByLoginAsync(string? tenantId, string login, CancellationToken token = default);
 
         /// <summary>
         /// Returns the password hash for the specified user, if the user participates
@@ -31,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <returns>The password hash or <c>null</c>.</returns>
-        Task<string?> GetPasswordHashAsync(TUserId userId);
+        Task<string?> GetPasswordHashAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
         /// <summary>
         /// Updates the password hash for the specified user. This method is invoked by
@@ -39,7 +37,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="passwordHash">The new password hash value.</param>
-        Task SetPasswordHashAsync(TUserId userId, string passwordHash);
+        Task SetPasswordHashAsync(string? tenantId, TUserId userId, string passwordHash, CancellationToken token = default);
 
         /// <summary>
         /// Retrieves the security version associated with the user.
@@ -48,25 +46,13 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <returns>The current security version.</returns>
-        Task<long> GetSecurityVersionAsync(TUserId userId);
+        Task<long> GetSecurityVersionAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
         /// <summary>
         /// Increments the user's security version, invalidating all existing sessions.
         /// This is typically called after sensitive security events occur.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
-        Task IncrementSecurityVersionAsync(TUserId userId);
-
-        Task<bool> ExistsByUsernameAsync(
-           string username,
-           CancellationToken ct = default);
-
-        Task CreateAsync(
-            UserRecord<TUserId> user,
-            CancellationToken ct = default);
-
-        Task DeleteAsync(
-            TUserId userId,
-            CancellationToken ct = default);
+        Task IncrementSecurityVersionAsync(string? tenantId, TUserId userId, CancellationToken token = default);
     }
 }

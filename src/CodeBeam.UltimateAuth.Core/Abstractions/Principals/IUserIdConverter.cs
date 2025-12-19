@@ -5,6 +5,8 @@
     /// strongly typed values, string representations, and binary formats.
     /// Implementations enable consistent storage, token serialization,
     /// and multitenant key partitioning.
+    /// Returned string must be stable and culture-invariant.
+    /// Implementations must be deterministic and reversible.
     /// </summary>
     public interface IUserIdConverter<TUserId>
     {
