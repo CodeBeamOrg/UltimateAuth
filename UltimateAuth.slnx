@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Samples/">
+    <Project Path="samples/blazor-server/UltimateAuth.BlazorServer/UltimateAuth.BlazorServer.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Readme.md" />
     <File Path="Roadmap.md" />

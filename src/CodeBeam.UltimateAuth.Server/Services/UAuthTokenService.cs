@@ -54,7 +54,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 UserId = _userIdConverter.ToString(src.Session.UserId),
                 TenantId = src.TenantId,
                 SessionId = src.Session.SessionId,
-                Claims = src.Session.Claims.AsClaims()
+                Claims = src.Session.Claims.AsDictionary()
             };
         }
 

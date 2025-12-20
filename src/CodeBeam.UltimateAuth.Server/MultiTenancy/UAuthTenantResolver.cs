@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.MultiTenancy
 {
@@ -16,10 +17,10 @@ namespace CodeBeam.UltimateAuth.Server.MultiTenancy
 
         public UAuthTenantResolver(
             ITenantIdResolver idResolver,
-            UAuthMultiTenantOptions options)
+            IOptions<UAuthMultiTenantOptions> options)
         {
             _idResolver = idResolver;
-            _options = options;
+            _options = options.Value;
         }
 
         public async Task<UAuthTenantContext> ResolveAsync(HttpContext context)

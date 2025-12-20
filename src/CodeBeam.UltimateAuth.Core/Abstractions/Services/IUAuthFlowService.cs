@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// Handles authentication flows such as login,
     /// logout, session refresh and reauthentication.
     /// </summary>
-    public interface IUAuthFlowService
+    public interface IUAuthFlowService<TUserId>
     {
         Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default);
 

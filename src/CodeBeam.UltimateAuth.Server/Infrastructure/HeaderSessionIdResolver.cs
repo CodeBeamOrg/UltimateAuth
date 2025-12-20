@@ -1,27 +1,26 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class HeaderSessionIdResolver : ISessionIdResolver
+    public sealed class HeaderSessionIdResolver : IInnerSessionIdResolver
     {
-        private readonly string _headerName;
+        private readonly UAuthSessionResolutionOptions _options;
 
-        public HeaderSessionIdResolver(string headerName)
+        public HeaderSessionIdResolver(IOptions<UAuthSessionResolutionOptions> options)
         {
-            _headerName = headerName;
+            _options = options.Value;
         }
 
         public AuthSessionId? Resolve(HttpContext context)
         {
-            if (!context.Request.Headers.TryGetValue(_headerName, out var values))
+            if (!context.Request.Headers.TryGetValue(_options.HeaderName, out var values))
                 return null;
 
             var raw = values.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(raw))
-                return null;
-
-            return new AuthSessionId(raw.Trim());
+            return string.IsNullOrWhiteSpace(raw) ? null : new AuthSessionId(raw);
         }
     }
 }

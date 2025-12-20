@@ -2,45 +2,39 @@
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Middlewares
 {
     public sealed class TenantMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly ITenantResolver _resolver;
-        private readonly UAuthMultiTenantOptions _options;
 
         public const string TenantContextKey = "__UAuthTenant";
 
-        public TenantMiddleware(
-            RequestDelegate next,
-            ITenantResolver resolver,
-            UAuthMultiTenantOptions options)
+        public TenantMiddleware(RequestDelegate next)
         {
             _next = next;
-            _resolver = resolver;
-            _options = options;
         }
 
-        public async Task InvokeAsync(HttpContext context)
+        public async Task InvokeAsync(HttpContext context, ITenantResolver resolver, IOptions<UAuthMultiTenantOptions> options)
         {
+            var opts = options.Value;
+
             UAuthTenantContext tenantContext;
 
-            if (!_options.Enabled)
+            if (!opts.Enabled)
             {
-                // Single-tenant mode → tenant concept disabled
                 tenantContext = UAuthTenantContext.NotResolved();
             }
             else
             {
-                tenantContext = await _resolver.ResolveAsync(context);
+                tenantContext = await resolver.ResolveAsync(context);
 
-                if (_options.RequireTenant && !tenantContext.IsResolved)
+                if (opts.RequireTenant && !tenantContext.IsResolved)
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    await context.Response.WriteAsync(
-                        "Tenant is required but could not be resolved.");
+                    await context.Response.WriteAsync("Tenant is required but could not be resolved.");
                     return;
                 }
             }

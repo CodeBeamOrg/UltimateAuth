@@ -9,13 +9,13 @@ using Microsoft.AspNetCore.Http;
 
 public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 {
-    private readonly IUAuthFlowService _flow;
+    private readonly IUAuthFlowService<TUserId> _flow;
     private readonly IDeviceResolver _deviceResolver;
     private readonly ITenantResolver _tenantResolver;
     private readonly IClock _clock;
 
     public DefaultLoginEndpointHandler(
-        IUAuthFlowService flow,
+        IUAuthFlowService<TUserId> flow,
         IDeviceResolver deviceResolver,
         ITenantResolver tenantResolver,
         IClock clock)

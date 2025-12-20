@@ -16,10 +16,9 @@ namespace CodeBeam.UltimateAuth.Server.Options
                     "RoutePrefix must be specified.");
             }
 
-            if (!options.RoutePrefix.StartsWith("/"))
+            if (options.RoutePrefix.Contains("//"))
             {
-                return ValidateOptionsResult.Fail(
-                    "RoutePrefix must start with '/'.");
+                return ValidateOptionsResult.Fail("RoutePrefix cannot contain '//'.");
             }
 
             // -------------------------

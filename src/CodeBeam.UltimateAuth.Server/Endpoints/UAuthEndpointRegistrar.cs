@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
@@ -31,28 +32,31 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var pkce = group.MapGroup("/pkce");
 
-                pkce.MapPost("/create", async (IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.CreateAsync(ctx));
+                pkce.MapPost("/create",
+                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                        => await h.CreateAsync(ctx));
 
-                pkce.MapPost("/verify", async (IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.VerifyAsync(ctx));
+                pkce.MapPost("/verify",
+                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                        => await h.VerifyAsync(ctx));
 
-                pkce.MapPost("/consume", async (IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.ConsumeAsync(ctx));
+                pkce.MapPost("/consume",
+                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                        => await h.ConsumeAsync(ctx));
             }
 
             if (EndpointEnablement.Resolve(options.EnableLoginEndpoints, defaults.Login))
             {
-                group.MapPost("/login", async (ILoginEndpointHandler h, HttpContext ctx)
+                group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                     => await h.LoginAsync(ctx));
 
-                group.MapPost("/logout", async (ILogoutEndpointHandler h, HttpContext ctx)
+                group.MapPost("/logout", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                     => await h.LogoutAsync(ctx));
 
-                group.MapPost("/refresh-session", async (ISessionRefreshEndpointHandler h, HttpContext ctx)
+                group.MapPost("/refresh-session", async ([FromServices] ISessionRefreshEndpointHandler h, HttpContext ctx)
                     => await h.RefreshSessionAsync(ctx));
 
-                group.MapPost("/reauth", async (IReauthEndpointHandler h, HttpContext ctx)
+                group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
                     => await h.ReauthAsync(ctx));
             }
 
@@ -60,16 +64,16 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var token = group.MapGroup("");
 
-                token.MapPost("/token", async (ITokenEndpointHandler h, HttpContext ctx)
+                token.MapPost("/token", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
                     => await h.GetTokenAsync(ctx));
 
-                token.MapPost("/refresh-token", async (ITokenEndpointHandler h, HttpContext ctx)
+                token.MapPost("/refresh-token", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
                     => await h.RefreshTokenAsync(ctx));
 
-                token.MapPost("/introspect", async (ITokenEndpointHandler h, HttpContext ctx)
+                token.MapPost("/introspect", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
                     => await h.IntrospectAsync(ctx));
 
-                token.MapPost("/revoke", async (ITokenEndpointHandler h, HttpContext ctx)
+                token.MapPost("/revoke", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
                     => await h.RevokeAsync(ctx));
             }
 
@@ -77,16 +81,16 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var session = group.MapGroup("/session");
 
-                session.MapGet("/current", async (ISessionManagementHandler h, HttpContext ctx)
+                session.MapGet("/current", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
                     => await h.GetCurrentSessionAsync(ctx));
 
-                session.MapGet("/list", async (ISessionManagementHandler h, HttpContext ctx)
+                session.MapGet("/list", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
                     => await h.GetAllSessionsAsync(ctx));
 
-                session.MapPost("/revoke/{sessionId}", async (ISessionManagementHandler h, string sessionId, HttpContext ctx)
+                session.MapPost("/revoke/{sessionId}", async ([FromServices] ISessionManagementHandler h, string sessionId, HttpContext ctx)
                     => await h.RevokeSessionAsync(sessionId, ctx));
 
-                session.MapPost("/revoke-all", async (ISessionManagementHandler h, HttpContext ctx)
+                session.MapPost("/revoke-all", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
                     => await h.RevokeAllAsync(ctx));
             }
 
@@ -94,13 +98,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var user = group.MapGroup("");
 
-                user.MapGet("/userinfo", async (IUserInfoEndpointHandler h, HttpContext ctx)
+                user.MapGet("/userinfo", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
                     => await h.GetUserInfoAsync(ctx));
 
-                user.MapGet("/permissions", async (IUserInfoEndpointHandler h, HttpContext ctx)
+                user.MapGet("/permissions", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
                     => await h.GetPermissionsAsync(ctx));
 
-                user.MapPost("/permissions/check", async (IUserInfoEndpointHandler h, HttpContext ctx)
+                user.MapPost("/permissions/check", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
                     => await h.CheckPermissionAsync(ctx));
             }
         }

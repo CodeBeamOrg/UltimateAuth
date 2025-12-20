@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Cookies;
 
@@ -7,9 +8,9 @@ internal sealed class UAuthSessionCookieManager : IUAuthSessionCookieManager
 {
     private readonly UAuthServerOptions _options;
 
-    public UAuthSessionCookieManager(UAuthServerOptions options)
+    public UAuthSessionCookieManager(IOptions<UAuthServerOptions> options)
     {
-        _options = options;
+        _options = options.Value;
     }
 
     public void Issue(HttpContext context, string sessionId)

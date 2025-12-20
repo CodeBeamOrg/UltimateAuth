@@ -8,6 +8,7 @@ namespace CodeBeam.UltimateAuth.Sessions.InMemory
         public static IServiceCollection AddUltimateAuthInMemorySessions(this IServiceCollection services)
         {
             services.AddSingleton<ISessionStoreFactory, InMemorySessionStoreFactory>();
+            services.AddScoped(typeof(ISessionStore<>), typeof(InMemorySessionStore<>));
             return services;
         }
     }

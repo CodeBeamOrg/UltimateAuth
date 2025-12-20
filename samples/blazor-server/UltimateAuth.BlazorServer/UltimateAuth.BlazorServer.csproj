@@ -6,8 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="8.3.0" />
+    <PackageReference Include="MudBlazor" Version="8.15.0" />
+  </ItemGroup>
+
 	<ItemGroup>
-		<!--<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />-->
+		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
 		<ProjectReference Include="..\..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
 		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />

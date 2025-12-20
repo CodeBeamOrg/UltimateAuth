@@ -49,3 +49,14 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.uauth-page {
+    height: 100vh;
+    width: 100vw;
+}
+
+.uauth-stack {
+    height: 60vh;
+    width: 30vw;
+    min-width: 300px;
+}

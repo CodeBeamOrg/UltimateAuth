@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
     {
         public string UserId { get; init; } = default!;
         public string? TenantId { get; init; }
-        public IReadOnlyCollection<Claim> Claims { get; init; } = Array.Empty<Claim>();
+        public IReadOnlyDictionary<string, string> Claims { get; set; } = new Dictionary<string, string>();
         public string? SessionId { get; init; }
         public DateTimeOffset IssuedAt { get; init; }
     }

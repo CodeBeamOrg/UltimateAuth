@@ -1,7 +1,14 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<div class="uauth-page d-flex align-center justify-center">
+    <MudStack Class="uauth-stack">
+        <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
+        <MudStack>
+            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" />
+            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoginAsync">Login</MudButton>
+        </MudStack>
+        
+    </MudStack>
+    
+</div>

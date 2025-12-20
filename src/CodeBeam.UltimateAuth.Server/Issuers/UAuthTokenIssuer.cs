@@ -20,13 +20,15 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         private readonly IJwtTokenGenerator _jwtGenerator;
         private readonly ITokenHasher _tokenHasher;
         private readonly UAuthServerOptions _options;
+        private readonly IClock _clock;
 
-        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IOptions<UAuthServerOptions> options)
+        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IOptions<UAuthServerOptions> options, IClock clock)
         {
             _opaqueGenerator = opaqueGenerator;
             _jwtGenerator = jwtGenerator;
             _tokenHasher = tokenHasher;
             _options = options.Value;
+            _clock = clock;
         }
 
         public Task<AccessToken> IssueAccessTokenAsync(TokenIssuanceContext context, CancellationToken cancellationToken = default)
@@ -85,32 +87,37 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
         private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, DateTimeOffset expires)
         {
-            var claims = new List<Claim>
+            var claims = new Dictionary<string, object>
             {
-                new Claim(ClaimTypes.NameIdentifier, context.UserId),
-                new Claim("tenant", context.TenantId)
+                ["sub"] = context.UserId,
+                ["tenant"] = context.TenantId
             };
 
-            claims.AddRange(context.Claims);
+            foreach (var kv in context.Claims)
+            {
+                claims[kv.Key] = kv.Value;
+            }
 
             if (!string.IsNullOrWhiteSpace(context.SessionId))
             {
-                claims.Add(new Claim("sid", context.SessionId));
+                claims["sid"] = context.SessionId!;
             }
 
             if (_options.Tokens.AddJwtIdClaim)
             {
-                string jti = _opaqueGenerator.Generate(16); // shorter is fine
-                claims.Add(new Claim("jti", jti));
+                claims["jti"] = _opaqueGenerator.Generate(16);
             }
 
             var descriptor = new UAuthJwtTokenDescriptor
             {
-                Subject = new ClaimsIdentity(claims),
+                Subject = context.UserId,
                 Issuer = _options.Tokens.Issuer,
                 Audience = _options.Tokens.Audience,
-                Expires = expires.UtcDateTime,
-                SigningKey = _options.Tokens.SigningKey
+                IssuedAt = _clock.UtcNow,
+                ExpiresAt = expires,
+                TenantId = context.TenantId,
+                Claims = claims,
+                KeyId = _options.Tokens.KeyId
             };
 
             string jwt = _jwtGenerator.CreateToken(descriptor);
@@ -123,5 +130,6 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 SessionId = context.SessionId
             };
         }
+
     }
 }

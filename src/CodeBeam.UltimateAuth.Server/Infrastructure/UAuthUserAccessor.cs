@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class UAuthUserAccessor<TUserId> : IUserAccessor
+    public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
     {
         private readonly ISessionStore<TUserId> _sessionStore;
         private readonly IUAuthUserStore<TUserId> _userStore;

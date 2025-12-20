@@ -22,15 +22,6 @@ namespace CodeBeam.UltimateAuth.Core.Options
 
             if (options.IssueJwt)
             {
-                if (string.IsNullOrWhiteSpace(options.SigningKey))
-                {
-                    errors.Add("Token.SigningKey must not be empty when IssueJwt = true.");
-                }
-                else if (options.SigningKey.Length < 32) // 256-bit minimum
-                {
-                    errors.Add("Token.SigningKey must be at least 32 characters long (256-bit entropy).");
-                }
-
                 if (string.IsNullOrWhiteSpace(options.Issuer)) // TODO: Min 3 chars
                     errors.Add("Token.Issuer must not be empty when IssueJwt = true.");
 

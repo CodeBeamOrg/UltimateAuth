@@ -37,12 +37,6 @@
         public int OpaqueIdBytes { get; set; } = 32;
 
         /// <summary>
-        /// Symmetric key used to sign JWT access tokens.
-        /// Must be long and cryptographically strong.
-        /// </summary>
-        public string SigningKey { get; set; } = string.Empty!;
-
-        /// <summary>
         /// Value assigned to the JWT "iss" (issuer) claim.
         /// Identifies the authority that issued the token.
         /// </summary>
@@ -59,5 +53,11 @@
         /// Useful for token replay detection and advanced auditing.
         /// </summary>
         public bool AddJwtIdClaim { get; set; } = false;
+
+        /// <summary>
+        /// Optional key identifier to select signing key.
+        /// If null, default key will be used.
+        /// </summary>
+        public string? KeyId { get; set; }
     }
 }

@@ -9,11 +9,11 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     public sealed class DefaultLogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
     {
-        private readonly IUAuthFlowService _flow;
+        private readonly IUAuthFlowService<TUserId> _flow;
         private readonly IClock _clock;
         private readonly IUAuthSessionCookieManager _cookies;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService flow, IClock clock, IUAuthSessionCookieManager cookieManager)
+        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthSessionCookieManager cookieManager)
         {
             _flow = flow;
             _clock = clock;

@@ -7,7 +7,7 @@
     /// </summary>
     public interface IUAuthService<TUserId>
     {
-        IUAuthFlowService Flow { get; }
+        IUAuthFlowService<TUserId> Flow { get; }
         IUAuthSessionService<TUserId> Sessions { get; }
         IUAuthTokenService<TUserId> Tokens { get; }
         IUAuthUserService<TUserId> Users { get; }

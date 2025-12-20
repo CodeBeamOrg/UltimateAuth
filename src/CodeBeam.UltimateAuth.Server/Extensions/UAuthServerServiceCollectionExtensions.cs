@@ -1,9 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -13,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions
 {
@@ -43,6 +48,39 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
         {
+            services.AddOptions();
+            services.Configure<UAuthMultiTenantOptions>(o =>
+            {
+                o.Enabled = false;
+                o.EnableRoute = false;
+                o.EnableHeader = false;
+                o.EnableDomain = false;
+                o.DefaultTenantId = "default";
+            });
+
+            services.Configure<UAuthServerOptions>(o =>
+            {
+                o.Mode = UAuthMode.Hybrid;
+                o.RoutePrefix = "auth";
+                o.EnableLoginEndpoints = true;
+                o.EnableSessionEndpoints = true;
+                o.EnableTokenEndpoints = true;
+            });
+
+            services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
+            services.TryAddSingleton<IJwtTokenGenerator,DefaultJwtTokenGenerator>();
+            services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
+
+            services.TryAddSingleton<ITokenHasher>(sp =>
+            {
+                var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
+                var key = keyProvider.Resolve(null);
+
+                return new HmacSha256TokenHasher(
+                    ((SymmetricSecurityKey)key.Key).Key);
+            });
+
+
             // -----------------------------
             // OPTIONS VALIDATION
             // -----------------------------
@@ -74,12 +112,23 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
                 };
             });
 
+            // Inner resolvers
+            services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
+            services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
+            services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
+            services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
+
+            // Public resolver (tek!)
+            services.AddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+
             services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
 
-            services.AddScoped(typeof(IUAuthFlowService), typeof(UAuthFlowService<>));
+            services.AddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
             services.AddScoped(typeof(IUAuthSessionService<>), typeof(UAuthSessionService<>));
             services.AddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
             services.AddScoped(typeof(IUAuthTokenService<>), typeof(UAuthTokenService<>));
+
+            services.AddSingleton<IClock, SystemClock>();
 
             // TODO: Allow custom cookie manager via options
             services.AddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
@@ -96,12 +145,37 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // SESSION / TOKEN ISSUERS
             // -----------------------------
             services.TryAddScoped(typeof(UAuthSessionIssuer<>), typeof(UAuthSessionIssuer<>));
-            services.TryAddScoped<UAuthTokenIssuer>();
+            services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
+
+            services.TryAddScoped(typeof(IUserAccessor<UserId>), typeof(UAuthUserAccessor<UserId>));
+            services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+            
 
             // -----------------------------
             // ENDPOINTS
             // -----------------------------
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddUAuthServerInfrastructure(this IServiceCollection services)
+        {
+            // Flow orchestration
+            services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
+
+            // Issuers
+            services.TryAddScoped(typeof(ISessionIssuer<>), typeof(UAuthSessionIssuer<>));
+            services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
+
+            // User service
+            services.TryAddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
+
+            // Endpoints
+            services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
+
+            // Cookie management (default)
+            services.TryAddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
 
             return services;
         }

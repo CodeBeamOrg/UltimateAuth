@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class BearerSessionIdResolver : ISessionIdResolver
+    public sealed class BearerSessionIdResolver : IInnerSessionIdResolver
     {
         public AuthSessionId? Resolve(HttpContext context)
         {

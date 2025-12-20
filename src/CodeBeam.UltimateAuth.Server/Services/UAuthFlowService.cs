@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
-    internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService
+    internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService<TUserId>
     {
         private readonly IUAuthUserService<TUserId> _users;
         private readonly ISessionOrchestrator<TUserId> _orchestrator;
