@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,6 +19,13 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Default is Hybrid.
         /// </summary>
         public UAuthMode Mode { get; set; } = UAuthMode.Hybrid;
+
+        /// <summary>
+        /// Defines how UAuthHub is deployed relative to the application.
+        /// Default is Integrated
+        /// Blazor server projects should choose embedded mode for maximum security.
+        /// </summary>
+        public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
 
         // -------------------------------------------------------
         // ROUTING
@@ -59,6 +67,18 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// </summary>
         public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
 
+        /// <summary>
+        /// Allows advanced users to override cookie behavior.
+        /// Unsafe combinations will be rejected at startup.
+        /// </summary>
+        public UAuthCookieOptions Cookie { get; } = new();
+
+        internal Type? CustomCookieManagerType { get; private set; }
+
+        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthSessionCookieManager
+        {
+            CustomCookieManagerType = typeof(T);
+        }
 
         // -------------------------------------------------------
         // SERVER-ONLY BEHAVIOR

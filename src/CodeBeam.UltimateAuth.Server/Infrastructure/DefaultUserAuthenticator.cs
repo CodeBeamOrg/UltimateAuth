@@ -8,7 +8,9 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         private readonly IUAuthUserStore<TUserId> _userStore;
         private readonly IUAuthPasswordHasher _passwordHasher;
 
-        public DefaultUserAuthenticator(IUAuthUserStore<TUserId> userStore, IUAuthPasswordHasher passwordHasher)
+        public DefaultUserAuthenticator(
+            IUAuthUserStore<TUserId> userStore,
+            IUAuthPasswordHasher passwordHasher)
         {
             _userStore = userStore;
             _passwordHasher = passwordHasher;
@@ -16,25 +18,30 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
         public async Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(
             string? tenantId,
-            string username,
-            string secret,
-            CancellationToken cancellationToken = default)
+            AuthenticationContext context,
+            CancellationToken ct = default)
         {
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
+
+            if (!string.Equals(context.CredentialType, "password", StringComparison.Ordinal))
+                return UserAuthenticationResult<TUserId>.Fail();
+
             var user = await _userStore.FindByUsernameAsync(
                 tenantId,
-                username,
-                cancellationToken);
+                context.Identifier,
+                ct);
 
-            if (user is null)
+            if (user is null || !user.IsActive)
                 return UserAuthenticationResult<TUserId>.Fail();
 
-            if (!user.IsActive)
+            if (!_passwordHasher.Verify(context.Secret, user.PasswordHash))
                 return UserAuthenticationResult<TUserId>.Fail();
 
-            if (!_passwordHasher.Verify(secret, user.PasswordHash))
-                return UserAuthenticationResult<TUserId>.Fail();
-
-            return UserAuthenticationResult<TUserId>.Success(user.Id, user.Claims, user.RequiresMfa);
+            return UserAuthenticationResult<TUserId>.Success(
+                user.Id,
+                user.Claims,
+                user.RequiresMfa);
         }
     }
 }

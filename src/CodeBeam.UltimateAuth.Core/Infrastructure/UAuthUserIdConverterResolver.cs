@@ -34,7 +34,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         /// </summary>
         /// <typeparam name="TUserId">The user id type for which to resolve a converter.</typeparam>
         /// <returns>An <see cref="IUserIdConverter{TUserId}"/> instance.</returns>
-        public IUserIdConverter<TUserId> GetConverter<TUserId>()
+        public IUserIdConverter<TUserId> GetConverter<TUserId>(string? provider)
         {
             var converter = _sp.GetService<IUserIdConverter<TUserId>>();
             if (converter != null)

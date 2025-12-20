@@ -4,6 +4,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     public interface IUserAuthenticator<TUserId>
     {
-        Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(AuthenticationContext context, CancellationToken ct = default);
+        Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(string? tenantId, AuthenticationContext context, CancellationToken ct = default);
     }
 }

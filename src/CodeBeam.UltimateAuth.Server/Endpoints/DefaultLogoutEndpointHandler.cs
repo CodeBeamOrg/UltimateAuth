@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.Http;
 
@@ -10,11 +11,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     {
         private readonly IUAuthFlowService _flow;
         private readonly IClock _clock;
+        private readonly IUAuthSessionCookieManager _cookies;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService flow, IClock clock)
+        public DefaultLogoutEndpointHandler(IUAuthFlowService flow, IClock clock, IUAuthSessionCookieManager cookieManager)
         {
             _flow = flow;
             _clock = clock;
+            _cookies = cookieManager;
         }
 
         public async Task<IResult> LogoutAsync(HttpContext ctx)
@@ -33,6 +36,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             };
 
             await _flow.LogoutAsync(request, ctx.RequestAborted);
+            _cookies.Revoke(ctx);
 
             return Results.Ok(new LogoutResponse
             {

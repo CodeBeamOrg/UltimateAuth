@@ -3,26 +3,45 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Domain.Session;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using System.Net.Http;
 using System.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Issuers
 {
-    public sealed class UAuthSessionIssuer<TUserId> : ISessionIssuer<TUserId>
+    public sealed class UAuthSessionIssuer<TUserId> : IHttpSessionIssuer<TUserId>
     {
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly ISessionStoreFactory _storeFactory;
         private readonly UAuthServerOptions _options;
+        private readonly IUAuthSessionCookieManager _cookieManager;
 
-        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options)
+        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options, IUAuthSessionCookieManager cookieManager)
         {
             _opaqueGenerator = opaqueGenerator;
             _storeFactory = storeFactory;
             _options = options.Value;
+            _cookieManager = cookieManager;
         }
 
-        public async Task<IssuedSession<TUserId>> IssueLoginSessionAsync(AuthenticatedSessionContext<TUserId> context, CancellationToken cancellationToken = default)
+        public Task<IssuedSession<TUserId>> IssueLoginSessionAsync(AuthenticatedSessionContext<TUserId> context, CancellationToken ct = default)
+        {
+            return IssueLoginInternalAsync(httpContext: null, context, ct);
+        }
+
+        public Task<IssuedSession<TUserId>> IssueLoginSessionAsync(HttpContext httpContext, AuthenticatedSessionContext<TUserId> context, CancellationToken ct = default)
+        {
+            if (httpContext is null)
+                throw new ArgumentNullException(nameof(httpContext));
+
+            return IssueLoginInternalAsync(httpContext, context, ct);
+        }
+
+        private async Task<IssuedSession<TUserId>> IssueLoginInternalAsync(HttpContext? httpContext, AuthenticatedSessionContext<TUserId> context, CancellationToken cancellationToken = default)
         {
             // Defensive guard — enforcement belongs to Authority
             if (_options.Mode == UAuthMode.PureJwt)
@@ -98,10 +117,28 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 };
             });
 
+            if (httpContext is not null)
+            {
+                _cookieManager.Issue(httpContext, opaqueSessionId);
+            }
+
             return issued!;
         }
 
-        public async Task<IssuedSession<TUserId>> RotateSessionAsync(SessionRotationContext<TUserId> context, CancellationToken ct = default)
+        public Task<IssuedSession<TUserId>> RotateSessionAsync(SessionRotationContext<TUserId> context, CancellationToken ct = default)
+        {
+            return RotateInternalAsync(httpContext: null, context, ct);
+        }
+
+        public Task<IssuedSession<TUserId>> RotateSessionAsync(HttpContext httpContext, SessionRotationContext<TUserId> context, CancellationToken ct = default)
+        {
+            if (httpContext is null)
+                throw new ArgumentNullException(nameof(httpContext));
+
+            return RotateInternalAsync(httpContext, context, ct);
+        }
+
+        private async Task<IssuedSession<TUserId>> RotateInternalAsync(HttpContext httpContext, SessionRotationContext<TUserId> context, CancellationToken ct = default)
         {
             var now = context.Now;
             var store = _storeFactory.Create<TUserId>(context.TenantId);
@@ -174,6 +211,11 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                     IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
                 };
             });
+
+            if (httpContext is not null)
+            {
+                _cookieManager.Issue(httpContext, issued!.OpaqueSessionId);
+            }
 
             return issued!;
         }
