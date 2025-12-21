@@ -117,10 +117,10 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 };
             });
 
-            if (httpContext is not null)
-            {
-                _cookieManager.Issue(httpContext, opaqueSessionId);
-            }
+            //if (httpContext is not null)
+            //{
+            //    _cookieManager.Issue(httpContext, opaqueSessionId);
+            //}
 
             return issued!;
         }

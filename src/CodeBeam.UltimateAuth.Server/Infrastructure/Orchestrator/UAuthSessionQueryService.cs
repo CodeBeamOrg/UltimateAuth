@@ -4,8 +4,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class UAuthSessionQueryService<TUserId>
-    : ISessionQueryService<TUserId>
+    public sealed class UAuthSessionQueryService<TUserId> : ISessionQueryService<TUserId>
     {
         private readonly ISessionStoreFactory _storeFactory;
 

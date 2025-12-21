@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
@@ -13,26 +14,39 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
     private readonly IDeviceResolver _deviceResolver;
     private readonly ITenantResolver _tenantResolver;
     private readonly IClock _clock;
+    private readonly IUAuthSessionCookieManager _cookieManager;
 
     public DefaultLoginEndpointHandler(
         IUAuthFlowService<TUserId> flow,
         IDeviceResolver deviceResolver,
         ITenantResolver tenantResolver,
-        IClock clock)
+        IClock clock,
+        IUAuthSessionCookieManager cookieManager)
     {
         _flow = flow;
         _deviceResolver = deviceResolver;
         _tenantResolver = tenantResolver;
         _clock = clock;
+        _cookieManager = cookieManager;
     }
 
     public async Task<IResult> LoginAsync(HttpContext ctx)
     {
-        var request = await ctx.Request.ReadFromJsonAsync<LoginRequest>();
-        if (request is null)
-            return Results.BadRequest("Invalid login request.");
+        if (!ctx.Request.HasFormContentType)
+            return Results.BadRequest("Invalid content type.");
 
-        // Middleware should have already resolved the tenant
+        var form = await ctx.Request.ReadFormAsync();
+
+        var request = new LoginRequest
+        {
+            Identifier = form["Identifier"],
+            Secret = form["Secret"]
+        };
+
+        if (string.IsNullOrWhiteSpace(request.Identifier) ||
+            string.IsNullOrWhiteSpace(request.Secret))
+            return Results.Redirect("/login?error=invalid");
+
         var tenantCtx = ctx.GetTenantContext();
 
         var flowRequest = request with
@@ -44,23 +58,54 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
         var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
 
-        return result.Status switch
-        {
-            LoginStatus.Success => Results.Ok(new LoginResponse
-            {
-                SessionId = result.SessionId,
-                AccessToken = result.AccessToken,
-                RefreshToken = result.RefreshToken
-            }),
+        if (!result.IsSuccess)
+            return Results.Redirect("/login?error=invalid");
 
-            LoginStatus.RequiresContinuation => Results.Ok(new LoginResponse
-            {
-                Continuation = result.Continuation
-            }),
+        _cookieManager.Issue(ctx, result.SessionId!.Value);
 
-            LoginStatus.Failed => Results.Unauthorized(),
-
-            _ => Results.StatusCode(StatusCodes.Status500InternalServerError)
-        };
+        return Results.Redirect("/");
     }
+
+    //public async Task<IResult> LoginAsync(HttpContext ctx)
+    //{
+    //    var request = await ctx.Request.ReadFromJsonAsync<LoginRequest>();
+    //    if (request is null)
+    //        return Results.BadRequest("Invalid login request.");
+
+    //    // Middleware should have already resolved the tenant
+    //    var tenantCtx = ctx.GetTenantContext();
+
+    //    var flowRequest = request with
+    //    {
+    //        TenantId = tenantCtx.TenantId,
+    //        At = _clock.UtcNow,
+    //        DeviceInfo = _deviceResolver.Resolve(ctx)
+    //    };
+
+    //    var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
+
+    //    if (result.IsSuccess)
+    //    {
+    //        _cookieManager.Issue(ctx, result.SessionId.Value);
+    //    }
+
+    //    return result.Status switch
+    //    {
+    //        LoginStatus.Success => Results.Ok(new LoginResponse
+    //        {
+    //            SessionId = result.SessionId,
+    //            AccessToken = result.AccessToken,
+    //            RefreshToken = result.RefreshToken
+    //        }),
+
+    //        LoginStatus.RequiresContinuation => Results.Ok(new LoginResponse
+    //        {
+    //            Continuation = result.Continuation
+    //        }),
+
+    //        LoginStatus.Failed => Results.Unauthorized(),
+
+    //        _ => Results.StatusCode(StatusCodes.Status500InternalServerError)
+    //    };
+    //}
 }

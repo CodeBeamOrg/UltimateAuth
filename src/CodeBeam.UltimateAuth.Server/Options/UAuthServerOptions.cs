@@ -14,11 +14,13 @@ namespace CodeBeam.UltimateAuth.Server.Options
     /// </summary>
     public sealed class UAuthServerOptions
     {
+        public UAuthClientProfile ClientProfile { get; set; }
+
         /// <summary>
         /// Defines how UltimateAuth executes authentication flows.
         /// Default is Hybrid.
         /// </summary>
-        public UAuthMode Mode { get; set; } = UAuthMode.Hybrid;
+        public UAuthMode? Mode { get; set; }
 
         /// <summary>
         /// Defines how UAuthHub is deployed relative to the application.

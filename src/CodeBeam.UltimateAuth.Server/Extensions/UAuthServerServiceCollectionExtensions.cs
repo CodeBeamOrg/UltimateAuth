@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
@@ -25,13 +26,13 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
     {
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
         {
-            services.AddUltimateAuth(); // Core
+            services.AddUltimateAuth();
             return services.AddUltimateAuthServerInternal();
         }
 
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddUltimateAuth(configuration); // Core
+            services.AddUltimateAuth(configuration);
             services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
             services.Configure<UAuthSessionResolutionOptions>(configuration.GetSection("UltimateAuth:SessionResolution"));
 
@@ -40,7 +41,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
         {
-            services.AddUltimateAuth(); // Core
+            services.AddUltimateAuth();
             services.Configure(configure);
 
             return services.AddUltimateAuthServerInternal();
@@ -48,24 +49,12 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
         {
-            services.AddOptions();
-            services.Configure<UAuthMultiTenantOptions>(o =>
-            {
-                o.Enabled = false;
-                o.EnableRoute = false;
-                o.EnableHeader = false;
-                o.EnableDomain = false;
-                o.DefaultTenantId = "default";
-            });
-
-            services.Configure<UAuthServerOptions>(o =>
-            {
-                o.Mode = UAuthMode.Hybrid;
-                o.RoutePrefix = "auth";
-                o.EnableLoginEndpoints = true;
-                o.EnableSessionEndpoints = true;
-                o.EnableTokenEndpoints = true;
-            });
+            services.AddOptions<UAuthServerOptions>()
+                .PostConfigure(o =>
+                {
+                    ConfigureDefaults.ApplyClientProfileDefaults(o);
+                    ConfigureDefaults.ApplyModeDefaults(o);
+                });
 
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
             services.TryAddSingleton<IJwtTokenGenerator,DefaultJwtTokenGenerator>();
@@ -144,17 +133,34 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // -----------------------------
             // SESSION / TOKEN ISSUERS
             // -----------------------------
-            services.TryAddScoped(typeof(UAuthSessionIssuer<>), typeof(UAuthSessionIssuer<>));
+            services.TryAddScoped(typeof(ISessionIssuer<>), typeof(UAuthSessionIssuer<>));
             services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
 
             services.TryAddScoped(typeof(IUserAccessor<UserId>), typeof(UAuthUserAccessor<UserId>));
             services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
-            
+
+            services.TryAddScoped(typeof(IUserAuthenticator<>), typeof(DefaultUserAuthenticator<>));
+            services.TryAddScoped(typeof(ISessionOrchestrator<>), typeof(UAuthSessionOrchestrator<>));
+            services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
+            services.TryAddScoped(typeof(ISessionQueryService<>), typeof(UAuthSessionQueryService<>));
+            services.TryAddScoped(typeof(IRefreshTokenResolver<>), typeof(UAuthRefreshTokenResolver<>));
+            services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
 
             // -----------------------------
             // ENDPOINTS
             // -----------------------------
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
+            // Endpoint handlers
+            //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));
+            services.AddScoped<DefaultLoginEndpointHandler<UserId>>();
+            services.AddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
+            //services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
+            //services.TryAddScoped<ISessionRefreshEndpointHandler, SessionRefreshEndpointHandler>();
+            //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
+            //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
+            //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
+            //services.TryAddScoped<IUserInfoEndpointHandler, UserInfoEndpointHandler>();
+
 
             return services;
         }

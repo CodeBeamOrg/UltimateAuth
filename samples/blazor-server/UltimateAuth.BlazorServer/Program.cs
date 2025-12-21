@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
+using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using UltimateAuth.BlazorServer.Components;
@@ -19,6 +20,8 @@ builder.Services.AddMudExtensions();
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 
+builder.Services.AddHttpContextAccessor();
+
 
 builder.Services.AddUltimateAuthServer()
     .AddInMemoryCredentials()
@@ -26,11 +29,18 @@ builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
-
 builder.Services.AddHttpClient("AuthApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["App:BaseUrl"]!);
+    client.BaseAddress = new Uri("https://localhost:7213");
+})
+.ConfigurePrimaryHttpMessageHandler(() =>
+{
+    return new HttpClientHandler
+    {
+        UseCookies = true
+    };
 });
+
 
 var app = builder.Build();
 

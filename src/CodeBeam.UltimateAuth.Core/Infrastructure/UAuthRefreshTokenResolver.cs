@@ -3,28 +3,20 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure
 {
-    internal sealed class StoreRefreshTokenResolver<TUserId>
-        : IRefreshTokenResolver<TUserId>
+    public sealed class UAuthRefreshTokenResolver<TUserId> : IRefreshTokenResolver<TUserId>
     {
         private readonly ISessionStoreFactory _sessionStoreFactory;
         private readonly ITokenStoreFactory _tokenStoreFactory;
         private readonly ITokenHasher _hasher;
 
-        public StoreRefreshTokenResolver(
-            ISessionStoreFactory sessionStoreFactory,
-            ITokenStoreFactory tokenStoreFactory,
-            ITokenHasher hasher)
+        public UAuthRefreshTokenResolver(ISessionStoreFactory sessionStoreFactory, ITokenStoreFactory tokenStoreFactory, ITokenHasher hasher)
         {
             _sessionStoreFactory = sessionStoreFactory;
             _tokenStoreFactory = tokenStoreFactory;
             _hasher = hasher;
         }
 
-        public async Task<ResolvedRefreshSession<TUserId>?> ResolveAsync(
-            string? tenantId,
-            string refreshToken,
-            DateTimeOffset now,
-            CancellationToken ct = default)
+        public async Task<ResolvedRefreshSession<TUserId>?> ResolveAsync(string? tenantId, string refreshToken, DateTimeOffset now, CancellationToken ct = default)
         {
             var tokenHash = _hasher.Hash(refreshToken);
 

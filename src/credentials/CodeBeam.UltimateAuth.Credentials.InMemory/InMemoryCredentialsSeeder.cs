@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
         {
             var adminUserId = UserId.New();
 
-            var passwordHash = passwordHasher.Hash("P@ssw0rd!");
+            var passwordHash = passwordHasher.Hash("Password!");
 
             var admin = new InMemoryCredentialUser(
                 userId: adminUserId,

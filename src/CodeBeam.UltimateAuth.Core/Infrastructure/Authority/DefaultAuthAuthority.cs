@@ -8,6 +8,12 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         private readonly IEnumerable<IAuthorityInvariant> _invariants;
         private readonly IEnumerable<IAuthorityPolicy> _policies;
 
+        public DefaultAuthAuthority(IEnumerable<IAuthorityInvariant> invariants, IEnumerable<IAuthorityPolicy> policies)
+        {
+            _invariants = invariants ?? Array.Empty<IAuthorityInvariant>();
+            _policies = policies ?? Array.Empty<IAuthorityPolicy>();
+        }
+
         public AuthorizationResult Decide(AuthContext context)
         {
             // 1. Invariants

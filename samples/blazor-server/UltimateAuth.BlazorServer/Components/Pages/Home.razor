@@ -1,14 +1,21 @@
 ﻿@page "/"
+@inject IUAuthFlowService<UserId> FlowService
+@inject ISnackbar Snackbar
+@inject IHttpClientFactory Http
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
-        <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
-        <MudStack>
-            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" />
-            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoginAsync">Login</MudButton>
-        </MudStack>
-        
+        <form method="post" action="/auth/login">
+            <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
+            <!-- Hidden fields -->
+            <input type="hidden" name="Identifier" value="@_username" />
+            <input type="hidden" name="Secret" value="@_password" />
+
+            <!-- UI -->
+            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" />
+            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
+        </form>
     </MudStack>
-    
 </div>

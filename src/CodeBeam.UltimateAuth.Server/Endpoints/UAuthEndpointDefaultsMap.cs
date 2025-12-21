@@ -9,8 +9,15 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     /// </summary>
     internal static class UAuthEndpointDefaultsMap
     {
-        public static UAuthEndpointDefaults ForMode(UAuthMode mode)
+        public static UAuthEndpointDefaults ForMode(UAuthMode? mode)
         {
+            if (!mode.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "UAuthMode must be resolved before endpoint mapping. " +
+                    "Ensure ClientProfile defaults are applied.");
+            }
+
             return mode switch
             {
                 UAuthMode.PureOpaque => new UAuthEndpointDefaults

@@ -11,6 +11,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options);
     }
 
+    // TODO: Add Scalar/Swagger integration
     public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
     {
         public void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options)
