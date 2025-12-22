@@ -54,6 +54,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
                 {
                     ConfigureDefaults.ApplyClientProfileDefaults(o);
                     ConfigureDefaults.ApplyModeDefaults(o);
+                    ConfigureDefaults.ApplyAuthResponseDefaults(o);
                 });
 
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
@@ -120,7 +121,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddSingleton<IClock, SystemClock>();
 
             // TODO: Allow custom cookie manager via options
-            services.AddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
+            services.AddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
             //if (options.CustomCookieManagerType is not null)
             //{
             //    services.AddSingleton(typeof(IUAuthSessionCookieManager), options.CustomCookieManagerType);
@@ -145,6 +146,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped(typeof(ISessionQueryService<>), typeof(UAuthSessionQueryService<>));
             services.TryAddScoped(typeof(IRefreshTokenResolver<>), typeof(UAuthRefreshTokenResolver<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
+            services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
 
             // -----------------------------
             // ENDPOINTS
@@ -181,7 +183,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
             // Cookie management (default)
-            services.TryAddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
+            services.TryAddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
 
             return services;
         }

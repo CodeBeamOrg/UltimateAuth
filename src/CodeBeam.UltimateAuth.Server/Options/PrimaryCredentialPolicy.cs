@@ -1,0 +1,17 @@
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Server.Options
+{
+    public sealed class PrimaryCredentialPolicy
+    {
+        /// <summary>
+        /// Default primary credential for UI-style requests.
+        /// </summary>
+        public PrimaryCredentialKind Ui { get; set; } = PrimaryCredentialKind.Session;
+
+        /// <summary>
+        /// Default primary credential for API requests.
+        /// </summary>
+        public PrimaryCredentialKind Api { get; set; } = PrimaryCredentialKind.Jwt;
+    }
+}

@@ -11,13 +11,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     {
         private readonly IUAuthFlowService<TUserId> _flow;
         private readonly IClock _clock;
-        private readonly IUAuthSessionCookieManager _cookies;
+        private readonly IUAuthCookieManager _cookieManager;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthSessionCookieManager cookieManager)
+        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager)
         {
             _flow = flow;
             _clock = clock;
-            _cookies = cookieManager;
+            _cookieManager = cookieManager;
         }
 
         public async Task<IResult> LogoutAsync(HttpContext ctx)
@@ -36,7 +36,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             };
 
             await _flow.LogoutAsync(request, ctx.RequestAborted);
-            _cookies.Revoke(ctx);
+            _cookieManager.Delete(ctx);
 
             return Results.Ok(new LogoutResponse
             {

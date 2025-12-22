@@ -35,6 +35,12 @@ namespace CodeBeam.UltimateAuth.Core.Options
                     errors.Add("Token.OpaqueIdBytes must be at least 16 (128-bit entropy).");
             }
 
+            if (options.IssueRefresh && options.RefreshTokenLifetime <= TimeSpan.Zero)
+            {
+                errors.Add("RefreshTokenLifetime must be set when IssueRefresh is enabled.");
+            }
+
+
             return errors.Count == 0
                 ? ValidateOptionsResult.Success
                 : ValidateOptionsResult.Fail(errors);

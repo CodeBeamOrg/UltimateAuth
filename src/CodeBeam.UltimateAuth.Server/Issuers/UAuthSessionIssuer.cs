@@ -18,9 +18,9 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly ISessionStoreFactory _storeFactory;
         private readonly UAuthServerOptions _options;
-        private readonly IUAuthSessionCookieManager _cookieManager;
+        private readonly IUAuthCookieManager _cookieManager;
 
-        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options, IUAuthSessionCookieManager cookieManager)
+        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options, IUAuthCookieManager cookieManager)
         {
             _opaqueGenerator = opaqueGenerator;
             _storeFactory = storeFactory;
@@ -212,10 +212,10 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 };
             });
 
-            if (httpContext is not null)
-            {
-                _cookieManager.Issue(httpContext, issued!.OpaqueSessionId);
-            }
+            //if (httpContext is not null)
+            //{
+            //    _cookieManager.Write(httpContext, issued!.OpaqueSessionId);
+            //}
 
             return issued!;
         }

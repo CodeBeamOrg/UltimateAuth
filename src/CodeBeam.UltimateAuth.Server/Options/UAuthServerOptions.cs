@@ -77,7 +77,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
         internal Type? CustomCookieManagerType { get; private set; }
 
-        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthSessionCookieManager
+        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager
         {
             CustomCookieManagerType = typeof(T);
         }
@@ -85,6 +85,10 @@ namespace CodeBeam.UltimateAuth.Server.Options
         // -------------------------------------------------------
         // SERVER-ONLY BEHAVIOR
         // -------------------------------------------------------
+
+        public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
+
+        public AuthResponseOptions AuthResponse { get; init; } = new();
 
         /// <summary>
         /// Enables/disables specific endpoint groups.

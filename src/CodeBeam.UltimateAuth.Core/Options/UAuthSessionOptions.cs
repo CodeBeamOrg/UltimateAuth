@@ -26,6 +26,7 @@
         /// <summary>
         /// When enabled, each refresh extends the session's expiration,
         /// allowing continuous usage until MaxLifetime or idle rules apply.
+        /// On PureOpaque (or one token usage) mode, each touch restarts the session lifetime.
         /// </summary>
         public bool SlidingExpiration { get; set; } = true;
 
