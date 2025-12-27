@@ -147,6 +147,8 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped(typeof(IRefreshTokenResolver<>), typeof(UAuthRefreshTokenResolver<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
+            services.TryAddScoped<ICredentialResolver, DefaultCredentialResolver>();
+            services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
 
             // -----------------------------
             // ENDPOINTS
@@ -156,6 +158,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));
             services.AddScoped<DefaultLoginEndpointHandler<UserId>>();
             services.AddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
+
+            services.AddScoped<DefaultValidateEndpointHandler<UserId>>();
+            services.AddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
             //services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
             //services.TryAddScoped<ISessionRefreshEndpointHandler, SessionRefreshEndpointHandler>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();

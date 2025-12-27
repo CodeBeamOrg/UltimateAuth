@@ -7,11 +7,11 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// <summary>
         /// Default primary credential for UI-style requests.
         /// </summary>
-        public PrimaryCredentialKind Ui { get; set; } = PrimaryCredentialKind.Session;
+        public PrimaryCredentialKind Ui { get; set; } = PrimaryCredentialKind.Stateful;
 
         /// <summary>
         /// Default primary credential for API requests.
         /// </summary>
-        public PrimaryCredentialKind Api { get; set; } = PrimaryCredentialKind.Jwt;
+        public PrimaryCredentialKind Api { get; set; } = PrimaryCredentialKind.Stateless;
     }
 }

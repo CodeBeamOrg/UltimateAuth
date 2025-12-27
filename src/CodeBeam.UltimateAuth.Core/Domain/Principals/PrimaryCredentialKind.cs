@@ -2,7 +2,7 @@
 {
     public enum PrimaryCredentialKind
     {
-        Session,
-        Jwt
+        Stateful,
+        Stateless
     }
 }

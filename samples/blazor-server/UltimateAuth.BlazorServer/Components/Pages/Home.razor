@@ -1,5 +1,12 @@
 ﻿@page "/"
+@using CodeBeam.UltimateAuth.Server.Abstractions
+@using CodeBeam.UltimateAuth.Server.Infrastructure
 @inject ISnackbar Snackbar
+@inject ISessionQueryService<UserId> SessionQuery
+@inject ICredentialResolver CredentialResolver
+@inject IClock Clock
+@inject IHttpContextAccessor HttpContextAccessor
+
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
@@ -11,5 +18,9 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
             </MudStack>
         </UALoginForm>
+
+        <MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
+        </MudStack>
     </MudStack>
 </div>

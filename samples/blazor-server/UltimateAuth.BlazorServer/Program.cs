@@ -33,17 +33,27 @@ builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
-builder.Services.AddHttpClient("AuthApi", client =>
+builder.Services.AddScoped(sp =>
 {
-    client.BaseAddress = new Uri("https://localhost:7213");
-})
-.ConfigurePrimaryHttpMessageHandler(() =>
-{
-    return new HttpClientHandler
+    var navigation = sp.GetRequiredService<NavigationManager>();
+
+    return new HttpClient
     {
-        UseCookies = true
+        BaseAddress = new Uri(navigation.BaseUri)
     };
 });
+
+//builder.Services.AddHttpClient("AuthApi", client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:7213");
+//})
+//.ConfigurePrimaryHttpMessageHandler(() =>
+//{
+//    return new HttpClientHandler
+//    {
+//        UseCookies = true
+//    };
+//});
 
 
 var app = builder.Build();
