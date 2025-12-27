@@ -1,6 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Client.Components;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Components;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor;
 
 namespace UltimateAuth.BlazorServer.Components.Pages
@@ -62,6 +64,11 @@ namespace UltimateAuth.BlazorServer.Components.Pages
             }
         }
 
+        private async Task LogoutAsync()
+        {
+            await UAuthClient.LogoutAsync();
+            Snackbar.Add("Logged out", Severity.Success);
+        }
 
     }
 }

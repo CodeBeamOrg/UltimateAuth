@@ -82,9 +82,9 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
             _credentialResponseWriter.Write(ctx, result.RefreshToken.Token, _options.AuthResponse.RefreshTokenDelivery);
         }
 
-        if (_options.AuthResponse.Redirect.Enabled)
+        if (_options.AuthResponse.Login.RedirectEnabled)
         {
-            return Results.Redirect(_options.AuthResponse.Redirect.SuccessRedirect);
+            return Results.Redirect(_options.AuthResponse.Login.SuccessRedirect);
         }
 
         // TODO: Add PKCE, return result with body
@@ -94,7 +94,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
     private IResult RedirectFailure(AuthFailureReason reason)
     {
-        var redirect = _options.AuthResponse?.Redirect ?? new RedirectResponseOptions();
+        var redirect = _options.AuthResponse.Login;
 
         var code = (redirect.FailureCodes != null && redirect.FailureCodes.TryGetValue(reason, out var c))
             ? c

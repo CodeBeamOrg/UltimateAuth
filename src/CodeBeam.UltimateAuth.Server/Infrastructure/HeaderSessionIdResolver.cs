@@ -7,16 +7,16 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     public sealed class HeaderSessionIdResolver : IInnerSessionIdResolver
     {
-        private readonly UAuthSessionResolutionOptions _options;
+        private readonly UAuthServerOptions _options;
 
-        public HeaderSessionIdResolver(IOptions<UAuthSessionResolutionOptions> options)
+        public HeaderSessionIdResolver(IOptions<UAuthServerOptions> options)
         {
             _options = options.Value;
         }
 
         public AuthSessionId? Resolve(HttpContext context)
         {
-            if (!context.Request.Headers.TryGetValue(_options.HeaderName, out var values))
+            if (!context.Request.Headers.TryGetValue(_options.SessionResolution.HeaderName, out var values))
                 return null;
 
             var raw = values.FirstOrDefault();

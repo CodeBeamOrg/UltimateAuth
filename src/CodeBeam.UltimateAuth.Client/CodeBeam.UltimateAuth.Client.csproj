@@ -11,4 +11,8 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+	</ItemGroup>
+
 </Project>

@@ -83,41 +83,47 @@ namespace CodeBeam.UltimateAuth.Server.Options
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.None };
-                    ar.Redirect.Enabled = true;
+                    ar.Login.RedirectEnabled = true;
+                    ar.Logout.RedirectEnabled = true;
                     break;
                 case UAuthClientProfile.BlazorServer:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.None };
-                    ar.Redirect.Enabled = true;
+                    ar.Login.RedirectEnabled = true;
+                    ar.Logout.RedirectEnabled = true;
                     break;
 
                 case UAuthClientProfile.BlazorWasm:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.Redirect.Enabled = true;
+                    ar.Login.RedirectEnabled = true;
+                    ar.Logout.RedirectEnabled = true;
                     break;
 
                 case UAuthClientProfile.Maui:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.Redirect.Enabled = true;
+                    ar.Login.RedirectEnabled = true;
+                    ar.Logout.RedirectEnabled = true;
                     break;
 
                 case UAuthClientProfile.Mvc:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.Redirect.Enabled = true;
+                    ar.Login.RedirectEnabled = true;
+                    ar.Logout.RedirectEnabled = true;
                     break;
 
                 case UAuthClientProfile.Api:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.Redirect.Enabled = false;
+                    ar.Login.RedirectEnabled = false;
+                    ar.Logout.RedirectEnabled = false;
                     break;
             }
         }

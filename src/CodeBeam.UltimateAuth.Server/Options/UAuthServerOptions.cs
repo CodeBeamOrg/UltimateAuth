@@ -91,6 +91,12 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public AuthResponseOptions AuthResponse { get; init; } = new();
 
         /// <summary>
+        /// Controls how session identifiers are resolved from incoming requests
+        /// (cookie, header, bearer, query, order, etc.)
+        /// </summary>
+        public UAuthSessionResolutionOptions SessionResolution { get; } = new();
+
+        /// <summary>
         /// Enables/disables specific endpoint groups.
         /// Useful for API hardening.
         /// </summary>

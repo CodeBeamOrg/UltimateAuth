@@ -9,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
     {
         private readonly IReadOnlyList<IInnerSessionIdResolver> _resolvers;
 
-        public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IOptions<UAuthSessionResolutionOptions> options)
+        public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IOptions<UAuthServerOptions> options)
         {
             _resolvers = Order(resolvers, options.Value);
         }
@@ -26,20 +26,28 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             return null;
         }
 
-        private static IReadOnlyList<IInnerSessionIdResolver> Order(IEnumerable<IInnerSessionIdResolver> resolvers, UAuthSessionResolutionOptions options)
+        private static IReadOnlyList<IInnerSessionIdResolver> Order(IEnumerable<IInnerSessionIdResolver> resolvers, UAuthServerOptions options)
         {
-            var map = resolvers.ToDictionary(
+            var list = resolvers.ToList();
+
+            if (options.SessionResolution.Order is null || options.SessionResolution.Order.Count == 0)
+                return list;
+
+            var map = list.ToDictionary(
                 r => r.GetType().Name.Replace("SessionIdResolver", ""),
                 r => r,
                 StringComparer.OrdinalIgnoreCase);
 
             var ordered = new List<IInnerSessionIdResolver>();
 
-            foreach (var key in options.Order)
+            foreach (var key in options.SessionResolution.Order)
             {
                 if (map.TryGetValue(key, out var r))
                     ordered.Add(r);
             }
+
+            if (ordered.Count == 0)
+                return list;
 
             return ordered;
         }

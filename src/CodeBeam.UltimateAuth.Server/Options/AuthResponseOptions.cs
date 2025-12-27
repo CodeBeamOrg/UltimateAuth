@@ -8,6 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public CredentialResponseOptions AccessTokenDelivery { get; set; } = new();
         public CredentialResponseOptions RefreshTokenDelivery { get; set; } = new();
 
-        public RedirectResponseOptions Redirect { get; set; } = new();
+        public LoginRedirectOptions Login { get; set; } = new();
+        public LogoutRedirectOptions Logout { get; set; } = new();
     }
 }

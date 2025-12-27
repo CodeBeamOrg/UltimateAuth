@@ -1,3 +1,4 @@
+using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -32,6 +33,8 @@ builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
+
+builder.Services.AddUltimateAuthClient();
 
 builder.Services.AddScoped(sp =>
 {

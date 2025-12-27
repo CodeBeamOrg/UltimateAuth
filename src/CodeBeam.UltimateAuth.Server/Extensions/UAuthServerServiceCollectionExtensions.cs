@@ -34,7 +34,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         {
             services.AddUltimateAuth(configuration);
             services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
-            services.Configure<UAuthSessionResolutionOptions>(configuration.GetSection("UltimateAuth:SessionResolution"));
 
             return services.AddUltimateAuthServerInternal();
         }
@@ -161,7 +160,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.AddScoped<DefaultValidateEndpointHandler<UserId>>();
             services.AddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
-            //services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
+
+            services.AddScoped<DefaultLogoutEndpointHandler<UserId>>();
+            services.AddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
             //services.TryAddScoped<ISessionRefreshEndpointHandler, SessionRefreshEndpointHandler>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
             //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
