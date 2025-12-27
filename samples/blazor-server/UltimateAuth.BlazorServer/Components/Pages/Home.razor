@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/login"
 @using CodeBeam.UltimateAuth.Client
 @using CodeBeam.UltimateAuth.Server.Abstractions
 @using CodeBeam.UltimateAuth.Server.Cookies
@@ -11,6 +12,7 @@
 @inject IUAuthCookieManager CookieManager
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IUAuthClient UAuthClient
+@inject NavigationManager Nav
 
 
 <div class="uauth-page d-flex align-center justify-center">
@@ -24,9 +26,14 @@
             </MudStack>
         </UALoginForm>
 
-        <MudStack Row="true">
+        <MudStack Class="mud-width-full" Row="true">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="LogoutAsync">Logout</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Refresh</MudButton>
+        </MudStack>
+
+        <MudStack Class="mud-width-full">
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
         </MudStack>
     </MudStack>
 </div>

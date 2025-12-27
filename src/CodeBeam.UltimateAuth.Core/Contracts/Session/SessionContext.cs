@@ -23,9 +23,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public static SessionContext Anonymous()
             => new(null, null);
 
-        public static SessionContext FromSessionId(
-            AuthSessionId sessionId,
-            string? tenantId)
+        public static SessionContext FromSessionId(AuthSessionId sessionId, string? tenantId)
             => new(sessionId, tenantId);
     }
 }

@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Server.Middlewares;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions
@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
     {
         public static SessionContext GetSessionContext(this HttpContext context)
         {
-            if (context.Items.TryGetValue(SessionResolutionMiddleware.SessionContextKey, out var value)
+            if (context.Items.TryGetValue(SessionContextItemKeys.SessionContext, out var value)
                 && value is SessionContext session)
             {
                 return session;

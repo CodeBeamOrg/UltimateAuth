@@ -3,6 +3,8 @@
     public enum SessionRefreshStatus
     {
         Success,
-        ReauthRequired
+        ReauthRequired,
+        InvalidRequest,
+        Failed = 3
     }
 }

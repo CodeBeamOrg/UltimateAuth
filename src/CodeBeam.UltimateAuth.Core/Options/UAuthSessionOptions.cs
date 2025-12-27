@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Options
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Options
 {
     /// <summary>
     /// Defines configuration settings that control the lifecycle,
@@ -35,6 +37,12 @@
         /// If null or zero, idle expiration is disabled entirely.
         /// </summary>
         public TimeSpan? IdleTimeout { get; set; }
+
+        /// <summary>
+        /// Minimum interval between LastSeenAt updates.
+        /// Prevents excessive writes under high traffic.
+        /// </summary>
+        public TimeSpan? TouchInterval { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
         /// Maximum number of device session chains a single user may have.
@@ -77,5 +85,8 @@
         /// When enabled, UA mismatches can invalidate a session.
         /// </summary>
         public bool EnableUserAgentBinding { get; set; } = false;
+
+        public DeviceMismatchBehavior DeviceMismatchBehavior { get; set; } = DeviceMismatchBehavior.Reject;
+
     }
 }

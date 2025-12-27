@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -144,10 +145,13 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
             services.TryAddScoped(typeof(ISessionQueryService<>), typeof(UAuthSessionQueryService<>));
             services.TryAddScoped(typeof(IRefreshTokenResolver<>), typeof(UAuthRefreshTokenResolver<>));
+            services.TryAddScoped(typeof(ISessionRefreshService<>), typeof(DefaultSessionRefreshService<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
             services.TryAddScoped<ICredentialResolver, DefaultCredentialResolver>();
             services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
+            services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
+            services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
 
             // -----------------------------
             // ENDPOINTS
@@ -163,7 +167,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.AddScoped<DefaultLogoutEndpointHandler<UserId>>();
             services.AddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
-            //services.TryAddScoped<ISessionRefreshEndpointHandler, SessionRefreshEndpointHandler>();
+
+            services.AddScoped<DefaultRefreshEndpointHandler<UserId>>();
+            services.AddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
             //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();

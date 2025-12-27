@@ -1,21 +1,23 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     public sealed class UAuthSessionQueryService<TUserId> : ISessionQueryService<TUserId>
     {
         private readonly ISessionStoreFactory _storeFactory;
+        private readonly UAuthServerOptions _options;
 
-        public UAuthSessionQueryService(ISessionStoreFactory storeFactory)
+        public UAuthSessionQueryService(ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options)
         {
             _storeFactory = storeFactory;
+            _options = options.Value;
         }
 
-        public async Task<SessionValidationResult<TUserId>> ValidateSessionAsync(
-            SessionValidationContext context,
-            CancellationToken ct = default)
+        public async Task<SessionValidationResult<TUserId>> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
         {
             var kernel = _storeFactory.Create<TUserId>(context.TenantId);
 
@@ -47,17 +49,11 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (session.SecurityVersionAtCreation != root.SecurityVersion)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.SecurityMismatch);
 
-            if (!session.Device.Matches(context.Device))
+            // TODO: Implement AllowAndRebind behavior and check device mathing in blazor server circuit and external http calls.
+            if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
-            if (session.ShouldUpdateLastSeen(context.Now))
-            {
-                var updated = session.Touch(context.Now);
-                await kernel.SaveSessionAsync(context.TenantId, updated);
-                session = updated;
-            }
-
-            return SessionValidationResult<TUserId>.Active(session, chain, root);
+            return SessionValidationResult<TUserId>.Active(context.TenantId, session, chain, root);
         }
 
         public Task<ISession<TUserId>?> GetSessionAsync(

@@ -75,6 +75,8 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// </summary>
         public UAuthCookieOptions Cookie { get; } = new();
 
+        public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
+
         internal Type? CustomCookieManagerType { get; private set; }
 
         public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager

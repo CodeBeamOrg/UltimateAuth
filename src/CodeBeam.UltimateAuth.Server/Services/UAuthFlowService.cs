@@ -248,7 +248,9 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var accessToken = await _tokens.IssueAccessTokenAsync(tokenContext, ct);
             var refreshToken = await _tokens.IssueRefreshTokenAsync(tokenContext, ct);
 
-            return SessionRefreshResult.Success(accessToken, refreshToken);
+            var primaryToken = PrimaryToken.FromAccessToken(accessToken);
+
+            return SessionRefreshResult.Success(primaryToken, refreshToken);
         }
 
         public Task<PkceVerificationResult> VerifyPkceAsync(PkceVerifyRequest request, CancellationToken ct = default)

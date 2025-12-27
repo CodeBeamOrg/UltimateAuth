@@ -1,8 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Components;
+﻿using CodeBeam.UltimateAuth.Client.Components;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor;
 
 namespace UltimateAuth.BlazorServer.Components.Pages
@@ -12,11 +10,16 @@ namespace UltimateAuth.BlazorServer.Components.Pages
         private string? _username;
         private string? _password;
 
-        private UALoginForm _form;
+        private UALoginForm _form = null!;
 
-        private async Task HandleLogin()
+        private async Task ProgrammaticLogin()
         {
-            await _form.SubmitAsync();
+            var request = new LoginRequest
+            {
+                Identifier = "Admin",
+                Secret = "Password!",
+            };
+            await UAuthClient.LoginAsync(request);
         }
 
         private async Task ValidateAsync()
@@ -68,6 +71,47 @@ namespace UltimateAuth.BlazorServer.Components.Pages
         {
             await UAuthClient.LogoutAsync();
             Snackbar.Add("Logged out", Severity.Success);
+        }
+
+        private async Task RefreshAsync()
+        {
+            await UAuthClient.RefreshAsync();
+            //Snackbar.Add("Logged out", Severity.Success);
+        }
+
+        protected override void OnAfterRender(bool firstRender)
+        {
+            if (firstRender)
+            {
+                var uri = Nav.ToAbsoluteUri(Nav.Uri);
+                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+                if (query.TryGetValue("error", out var error))
+                {
+                    ShowLoginError(error.ToString());
+                    ClearQueryString();
+                }
+            }
+        }
+
+        private void ShowLoginError(string code)
+        {
+            var message = code switch
+            {
+                "invalid" => "Invalid username or password.",
+                "locked" => "Your account is locked.",
+                "mfa" => "Multi-factor authentication required.",
+                _ => "Login failed."
+            };
+
+            Snackbar.Add(message, Severity.Error);
+        }
+
+        private void ClearQueryString()
+        {
+            var uri = new Uri(Nav.Uri);
+            var clean = uri.GetLeftPart(UriPartial.Path);
+            Nav.NavigateTo(clean, replace: true);
         }
 
     }

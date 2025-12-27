@@ -2,6 +2,7 @@ using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using Microsoft.AspNetCore.Components;
@@ -28,7 +29,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(o => {
+    o.ClientProfile = UAuthClientProfile.BlazorServer;
+    o.Diagnostics.EnableRefreshHeaders = true; 
+})
     .AddInMemoryCredentials()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()

@@ -76,7 +76,6 @@
         /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
         SessionState GetState(DateTimeOffset now);
 
-        bool ShouldUpdateLastSeen(DateTimeOffset now);
         ISession<TUserId> Touch(DateTimeOffset now);
         ISession<TUserId> Revoke(DateTimeOffset at);
 
