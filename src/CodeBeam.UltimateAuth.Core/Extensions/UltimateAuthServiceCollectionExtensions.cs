@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Extensions
@@ -82,6 +84,8 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
             // Server layer may override or extend these settings.
 
             services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
+            services.TryAddSingleton<IUAuthProductInfoProvider, UAuthProductInfoProvider>();
+
 
             return services;
         }

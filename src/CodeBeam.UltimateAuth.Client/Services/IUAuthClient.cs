@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Client
     {
         Task LoginAsync(LoginRequest request);
         Task LogoutAsync();
-        Task RefreshAsync();
+        Task<RefreshResult> RefreshAsync();
         Task ReauthAsync();
 
         Task<AuthValidationResult> ValidateAsync();

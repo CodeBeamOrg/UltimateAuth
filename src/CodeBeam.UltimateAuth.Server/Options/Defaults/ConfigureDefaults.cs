@@ -1,15 +1,16 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Options
 {
     internal class ConfigureDefaults
     {
-        internal static void ApplyClientProfileDefaults(UAuthServerOptions o)
+        internal static void ApplyClientProfileDefaults(UAuthServerOptions o, UAuthOptions core)
         {
-            if (o.ClientProfile == UAuthClientProfile.NotSpecified)
+            if (core.ClientProfile == UAuthClientProfile.NotSpecified)
             {
                 o.Mode ??= UAuthMode.Hybrid;
                 return;
@@ -17,7 +18,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
             if (o.Mode is null)
             {
-                o.Mode = o.ClientProfile switch
+                o.Mode = core.ClientProfile switch
                 {
                     UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
                     UAuthClientProfile.BlazorWasm => UAuthMode.SemiHybrid,
@@ -30,7 +31,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
             if (o.HubDeploymentMode == default)
             {
-                o.HubDeploymentMode = o.ClientProfile switch
+                o.HubDeploymentMode = core.ClientProfile switch
                 {
                     UAuthClientProfile.BlazorWasm => UAuthHubDeploymentMode.Integrated,
                     UAuthClientProfile.Maui => UAuthHubDeploymentMode.Integrated,
@@ -64,7 +65,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
             }
         }
 
-        internal static void ApplyAuthResponseDefaults(UAuthServerOptions o)
+        internal static void ApplyAuthResponseDefaults(UAuthServerOptions o, UAuthOptions core)
         {
             var ar = o.AuthResponse;
             if (ar is null)
@@ -77,7 +78,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
             if (!sessionNotSet || !accessNotSet || !refreshNotSet)
                 return;
 
-            switch (o.ClientProfile)
+            switch (core.ClientProfile)
             {
                 // TODO: Change NotSpecified option defaults. Should be same as BlazorWasm.
                 case UAuthClientProfile.NotSpecified:

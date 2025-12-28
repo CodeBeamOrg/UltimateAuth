@@ -24,6 +24,18 @@ window.uauth = {
 
         document.body.appendChild(form);
         form.submit();
+    },
+
+    refresh: async function (action) {
+        const response = await fetch(action, {
+            method: "POST",
+            credentials: "include"
+        });
+
+        return {
+            ok: response.ok,
+            status: response.status,
+            refresh: response.headers.get("X-UAuth-Refresh")
+        };
     }
 };
-

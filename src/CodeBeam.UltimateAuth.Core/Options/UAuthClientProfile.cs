@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Options
+﻿namespace CodeBeam.UltimateAuth.Core.Options
 {
     public enum UAuthClientProfile
     {

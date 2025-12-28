@@ -49,13 +49,25 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
         {
+            services.AddSingleton<IServerProfileDetector, UAuthServerProfileDetector>();
+            services.PostConfigure<UAuthOptions>(o =>
+            {
+                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+                    return;
+
+                using var sp = services.BuildServiceProvider();
+                var detector = sp.GetRequiredService<IServerProfileDetector>();
+                o.ClientProfile = detector.Detect(sp);
+            });
+
             services.AddOptions<UAuthServerOptions>()
-                .PostConfigure(o =>
+                .PostConfigure<IOptions<UAuthOptions>>((server, core) =>
                 {
-                    ConfigureDefaults.ApplyClientProfileDefaults(o);
-                    ConfigureDefaults.ApplyModeDefaults(o);
-                    ConfigureDefaults.ApplyAuthResponseDefaults(o);
+                    ConfigureDefaults.ApplyClientProfileDefaults(server, core.Value);
+                    ConfigureDefaults.ApplyModeDefaults(server);
+                    ConfigureDefaults.ApplyAuthResponseDefaults(server, core.Value);
                 });
+
 
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
             services.TryAddSingleton<IJwtTokenGenerator,DefaultJwtTokenGenerator>();
@@ -160,16 +172,16 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // Endpoint handlers
             //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));
             services.AddScoped<DefaultLoginEndpointHandler<UserId>>();
-            services.AddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
+            services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
 
             services.AddScoped<DefaultValidateEndpointHandler<UserId>>();
-            services.AddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
+            services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
 
             services.AddScoped<DefaultLogoutEndpointHandler<UserId>>();
-            services.AddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
+            services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
 
             services.AddScoped<DefaultRefreshEndpointHandler<UserId>>();
-            services.AddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
+            services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
             //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();

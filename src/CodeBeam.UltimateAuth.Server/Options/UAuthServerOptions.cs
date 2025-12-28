@@ -14,8 +14,6 @@ namespace CodeBeam.UltimateAuth.Server.Options
     /// </summary>
     public sealed class UAuthServerOptions
     {
-        public UAuthClientProfile ClientProfile { get; set; }
-
         /// <summary>
         /// Defines how UltimateAuth executes authentication flows.
         /// Default is Hybrid.

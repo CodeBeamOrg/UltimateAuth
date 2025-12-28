@@ -1,6 +1,8 @@
 ﻿@page "/"
 @page "/login"
 @using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Core.Runtime
 @using CodeBeam.UltimateAuth.Server.Abstractions
 @using CodeBeam.UltimateAuth.Server.Cookies
 @using CodeBeam.UltimateAuth.Server.Infrastructure
@@ -13,6 +15,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IUAuthClient UAuthClient
 @inject NavigationManager Nav
+@inject IUAuthProductInfoProvider ProductInfo
 
 
 <div class="uauth-page d-flex align-center justify-center">
@@ -34,6 +37,11 @@
 
         <MudStack Class="mud-width-full">
             <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
+            <MudText>Client Profile: @ProductInfo.Get().ClientProfile.ToString()</MudText>
         </MudStack>
     </MudStack>
 </div>

@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Server.Infrastructure.Internal;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {

@@ -1,5 +1,5 @@
 ﻿@* TODO: Optional double-submit prevention for native form submit *@
-
+@namespace CodeBeam.UltimateAuth.Client
 @inject IJSRuntime JS
 
 <form @ref="_form" method="post" action="@ResolvedEndpoint">
@@ -15,30 +15,5 @@
 </form>
 
 @code {
-    [Parameter]
-    public string? Identifier { get; set; }
-
-    [Parameter]
-    public string? Secret { get; set; }
-
-    [Parameter]
-    public string? Endpoint { get; set; } = "/auth/login";
-
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    [Parameter]
-    public bool AllowEnterKeyToSubmit { get; set; } = true;
-
-    private ElementReference _form;
-
-    private string ResolvedEndpoint => string.IsNullOrWhiteSpace(Endpoint) ? "/auth/login" : Endpoint;
-
-    public async Task SubmitAsync()
-    {
-        if (_form.Context is null)
-            throw new InvalidOperationException("Form is not yet rendered. Call SubmitAsync after OnAfterRender.");
-
-        await JS.InvokeVoidAsync("uauth.submitForm", _form);
-    }
+    
 }

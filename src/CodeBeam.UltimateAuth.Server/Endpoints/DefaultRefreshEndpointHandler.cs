@@ -2,7 +2,6 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Infrastructure.Internal;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -65,8 +64,17 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
             var refreshResult = await _sessionRefresh.RefreshAsync(validation, now, ctx.RequestAborted);
 
+            RefreshOutcome outcome;
+
             if (!refreshResult.IsSuccess || refreshResult.PrimaryToken is null)
+            {
+                outcome = RefreshOutcome.ReauthRequired;
+
+                if (_options.Diagnostics.EnableRefreshHeaders)
+                    _refreshResponseWriter.Write(ctx, outcome);
+
                 return Results.Unauthorized();
+            }
 
             _credentialResponseWriter.Write(ctx, refreshResult.PrimaryToken.Value,
                 new CredentialResponseOptions
@@ -74,7 +82,12 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     Mode = TokenResponseMode.Cookie
                 });
 
-            _refreshResponseWriter.Write(ctx, RefreshOutcome.NoOp);
+            outcome = refreshResult.DidTouch
+                ? RefreshOutcome.Touched
+                : RefreshOutcome.NoOp;
+
+            if (_options.Diagnostics.EnableRefreshHeaders)
+                _refreshResponseWriter.Write(ctx, outcome);
 
             return Results.NoContent();
         }

@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Components;
+﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using MudBlazor;

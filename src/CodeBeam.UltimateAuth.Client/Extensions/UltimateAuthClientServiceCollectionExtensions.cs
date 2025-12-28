@@ -1,7 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Abstractions;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -62,14 +62,43 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
         /// NOTE:
         /// This method does NOT register any server-side services.
         /// </summary>
-        private static IServiceCollection AddUltimateAuthClientInternal(
-            this IServiceCollection services)
+        private static IServiceCollection AddUltimateAuthClientInternal(this IServiceCollection services)
         {
             // Options validation can be added here later if needed
             // services.AddSingleton<IValidateOptions<UAuthClientOptions>, ...>();
 
+            services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
+            services.PostConfigure<UAuthOptions>(o =>
+            {
+                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+                    return;
+
+                using var sp = services.BuildServiceProvider();
+                var detector = sp.GetRequiredService<IClientProfileDetector>();
+                o.ClientProfile = detector.Detect(sp);
+            });
+
+            services.PostConfigure<UAuthClientOptions>(o =>
+            {
+                o.Refresh.Interval ??= TimeSpan.FromMinutes(5);
+            });
+
             services.AddScoped<IBrowserPostClient, BrowserPostClient>();
             services.AddScoped<IUAuthClient, UAuthClient>();
+
+            services.AddScoped<ISessionCoordinator>(sp =>
+            {
+                var core = sp
+                    .GetRequiredService<IOptions<UAuthOptions>>()
+                    .Value;
+
+                return core.ClientProfile == UAuthClientProfile.BlazorServer
+                    ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
+                    : sp.GetRequiredService<NoOpSessionCoordinator>();
+            });
+
+            services.AddScoped<BlazorServerSessionCoordinator>();
+            services.AddScoped<NoOpSessionCoordinator>();
 
             return services;
         }
