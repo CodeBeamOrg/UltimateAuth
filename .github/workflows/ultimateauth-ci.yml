@@ -1,19 +1,19 @@
 name: UltimateAuth CI
 
 on:
-  pull_request:
-    branches:
-      - dev
   push:
-    branches:
-      - dev
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: Build & Test
+  build-test-coverage:
+    name: Build, Test & Coverage
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
 
@@ -32,12 +32,15 @@ jobs:
     - name: 🏗️ Build
       run: dotnet build --configuration Release --no-restore
 
-    - name: 🧪 Run tests
-      run: dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage"
+    - name: 🧪 Test with coverage
+      run: |
+        dotnet test \
+          --configuration Release \
+          --no-build \
+          --collect:"XPlat Code Coverage"
 
-    - name: ⬆ Upload code coverage
-      uses: actions/upload-artifact@v4
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
       with:
-        name: code-coverage
-        path: '**/coverage.cobertura.xml'
-        if-no-files-found: ignore
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: CodeBeamOrg/UltimateAuth
