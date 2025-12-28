@@ -7,6 +7,9 @@
     <File Path="Readme.md" />
     <File Path="Roadmap.md" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/CodeBeam.UltimateAuth.Core.Tests/CodeBeam.UltimateAuth.Core.Tests.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />
+  </Folder>
   <Project Path="src/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.csproj" Id="eb60a3b7-ba9d-48c9-98ad-b28e879b23bf" />
   <Project Path="src/CodeBeam.UltimateAuth.Core/CodeBeam.UltimateAuth.Core.csproj" />
   <Project Path="src/CodeBeam.UltimateAuth.Server/CodeBeam.UltimateAuth.Server.csproj" Id="0a8cdd12-a8c4-4530-87e8-ae778c46322b" />
