@@ -1,0 +1,13 @@
+comment:
+  require_changes: yes
+
+coverage:
+  status:
+    project:
+      default:
+        target: 0%
+        threshold: 0%
+    patch:
+      default:
+        target: 0%
+        threshold: 0%
