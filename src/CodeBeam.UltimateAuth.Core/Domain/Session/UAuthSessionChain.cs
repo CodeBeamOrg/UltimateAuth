@@ -108,5 +108,29 @@
             );
         }
 
+        internal static UAuthSessionChain<TUserId> FromProjection(
+    ChainId chainId,
+    string? tenantId,
+    TUserId userId,
+    int rotationCount,
+    long securityVersionAtCreation,
+    ClaimsSnapshot claimsSnapshot,
+    AuthSessionId? activeSessionId,
+    bool isRevoked,
+    DateTimeOffset? revokedAt)
+        {
+            return new UAuthSessionChain<TUserId>(
+                chainId,
+                tenantId,
+                userId,
+                rotationCount,
+                securityVersionAtCreation,
+                claimsSnapshot,
+                activeSessionId,
+                isRevoked,
+                revokedAt
+            );
+        }
+
     }
 }

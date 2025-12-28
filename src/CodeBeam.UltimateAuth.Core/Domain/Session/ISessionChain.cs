@@ -12,6 +12,8 @@
         /// </summary>
         ChainId ChainId { get; }
 
+        string? TenantId { get; }
+
         /// <summary>
         /// Gets the identifier of the user who owns this chain.
         /// Each chain represents one device/login family for this user.

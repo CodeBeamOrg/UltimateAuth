@@ -32,6 +32,8 @@
         /// </summary>
         public string Value { get; }
 
+        public static AuthSessionId From(string value) => new(value);
+
         /// <summary>
         /// Determines whether the specified <see cref="AuthSessionId"/> is equal to the current instance.
         /// </summary>

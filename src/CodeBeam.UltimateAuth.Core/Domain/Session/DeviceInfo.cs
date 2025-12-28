@@ -7,8 +7,10 @@
     /// </summary>
     public sealed class DeviceInfo
     {
+        // TODO: Implement DeviceId and makes it first-class citizen in security policies.
         /// <summary>
         /// Gets the unique identifier for the device.
+        /// No session should be created without a device id.
         /// </summary>
         public string DeviceId { get; init; } = default!;
 
@@ -65,6 +67,17 @@
         public static DeviceInfo Unknown { get; } = new()
         {
             DeviceId = "unknown",
+            Platform = null,
+            Browser = null,
+            IpAddress = null,
+            UserAgent = null,
+            IsTrusted = null
+        };
+
+        // TODO: Empty may not be good approach, make strict security here
+        public static DeviceInfo Empty { get; } = new()
+        {
+            DeviceId = "",
             Platform = null,
             Browser = null,
             IpAddress = null,
