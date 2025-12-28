@@ -1,7 +1,14 @@
-﻿⚠️ This project is in early development. Preview release expected Q1 2026.
+﻿⚠️ This project is in development. First preview release expected Q1 2026 - coming soon.
 # UltimateAuth  
 ### The Modern Unified Auth Framework for .NET -- Reimagined.
 A CodeBeam Project
+
+![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
+![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
+![Last Commit](https://img.shields.io/github/last-commit/CodeBeamOrg/UltimateAuth?branch=dev&logo=github)
+![License](https://img.shields.io/github/license/CodeBeamOrg/UltimateAuth)
+[![codecov](https://codecov.io/gh/CodeBeamOrg/UltimateAuth/branch/dev/graph/badge.svg)](https://codecov.io/gh/CodeBeamOrg/UltimateAuth)
+
 
 ---
 
