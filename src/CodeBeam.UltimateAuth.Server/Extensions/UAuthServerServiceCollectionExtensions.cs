@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -34,7 +35,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         {
             services.AddUltimateAuth(configuration);
             services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
-            services.Configure<UAuthSessionResolutionOptions>(configuration.GetSection("UltimateAuth:SessionResolution"));
 
             return services.AddUltimateAuthServerInternal();
         }
@@ -49,12 +49,25 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
         {
+            services.AddSingleton<IServerProfileDetector, UAuthServerProfileDetector>();
+            services.PostConfigure<UAuthOptions>(o =>
+            {
+                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+                    return;
+
+                using var sp = services.BuildServiceProvider();
+                var detector = sp.GetRequiredService<IServerProfileDetector>();
+                o.ClientProfile = detector.Detect(sp);
+            });
+
             services.AddOptions<UAuthServerOptions>()
-                .PostConfigure(o =>
+                .PostConfigure<IOptions<UAuthOptions>>((server, core) =>
                 {
-                    ConfigureDefaults.ApplyClientProfileDefaults(o);
-                    ConfigureDefaults.ApplyModeDefaults(o);
+                    ConfigureDefaults.ApplyClientProfileDefaults(server, core.Value);
+                    ConfigureDefaults.ApplyModeDefaults(server);
+                    ConfigureDefaults.ApplyAuthResponseDefaults(server, core.Value);
                 });
+
 
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
             services.TryAddSingleton<IJwtTokenGenerator,DefaultJwtTokenGenerator>();
@@ -120,7 +133,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddSingleton<IClock, SystemClock>();
 
             // TODO: Allow custom cookie manager via options
-            services.AddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
+            services.AddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
             //if (options.CustomCookieManagerType is not null)
             //{
             //    services.AddSingleton(typeof(IUAuthSessionCookieManager), options.CustomCookieManagerType);
@@ -144,7 +157,13 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
             services.TryAddScoped(typeof(ISessionQueryService<>), typeof(UAuthSessionQueryService<>));
             services.TryAddScoped(typeof(IRefreshTokenResolver<>), typeof(UAuthRefreshTokenResolver<>));
+            services.TryAddScoped(typeof(ISessionRefreshService<>), typeof(DefaultSessionRefreshService<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
+            services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
+            services.TryAddScoped<ICredentialResolver, DefaultCredentialResolver>();
+            services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
+            services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
+            services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
 
             // -----------------------------
             // ENDPOINTS
@@ -153,9 +172,16 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // Endpoint handlers
             //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));
             services.AddScoped<DefaultLoginEndpointHandler<UserId>>();
-            services.AddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
-            //services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
-            //services.TryAddScoped<ISessionRefreshEndpointHandler, SessionRefreshEndpointHandler>();
+            services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
+
+            services.AddScoped<DefaultValidateEndpointHandler<UserId>>();
+            services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
+
+            services.AddScoped<DefaultLogoutEndpointHandler<UserId>>();
+            services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
+
+            services.AddScoped<DefaultRefreshEndpointHandler<UserId>>();
+            services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
             //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
@@ -181,7 +207,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
             // Cookie management (default)
-            services.TryAddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
+            services.TryAddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
 
             return services;
         }

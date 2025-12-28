@@ -1,3 +1,6 @@
+using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -12,7 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddCircuitOptions(options =>
+    {
+        options.DetailedErrors = true;
+    });
 
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
@@ -22,24 +29,39 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddUltimateAuth();
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(o => {
+    o.Diagnostics.EnableRefreshHeaders = true; 
+})
     .AddInMemoryCredentials()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
-builder.Services.AddHttpClient("AuthApi", client =>
+builder.Services.AddUltimateAuthClient();
+
+builder.Services.AddScoped(sp =>
 {
-    client.BaseAddress = new Uri("https://localhost:7213");
-})
-.ConfigurePrimaryHttpMessageHandler(() =>
-{
-    return new HttpClientHandler
+    var navigation = sp.GetRequiredService<NavigationManager>();
+
+    return new HttpClient
     {
-        UseCookies = true
+        BaseAddress = new Uri(navigation.BaseUri)
     };
 });
+
+//builder.Services.AddHttpClient("AuthApi", client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:7213");
+//})
+//.ConfigurePrimaryHttpMessageHandler(() =>
+//{
+//    return new HttpClientHandler
+//    {
+//        UseCookies = true
+//    };
+//});
 
 
 var app = builder.Build();

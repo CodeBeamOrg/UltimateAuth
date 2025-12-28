@@ -1,0 +1,36 @@
+﻿namespace CodeBeam.UltimateAuth.Client.Options
+{
+    public sealed class UAuthClientOptions
+    {
+        public AuthEndpointOptions Endpoints { get; set; } = new();
+        public UAuthClientRefreshOptions Refresh { get; set; } = new();
+    }
+
+    public sealed class AuthEndpointOptions
+    {
+        public string Login { get; set; } = "/auth/login";
+        public string Logout { get; set; } = "/auth/logout";
+        public string Refresh { get; set; } = "/auth/refresh";
+        public string Reauth { get; set; } = "/auth/reauth";
+    }
+
+    public sealed class UAuthClientRefreshOptions
+    {
+        /// <summary>
+        /// Enables background refresh coordination.
+        /// Default: true for BlazorServer, false otherwise.
+        /// </summary>
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        /// Interval for background refresh attempts.
+        /// This is a UX / keep-alive setting, NOT a security policy.
+        /// </summary>
+        public TimeSpan? Interval { get; set; }
+
+        /// <summary>
+        /// Optional jitter to avoid synchronized refresh storms.
+        /// </summary>
+        public TimeSpan? Jitter { get; set; }
+    }
+}

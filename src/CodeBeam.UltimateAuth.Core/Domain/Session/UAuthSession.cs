@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain.Session
+﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
     public sealed class UAuthSession<TUserId> : ISession<TUserId>
     {
@@ -96,19 +96,8 @@
             );
         }
 
-        public bool ShouldUpdateLastSeen(DateTimeOffset at)
-        {
-            if (LastSeenAt is null)
-                return true;
-
-            return (at - LastSeenAt.Value) >= TimeSpan.FromMinutes(1);
-        }
-
         public ISession<TUserId> Touch(DateTimeOffset at)
         {
-            if (!ShouldUpdateLastSeen(at))
-                return this;
-
             return new UAuthSession<TUserId>(
                 SessionId,
                 TenantId,

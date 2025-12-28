@@ -19,6 +19,8 @@
         /// </summary>
         public bool IssueOpaque { get; set; } = true;
 
+        public bool IssueRefresh { get; set; } = true;
+
         /// <summary>
         /// Lifetime of access tokens (JWT or opaque).
         /// Short lifetimes improve security but require more frequent refreshes.

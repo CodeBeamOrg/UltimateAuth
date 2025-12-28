@@ -51,11 +51,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                     => await h.LoginAsync(ctx));
 
+                group.MapPost("/validate", async ([FromServices] IValidateEndpointHandler h, HttpContext ctx)
+                    => await h.ValidateAsync(ctx));
+
                 group.MapPost("/logout", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                     => await h.LogoutAsync(ctx));
 
-                group.MapPost("/refresh-session", async ([FromServices] ISessionRefreshEndpointHandler h, HttpContext ctx)
-                    => await h.RefreshSessionAsync(ctx));
+                group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
+                    => await h.RefreshAsync(ctx));
 
                 group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
                     => await h.ReauthAsync(ctx));

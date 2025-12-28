@@ -15,4 +15,22 @@ public sealed class UAuthCookieOptions
     public CookieSecurePolicy SecurePolicy { get; set; } = CookieSecurePolicy.Always;
 
     internal SameSiteMode? SameSiteOverride { get; set; }
+
+    /// <summary>
+    /// Cookie path. Default is "/".
+    /// </summary>
+    public string Path { get; set; } = "/";
+
+    /// <summary>
+    /// If set, defines absolute expiration for the cookie.
+    /// If null, a session cookie is used.
+    /// </summary>
+    public TimeSpan? MaxAge { get; set; }
+
+    /// <summary>
+    /// Additional tolerance added to session idle timeout
+    /// when resolving cookie lifetime.
+    /// Default: 5 minutes.
+    /// </summary>
+    public TimeSpan IdleBuffer { get; set; } = TimeSpan.FromMinutes(5);
 }

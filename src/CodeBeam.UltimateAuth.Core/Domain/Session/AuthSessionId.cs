@@ -6,16 +6,25 @@
     /// </summary>
     public readonly struct AuthSessionId : IEquatable<AuthSessionId>
     {
-        /// <summary>
-        /// Initializes a new <see cref="AuthSessionId"/> using the specified GUID value.
-        /// </summary>
-        /// <param name="value">The underlying GUID representing the session identifier.</param>
+        // TODO: Change this private
         public AuthSessionId(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("SessionId cannot be empty.", nameof(value));
 
             Value = value;
+        }
+
+        public static bool TryCreate(string raw, out AuthSessionId sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                sessionId = default;
+                return false;
+            }
+
+            sessionId = new AuthSessionId(raw);
+            return true;
         }
 
         /// <summary>

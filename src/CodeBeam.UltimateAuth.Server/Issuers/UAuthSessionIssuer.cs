@@ -2,13 +2,11 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Domain.Session;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using System.Net.Http;
 using System.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Issuers
@@ -18,9 +16,9 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly ISessionStoreFactory _storeFactory;
         private readonly UAuthServerOptions _options;
-        private readonly IUAuthSessionCookieManager _cookieManager;
+        private readonly IUAuthCookieManager _cookieManager;
 
-        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options, IUAuthSessionCookieManager cookieManager)
+        public UAuthSessionIssuer(IOpaqueTokenGenerator opaqueGenerator, ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options, IUAuthCookieManager cookieManager)
         {
             _opaqueGenerator = opaqueGenerator;
             _storeFactory = storeFactory;
@@ -212,10 +210,10 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 };
             });
 
-            if (httpContext is not null)
-            {
-                _cookieManager.Issue(httpContext, issued!.OpaqueSessionId);
-            }
+            //if (httpContext is not null)
+            //{
+            //    _cookieManager.Write(httpContext, issued!.OpaqueSessionId);
+            //}
 
             return issued!;
         }

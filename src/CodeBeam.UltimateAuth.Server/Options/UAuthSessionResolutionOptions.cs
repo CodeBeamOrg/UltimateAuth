@@ -1,5 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Options
 {
+    // TODO: Check header/query parameter name conflicts with other auth mechanisms (e.g. API keys, OAuth tokens)
+    // We removed CookieName here because cookie-based session resolution, there may be other conflicts.
     public sealed class UAuthSessionResolutionOptions
     {
         public bool EnableBearer { get; set; } = true;
@@ -8,7 +10,6 @@
         public bool EnableQuery { get; set; } = false;
 
         public string HeaderName { get; set; } = "X-UAuth-Session";
-        public string CookieName { get; set; } = "__uauth";
         public string QueryParameterName { get; set; } = "session_id";
 
         // Precedence order

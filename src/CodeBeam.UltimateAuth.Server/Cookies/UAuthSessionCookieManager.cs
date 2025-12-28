@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Cookies;
 
-internal sealed class UAuthSessionCookieManager : IUAuthSessionCookieManager
+internal sealed class UAuthSessionCookieManager : IUAuthCookieManager
 {
     private readonly UAuthServerOptions _options;
 
@@ -13,31 +13,42 @@ internal sealed class UAuthSessionCookieManager : IUAuthSessionCookieManager
         _options = options.Value;
     }
 
-    public void Issue(HttpContext context, string sessionId)
+    public void Write(HttpContext context, string value, Action<CookieOptions>? configure = null)
     {
-        var cookieOptions = BuildCookieOptions(context);
-        context.Response.Cookies.Append(_options.Cookie.Name, sessionId, cookieOptions);
+        var options = BuildCookieOptions(context);
+        configure?.Invoke(options);
+
+        context.Response.Cookies.Append(_options.Cookie.Name, value, options);
     }
 
-    public bool TryRead(HttpContext context, out string sessionId)
+    public bool TryRead(HttpContext context, out string value)
     {
-        return context.Request.Cookies.TryGetValue(_options.Cookie.Name, out sessionId!);
+        return context.Request.Cookies.TryGetValue(_options.Cookie.Name, out value!);
     }
 
-    public void Revoke(HttpContext context)
+    public void Delete(HttpContext context)
     {
-        context.Response.Cookies.Delete(_options.Cookie.Name, BuildCookieOptions(context));
+        context.Response.Cookies.Delete(_options.Cookie.Name);
     }
 
     private CookieOptions BuildCookieOptions(HttpContext context)
     {
-        return new CookieOptions
+        var cookie = _options.Cookie;
+        var options = new CookieOptions
         {
-            HttpOnly = _options.Cookie.HttpOnly,
-            Secure = _options.Cookie.SecurePolicy == CookieSecurePolicy.Always,
+            HttpOnly = cookie.HttpOnly,
+            Secure = cookie.SecurePolicy == CookieSecurePolicy.Always,
             SameSite = ResolveSameSite(),
-            Path = "/"
+            Path = cookie.Path ?? "/"
         };
+
+        var maxAge = ResolveCookieMaxAge();
+        if (maxAge is not null)
+        {
+            options.MaxAge = maxAge;
+        }
+
+        return options;
     }
 
     private SameSiteMode ResolveSameSite()
@@ -53,5 +64,28 @@ internal sealed class UAuthSessionCookieManager : IUAuthSessionCookieManager
             _ => SameSiteMode.Lax
         };
     }
+
+    private TimeSpan? ResolveCookieMaxAge()
+    {
+        var cookie = _options.Cookie;
+        var session = _options.Session;
+        var tokens = _options.Tokens;
+
+        if (cookie.MaxAge is not null)
+            return cookie.MaxAge;
+
+        if (tokens.IssueRefresh)
+        {
+            return tokens.RefreshTokenLifetime;
+        }
+
+        if (session.IdleTimeout is not null)
+        {
+            return session.IdleTimeout + cookie.IdleBuffer;
+        }
+
+        return null;
+    }
+
 
 }

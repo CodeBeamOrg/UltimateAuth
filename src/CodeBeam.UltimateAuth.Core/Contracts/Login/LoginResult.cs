@@ -10,6 +10,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public AccessToken? AccessToken { get; init; }
         public RefreshToken? RefreshToken { get; init; }
         public LoginContinuation? Continuation { get; init; }
+        public AuthFailureReason? FailureReason { get; init; }
 
         // Helpers
         public bool IsSuccess => Status == LoginStatus.Success;

@@ -47,12 +47,15 @@ namespace CodeBeam.UltimateAuth.Core.Options
         /// Multi-tenancy configuration controlling how tenants are resolved,
         /// validated, and optionally enforced.
         /// </summary>
-        public UAuthMultiTenantOptions MultiTenantOptions { get; set; } = new();
+        public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
 
         /// <summary>
         /// Provides converters used to normalize and serialize TUserId
         /// across the system (sessions, stores, tokens, logging).
         /// </summary>
         public IUserIdConverterResolver? UserIdConverters { get; set; }
+
+        public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
+        public bool AutoDetectClientProfile { get; set; } = true;
     }
 }

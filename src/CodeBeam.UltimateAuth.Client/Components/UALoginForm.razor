@@ -1,0 +1,19 @@
+﻿@* TODO: Optional double-submit prevention for native form submit *@
+@namespace CodeBeam.UltimateAuth.Client
+@inject IJSRuntime JS
+
+<form @ref="_form" method="post" action="@ResolvedEndpoint">
+    <input type="hidden" name="Identifier" value="@Identifier" />
+    <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
+
+    @ChildContent
+
+    @if (AllowEnterKeyToSubmit)
+    {
+        <button type="submit" hidden aria-hidden="true"></button>
+    }
+</form>
+
+@code {
+    
+}

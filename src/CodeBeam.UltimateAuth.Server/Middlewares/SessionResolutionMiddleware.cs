@@ -10,8 +10,6 @@ namespace CodeBeam.UltimateAuth.Server.Middlewares
     {
         private readonly RequestDelegate _next;
 
-        public const string SessionContextKey = "__UAuthSession";
-
         public SessionResolutionMiddleware(RequestDelegate next)
         {
             _next = next;
@@ -30,7 +28,7 @@ namespace CodeBeam.UltimateAuth.Server.Middlewares
                     sessionId.Value,
                     tenant.TenantId);
 
-            context.Items[SessionContextKey] = sessionContext;
+            context.Items[SessionContextItemKeys.SessionContext] = sessionContext;
 
             await _next(context);
         }

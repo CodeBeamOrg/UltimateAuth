@@ -14,8 +14,6 @@ namespace CodeBeam.UltimateAuth.Server.Options
     /// </summary>
     public sealed class UAuthServerOptions
     {
-        public UAuthClientProfile ClientProfile { get; set; }
-
         /// <summary>
         /// Defines how UltimateAuth executes authentication flows.
         /// Default is Hybrid.
@@ -75,9 +73,11 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// </summary>
         public UAuthCookieOptions Cookie { get; } = new();
 
+        public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
+
         internal Type? CustomCookieManagerType { get; private set; }
 
-        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthSessionCookieManager
+        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager
         {
             CustomCookieManagerType = typeof(T);
         }
@@ -85,6 +85,16 @@ namespace CodeBeam.UltimateAuth.Server.Options
         // -------------------------------------------------------
         // SERVER-ONLY BEHAVIOR
         // -------------------------------------------------------
+
+        public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
+
+        public AuthResponseOptions AuthResponse { get; init; } = new();
+
+        /// <summary>
+        /// Controls how session identifiers are resolved from incoming requests
+        /// (cookie, header, bearer, query, order, etc.)
+        /// </summary>
+        public UAuthSessionResolutionOptions SessionResolution { get; } = new();
 
         /// <summary>
         /// Enables/disables specific endpoint groups.
