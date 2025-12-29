@@ -10,22 +10,14 @@ internal sealed class InMemoryTokenStore<TUserId> : ITokenStore<TUserId>
     private readonly ISessionStoreFactory _sessions;
     private readonly ITokenHasher _hasher;
 
-    public InMemoryTokenStore(
-        ITokenStoreFactory factory,
-        ISessionStoreFactory sessions,
-        ITokenHasher hasher)
+    public InMemoryTokenStore(ITokenStoreFactory factory, ISessionStoreFactory sessions, ITokenHasher hasher)
     {
         _factory = factory;
         _sessions = sessions;
         _hasher = hasher;
     }
 
-    public async Task StoreRefreshTokenAsync(
-        string? tenantId,
-        TUserId userId,
-        AuthSessionId sessionId,
-        string refreshTokenHash,
-        DateTimeOffset expiresAt)
+    public async Task StoreRefreshTokenAsync(string? tenantId, TUserId userId, AuthSessionId sessionId, string refreshTokenHash, DateTimeOffset expiresAt)
     {
         var kernel = _factory.Create(tenantId);
 
@@ -58,7 +50,6 @@ internal sealed class InMemoryTokenStore<TUserId> : ITokenStore<TUserId>
             return RefreshTokenValidationResult<TUserId>.Invalid();
         }
 
-        // one-time use
         await kernel.RevokeRefreshTokenAsync(tenantId, hash, now);
 
         var sessionKernel = _sessions.Create<TUserId>(tenantId);
@@ -72,49 +63,32 @@ internal sealed class InMemoryTokenStore<TUserId> : ITokenStore<TUserId>
             session.SessionId);
     }
 
-    public Task RevokeRefreshTokenAsync(
-        string? tenantId,
-        AuthSessionId sessionId,
-        DateTimeOffset at)
+    public Task RevokeRefreshTokenAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at)
     {
         var kernel = _factory.Create(tenantId);
         return kernel.RevokeAllRefreshTokensAsync(tenantId, null, at);
     }
 
-    public Task RevokeAllRefreshTokensAsync(
-        string? tenantId,
-        TUserId _,
-        DateTimeOffset at)
+    public Task RevokeAllRefreshTokensAsync(string? tenantId, TUserId _, DateTimeOffset at)
     {
         var kernel = _factory.Create(tenantId);
         return kernel.RevokeAllRefreshTokensAsync(tenantId, null, at);
     }
 
-    // ------------------------------------------------------------
-    // JTI
-    // ------------------------------------------------------------
 
-    public Task StoreTokenIdAsync(
-        string? tenantId,
-        string jti,
-        DateTimeOffset expiresAt)
+    public Task StoreTokenIdAsync(string? tenantId, string jti, DateTimeOffset expiresAt)
     {
         var kernel = _factory.Create(tenantId);
         return kernel.StoreTokenIdAsync(tenantId, jti, expiresAt);
     }
 
-    public Task<bool> IsTokenIdRevokedAsync(
-        string? tenantId,
-        string jti)
+    public Task<bool> IsTokenIdRevokedAsync(string? tenantId, string jti)
     {
         var kernel = _factory.Create(tenantId);
         return kernel.IsTokenIdRevokedAsync(tenantId, jti);
     }
 
-    public Task RevokeTokenIdAsync(
-        string? tenantId,
-        string jti,
-        DateTimeOffset at)
+    public Task RevokeTokenIdAsync(string? tenantId, string jti, DateTimeOffset at)
     {
         var kernel = _factory.Create(tenantId);
         return kernel.RevokeTokenIdAsync(tenantId, jti, at);

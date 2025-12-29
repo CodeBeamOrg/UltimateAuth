@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
     <ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
+    <ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
   </ItemGroup>
 
