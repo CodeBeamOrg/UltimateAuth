@@ -27,6 +27,8 @@
         /// <returns>A new <see cref="ChainId"/> instance.</returns>
         public static ChainId New() => new ChainId(Guid.NewGuid());
 
+        public static ChainId From(Guid value) => new(value);
+
         /// <summary>
         /// Determines whether the specified <see cref="ChainId"/> is equal to the current instance.
         /// </summary>

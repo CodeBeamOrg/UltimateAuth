@@ -17,14 +17,10 @@ public sealed class InMemorySessionStore<TUserId> : ISessionStore<TUserId>
     private ISessionStoreKernel<TUserId> Kernel(string? tenantId)
         => _factory.Create<TUserId>(tenantId);
 
-    public Task<ISession<TUserId>?> GetSessionAsync(
-        string? tenantId,
-        AuthSessionId sessionId)
+    public Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
         => Kernel(tenantId).GetSessionAsync(tenantId, sessionId);
 
-    public async Task CreateSessionAsync(
-        IssuedSession<TUserId> issued,
-        SessionStoreContext<TUserId> ctx)
+    public async Task CreateSessionAsync(IssuedSession<TUserId> issued, SessionStoreContext<TUserId> ctx, CancellationToken ct = default)
     {
         var k = Kernel(ctx.TenantId);
 
@@ -82,10 +78,7 @@ public sealed class InMemorySessionStore<TUserId> : ISessionStore<TUserId>
         });
     }
 
-    public async Task RotateSessionAsync(
-        AuthSessionId currentSessionId,
-        IssuedSession<TUserId> issued,
-        SessionStoreContext<TUserId> ctx)
+    public async Task RotateSessionAsync(AuthSessionId currentSessionId, IssuedSession<TUserId> issued, SessionStoreContext<TUserId> ctx, CancellationToken ct = default)
     {
         var k = Kernel(ctx.TenantId);
 
@@ -123,16 +116,10 @@ public sealed class InMemorySessionStore<TUserId> : ISessionStore<TUserId>
         });
     }
 
-    public Task RevokeSessionAsync(
-        string? tenantId,
-        AuthSessionId sessionId,
-        DateTimeOffset at)
+    public Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
         => Kernel(tenantId).RevokeSessionAsync(tenantId, sessionId, at);
 
-    public async Task RevokeAllSessionsAsync(
-        string? tenantId,
-        TUserId userId,
-        DateTimeOffset at)
+    public async Task RevokeAllSessionsAsync(string? tenantId, TUserId userId, DateTimeOffset at, CancellationToken ct = default)
     {
         var k = Kernel(tenantId);
 
@@ -159,10 +146,7 @@ public sealed class InMemorySessionStore<TUserId> : ISessionStore<TUserId>
         });
     }
 
-    public async Task RevokeChainAsync(
-        string? tenantId,
-        ChainId chainId,
-        DateTimeOffset at)
+    public async Task RevokeChainAsync(string? tenantId,ChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         var k = Kernel(tenantId);
 

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
+    <ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+    <ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
+    <ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Server.Users.csproj" />
+    <ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
+    <ProjectReference Include="..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
+    <ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
+    <ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

@@ -5,6 +5,6 @@
         Success,
         ReauthRequired,
         InvalidRequest,
-        Failed = 3
+        Failed
     }
 }

@@ -136,6 +136,38 @@
             );
         }
 
+        internal static UAuthSession<TUserId> FromProjection(
+    AuthSessionId sessionId,
+    string? tenantId,
+    TUserId userId,
+    ChainId chainId,
+    DateTimeOffset createdAt,
+    DateTimeOffset expiresAt,
+    DateTimeOffset? lastSeenAt,
+    bool isRevoked,
+    DateTimeOffset? revokedAt,
+    long securityVersionAtCreation,
+    DeviceInfo device,
+    ClaimsSnapshot claims,
+    SessionMetadata metadata)
+        {
+            return new UAuthSession<TUserId>(
+                sessionId,
+                tenantId,
+                userId,
+                chainId,
+                createdAt,
+                expiresAt,
+                lastSeenAt,
+                isRevoked,
+                revokedAt,
+                securityVersionAtCreation,
+                device,
+                claims,
+                metadata
+            );
+        }
+
         public SessionState GetState(DateTimeOffset at)
         {
             if (IsRevoked) return SessionState.Revoked;

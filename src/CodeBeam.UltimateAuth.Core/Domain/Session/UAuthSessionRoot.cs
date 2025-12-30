@@ -76,5 +76,26 @@
             );
         }
 
+        internal static UAuthSessionRoot<TUserId> FromProjection(
+    string? tenantId,
+    TUserId userId,
+    bool isRevoked,
+    DateTimeOffset? revokedAt,
+    long securityVersion,
+    IReadOnlyList<ISessionChain<TUserId>> chains,
+    DateTimeOffset lastUpdatedAt)
+        {
+            return new UAuthSessionRoot<TUserId>(
+                tenantId,
+                userId,
+                isRevoked,
+                revokedAt,
+                securityVersion,
+                chains,
+                lastUpdatedAt
+            );
+        }
+
+
     }
 }

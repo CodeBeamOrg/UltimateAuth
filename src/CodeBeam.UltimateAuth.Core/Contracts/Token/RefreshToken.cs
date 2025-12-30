@@ -1,8 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Contracts
 {
     /// <summary>
-    /// Represents an issued refresh token.
-    /// Always opaque and hashed at rest.
+    /// Transport model for refresh token. Returned to client once upon creation.
     /// </summary>
     public sealed class RefreshToken
     {
