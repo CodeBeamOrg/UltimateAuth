@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
 namespace UltimateAuth.Sample.BlazorServer.Components.Pages
@@ -12,6 +13,13 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private UALoginForm _form = null!;
 
+        private AuthenticationState _authState = null!;
+
+        protected override async Task OnInitializedAsync()
+        {
+            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+
         private async Task ProgrammaticLogin()
         {
             var request = new LoginRequest
@@ -20,6 +28,7 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
                 Secret = "Password!",
             };
             await UAuthClient.LoginAsync(request);
+            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         private async Task ValidateAsync()

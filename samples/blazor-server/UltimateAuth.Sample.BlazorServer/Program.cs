@@ -1,12 +1,16 @@
+using CodeBeam.UltimateAuth.Client.BlazorServer;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Security.Argon2;
+using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using UltimateAuth.Sample.BlazorServer.Components;
@@ -24,7 +28,15 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
-builder.Services.AddAuthentication();
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = UAuthCookieDefaults.AuthenticationScheme;
+    })
+    .AddUAuthCookies();
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
@@ -40,6 +52,8 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddUltimateAuthArgon2();
 
 builder.Services.AddUltimateAuthClient();
+
+
 
 builder.Services.AddScoped(sp =>
 {

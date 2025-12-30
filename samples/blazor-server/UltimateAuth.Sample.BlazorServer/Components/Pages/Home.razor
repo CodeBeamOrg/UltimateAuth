@@ -16,6 +16,7 @@
 @inject IUAuthClient UAuthClient
 @inject NavigationManager Nav
 @inject IUAuthProductInfoProvider ProductInfo
+@inject AuthenticationStateProvider AuthStateProvider
 
 
 <div class="uauth-page d-flex align-center justify-center">
@@ -42,6 +43,11 @@
         <MudStack Spacing="0">
             <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
             <MudText>Client Profile: @ProductInfo.Get().ClientProfile.ToString()</MudText>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText>State of Authentication:</MudText>
+            <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState.User.Identity.Name)</MudText>
         </MudStack>
     </MudStack>
 </div>

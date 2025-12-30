@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -8,18 +10,13 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         private readonly IUAuthUserStore<TUserId> _userStore;
         private readonly IUAuthPasswordHasher _passwordHasher;
 
-        public DefaultUserAuthenticator(
-            IUAuthUserStore<TUserId> userStore,
-            IUAuthPasswordHasher passwordHasher)
+        public DefaultUserAuthenticator(IUAuthUserStore<TUserId> userStore, IUAuthPasswordHasher passwordHasher)
         {
             _userStore = userStore;
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(
-            string? tenantId,
-            AuthenticationContext context,
-            CancellationToken ct = default)
+        public async Task<UserAuthenticationResult<TUserId>> AuthenticateAsync(string? tenantId, AuthenticationContext context, CancellationToken ct = default)
         {
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
@@ -38,10 +35,19 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (!_passwordHasher.Verify(context.Secret, user.PasswordHash))
                 return UserAuthenticationResult<TUserId>.Fail();
 
+            var claims = (user.Claims ?? ClaimsSnapshot.Empty)
+                .With(
+                    (ClaimTypes.NameIdentifier, user.Id.ToString()!),
+                    (ClaimTypes.Name, user.Username),
+                    ("uauth:username", user.Username)
+                );
+
             return UserAuthenticationResult<TUserId>.Success(
                 user.Id,
-                user.Claims,
-                user.RequiresMfa);
+                claims,
+                user.RequiresMfa
+            );
+
         }
     }
 }

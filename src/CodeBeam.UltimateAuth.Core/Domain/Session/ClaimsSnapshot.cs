@@ -63,6 +63,39 @@
             return new ClaimsSnapshot(dict);
         }
 
+        public ClaimsSnapshot With(params (string Type, string Value)[] claims)
+        {
+            if (claims.Length == 0)
+                return this;
+
+            var dict = new Dictionary<string, string>(_claims, StringComparer.Ordinal);
+
+            foreach (var (type, value) in claims)
+            {
+                dict[type] = value;
+            }
+
+            return new ClaimsSnapshot(dict);
+        }
+
+        public ClaimsSnapshot Merge(ClaimsSnapshot other)
+        {
+            if (other is null || other._claims.Count == 0)
+                return this;
+
+            if (_claims.Count == 0)
+                return other;
+
+            var dict = new Dictionary<string, string>(_claims, StringComparer.Ordinal);
+
+            foreach (var kv in other._claims)
+            {
+                dict[kv.Key] = kv.Value;
+            }
+
+            return new ClaimsSnapshot(dict);
+        }
+
         // TODO: Add ToClaimsPrincipal and FromClaimsPrincipal methods
 
     }
