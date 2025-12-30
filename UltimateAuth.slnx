@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Samples/">
-    <Project Path="samples/blazor-server/UltimateAuth.BlazorServer/UltimateAuth.BlazorServer.csproj" />
+    <Project Path="samples/blazor-server/UltimateAuth.Sample.BlazorServer/UltimateAuth.Sample.BlazorServer.csproj" />
     <Project Path="samples/blazor-standalone-wasm/UltimateAuth.Sample.BlazorStandaloneWasm/UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
   </Folder>
   <Folder Name="/Solution Items/">

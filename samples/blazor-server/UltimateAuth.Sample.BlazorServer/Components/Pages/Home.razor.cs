@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using MudBlazor;
 
-namespace UltimateAuth.BlazorServer.Components.Pages
+namespace UltimateAuth.Sample.BlazorServer.Components.Pages
 {
     public partial class Home
     {

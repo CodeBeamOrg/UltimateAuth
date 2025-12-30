@@ -9,7 +9,7 @@ using CodeBeam.UltimateAuth.Tokens.InMemory;
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using UltimateAuth.BlazorServer.Components;
+using UltimateAuth.Sample.BlazorServer.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
