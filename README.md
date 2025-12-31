@@ -1,7 +1,6 @@
-﻿⚠️ This project is in development. First preview release expected Q1 2026 - coming soon.
-# UltimateAuth  
-### The Modern Unified Auth Framework for .NET -- Reimagined.
-A CodeBeam Project
+![UltimateAuth Banner](https://github.com/user-attachments/assets/4204666e-b57a-4cb5-8846-dc7e4f16bfe9)
+
+⚠️ This project is in development. First preview release expected Q1 2026 - coming soon.
 
 ![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
@@ -61,13 +60,12 @@ UltimateAuth is engineered from day one to support real-world scenarios across t
 
 > _Dates reflect targeted milestones and may evolve with community feedback._
 
-### **Q1 2026 — Preview (v 0.1.0)**
+### **Q1 2026 — First Release (v 0.0.1 to v 0.1.0)**
 - Core session-based auth engine  
 
 ### **Q2 2026 — Stable Feature Release**
-- Token-based flows
 
-### **Q3 2026 — v 1.0.0 (General Availability)**
+### **Q3 2026 — General Availability**
 - API surface locked  
 - Production-ready security hardening  
 - Unified architecture finalized
