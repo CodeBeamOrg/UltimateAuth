@@ -1,9 +1,13 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Options
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
+
+namespace CodeBeam.UltimateAuth.Client.Options
 {
     public sealed class UAuthClientOptions
     {
         public AuthEndpointOptions Endpoints { get; set; } = new();
         public UAuthClientRefreshOptions Refresh { get; set; } = new();
+        public ReauthOptions Reauth { get; init; } = new();
     }
 
     public sealed class AuthEndpointOptions
@@ -12,6 +16,7 @@
         public string Logout { get; set; } = "/auth/logout";
         public string Refresh { get; set; } = "/auth/refresh";
         public string Reauth { get; set; } = "/auth/reauth";
+        public string Validate { get; set; } = "/auth/validate";
     }
 
     public sealed class UAuthClientRefreshOptions
@@ -32,5 +37,12 @@
         /// Optional jitter to avoid synchronized refresh storms.
         /// </summary>
         public TimeSpan? Jitter { get; set; }
+    }
+
+    // TODO: Add ClearCookieOnReauth
+    public sealed class ReauthOptions
+    {
+        public ReauthBehavior Behavior { get; set; } = ReauthBehavior.RedirectToLogin;
+        public string LoginPath { get; set; } = "/login";
     }
 }

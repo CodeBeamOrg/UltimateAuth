@@ -35,7 +35,23 @@ window.uauth = {
         return {
             ok: response.ok,
             status: response.status,
-            refresh: response.headers.get("X-UAuth-Refresh")
+            refreshOutcome: response.headers.get("X-UAuth-Refresh")
+        };
+    },
+
+    validate: async function (action) {
+        const response = await fetch(action, {
+            method: "POST",
+            credentials: "include"
+        });
+
+        let body = null;
+        try { body = await response.json(); } catch { }
+
+        return {
+            ok: response.ok,
+            status: response.status,
+            body: body
         };
     }
 };

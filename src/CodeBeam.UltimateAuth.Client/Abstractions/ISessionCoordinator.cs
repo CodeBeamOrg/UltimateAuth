@@ -12,5 +12,7 @@
         /// Stops coordination (optional).
         /// </summary>
         Task StopAsync();
+
+        event Action? ReauthRequired;
     }
 }

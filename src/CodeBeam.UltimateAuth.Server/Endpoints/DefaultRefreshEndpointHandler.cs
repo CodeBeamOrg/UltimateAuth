@@ -60,7 +60,12 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
 
             if (!validation.IsValid)
+            {
+                if (_options.Diagnostics.EnableRefreshHeaders)
+                    _refreshResponseWriter.Write(ctx, RefreshOutcome.ReauthRequired);
                 return Results.Unauthorized();
+            }
+
 
             var refreshResult = await _sessionRefresh.RefreshAsync(validation, now, ctx.RequestAborted);
 

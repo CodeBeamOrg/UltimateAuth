@@ -1,4 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Components;
@@ -11,15 +13,19 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
         private readonly IUAuthClient _client;
         private readonly NavigationManager _navigation;
         private readonly UAuthClientOptions _options;
+        private readonly UAuthClientDiagnostics _diagnostics;
 
         private PeriodicTimer? _timer;
         private CancellationTokenSource? _cts;
 
-        public BlazorServerSessionCoordinator(IUAuthClient client, NavigationManager navigation, IOptions<UAuthClientOptions> options)
+        public event Action? ReauthRequired;
+
+        public BlazorServerSessionCoordinator(IUAuthClient client, NavigationManager navigation, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
         {
             _client = client;
             _navigation = navigation;
             _options = options.Value;
+            _diagnostics = diagnostics;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -27,11 +33,9 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             if (_timer is not null)
                 return;
 
+            _diagnostics.MarkStarted();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            var interval = _options.Refresh.Interval
-                ?? TimeSpan.FromMinutes(5);
-
+            var interval = _options.Refresh.Interval ?? TimeSpan.FromMinutes(5);
             _timer = new PeriodicTimer(interval);
 
             _ = RunAsync(_cts.Token);
@@ -43,15 +47,36 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             {
                 while (await _timer!.WaitForNextTickAsync(ct))
                 {
-                    var result = await _client.RefreshAsync();
+                    _diagnostics.MarkAutomaticRefresh();
+                    var result = await _client.RefreshAsync(isAuto: true);
 
-                    if (result.Outcome == RefreshOutcome.ReauthRequired)
+                    switch (result.Outcome)
                     {
-                        _navigation.NavigateTo(
-                            _options.Endpoints.Login,
-                            forceLoad: true);
+                        case RefreshOutcome.Touched:
+                            break;
 
-                        return;
+                        case RefreshOutcome.NoOp:
+                            break;
+
+                        case RefreshOutcome.None:
+                            break;
+
+                        case RefreshOutcome.ReauthRequired:
+                            switch (_options.Reauth.Behavior)
+                            {
+                                case ReauthBehavior.RedirectToLogin:
+                                    _navigation.NavigateTo(_options.Reauth.LoginPath, forceLoad: true);
+                                    break;
+
+                                case ReauthBehavior.RaiseEvent:
+                                    ReauthRequired?.Invoke();
+                                    break;
+
+                                case ReauthBehavior.None:
+                                    break;
+                            }
+                            _diagnostics.MarkTerminated(CoordinatorTerminationReason.ReauthRequired);
+                            return;
                     }
                 }
             }
@@ -63,6 +88,7 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
 
         public Task StopAsync()
         {
+            _diagnostics.MarkStopped();
             _cts?.Cancel();
             _timer?.Dispose();
             _timer = null;

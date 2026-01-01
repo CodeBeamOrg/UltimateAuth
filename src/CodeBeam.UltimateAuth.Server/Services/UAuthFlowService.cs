@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {

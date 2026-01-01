@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
-namespace UltimateAuth.BlazorServer.Components.Pages
+namespace UltimateAuth.Sample.BlazorServer.Components.Pages
 {
     public partial class Home
     {
@@ -11,6 +11,19 @@ namespace UltimateAuth.BlazorServer.Components.Pages
         private string? _password;
 
         private UALoginForm _form = null!;
+
+        private AuthenticationState _authState = null!;
+
+        protected override async Task OnInitializedAsync()
+        {
+            Diagnostics.Changed += OnDiagnosticsChanged;
+            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+
+        private void OnDiagnosticsChanged()
+        {
+            InvokeAsync(StateHasChanged);
+        }
 
         private async Task ProgrammaticLogin()
         {
@@ -20,51 +33,16 @@ namespace UltimateAuth.BlazorServer.Components.Pages
                 Secret = "Password!",
             };
             await UAuthClient.LoginAsync(request);
+            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         private async Task ValidateAsync()
         {
-            var httpContext = HttpContextAccessor.HttpContext;
+            var result = await UAuthClient.ValidateAsync();
 
-            if (httpContext is null)
-            {
-                Snackbar.Add("HttpContext not available", Severity.Error);
-                return;
-            }
-
-            var credential = CredentialResolver.Resolve(httpContext);
-
-            if (credential is null)
-            {
-                Snackbar.Add("No credential found", Severity.Error);
-                return;
-            }
-
-            if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
-            {
-                Snackbar.Add("Invalid session id", Severity.Error);
-                return;
-            }
-
-            var result = await SessionQuery.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    TenantId = credential.TenantId,
-                    SessionId = sessionId,
-                    Device = credential.Device,
-                    Now = Clock.UtcNow
-                });
-
-            if (result.IsValid)
-            {
-                Snackbar.Add("Session is valid ✅", Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add(
-                    $"Session invalid ❌ ({result.State})",
-                    Severity.Error);
-            }
+            Snackbar.Add(
+                result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
+                result.IsValid ? Severity.Success : Severity.Error);
         }
 
         private async Task LogoutAsync()
@@ -76,7 +54,6 @@ namespace UltimateAuth.BlazorServer.Components.Pages
         private async Task RefreshAsync()
         {
             await UAuthClient.RefreshAsync();
-            //Snackbar.Add("Logged out", Severity.Success);
         }
 
         protected override void OnAfterRender(bool firstRender)
@@ -112,6 +89,11 @@ namespace UltimateAuth.BlazorServer.Components.Pages
             var uri = new Uri(Nav.Uri);
             var clean = uri.GetLeftPart(UriPartial.Path);
             Nav.NavigateTo(clean, replace: true);
+        }
+
+        public void Dispose()
+        {
+            Diagnostics.Changed -= OnDiagnosticsChanged;
         }
 
     }
