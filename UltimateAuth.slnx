@@ -1,7 +1,9 @@
 <Solution>
   <Folder Name="/Samples/">
-    <Project Path="samples/blazor-server/UltimateAuth.Sample.BlazorServer/UltimateAuth.Sample.BlazorServer.csproj" />
-    <Project Path="samples/blazor-standalone-wasm/UltimateAuth.Sample.BlazorStandaloneWasm/UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
+    <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer/CodeBeam.UltimateAuth.Sample.BlazorServer.csproj" />
+    <Project Path="samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
+    <Project Path="samples/resource-api/CodeBeam.UltimateAuth.Sample.ResourceApi/CodeBeam.UltimateAuth.Sample.ResourceApi.csproj" Id="3d877c9b-65eb-45be-b259-431b2d386736" />
+    <Project Path="samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub.csproj" Id="ae5368ee-10aa-4c75-9653-a7f481849834" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Readme.md" />
