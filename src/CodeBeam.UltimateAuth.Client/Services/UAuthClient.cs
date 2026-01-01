@@ -72,12 +72,19 @@ namespace CodeBeam.UltimateAuth.Client
         public Task ReauthAsync()
             => _post.NavigatePostAsync(_options.Endpoints.Reauth);
 
-        public Task<AuthValidationResult> ValidateAsync()
+        public async Task<AuthValidationResult> ValidateAsync()
         {
-            // Blazor Server: direct service
-            // WASM: HttpClient
-            throw new NotImplementedException();
-        }
-    }
+            var result = await _post.BackgroundPostJsonAsync<AuthValidationResult>(_options.Endpoints.Validate);
 
+            if (result.Body is null)
+                return new AuthValidationResult { IsValid = false, State = "transport" };
+
+            return new AuthValidationResult
+            {
+                IsValid = result.Body.IsValid,
+                State = result.Body.State
+            };
+        }
+
+    }
 }

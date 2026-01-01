@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
@@ -39,47 +38,11 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private async Task ValidateAsync()
         {
-            var httpContext = HttpContextAccessor.HttpContext;
+            var result = await UAuthClient.ValidateAsync();
 
-            if (httpContext is null)
-            {
-                Snackbar.Add("HttpContext not available", Severity.Error);
-                return;
-            }
-
-            var credential = CredentialResolver.Resolve(httpContext);
-
-            if (credential is null)
-            {
-                Snackbar.Add("No credential found", Severity.Error);
-                return;
-            }
-
-            if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
-            {
-                Snackbar.Add("Invalid session id", Severity.Error);
-                return;
-            }
-
-            var result = await SessionQuery.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    TenantId = credential.TenantId,
-                    SessionId = sessionId,
-                    Device = credential.Device,
-                    Now = Clock.UtcNow
-                });
-
-            if (result.IsValid)
-            {
-                Snackbar.Add("Session is valid ✅", Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add(
-                    $"Session invalid ❌ ({result.State})",
-                    Severity.Error);
-            }
+            Snackbar.Add(
+                result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
+                result.IsValid ? Severity.Success : Severity.Error);
         }
 
         private async Task LogoutAsync()
@@ -91,7 +54,6 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
         private async Task RefreshAsync()
         {
             await UAuthClient.RefreshAsync();
-            //Snackbar.Add("Logged out", Severity.Success);
         }
 
         protected override void OnAfterRender(bool firstRender)

@@ -24,5 +24,11 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             return result;
         }
 
+        public async Task<BrowserPostJsonResult<T>> BackgroundPostJsonAsync<T>(string url)
+        {
+            var result = await _js.InvokeAsync<BrowserPostJsonResult<T>>("uauth.validate", url);
+            return result;
+        }
+
     }
 }

@@ -33,9 +33,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             if (credential is null)
             {
                 return Results.Json(
-                    new ValidateResponse
+                    new AuthValidationResult
                     {
-                        Valid = false,
+                        IsValid = false,
                         State = "missing"
                     },
                     statusCode: StatusCodes.Status401Unauthorized
@@ -47,9 +47,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
                 {
                     return Results.Json(
-                        new ValidateResponse
+                        new AuthValidationResult
                         {
-                            Valid = false,
+                            IsValid = false,
                             State = "invalid"
                         },
                         statusCode: StatusCodes.Status401Unauthorized
@@ -66,28 +66,18 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     },
                     ct);
 
-                if (!result.IsValid)
+                return Results.Ok(new AuthValidationResult
                 {
-                    return Results.Json(
-                        new ValidateResponse
-                        {
-                            Valid = false,
-                            State = result.State
-                                .ToString()
-                                .ToLowerInvariant()
-                        },
-                        statusCode: StatusCodes.Status401Unauthorized
-                    );
-                }
-
-                return Results.Ok(new ValidateResponse { Valid = true });
+                    IsValid = result.IsValid,
+                    State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant()
+                });
             }
 
             // Stateless (JWT / Opaque) – 0.0.1 no support yet
             return Results.Json(
-                new ValidateResponse
+                new AuthValidationResult
                 {
-                    Valid = false,
+                    IsValid = false,
                     State = "unsupported"
                 },
                 statusCode: StatusCodes.Status401Unauthorized
