@@ -30,7 +30,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         public async Task<SessionRefreshResult> RefreshAsync(SessionValidationResult<TUserId> validation, DateTimeOffset now, CancellationToken ct = default)
         {
             if (!validation.IsValid)
-                return SessionRefreshResult.Failed();
+                return SessionRefreshResult.ReauthRequired();
 
             var session = validation.Session;
             bool didTouch = false;

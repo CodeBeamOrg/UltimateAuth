@@ -72,9 +72,8 @@
         /// Computes the effective runtime state of the session (Active, Expired,
         /// Revoked, SecurityVersionMismatch, etc.) based on the provided timestamp.
         /// </summary>
-        /// <param name="now">Current timestamp used for comparisons.</param>
         /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
-        SessionState GetState(DateTimeOffset now);
+        SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout);
 
         ISession<TUserId> Touch(DateTimeOffset now);
         ISession<TUserId> Revoke(DateTimeOffset at);

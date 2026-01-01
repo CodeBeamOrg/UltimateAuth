@@ -168,10 +168,17 @@
             );
         }
 
-        public SessionState GetState(DateTimeOffset at)
+        public SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout)
         {
-            if (IsRevoked) return SessionState.Revoked;
-            if (at >= ExpiresAt) return SessionState.Expired;
+            if (IsRevoked) 
+                return SessionState.Revoked;
+
+            if (at >= ExpiresAt)
+                return SessionState.Expired;
+
+            if (idleTimeout.HasValue && at - LastSeenAt >= idleTimeout.Value)
+                return SessionState.Expired;
+
             return SessionState.Active;
         }
     }

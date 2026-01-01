@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -99,6 +100,7 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
+            services.AddScoped<UAuthClientDiagnostics>();
 
             return services;
         }

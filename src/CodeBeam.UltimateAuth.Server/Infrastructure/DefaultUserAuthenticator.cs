@@ -24,10 +24,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (!string.Equals(context.CredentialType, "password", StringComparison.Ordinal))
                 return UserAuthenticationResult<TUserId>.Fail();
 
-            var user = await _userStore.FindByUsernameAsync(
-                tenantId,
-                context.Identifier,
-                ct);
+            var user = await _userStore.FindByUsernameAsync(tenantId, context.Identifier, ct);
 
             if (user is null || !user.IsActive)
                 return UserAuthenticationResult<TUserId>.Fail();

@@ -1,9 +1,20 @@
-﻿namespace CodeBeam.UltimateAuth.Client
+﻿using CodeBeam.UltimateAuth.Client.Diagnostics;
+using Microsoft.AspNetCore.Components;
+
+namespace CodeBeam.UltimateAuth.Client
 {
     // TODO: Add CircuitHandler to manage start/stop of coordinator in server-side Blazor
-    public partial class UAuthClientProvider
+    public partial class UAuthClientProvider : ComponentBase, IAsyncDisposable
     {
         private bool _started;
+
+        [Parameter]
+        public EventCallback OnReauthRequired { get; set; }
+
+        protected override async Task OnInitializedAsync()
+        {
+            Coordinator.ReauthRequired += HandleReauthRequired;
+        }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -12,6 +23,12 @@
 
             _started = true;
             await Coordinator.StartAsync();
+        }
+
+        private async void HandleReauthRequired()
+        {
+            if (OnReauthRequired.HasDelegate)
+                await OnReauthRequired.InvokeAsync();
         }
 
         public async ValueTask DisposeAsync()

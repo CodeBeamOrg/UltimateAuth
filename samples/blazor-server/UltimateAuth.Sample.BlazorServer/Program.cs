@@ -1,5 +1,6 @@
 using CodeBeam.UltimateAuth.Client.BlazorServer;
 using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
@@ -44,14 +45,21 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddUltimateAuth();
 
 builder.Services.AddUltimateAuthServer(o => {
-    o.Diagnostics.EnableRefreshHeaders = true; 
+    o.Diagnostics.EnableRefreshHeaders = true;
+    o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
+    o.Session.TouchInterval = TimeSpan.FromSeconds(9);
+    o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
     .AddInMemoryCredentials()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
-builder.Services.AddUltimateAuthClient();
+builder.Services.AddUltimateAuthClient(o =>
+{
+    o.Refresh.Interval = TimeSpan.FromSeconds(5);
+    o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+});
 
 
 

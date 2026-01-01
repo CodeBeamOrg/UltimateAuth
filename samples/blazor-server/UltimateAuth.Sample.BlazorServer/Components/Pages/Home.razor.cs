@@ -17,7 +17,13 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
+            Diagnostics.Changed += OnDiagnosticsChanged;
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+
+        private void OnDiagnosticsChanged()
+        {
+            InvokeAsync(StateHasChanged);
         }
 
         private async Task ProgrammaticLogin()
@@ -121,6 +127,11 @@ namespace UltimateAuth.Sample.BlazorServer.Components.Pages
             var uri = new Uri(Nav.Uri);
             var clean = uri.GetLeftPart(UriPartial.Path);
             Nav.NavigateTo(clean, replace: true);
+        }
+
+        public void Dispose()
+        {
+            Diagnostics.Changed -= OnDiagnosticsChanged;
         }
 
     }

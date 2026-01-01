@@ -35,7 +35,7 @@ window.uauth = {
         return {
             ok: response.ok,
             status: response.status,
-            refresh: response.headers.get("X-UAuth-Refresh")
+            refreshOutcome: response.headers.get("X-UAuth-Refresh")
         };
     }
 };

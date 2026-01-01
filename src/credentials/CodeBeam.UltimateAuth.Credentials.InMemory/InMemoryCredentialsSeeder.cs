@@ -5,8 +5,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
 {
     internal static class InMemoryCredentialSeeder
     {
-        public static IReadOnlyCollection<InMemoryCredentialUser> CreateDefaultUsers(
-            IUAuthPasswordHasher passwordHasher)
+        public static IReadOnlyCollection<InMemoryCredentialUser> CreateDefaultUsers(IUAuthPasswordHasher passwordHasher)
         {
             var adminUserId = UserId.New();
 
@@ -14,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
 
             var admin = new InMemoryCredentialUser(
                 userId: adminUserId,
-                username: "admin",
+                username: "Admin",
                 passwordHash: passwordHash,
                 securityVersion: 0,
                 isActive: true

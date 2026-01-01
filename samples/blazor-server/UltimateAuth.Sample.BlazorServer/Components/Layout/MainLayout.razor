@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@inject ISnackbar Snackbar
 
-<UAuthClientProvider />
+<UAuthClientProvider OnReauthRequired="HandleReauth" />
 
 <MudThemeProvider />
 <MudPopoverProvider />

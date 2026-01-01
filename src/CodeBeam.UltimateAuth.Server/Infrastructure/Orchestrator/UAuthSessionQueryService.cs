@@ -21,28 +21,19 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         {
             var kernel = _storeFactory.Create<TUserId>(context.TenantId);
 
-            var session = await kernel.GetSessionAsync(
-                context.TenantId,
-                context.SessionId);
-
+            var session = await kernel.GetSessionAsync(context.TenantId,context.SessionId);
             if (session is null)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.NotFound);
 
-            var state = session.GetState(context.Now);
+            var state = session.GetState(context.Now, _options.Session.IdleTimeout);
             if (state != SessionState.Active)
                 return SessionValidationResult<TUserId>.Invalid(state);
 
-            var chain = await kernel.GetChainAsync(
-                context.TenantId,
-                session.ChainId);
-
+            var chain = await kernel.GetChainAsync(context.TenantId, session.ChainId);
             if (chain is null || chain.IsRevoked)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.Revoked);
 
-            var root = await kernel.GetSessionRootAsync(
-                context.TenantId,
-                session.UserId);
-
+            var root = await kernel.GetSessionRootAsync(context.TenantId, session.UserId);
             if (root is null || root.IsRevoked)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.Revoked);
 
@@ -56,37 +47,25 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             return SessionValidationResult<TUserId>.Active(context.TenantId, session, chain, root);
         }
 
-        public Task<ISession<TUserId>?> GetSessionAsync(
-            string? tenantId,
-            AuthSessionId sessionId,
-            CancellationToken ct = default)
+        public Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
         {
             var kernel = _storeFactory.Create<TUserId>(tenantId);
             return kernel.GetSessionAsync(tenantId, sessionId);
         }
 
-        public Task<IReadOnlyList<ISession<TUserId>>> GetSessionsByChainAsync(
-            string? tenantId,
-            ChainId chainId,
-            CancellationToken ct = default)
+        public Task<IReadOnlyList<ISession<TUserId>>> GetSessionsByChainAsync(string? tenantId, ChainId chainId, CancellationToken ct = default)
         {
             var kernel = _storeFactory.Create<TUserId>(tenantId);
             return kernel.GetSessionsByChainAsync(tenantId, chainId);
         }
 
-        public Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsByUserAsync(
-            string? tenantId,
-            TUserId userId,
-            CancellationToken ct = default)
+        public Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsByUserAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
         {
             var kernel = _storeFactory.Create<TUserId>(tenantId);
             return kernel.GetChainsByUserAsync(tenantId, userId);
         }
 
-        public Task<ChainId?> ResolveChainIdAsync(
-            string? tenantId,
-            AuthSessionId sessionId,
-            CancellationToken ct = default)
+        public Task<ChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
         {
             var kernel = _storeFactory.Create<TUserId>(tenantId);
             return kernel.GetChainIdBySessionAsync(tenantId, sessionId);
