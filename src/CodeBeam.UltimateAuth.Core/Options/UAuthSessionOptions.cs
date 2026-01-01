@@ -2,6 +2,10 @@
 
 namespace CodeBeam.UltimateAuth.Core.Options
 {
+    // TODO: Add rotate on refresh (especially on pureopaque). Currently PureOpaque sessions do not rotate on refresh.
+    // It's not a security branch, but it would be nice to have for privacy reasons.
+    // And add RotateAsync method.
+
     /// <summary>
     /// Defines configuration settings that control the lifecycle,
     /// security behavior, and device constraints of UltimateAuth

@@ -46,9 +46,9 @@ builder.Services.AddUltimateAuth();
 
 builder.Services.AddUltimateAuthServer(o => {
     o.Diagnostics.EnableRefreshHeaders = true;
-    o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
-    o.Session.TouchInterval = TimeSpan.FromSeconds(9);
-    o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+    //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
+    //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
+    //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
     .AddInMemoryCredentials()
     .AddUltimateAuthInMemorySessions()
@@ -57,7 +57,7 @@ builder.Services.AddUltimateAuthServer(o => {
 
 builder.Services.AddUltimateAuthClient(o =>
 {
-    o.Refresh.Interval = TimeSpan.FromSeconds(5);
+    //o.Refresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 
