@@ -69,6 +69,9 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 app.UseCors("WasmSample");
 
+app.UseUltimateAuthServer();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapUAuthEndpoints();

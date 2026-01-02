@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -15,13 +16,15 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         private readonly IClock _clock;
         private readonly IUAuthCookieManager _cookieManager;
         private readonly UAuthServerOptions _options;
+        private readonly AuthRedirectResolver _redirectResolver;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IOptions<UAuthServerOptions> options)
+        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IOptions<UAuthServerOptions> options, AuthRedirectResolver redirectResolver)
         {
             _flow = flow;
             _clock = clock;
             _cookieManager = cookieManager;
             _options = options.Value;
+            _redirectResolver = redirectResolver;
         }
 
         public async Task<IResult> LogoutAsync(HttpContext ctx)
@@ -29,33 +32,40 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             var tenantCtx = ctx.GetTenantContext();
             var sessionCtx = ctx.GetSessionContext();
 
-            if (sessionCtx.IsAnonymous)
-                return Results.Unauthorized();
-
-            var request = new LogoutRequest
+            if (!sessionCtx.IsAnonymous)
             {
-                TenantId = tenantCtx.TenantId,
-                SessionId = sessionCtx.SessionId!.Value,
-                At = _clock.UtcNow
-            };
+                var request = new LogoutRequest
+                {
+                    TenantId = tenantCtx.TenantId,
+                    SessionId = sessionCtx.SessionId!.Value,
+                    At = _clock.UtcNow
+                };
 
-            await _flow.LogoutAsync(request, ctx.RequestAborted);
+                await _flow.LogoutAsync(request, ctx.RequestAborted);
+            }
+
             _cookieManager.Delete(ctx);
 
             var logout = _options.AuthResponse.Logout;
 
             if (logout.RedirectEnabled)
             {
-                var returnUrl = logout.AllowReturnUrlOverride
-                    ? ctx.Request.Query["returnUrl"].FirstOrDefault()
-                    : null;
+                var overrideReturnUrl =
+                    logout.AllowReturnUrlOverride
+                        ? ctx.Request.Query["returnUrl"].FirstOrDefault()
+                        : null;
 
-                var redirect = !string.IsNullOrWhiteSpace(returnUrl)
-                    ? returnUrl
-                    : logout.RedirectUrl;
+                var redirectUrl = _redirectResolver.ResolveRedirect(
+                    ctx,
+                    logout.RedirectUrl,
+                    string.IsNullOrWhiteSpace(overrideReturnUrl)
+                        ? null
+                        : new Dictionary<string, string?>
+                        {
+                            ["returnUrl"] = overrideReturnUrl
+                        });
 
-                // TODO: relative / same-origin check
-                return Results.Redirect(redirect);
+                return Results.Redirect(redirectUrl);
             }
 
             return Results.Ok(new LogoutResponse
@@ -63,5 +73,6 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 Success = true
             });
         }
+
     }
 }

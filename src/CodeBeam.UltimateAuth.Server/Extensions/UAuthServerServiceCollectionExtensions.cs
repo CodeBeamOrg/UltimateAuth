@@ -49,16 +49,16 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
         private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
         {
-            services.AddSingleton<IServerProfileDetector, UAuthServerProfileDetector>();
-            services.PostConfigure<UAuthOptions>(o =>
-            {
-                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
-                    return;
+            //services.AddSingleton<IServerProfileDetector, UAuthServerProfileDetector>();
+            //services.PostConfigure<UAuthOptions>(o =>
+            //{
+            //    if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+            //        return;
 
-                using var sp = services.BuildServiceProvider();
-                var detector = sp.GetRequiredService<IServerProfileDetector>();
-                o.ClientProfile = detector.Detect(sp);
-            });
+            //    using var sp = services.BuildServiceProvider();
+            //    var detector = sp.GetRequiredService<IServerProfileDetector>();
+            //    o.ClientProfile = detector.Detect(sp);
+            //});
 
             services.AddOptions<UAuthServerOptions>()
                 .PostConfigure<IOptions<UAuthOptions>>((server, core) =>
@@ -164,6 +164,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
             services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
             services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
+            services.AddScoped<AuthRedirectResolver>();
 
             // -----------------------------
             // ENDPOINTS

@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.Options
 @inject IJSRuntime JS
 @inject IOptions<UAuthClientOptions> Options
+@inject NavigationManager Navigation
 
 <form @ref="_form" method="post" action="@ResolvedEndpoint">
     <input type="hidden" name="Identifier" value="@Identifier" />

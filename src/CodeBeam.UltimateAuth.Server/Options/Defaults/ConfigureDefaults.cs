@@ -21,9 +21,9 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 o.Mode = core.ClientProfile switch
                 {
                     UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
-                    UAuthClientProfile.BlazorWasm => UAuthMode.SemiHybrid,
+                    UAuthClientProfile.BlazorWasm => UAuthMode.Hybrid,
                     UAuthClientProfile.Maui => UAuthMode.SemiHybrid,
-                    UAuthClientProfile.Mvc => UAuthMode.Hybrid,
+                    UAuthClientProfile.WebServer => UAuthMode.Hybrid,
                     UAuthClientProfile.Api => UAuthMode.PureJwt,
                     _ => throw new InvalidOperationException("Unsupported client profile. Please specify a client profile or make sure it's set NotSpecified")
                 };
@@ -112,7 +112,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
                     ar.Logout.RedirectEnabled = true;
                     break;
 
-                case UAuthClientProfile.Mvc:
+                case UAuthClientProfile.WebServer:
                     ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
                     ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };

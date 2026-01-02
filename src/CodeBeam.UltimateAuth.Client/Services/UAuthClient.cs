@@ -50,7 +50,7 @@ namespace CodeBeam.UltimateAuth.Client
             }
 
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Refresh);
-            var result = await _post.BackgroundPostAsync(url);
+            var result = await _post.FetchPostAsync(url);
             var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
             switch (refreshOutcome)
             {
@@ -85,7 +85,7 @@ namespace CodeBeam.UltimateAuth.Client
         public async Task<AuthValidationResult> ValidateAsync()
         {
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Validate);
-            var result = await _post.BackgroundPostJsonAsync<AuthValidationResult>(url);
+            var result = await _post.FetchPostJsonAsync<AuthValidationResult>(url);
 
             if (result.Body is null)
                 return new AuthValidationResult { IsValid = false, State = "transport" };

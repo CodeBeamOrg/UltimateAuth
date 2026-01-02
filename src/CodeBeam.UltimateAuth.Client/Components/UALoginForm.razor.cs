@@ -16,14 +16,15 @@ namespace CodeBeam.UltimateAuth.Client
         public string? Endpoint { get; set; } = "/auth/login";
 
         [Parameter]
+        public string? ReturnUrl { get; set; }
+
+        [Parameter]
         public RenderFragment? ChildContent { get; set; }
 
         [Parameter]
         public bool AllowEnterKeyToSubmit { get; set; } = true;
 
         private ElementReference _form;
-
-        private string ResolvedEndpoint => string.IsNullOrWhiteSpace(Endpoint) ? UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, "/auth/login") : UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, Endpoint);
 
         public async Task SubmitAsync()
         {
@@ -32,5 +33,34 @@ namespace CodeBeam.UltimateAuth.Client
 
             await JS.InvokeVoidAsync("uauth.submitForm", _form);
         }
+
+        //private string ResolvedEndpoint => string.IsNullOrWhiteSpace(Endpoint) ? UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, "/auth/login") : UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, Endpoint);
+
+        private string ResolvedEndpoint
+        {
+            get
+            {
+                var loginPath = string.IsNullOrWhiteSpace(Endpoint)
+                    ? Options.Value.Endpoints.Login
+                    : Endpoint;
+
+                var baseUrl = UAuthUrlBuilder.Combine(
+                    Options.Value.Endpoints.Authority,
+                    loginPath);
+
+                var returnUrl = EffectiveReturnUrl;
+
+                if (string.IsNullOrWhiteSpace(returnUrl))
+                    return baseUrl;
+
+                return $"{baseUrl}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+            }
+        }
+
+        private string EffectiveReturnUrl =>
+            !string.IsNullOrWhiteSpace(ReturnUrl)
+                ? ReturnUrl
+                : Navigation.Uri;
+
     }
 }
