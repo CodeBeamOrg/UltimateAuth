@@ -44,6 +44,18 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("WasmSample", policy =>
+    {
+        policy
+            .WithOrigins("https://localhost:6130")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -55,11 +67,22 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseCors("WasmSample");
 
 app.UseAntiforgery();
 
+app.MapUAuthEndpoints();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        service = "UAuthHub",
+        status = "ok"
+    });
+});
 
 app.Run();

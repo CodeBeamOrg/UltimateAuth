@@ -1,6 +1,9 @@
 ﻿@* TODO: Optional double-submit prevention for native form submit *@
 @namespace CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Options
+@using Microsoft.Extensions.Options
 @inject IJSRuntime JS
+@inject IOptions<UAuthClientOptions> Options
 
 <form @ref="_form" method="post" action="@ResolvedEndpoint">
     <input type="hidden" name="Identifier" value="@Identifier" />
@@ -13,7 +16,3 @@
         <button type="submit" hidden aria-hidden="true"></button>
     }
 </form>
-
-@code {
-    
-}

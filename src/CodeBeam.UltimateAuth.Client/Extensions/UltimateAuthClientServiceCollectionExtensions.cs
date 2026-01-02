@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -98,9 +100,15 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
                     : sp.GetRequiredService<NoOpSessionCoordinator>();
             });
 
+            services.AddScoped<UAuthAuthenticationStateProvider>();
+
+            services.AddScoped<AuthenticationStateProvider>(sp =>
+                sp.GetRequiredService<UAuthAuthenticationStateProvider>());
+
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
             services.AddScoped<UAuthClientDiagnostics>();
+            services.AddScoped<IClientAuthState, ClientAuthState>();
 
             return services;
         }

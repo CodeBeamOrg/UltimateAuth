@@ -7,6 +7,7 @@ using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client
 {
@@ -15,25 +16,30 @@ namespace CodeBeam.UltimateAuth.Client
         private readonly IBrowserPostClient _post;
         private readonly UAuthClientOptions _options;
         private readonly UAuthClientDiagnostics _diagnostics;
+        private readonly IClientAuthState _state;
 
         public UAuthClient(
             IBrowserPostClient post,
             IOptions<UAuthClientOptions> options,
-            UAuthClientDiagnostics diagnostics)
+            UAuthClientDiagnostics diagnostics,
+            IClientAuthState state)
         {
             _post = post;
             _options = options.Value;
             _diagnostics = diagnostics;
+            _state = state;
         }
 
         public async Task LoginAsync(LoginRequest request)
         {
-            await _post.NavigatePostAsync(_options.Endpoints.Login, request.ToDictionary());
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Login);
+            await _post.NavigatePostAsync(url, request.ToDictionary());
         }
 
         public async Task LogoutAsync()
         {
-            await _post.NavigatePostAsync(_options.Endpoints.Logout);
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Logout);
+            await _post.NavigatePostAsync(url);
         }
 
         public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
@@ -43,7 +49,8 @@ namespace CodeBeam.UltimateAuth.Client
                 _diagnostics.MarkManualRefresh();
             }
 
-            var result = await _post.BackgroundPostAsync(_options.Endpoints.Refresh);
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Refresh);
+            var result = await _post.BackgroundPostAsync(url);
             var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
             switch (refreshOutcome)
             {
@@ -69,12 +76,16 @@ namespace CodeBeam.UltimateAuth.Client
             };
         }
 
-        public Task ReauthAsync()
-            => _post.NavigatePostAsync(_options.Endpoints.Reauth);
+        public async Task ReauthAsync()
+        {
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Reauth);
+            await _post.NavigatePostAsync(_options.Endpoints.Reauth);
+        }
 
         public async Task<AuthValidationResult> ValidateAsync()
         {
-            var result = await _post.BackgroundPostJsonAsync<AuthValidationResult>(_options.Endpoints.Validate);
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Validate);
+            var result = await _post.BackgroundPostJsonAsync<AuthValidationResult>(url);
 
             if (result.Body is null)
                 return new AuthValidationResult { IsValid = false, State = "transport" };
@@ -84,6 +95,29 @@ namespace CodeBeam.UltimateAuth.Client
                 IsValid = result.Body.IsValid,
                 State = result.Body.State
             };
+        }
+
+        public Task<ClaimsPrincipal> GetCurrentPrincipalAsync()
+        {
+            if (!_state.IsAuthenticated)
+            {
+                return Task.FromResult(CreateAnonymous());
+            }
+
+            if (_state.Claims == null || _state.Claims.Count == 0)
+            {
+                return Task.FromResult(CreateAnonymous());
+            }
+
+            var identity = new ClaimsIdentity(claims: _state.Claims, authenticationType: "UltimateAuth");
+            var principal = new ClaimsPrincipal(identity);
+
+            return Task.FromResult(principal);
+        }
+
+        private static ClaimsPrincipal CreateAnonymous()
+        {
+            return new ClaimsPrincipal(new ClaimsIdentity());
         }
 
     }
