@@ -16,6 +16,13 @@
         /// Whether query-based returnUrl override is allowed.
         /// </summary>
         public bool AllowReturnUrlOverride { get; set; } = true;
-    }
 
+        internal LogoutRedirectOptions Clone() => new()
+        {
+            RedirectEnabled = RedirectEnabled,
+            RedirectUrl = RedirectUrl,
+            AllowReturnUrlOverride = AllowReturnUrlOverride
+        };
+
+    }
 }

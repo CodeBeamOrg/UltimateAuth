@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -60,13 +61,13 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //    o.ClientProfile = detector.Detect(sp);
             //});
 
-            services.AddOptions<UAuthServerOptions>()
-                .PostConfigure<IOptions<UAuthOptions>>((server, core) =>
-                {
-                    ConfigureDefaults.ApplyClientProfileDefaults(server, core.Value);
-                    ConfigureDefaults.ApplyModeDefaults(server);
-                    ConfigureDefaults.ApplyAuthResponseDefaults(server, core.Value);
-                });
+            //services.AddOptions<UAuthServerOptions>()
+            //    .PostConfigure<IOptions<UAuthOptions>>((server, core) =>
+            //    {
+            //        ConfigureDefaults.ApplyClientProfileDefaults(server, core.Value);
+            //        ConfigureDefaults.ApplyModeDefaults(server);
+            //        ConfigureDefaults.ApplyAuthResponseDefaults(server, core.Value);
+            //    });
 
 
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
@@ -165,6 +166,16 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
             services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
             services.AddScoped<AuthRedirectResolver>();
+
+            services.TryAddSingleton<ModeAuthResponseTemplateResolver>();
+            services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
+            services.TryAddSingleton<IAuthResponseResolver, DefaultAuthResponseResolver>();
+            services.TryAddSingleton<IClientProfileReader, DefaultClientProfileReader>();
+            services.TryAddSingleton<IEffectiveAuthModeResolver, DefaultEffectiveAuthModeResolver>();
+            services.TryAddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
+            services.TryAddSingleton<IPrimaryTokenResolver, DefaultPrimaryTokenResolver>();
+            services.TryAddScoped<IEffectiveServerOptionsResolver, DefaultEffectiveServerOptionsResolver>();
+            services.AddScoped<IEffectiveServerOptionsProvider,DefaultEffectiveServerOptionsProvider>();
 
             // -----------------------------
             // ENDPOINTS

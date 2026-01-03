@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -15,20 +16,22 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         private readonly IUAuthFlowService<TUserId> _flow;
         private readonly IClock _clock;
         private readonly IUAuthCookieManager _cookieManager;
-        private readonly UAuthServerOptions _options;
+        private readonly IEffectiveServerOptionsProvider _effectiveOptions;
         private readonly AuthRedirectResolver _redirectResolver;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IOptions<UAuthServerOptions> options, AuthRedirectResolver redirectResolver)
+        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IEffectiveServerOptionsProvider effectiveOptions, AuthRedirectResolver redirectResolver)
         {
             _flow = flow;
             _clock = clock;
             _cookieManager = cookieManager;
-            _options = options.Value;
+            _effectiveOptions = effectiveOptions;
             _redirectResolver = redirectResolver;
         }
 
         public async Task<IResult> LogoutAsync(HttpContext ctx)
         {
+            var options = _effectiveOptions.Get(ctx, AuthFlowType.Logout);
+
             var tenantCtx = ctx.GetTenantContext();
             var sessionCtx = ctx.GetSessionContext();
 
@@ -46,7 +49,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
             _cookieManager.Delete(ctx);
 
-            var logout = _options.AuthResponse.Logout;
+            var logout = options.AuthResponse.Logout;
 
             if (logout.RedirectEnabled)
             {

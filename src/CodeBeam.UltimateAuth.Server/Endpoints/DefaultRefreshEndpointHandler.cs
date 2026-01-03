@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -10,33 +11,35 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     public sealed class DefaultRefreshEndpointHandler<TUserId> : IRefreshEndpointHandler where TUserId : notnull
     {
-        private readonly UAuthServerOptions _options;
         private readonly ISessionContextAccessor _sessionContextAccessor;
         private readonly ISessionQueryService<TUserId> _sessionQueries;
         private readonly ISessionRefreshService<TUserId> _sessionRefresh;
         private readonly ICredentialResponseWriter _credentialResponseWriter;
         private readonly IRefreshResponseWriter _refreshResponseWriter;
+        private readonly IEffectiveServerOptionsProvider _effectiveOptions;
 
         public DefaultRefreshEndpointHandler(
-            IOptions<UAuthServerOptions> options,
             ISessionContextAccessor sessionContextAccessor,
             ISessionQueryService<TUserId> sessionQueries,
             ISessionRefreshService<TUserId> sessionRefresh,
             ICredentialResponseWriter credentialResponseWriter,
-            IRefreshResponseWriter refreshResponseWriter)
+            IRefreshResponseWriter refreshResponseWriter,
+            IEffectiveServerOptionsProvider effectiveOptions)
         {
-            _options = options.Value;
             _sessionContextAccessor = sessionContextAccessor;
             _sessionQueries = sessionQueries;
             _sessionRefresh = sessionRefresh;
             _credentialResponseWriter = credentialResponseWriter;
             _refreshResponseWriter = refreshResponseWriter;
+            _effectiveOptions = effectiveOptions;
         }
 
+        // TODO: Add token refresh support
         public async Task<IResult> RefreshAsync(HttpContext ctx)
         {
-            var decision = RefreshDecisionResolver.Resolve(_options);
+            var options = _effectiveOptions.Get(ctx, AuthFlowType.Refresh);
 
+            var decision = RefreshDecisionResolver.Resolve(options);
             if (decision != RefreshDecision.SessionOnly)
             {
                 // Endpoint exists, but this mode does not support session refresh
@@ -61,7 +64,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
             if (!validation.IsValid)
             {
-                if (_options.Diagnostics.EnableRefreshHeaders)
+                if (options.Diagnostics.EnableRefreshHeaders)
                     _refreshResponseWriter.Write(ctx, RefreshOutcome.ReauthRequired);
                 return Results.Unauthorized();
             }
@@ -75,23 +78,19 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 outcome = RefreshOutcome.ReauthRequired;
 
-                if (_options.Diagnostics.EnableRefreshHeaders)
+                if (options.Diagnostics.EnableRefreshHeaders)
                     _refreshResponseWriter.Write(ctx, outcome);
 
                 return Results.Unauthorized();
             }
 
-            _credentialResponseWriter.Write(ctx, refreshResult.PrimaryToken.Value,
-                new CredentialResponseOptions
-                {
-                    Mode = TokenResponseMode.Cookie
-                });
+            _credentialResponseWriter.Write(ctx, refreshResult.PrimaryToken.Value, options.AuthResponse.SessionIdDelivery);
 
             outcome = refreshResult.DidTouch
                 ? RefreshOutcome.Touched
                 : RefreshOutcome.NoOp;
 
-            if (_options.Diagnostics.EnableRefreshHeaders)
+            if (options.Diagnostics.EnableRefreshHeaders)
                 _refreshResponseWriter.Write(ctx, outcome);
 
             return Results.NoContent();

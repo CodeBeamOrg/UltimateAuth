@@ -3,8 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options
 {
-    public sealed class UAuthServerOptionsValidator
-        : IValidateOptions<UAuthServerOptions>
+    public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOptions>
     {
         public ValidateOptionsResult Validate(
             string? name,
@@ -24,7 +23,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
             // -------------------------
             // AUTH MODE VALIDATION
             // -------------------------
-            if (!Enum.IsDefined(typeof(UAuthMode), options.Mode))
+            if (options.Mode.HasValue && !Enum.IsDefined(typeof(UAuthMode), options.Mode))
             {
                 return ValidateOptionsResult.Fail(
                     $"Invalid UAuthMode: {options.Mode}");

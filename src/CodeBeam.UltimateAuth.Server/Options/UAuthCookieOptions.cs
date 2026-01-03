@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
@@ -33,4 +34,15 @@ public sealed class UAuthCookieOptions
     /// Default: 5 minutes.
     /// </summary>
     public TimeSpan IdleBuffer { get; set; } = TimeSpan.FromMinutes(5);
+
+    internal UAuthCookieOptions Clone() => new()
+    {
+        Name = Name,
+        HttpOnly = HttpOnly,
+        SecurePolicy = SecurePolicy,
+        SameSiteOverride = SameSiteOverride,
+        Path = Path,
+        MaxAge = MaxAge,
+        IdleBuffer = IdleBuffer
+    };
 }

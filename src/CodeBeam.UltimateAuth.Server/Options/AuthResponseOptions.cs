@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-
-namespace CodeBeam.UltimateAuth.Server.Options
+﻿namespace CodeBeam.UltimateAuth.Server.Options
 {
     public sealed class AuthResponseOptions
     {
@@ -10,5 +8,15 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
         public LoginRedirectOptions Login { get; set; } = new();
         public LogoutRedirectOptions Logout { get; set; } = new();
+
+        internal AuthResponseOptions Clone() => new()
+        {
+            SessionIdDelivery = SessionIdDelivery.Clone(),
+            AccessTokenDelivery = AccessTokenDelivery.Clone(),
+            RefreshTokenDelivery = RefreshTokenDelivery.Clone(),
+            Login = Login.Clone(),
+            Logout = Logout.Clone()
+        };
+
     }
 }

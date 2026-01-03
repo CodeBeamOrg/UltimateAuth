@@ -92,5 +92,22 @@ namespace CodeBeam.UltimateAuth.Core.Options
 
         public DeviceMismatchBehavior DeviceMismatchBehavior { get; set; } = DeviceMismatchBehavior.Reject;
 
+        internal UAuthSessionOptions Clone() => new()
+        {
+            SlidingExpiration = SlidingExpiration,
+            IdleTimeout = IdleTimeout,
+            Lifetime = Lifetime,
+            MaxLifetime = MaxLifetime,
+            TouchInterval = TouchInterval,
+            DeviceMismatchBehavior = DeviceMismatchBehavior,
+            MaxChainsPerUser = MaxChainsPerUser,
+            MaxSessionsPerChain = MaxSessionsPerChain,
+            MaxChainsPerPlatform = MaxChainsPerPlatform is null ? null : new Dictionary<string, int>(MaxChainsPerPlatform),
+            MaxChainsPerCategory = MaxChainsPerCategory is null ? null : new Dictionary<string, int>(MaxChainsPerCategory),
+            PlatformCategories = PlatformCategories is null ? null : PlatformCategories.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray()),
+            EnableIpBinding = EnableIpBinding,
+            EnableUserAgentBinding = EnableUserAgentBinding
+        };
+
     }
 }

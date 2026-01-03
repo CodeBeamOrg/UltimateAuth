@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Options
+﻿using CodeBeam.UltimateAuth.Core.Options;
+
+namespace CodeBeam.UltimateAuth.Server.Options
 {
     public sealed class UAuthDiagnosticsOptions
     {
@@ -7,5 +9,11 @@
         /// Should be disabled in production.
         /// </summary>
         public bool EnableRefreshHeaders { get; set; } = false;
+
+        internal UAuthDiagnosticsOptions Clone() => new()
+        {
+            EnableRefreshHeaders = EnableRefreshHeaders
+        };
+
     }
 }

@@ -66,5 +66,21 @@
 
         // Header config
         public string HeaderName { get; set; } = "X-Tenant";
+
+        internal UAuthMultiTenantOptions Clone() => new()
+        {
+            Enabled = Enabled,
+            DefaultTenantId = DefaultTenantId,
+            RequireTenant = RequireTenant,
+            AllowUnknownTenants = AllowUnknownTenants,
+            ReservedTenantIds = new HashSet<string>(ReservedTenantIds),
+            NormalizeToLowercase = NormalizeToLowercase,
+            TenantIdRegex = TenantIdRegex,
+            EnableRoute = EnableRoute,
+            EnableHeader = EnableHeader,
+            EnableDomain = EnableDomain,
+            HeaderName = HeaderName
+        };
+
     }
 }

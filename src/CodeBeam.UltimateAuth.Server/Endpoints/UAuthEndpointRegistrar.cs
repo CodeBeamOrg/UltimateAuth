@@ -12,12 +12,11 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     }
 
     // TODO: Add Scalar/Swagger integration
+    // TODO: Add endpoint based guards
     public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
     {
         public void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options)
         {
-            var defaults = UAuthEndpointDefaultsMap.ForMode(options.Mode);
-
             // Base: /auth
             string basePrefix = options.RoutePrefix.TrimStart('/');
 
@@ -29,7 +28,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 ? rootGroup.MapGroup("/{tenant}/" + basePrefix)
                 : rootGroup.MapGroup("/" + basePrefix);
 
-            if (EndpointEnablement.Resolve(options.EnablePkceEndpoints, defaults.Pkce))
+            if (options.EnablePkceEndpoints != false)
             {
                 var pkce = group.MapGroup("/pkce");
 
@@ -46,7 +45,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                         => await h.ConsumeAsync(ctx));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableLoginEndpoints, defaults.Login))
+            if (options.EnableLoginEndpoints != false)
             {
                 group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                     => await h.LoginAsync(ctx));
@@ -64,7 +63,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.ReauthAsync(ctx));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableTokenEndpoints, defaults.Token))
+            if (options.EnableTokenEndpoints != false)
             {
                 var token = group.MapGroup("");
 
@@ -81,7 +80,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.RevokeAsync(ctx));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableSessionEndpoints, defaults.Session))
+            if (options.EnableSessionEndpoints != false)
             {
                 var session = group.MapGroup("/session");
 
@@ -98,7 +97,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.RevokeAllAsync(ctx));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableUserInfoEndpoints, defaults.UserInfo))
+            if (options.EnableUserInfoEndpoints != false)
             {
                 var user = group.MapGroup("");
 

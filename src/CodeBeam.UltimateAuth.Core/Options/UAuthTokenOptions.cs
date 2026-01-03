@@ -61,5 +61,20 @@
         /// If null, default key will be used.
         /// </summary>
         public string? KeyId { get; set; }
+
+        internal UAuthTokenOptions Clone() => new()
+        {
+            IssueOpaque = IssueOpaque,
+            IssueJwt = IssueJwt,
+            IssueRefresh = IssueRefresh,
+            AccessTokenLifetime = AccessTokenLifetime,
+            RefreshTokenLifetime = RefreshTokenLifetime,
+            OpaqueIdBytes = OpaqueIdBytes,
+            Issuer = Issuer,
+            Audience = Audience,
+            AddJwtIdClaim = AddJwtIdClaim,
+            KeyId = KeyId
+        };
+
     }
 }

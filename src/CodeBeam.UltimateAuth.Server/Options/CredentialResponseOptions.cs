@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Options
@@ -16,5 +17,15 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Applies when Mode = Header
         /// </summary>
         public HeaderTokenFormat HeaderFormat { get; set; } = HeaderTokenFormat.Bearer;
+        public TokenFormat TokenFormat { get; set; }
+
+        internal CredentialResponseOptions Clone() => new()
+        {
+            Mode = Mode,
+            Name = Name,
+            HeaderFormat = HeaderFormat,
+            TokenFormat = TokenFormat
+        };
+
     }
 }

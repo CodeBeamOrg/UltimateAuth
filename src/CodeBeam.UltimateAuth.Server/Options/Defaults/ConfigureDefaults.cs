@@ -1,45 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Options
 {
     internal class ConfigureDefaults
     {
-        internal static void ApplyClientProfileDefaults(UAuthServerOptions o, UAuthOptions core)
-        {
-            if (core.ClientProfile == UAuthClientProfile.NotSpecified)
-            {
-                o.Mode ??= UAuthMode.Hybrid;
-                return;
-            }
-
-            if (o.Mode is null)
-            {
-                o.Mode = core.ClientProfile switch
-                {
-                    UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
-                    UAuthClientProfile.BlazorWasm => UAuthMode.Hybrid,
-                    UAuthClientProfile.Maui => UAuthMode.SemiHybrid,
-                    UAuthClientProfile.WebServer => UAuthMode.Hybrid,
-                    UAuthClientProfile.Api => UAuthMode.PureJwt,
-                    _ => throw new InvalidOperationException("Unsupported client profile. Please specify a client profile or make sure it's set NotSpecified")
-                };
-            }
-
-            if (o.HubDeploymentMode == default)
-            {
-                o.HubDeploymentMode = core.ClientProfile switch
-                {
-                    UAuthClientProfile.BlazorWasm => UAuthHubDeploymentMode.Integrated,
-                    UAuthClientProfile.Maui => UAuthHubDeploymentMode.Integrated,
-                    _ => UAuthHubDeploymentMode.Embedded
-                };
-            }
-        }
-
         internal static void ApplyModeDefaults(UAuthServerOptions o)
         {
             switch (o.Mode)
@@ -62,71 +27,6 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
                 default:
                     throw new InvalidOperationException($"Unsupported UAuthMode: {o.Mode}");
-            }
-        }
-
-        internal static void ApplyAuthResponseDefaults(UAuthServerOptions o, UAuthOptions core)
-        {
-            var ar = o.AuthResponse;
-            if (ar is null)
-                return;
-
-            bool sessionNotSet = ar.SessionIdDelivery.Mode == TokenResponseMode.None;
-            bool accessNotSet = ar.AccessTokenDelivery.Mode == TokenResponseMode.None;
-            bool refreshNotSet = ar.RefreshTokenDelivery.Mode == TokenResponseMode.None;
-
-            if (!sessionNotSet || !accessNotSet || !refreshNotSet)
-                return;
-
-            switch (core.ClientProfile)
-            {
-                // TODO: Change NotSpecified option defaults. Should be same as BlazorWasm.
-                case UAuthClientProfile.NotSpecified:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.None };
-                    ar.Login.RedirectEnabled = true;
-                    ar.Logout.RedirectEnabled = true;
-                    break;
-                case UAuthClientProfile.BlazorServer:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.None };
-                    ar.Login.RedirectEnabled = true;
-                    ar.Logout.RedirectEnabled = true;
-                    break;
-
-                case UAuthClientProfile.BlazorWasm:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.Login.RedirectEnabled = true;
-                    ar.Logout.RedirectEnabled = true;
-                    break;
-
-                case UAuthClientProfile.Maui:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.Login.RedirectEnabled = true;
-                    ar.Logout.RedirectEnabled = true;
-                    break;
-
-                case UAuthClientProfile.WebServer:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Cookie };
-                    ar.Login.RedirectEnabled = true;
-                    ar.Logout.RedirectEnabled = true;
-                    break;
-
-                case UAuthClientProfile.Api:
-                    ar.SessionIdDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.AccessTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.RefreshTokenDelivery = new CredentialResponseOptions() { Mode = TokenResponseMode.Header, HeaderFormat = HeaderTokenFormat.Bearer };
-                    ar.Login.RedirectEnabled = false;
-                    ar.Logout.RedirectEnabled = false;
-                    break;
             }
         }
 

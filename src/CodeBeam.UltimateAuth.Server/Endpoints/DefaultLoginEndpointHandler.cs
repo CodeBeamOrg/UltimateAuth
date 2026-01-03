@@ -19,35 +19,31 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 {
     private readonly IUAuthFlowService<TUserId> _flow;
     private readonly IDeviceResolver _deviceResolver;
-    private readonly ITenantResolver _tenantResolver;
     private readonly IClock _clock;
-    private readonly IUAuthCookieManager _cookieManager;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly UAuthServerOptions _options;
+    private readonly IEffectiveServerOptionsProvider _effectiveOptions;
     private readonly AuthRedirectResolver _redirectResolver;
 
     public DefaultLoginEndpointHandler(
         IUAuthFlowService<TUserId> flow,
         IDeviceResolver deviceResolver,
-        ITenantResolver tenantResolver,
         IClock clock,
-        IUAuthCookieManager cookieManager,
         ICredentialResponseWriter credentialResponseWriter,
-        IOptions<UAuthServerOptions> options,
+        IEffectiveServerOptionsProvider effectiveOptions,
         AuthRedirectResolver redirectResolver)
     {
         _flow = flow;
         _deviceResolver = deviceResolver;
-        _tenantResolver = tenantResolver;
         _clock = clock;
-        _cookieManager = cookieManager;
         _credentialResponseWriter = credentialResponseWriter;
-        _options = options.Value;
+        _effectiveOptions = effectiveOptions;
         _redirectResolver = redirectResolver;
     }
 
     public async Task<IResult> LoginAsync(HttpContext ctx)
     {
+        var options = _effectiveOptions.Get(ctx, AuthFlowType.Login);
+
         if (!ctx.Request.HasFormContentType)
             return Results.BadRequest("Invalid content type.");
 
@@ -57,7 +53,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var secret = form["Secret"].ToString();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials);
+            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, options);
 
         var tenantCtx = ctx.GetTenantContext();
 
@@ -73,25 +69,25 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown);
+            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, options);
 
         if (result.SessionId is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.SessionId.Value, _options.AuthResponse.SessionIdDelivery);
+            _credentialResponseWriter.Write(ctx, result.SessionId.Value, options.AuthResponse.SessionIdDelivery);
         }
         else if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.AccessToken.Token, _options.AuthResponse.AccessTokenDelivery);
+            _credentialResponseWriter.Write(ctx, result.AccessToken.Token, options.AuthResponse.AccessTokenDelivery);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.RefreshToken.Token, _options.AuthResponse.RefreshTokenDelivery);
+            _credentialResponseWriter.Write(ctx, result.RefreshToken.Token, options.AuthResponse.RefreshTokenDelivery);
         }
 
-        if (_options.AuthResponse.Login.RedirectEnabled)
+        if (options.AuthResponse.Login.RedirectEnabled)
         {
-            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, _options.AuthResponse.Login.SuccessRedirect);
+            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, options.AuthResponse.Login.SuccessRedirect);
             return Results.Redirect(redirectUrl);
         }
 
@@ -100,9 +96,9 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         return Results.Ok();
     }
 
-    private IResult RedirectFailure(HttpContext ctx, AuthFailureReason reason)
+    private IResult RedirectFailure(HttpContext ctx, AuthFailureReason reason, UAuthServerOptions options)
     {
-        var login = _options.AuthResponse.Login;
+        var login = options.AuthResponse.Login;
 
         var code =
             login.FailureCodes != null &&
