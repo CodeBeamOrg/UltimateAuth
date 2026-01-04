@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -12,30 +13,39 @@ using System.Security.Claims;
 namespace CodeBeam.UltimateAuth.Server.Authentication;
 
 internal sealed class UAuthAuthenticationHandler
-    : AuthenticationHandler<UAuthCookieOptions>
+    : AuthenticationHandler<UAuthAuthenticationCookieOptions>
 {
     private readonly ICredentialResolver _credentialResolver;
     private readonly ISessionQueryService<UserId> _sessionQuery;
+    private readonly IAuthFlowContextFactory _flowFactory;
+    private readonly IAuthResponseResolver _responseResolver;
+
     private readonly IClock _clock;
 
     public UAuthAuthenticationHandler(
-        IOptionsMonitor<UAuthCookieOptions> options,
+        IOptionsMonitor<UAuthAuthenticationCookieOptions> options,
         ILoggerFactory logger,
         System.Text.Encodings.Web.UrlEncoder encoder,
         ISystemClock clock,
         ICredentialResolver credentialResolver,
         ISessionQueryService<UserId> sessionQuery,
+        IAuthFlowContextFactory flowFactory,
+        IAuthResponseResolver responseResolver,
         IClock uauthClock)
         : base(options, logger, encoder, clock)
     {
         _credentialResolver = credentialResolver;
         _sessionQuery = sessionQuery;
+        _flowFactory = flowFactory;
+        _responseResolver = responseResolver;
         _clock = uauthClock;
     }
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         // 1️⃣ Credential al
-        var credential = _credentialResolver.Resolve(Context);
+        var flow = _flowFactory.Create(Context, AuthFlowType.Api);
+        var response = _responseResolver.Resolve(flow);
+        var credential = _credentialResolver.Resolve(Context, response);
 
         if (credential is null)
             return AuthenticateResult.NoResult();

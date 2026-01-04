@@ -19,12 +19,16 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public HeaderTokenFormat HeaderFormat { get; set; } = HeaderTokenFormat.Bearer;
         public TokenFormat TokenFormat { get; set; }
 
+        // Only for cookie
+        public UAuthCookieOptions? Cookie { get; init; }
+
         internal CredentialResponseOptions Clone() => new()
         {
             Mode = Mode,
             Name = Name,
             HeaderFormat = HeaderFormat,
-            TokenFormat = TokenFormat
+            TokenFormat = TokenFormat,
+            Cookie = Cookie?.Clone()
         };
 
     }

@@ -22,9 +22,9 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Server
 
             var effective = provider.Get(ctx, AuthFlowType.Login);
 
-            effective.Tokens.AccessTokenLifetime = TimeSpan.FromSeconds(30);
+            effective.Options.Tokens.AccessTokenLifetime = TimeSpan.FromSeconds(30);
 
-            Assert.NotEqual(baseOptions.Tokens.AccessTokenLifetime, effective.Tokens.AccessTokenLifetime);
+            Assert.NotEqual(baseOptions.Tokens.AccessTokenLifetime, effective.Options.Tokens.AccessTokenLifetime);
         }
 
         [Fact]
@@ -45,7 +45,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Server
 
             var effective = provider.Get(ctx, AuthFlowType.Login);
 
-            Assert.Equal(TimeSpan.FromMinutes(1), effective.Tokens.AccessTokenLifetime);
+            Assert.Equal(TimeSpan.FromMinutes(1), effective.Options.Tokens.AccessTokenLifetime);
         }
     }
 }

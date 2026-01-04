@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
@@ -10,54 +12,67 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
     internal sealed class DefaultCredentialResolver : ICredentialResolver
     {
         private readonly IPrimaryCredentialResolver _primaryResolver;
-        private readonly UAuthServerOptions _options;
 
-        public DefaultCredentialResolver(
-            IPrimaryCredentialResolver primaryResolver,
-            IOptions<UAuthServerOptions> options)
+        public DefaultCredentialResolver(IPrimaryCredentialResolver primaryResolver)
         {
             _primaryResolver = primaryResolver;
-            _options = options.Value;
         }
 
-        public ResolvedCredential? Resolve(HttpContext context)
+        public ResolvedCredential? Resolve(HttpContext context, EffectiveAuthResponse response)
         {
-            var primary = _primaryResolver.Resolve(context);
+            var kind = _primaryResolver.Resolve(context);
 
-            return primary switch
+            return kind switch
             {
-                PrimaryCredentialKind.Stateful => ResolveSession(context),
-                PrimaryCredentialKind.Stateless => ResolveToken(context),
+                PrimaryCredentialKind.Stateful => ResolveSession(context, response),
+                PrimaryCredentialKind.Stateless => ResolveAccessToken(context, response),
+
                 _ => null
             };
         }
 
-        private ResolvedCredential? ResolveSession(HttpContext context)
+        private static ResolvedCredential? ResolveSession(HttpContext context, EffectiveAuthResponse response)
         {
-            if (!context.Request.Cookies.TryGetValue(
-                _options.Cookie.Name,
-                out var sessionId))
-            {
+            var delivery = response.SessionIdDelivery;
+
+            if (delivery.Mode != TokenResponseMode.Cookie)
                 return null;
-            }
+
+            var cookie = delivery.Cookie;
+            if (cookie is null)
+                return null;
+
+            if (!context.Request.Cookies.TryGetValue(cookie.Name, out var raw))
+                return null;
+
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
 
             return new ResolvedCredential
             {
                 Kind = PrimaryCredentialKind.Stateful,
-                Value = sessionId,
+                Value = raw.Trim(),
                 TenantId = context.GetTenantContext().TenantId,
                 Device = context.GetDevice()
             };
         }
 
-        private ResolvedCredential? ResolveToken(HttpContext context)
+        private static ResolvedCredential? ResolveAccessToken(HttpContext context, EffectiveAuthResponse response)
         {
-            if (!context.Request.Headers.TryGetValue("Authorization", out var header))
+            var delivery = response.AccessTokenDelivery;
+
+            if (delivery.Mode != TokenResponseMode.Header)
+                return null;
+
+            var headerName = delivery.Name ?? "Authorization";
+
+            if (!context.Request.Headers.TryGetValue(headerName, out var header))
                 return null;
 
             var value = header.ToString();
 
-            if (value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            if (delivery.HeaderFormat == HeaderTokenFormat.Bearer &&
+                value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 value = value["Bearer ".Length..].Trim();
             }
@@ -73,5 +88,6 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                 Device = context.GetDevice()
             };
         }
+
     }
 }

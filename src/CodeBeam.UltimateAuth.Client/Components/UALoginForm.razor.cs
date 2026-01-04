@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -34,7 +35,7 @@ namespace CodeBeam.UltimateAuth.Client
             await JS.InvokeVoidAsync("uauth.submitForm", _form);
         }
 
-        //private string ResolvedEndpoint => string.IsNullOrWhiteSpace(Endpoint) ? UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, "/auth/login") : UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, Endpoint);
+        private string ClientProfileValue => CoreOptions.Value.ClientProfile.ToString();
 
         private string ResolvedEndpoint
         {

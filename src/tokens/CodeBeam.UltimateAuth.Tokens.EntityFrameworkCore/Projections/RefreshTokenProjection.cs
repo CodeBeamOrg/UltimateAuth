@@ -9,12 +9,13 @@ internal sealed class RefreshTokenProjection
     public string? TenantId { get; set; }
 
     public string TokenHash { get; set; } = default!;
-    public AuthSessionId SessionId { get; set; }
+    public string UserId { get; set; } = default!;
+    public string SessionId { get; set; } = default!;
+    public ChainId ChainId { get; set; } = default!;
 
+    public DateTimeOffset IssuedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
     public byte[] RowVersion { get; set; } = default!;
-
-    public bool IsRevoked => RevokedAt != null;
 }

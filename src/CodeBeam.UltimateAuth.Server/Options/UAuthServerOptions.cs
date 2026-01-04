@@ -71,7 +71,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Allows advanced users to override cookie behavior.
         /// Unsafe combinations will be rejected at startup.
         /// </summary>
-        public UAuthCookieOptions Cookie { get; set; } = new();
+        public UAuthCookieSetOptions Cookie { get; set; } = new();
 
         public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
 

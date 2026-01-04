@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth
@@ -11,34 +12,31 @@ namespace CodeBeam.UltimateAuth.Server.Auth
     public sealed class DefaultAuthFlowContextFactory : IAuthFlowContextFactory
     {
         private readonly IClientProfileReader _clientProfileReader;
-        private readonly IEffectiveAuthModeResolver _modeResolver;
         private readonly IPrimaryTokenResolver _primaryTokenResolver;
-        private readonly IEffectiveServerOptionsResolver _serverOptionsResolver;
+        private readonly IEffectiveServerOptionsProvider _serverOptionsProvider;
 
         public DefaultAuthFlowContextFactory(
             IClientProfileReader clientProfileReader,
-            IEffectiveAuthModeResolver modeResolver,
             IPrimaryTokenResolver primaryTokenResolver,
-            IEffectiveServerOptionsResolver serverOptionsResolver)
+            IEffectiveServerOptionsProvider serverOptionsProvider)
         {
             _clientProfileReader = clientProfileReader;
-            _modeResolver = modeResolver;
             _primaryTokenResolver = primaryTokenResolver;
-            _serverOptionsResolver = serverOptionsResolver;
+            _serverOptionsProvider = serverOptionsProvider;
         }
 
-        public AuthFlowContext Create(HttpContext httpContext, AuthFlowType flowType)
+        public AuthFlowContext Create(HttpContext ctx, AuthFlowType flowType)
         {
-            var clientProfile = _clientProfileReader.Read(httpContext);
-            var configuredMode = _serverOptionsResolver.GetConfiguredMode();
-            var effectiveMode = _modeResolver.Resolve(configuredMode, clientProfile, flowType);
-            var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-            var effectiveOptions = _serverOptionsResolver.Resolve(effectiveMode);
+            var clientProfile = _clientProfileReader.Read(ctx);
+            var effectiveOptions = _serverOptionsProvider.Get(ctx, flowType);
+
+            var primaryTokenKind =
+                _primaryTokenResolver.Resolve(effectiveOptions.Mode);
 
             return new AuthFlowContext
             {
                 ClientProfile = clientProfile,
-                EffectiveMode = effectiveMode,
+                EffectiveMode = effectiveOptions.Mode,
                 FlowType = flowType,
                 PrimaryTokenKind = primaryTokenKind,
                 ServerOptions = effectiveOptions

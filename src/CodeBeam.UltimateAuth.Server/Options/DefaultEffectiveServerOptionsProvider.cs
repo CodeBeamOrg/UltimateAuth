@@ -21,19 +21,23 @@ namespace CodeBeam.UltimateAuth.Server.Options
             _modeResolver = modeResolver;
         }
 
-        public UAuthServerOptions Get(HttpContext context, AuthFlowType flowType)
+        public EffectiveUAuthServerOptions Get(HttpContext context, AuthFlowType flowType)
         {
             var baseOptions = _base.Value;
-            var effective = baseOptions.Clone();
+            var cloned = baseOptions.Clone();
             var clientProfile = _clientProfileReader.Read(context);
             var mode = _modeResolver.Resolve(baseOptions.Mode, clientProfile, flowType);
 
             if (baseOptions.ModeConfigurations.TryGetValue(mode, out var configure))
             {
-                configure(effective);
+                configure(cloned);
             }
 
-            return effective;
+            return new EffectiveUAuthServerOptions
+            {
+                Mode = mode,
+                Options = cloned
+            };
         }
 
     }

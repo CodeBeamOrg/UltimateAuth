@@ -6,11 +6,8 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// Validates access tokens (JWT or opaque) and resolves
     /// the authenticated user context.
     /// </summary>
-    public interface ITokenValidator
+    public interface IJwtValidator
     {
-        Task<TokenValidationResult<TUserId>> ValidateAsync<TUserId>(
-            string token,
-            TokenType type,
-            CancellationToken ct = default);
+        Task<TokenValidationResult<TUserId>> ValidateAsync<TUserId>(string token, CancellationToken ct = default);
     }
 }

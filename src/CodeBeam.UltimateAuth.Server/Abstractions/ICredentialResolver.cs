@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CodeBeam.UltimateAuth.Server.Auth;
+using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Abstractions
 {
@@ -8,6 +9,6 @@ namespace CodeBeam.UltimateAuth.Server.Abstractions
     /// </summary>
     public interface ICredentialResolver
     {
-        ResolvedCredential? Resolve(HttpContext context);
+        ResolvedCredential? Resolve(HttpContext context, EffectiveAuthResponse response);
     }
 }

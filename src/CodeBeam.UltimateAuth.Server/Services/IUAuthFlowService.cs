@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions
+namespace CodeBeam.UltimateAuth.Server.Services
 {
     /// <summary>
     /// Handles authentication flows such as login,
@@ -8,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// </summary>
     public interface IUAuthFlowService<TUserId>
     {
-        Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default);
+        Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default);
 
         Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default);
 
@@ -20,7 +21,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 
         Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default);
 
-        Task<SessionRefreshResult> RefreshSessionAsync(SessionRefreshRequest request, CancellationToken ct = default);
+        Task<SessionRefreshResult> RefreshSessionAsync(AuthFlowContext flow, SessionRefreshRequest request, CancellationToken ct = default);
 
         Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default);
 

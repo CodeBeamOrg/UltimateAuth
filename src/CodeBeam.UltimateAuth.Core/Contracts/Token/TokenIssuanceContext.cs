@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts
 {
     public sealed record TokenIssuanceContext
     {

@@ -7,7 +7,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     public sealed class AuthFlowContext
     {
-        public required PrimaryTokenKind PrimaryTokenKind { get; init; }
+        /// <summary>
+        /// Tenant identifier for multi-tenant setups.
+        /// Null in single-tenant mode.
+        /// </summary>
+        public string? TenantId { get; init; }
+        public PrimaryTokenKind PrimaryTokenKind { get; init; }
         public required UAuthClientProfile ClientProfile { get; init; }
         public required UAuthMode EffectiveMode { get; init; }
         public required AuthFlowType FlowType { get; init; }

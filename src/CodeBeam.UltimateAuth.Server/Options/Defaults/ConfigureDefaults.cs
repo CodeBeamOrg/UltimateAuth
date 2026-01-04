@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options
 {
@@ -35,6 +36,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
             var s = o.Session;
             var t = o.Tokens;
             var c = o.Cookie;
+            var r = o.AuthResponse;
 
             // Session behavior
             s.SlidingExpiration = true;
@@ -58,7 +60,13 @@ namespace CodeBeam.UltimateAuth.Server.Options
             // Refresh token does not exist in PureOpaque
             t.IssueRefresh = false;
 
-            c.IdleBuffer = TimeSpan.FromDays(2);
+            c.Session.Lifetime.IdleBuffer = TimeSpan.FromDays(2);
+
+            r.RefreshTokenDelivery = new CredentialResponseOptions
+            {
+                Mode = TokenResponseMode.Cookie,
+                TokenFormat = TokenFormat.Opaque
+            };
         }
 
         private static void ApplyHybridDefaults(UAuthServerOptions o)
@@ -66,6 +74,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
             var s = o.Session;
             var t = o.Tokens;
             var c = o.Cookie;
+            var r = o.AuthResponse;
 
             s.SlidingExpiration = true;
             s.TouchInterval = null;
@@ -75,7 +84,14 @@ namespace CodeBeam.UltimateAuth.Server.Options
             t.AccessTokenLifetime = TimeSpan.FromMinutes(10);
             t.RefreshTokenLifetime = TimeSpan.FromDays(7);
 
-            c.IdleBuffer = TimeSpan.FromMinutes(5);
+            c.Session.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+            c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+
+            r.RefreshTokenDelivery = new CredentialResponseOptions
+            {
+                Mode = TokenResponseMode.Cookie,
+                TokenFormat = TokenFormat.Opaque
+            };
         }
 
         private static void ApplySemiHybridDefaults(UAuthServerOptions o)
@@ -94,7 +110,8 @@ namespace CodeBeam.UltimateAuth.Server.Options
             t.RefreshTokenLifetime = TimeSpan.FromDays(7);
             t.AddJwtIdClaim = true;
 
-            c.IdleBuffer = TimeSpan.FromMinutes(5);
+            c.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+            c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
         }
 
         private static void ApplyPureJwtDefaults(UAuthServerOptions o)
@@ -116,7 +133,8 @@ namespace CodeBeam.UltimateAuth.Server.Options
             t.RefreshTokenLifetime = TimeSpan.FromDays(7);
             t.AddJwtIdClaim = true;
 
-            c.IdleBuffer = TimeSpan.FromSeconds(30);
+            c.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+            c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
         }
 
     }

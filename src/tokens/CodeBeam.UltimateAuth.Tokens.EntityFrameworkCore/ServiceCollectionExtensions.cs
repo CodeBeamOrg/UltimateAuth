@@ -9,8 +9,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUltimateAuthEntityFrameworkCoreTokens(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
         services.AddDbContext<UltimateAuthTokenDbContext>(configureDb);
-        services.AddScoped<EfCoreTokenStoreKernel>();
-        services.AddScoped(typeof(ITokenStore<>), typeof(EfCoreTokenStore<>));
+        services.AddScoped(typeof(IRefreshTokenStore<>), typeof(EfCoreRefreshTokenStore<>));
 
         return services;
     }

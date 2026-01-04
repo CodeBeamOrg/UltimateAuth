@@ -7,6 +7,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     public sealed class QuerySessionIdResolver : IInnerSessionIdResolver
     {
+        public string Key => "query";
         private readonly UAuthServerOptions _options;
 
         public QuerySessionIdResolver(IOptions<UAuthServerOptions> options)

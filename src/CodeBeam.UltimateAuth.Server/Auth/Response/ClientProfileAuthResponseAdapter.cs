@@ -6,15 +6,17 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     internal sealed class ClientProfileAuthResponseAdapter
     {
-        public EffectiveAuthResponse Adapt(AuthResponseOptions template, AuthFlowContext ctx)
+        public AuthResponseOptions Adapt(AuthResponseOptions template, AuthFlowContext ctx)
         {
-            return new EffectiveAuthResponse(
-                SessionId: AdaptCredential(template.SessionIdDelivery, ctx),
-                AccessToken: AdaptCredential(template.AccessTokenDelivery, ctx),
-                RefreshToken: AdaptCredential(template.RefreshTokenDelivery, ctx),
-                LoginRedirectEnabled: template.Login.RedirectEnabled,
-                LogoutRedirectEnabled: template.Logout.RedirectEnabled
-            );
+            return new AuthResponseOptions
+            {
+                SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, ctx),
+                AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, ctx),
+                RefreshTokenDelivery = AdaptCredential(template.RefreshTokenDelivery, ctx),
+
+                Login = template.Login,
+                Logout = template.Logout
+            };
         }
 
         private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, AuthFlowContext ctx)

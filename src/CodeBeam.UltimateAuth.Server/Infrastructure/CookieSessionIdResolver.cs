@@ -7,6 +7,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     public sealed class CookieSessionIdResolver : IInnerSessionIdResolver
     {
+        public string Key => "cookie";
+
         private readonly UAuthServerOptions _options;
 
         public CookieSessionIdResolver(IOptions<UAuthServerOptions> options)
@@ -16,13 +18,14 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
         public AuthSessionId? Resolve(HttpContext context)
         {
-            if (!context.Request.Cookies.TryGetValue(_options.Cookie.Name, out var raw))
+            var cookieName = _options.Cookie.Session.Name;
+
+            if (!context.Request.Cookies.TryGetValue(cookieName, out var raw))
                 return null;
 
             return string.IsNullOrWhiteSpace(raw)
                 ? null
                 : new AuthSessionId(raw.Trim());
         }
-
     }
 }

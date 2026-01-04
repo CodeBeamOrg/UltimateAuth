@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
@@ -11,15 +12,21 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     {
         private readonly ICredentialResolver _credentialResolver;
         private readonly ISessionQueryService<TUserId> _sessionValidator;
+        private readonly IAuthFlowContextFactory _flowFactory;
+        private readonly IAuthResponseResolver _responseResolver;
         private readonly IClock _clock;
 
         public DefaultValidateEndpointHandler(
             ICredentialResolver credentialResolver,
             ISessionQueryService<TUserId> sessionValidator,
+            IAuthFlowContextFactory flowFactory,
+            IAuthResponseResolver responseResolver,
             IClock clock)
         {
             _credentialResolver = credentialResolver;
             _sessionValidator = sessionValidator;
+            _flowFactory = flowFactory;
+            _responseResolver = responseResolver;
             _clock = clock;
         }
 
@@ -27,7 +34,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             HttpContext context,
             CancellationToken ct = default)
         {
-            var credential = _credentialResolver.Resolve(context);
+            var flow = _flowFactory.Create(context, AuthFlowType.Validate);
+            var response = _responseResolver.Resolve(flow);
+            var credential = _credentialResolver.Resolve(context, response);
 
             if (credential is null)
             {

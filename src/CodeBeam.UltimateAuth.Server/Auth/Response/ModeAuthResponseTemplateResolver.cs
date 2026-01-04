@@ -28,7 +28,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 SessionIdDelivery = new()
                 {
                     TokenFormat = TokenFormat.Opaque,
-                    Mode = TokenResponseMode.Cookie
+                    Mode = TokenResponseMode.Cookie,
                 },
                 AccessTokenDelivery = new()
                 {

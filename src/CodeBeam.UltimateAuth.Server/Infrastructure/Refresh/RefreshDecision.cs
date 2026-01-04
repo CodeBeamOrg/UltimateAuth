@@ -8,26 +8,23 @@
     public enum RefreshDecision
     {
         /// <summary>
-        /// Refresh is not supported for this mode.
+        /// Refresh endpoint is disabled for this mode.
         /// </summary>
         NotSupported = 0,
 
         /// <summary>
-        /// Only session lifecycle can be refreshed.
+        /// Only session lifetime is extended.
+        /// No access / refresh token issued.
         /// (PureOpaque)
         /// </summary>
-        SessionOnly = 1,
+        SessionTouch = 1,
 
         /// <summary>
-        /// Session lifecycle + token issuance can be refreshed.
-        /// (Hybrid)
+        /// Refresh token is rotated and
+        /// a new access token is issued.
+        /// Session MAY also be touched depending on policy.
+        /// (Hybrid, SemiHybrid, PureJwt)
         /// </summary>
-        SessionAndToken = 2,
-
-        /// <summary>
-        /// Only token lifecycle can be refreshed.
-        /// (SemiHybrid, PureJwt)
-        /// </summary>
-        TokenOnly = 3
+        TokenRotation = 2
     }
 }

@@ -2,10 +2,9 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
-using System.Security.Claims;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Issuers
 {
@@ -19,54 +18,50 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly IJwtTokenGenerator _jwtGenerator;
         private readonly ITokenHasher _tokenHasher;
-        private readonly UAuthServerOptions _options;
         private readonly IClock _clock;
 
-        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IOptions<UAuthServerOptions> options, IClock clock)
+        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IClock clock)
         {
             _opaqueGenerator = opaqueGenerator;
             _jwtGenerator = jwtGenerator;
             _tokenHasher = tokenHasher;
-            _options = options.Value;
             _clock = clock;
         }
 
-        public Task<AccessToken> IssueAccessTokenAsync(TokenIssuanceContext context, CancellationToken cancellationToken = default)
+        public Task<AccessToken> IssueAccessTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
         {
-            var now = DateTimeOffset.UtcNow;
-            var expires = now.Add(_options.Tokens.AccessTokenLifetime);
+            var tokens = flow.ServerOptions.Options.Tokens;
+            var now = _clock.UtcNow;
+            var expires = now.Add(tokens.AccessTokenLifetime);
 
-            return _options.Mode switch
+            return flow.EffectiveMode switch
             {
-                UAuthMode.PureOpaque => Task.FromResult(IssueOpaqueAccessToken(
-                    expires,
-                    context.SessionId)),
+                UAuthMode.PureOpaque or UAuthMode.Hybrid =>
+                    Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
-                UAuthMode.Hybrid or
                 UAuthMode.SemiHybrid or
-                UAuthMode.PureJwt => Task.FromResult(IssueJwtAccessToken(
-                    context,
-                    expires)),
+                UAuthMode.PureJwt =>
+                    Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
                 _ => throw new InvalidOperationException(
-                    $"Unsupported auth mode: {_options.Mode}")
+                    $"Unsupported auth mode: {flow.EffectiveMode}")
             };
         }
 
-        public Task<RefreshToken?> IssueRefreshTokenAsync(TokenIssuanceContext context, CancellationToken cancellationToken = default)
+        public Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
         {
-            if (_options.Mode == UAuthMode.PureOpaque)
+            if (flow.EffectiveMode == UAuthMode.PureOpaque)
                 return Task.FromResult<RefreshToken?>(null);
 
-            var now = DateTimeOffset.UtcNow;
-            var expires = now.Add(_options.Tokens.RefreshTokenLifetime);
+            var tokens = flow.ServerOptions.Options.Tokens;
+            var expires = _clock.UtcNow.Add(tokens.RefreshTokenLifetime);
 
-            string token = _opaqueGenerator.Generate();
-            string hash = _tokenHasher.Hash(token);
+            var raw = _opaqueGenerator.Generate();
+            var hash = _tokenHasher.Hash(raw);
 
             return Task.FromResult<RefreshToken?>(new RefreshToken
             {
-                Token = token,
+                Token = raw,
                 TokenHash = hash,
                 ExpiresAt = expires
             });
@@ -85,7 +80,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, DateTimeOffset expires)
+        private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, UAuthTokenOptions tokens, DateTimeOffset expires)
         {
             var claims = new Dictionary<string, object>
             {
@@ -94,33 +89,27 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
 
             foreach (var kv in context.Claims)
-            {
                 claims[kv.Key] = kv.Value;
-            }
 
             if (!string.IsNullOrWhiteSpace(context.SessionId))
-            {
                 claims["sid"] = context.SessionId!;
-            }
 
-            if (_options.Tokens.AddJwtIdClaim)
-            {
+            if (tokens.AddJwtIdClaim)
                 claims["jti"] = _opaqueGenerator.Generate(16);
-            }
 
             var descriptor = new UAuthJwtTokenDescriptor
             {
                 Subject = context.UserId,
-                Issuer = _options.Tokens.Issuer,
-                Audience = _options.Tokens.Audience,
+                Issuer = tokens.Issuer,
+                Audience = tokens.Audience,
                 IssuedAt = _clock.UtcNow,
                 ExpiresAt = expires,
                 TenantId = context.TenantId,
                 Claims = claims,
-                KeyId = _options.Tokens.KeyId
+                KeyId = tokens.KeyId
             };
 
-            string jwt = _jwtGenerator.CreateToken(descriptor);
+            var jwt = _jwtGenerator.CreateToken(descriptor);
 
             return new AccessToken
             {

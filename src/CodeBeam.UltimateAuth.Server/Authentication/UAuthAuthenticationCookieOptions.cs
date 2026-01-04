@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Server.Authentication;
 
-public sealed class UAuthCookieOptions : AuthenticationSchemeOptions
+public sealed class UAuthAuthenticationCookieOptions : AuthenticationSchemeOptions
 {
     // TODO:
     // - CookieName override
