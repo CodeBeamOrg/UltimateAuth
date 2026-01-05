@@ -64,7 +64,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
             r.RefreshTokenDelivery = new CredentialResponseOptions
             {
-                Mode = TokenResponseMode.Cookie,
+                Mode = TokenResponseMode.None,
                 TokenFormat = TokenFormat.Opaque
             };
         }

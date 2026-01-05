@@ -20,46 +20,36 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
 public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 {
+    private readonly IAuthFlowContextAccessor _authContext;
     private readonly IUAuthFlowService<TUserId> _flow;
-    private readonly IAuthFlowContextFactory _authFlowContextFactory;
-    private readonly IAuthResponseResolver _authResponseResolver;
     private readonly IDeviceResolver _deviceResolver;
     private readonly IClock _clock;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly IEffectiveServerOptionsProvider _effectiveOptions;
     private readonly AuthRedirectResolver _redirectResolver;
 
     public DefaultLoginEndpointHandler(
+        IAuthFlowContextAccessor authContext,
         IUAuthFlowService<TUserId> flow,
-        IAuthFlowContextFactory authFlowContextFactory,
-        IAuthResponseResolver authResponseResolver,
         IDeviceResolver deviceResolver,
         IClock clock,
         ICredentialResponseWriter credentialResponseWriter,
-        IEffectiveServerOptionsProvider effectiveOptions,
         AuthRedirectResolver redirectResolver)
     {
+        _authContext = authContext;
         _flow = flow;
-        _authFlowContextFactory = authFlowContextFactory;
-        _authResponseResolver = authResponseResolver;
         _deviceResolver = deviceResolver;
         _clock = clock;
         _credentialResponseWriter = credentialResponseWriter;
-        _effectiveOptions = effectiveOptions;
         _redirectResolver = redirectResolver;
     }
 
     public async Task<IResult> LoginAsync(HttpContext ctx)
     {
-        var flowContext = _authFlowContextFactory.Create(ctx, AuthFlowType.Login);
-
-        var authResponse = _authResponseResolver.Resolve(flowContext);
-
-        var options = flowContext.ServerOptions.Options;
+        var auth = _authContext.Current;
 
         var shouldIssueTokens =
-            authResponse.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-            authResponse.RefreshTokenDelivery.Mode != TokenResponseMode.None;
+            auth.Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
+            auth.Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
 
         if (!ctx.Request.HasFormContentType)
             return Results.BadRequest("Invalid content type.");
@@ -70,7 +60,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var secret = form["Secret"].ToString();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, options);
+            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, auth.OriginalOptions);
 
         var tenantCtx = ctx.GetTenantContext();
 
@@ -84,41 +74,32 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
             RequestTokens = shouldIssueTokens
         };
 
-        var result = await _flow.LoginAsync(flowContext, flowRequest, ctx.RequestAborted);
+        var result = await _flow.LoginAsync(auth, flowRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, options);
+            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, auth.OriginalOptions);
 
         if (result.SessionId is not null)
         {
-            _credentialResponseWriter.Write(
-                ctx,
-                result.SessionId.Value,
-                authResponse.SessionIdDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
         }
 
         if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(
-                ctx,
-                result.AccessToken.Token,
-                authResponse.AccessTokenDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(
-                ctx,
-                result.RefreshToken.Token,
-                authResponse.RefreshTokenDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
         }
 
-        if (authResponse.Login.RedirectEnabled)
+        if (auth.Response.Login.RedirectEnabled)
         {
             var redirectUrl =
                 _redirectResolver.ResolveRedirect(
                     ctx,
-                    authResponse.Login.SuccessPath);
+                    auth.Response.Login.SuccessPath);
 
             return Results.Redirect(redirectUrl);
         }
@@ -126,67 +107,6 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         // PKCE / API login
         return Results.Ok();
     }
-
-    //public async Task<IResult> LoginAsync(HttpContext ctx)
-    //{
-    //    var options = _effectiveOptions.Get(ctx, AuthFlowType.Login);
-
-    //    var shouldIssueTokens =
-    //        options.Options.AuthResponse.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-    //        options.Options.AuthResponse.RefreshTokenDelivery.Mode != TokenResponseMode.None;
-
-    //    if (!ctx.Request.HasFormContentType)
-    //        return Results.BadRequest("Invalid content type.");
-
-    //    var form = await ctx.Request.ReadFormAsync();
-
-    //    var identifier = form["Identifier"].ToString();
-    //    var secret = form["Secret"].ToString();
-
-    //    if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-    //        return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, options.Options);
-
-    //    var tenantCtx = ctx.GetTenantContext();
-
-    //    var flowRequest = new LoginRequest
-    //    {
-    //        Identifier = identifier,
-    //        Secret = secret,
-    //        TenantId = tenantCtx.TenantId,
-    //        At = _clock.UtcNow,
-    //        DeviceInfo = _deviceResolver.Resolve(ctx),
-    //        RequestTokens = shouldIssueTokens
-    //    };
-
-    //    var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
-
-    //    if (!result.IsSuccess)
-    //        return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, options.Options);
-
-    //    if (result.SessionId is not null)
-    //    {
-    //        _credentialResponseWriter.Write(ctx, result.SessionId.Value, options.AuthResponse.SessionIdDelivery);
-    //    }
-    //    else if (result.AccessToken is not null)
-    //    {
-    //        _credentialResponseWriter.Write(ctx, result.AccessToken.Token, options.AuthResponse.AccessTokenDelivery);
-    //    }
-
-    //    if (result.RefreshToken is not null)
-    //    {
-    //        _credentialResponseWriter.Write(ctx, result.RefreshToken.Token, options.AuthResponse.RefreshTokenDelivery);
-    //    }
-
-    //    if (options.Options.AuthResponse.Login.RedirectEnabled)
-    //    {
-    //        var redirectUrl = _redirectResolver.ResolveRedirect(ctx, options.AuthResponse.Login.SuccessRedirect);
-    //        return Results.Redirect(redirectUrl);
-    //    }
-
-    //    // TODO: Add PKCE, return result with body
-
-    //    return Results.Ok();
-    //}
 
     private IResult RedirectFailure(HttpContext ctx, AuthFailureReason reason, UAuthServerOptions options)
     {

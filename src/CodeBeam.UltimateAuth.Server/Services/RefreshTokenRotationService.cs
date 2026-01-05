@@ -56,7 +56,7 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
         // ✅ Valid rotation
         var tokenContext = new TokenIssuanceContext
         {
-            TenantId = flow.ServerOptions.Options.MultiTenant.Enabled
+            TenantId = flow.OriginalOptions.MultiTenant.Enabled
                 ? validation.TenantId
                 : null,
 

@@ -69,7 +69,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //        ConfigureDefaults.ApplyAuthResponseDefaults(server, core.Value);
             //    });
 
-
             services.TryAddSingleton<IOpaqueTokenGenerator, DefaultOpaqueTokenGenerator>();
             services.TryAddSingleton<IJwtTokenGenerator,DefaultJwtTokenGenerator>();
             services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
@@ -161,32 +160,44 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped(typeof(ISessionRefreshService<>), typeof(DefaultSessionRefreshService<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
-            services.TryAddScoped<ICredentialResolver, DefaultCredentialResolver>();
+            services.TryAddScoped<IFlowCredentialResolver, DefaultFlowCredentialResolver>();
+            services.AddScoped<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
             services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
             services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
             services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
             services.AddScoped<AuthRedirectResolver>();
 
-            services.TryAddSingleton<ModeAuthResponseTemplateResolver>();
+            services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();
             services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
             services.TryAddSingleton<IAuthResponseResolver, DefaultAuthResponseResolver>();
             services.TryAddSingleton<IClientProfileReader, DefaultClientProfileReader>();
             services.TryAddSingleton<IEffectiveAuthModeResolver, DefaultEffectiveAuthModeResolver>();
             services.TryAddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
             services.TryAddSingleton<IPrimaryTokenResolver, DefaultPrimaryTokenResolver>();
-            services.TryAddScoped<IEffectiveServerOptionsResolver, DefaultEffectiveServerOptionsResolver>();
             services.AddScoped<IEffectiveServerOptionsProvider,DefaultEffectiveServerOptionsProvider>();
 
             services.AddScoped(typeof(IRefreshTokenValidator<>), typeof(DefaultRefreshTokenValidator<>));
             services.AddScoped(typeof(IRefreshTokenRotationService<>), typeof(RefreshTokenRotationService<>));
 
-            services.AddSingleton<UAuthCookieOptionsBuilder>();
+            services.AddSingleton<IUAuthCookiePolicyBuilder, DefaultUAuthCookiePolicyBuilder>();
+            services.AddSingleton<IUAuthHeaderPolicyBuilder, DefaultUAuthHeaderPolicyBuilder>();
+            services.AddSingleton<IUAuthBodyPolicyBuilder, DefaultUAuthBodyPolicyBuilder>();
             services.AddScoped<IUAuthCookieManager, DefaultUAuthCookieManager>();
+            services.AddSingleton<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
 
 
             // -----------------------------
             // ENDPOINTS
             // -----------------------------
+            services.AddHttpContextAccessor();
+
+            services.AddScoped<IAuthFlow, DefaultAuthFlow>();
+            services.AddScoped<IAuthFlowContextAccessor, DefaultAuthFlowContextAccessor>();
+            services.AddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
+
+            services.AddScoped<AuthFlowEndpointFilter>();
+
+
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
             // Endpoint handlers
             //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));

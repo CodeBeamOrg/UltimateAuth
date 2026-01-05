@@ -15,6 +15,12 @@ public sealed class UAuthCookieOptions
     public string Path { get; set; } = "/";
 
     /// <summary>
+    /// Optional cookie domain.
+    /// Use with caution. Null means host-only cookie.
+    /// </summary>
+    public string? Domain { get; set; }
+
+    /// <summary>
     /// If set, defines absolute expiration for the cookie.
     /// If null, a session cookie is used.
     /// </summary>

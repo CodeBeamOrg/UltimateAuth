@@ -12,7 +12,8 @@ window.uauth = {
             url,
             mode,
             data,
-            expectJson
+            expectJson,
+            clientProfile
         } = options;
 
         if (mode === "navigate") {
@@ -37,7 +38,10 @@ window.uauth = {
 
         const response = await fetch(url, {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            headers: {
+                "X-UAuth-ClientProfile": clientProfile
+            }
         });
 
         let body = null;

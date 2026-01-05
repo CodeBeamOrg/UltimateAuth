@@ -1,33 +1,28 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Cookies;
-using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     public sealed class DefaultLogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
     {
+        private readonly IAuthFlowContextAccessor _authContext;
         private readonly IUAuthFlowService<TUserId> _flow;
-        private readonly IAuthFlowContextFactory _authFlowContextFactory;
-        private readonly IAuthResponseResolver _authResponseResolver;
         private readonly IClock _clock;
         private readonly IUAuthCookieManager _cookieManager;
         private readonly AuthRedirectResolver _redirectResolver;
 
-        public DefaultLogoutEndpointHandler(IUAuthFlowService<TUserId> flow, IAuthFlowContextFactory authFlowContextFactory, IAuthResponseResolver authResponseResolver, IClock clock, IUAuthCookieManager cookieManager, AuthRedirectResolver redirectResolver)
+        public DefaultLogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, AuthRedirectResolver redirectResolver)
         {
+            _authContext = authContext;
             _flow = flow;
-            _authFlowContextFactory = authFlowContextFactory;
-            _authResponseResolver = authResponseResolver;
             _clock = clock;
             _cookieManager = cookieManager;
             _redirectResolver = redirectResolver;
@@ -35,31 +30,27 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
         public async Task<IResult> LogoutAsync(HttpContext ctx)
         {
-            var flowContext = _authFlowContextFactory.Create(ctx, AuthFlowType.Logout);
-            var authResponse = _authResponseResolver.Resolve(flowContext);
+            var auth = _authContext.Current;
 
-            var tenantCtx = ctx.GetTenantContext();
-            var sessionCtx = ctx.GetSessionContext();
-
-            if (!sessionCtx.IsAnonymous)
+            if (auth.SessionId != null)
             {
                 var request = new LogoutRequest
                 {
-                    TenantId = tenantCtx.TenantId,
-                    SessionId = sessionCtx.SessionId!.Value,
+                    TenantId = auth.TenantId,
+                    SessionId = auth.SessionId.Value,
                     At = _clock.UtcNow
                 };
 
                 await _flow.LogoutAsync(request, ctx.RequestAborted);
             }
 
-            DeleteIfCookie(ctx, authResponse.SessionIdDelivery);
-            DeleteIfCookie(ctx, authResponse.RefreshTokenDelivery);
-            DeleteIfCookie(ctx, authResponse.AccessTokenDelivery);
+            DeleteIfCookie(ctx, auth.Response.SessionIdDelivery);
+            DeleteIfCookie(ctx, auth.Response.RefreshTokenDelivery);
+            DeleteIfCookie(ctx, auth.Response.AccessTokenDelivery);
 
-            if (authResponse.Logout.RedirectEnabled)
+            if (auth.Response.Logout.RedirectEnabled)
             {
-                var redirectUrl = _redirectResolver.ResolveRedirect(ctx, authResponse.Logout.RedirectPath);
+                var redirectUrl = _redirectResolver.ResolveRedirect(ctx, auth.Response.Logout.RedirectPath);
                 return Results.Redirect(redirectUrl);
             }
 
@@ -74,7 +65,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             if (delivery.Mode != TokenResponseMode.Cookie)
                 return;
 
-            _cookieManager.Delete(ctx, delivery.Cookie);
+            _cookieManager.Delete(ctx, delivery.Cookie.Name);
         }
 
     }

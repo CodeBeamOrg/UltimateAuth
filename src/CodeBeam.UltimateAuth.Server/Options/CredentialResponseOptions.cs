@@ -1,11 +1,12 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Options
 {
     public sealed class CredentialResponseOptions
     {
+        public CredentialKind Kind { get; init; }
         public TokenResponseMode Mode { get; set; } = TokenResponseMode.None;
 
         /// <summary>
@@ -29,6 +30,17 @@ namespace CodeBeam.UltimateAuth.Server.Options
             HeaderFormat = HeaderFormat,
             TokenFormat = TokenFormat,
             Cookie = Cookie?.Clone()
+        };
+
+        public CredentialResponseOptions WithCookie(UAuthCookieOptions cookie)
+        => new()
+        {
+            Kind = Kind,
+            Mode = Mode,
+            Name = Name,
+            HeaderFormat = HeaderFormat,
+            TokenFormat = TokenFormat,
+            Cookie = cookie
         };
 
     }

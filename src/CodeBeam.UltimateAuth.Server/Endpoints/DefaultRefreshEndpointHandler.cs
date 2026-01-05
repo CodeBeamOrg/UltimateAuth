@@ -1,23 +1,16 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     public sealed class DefaultRefreshEndpointHandler<TUserId> : IRefreshEndpointHandler where TUserId : notnull
     {
-        private readonly ISessionContextAccessor _sessionContextAccessor;
-        private readonly IAuthFlowContextFactory _authFlowContextFactory;
-        private readonly IAuthResponseResolver _authResponseResolver;
+        private readonly IAuthFlowContextAccessor _authContext;
         private readonly ISessionRefreshService<TUserId> _sessionRefresh;
         private readonly IRefreshTokenRotationService<TUserId> _tokenRotation;
         private readonly ICredentialResponseWriter _credentialWriter;
@@ -26,9 +19,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         private readonly IRefreshTokenResolver _refreshTokenResolver;
 
         public DefaultRefreshEndpointHandler(
-            ISessionContextAccessor sessionContextAccessor,
-            IAuthFlowContextFactory authFlowContextFactory,
-            IAuthResponseResolver authResponseResolver,
+            IAuthFlowContextAccessor authContext,
             ISessionRefreshService<TUserId> sessionRefresh,
             IRefreshTokenRotationService<TUserId> tokenRotation,
             ICredentialResponseWriter credentialWriter,
@@ -36,9 +27,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             ISessionQueryService<TUserId> sessionQueries,
             IRefreshTokenResolver refreshTokenResolver)
         {
-            _sessionContextAccessor = sessionContextAccessor;
-            _authFlowContextFactory = authFlowContextFactory;
-            _authResponseResolver = authResponseResolver;
+            _authContext = authContext;
             _sessionRefresh = sessionRefresh;
             _tokenRotation = tokenRotation;
             _credentialWriter = credentialWriter;
@@ -49,14 +38,15 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
         public async Task<IResult> RefreshAsync(HttpContext ctx)
         {
-            var flowContext = _authFlowContextFactory.Create(ctx, AuthFlowType.Refresh);
-            var authResponse = _authResponseResolver.Resolve(flowContext);
-            var decision = RefreshDecisionResolver.Resolve(flowContext.EffectiveMode);
+            var auth = _authContext.Current;
+            //var flowContext = _authFlowContextFactory.Create(ctx, AuthFlowType.RefreshSession);
+            //var authResponse = _authResponseResolver.Resolve(flowContext);
+            var decision = RefreshDecisionResolver.Resolve(auth.EffectiveMode);
 
             return decision switch
             {
-                RefreshDecision.SessionTouch => await HandleSessionTouchAsync(ctx, flowContext, authResponse),
-                RefreshDecision.TokenRotation => await HandleTokenRotationAsync(ctx, flowContext, authResponse),
+                RefreshDecision.SessionTouch => await HandleSessionTouchAsync(ctx, auth, auth.Response),
+                RefreshDecision.TokenRotation => await HandleTokenRotationAsync(ctx, auth, auth.Response),
 
                 _ => Results.StatusCode(StatusCodes.Status409Conflict)
             };
@@ -64,16 +54,15 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
         private async Task<IResult> HandleSessionTouchAsync(HttpContext ctx, AuthFlowContext flow, EffectiveAuthResponse response)
         {
-            var sessionCtx = _sessionContextAccessor.Current;
-            if (sessionCtx?.SessionId is null)
+            if (flow.SessionId is null)
                 return Results.Unauthorized();
 
             var now = DateTimeOffset.UtcNow;
             var validation = await _sessionQueries.ValidateSessionAsync(
                 new SessionValidationContext
                 {
-                    TenantId = sessionCtx.TenantId,
-                    SessionId = sessionCtx.SessionId.Value,
+                    TenantId = flow.TenantId,
+                    SessionId = flow.SessionId.Value,
                     Now = now,
                     Device = DeviceInfoFactory.FromHttpContext(ctx)
                 },
@@ -93,7 +82,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 return Results.Unauthorized();
             }
 
-            _credentialWriter.Write(ctx, result.PrimaryToken.Value, response.SessionIdDelivery);
+            _credentialWriter.Write(ctx, CredentialKind.Session, result.PrimaryToken.Value);
             WriteRefreshHeader(ctx, flow, result.DidTouch ? RefreshOutcome.Touched : RefreshOutcome.NoOp);
 
             return Results.NoContent();
@@ -122,8 +111,8 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 return Results.Unauthorized();
             }
 
-            _credentialWriter.Write(ctx, result.AccessToken.Token, response.AccessTokenDelivery);
-            _credentialWriter.Write(ctx, result.RefreshToken.Token, response.RefreshTokenDelivery);
+            _credentialWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
+            _credentialWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
             WriteRefreshHeader(ctx, flow, RefreshOutcome.Rotated);
 
             return Results.NoContent();
@@ -131,7 +120,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
         private void WriteRefreshHeader(HttpContext ctx, AuthFlowContext flow, RefreshOutcome outcome)
         {
-            if (!flow.ServerOptions.Options.Diagnostics.EnableRefreshHeaders)
+            if (!flow.OriginalOptions.Diagnostics.EnableRefreshHeaders)
                 return;
 
             _refreshWriter.Write(ctx, outcome);

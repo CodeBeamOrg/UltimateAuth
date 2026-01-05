@@ -9,11 +9,11 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    internal sealed class DefaultCredentialResolver : ICredentialResolver
+    internal sealed class DefaultFlowCredentialResolver : IFlowCredentialResolver
     {
         private readonly IPrimaryCredentialResolver _primaryResolver;
 
-        public DefaultCredentialResolver(IPrimaryCredentialResolver primaryResolver)
+        public DefaultFlowCredentialResolver(IPrimaryCredentialResolver primaryResolver)
         {
             _primaryResolver = primaryResolver;
         }

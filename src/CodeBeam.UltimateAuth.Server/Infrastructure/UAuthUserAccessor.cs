@@ -25,39 +25,19 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
             if (sessionCtx.IsAnonymous)
             {
-                context.Items[UserMiddleware.UserContextKey] =
-                    UserContext<TUserId>.Anonymous();
+                context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
                 return;
             }
 
-            // 🔐 Load & validate session
-            var session = await _sessionStore.GetSessionAsync(
-                sessionCtx.TenantId,
-                sessionCtx.SessionId!.Value);
+            var session = await _sessionStore.GetSessionAsync(sessionCtx.TenantId, sessionCtx.SessionId!.Value);
 
             if (session is null || session.IsRevoked)
             {
-                context.Items[UserMiddleware.UserContextKey] =
-                    UserContext<TUserId>.Anonymous();
+                context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
                 return;
             }
 
-            // 👤 Load user
-            var user = await _userStore.FindByIdAsync(sessionCtx.TenantId, session.UserId);
-
-            if (user is null)
-            {
-                context.Items[UserMiddleware.UserContextKey] =
-                    UserContext<TUserId>.Anonymous();
-                return;
-            }
-
-            context.Items[UserMiddleware.UserContextKey] =
-                new UserContext<TUserId>
-                {
-                    UserId = session.UserId,
-                    User = user
-                };
+            context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(session.UserId);
         }
 
     }

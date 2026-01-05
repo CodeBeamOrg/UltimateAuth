@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -10,33 +9,27 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class DefaultValidateEndpointHandler<TUserId> : IValidateEndpointHandler
     {
-        private readonly ICredentialResolver _credentialResolver;
+        private readonly IAuthFlowContextAccessor _authContext;
+        private readonly IFlowCredentialResolver _credentialResolver;
         private readonly ISessionQueryService<TUserId> _sessionValidator;
-        private readonly IAuthFlowContextFactory _flowFactory;
-        private readonly IAuthResponseResolver _responseResolver;
         private readonly IClock _clock;
 
         public DefaultValidateEndpointHandler(
-            ICredentialResolver credentialResolver,
+            IAuthFlowContextAccessor authContext,
+            IFlowCredentialResolver credentialResolver,
             ISessionQueryService<TUserId> sessionValidator,
-            IAuthFlowContextFactory flowFactory,
-            IAuthResponseResolver responseResolver,
             IClock clock)
         {
+            _authContext = authContext;
             _credentialResolver = credentialResolver;
             _sessionValidator = sessionValidator;
-            _flowFactory = flowFactory;
-            _responseResolver = responseResolver;
             _clock = clock;
         }
 
-        public async Task<IResult> ValidateAsync(
-            HttpContext context,
-            CancellationToken ct = default)
+        public async Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default)
         {
-            var flow = _flowFactory.Create(context, AuthFlowType.Validate);
-            var response = _responseResolver.Resolve(flow);
-            var credential = _credentialResolver.Resolve(context, response);
+            var auth = _authContext.Current;
+            var credential = _credentialResolver.Resolve(context, auth.Response);
 
             if (credential is null)
             {

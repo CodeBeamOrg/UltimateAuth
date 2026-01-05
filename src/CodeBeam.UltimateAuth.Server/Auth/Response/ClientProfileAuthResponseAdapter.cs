@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
 
@@ -6,22 +8,26 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     internal sealed class ClientProfileAuthResponseAdapter
     {
-        public AuthResponseOptions Adapt(AuthResponseOptions template, AuthFlowContext ctx)
+        public AuthResponseOptions Adapt(AuthResponseOptions template, UAuthClientProfile clientProfile, UAuthMode effectiveMode, EffectiveUAuthServerOptions effectiveOptions)
         {
             return new AuthResponseOptions
             {
-                SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, ctx),
-                AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, ctx),
-                RefreshTokenDelivery = AdaptCredential(template.RefreshTokenDelivery, ctx),
+                SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, CredentialKind.Session, clientProfile),
+                AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, CredentialKind.AccessToken, clientProfile),
+                RefreshTokenDelivery = AdaptCredential(template.RefreshTokenDelivery, CredentialKind.RefreshToken, clientProfile),
 
                 Login = template.Login,
                 Logout = template.Logout
             };
         }
 
-        private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, AuthFlowContext ctx)
+        // NOTE:
+        // effectiveMode and effectiveOptions are intentionally passed
+        // to keep this adapter policy-extensible.
+        // They will be used for future mode/option based response enforcement.
+        private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, CredentialKind kind, UAuthClientProfile clientProfile)
         {
-            if (ctx.ClientProfile == UAuthClientProfile.Maui && original.Mode == TokenResponseMode.Cookie)
+            if (clientProfile == UAuthClientProfile.Maui && original.Mode == TokenResponseMode.Cookie)
             {
                 return ToHeader(original);
             }

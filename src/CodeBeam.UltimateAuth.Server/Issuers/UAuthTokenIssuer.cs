@@ -30,7 +30,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
         public Task<AccessToken> IssueAccessTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
         {
-            var tokens = flow.ServerOptions.Options.Tokens;
+            var tokens = flow.OriginalOptions.Tokens;
             var now = _clock.UtcNow;
             var expires = now.Add(tokens.AccessTokenLifetime);
 
@@ -53,7 +53,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             if (flow.EffectiveMode == UAuthMode.PureOpaque)
                 return Task.FromResult<RefreshToken?>(null);
 
-            var tokens = flow.ServerOptions.Options.Tokens;
+            var tokens = flow.OriginalOptions.Tokens;
             var expires = _clock.UtcNow.Add(tokens.RefreshTokenLifetime);
 
             var raw = _opaqueGenerator.Generate();

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -7,36 +8,38 @@ namespace CodeBeam.UltimateAuth.Server.Options
 {
     internal sealed class DefaultEffectiveServerOptionsProvider : IEffectiveServerOptionsProvider
     {
-        private readonly IOptions<UAuthServerOptions> _base;
-        private readonly IClientProfileReader _clientProfileReader;
+        private readonly IOptions<UAuthServerOptions> _baseOptions;
         private readonly IEffectiveAuthModeResolver _modeResolver;
 
-        public DefaultEffectiveServerOptionsProvider(
-            IOptions<UAuthServerOptions> baseOptions,
-            IClientProfileReader clientProfileReader,
-            IEffectiveAuthModeResolver modeResolver)
+        public DefaultEffectiveServerOptionsProvider(IOptions<UAuthServerOptions> baseOptions, IEffectiveAuthModeResolver modeResolver)
         {
-            _base = baseOptions;
-            _clientProfileReader = clientProfileReader;
+            _baseOptions = baseOptions;
             _modeResolver = modeResolver;
         }
 
-        public EffectiveUAuthServerOptions Get(HttpContext context, AuthFlowType flowType)
+        public UAuthServerOptions GetOriginal(HttpContext context)
         {
-            var baseOptions = _base.Value;
-            var cloned = baseOptions.Clone();
-            var clientProfile = _clientProfileReader.Read(context);
-            var mode = _modeResolver.Resolve(baseOptions.Mode, clientProfile, flowType);
+            return _baseOptions.Value;
+        }
 
-            if (baseOptions.ModeConfigurations.TryGetValue(mode, out var configure))
+        public EffectiveUAuthServerOptions GetEffective(HttpContext context, AuthFlowType flowType, UAuthClientProfile clientProfile)
+        {
+            var original = _baseOptions.Value;
+            var effectiveMode = _modeResolver.Resolve(original.Mode, clientProfile, flowType);
+            var options = original.Clone();
+            options.Mode = effectiveMode;
+
+            ConfigureDefaults.ApplyModeDefaults(options);
+
+            if (original.ModeConfigurations.TryGetValue(effectiveMode, out var configure))
             {
-                configure(cloned);
+                configure(options);
             }
 
             return new EffectiveUAuthServerOptions
             {
-                Mode = mode,
-                Options = cloned
+                Mode = effectiveMode,
+                Options = options
             };
         }
 

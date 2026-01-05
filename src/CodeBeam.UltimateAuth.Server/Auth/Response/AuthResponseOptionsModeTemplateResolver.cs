@@ -6,11 +6,9 @@ using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Auth
 {
-    internal sealed class ModeAuthResponseTemplateResolver
+    internal sealed class AuthResponseOptionsModeTemplateResolver
     {
-        public AuthResponseOptions Resolve(
-            UAuthMode mode,
-            AuthFlowType flowType)
+        public AuthResponseOptions Resolve(UAuthMode mode, AuthFlowType flowType)
         {
             return mode switch
             {
@@ -27,16 +25,19 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
+                    Name = "session",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie,
                 },
                 AccessTokenDelivery = new()
                 {
+                    Name = "access",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 RefreshTokenDelivery = new()
                 {
+                    Name = "refresh",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
@@ -49,16 +50,19 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
+                    Name = "session",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie
                 },
                 AccessTokenDelivery = new()
                 {
+                    Name = "access",
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
+                    Name = "refresh",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie
                 },
@@ -71,16 +75,19 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
+                    Name = "session",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 AccessTokenDelivery = new()
                 {
+                    Name = "access",
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
+                    Name = "refresh",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Header
                 },
@@ -93,16 +100,19 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
+                    Name = "session",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 AccessTokenDelivery = new()
                 {
+                    Name = "access",
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
+                    Name = "refresh",
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Header
                 },

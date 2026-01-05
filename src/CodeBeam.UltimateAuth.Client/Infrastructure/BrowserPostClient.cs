@@ -1,5 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure
@@ -7,10 +10,12 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
     internal sealed class BrowserPostClient : IBrowserPostClient
     {
         private readonly IJSRuntime _js;
+        private UAuthOptions _coreOptions;
 
-        public BrowserPostClient(IJSRuntime js)
+        public BrowserPostClient(IJSRuntime js, IOptions<UAuthOptions> coreOptions)
         {
             _js = js;
+            _coreOptions = coreOptions.Value;
         }
 
         public Task NavigatePostAsync(string endpoint, IDictionary<string, string>? data = null)
@@ -19,7 +24,8 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             {
                 url = endpoint,
                 mode = "navigate",
-                data = data
+                data = data,
+                clientProfile = _coreOptions.ClientProfile.ToString()
             }).AsTask();
         }
 
@@ -29,7 +35,8 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             {
                 url = endpoint,
                 mode = "fetch",
-                expectJson = false
+                expectJson = false,
+                clientProfile = _coreOptions.ClientProfile.ToString()
             });
 
             return result;
@@ -41,7 +48,8 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             {
                 url = endpoint,
                 mode = "fetch",
-                expectJson = true
+                expectJson = true,
+                clientProfile = _coreOptions.ClientProfile.ToString()
             });
 
             return result;

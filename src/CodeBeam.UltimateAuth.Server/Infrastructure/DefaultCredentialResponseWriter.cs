@@ -1,107 +1,101 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
-using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+namespace CodeBeam.UltimateAuth.Server;
+
+internal sealed class DefaultCredentialResponseWriter : ICredentialResponseWriter
 {
-    internal sealed class DefaultCredentialResponseWriter : ICredentialResponseWriter
+    private readonly IAuthFlowContextAccessor _authContext;
+    private readonly IUAuthCookieManager _cookieManager;
+    private readonly IUAuthCookiePolicyBuilder _cookiePolicy;
+    private readonly IUAuthHeaderPolicyBuilder _headerPolicy;
+
+    public DefaultCredentialResponseWriter(
+        IAuthFlowContextAccessor authContext,
+        IUAuthCookieManager cookieManager,
+        IUAuthCookiePolicyBuilder cookiePolicy,
+        IUAuthHeaderPolicyBuilder headerPolicy)
     {
-        private readonly IUAuthCookieManager _cookieManager;
-        private readonly UAuthServerOptions _server;
+        _authContext = authContext;
+        _cookieManager = cookieManager;
+        _cookiePolicy = cookiePolicy;
+        _headerPolicy = headerPolicy;
+    }
 
-        public DefaultCredentialResponseWriter(
-            IUAuthCookieManager cookieManager,
-            IOptions<UAuthServerOptions> serverOptions)
+    public void Write(HttpContext context, CredentialKind kind, string value)
+    {
+        var auth = _authContext.Current;
+        var delivery = ResolveDelivery(auth.Response, kind);
+
+
+        if (delivery.Mode == TokenResponseMode.None)
+            return;
+
+        switch (delivery.Mode)
         {
-            _cookieManager = cookieManager;
-            _server = serverOptions.Value;
-        }
+            case TokenResponseMode.Cookie:
+                WriteCookie(context, kind, value, delivery, auth);
+                break;
 
-        public void Write(HttpContext context, string value, CredentialResponseOptions response)
+            case TokenResponseMode.Header:
+                WriteHeader(context, value, delivery, auth);
+                break;
+
+            case TokenResponseMode.Body:
+                // TODO: Implement body writing if needed
+                break;
+        }
+    }
+
+    private void WriteCookie(HttpContext context, CredentialKind kind, string value, CredentialResponseOptions options, AuthFlowContext auth)
+    {
+        if (options.Cookie is null)
+            throw new InvalidOperationException($"Cookie options missing for credential '{kind}'.");
+
+        var logicalLifetime = ResolveLogicalLifetime(auth, kind);
+        var cookieOptions = _cookiePolicy.Build(options, auth, logicalLifetime);
+
+        _cookieManager.Write(context, options.Cookie.Name, value, cookieOptions);
+    }
+
+    private void WriteHeader(HttpContext context, string value, CredentialResponseOptions response, AuthFlowContext auth)
+    {
+        var headerName = response.Name ?? "Authorization";
+        var formatted = _headerPolicy.BuildHeaderValue(value, response, auth);
+
+        context.Response.Headers[headerName] = formatted;
+    }
+
+    private static CredentialResponseOptions ResolveDelivery(EffectiveAuthResponse response, CredentialKind kind)
+        => kind switch
         {
-            switch (response.Mode)
-            {
-                case TokenResponseMode.Cookie:
-                    WriteCookie(context, value, response);
-                    break;
+            CredentialKind.Session => response.SessionIdDelivery,
+            CredentialKind.AccessToken => response.AccessTokenDelivery,
+            CredentialKind.RefreshToken => response.RefreshTokenDelivery,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
 
-                case TokenResponseMode.Header:
-                    WriteHeader(context, value, response);
-                    break;
-
-                case TokenResponseMode.Body:
-                case TokenResponseMode.None:
-                default:
-                    break;
-            }
-        }
-
-        private void WriteCookie(
-            HttpContext ctx,
-            string value,
-            CredentialResponseOptions response)
+    private static TimeSpan? ResolveLogicalLifetime(AuthFlowContext auth, CredentialKind kind)
+    {
+        // TODO: Move this method to policy on implementing
+        return kind switch
         {
-            var cookieOptions = ResolveCookieOptions(response);
-            var logicalLifetime = ResolveLogicalLifetime(response);
+            CredentialKind.Session
+                => auth.EffectiveOptions.Options.Session.IdleTimeout + auth.OriginalOptions.Cookie.Session.Lifetime.IdleBuffer,
 
-            _cookieManager.Write(
-                ctx,
-                value,
-                cookieOptions,
-                logicalLifetime);
-        }
+            CredentialKind.RefreshToken
+                => auth.EffectiveOptions.Options.Tokens.RefreshTokenLifetime + auth.OriginalOptions.Cookie.RefreshToken.Lifetime.IdleBuffer,
 
-        private TimeSpan? ResolveLogicalLifetime(CredentialResponseOptions response)
-        {
-            return response.TokenFormat switch
-            {
-                TokenFormat.Opaque when response.Name == "session"
-                    => _server.Session.IdleTimeout,
+            CredentialKind.AccessToken
+                => auth.EffectiveOptions.Options.Tokens.AccessTokenLifetime + auth.OriginalOptions.Cookie.AccessToken.Lifetime.IdleBuffer,
 
-                TokenFormat.Opaque when response.Name == "refresh"
-                    => _server.Tokens.RefreshTokenLifetime,
-
-                TokenFormat.Jwt
-                    => _server.Tokens.AccessTokenLifetime,
-
-                _ => null
-            };
-        }
-
-        private UAuthCookieOptions ResolveCookieOptions(CredentialResponseOptions response)
-        {
-            return response.Name switch
-            {
-                "session" => _server.Cookie.Session,
-                "access" => _server.Cookie.AccessToken,
-                "refresh" => _server.Cookie.RefreshToken,
-
-                _ => throw new InvalidOperationException(
-                    $"Unknown cookie type: {response.Name}")
-            };
-        }
-
-        private static void WriteHeader(
-            HttpContext context,
-            string value,
-            CredentialResponseOptions options)
-        {
-            var headerName = options.Name ?? "Authorization";
-
-            var formatted = options.HeaderFormat switch
-            {
-                HeaderTokenFormat.Bearer => $"Bearer {value}",
-                HeaderTokenFormat.Raw => value,
-                _ => value
-            };
-
-            context.Response.Headers[headerName] = formatted;
-        }
-
+            _ => null
+        };
     }
 }

@@ -1,43 +1,21 @@
-﻿using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Cookies;
 
 internal sealed class DefaultUAuthCookieManager : IUAuthCookieManager
 {
-    private readonly UAuthCookieOptionsBuilder _builder;
-
-    public DefaultUAuthCookieManager(UAuthCookieOptionsBuilder builder)
+    public void Write(HttpContext context, string name, string value, CookieOptions options)
     {
-        _builder = builder;
+        context.Response.Cookies.Append(name, value, options);
     }
 
-    public void Write(
-        HttpContext ctx,
-        string value,
-        UAuthCookieOptions options,
-        TimeSpan? logicalLifetime)
+    public bool TryRead(HttpContext context, string name, out string value)
     {
-        var cookieOptions = _builder.Build(options, logicalLifetime);
-
-        ctx.Response.Cookies.Append(
-            options.Name,
-            value,
-            cookieOptions);
+        return context.Request.Cookies.TryGetValue(name, out value!);
     }
 
-    public bool TryRead(
-        HttpContext ctx,
-        string cookieName,
-        out string value)
+    public void Delete(HttpContext context, string name)
     {
-        return ctx.Request.Cookies.TryGetValue(cookieName, out value!);
-    }
-
-    public void Delete(
-        HttpContext ctx,
-        UAuthCookieOptions options)
-    {
-        ctx.Response.Cookies.Delete(options.Name);
+        context.Response.Cookies.Delete(name);
     }
 }

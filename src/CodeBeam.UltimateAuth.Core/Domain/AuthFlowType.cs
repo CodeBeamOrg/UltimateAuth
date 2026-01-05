@@ -3,9 +3,23 @@
     public enum AuthFlowType
     {
         Login,
+        Reauthentication,
+
         Logout,
-        Refresh,
-        Validate,
-        Api
+        RefreshSession,
+        ValidateSession,
+
+        IssueToken,
+        RefreshToken,
+        IntrospectToken,
+        RevokeToken,
+
+        QuerySession,
+        RevokeSession,
+
+        UserInfo,
+        PermissionQuery,
+
+        ApiAccess
     }
 }
