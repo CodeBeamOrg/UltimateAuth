@@ -21,6 +21,12 @@ window.uauth = {
             form.method = "POST";
             form.action = url;
 
+            const cp = document.createElement("input");
+            cp.type = "hidden";
+            cp.name = "__uauth_client_profile";
+            cp.value = clientProfile ?? "";
+            form.appendChild(cp);
+
             if (data) {
                 for (const key in data) {
                     const input = document.createElement("input");

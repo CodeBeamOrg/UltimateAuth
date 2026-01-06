@@ -1,11 +1,12 @@
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -18,6 +19,10 @@ builder.Services.AddUltimateAuthClient(o =>
 {
     o.Endpoints.Authority = "https://localhost:6110";
 });
+
+builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
+builder.Services.AddScoped<IUAuthAuthenticationStateSource, ClientAuthStateSource>();
+
 builder.Services.AddAuthorizationCore();
 
 builder.Services.AddMudServices();

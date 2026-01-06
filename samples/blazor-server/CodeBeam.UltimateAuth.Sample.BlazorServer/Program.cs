@@ -1,7 +1,9 @@
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -10,7 +12,6 @@ using CodeBeam.UltimateAuth.Tokens.InMemory;
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,12 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddScoped<IUAuthAuthenticationStateSource, ServerAuthStateSource>();
+//builder.Services.AddScoped<UAuthBlazorServerAuthenticationStateProvider>();
+
+//builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+//    sp.GetRequiredService<UAuthBlazorServerAuthenticationStateProvider>());
+
 builder.Services.AddUltimateAuth();
 
 builder.Services.AddUltimateAuthServer(o => {
@@ -56,8 +63,6 @@ builder.Services.AddUltimateAuthClient(o =>
     //o.Refresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
-
-
 
 builder.Services.AddScoped(sp =>
 {

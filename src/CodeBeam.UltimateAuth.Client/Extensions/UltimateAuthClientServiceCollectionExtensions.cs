@@ -71,15 +71,17 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             // services.AddSingleton<IValidateOptions<UAuthClientOptions>, ...>();
 
             services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
-            services.PostConfigure<UAuthOptions>(o =>
-            {
-                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
-                    return;
+            services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigure>();
 
-                using var sp = services.BuildServiceProvider();
-                var detector = sp.GetRequiredService<IClientProfileDetector>();
-                o.ClientProfile = detector.Detect(sp);
-            });
+            //services.PostConfigure<UAuthOptions>(o =>
+            //{
+            //    if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+            //        return;
+
+            //    using var sp = services.BuildServiceProvider();
+            //    var detector = sp.GetRequiredService<IClientProfileDetector>();
+            //    o.ClientProfile = detector.Detect(sp);
+            //});
 
             services.PostConfigure<UAuthClientOptions>(o =>
             {
@@ -88,12 +90,11 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddScoped<IBrowserPostClient, BrowserPostClient>();
             services.AddScoped<IUAuthClient, UAuthClient>();
+            services.AddScoped<IClientAuthState, ClientAuthState>();
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {
-                var core = sp
-                    .GetRequiredService<IOptions<UAuthOptions>>()
-                    .Value;
+                var core = sp.GetRequiredService<IOptions<UAuthOptions>>().Value;
 
                 return core.ClientProfile == UAuthClientProfile.BlazorServer
                     ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
@@ -102,13 +103,13 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddScoped<UAuthAuthenticationStateProvider>();
 
-            services.AddScoped<AuthenticationStateProvider>(sp =>
-                sp.GetRequiredService<UAuthAuthenticationStateProvider>());
+            // Uncomment causes blazor server to circular DI
+            //services.AddScoped<AuthenticationStateProvider>(sp =>
+            //    sp.GetRequiredService<UAuthAuthenticationStateProvider>());
 
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
             services.AddScoped<UAuthClientDiagnostics>();
-            services.AddScoped<IClientAuthState, ClientAuthState>();
 
             return services;
         }

@@ -4,22 +4,14 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
 {
     public sealed class UAuthAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private readonly IUAuthClient _client;
+        private readonly IUAuthAuthenticationStateSource _source;
 
-        public UAuthAuthenticationStateProvider(IUAuthClient client)
+        public UAuthAuthenticationStateProvider(IUAuthAuthenticationStateSource source)
         {
-            _client = client;
+            _source = source;
+            _source.StateChanged += () => NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
 
-        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
-        {
-            var principal = await _client.GetCurrentPrincipalAsync();
-            return new AuthenticationState(principal);
-        }
-
-        public void NotifyStateChanged()
-        {
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-        }
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => _source.GetStateAsync();
     }
 }
