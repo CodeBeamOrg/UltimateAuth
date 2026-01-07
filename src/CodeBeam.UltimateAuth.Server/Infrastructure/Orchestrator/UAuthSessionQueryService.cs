@@ -40,9 +40,10 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (session.SecurityVersionAtCreation != root.SecurityVersion)
                 return SessionValidationResult<TUserId>.Invalid(SessionState.SecurityMismatch);
 
-            // TODO: Implement AllowAndRebind behavior and check device mathing in blazor server circuit and external http calls.
-            if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
-                return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
+            // TODO: Implement device id, AllowAndRebind behavior and check device mathing in blazor server circuit and external http calls.
+            // Currently this line has error on refresh flow.
+            //if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
+            //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
             return SessionValidationResult<TUserId>.Active(context.TenantId, session, chain, root);
         }

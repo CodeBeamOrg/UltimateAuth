@@ -4,16 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit
 {
-
-
     internal static class TestHelpers
     {
-        public static DefaultEffectiveServerOptionsProvider CreateEffectiveOptionsProvider(UAuthServerOptions options)
+        public static DefaultEffectiveServerOptionsProvider CreateEffectiveOptionsProvider(UAuthServerOptions options, IEffectiveAuthModeResolver? modeResolver = null)
         {
-            return new DefaultEffectiveServerOptionsProvider(
-                Options.Create(options),
-                new DefaultClientProfileReader(),
-                new DefaultEffectiveAuthModeResolver());
+            return new DefaultEffectiveServerOptionsProvider(Options.Create(options), modeResolver ?? new DefaultEffectiveAuthModeResolver());
         }
     }
 }
