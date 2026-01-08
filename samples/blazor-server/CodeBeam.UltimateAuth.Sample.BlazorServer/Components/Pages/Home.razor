@@ -1,0 +1,99 @@
+﻿@page "/"
+@page "/login"
+@using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Authentication
+@using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Core.Runtime
+@using CodeBeam.UltimateAuth.Server.Abstractions
+@using CodeBeam.UltimateAuth.Server.Cookies
+@using CodeBeam.UltimateAuth.Server.Infrastructure
+@using CodeBeam.UltimateAuth.Server.Services
+@inject IUAuthStateManager StateManager
+@inject IUAuthFlowService<UserId> Flow
+@inject ISnackbar Snackbar
+@inject ISessionQueryService<UserId> SessionQuery
+@inject IFlowCredentialResolver CredentialResolver
+@inject IClock Clock
+@inject IUAuthCookieManager CookieManager
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IUAuthClient UAuthClient
+@inject NavigationManager Nav
+@inject IUAuthProductInfoProvider ProductInfo
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UAuthClientDiagnostics Diagnostics
+
+
+<div class="uauth-page d-flex align-center justify-center">
+    <MudStack Class="uauth-stack">
+        <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password">
+            <MudStack>
+                <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
+                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
+                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
+            </MudStack>
+        </UALoginForm>
+
+        <MudStack Class="mud-width-full" Row="true">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="LogoutAsync">Logout</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Refresh</MudButton>
+        </MudStack>
+
+        <MudStack Class="mud-width-full">
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
+            <MudText>Client Profile: @ProductInfo.Get().ClientProfile.ToString()</MudText>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText>State of Authentication:</MudText>
+            <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
+            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserId)</MudText>
+            <AuthorizeView>
+                <Authorized>
+                    <MudText>Authorized context is shown. @context.User.Identity.IsAuthenticated</MudText>
+                </Authorized>
+                <NotAuthorized>
+                    <MudText>Not Authorized context is shown.</MudText>
+                </NotAuthorized>
+            </AuthorizeView>
+        </MudStack>
+
+        <MudStack>
+            <MudPaper Class="pa-4 mt-4">
+                <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
+
+                <MudDivider Class="my-2" />
+
+                <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
+                <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
+                <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
+
+                <MudDivider Class="my-2" />
+
+                <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
+                <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
+                <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
+
+                <MudText Color="Color.Success">
+                    Touched Success: @Diagnostics.RefreshTouchedCount
+                </MudText>
+                <MudText Color="Color.Success">
+                    No-Op Success: @Diagnostics.RefreshNoOpCount
+                </MudText>
+                <MudText Color="Color.Warning">
+                    ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
+                </MudText>
+                <MudText Color="Color.Warning">
+                    Unknown: @Diagnostics.RefreshUnknownCount
+                </MudText>
+            </MudPaper>
+        </MudStack>
+    </MudStack>
+
+</div>

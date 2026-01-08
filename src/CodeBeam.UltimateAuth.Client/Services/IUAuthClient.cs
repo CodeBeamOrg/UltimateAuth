@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client
 {
@@ -12,5 +13,4 @@ namespace CodeBeam.UltimateAuth.Client
 
         Task<AuthValidationResult> ValidateAsync();
     }
-
 }

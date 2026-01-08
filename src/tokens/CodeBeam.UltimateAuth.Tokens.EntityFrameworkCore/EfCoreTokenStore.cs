@@ -1,174 +1,128 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
-
-internal sealed class EfCoreTokenStore<TUserId> : ITokenStore<TUserId>
+internal sealed class EfCoreRefreshTokenStore<TUserId> : IRefreshTokenStore<TUserId>
 {
     private readonly UltimateAuthTokenDbContext _db;
-    private readonly EfCoreTokenStoreKernel _kernel;
-    private readonly ISessionStore<TUserId> _sessions;
-    private readonly ITokenHasher _hasher;
+    private readonly IUserIdConverter<TUserId> _converter;
 
-    public EfCoreTokenStore(
+    public EfCoreRefreshTokenStore(
         UltimateAuthTokenDbContext db,
-        EfCoreTokenStoreKernel kernel,
-        ISessionStore<TUserId> sessions,
-        ITokenHasher hasher)
+        IUserIdConverterResolver converters)
     {
         _db = db;
-        _kernel = kernel;
-        _sessions = sessions;
-        _hasher = hasher;
+        _converter = converters.GetConverter<TUserId>();
     }
 
-    public Task StoreRefreshTokenAsync(string? tenantId, TUserId userId, AuthSessionId sessionId, string refreshTokenHash, DateTimeOffset expiresAt)
+    public async Task StoreAsync(
+        string? tenantId,
+        StoredRefreshToken<TUserId> token,
+        CancellationToken ct = default)
     {
-        return _kernel.ExecuteAsync(ct =>
-        {
-            _db.RefreshTokens.Add(new RefreshTokenProjection
-            {
-                TenantId = tenantId,
-                TokenHash = refreshTokenHash,
-                SessionId = sessionId,
-                ExpiresAt = expiresAt
-            });
+        if (token.TenantId != tenantId)
+            throw new InvalidOperationException("TenantId mismatch between context and token.");
 
-            return Task.CompletedTask;
+        _db.RefreshTokens.Add(new RefreshTokenProjection
+        {
+            TenantId = tenantId,
+            TokenHash = token.TokenHash,
+            UserId = _converter.ToString(token.UserId),
+            SessionId = token.SessionId.Value,
+            ChainId = token.ChainId.Value,
+            IssuedAt = token.IssuedAt,
+            ExpiresAt = token.ExpiresAt
         });
+
+        await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<RefreshTokenValidationResult<TUserId>> ValidateRefreshTokenAsync(string? tenantId, string providedRefreshToken, DateTimeOffset now)
+    public async Task<StoredRefreshToken<TUserId>?> FindByHashAsync(
+    string? tenantId,
+    string tokenHash,
+    CancellationToken ct = default)
     {
-        var hash = _hasher.Hash(providedRefreshToken);
-
-        return await _kernel.ExecuteAsync(async ct =>
-        {
-            var token = await _db.RefreshTokens
-                .SingleOrDefaultAsync(
-                    x => x.TokenHash == hash &&
-                         x.TenantId == tenantId,
-                    ct);
-
-            if (token is null)
-                return RefreshTokenValidationResult<TUserId>.Invalid();
-
-            if (token.RevokedAt != null)
-                return RefreshTokenValidationResult<TUserId>.ReuseDetected();
-
-            if (token.ExpiresAt <= now)
-            {
-                token.RevokedAt = now;
-                return RefreshTokenValidationResult<TUserId>.Invalid();
-            }
-
-            // Revoke on first use (rotation)
-            token.RevokedAt = now;
-
-            var session = await _sessions.GetSessionAsync(
-                tenantId,
-                token.SessionId,
+        var e = await _db.RefreshTokens
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.TokenHash == tokenHash &&
+                     x.TenantId == tenantId,
                 ct);
 
-            if (session is null ||
-                session.IsRevoked ||
-                session.ExpiresAt <= now)
-            {
-                return RefreshTokenValidationResult<TUserId>.Invalid();
-            }
+        if (e is null)
+            return null;
 
-            return RefreshTokenValidationResult<TUserId>.Valid(
-                session.UserId,
-                session.SessionId);
-        });
-    }
-
-    public Task RevokeRefreshTokenAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at)
-    {
-        return _kernel.ExecuteAsync(async ct =>
+        return new StoredRefreshToken<TUserId>
         {
-            var tokens = await _db.RefreshTokens
-                .Where(x =>
-                    x.TenantId == tenantId &&
-                    x.SessionId == sessionId &&
-                    x.RevokedAt == null)
-                .ToListAsync(ct);
-
-            foreach (var token in tokens)
-                token.RevokedAt = at;
-        });
+            TenantId = e.TenantId,
+            TokenHash = e.TokenHash,
+            UserId = _converter.FromString(e.UserId),
+            SessionId = new AuthSessionId(e.SessionId),
+            ChainId = new ChainId(e.ChainId),
+            IssuedAt = e.IssuedAt,
+            ExpiresAt = e.ExpiresAt,
+            RevokedAt = e.RevokedAt
+        };
     }
 
-    public Task RevokeAllRefreshTokensAsync(string? tenantId, TUserId _, DateTimeOffset at)
+    public Task RevokeAsync(
+    string? tenantId,
+    string tokenHash,
+    DateTimeOffset revokedAt,
+    CancellationToken ct = default)
+    => _db.RefreshTokens
+        .Where(x =>
+            x.TokenHash == tokenHash &&
+            x.TenantId == tenantId &&
+            x.RevokedAt == null)
+        .ExecuteUpdateAsync(
+            x => x.SetProperty(t => t.RevokedAt, revokedAt),
+            ct);
+
+    public Task RevokeBySessionAsync(
+        string? tenantId,
+        AuthSessionId sessionId,
+        DateTimeOffset revokedAt,
+        CancellationToken ct = default)
+        => _db.RefreshTokens
+            .Where(x =>
+                x.TenantId == tenantId &&
+                x.SessionId == sessionId.Value &&
+                x.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                x => x.SetProperty(t => t.RevokedAt, revokedAt),
+                ct);
+
+    public Task RevokeByChainAsync(
+        string? tenantId,
+        ChainId chainId,
+        DateTimeOffset revokedAt,
+        CancellationToken ct = default)
+        => _db.RefreshTokens
+            .Where(x =>
+                x.TenantId == tenantId &&
+                x.ChainId == chainId.Value &&
+                x.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                x => x.SetProperty(t => t.RevokedAt, revokedAt),
+                ct);
+
+    public Task RevokeAllForUserAsync(
+        string? tenantId,
+        TUserId userId,
+        DateTimeOffset revokedAt,
+        CancellationToken ct = default)
     {
-        return _kernel.ExecuteAsync(async ct =>
-        {
-            var tokens = await _db.RefreshTokens
-                .Where(x =>
-                    x.TenantId == tenantId &&
-                    x.RevokedAt == null)
-                .ToListAsync(ct);
+        var uid = _converter.ToString(userId);
 
-            foreach (var token in tokens)
-                token.RevokedAt = at;
-        });
-    }
-
-    // ------------------------------------------------------------
-    // JWT ID (JTI)
-    // ------------------------------------------------------------
-
-    public Task StoreTokenIdAsync(string? tenantId, string jti, DateTimeOffset expiresAt)
-    {
-        return _kernel.ExecuteAsync(ct =>
-        {
-            _db.RevokedTokenIds.Add(new RevokedTokenIdProjection
-            {
-                TenantId = tenantId,
-                Jti = jti,
-                ExpiresAt = expiresAt,
-                RevokedAt = expiresAt
-            });
-
-            return Task.CompletedTask;
-        });
-    }
-
-    public async Task<bool> IsTokenIdRevokedAsync(string? tenantId, string jti)
-    {
-        return await _db.RevokedTokenIds
-            .AsNoTracking()
-            .AnyAsync(x =>
-                x.Jti == jti &&
-                x.TenantId == tenantId);
-    }
-
-    public Task RevokeTokenIdAsync(string? tenantId, string jti, DateTimeOffset at)
-    {
-        return _kernel.ExecuteAsync(async ct =>
-        {
-            var record = await _db.RevokedTokenIds
-                .SingleOrDefaultAsync(
-                    x => x.Jti == jti &&
-                         x.TenantId == tenantId,
-                    ct);
-
-            if (record is null)
-            {
-                _db.RevokedTokenIds.Add(new RevokedTokenIdProjection
-                {
-                    TenantId = tenantId,
-                    Jti = jti,
-                    ExpiresAt = at,
-                    RevokedAt = at
-                });
-            }
-            else
-            {
-                record.RevokedAt = at;
-            }
-        });
+        return _db.RefreshTokens
+            .Where(x =>
+                x.TenantId == tenantId &&
+                x.UserId == uid &&
+                x.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                x => x.SetProperty(t => t.RevokedAt, revokedAt),
+                ct);
     }
 }

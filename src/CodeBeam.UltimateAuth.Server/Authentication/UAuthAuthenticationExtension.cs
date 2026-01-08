@@ -6,7 +6,7 @@ public static class UAuthAuthenticationExtensions
 {
     public static AuthenticationBuilder AddUAuthCookies(this AuthenticationBuilder builder)
     {
-        return builder.AddScheme<UAuthCookieOptions, UAuthAuthenticationHandler>(UAuthCookieDefaults.AuthenticationScheme,
+        return builder.AddScheme<UAuthAuthenticationCookieOptions, UAuthAuthenticationHandler>(UAuthCookieDefaults.AuthenticationScheme,
             _ => { });
     }
 }

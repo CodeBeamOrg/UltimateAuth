@@ -1,0 +1,91 @@
+using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Credentials.InMemory;
+using CodeBeam.UltimateAuth.Security.Argon2;
+using CodeBeam.UltimateAuth.Server.Authentication;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Sessions.InMemory;
+using CodeBeam.UltimateAuth.Tokens.InMemory;
+using MudBlazor.Services;
+using MudExtensions.Services;
+using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
+builder.Services.AddMudExtensions();
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = UAuthCookieDefaults.AuthenticationScheme;
+    })
+    .AddUAuthCookies();
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddUltimateAuth();
+
+builder.Services.AddUltimateAuthServer(o => {
+    o.Diagnostics.EnableRefreshHeaders = true;
+    //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
+    //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
+    //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+})
+    .AddInMemoryCredentials()
+    .AddUltimateAuthInMemorySessions()
+    .AddUltimateAuthInMemoryTokens()
+    .AddUltimateAuthArgon2();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("WasmSample", policy =>
+    {
+        policy
+            .WithOrigins("https://localhost:6130")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseHttpsRedirection();
+app.UseCors("WasmSample");
+
+app.UseUltimateAuthServer();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
+
+app.MapUAuthEndpoints();
+app.MapStaticAssets();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        service = "UAuthHub",
+        status = "ok"
+    });
+});
+
+app.Run();

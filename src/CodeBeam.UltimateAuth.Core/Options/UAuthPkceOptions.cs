@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Options
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Options
 {
     /// <summary>
     /// Configuration settings for PKCE (Proof Key for Code Exchange)
@@ -13,5 +15,11 @@
         /// while longer values allow more tolerance for slow clients.
         /// </summary>
         public int AuthorizationCodeLifetimeSeconds { get; set; } = 120;
+
+        internal UAuthPkceOptions Clone() => new()
+        {
+            AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds
+        };
+
     }
 }

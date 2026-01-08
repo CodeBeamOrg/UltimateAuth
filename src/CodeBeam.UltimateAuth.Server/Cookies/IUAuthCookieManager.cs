@@ -4,9 +4,9 @@ namespace CodeBeam.UltimateAuth.Server.Cookies;
 
 public interface IUAuthCookieManager
 {
-    void Write(HttpContext context, string value, Action<CookieOptions>? configure = null);
-    
-    bool TryRead(HttpContext context, out string value);
+    void Write(HttpContext context, string name, string value, CookieOptions options);
 
-    void Delete(HttpContext context);
+    bool TryRead(HttpContext context, string name, out string value);
+
+    void Delete(HttpContext context, string name);
 }

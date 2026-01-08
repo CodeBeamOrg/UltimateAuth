@@ -12,6 +12,11 @@ namespace CodeBeam.UltimateAuth.Client.Options
 
     public sealed class AuthEndpointOptions
     {
+        /// <summary>
+        /// Base URL of UAuthHub (e.g. https://localhost:6110)
+        /// </summary>
+        public string Authority { get; set; } = string.Empty;
+
         public string Login { get; set; } = "/auth/login";
         public string Logout { get; set; } = "/auth/logout";
         public string Refresh { get; set; } = "/auth/refresh";

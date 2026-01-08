@@ -71,7 +71,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Allows advanced users to override cookie behavior.
         /// Unsafe combinations will be rejected at startup.
         /// </summary>
-        public UAuthCookieOptions Cookie { get; } = new();
+        public UAuthCookieSetOptions Cookie { get; set; } = new();
 
         public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
 
@@ -90,11 +90,13 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
         public AuthResponseOptions AuthResponse { get; init; } = new();
 
+        public UAuthHubOptions Hub { get; set; } = new();
+
         /// <summary>
         /// Controls how session identifiers are resolved from incoming requests
         /// (cookie, header, bearer, query, order, etc.)
         /// </summary>
-        public UAuthSessionResolutionOptions SessionResolution { get; } = new();
+        public UAuthSessionResolutionOptions SessionResolution { get; set; } = new();
 
         /// <summary>
         /// Enables/disables specific endpoint groups.
@@ -133,5 +135,44 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Example: overriding default ILoginService.
         /// </summary>
         public Action<IServiceCollection>? ConfigureServices { get; set; }
+
+
+        internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; } = new();
+
+
+        internal UAuthServerOptions Clone()
+        {
+            return new UAuthServerOptions
+            {
+                Mode = Mode,
+                HubDeploymentMode = HubDeploymentMode,
+                RoutePrefix = RoutePrefix,
+
+                Session = Session.Clone(),
+                Tokens = Tokens.Clone(),
+                Pkce = Pkce.Clone(),
+                MultiTenant = MultiTenant.Clone(),
+                Cookie = Cookie.Clone(),
+                Diagnostics = Diagnostics.Clone(),
+
+                PrimaryCredential = PrimaryCredential.Clone(),
+                AuthResponse = AuthResponse.Clone(),
+                Hub = Hub.Clone(),
+                SessionResolution = SessionResolution.Clone(),
+
+                EnableLoginEndpoints = EnableLoginEndpoints,
+                EnablePkceEndpoints = EnablePkceEndpoints,
+                EnableTokenEndpoints = EnableTokenEndpoints,
+                EnableSessionEndpoints = EnableSessionEndpoints,
+                EnableUserInfoEndpoints = EnableUserInfoEndpoints,
+
+                EnableAntiCsrfProtection = EnableAntiCsrfProtection,
+                EnableLoginRateLimiting = EnableLoginRateLimiting,
+
+                OnConfigureEndpoints = OnConfigureEndpoints,
+                ConfigureServices = ConfigureServices,
+                CustomCookieManagerType = CustomCookieManagerType
+            };
+        }
     }
 }

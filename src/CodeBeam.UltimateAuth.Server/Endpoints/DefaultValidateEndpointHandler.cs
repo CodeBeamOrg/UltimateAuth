@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Abstractions;
-using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
@@ -10,25 +10,27 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class DefaultValidateEndpointHandler<TUserId> : IValidateEndpointHandler
     {
-        private readonly ICredentialResolver _credentialResolver;
+        private readonly IAuthFlowContextAccessor _authContext;
+        private readonly IFlowCredentialResolver _credentialResolver;
         private readonly ISessionQueryService<TUserId> _sessionValidator;
         private readonly IClock _clock;
 
         public DefaultValidateEndpointHandler(
-            ICredentialResolver credentialResolver,
+            IAuthFlowContextAccessor authContext,
+            IFlowCredentialResolver credentialResolver,
             ISessionQueryService<TUserId> sessionValidator,
             IClock clock)
         {
+            _authContext = authContext;
             _credentialResolver = credentialResolver;
             _sessionValidator = sessionValidator;
             _clock = clock;
         }
 
-        public async Task<IResult> ValidateAsync(
-            HttpContext context,
-            CancellationToken ct = default)
+        public async Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default)
         {
-            var credential = _credentialResolver.Resolve(context);
+            var auth = _authContext.Current;
+            var credential = _credentialResolver.Resolve(context, auth.Response);
 
             if (credential is null)
             {
@@ -69,7 +71,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 return Results.Ok(new AuthValidationResult
                 {
                     IsValid = result.IsValid,
-                    State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant()
+                    State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
+                    Snapshot = new AuthStateSnapshot
+                    {
+                        UserId = result?.Session?.UserId?.ToString(),
+                        TenantId = result?.TenantId,
+                        Claims = result?.Session?.Claims ?? ClaimsSnapshot.Empty,
+                        AuthenticatedAt = result?.Session?.CreatedAt,
+                    }
                 });
             }
 

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client
@@ -15,14 +17,15 @@ namespace CodeBeam.UltimateAuth.Client
         public string? Endpoint { get; set; } = "/auth/login";
 
         [Parameter]
+        public string? ReturnUrl { get; set; }
+
+        [Parameter]
         public RenderFragment? ChildContent { get; set; }
 
         [Parameter]
         public bool AllowEnterKeyToSubmit { get; set; } = true;
 
         private ElementReference _form;
-
-        private string ResolvedEndpoint => string.IsNullOrWhiteSpace(Endpoint) ? "/auth/login" : Endpoint;
 
         public async Task SubmitAsync()
         {
@@ -31,5 +34,34 @@ namespace CodeBeam.UltimateAuth.Client
 
             await JS.InvokeVoidAsync("uauth.submitForm", _form);
         }
+
+        private string ClientProfileValue => CoreOptions.Value.ClientProfile.ToString();
+
+        private string ResolvedEndpoint
+        {
+            get
+            {
+                var loginPath = string.IsNullOrWhiteSpace(Endpoint)
+                    ? Options.Value.Endpoints.Login
+                    : Endpoint;
+
+                var baseUrl = UAuthUrlBuilder.Combine(
+                    Options.Value.Endpoints.Authority,
+                    loginPath);
+
+                var returnUrl = EffectiveReturnUrl;
+
+                if (string.IsNullOrWhiteSpace(returnUrl))
+                    return baseUrl;
+
+                return $"{baseUrl}?returnUrl={Uri.EscapeDataString(returnUrl)}";
+            }
+        }
+
+        private string EffectiveReturnUrl =>
+            !string.IsNullOrWhiteSpace(ReturnUrl)
+                ? ReturnUrl
+                : Navigation.Uri;
+
     }
 }

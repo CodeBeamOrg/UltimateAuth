@@ -6,7 +6,7 @@
         BlazorWasm,
         BlazorServer,
         Maui,
-        Mvc,
+        WebServer,
         Api
     }
 }

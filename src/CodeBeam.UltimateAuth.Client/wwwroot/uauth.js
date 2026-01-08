@@ -7,50 +7,58 @@
 };
 
 window.uauth = {
-    post: function (action, data) {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = action;
+    post: async function (options) {
+        const {
+            url,
+            mode,
+            data,
+            expectJson,
+            clientProfile
+        } = options;
 
-        if (data) {
-            for (const key in data) {
-                const input = document.createElement("input");
-                input.type = "hidden";
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
+        if (mode === "navigate") {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = url;
+
+            const cp = document.createElement("input");
+            cp.type = "hidden";
+            cp.name = "__uauth_client_profile";
+            cp.value = clientProfile ?? "";
+            form.appendChild(cp);
+
+            if (data) {
+                for (const key in data) {
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = key;
+                    input.value = data[key];
+                    form.appendChild(input);
+                }
             }
+
+            document.body.appendChild(form);
+            form.submit();
+            return null;
         }
 
-        document.body.appendChild(form);
-        form.submit();
-    },
-
-    refresh: async function (action) {
-        const response = await fetch(action, {
+        const response = await fetch(url, {
             method: "POST",
-            credentials: "include"
-        });
-
-        return {
-            ok: response.ok,
-            status: response.status,
-            refreshOutcome: response.headers.get("X-UAuth-Refresh")
-        };
-    },
-
-    validate: async function (action) {
-        const response = await fetch(action, {
-            method: "POST",
-            credentials: "include"
+            credentials: "include",
+            headers: {
+                "X-UAuth-ClientProfile": clientProfile
+            }
         });
 
         let body = null;
-        try { body = await response.json(); } catch { }
+        if (expectJson) {
+            try { body = await response.json(); } catch { }
+        }
 
         return {
             ok: response.ok,
             status: response.status,
+            refreshOutcome: response.headers.get("X-UAuth-Refresh"),
             body: body
         };
     }

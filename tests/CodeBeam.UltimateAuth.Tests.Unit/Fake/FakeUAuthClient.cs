@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit
 {
@@ -12,6 +13,11 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
         public FakeUAuthClient(params RefreshOutcome[] outcomes)
         {
             _outcomes = new Queue<RefreshOutcome>(outcomes);
+        }
+
+        public Task<ClaimsPrincipal> GetCurrentPrincipalAsync()
+        {
+            throw new NotImplementedException();
         }
 
         public Task LoginAsync(LoginRequest request)

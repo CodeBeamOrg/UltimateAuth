@@ -1,46 +1,56 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
+namespace CodeBeam.UltimateAuth.Server.Endpoints;
+
 public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 {
+    private readonly IAuthFlowContextAccessor _authContext;
     private readonly IUAuthFlowService<TUserId> _flow;
     private readonly IDeviceResolver _deviceResolver;
-    private readonly ITenantResolver _tenantResolver;
     private readonly IClock _clock;
-    private readonly IUAuthCookieManager _cookieManager;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly UAuthServerOptions _options;
+    private readonly AuthRedirectResolver _redirectResolver;
 
     public DefaultLoginEndpointHandler(
+        IAuthFlowContextAccessor authContext,
         IUAuthFlowService<TUserId> flow,
         IDeviceResolver deviceResolver,
-        ITenantResolver tenantResolver,
         IClock clock,
-        IUAuthCookieManager cookieManager,
         ICredentialResponseWriter credentialResponseWriter,
-        IOptions<UAuthServerOptions> options)
+        AuthRedirectResolver redirectResolver)
     {
+        _authContext = authContext;
         _flow = flow;
         _deviceResolver = deviceResolver;
-        _tenantResolver = tenantResolver;
         _clock = clock;
-        _cookieManager = cookieManager;
         _credentialResponseWriter = credentialResponseWriter;
-        _options = options.Value;
+        _redirectResolver = redirectResolver;
     }
 
     public async Task<IResult> LoginAsync(HttpContext ctx)
     {
+        var auth = _authContext.Current;
+
+        var shouldIssueTokens =
+            auth.Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
+            auth.Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
+
         if (!ctx.Request.HasFormContentType)
             return Results.BadRequest("Invalid content type.");
 
@@ -50,7 +60,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var secret = form["Secret"].ToString();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-            return RedirectFailure(AuthFailureReason.InvalidCredentials);
+            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, auth.OriginalOptions);
 
         var tenantCtx = ctx.GetTenantContext();
 
@@ -60,89 +70,62 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
             Secret = secret,
             TenantId = tenantCtx.TenantId,
             At = _clock.UtcNow,
-            DeviceInfo = _deviceResolver.Resolve(ctx)
+            DeviceInfo = _deviceResolver.Resolve(ctx),
+            RequestTokens = shouldIssueTokens
         };
 
-        var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
+        var result = await _flow.LoginAsync(auth, flowRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectFailure(result.FailureReason ?? AuthFailureReason.Unknown);
+            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, auth.OriginalOptions);
 
         if (result.SessionId is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.SessionId.Value, _options.AuthResponse.SessionIdDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
         }
-        else if (result.AccessToken is not null)
+
+        if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.AccessToken.Token, _options.AuthResponse.AccessTokenDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, result.RefreshToken.Token, _options.AuthResponse.RefreshTokenDelivery);
+            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
         }
 
-        if (_options.AuthResponse.Login.RedirectEnabled)
+        if (auth.Response.Login.RedirectEnabled)
         {
-            return Results.Redirect(_options.AuthResponse.Login.SuccessRedirect);
+            var redirectUrl =
+                _redirectResolver.ResolveRedirect(
+                    ctx,
+                    auth.Response.Login.SuccessPath);
+
+            return Results.Redirect(redirectUrl);
         }
 
-        // TODO: Add PKCE, return result with body
-
+        // PKCE / API login
         return Results.Ok();
     }
 
-    private IResult RedirectFailure(AuthFailureReason reason)
+    private IResult RedirectFailure(HttpContext ctx, AuthFailureReason reason, UAuthServerOptions options)
     {
-        var redirect = _options.AuthResponse.Login;
+        var login = options.AuthResponse.Login;
 
-        var code = (redirect.FailureCodes != null && redirect.FailureCodes.TryGetValue(reason, out var c))
-            ? c
-            : "failed";
+        var code =
+            login.FailureCodes != null &&
+            login.FailureCodes.TryGetValue(reason, out var mapped)
+                ? mapped
+                : "failed";
 
-        return Results.Redirect($"{redirect.FailureRedirect}?{redirect.FailureQueryKey}={code}");
+        var redirectUrl = _redirectResolver.ResolveRedirect(
+            ctx,
+            login.FailureRedirect,
+            new Dictionary<string, string?>
+            {
+                [login.FailureQueryKey] = code
+            });
+
+        return Results.Redirect(redirectUrl);
     }
-
-    //public async Task<IResult> LoginAsync(HttpContext ctx)
-    //{
-    //    var request = await ctx.Request.ReadFromJsonAsync<LoginRequest>();
-    //    if (request is null)
-    //        return Results.BadRequest("Invalid login request.");
-
-    //    // Middleware should have already resolved the tenant
-    //    var tenantCtx = ctx.GetTenantContext();
-
-    //    var flowRequest = request with
-    //    {
-    //        TenantId = tenantCtx.TenantId,
-    //        At = _clock.UtcNow,
-    //        DeviceInfo = _deviceResolver.Resolve(ctx)
-    //    };
-
-    //    var result = await _flow.LoginAsync(flowRequest, ctx.RequestAborted);
-
-    //    if (result.IsSuccess)
-    //    {
-    //        _cookieManager.Issue(ctx, result.SessionId.Value);
-    //    }
-
-    //    return result.Status switch
-    //    {
-    //        LoginStatus.Success => Results.Ok(new LoginResponse
-    //        {
-    //            SessionId = result.SessionId,
-    //            AccessToken = result.AccessToken,
-    //            RefreshToken = result.RefreshToken
-    //        }),
-
-    //        LoginStatus.RequiresContinuation => Results.Ok(new LoginResponse
-    //        {
-    //            Continuation = result.Continuation
-    //        }),
-
-    //        LoginStatus.Failed => Results.Unauthorized(),
-
-    //        _ => Results.StatusCode(StatusCodes.Status500InternalServerError)
-    //    };
-    //}
 }

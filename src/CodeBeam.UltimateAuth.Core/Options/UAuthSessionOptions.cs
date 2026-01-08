@@ -2,8 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Options
 {
-    // TODO: Add rotate on refresh (especially on pureopaque). Currently PureOpaque sessions do not rotate on refresh.
-    // It's not a security branch, but it would be nice to have for privacy reasons.
+    // TODO: Add rotate on refresh (especially for Hybrid). Default behavior should be single session in chain for Hybrid, but can be configured.
     // And add RotateAsync method.
 
     /// <summary>
@@ -91,6 +90,23 @@ namespace CodeBeam.UltimateAuth.Core.Options
         public bool EnableUserAgentBinding { get; set; } = false;
 
         public DeviceMismatchBehavior DeviceMismatchBehavior { get; set; } = DeviceMismatchBehavior.Reject;
+
+        internal UAuthSessionOptions Clone() => new()
+        {
+            SlidingExpiration = SlidingExpiration,
+            IdleTimeout = IdleTimeout,
+            Lifetime = Lifetime,
+            MaxLifetime = MaxLifetime,
+            TouchInterval = TouchInterval,
+            DeviceMismatchBehavior = DeviceMismatchBehavior,
+            MaxChainsPerUser = MaxChainsPerUser,
+            MaxSessionsPerChain = MaxSessionsPerChain,
+            MaxChainsPerPlatform = MaxChainsPerPlatform is null ? null : new Dictionary<string, int>(MaxChainsPerPlatform),
+            MaxChainsPerCategory = MaxChainsPerCategory is null ? null : new Dictionary<string, int>(MaxChainsPerCategory),
+            PlatformCategories = PlatformCategories is null ? null : PlatformCategories.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray()),
+            EnableIpBinding = EnableIpBinding,
+            EnableUserAgentBinding = EnableUserAgentBinding
+        };
 
     }
 }

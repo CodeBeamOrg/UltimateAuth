@@ -13,13 +13,15 @@ namespace CodeBeam.UltimateAuth.Client.Options
             if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Microsoft.AspNetCore.Components.WebAssembly"))
                 return UAuthClientProfile.BlazorWasm;
 
-            //if (sp.GetService<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler>() is not null)
-            //    return UAuthClientProfile.BlazorServer;
+            // Warning: This detection method may not be 100% reliable in all hosting scenarios.
+            if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Microsoft.AspNetCore.Components.Server"))
+            {
+                return UAuthClientProfile.BlazorServer;
+            }
 
-            //if (sp.GetService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionContextAccessor>() is not null)
-            //    return UAuthClientProfile.Mvc;
-
-            return UAuthClientProfile.NotSpecified;
+            // Default to WebServer profile for other ASP.NET Core scenarios such as MVC, Razor Pages, minimal APIs, etc.
+            // NotSpecified should only be used when user explicitly sets it. (For example in unit tests)
+            return UAuthClientProfile.WebServer;
         }
     }
 }

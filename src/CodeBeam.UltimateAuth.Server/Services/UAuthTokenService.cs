@@ -1,17 +1,17 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
     internal sealed class UAuthTokenService<TUserId> : IUAuthTokenService<TUserId>
     {
         private readonly ITokenIssuer _issuer;
-        private readonly ITokenValidator _validator;
+        private readonly IJwtValidator _validator;
         private readonly IUserIdConverter<TUserId> _userIdConverter;
 
-        public UAuthTokenService(ITokenIssuer issuer, ITokenValidator validator, IUserIdConverterResolver converterResolver)
+        public UAuthTokenService(ITokenIssuer issuer, IJwtValidator validator, IUserIdConverterResolver converterResolver)
         {
             _issuer = issuer;
             _validator = validator;
@@ -19,13 +19,14 @@ namespace CodeBeam.UltimateAuth.Server.Services
         }
 
         public async Task<AuthTokens> CreateTokensAsync(
+            AuthFlowContext flow,
             TokenIssueContext<TUserId> context,
             CancellationToken ct = default)
         {
             var issuerCtx = ToIssuerContext(context);
 
-            var access = await _issuer.IssueAccessTokenAsync(issuerCtx, ct);
-            var refresh = await _issuer.IssueRefreshTokenAsync(issuerCtx, ct);
+            var access = await _issuer.IssueAccessTokenAsync(flow, issuerCtx, ct);
+            var refresh = await _issuer.IssueRefreshTokenAsync(flow, issuerCtx, ct);
 
             return new AuthTokens
             {
@@ -35,17 +36,15 @@ namespace CodeBeam.UltimateAuth.Server.Services
         }
 
         public async Task<AuthTokens> RefreshAsync(
+            AuthFlowContext flow,
             TokenRefreshContext context,
             CancellationToken ct = default)
         {
             throw new NotImplementedException("Refresh flow will be implemented after refresh-token store & validation.");
         }
 
-        public async Task<TokenValidationResult<TUserId>> ValidateAsync(
-            string token,
-            TokenType type,
-            CancellationToken ct = default)
-            => await _validator.ValidateAsync<TUserId>(token, type, ct);
+        public async Task<TokenValidationResult<TUserId>> ValidateJwtAsync(string token, CancellationToken ct = default)
+            => await _validator.ValidateAsync<TUserId>(token, ct);
 
         private TokenIssuanceContext ToIssuerContext(TokenIssueContext<TUserId> src)
         {

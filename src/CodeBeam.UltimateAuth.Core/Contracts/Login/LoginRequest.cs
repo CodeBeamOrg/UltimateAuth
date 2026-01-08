@@ -15,7 +15,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         /// Hint to request access/refresh tokens when the server mode supports it.
         /// Server policy may still ignore this.
         /// </summary>
-        public bool RequestTokens { get; init; }
+        public bool RequestTokens { get; init; } = true;
 
         // Optional
         public ChainId? ChainId { get; init; }

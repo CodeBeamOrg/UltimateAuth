@@ -13,5 +13,12 @@ namespace CodeBeam.UltimateAuth.Server.Options
         /// Default primary credential for API requests.
         /// </summary>
         public PrimaryCredentialKind Api { get; set; } = PrimaryCredentialKind.Stateless;
+
+        internal PrimaryCredentialPolicy Clone() => new()
+        {
+            Ui = Ui,
+            Api = Api
+        };
+
     }
 }

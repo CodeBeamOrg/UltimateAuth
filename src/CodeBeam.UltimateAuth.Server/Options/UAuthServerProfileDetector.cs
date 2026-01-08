@@ -19,8 +19,8 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 return UAuthClientProfile.BlazorServer;
             }
 
-            if (sp.GetService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionContextAccessor>() is not null)
-                return UAuthClientProfile.Mvc;
+            //if (sp.GetService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionContextAccessor>() is not null)
+            //    return UAuthClientProfile.WebServer;
 
             return UAuthClientProfile.NotSpecified;
         }

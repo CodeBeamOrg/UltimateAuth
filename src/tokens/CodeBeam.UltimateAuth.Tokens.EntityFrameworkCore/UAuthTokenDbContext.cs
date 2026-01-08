@@ -28,19 +28,14 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
             e.Property(x => x.TokenHash)
                 .IsRequired();
 
-            e.Property(x => x.SessionId)
-                .HasConversion(
-                    v => v.Value,
-                    v => new AuthSessionId(v))
-                .IsRequired();
-
-            e.HasIndex(x => x.TokenHash)
+            e.HasIndex(x => new { x.TenantId, x.TokenHash })
                 .IsUnique();
 
+            e.HasIndex(x => new { x.TenantId, x.UserId });
             e.HasIndex(x => new { x.TenantId, x.SessionId });
+            e.HasIndex(x => new { x.TenantId, x.ChainId });
 
-            e.Property(x => x.ExpiresAt)
-                .IsRequired();
+            e.Property(x => x.ExpiresAt).IsRequired();
         });
 
         // -------------------------------------------------

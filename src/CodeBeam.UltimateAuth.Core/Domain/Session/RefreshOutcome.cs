@@ -5,6 +5,7 @@
         None,
         NoOp,
         Touched,
+        Rotated,
         ReauthRequired
     }
 }

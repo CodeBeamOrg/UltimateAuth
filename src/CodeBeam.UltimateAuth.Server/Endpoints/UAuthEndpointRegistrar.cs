@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Server.Options;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +14,11 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
     }
 
     // TODO: Add Scalar/Swagger integration
+    // TODO: Add endpoint based guards
     public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
     {
         public void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options)
         {
-            var defaults = UAuthEndpointDefaultsMap.ForMode(options.Mode);
-
             // Base: /auth
             string basePrefix = options.RoutePrefix.TrimStart('/');
 
@@ -29,87 +30,89 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 ? rootGroup.MapGroup("/{tenant}/" + basePrefix)
                 : rootGroup.MapGroup("/" + basePrefix);
 
-            if (EndpointEnablement.Resolve(options.EnablePkceEndpoints, defaults.Pkce))
+            group.AddEndpointFilter<AuthFlowEndpointFilter>();
+
+            if (options.EnablePkceEndpoints != false)
             {
                 var pkce = group.MapGroup("/pkce");
 
                 pkce.MapPost("/create",
                     async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.CreateAsync(ctx));
+                        => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
 
                 pkce.MapPost("/verify",
                     async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.VerifyAsync(ctx));
+                        => await h.VerifyAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
 
                 pkce.MapPost("/consume",
                     async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.ConsumeAsync(ctx));
+                        => await h.ConsumeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableLoginEndpoints, defaults.Login))
+            if (options.EnableLoginEndpoints != false)
             {
                 group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
-                    => await h.LoginAsync(ctx));
+                    => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
 
                 group.MapPost("/validate", async ([FromServices] IValidateEndpointHandler h, HttpContext ctx)
-                    => await h.ValidateAsync(ctx));
+                    => await h.ValidateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.ValidateSession));
 
                 group.MapPost("/logout", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
-                    => await h.LogoutAsync(ctx));
+                    => await h.LogoutAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
                 group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
-                    => await h.RefreshAsync(ctx));
+                    => await h.RefreshAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshSession));
 
                 group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
-                    => await h.ReauthAsync(ctx));
+                    => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableTokenEndpoints, defaults.Token))
+            if (options.EnableTokenEndpoints != false)
             {
                 var token = group.MapGroup("");
 
                 token.MapPost("/token", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
-                    => await h.GetTokenAsync(ctx));
+                    => await h.GetTokenAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.IssueToken));
 
                 token.MapPost("/refresh-token", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
-                    => await h.RefreshTokenAsync(ctx));
+                    => await h.RefreshTokenAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshToken));
 
                 token.MapPost("/introspect", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
-                    => await h.IntrospectAsync(ctx));
+                    => await h.IntrospectAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.IntrospectToken));
 
                 token.MapPost("/revoke", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
-                    => await h.RevokeAsync(ctx));
+                    => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeToken));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableSessionEndpoints, defaults.Session))
+            if (options.EnableSessionEndpoints != false)
             {
                 var session = group.MapGroup("/session");
 
                 session.MapGet("/current", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                    => await h.GetCurrentSessionAsync(ctx));
+                    => await h.GetCurrentSessionAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
 
                 session.MapGet("/list", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                    => await h.GetAllSessionsAsync(ctx));
+                    => await h.GetAllSessionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
 
                 session.MapPost("/revoke/{sessionId}", async ([FromServices] ISessionManagementHandler h, string sessionId, HttpContext ctx)
-                    => await h.RevokeSessionAsync(sessionId, ctx));
+                    => await h.RevokeSessionAsync(sessionId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
 
                 session.MapPost("/revoke-all", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                    => await h.RevokeAllAsync(ctx));
+                    => await h.RevokeAllAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
             }
 
-            if (EndpointEnablement.Resolve(options.EnableUserInfoEndpoints, defaults.UserInfo))
+            if (options.EnableUserInfoEndpoints != false)
             {
                 var user = group.MapGroup("");
 
                 user.MapGet("/userinfo", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
-                    => await h.GetUserInfoAsync(ctx));
+                    => await h.GetUserInfoAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserInfo));
 
                 user.MapGet("/permissions", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
-                    => await h.GetPermissionsAsync(ctx));
+                    => await h.GetPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.PermissionQuery));
 
                 user.MapPost("/permissions/check", async ([FromServices] IUserInfoEndpointHandler h, HttpContext ctx)
-                    => await h.CheckPermissionAsync(ctx));
+                    => await h.CheckPermissionAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.PermissionQuery));
             }
         }
 

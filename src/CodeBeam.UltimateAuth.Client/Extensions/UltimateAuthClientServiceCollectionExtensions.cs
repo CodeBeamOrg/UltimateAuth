@@ -1,10 +1,14 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Extensions
@@ -69,15 +73,18 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             // services.AddSingleton<IValidateOptions<UAuthClientOptions>, ...>();
 
             services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
-            services.PostConfigure<UAuthOptions>(o =>
-            {
-                if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
-                    return;
+            services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigure>();
+            services.TryAddSingleton<IClock, ClientClock>();
 
-                using var sp = services.BuildServiceProvider();
-                var detector = sp.GetRequiredService<IClientProfileDetector>();
-                o.ClientProfile = detector.Detect(sp);
-            });
+            //services.PostConfigure<UAuthOptions>(o =>
+            //{
+            //    if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
+            //        return;
+
+            //    using var sp = services.BuildServiceProvider();
+            //    var detector = sp.GetRequiredService<IClientProfileDetector>();
+            //    o.ClientProfile = detector.Detect(sp);
+            //});
 
             services.PostConfigure<UAuthClientOptions>(o =>
             {
@@ -89,9 +96,7 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {
-                var core = sp
-                    .GetRequiredService<IOptions<UAuthOptions>>()
-                    .Value;
+                var core = sp.GetRequiredService<IOptions<UAuthOptions>>().Value;
 
                 return core.ClientProfile == UAuthClientProfile.BlazorServer
                     ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
@@ -101,6 +106,8 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
             services.AddScoped<UAuthClientDiagnostics>();
+            services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
+            services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
 
             return services;
         }

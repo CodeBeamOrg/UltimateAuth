@@ -13,6 +13,16 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public string CodeQueryKey { get; set; } = "code";
 
         public Dictionary<AuthFailureReason, string> FailureCodes { get; set; } = new();
-    }
 
+        internal LoginRedirectOptions Clone() => new()
+        {
+            RedirectEnabled = RedirectEnabled,
+            SuccessRedirect = SuccessRedirect,
+            FailureRedirect = FailureRedirect,
+            FailureQueryKey = FailureQueryKey,
+            CodeQueryKey = CodeQueryKey,
+            FailureCodes = new Dictionary<AuthFailureReason, string>(FailureCodes)
+        };
+
+    }
 }

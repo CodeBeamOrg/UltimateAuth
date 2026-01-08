@@ -5,15 +5,53 @@ namespace CodeBeam.UltimateAuth.Server.Diagnostics;
 
 internal static class UAuthStartupDiagnostics
 {
-    // TODO: Add startup log
     public static IEnumerable<UAuthDiagnostic> Analyze(UAuthServerOptions options)
     {
-        if (options.HubDeploymentMode == UAuthHubDeploymentMode.External && options.Cookie.SecurePolicy != CookieSecurePolicy.Always)
+        foreach (var d in AnalyzeCookies(options))
+            yield return d;
+    }
+
+    private static IEnumerable<UAuthDiagnostic> AnalyzeCookies(UAuthServerOptions options)
+    {
+        if (options.HubDeploymentMode != UAuthHubDeploymentMode.External)
+            yield break;
+
+        var session = options.Cookie.Session;
+
+        if (session.SameSite == SameSiteMode.None &&
+            session.SecurePolicy != CookieSecurePolicy.Always)
         {
             yield return new UAuthDiagnostic(
-                "UAUTH001",
-                "External UAuthHub without Secure cookies is unsafe. This should only be used for development or testing.",
-                UAuthDiagnosticSeverity.Warning);
+                code: "UAUTH001",
+                message:
+                    "Session cookie uses SameSite=None without Secure in External deployment. " +
+                    "This is insecure and may expose authentication to network attackers.",
+                severity: UAuthDiagnosticSeverity.Error);
+        }
+
+        var refresh = options.Cookie.RefreshToken;
+
+        if (refresh.SameSite == SameSiteMode.None &&
+            refresh.SecurePolicy != CookieSecurePolicy.Always)
+        {
+            yield return new UAuthDiagnostic(
+                code: "UAUTH002",
+                message:
+                    "Refresh token cookie uses SameSite=None without Secure in External deployment. " +
+                    "This is a critical security risk and MUST NOT be used outside development.",
+                severity: UAuthDiagnosticSeverity.Error);
+        }
+
+        // TODO: Think again with MAUI.
+        if (!refresh.HttpOnly)
+        {
+            yield return new UAuthDiagnostic(
+                code: "UAUTH003",
+                message:
+                    "Refresh token cookie is not HttpOnly. This allows JavaScript access and " +
+                    "significantly increases the impact of XSS vulnerabilities.",
+                severity: UAuthDiagnosticSeverity.Warning);
         }
     }
 }
+

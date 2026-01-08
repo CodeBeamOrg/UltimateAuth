@@ -1,6 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator;
 using Microsoft.AspNetCore.Http;
@@ -14,23 +18,20 @@ namespace CodeBeam.UltimateAuth.Server.Services
         private readonly ISessionOrchestrator<TUserId> _orchestrator;
         private readonly ISessionQueryService<TUserId> _queries;
         private readonly ITokenIssuer _tokens;
-        private readonly ITokenStore<TUserId> _tokenStore;
-        private readonly IRefreshTokenResolver<TUserId> _refreshTokens;
+        private readonly IRefreshTokenValidator<TUserId> _tokenValidator;
 
         public UAuthFlowService(
             IUAuthUserService<TUserId> users,
             ISessionOrchestrator<TUserId> orchestrator,
             ISessionQueryService<TUserId> queries,
             ITokenIssuer tokens,
-            ITokenStore<TUserId> tokenStore,
-            IRefreshTokenResolver<TUserId> refreshTokens)
+            IRefreshTokenValidator<TUserId> tokenValidator)
         {
             _users = users;
             _orchestrator = orchestrator;
             _queries = queries;
             _tokens = tokens;
-            _tokenStore = tokenStore;
-            _refreshTokens = refreshTokens;
+            _tokenValidator = tokenValidator;
         }
 
         public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
@@ -58,18 +59,16 @@ namespace CodeBeam.UltimateAuth.Server.Services
             throw new NotImplementedException();
         }
 
-        public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken ct = default)
+        public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
         {
             var now = request.At ?? DateTimeOffset.UtcNow;
             var device = request.DeviceInfo ?? DeviceInfo.Unknown;
 
-            // 1️⃣ Authenticate user (NO session yet)
             var auth = await _users.AuthenticateAsync(request.TenantId, request.Identifier, request.Secret, ct);
 
             if (!auth.Succeeded)
                 return LoginResult.Failed();
 
-            // 2️⃣ Create authenticated context
             var sessionContext = new AuthenticatedSessionContext<TUserId>
             {
                 TenantId = request.TenantId,
@@ -86,34 +85,24 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 now,
                 DeviceContext.From(device));
 
-            // 3️⃣ Issue session THROUGH orchestrator
-            var issuedSession = await _orchestrator.ExecuteAsync(
-                authContext,
-                new CreateLoginSessionCommand<TUserId>(sessionContext),
-                ct);
+            var issuedSession = await _orchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
 
-            // 4️⃣ Optional tokens
+            bool shouldIssueTokens = request.RequestTokens;
+
             AuthTokens? tokens = null;
 
-            if (request.RequestTokens)
+            if (shouldIssueTokens)
             {
-                var access = await _tokens.IssueAccessTokenAsync(
-                    new TokenIssuanceContext
-                    {
-                        TenantId = request.TenantId,
-                        UserId = auth.UserId!.ToString()!,
-                        SessionId = issuedSession.Session.SessionId
-                    },
-                    ct);
+                var tokenContext = new TokenIssuanceContext
+                {
+                    TenantId = request.TenantId,
+                    UserId = auth.UserId!.ToString()!,
+                    SessionId = issuedSession.Session.SessionId,
+                    Claims = auth.Claims.AsDictionary()
+                };
 
-                var refresh = await _tokens.IssueRefreshTokenAsync(
-                    new TokenIssuanceContext
-                    {
-                        TenantId = request.TenantId,
-                        UserId = auth.UserId!.ToString()!,
-                        SessionId = issuedSession.Session.SessionId
-                    },
-                    ct);
+                var access = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+                var refresh = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, ct);
 
                 tokens = new AuthTokens { AccessToken = access, RefreshToken = refresh };
             }
@@ -165,17 +154,8 @@ namespace CodeBeam.UltimateAuth.Server.Services
                     throw new InvalidOperationException("Current session chain could not be resolved.");
             }
 
-            var authContext = AuthContext.System(
-                request.TenantId,
-                AuthOperation.Revoke,
-                now);
-
-            await _orchestrator.ExecuteAsync(
-                authContext,
-                new RevokeAllChainsCommand<TUserId>(
-                    userId,
-                    exceptChainId),
-                ct);
+            var authContext = AuthContext.System(request.TenantId, AuthOperation.Revoke, now);
+            await _orchestrator.ExecuteAsync(authContext, new RevokeAllChainsCommand<TUserId>(userId, exceptChainId), ct);
         }
 
         public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)
@@ -183,15 +163,12 @@ namespace CodeBeam.UltimateAuth.Server.Services
             throw new NotImplementedException();
         }
 
-        public async Task<SessionRefreshResult> RefreshSessionAsync(SessionRefreshRequest request, CancellationToken ct = default)
+        public async Task<SessionRefreshResult> RefreshSessionAsync(AuthFlowContext flow, SessionRefreshRequest request, CancellationToken ct = default)
         {
             var now = DateTimeOffset.UtcNow;
 
             // Validate refresh token (STORE is authority)
-            var validation = await _tokenStore.ValidateRefreshTokenAsync(
-                request.TenantId,
-                request.RefreshToken,
-                now);
+            var validation = await _tokenValidator.ValidateAsync(flow.TenantId, request.RefreshToken, now, ct);
 
             if (!validation.IsValid)
             {
@@ -246,8 +223,8 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 SessionId = issuedSession.Session.SessionId
             };
 
-            var accessToken = await _tokens.IssueAccessTokenAsync(tokenContext, ct);
-            var refreshToken = await _tokens.IssueRefreshTokenAsync(tokenContext, ct);
+            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+            var refreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, ct);
 
             var primaryToken = PrimaryToken.FromAccessToken(accessToken);
 

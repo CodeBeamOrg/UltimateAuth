@@ -21,5 +21,17 @@
             "Cookie",
             "Query"
         };
+
+        internal UAuthSessionResolutionOptions Clone() => new()
+        {
+            EnableBearer = EnableBearer,
+            EnableHeader = EnableHeader,
+            EnableCookie = EnableCookie,
+            EnableQuery = EnableQuery,
+            HeaderName = HeaderName,
+            QueryParameterName = QueryParameterName,
+            Order = new List<string>(Order)
+        };
+
     }
 }

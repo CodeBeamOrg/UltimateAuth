@@ -1,10 +1,17 @@
 ﻿@* TODO: Optional double-submit prevention for native form submit *@
 @namespace CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Options
+@using CodeBeam.UltimateAuth.Core.Options
+@using Microsoft.Extensions.Options
 @inject IJSRuntime JS
+@inject IOptions<UAuthOptions> CoreOptions
+@inject IOptions<UAuthClientOptions> Options
+@inject NavigationManager Navigation
 
 <form @ref="_form" method="post" action="@ResolvedEndpoint">
     <input type="hidden" name="Identifier" value="@Identifier" />
     <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
+    <input type="hidden" name="__uauth_client_profile" value="@ClientProfileValue" />
 
     @ChildContent
 
@@ -13,7 +20,3 @@
         <button type="submit" hidden aria-hidden="true"></button>
     }
 </form>
-
-@code {
-    
-}

@@ -1,22 +1,21 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Server.Options;
-
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     /// <summary>
-    /// Resolves refresh behavior based on AuthMode and server options.
+    /// Resolves refresh behavior based on AuthMode.
     /// This class is the single source of truth for refresh capability.
     /// </summary>
     public static class RefreshDecisionResolver
     {
-        public static RefreshDecision Resolve(UAuthServerOptions options)
+        public static RefreshDecision Resolve(UAuthMode mode)
         {
-            return options.Mode switch
+            return mode switch
             {
-                UAuthMode.PureOpaque => RefreshDecision.SessionOnly,
-                UAuthMode.Hybrid => RefreshDecision.SessionAndToken,
-                UAuthMode.SemiHybrid => RefreshDecision.TokenOnly,
-                UAuthMode.PureJwt => RefreshDecision.TokenOnly,
+                UAuthMode.PureOpaque => RefreshDecision.SessionTouch,
+
+                UAuthMode.Hybrid
+                or UAuthMode.SemiHybrid
+                or UAuthMode.PureJwt => RefreshDecision.TokenRotation,
 
                 _ => RefreshDecision.NotSupported
             };
