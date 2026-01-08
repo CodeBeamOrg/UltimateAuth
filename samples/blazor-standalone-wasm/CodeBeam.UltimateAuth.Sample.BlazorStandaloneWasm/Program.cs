@@ -20,8 +20,8 @@ builder.Services.AddUltimateAuthClient(o =>
     o.Endpoints.Authority = "https://localhost:6110";
 });
 
-builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
-builder.Services.AddScoped<IUAuthAuthenticationStateSource, ClientAuthStateSource>();
+//builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
+//builder.Services.AddScoped<IUAuthAuthenticationStateSource, ClientAuthStateSource>();
 
 builder.Services.AddAuthorizationCore();
 

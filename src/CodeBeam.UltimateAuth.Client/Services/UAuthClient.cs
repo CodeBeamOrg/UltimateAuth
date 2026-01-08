@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Extensions;
@@ -16,18 +17,15 @@ namespace CodeBeam.UltimateAuth.Client
         private readonly IBrowserPostClient _post;
         private readonly UAuthClientOptions _options;
         private readonly UAuthClientDiagnostics _diagnostics;
-        private readonly IClientAuthState _state;
 
         public UAuthClient(
             IBrowserPostClient post,
             IOptions<UAuthClientOptions> options,
-            UAuthClientDiagnostics diagnostics,
-            IClientAuthState state)
+            UAuthClientDiagnostics diagnostics)
         {
             _post = post;
             _options = options.Value;
             _diagnostics = diagnostics;
-            _state = state;
         }
 
         public async Task LoginAsync(LoginRequest request)
@@ -93,31 +91,10 @@ namespace CodeBeam.UltimateAuth.Client
             return new AuthValidationResult
             {
                 IsValid = result.Body.IsValid,
-                State = result.Body.State
+                State = result.Body.State,
+                RemainingAttempts = result.Body.RemainingAttempts,
+                Snapshot = result.Body.Snapshot,
             };
-        }
-
-        public Task<ClaimsPrincipal> GetCurrentPrincipalAsync()
-        {
-            if (!_state.IsAuthenticated)
-            {
-                return Task.FromResult(CreateAnonymous());
-            }
-
-            if (_state.Claims == null || _state.Claims.Count == 0)
-            {
-                return Task.FromResult(CreateAnonymous());
-            }
-
-            var identity = new ClaimsIdentity(claims: _state.Claims, authenticationType: "UltimateAuth");
-            var principal = new ClaimsPrincipal(identity);
-
-            return Task.FromResult(principal);
-        }
-
-        private static ClaimsPrincipal CreateAnonymous()
-        {
-            return new ClaimsPrincipal(new ClaimsIdentity());
         }
 
     }

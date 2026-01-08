@@ -1,7 +1,9 @@
 ﻿@page "/"
 @page "/login"
+@using CodeBeam.UltimateAuth.Client.Authentication
 @using CodeBeam.UltimateAuth.Client.Diagnostics
 @using CodeBeam.UltimateAuth.Core.Runtime
+@inject IUAuthStateManager StateManager
 @inject IHttpClientFactory HttpClientFactory
 @inject IUAuthProductInfoProvider ProductInfo
 @inject ISnackbar Snackbar

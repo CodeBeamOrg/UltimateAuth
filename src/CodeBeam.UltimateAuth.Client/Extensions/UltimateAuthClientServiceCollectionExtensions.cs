@@ -3,10 +3,12 @@ using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Extensions
@@ -72,6 +74,7 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
             services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigure>();
+            services.TryAddSingleton<IClock, ClientClock>();
 
             //services.PostConfigure<UAuthOptions>(o =>
             //{
@@ -90,7 +93,6 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
 
             services.AddScoped<IBrowserPostClient, BrowserPostClient>();
             services.AddScoped<IUAuthClient, UAuthClient>();
-            services.AddScoped<IClientAuthState, ClientAuthState>();
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {
@@ -101,15 +103,11 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
                     : sp.GetRequiredService<NoOpSessionCoordinator>();
             });
 
-            services.AddScoped<UAuthAuthenticationStateProvider>();
-
-            // Uncomment causes blazor server to circular DI
-            //services.AddScoped<AuthenticationStateProvider>(sp =>
-            //    sp.GetRequiredService<UAuthAuthenticationStateProvider>());
-
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
             services.AddScoped<UAuthClientDiagnostics>();
+            services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
+            services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
 
             return services;
         }

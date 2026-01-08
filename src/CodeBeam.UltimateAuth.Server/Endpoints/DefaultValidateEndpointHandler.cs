@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -70,7 +71,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 return Results.Ok(new AuthValidationResult
                 {
                     IsValid = result.IsValid,
-                    State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant()
+                    State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
+                    Snapshot = new AuthStateSnapshot
+                    {
+                        UserId = result?.Session?.UserId?.ToString(),
+                        TenantId = result?.TenantId,
+                        Claims = result?.Session?.Claims ?? ClaimsSnapshot.Empty,
+                        AuthenticatedAt = result?.Session?.CreatedAt,
+                    }
                 });
             }
 

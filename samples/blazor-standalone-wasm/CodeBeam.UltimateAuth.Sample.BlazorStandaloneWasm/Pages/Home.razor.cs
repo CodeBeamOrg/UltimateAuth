@@ -20,6 +20,16 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                await StateManager.EnsureAsync();
+                _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                StateHasChanged();
+            }
+        }
+
         private void OnDiagnosticsChanged()
         {
             InvokeAsync(StateHasChanged);

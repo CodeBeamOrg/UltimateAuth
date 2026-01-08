@@ -17,7 +17,16 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
         protected override async Task OnInitializedAsync()
         {
             Diagnostics.Changed += OnDiagnosticsChanged;
-            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                await StateManager.EnsureAsync();
+                _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                StateHasChanged();
+            }
         }
 
         private void OnDiagnosticsChanged()
@@ -33,6 +42,8 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
                 Secret = "Password!",
             };
             await UAuthClient.LoginAsync(request);
+            await UAuthClient.ValidateAsync();
+            await StateManager.EnsureAsync();
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 

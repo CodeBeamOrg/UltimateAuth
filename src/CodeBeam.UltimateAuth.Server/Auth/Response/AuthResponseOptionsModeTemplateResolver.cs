@@ -25,19 +25,22 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
-                    Name = "session",
+                    Name = "uas",
+                    Kind = CredentialKind.Session,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie,
                 },
                 AccessTokenDelivery = new()
                 {
-                    Name = "access",
+                    Name = "uat",
+                    Kind = CredentialKind.AccessToken,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 RefreshTokenDelivery = new()
                 {
-                    Name = "refresh",
+                    Name = "uar",
+                    Kind = CredentialKind.RefreshToken,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
@@ -50,19 +53,22 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
-                    Name = "session",
+                    Name = "uas",
+                    Kind = CredentialKind.Session,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie
                 },
                 AccessTokenDelivery = new()
                 {
-                    Name = "access",
+                    Name = "uat",
+                    Kind = CredentialKind.AccessToken,
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
-                    Name = "refresh",
+                    Name = "uar",
+                    Kind = CredentialKind.RefreshToken,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Cookie
                 },
@@ -75,19 +81,22 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
-                    Name = "session",
+                    Name = "uas",
+                    Kind = CredentialKind.Session,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 AccessTokenDelivery = new()
                 {
-                    Name = "access",
+                    Name = "uat",
+                    Kind = CredentialKind.AccessToken,
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
-                    Name = "refresh",
+                    Name = "uar",
+                    Kind = CredentialKind.RefreshToken,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Header
                 },
@@ -100,19 +109,22 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             {
                 SessionIdDelivery = new()
                 {
-                    Name = "session",
+                    Name = "uas",
+                    Kind = CredentialKind.Session,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.None
                 },
                 AccessTokenDelivery = new()
                 {
-                    Name = "access",
+                    Name = "uat",
+                    Kind = CredentialKind.AccessToken,
                     TokenFormat = TokenFormat.Jwt,
                     Mode = TokenResponseMode.Header
                 },
                 RefreshTokenDelivery = new()
                 {
-                    Name = "refresh",
+                    Name = "uar",
+                    Kind = CredentialKind.RefreshToken,
                     TokenFormat = TokenFormat.Opaque,
                     Mode = TokenResponseMode.Header
                 },

@@ -1,20 +1,24 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿using System.Security.Claims;
+using System.Text.Json.Serialization;
+
+namespace CodeBeam.UltimateAuth.Core.Domain
 {
     public sealed class ClaimsSnapshot
     {
-        private readonly IReadOnlyDictionary<string, string> _claims;
+        public IReadOnlyDictionary<string, string> Claims { get; }
 
+        [JsonConstructor]
         public ClaimsSnapshot(IReadOnlyDictionary<string, string> claims)
         {
-            _claims = new Dictionary<string, string>(claims);
+            Claims = new Dictionary<string, string>(claims);
         }
 
-        public IReadOnlyDictionary<string, string> AsDictionary() => _claims;
+        public IReadOnlyDictionary<string, string> AsDictionary() => Claims;
 
-        public bool TryGet(string type, out string value) => _claims.TryGetValue(type, out value);
+        public bool TryGet(string type, out string value) => Claims.TryGetValue(type, out value);
 
         public string? Get(string type)
-            => _claims.TryGetValue(type, out var value)
+            => Claims.TryGetValue(type, out var value)
                 ? value
                 : null;
 
@@ -25,12 +29,12 @@
             if (obj is not ClaimsSnapshot other)
                 return false;
 
-            if (_claims.Count != other._claims.Count)
+            if (Claims.Count != other.Claims.Count)
                 return false;
 
-            foreach (var kv in _claims)
+            foreach (var kv in Claims)
             {
-                if (!other._claims.TryGetValue(kv.Key, out var v))
+                if (!other.Claims.TryGetValue(kv.Key, out var v))
                     return false;
 
                 if (!string.Equals(kv.Value, v, StringComparison.Ordinal))
@@ -45,7 +49,7 @@
             unchecked
             {
                 int hash = 17;
-                foreach (var kv in _claims.OrderBy(x => x.Key))
+                foreach (var kv in Claims.OrderBy(x => x.Key))
                 {
                     hash = hash * 23 + kv.Key.GetHashCode();
                     hash = hash * 23 + kv.Value.GetHashCode();
@@ -68,7 +72,7 @@
             if (claims.Length == 0)
                 return this;
 
-            var dict = new Dictionary<string, string>(_claims, StringComparer.Ordinal);
+            var dict = new Dictionary<string, string>(Claims, StringComparer.Ordinal);
 
             foreach (var (type, value) in claims)
             {
@@ -80,15 +84,15 @@
 
         public ClaimsSnapshot Merge(ClaimsSnapshot other)
         {
-            if (other is null || other._claims.Count == 0)
+            if (other is null || other.Claims.Count == 0)
                 return this;
 
-            if (_claims.Count == 0)
+            if (Claims.Count == 0)
                 return other;
 
-            var dict = new Dictionary<string, string>(_claims, StringComparer.Ordinal);
+            var dict = new Dictionary<string, string>(Claims, StringComparer.Ordinal);
 
-            foreach (var kv in other._claims)
+            foreach (var kv in other.Claims)
             {
                 dict[kv.Key] = kv.Value;
             }
@@ -96,7 +100,34 @@
             return new ClaimsSnapshot(dict);
         }
 
-        // TODO: Add ToClaimsPrincipal and FromClaimsPrincipal methods
+        public static ClaimsSnapshot FromClaimsPrincipal(ClaimsPrincipal principal)
+        {
+            if (principal is null)
+                return Empty;
+
+            if (principal.Identity?.IsAuthenticated != true)
+                return Empty;
+
+            var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var claim in principal.Claims)
+            {
+                dict[claim.Type] = claim.Value;
+            }
+
+            return new ClaimsSnapshot(dict);
+        }
+
+        public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
+        {
+            if (Claims.Count == 0)
+                return new ClaimsPrincipal(new ClaimsIdentity());
+
+            var claims = Claims.Select(kv => new Claim(kv.Key, kv.Value));
+            var identity = new ClaimsIdentity(claims, authenticationType);
+
+            return new ClaimsPrincipal(identity);
+        }
 
     }
 }

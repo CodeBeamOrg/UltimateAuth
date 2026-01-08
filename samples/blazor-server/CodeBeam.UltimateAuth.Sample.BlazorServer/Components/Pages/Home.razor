@@ -9,6 +9,7 @@
 @using CodeBeam.UltimateAuth.Server.Cookies
 @using CodeBeam.UltimateAuth.Server.Infrastructure
 @using CodeBeam.UltimateAuth.Server.Services
+@inject IUAuthStateManager StateManager
 @inject IUAuthFlowService<UserId> Flow
 @inject ISnackbar Snackbar
 @inject ISessionQueryService<UserId> SessionQuery
@@ -52,9 +53,10 @@
         <MudStack Spacing="0">
             <MudText>State of Authentication:</MudText>
             <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
+            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserId)</MudText>
             <AuthorizeView>
                 <Authorized>
-                    <MudText>Authorized context is shown.</MudText>
+                    <MudText>Authorized context is shown. @context.User.Identity.IsAuthenticated</MudText>
                 </Authorized>
                 <NotAuthorized>
                     <MudText>Not Authorized context is shown.</MudText>

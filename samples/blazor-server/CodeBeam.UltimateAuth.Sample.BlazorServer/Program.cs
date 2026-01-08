@@ -1,4 +1,3 @@
-using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
@@ -36,14 +35,6 @@ builder.Services
     .AddUAuthCookies();
 
 builder.Services.AddAuthorization();
-
-builder.Services.AddHttpContextAccessor();
-
-builder.Services.AddScoped<IUAuthAuthenticationStateSource, ServerAuthStateSource>();
-//builder.Services.AddScoped<UAuthBlazorServerAuthenticationStateProvider>();
-
-//builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
-//    sp.GetRequiredService<UAuthBlazorServerAuthenticationStateProvider>());
 
 builder.Services.AddUltimateAuth();
 

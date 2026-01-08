@@ -12,7 +12,5 @@ namespace CodeBeam.UltimateAuth.Client
         Task ReauthAsync();
 
         Task<AuthValidationResult> ValidateAsync();
-
-        Task<ClaimsPrincipal> GetCurrentPrincipalAsync();
     }
 }
