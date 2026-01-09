@@ -1,10 +1,14 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record RefreshTokenRotationResult
 {
     public bool IsSuccess { get; init; }
     public bool ReauthRequired { get; init; }
+    public bool IsReuseDetected { get; init; } // internal use
 
+    public AuthSessionId? SessionId { get; init; }
     public AccessToken? AccessToken { get; init; }
     public RefreshToken? RefreshToken { get; init; }
 

@@ -1,14 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
@@ -17,14 +12,14 @@ namespace CodeBeam.UltimateAuth.Server.Services
         private readonly IUAuthUserService<TUserId> _users;
         private readonly ISessionOrchestrator<TUserId> _orchestrator;
         private readonly ISessionQueryService<TUserId> _queries;
-        private readonly ITokenIssuer _tokens;
+        private readonly ITokenIssuer<TUserId> _tokens;
         private readonly IRefreshTokenValidator<TUserId> _tokenValidator;
 
         public UAuthFlowService(
             IUAuthUserService<TUserId> users,
             ISessionOrchestrator<TUserId> orchestrator,
             ISessionQueryService<TUserId> queries,
-            ITokenIssuer tokens,
+            ITokenIssuer<TUserId> tokens,
             IRefreshTokenValidator<TUserId> tokenValidator)
         {
             _users = users;
@@ -79,12 +74,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 ChainId = request.ChainId
             };
 
-            var authContext = AuthContext.ForAuthenticatedUser(
-                request.TenantId,
-                AuthOperation.Login,
-                now,
-                DeviceContext.From(device));
-
+            var authContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Login, now, DeviceContext.From(device));
             var issuedSession = await _orchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
 
             bool shouldIssueTokens = request.RequestTokens;
@@ -98,11 +88,12 @@ namespace CodeBeam.UltimateAuth.Server.Services
                     TenantId = request.TenantId,
                     UserId = auth.UserId!.ToString()!,
                     SessionId = issuedSession.Session.SessionId,
+                    ChainId = request.ChainId,
                     Claims = auth.Claims.AsDictionary()
                 };
 
                 var access = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
-                var refresh = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, ct);
+                var refresh = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
 
                 tokens = new AuthTokens { AccessToken = access, RefreshToken = refresh };
             }
@@ -161,74 +152,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
         public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)
         {
             throw new NotImplementedException();
-        }
-
-        public async Task<SessionRefreshResult> RefreshSessionAsync(AuthFlowContext flow, SessionRefreshRequest request, CancellationToken ct = default)
-        {
-            var now = DateTimeOffset.UtcNow;
-
-            // Validate refresh token (STORE is authority)
-            var validation = await _tokenValidator.ValidateAsync(flow.TenantId, request.RefreshToken, now, ct);
-
-            if (!validation.IsValid)
-            {
-                if (validation.IsReuseDetected && validation.SessionId is not null)
-                {
-                    var chainId = await _queries.ResolveChainIdAsync(
-                        request.TenantId,
-                        validation.SessionId.Value,
-                        ct);
-
-                    if (chainId is not null)
-                    {
-                        var authContext = AuthContext.System(
-                            request.TenantId,
-                            AuthOperation.Revoke,
-                            now);
-
-                        await _orchestrator.ExecuteAsync(
-                            authContext,
-                            new RevokeChainCommand<TUserId>(chainId.Value),
-                            ct);
-                    }
-                }
-
-                return SessionRefreshResult.ReauthRequired();
-            }
-
-            var session = await _queries.GetSessionAsync(request.TenantId, validation.SessionId!.Value);
-
-            if (session is null)
-                return SessionRefreshResult.ReauthRequired();
-
-            var rotationContext = new SessionRotationContext<TUserId>
-            {
-                TenantId = request.TenantId,
-                CurrentSessionId = validation.SessionId!.Value,
-                UserId = validation.UserId!,
-                Now = now
-            };
-
-            var refreshAuthContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Refresh, now, DeviceContext.From(session.Device));
-
-            var issuedSession = await _orchestrator.ExecuteAsync(
-                refreshAuthContext,
-                new RotateSessionCommand<TUserId>(rotationContext),
-                ct);
-
-            var tokenContext = new TokenIssuanceContext
-            {
-                TenantId = request.TenantId,
-                UserId = validation.UserId!.ToString()!,
-                SessionId = issuedSession.Session.SessionId
-            };
-
-            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
-            var refreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, ct);
-
-            var primaryToken = PrimaryToken.FromAccessToken(accessToken);
-
-            return SessionRefreshResult.Success(primaryToken, refreshToken);
         }
 
         public Task<PkceVerificationResult> VerifyPkceAsync(PkceVerifyRequest request, CancellationToken ct = default)

@@ -21,8 +21,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
         Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default);
 
-        Task<SessionRefreshResult> RefreshSessionAsync(AuthFlowContext flow, SessionRefreshRequest request, CancellationToken ct = default);
-
         Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default);
 
         Task<PkceChallengeResult> CreatePkceChallengeAsync(PkceCreateRequest request, CancellationToken ct = default);

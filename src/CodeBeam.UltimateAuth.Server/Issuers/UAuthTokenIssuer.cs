@@ -13,18 +13,22 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
     /// Opinionated implementation of ITokenIssuer.
     /// Mode-aware (PureOpaque, Hybrid, SemiHybrid, PureJwt).
     /// </summary>
-    public sealed class UAuthTokenIssuer : ITokenIssuer
+    public sealed class UAuthTokenIssuer<TUserId> : ITokenIssuer<TUserId>
     {
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly IJwtTokenGenerator _jwtGenerator;
         private readonly ITokenHasher _tokenHasher;
+        private readonly IRefreshTokenStore<TUserId> _refreshTokenStore;
+        private readonly IUserIdConverterResolver _converterResolver;
         private readonly IClock _clock;
 
-        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IClock clock)
+        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore<TUserId> refreshTokenStore,IUserIdConverterResolver converterResolver, IClock clock)
         {
             _opaqueGenerator = opaqueGenerator;
             _jwtGenerator = jwtGenerator;
             _tokenHasher = tokenHasher;
+            _refreshTokenStore = refreshTokenStore;
+            _converterResolver = converterResolver;
             _clock = clock;
         }
 
@@ -36,6 +40,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             return flow.EffectiveMode switch
             {
+                // TODO: Discuss, Hybrid token may be JWT.
                 UAuthMode.PureOpaque or UAuthMode.Hybrid =>
                     Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
@@ -48,23 +53,40 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        public Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
+        public async Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
         {
             if (flow.EffectiveMode == UAuthMode.PureOpaque)
-                return Task.FromResult<RefreshToken?>(null);
+                return null;
 
-            var tokens = flow.OriginalOptions.Tokens;
-            var expires = _clock.UtcNow.Add(tokens.RefreshTokenLifetime);
+            var expires = _clock.UtcNow.Add(flow.OriginalOptions.Tokens.RefreshTokenLifetime);
 
             var raw = _opaqueGenerator.Generate();
             var hash = _tokenHasher.Hash(raw);
 
-            return Task.FromResult<RefreshToken?>(new RefreshToken
+            var converter = _converterResolver.GetConverter<TUserId>();
+
+            var stored = new StoredRefreshToken<TUserId>
+            {
+                TenantId = flow.TenantId,
+                TokenHash = hash,
+                UserId = converter.FromString(context.UserId),
+                SessionId = AuthSessionId.From(context.SessionId!),
+                ChainId = context.ChainId,
+                IssuedAt = _clock.UtcNow,
+                ExpiresAt = expires
+            };
+
+            if (persistence == RefreshTokenPersistence.Persist)
+            {
+                await _refreshTokenStore.StoreAsync(flow.TenantId, stored, ct);
+            }
+
+            return new RefreshToken
             {
                 Token = raw,
                 TokenHash = hash,
                 ExpiresAt = expires
-            });
+            };
         }
 
         private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)

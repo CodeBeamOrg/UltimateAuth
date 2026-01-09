@@ -126,9 +126,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
 
             services.AddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
+            services.AddScoped(typeof(IRefreshFlowService<>), typeof(DefaultRefreshFlowService<>));
             services.AddScoped(typeof(IUAuthSessionService<>), typeof(UAuthSessionService<>));
             services.AddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
-            services.AddScoped(typeof(IUAuthTokenService<>), typeof(UAuthTokenService<>));
 
             services.AddSingleton<IClock, SystemClock>();
 
@@ -147,7 +147,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // SESSION / TOKEN ISSUERS
             // -----------------------------
             services.TryAddScoped(typeof(ISessionIssuer<>), typeof(UAuthSessionIssuer<>));
-            services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
+            services.TryAddScoped(typeof(ITokenIssuer<>), typeof(UAuthTokenIssuer<>));
 
             services.TryAddScoped(typeof(IUserAccessor<UserId>), typeof(UAuthUserAccessor<UserId>));
             services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
@@ -157,7 +157,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
             services.TryAddScoped(typeof(ISessionQueryService<>), typeof(UAuthSessionQueryService<>));
             services.TryAddScoped(typeof(IRefreshTokenResolver), typeof(DefaultRefreshTokenResolver));
-            services.TryAddScoped(typeof(ISessionRefreshService<>), typeof(DefaultSessionRefreshService<>));
+            services.TryAddScoped(typeof(ISessionTouchService<>), typeof(DefaultSessionTouchService<>));
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
             services.TryAddScoped<IFlowCredentialResolver, DefaultFlowCredentialResolver>();
@@ -185,6 +185,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddScoped<IUAuthCookieManager, DefaultUAuthCookieManager>();
             services.AddSingleton<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
 
+            services.AddScoped<IRefreshResponsePolicy, DefaultRefreshResponsePolicy>();
 
             // -----------------------------
             // ENDPOINTS
@@ -228,7 +229,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             // Issuers
             services.TryAddScoped(typeof(ISessionIssuer<>), typeof(UAuthSessionIssuer<>));
-            services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
+            services.TryAddScoped(typeof(ITokenIssuer<>), typeof(UAuthTokenIssuer<>));
 
             // User service
             services.TryAddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));

@@ -6,11 +6,9 @@ namespace CodeBeam.UltimateAuth.Tokens.InMemory;
 
 public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUserId>
 {
-    private static string NormalizeTenant(string? tenantId)
-        => tenantId ?? "__default__";
+    private static string NormalizeTenant(string? tenantId) => tenantId ?? "__default__";
 
-    private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken<TUserId>> _tokens
-        = new();
+    private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken<TUserId>> _tokens = new();
 
     public Task StoreAsync(
         string? tenantId,
@@ -42,15 +40,18 @@ public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUse
         string? tenantId,
         string tokenHash,
         DateTimeOffset revokedAt,
+        string? replacedByTokenHash = null,
         CancellationToken ct = default)
     {
-        var key = new TokenKey(
-            NormalizeTenant(tenantId),
-            tokenHash);
+        var key = new TokenKey(NormalizeTenant(tenantId), tokenHash);
 
         if (_tokens.TryGetValue(key, out var token) && !token.IsRevoked)
         {
-            _tokens[key] = token with { RevokedAt = revokedAt };
+            _tokens[key] = token with
+            {
+                RevokedAt = revokedAt,
+                ReplacedByTokenHash = replacedByTokenHash
+            };
         }
 
         return Task.CompletedTask;

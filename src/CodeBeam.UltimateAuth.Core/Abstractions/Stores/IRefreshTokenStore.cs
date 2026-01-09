@@ -16,10 +16,13 @@ public interface IRefreshTokenStore<TUserId>
         string tokenHash,
         CancellationToken ct = default);
 
-    Task RevokeAsync(string? tenantId,
+    Task RevokeAsync(
+        string? tenantId,
         string tokenHash,
         DateTimeOffset revokedAt,
+        string? replacedByTokenHash = null,
         CancellationToken ct = default);
+
 
     Task RevokeBySessionAsync(string? tenantId,
         AuthSessionId sessionId,

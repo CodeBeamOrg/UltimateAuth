@@ -67,18 +67,31 @@ internal sealed class EfCoreRefreshTokenStore<TUserId> : IRefreshTokenStore<TUse
     }
 
     public Task RevokeAsync(
-    string? tenantId,
-    string tokenHash,
-    DateTimeOffset revokedAt,
-    CancellationToken ct = default)
-    => _db.RefreshTokens
-        .Where(x =>
-            x.TokenHash == tokenHash &&
-            x.TenantId == tenantId &&
-            x.RevokedAt == null)
-        .ExecuteUpdateAsync(
-            x => x.SetProperty(t => t.RevokedAt, revokedAt),
+        string? tenantId,
+        string tokenHash,
+        DateTimeOffset revokedAt,
+        string? replacedByTokenHash = null,
+        CancellationToken ct = default)
+    {
+        var query = _db.RefreshTokens
+            .Where(x =>
+                x.TokenHash == tokenHash &&
+                x.TenantId == tenantId &&
+                x.RevokedAt == null);
+
+        if (replacedByTokenHash == null)
+        {
+            return query.ExecuteUpdateAsync(
+                x => x.SetProperty(t => t.RevokedAt, revokedAt),
+                ct);
+        }
+
+        return query.ExecuteUpdateAsync(
+            x => x
+                .SetProperty(t => t.RevokedAt, revokedAt)
+                .SetProperty(t => t.ReplacedByTokenHash, replacedByTokenHash),
             ct);
+    }
 
     public Task RevokeBySessionAsync(
         string? tenantId,

@@ -5,14 +5,13 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     public sealed record RefreshTokenValidationResult<TUserId>
     {
         public bool IsValid { get; init; }
-
         public bool IsReuseDetected { get; init; }
+
+        public string? TokenHash { get; init; }
+
         public string? TenantId { get; init; }
-
         public TUserId? UserId { get; init; }
-
         public AuthSessionId? SessionId { get; init; }
-
         public ChainId? ChainId { get; init; }
 
         public DateTimeOffset? ExpiresAt { get; init; }
@@ -34,6 +33,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public static RefreshTokenValidationResult<TUserId> ReuseDetected(
         string? tenantId = null,
         AuthSessionId? sessionId = null,
+        string? tokenHash = null,
         ChainId? chainId = null,
         TUserId? userId = default)
         => new()
@@ -42,14 +42,16 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
             IsReuseDetected = true,
             TenantId = tenantId,
             SessionId = sessionId,
+            TokenHash = tokenHash,
             ChainId = chainId,
-            UserId = userId
+            UserId = userId,
         };
 
         public static RefreshTokenValidationResult<TUserId> Valid(
         string? tenantId,
         TUserId userId,
         AuthSessionId sessionId,
+        string? tokenHash,
         ChainId? chainId = null)
         => new()
         {
@@ -58,7 +60,8 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
             TenantId = tenantId,
             UserId = userId,
             SessionId = sessionId,
-            ChainId = chainId
+            ChainId = chainId,
+            TokenHash = tokenHash
         };
     }
 }

@@ -5,6 +5,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
 {
     public interface IRefreshTokenRotationService<TUserId>
     {
-        Task<RefreshTokenRotationResult> RotateAsync(AuthFlowContext flow, RefreshTokenRotationContext<TUserId> context, CancellationToken ct = default);
+        Task<RefreshTokenRotationExecution<TUserId>> RotateAsync(AuthFlowContext flow, RefreshTokenRotationContext<TUserId> context, CancellationToken ct = default);
     }
 }

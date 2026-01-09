@@ -13,6 +13,8 @@ internal sealed class RefreshTokenProjection
     public string SessionId { get; set; } = default!;
     public ChainId ChainId { get; set; } = default!;
 
+    public string? ReplacedByTokenHash { get; set; }
+
     public DateTimeOffset IssuedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }

@@ -1,20 +1,14 @@
-﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Contracts;
-using CodeBeam.UltimateAuth.Server.Cookies;
-using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
@@ -96,11 +90,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
         if (auth.Response.Login.RedirectEnabled)
         {
-            var redirectUrl =
-                _redirectResolver.ResolveRedirect(
-                    ctx,
-                    auth.Response.Login.SuccessPath);
-
+            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, auth.Response.Login.SuccessPath);
             return Results.Redirect(redirectUrl);
         }
 

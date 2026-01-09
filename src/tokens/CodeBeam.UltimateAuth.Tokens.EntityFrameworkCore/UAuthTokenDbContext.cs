@@ -34,6 +34,8 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
             e.HasIndex(x => new { x.TenantId, x.UserId });
             e.HasIndex(x => new { x.TenantId, x.SessionId });
             e.HasIndex(x => new { x.TenantId, x.ChainId });
+            e.HasIndex(x => new { x.TenantId, x.ExpiresAt });
+            e.HasIndex(x => new { x.TenantId, x.ReplacedByTokenHash });
 
             e.Property(x => x.ExpiresAt).IsRequired();
         });
