@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Client.Utilities;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -108,6 +109,7 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             services.AddScoped<UAuthClientDiagnostics>();
             services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
             services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
+            services.AddScoped<IBrowserStorage, BrowserStorage>();
 
             return services;
         }

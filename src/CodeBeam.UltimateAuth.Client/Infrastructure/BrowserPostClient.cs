@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Options;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
@@ -29,31 +28,48 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
             }).AsTask();
         }
 
-        public async Task<BrowserPostResult> FetchPostAsync(string endpoint)
+        public async Task<BrowserPostResult> FetchPostAsync(string endpoint, IDictionary<string, string>? data = null)
         {
             var result = await _js.InvokeAsync<BrowserPostResult>("uauth.post", new
             {
                 url = endpoint,
                 mode = "fetch",
                 expectJson = false,
+                data = data,
                 clientProfile = _coreOptions.ClientProfile.ToString()
             });
 
             return result;
         }
 
-        public async Task<BrowserPostJsonResult<T>> FetchPostJsonAsync<T>(string endpoint)
+        public async Task<BrowserPostRawResult> FetchPostJsonRawAsync(string endpoint, IDictionary<string, string>? data = null)
         {
-            var result = await _js.InvokeAsync<BrowserPostJsonResult<T>>("uauth.post", new
-            {
-                url = endpoint,
-                mode = "fetch",
-                expectJson = true,
-                clientProfile = _coreOptions.ClientProfile.ToString()
-            });
-
-            return result;
+            var postData = data ?? new Dictionary<string, string>();
+            return await _js.InvokeAsync<BrowserPostRawResult>("uauth.post",
+                new
+                {
+                    url = endpoint,
+                    mode = "fetch",
+                    expectJson = true,
+                    data = postData,
+                    clientProfile = _coreOptions.ClientProfile.ToString()
+                });
         }
+
+
+        //public async Task<BrowserPostJsonResult<T>> FetchPostJsonAsync<T>(string endpoint, IDictionary<string, string>? data = null)
+        //{
+        //    var result = await _js.InvokeAsync<BrowserPostJsonResult<T>>("uauth.post", new
+        //    {
+        //        url = endpoint,
+        //        mode = "fetch",
+        //        expectJson = true,
+        //        data = data,
+        //        clientProfile = _coreOptions.ClientProfile.ToString()
+        //    });
+
+        //    return result;
+        //}
 
     }
 }

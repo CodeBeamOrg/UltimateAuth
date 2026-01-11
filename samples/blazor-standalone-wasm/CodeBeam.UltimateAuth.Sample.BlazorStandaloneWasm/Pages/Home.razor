@@ -2,6 +2,7 @@
 @page "/login"
 @using CodeBeam.UltimateAuth.Client.Authentication
 @using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
 @inject IUAuthStateManager StateManager
 @inject IHttpClientFactory HttpClientFactory
@@ -32,6 +33,7 @@
 
         <MudStack Class="mud-width-full">
             <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StartPkceLogin">Start Pkce Login</MudButton>
         </MudStack>
 
         <MudStack Spacing="0">

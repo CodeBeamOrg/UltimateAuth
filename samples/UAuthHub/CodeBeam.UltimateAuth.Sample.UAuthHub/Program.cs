@@ -1,19 +1,26 @@
+using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials.InMemory;
+using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddControllers();
 
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
@@ -44,6 +51,14 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
 
+builder.Services.AddUltimateAuthClient(o =>
+{
+    //o.Refresh.Interval = TimeSpan.FromSeconds(5);
+    o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+});
+
+builder.Services.AddSingleton<IUAuthHubMarker, DefaultUAuthHubMarker>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("WasmSample", policy =>
@@ -65,7 +80,7 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+//app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseCors("WasmSample");
 
@@ -76,6 +91,8 @@ app.UseAntiforgery();
 
 app.MapUAuthEndpoints();
 app.MapStaticAssets();
+
+app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

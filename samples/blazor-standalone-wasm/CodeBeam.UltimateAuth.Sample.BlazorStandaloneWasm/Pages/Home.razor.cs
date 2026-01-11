@@ -46,6 +46,12 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
+        private async Task StartPkceLogin()
+        {
+            await UAuthClient.BeginPkceAsync();
+            //await UAuthClient.NavigateToHubLoginAsync(Nav.Uri);
+        }
+
         private async Task ValidateAsync()
         {
             var result = await UAuthClient.ValidateAsync();

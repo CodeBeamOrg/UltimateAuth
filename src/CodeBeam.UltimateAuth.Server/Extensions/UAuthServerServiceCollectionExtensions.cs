@@ -15,6 +15,7 @@ using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Server.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -177,6 +178,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddScoped<IEffectiveServerOptionsProvider,DefaultEffectiveServerOptionsProvider>();
 
             services.AddScoped(typeof(IRefreshTokenValidator<>), typeof(DefaultRefreshTokenValidator<>));
+            services.AddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
             services.AddScoped(typeof(IRefreshTokenRotationService<>), typeof(RefreshTokenRotationService<>));
 
             services.AddSingleton<IUAuthCookiePolicyBuilder, DefaultUAuthCookiePolicyBuilder>();
@@ -186,6 +188,13 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddSingleton<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
 
             services.AddScoped<IRefreshResponsePolicy, DefaultRefreshResponsePolicy>();
+
+            services.AddSingleton<IAuthStore, InMemoryAuthStore>();
+
+            services.AddScoped<IUAuthHubContextAccessor, UAuthHubContextAccessor>();
+            // Internal usage
+            services.AddScoped<UAuthHubContextAccessor>();
+            services.AddScoped<IUAuthHubContextInitializer, DefaultUAuthHubContextInitializer>();
 
             // -----------------------------
             // ENDPOINTS
@@ -200,8 +209,8 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
 
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
+            
             // Endpoint handlers
-            //services.TryAddScoped(typeof(ILoginEndpointHandler), typeof(DefaultLoginEndpointHandler<>));
             services.AddScoped<DefaultLoginEndpointHandler<UserId>>();
             services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
 
@@ -213,8 +222,10 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.AddScoped<DefaultRefreshEndpointHandler<UserId>>();
             services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
+
+            services.AddScoped<DefaultPkceEndpointHandler<UserId>>();
+            services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandlerBridge>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
-            //services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
             //services.TryAddScoped<IUserInfoEndpointHandler, UserInfoEndpointHandler>();
 

@@ -1,11 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Options
 {
     public sealed class UAuthClientOptions
     {
         public AuthEndpointOptions Endpoints { get; set; } = new();
+        public LoginOptions Login { get; set; } = new();
         public UAuthClientRefreshOptions Refresh { get; set; } = new();
         public ReauthOptions Reauth { get; init; } = new();
     }
@@ -22,6 +22,28 @@ namespace CodeBeam.UltimateAuth.Client.Options
         public string Refresh { get; set; } = "/auth/refresh";
         public string Reauth { get; set; } = "/auth/reauth";
         public string Validate { get; set; } = "/auth/validate";
+        public string PkceAuthorize { get; set; } = "/auth/pkce/authorize";
+        public string PkceComplete { get; set; } = "/auth/pkce/complete";
+        public string HubLoginPath { get; set; } = "/uauthhub/login";
+    }
+
+    public sealed class LoginOptions
+    {
+        /// <summary>
+        /// Default return URL after a successful login flow.
+        /// If not set, current location will be used.
+        /// </summary>
+        public string? DefaultReturnUrl { get; set; }
+
+        /// <summary>
+        /// Options related to PKCE-based login flows.
+        /// </summary>
+        public PkceLoginOptions Pkce { get; set; } = new();
+
+        /// <summary>
+        /// Enables or disables direct credential-based login.
+        /// </summary>
+        public bool AllowDirectLogin { get; set; } = true;
     }
 
     public sealed class UAuthClientRefreshOptions

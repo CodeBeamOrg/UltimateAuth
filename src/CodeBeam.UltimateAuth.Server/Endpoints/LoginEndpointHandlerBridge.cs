@@ -12,8 +12,6 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             _inner = inner;
         }
 
-        public Task<IResult> LoginAsync(HttpContext ctx)
-            => _inner.LoginAsync(ctx);
+        public Task<IResult> LoginAsync(HttpContext ctx) => _inner.LoginAsync(ctx);
     }
-
 }

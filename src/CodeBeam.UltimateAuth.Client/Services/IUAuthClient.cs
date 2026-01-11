@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client
 {
@@ -12,5 +11,8 @@ namespace CodeBeam.UltimateAuth.Client
         Task ReauthAsync();
 
         Task<AuthValidationResult> ValidateAsync();
+
+        Task BeginPkceAsync(string? returnUrl = null);
+        Task CompletePkceLoginAsync(PkceLoginRequest request);
     }
 }

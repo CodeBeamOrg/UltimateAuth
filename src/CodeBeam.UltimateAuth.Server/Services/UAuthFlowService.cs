@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services
@@ -96,6 +98,63 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 var refresh = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
 
                 tokens = new AuthTokens { AccessToken = access, RefreshToken = refresh };
+            }
+
+            return LoginResult.Success(issuedSession.Session.SessionId, tokens);
+        }
+
+        public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
+        {
+            var now = request.At ?? DateTimeOffset.UtcNow;
+            var device = request.DeviceInfo ?? DeviceInfo.Unknown;
+
+            var auth = await _users.AuthenticateAsync(request.TenantId, request.Identifier, request.Secret, ct);
+
+            if (!auth.Succeeded)
+                return LoginResult.Failed();
+
+            var sessionContext = new AuthenticatedSessionContext<TUserId>
+            {
+                TenantId = request.TenantId,
+                UserId = auth.UserId!,
+                Now = now,
+                DeviceInfo = device,
+                Claims = auth.Claims,
+                ChainId = request.ChainId
+            };
+
+            var authContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Login, now, DeviceContext.From(device));
+            var issuedSession = await _orchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
+
+            bool shouldIssueTokens = request.RequestTokens;
+
+            AuthTokens? tokens = null;
+
+            if (shouldIssueTokens)
+            {
+                var tokenContext = new TokenIssuanceContext
+                {
+                    TenantId = request.TenantId,
+                    UserId = auth.UserId!.ToString()!,
+                    SessionId = issuedSession.Session.SessionId,
+                    ChainId = request.ChainId,
+                    Claims = auth.Claims.AsDictionary()
+                };
+
+
+                var effectiveFlow = execution.EffectiveClientProfile is null
+                    ? flow
+                    : flow.WithClientProfile((UAuthClientProfile)execution.EffectiveClientProfile);
+
+                var access = await _tokens.IssueAccessTokenAsync(effectiveFlow, tokenContext, ct);
+
+                var refresh = await _tokens.IssueRefreshTokenAsync(effectiveFlow, tokenContext, RefreshTokenPersistence.Persist, ct);
+
+                tokens = new AuthTokens
+                {
+                    AccessToken = access,
+                    RefreshToken = refresh
+                };
             }
 
             return LoginResult.Success(issuedSession.Session.SessionId, tokens);

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Client.Options
@@ -7,6 +8,9 @@ namespace CodeBeam.UltimateAuth.Client.Options
     {
         public UAuthClientProfile Detect(IServiceProvider sp)
         {
+            if (sp.GetService<IUAuthHubMarker>() != null)
+                return UAuthClientProfile.UAuthHub;
+
             if (Type.GetType("Microsoft.Maui.Controls.Application, Microsoft.Maui.Controls", throwOnError: false) is not null)
                 return UAuthClientProfile.Maui;
 

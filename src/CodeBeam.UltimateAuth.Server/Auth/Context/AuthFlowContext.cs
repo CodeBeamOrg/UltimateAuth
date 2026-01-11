@@ -13,16 +13,13 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         public UAuthClientProfile ClientProfile { get; }
         public UAuthMode EffectiveMode { get; }
 
-
         public string? TenantId { get; }
         public bool IsAuthenticated { get; }
         public UserId? UserId { get; }
         public AuthSessionId? SessionId { get; }
 
-
         public UAuthServerOptions OriginalOptions { get; }
         public EffectiveUAuthServerOptions EffectiveOptions { get; }
-
 
         public EffectiveAuthResponse Response { get; }
         public PrimaryTokenKind PrimaryTokenKind { get; }

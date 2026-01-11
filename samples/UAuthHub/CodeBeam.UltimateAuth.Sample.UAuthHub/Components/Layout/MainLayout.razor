@@ -1,4 +1,12 @@
-﻿@inherits LayoutComponentBase
+﻿@using CodeBeam.UltimateAuth.Core.Abstractions
+@inherits LayoutComponentBase
+@inject IUAuthHubContextInitializer HubContextInitializer
+
+<UAuthClientProvider />
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 @Body
 
