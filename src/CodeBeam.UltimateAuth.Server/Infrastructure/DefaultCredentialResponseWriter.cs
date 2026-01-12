@@ -58,9 +58,7 @@ internal sealed class DefaultCredentialResponseWriter : ICredentialResponseWrite
         if (options.Cookie is null)
             throw new InvalidOperationException($"Cookie options missing for credential '{kind}'.");
 
-        var logicalLifetime = ResolveLogicalLifetime(auth, kind);
-        var cookieOptions = _cookiePolicy.Build(options, auth, logicalLifetime);
-
+        var cookieOptions = _cookiePolicy.Build(options, auth, kind);
         _cookieManager.Write(context, options.Cookie.Name, value, cookieOptions);
     }
 
@@ -80,22 +78,4 @@ internal sealed class DefaultCredentialResponseWriter : ICredentialResponseWrite
             CredentialKind.RefreshToken => response.RefreshTokenDelivery,
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
-
-    private static TimeSpan? ResolveLogicalLifetime(AuthFlowContext auth, CredentialKind kind)
-    {
-        // TODO: Move this method to policy on implementing
-        return kind switch
-        {
-            CredentialKind.Session
-                => auth.EffectiveOptions.Options.Session.IdleTimeout + auth.OriginalOptions.Cookie.Session.Lifetime.IdleBuffer,
-
-            CredentialKind.RefreshToken
-                => auth.EffectiveOptions.Options.Tokens.RefreshTokenLifetime + auth.OriginalOptions.Cookie.RefreshToken.Lifetime.IdleBuffer,
-
-            CredentialKind.AccessToken
-                => auth.EffectiveOptions.Options.Tokens.AccessTokenLifetime + auth.OriginalOptions.Cookie.AccessToken.Lifetime.IdleBuffer,
-
-            _ => null
-        };
-    }
 }
