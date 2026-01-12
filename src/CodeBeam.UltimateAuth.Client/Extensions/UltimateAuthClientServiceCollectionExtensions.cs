@@ -110,6 +110,9 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
             services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
             services.AddScoped<IBrowserStorage, BrowserStorage>();
+            services.TryAddScoped<IHubCredentialResolver, NoOpHubCredentialResolver>();
+            services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
+            services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
 
             return services;
         }

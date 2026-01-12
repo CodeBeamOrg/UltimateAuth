@@ -3,6 +3,7 @@
 public enum AuthArtifactType
 {
     PkceAuthorizationCode,
+    HubFlow,
     HubLogin,
     MfaChallenge,
     PasswordReset,

@@ -13,11 +13,6 @@ public sealed class HubFlowArtifact : AuthArtifact
 
     public HubFlowPayload Payload { get; }
 
-    public void MarkCompleted()
-    {
-        IsCompleted = true;
-    }
-
     public HubFlowArtifact(
         HubSessionId hubSessionId,
         HubFlowType flowType,
@@ -26,7 +21,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         string? returnUrl,
         HubFlowPayload payload,
         DateTimeOffset expiresAt)
-        : base(AuthArtifactType.Custom, expiresAt, maxAttempts: 1)
+        : base(AuthArtifactType.HubFlow, expiresAt, maxAttempts: 1)
     {
         HubSessionId = hubSessionId;
         FlowType = flowType;

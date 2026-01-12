@@ -41,16 +41,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
             throw new NotImplementedException();
         }
 
-        public Task ConsumePkceAsync(PkceConsumeRequest request, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<PkceChallengeResult> CreatePkceChallengeAsync(PkceCreateRequest request, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
-
         public Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default)
         {
             throw new NotImplementedException();
@@ -213,10 +203,5 @@ namespace CodeBeam.UltimateAuth.Server.Services
             throw new NotImplementedException();
         }
 
-        public Task<PkceVerificationResult> VerifyPkceAsync(PkceVerifyRequest request, CancellationToken ct = default)
-        {
-            throw new NotImplementedException();
-        }
     }
-
 }

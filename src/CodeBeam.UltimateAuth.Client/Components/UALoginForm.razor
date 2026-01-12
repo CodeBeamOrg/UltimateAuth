@@ -17,8 +17,8 @@
 
     @if (LoginType == UAuthLoginType.Pkce)
     {
-        <input type="hidden" name="authorization_code" value="@AuthorizationCode" />
-        <input type="hidden" name="code_verifier" value="@CodeVerifier" />
+        <input type="hidden" name="authorization_code" value="@_credentials?.AuthorizationCode" />
+        <input type="hidden" name="code_verifier" value="@_credentials?.CodeVerifier" />
         <input type="hidden" name="return_url" value="@EffectiveReturnUrl" />
     }
 

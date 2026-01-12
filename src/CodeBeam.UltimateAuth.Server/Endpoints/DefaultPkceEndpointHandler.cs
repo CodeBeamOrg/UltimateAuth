@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -241,10 +240,10 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
                 hub.MarkCompleted();
                 _authStore.StoreAsync(key, hub, ctx.RequestAborted);
             }
-            return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}&error={Uri.EscapeDataString(error)}");
+            return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}&__uauth_error={Uri.EscapeDataString(error)}");
         }
 
-        return Results.Redirect($"{basePath}?error={Uri.EscapeDataString(error)}");
+        return Results.Redirect($"{basePath}?__uauth_error={Uri.EscapeDataString(error)}");
     }
 
 }

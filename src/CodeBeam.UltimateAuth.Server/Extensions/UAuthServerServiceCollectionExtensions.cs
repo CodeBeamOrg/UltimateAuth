@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Infrastructure.Hub;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
@@ -190,12 +191,10 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddScoped<IRefreshResponsePolicy, DefaultRefreshResponsePolicy>();
 
             services.AddSingleton<IAuthStore, InMemoryAuthStore>();
+            services.AddScoped<IHubFlowReader, DefaultHubFlowReader>();
+            services.AddScoped<IHubCredentialResolver, DefaultHubCredentialResolver>();
 
-            services.AddScoped<IHubFlowStateReader, DefaultHubFlowStateReader>();
-            services.AddScoped<IUAuthHubContextAccessor, UAuthHubContextAccessor>();
-            // Internal usage
-            services.AddScoped<UAuthHubContextAccessor>();
-            services.AddScoped<IUAuthHubContextInitializer, DefaultUAuthHubContextInitializer>();
+            services.AddScoped<IHubCapabilities, HubCapabilities>();
 
             // -----------------------------
             // ENDPOINTS
