@@ -16,6 +16,11 @@ public sealed class UAuthHubContextAccessor : IUAuthHubContextAccessor
         _current = context;
     }
 
+    public void Complete()
+    {
+        _current?.MarkCompleted();
+    }
+
     public void Clear()
     {
         _current = null;

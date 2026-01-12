@@ -191,6 +191,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.AddSingleton<IAuthStore, InMemoryAuthStore>();
 
+            services.AddScoped<IHubFlowStateReader, DefaultHubFlowStateReader>();
             services.AddScoped<IUAuthHubContextAccessor, UAuthHubContextAccessor>();
             // Internal usage
             services.AddScoped<UAuthHubContextAccessor>();

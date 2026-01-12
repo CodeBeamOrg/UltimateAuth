@@ -16,6 +16,7 @@ public abstract class AuthArtifact
     public int MaxAttempts { get; }
 
     public int AttemptCount { get; private set; }
+    public bool IsCompleted { get; internal set; }
 
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
 

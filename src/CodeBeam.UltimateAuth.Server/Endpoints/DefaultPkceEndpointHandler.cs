@@ -121,7 +121,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         if (!validation.Success)
         {
             artifact.RegisterAttempt();
-            return Results.Unauthorized();
+            return RedirectToLoginWithError(ctx, auth, "invalid");
         }
 
         var loginRequest = new LoginRequest
@@ -142,7 +142,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         var result = await _flow.LoginAsync(auth, execution, loginRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return Results.Unauthorized();
+            return RedirectToLoginWithError(ctx, auth, "invalid");
 
         if (result.SessionId is not null)
         {
@@ -223,6 +223,28 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         }
 
         return null;
+    }
+
+    private IResult RedirectToLoginWithError(HttpContext ctx, AuthFlowContext auth, string error)
+    {
+        var basePath = auth.OriginalOptions.Hub.LoginPath ?? "/login";
+
+        var hubKey = ctx.Request.Query["hub"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(hubKey))
+        {
+            var key = new AuthArtifactKey(hubKey);
+            var artifact = _authStore.GetAsync(key, ctx.RequestAborted).Result;
+
+            if (artifact is HubFlowArtifact hub)
+            {
+                hub.MarkCompleted();
+                _authStore.StoreAsync(key, hub, ctx.RequestAborted);
+            }
+            return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}&error={Uri.EscapeDataString(error)}");
+        }
+
+        return Results.Redirect($"{basePath}?error={Uri.EscapeDataString(error)}");
     }
 
 }

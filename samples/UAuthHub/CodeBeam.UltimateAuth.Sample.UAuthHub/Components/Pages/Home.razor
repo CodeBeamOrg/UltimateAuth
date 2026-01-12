@@ -4,6 +4,7 @@
 @using CodeBeam.UltimateAuth.Client.Authentication
 @using CodeBeam.UltimateAuth.Client.Diagnostics
 @using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Core.Contracts
 @using CodeBeam.UltimateAuth.Core.Domain
 @using CodeBeam.UltimateAuth.Core.Runtime
 @using CodeBeam.UltimateAuth.Server.Abstractions
@@ -12,6 +13,7 @@
 @using CodeBeam.UltimateAuth.Server.Services
 @using CodeBeam.UltimateAuth.Server.Stores
 @inject IUAuthStateManager StateManager
+@inject IHubFlowStateReader HubStateReader
 @inject IAuthStore AuthStore
 @inject UAuthHubContextAccessor HubContextAccessor
 @inject IUAuthFlowService<UserId> Flow
@@ -27,7 +29,7 @@
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
-        <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password">
+        <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" HubContextAccessor="@HubContextAccessor">
             <MudStack>
                 <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
                 <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
@@ -51,6 +53,8 @@
             <MudText>Return Url: @HubContextAccessor?.Current?.ReturnUrl</MudText>
             <MudText>Flow Type: @HubContextAccessor?.Current?.FlowType</MudText>
             <MudText>Created At: @HubContextAccessor?.Current?.CreatedAt</MudText>
+            <MudText>Completed: @HubContextAccessor?.Current?.IsCompleted</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CompleteHubFlow">Complete Hub Flow</MudButton>
         </MudStack>
     </MudStack>
 

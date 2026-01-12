@@ -1,6 +1,8 @@
 ﻿@using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Server.Infrastructure
 @inherits LayoutComponentBase
 @inject IUAuthHubContextInitializer HubContextInitializer
+@inject UAuthHubContextAccessor HubContextAccessor
 
 <UAuthClientProvider />
 <MudThemeProvider />

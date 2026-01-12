@@ -13,6 +13,11 @@ public sealed class HubFlowArtifact : AuthArtifact
 
     public HubFlowPayload Payload { get; }
 
+    public void MarkCompleted()
+    {
+        IsCompleted = true;
+    }
+
     public HubFlowArtifact(
         HubSessionId hubSessionId,
         HubFlowType flowType,

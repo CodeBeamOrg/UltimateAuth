@@ -51,7 +51,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             _accessor.Initialize(context);
             _initialized = true;
 
-            _nav.NavigateTo(uri.GetLeftPart(UriPartial.Path), replace: true);
+            //_nav.NavigateTo(uri.GetLeftPart(UriPartial.Path), replace: true);
+            _nav.NavigateTo(_nav.Uri);
         }
     }
 }
