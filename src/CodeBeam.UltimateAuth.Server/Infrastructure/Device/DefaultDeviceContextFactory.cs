@@ -9,12 +9,9 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         public DeviceContext Create(DeviceInfo device)
         {
             if (string.IsNullOrWhiteSpace(device.DeviceId.Value))
-                throw new SecurityException("DeviceId is required.");
+                return DeviceContext.Anonymous();
 
-            return new DeviceContext
-            {
-                DeviceId = device.DeviceId
-            };
+            return DeviceContext.FromDeviceId(device.DeviceId);
         }
     }
 }

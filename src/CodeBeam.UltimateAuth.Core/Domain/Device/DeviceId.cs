@@ -16,7 +16,7 @@ public readonly record struct DeviceId
         _value = value;
     }
 
-    public static DeviceId Create(string raw)
+    public static DeviceId Create(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
             throw new SecurityException("DeviceId is required.");
@@ -33,6 +33,25 @@ public readonly record struct DeviceId
             throw new SecurityException("DeviceId is too long.");
 
         return new DeviceId(raw);
+    }
+
+    public static bool TryCreate(string? raw, out DeviceId deviceId)
+    {
+        deviceId = default;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        raw = raw.Trim();
+
+        if (raw == "undefined" || raw == "null")
+            return false;
+
+        if (raw.Length < MinLength || raw.Length > MaxLength)
+            return false;
+
+        deviceId = new DeviceId(raw);
+        return true;
     }
 
     public static DeviceId CreateFromBytes(ReadOnlySpan<byte> bytes)

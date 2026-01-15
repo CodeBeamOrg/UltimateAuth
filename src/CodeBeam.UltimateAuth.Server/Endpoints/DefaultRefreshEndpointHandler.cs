@@ -38,7 +38,10 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             var flow = _authContext.Current;
 
             if (flow.Session is not SessionSecurityContext session)
-                throw new InvalidOperationException("Refresh flow requires an active session.");
+            {
+                //_logger.LogDebug("Refresh called without active session.");
+                return Results.Ok(RefreshOutcome.None);
+            }
 
             var request = new RefreshFlowRequest
             {

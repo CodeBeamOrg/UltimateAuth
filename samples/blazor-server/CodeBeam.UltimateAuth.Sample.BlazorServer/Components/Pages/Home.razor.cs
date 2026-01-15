@@ -38,12 +38,12 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private async Task ProgrammaticLogin()
         {
-            var device = await DeviceIdProvider.GetOrCreateAsync();
+            var deviceId = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
                 Identifier = "Admin",
                 Secret = "Password!",
-                Device = new DeviceContext { DeviceId = device },
+                Device = DeviceContext.FromDeviceId(deviceId),
             };
             await UAuthClient.LoginAsync(request);
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();

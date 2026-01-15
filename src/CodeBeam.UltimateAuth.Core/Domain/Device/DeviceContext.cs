@@ -1,8 +1,21 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
-    public sealed record DeviceContext
+    public sealed class DeviceContext
     {
-        public required DeviceId DeviceId { get; init; }
+        public DeviceId? DeviceId { get; init; }
+
+        public bool HasDeviceId => DeviceId is not null;
+
+        private DeviceContext(DeviceId? deviceId)
+        {
+            DeviceId = deviceId;
+        }
+
+        public static DeviceContext Anonymous()
+            => new(null);
+
+        public static DeviceContext FromDeviceId(DeviceId deviceId)
+            => new(deviceId);
 
         // DeviceInfo is a transport object.
         // AuthFlowContextFactory changes it to a useable DeviceContext

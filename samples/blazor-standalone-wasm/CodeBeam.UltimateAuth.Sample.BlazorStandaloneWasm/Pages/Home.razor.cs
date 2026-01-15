@@ -48,11 +48,9 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
             {
                 Identifier = "Admin",
                 Secret = "Password!",
-                Device = new DeviceContext { DeviceId = device },
+                Device = DeviceContext.FromDeviceId(device),
             };
             await UAuthClient.LoginAsync(request);
-            //await StateManager.OnLoginAsync();
-            //_authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         private async Task StartPkceLogin()

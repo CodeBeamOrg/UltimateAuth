@@ -3,7 +3,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using System.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -14,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             var request = context.Request;
 
             var rawDeviceId = ResolveRawDeviceId(context);
-            var deviceId = DeviceId.Create(rawDeviceId);
+            DeviceId.TryCreate(rawDeviceId, out var deviceId);
 
             return new DeviceInfo
             {
@@ -26,7 +25,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         }
 
 
-        private static string ResolveRawDeviceId(HttpContext context)
+        private static string? ResolveRawDeviceId(HttpContext context)
         {
             if (context.Request.Headers.TryGetValue("X-UDID", out var header))
                 return header.ToString();
@@ -39,7 +38,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (context.Request.Cookies.TryGetValue("udid", out var cookie))
                 return cookie;
 
-            throw new SecurityException("DeviceId is required.");
+            return null;
         }
 
         private static string? ResolvePlatform(HttpRequest request)
