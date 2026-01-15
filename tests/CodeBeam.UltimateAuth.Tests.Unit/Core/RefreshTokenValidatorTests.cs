@@ -34,7 +34,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
                     TenantId = null,
                     RefreshToken = "non-existing",
                     Now = DateTimeOffset.UtcNow,
-                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
+                    Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
                 });
 
             Assert.False(result.IsValid);
@@ -71,7 +71,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
                     TenantId = null,
                     RefreshToken = rawToken,
                     Now = now,
-                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
+                    Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
                 });
 
             Assert.False(result.IsValid);
@@ -104,7 +104,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
                     RefreshToken = "hash-2",
                     ExpectedSessionId = TestIds.Session("session-2-cccccccccccccccccccccc"),
                     Now = now,
-                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
+                    Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
                 });
 
             Assert.False(result.IsValid);
