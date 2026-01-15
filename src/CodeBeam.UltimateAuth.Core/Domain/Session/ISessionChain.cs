@@ -5,12 +5,14 @@
     /// A chain groups all rotated sessions belonging to a single logical login
     /// (e.g., a browser instance, mobile app installation, or device fingerprint).
     /// </summary>
-    public interface ISessionChain<TUserId>
+    public interface ISessionChain
     {
         /// <summary>
         /// Gets the unique identifier of the session chain.
         /// </summary>
-        ChainId ChainId { get; }
+        SessionChainId ChainId { get; }
+
+        SessionRootId RootId { get; }
 
         string? TenantId { get; }
 
@@ -18,7 +20,7 @@
         /// Gets the identifier of the user who owns this chain.
         /// Each chain represents one device/login family for this user.
         /// </summary>
-        TUserId UserId { get; }
+        UserKey UserKey { get; }
 
         /// <summary>
         /// Gets the number of refresh token rotations performed within this chain.
@@ -56,9 +58,9 @@
         /// </summary>
         DateTimeOffset? RevokedAt { get; }
 
-        ISessionChain<TUserId> AttachSession(AuthSessionId sessionId);
-        ISessionChain<TUserId> RotateSession(AuthSessionId sessionId);
-        ISessionChain<TUserId> Revoke(DateTimeOffset at);
+        ISessionChain AttachSession(AuthSessionId sessionId);
+        ISessionChain RotateSession(AuthSessionId sessionId);
+        ISessionChain Revoke(DateTimeOffset at);
     }
 
 }

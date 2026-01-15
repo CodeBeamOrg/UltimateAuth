@@ -9,11 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-preview.1" />
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-preview.3" />
     <PackageReference Include="MudBlazor" Version="9.0.0-preview.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
     <ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />

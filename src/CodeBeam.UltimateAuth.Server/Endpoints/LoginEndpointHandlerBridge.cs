@@ -5,15 +5,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class LoginEndpointHandlerBridge : ILoginEndpointHandler
     {
-        private readonly DefaultLoginEndpointHandler<UserId> _inner;
+        private readonly DefaultLoginEndpointHandler<UserKey> _inner;
 
-        public LoginEndpointHandlerBridge(DefaultLoginEndpointHandler<UserId> inner)
+        public LoginEndpointHandlerBridge(DefaultLoginEndpointHandler<UserKey> inner)
         {
             _inner = inner;
         }
 
-        public Task<IResult> LoginAsync(HttpContext ctx)
-            => _inner.LoginAsync(ctx);
+        public Task<IResult> LoginAsync(HttpContext ctx) => _inner.LoginAsync(ctx);
     }
-
 }

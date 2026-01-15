@@ -22,7 +22,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
                 return InMemoryCredentialSeeder.CreateDefaultUsers(hasher);
             });
 
-            services.AddSingleton<IUAuthUserStore<UserId>>(sp =>
+            services.AddSingleton<IUAuthUserStore<UserKey>>(sp =>
             {
                 var users = sp.GetRequiredService<IReadOnlyCollection<InMemoryCredentialUser>>();
                 return new InMemoryUserStore(users);

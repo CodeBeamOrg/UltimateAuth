@@ -1,0 +1,18 @@
+﻿@using CodeBeam.UltimateAuth.Client.Runtime
+@inject IUAuthClientBootstrapper Bootstrapper
+
+<CascadingValue Value="true" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await Bootstrapper.EnsureStartedAsync();
+    }
+}

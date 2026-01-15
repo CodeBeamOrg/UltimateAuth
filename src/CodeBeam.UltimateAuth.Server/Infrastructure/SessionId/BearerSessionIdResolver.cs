@@ -20,7 +20,10 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (string.IsNullOrWhiteSpace(raw))
                 return null;
 
-            return new AuthSessionId(raw);
+            if (!AuthSessionId.TryCreate(raw, out var sessionId))
+                return null;
+
+            return sessionId;
         }
     }
 

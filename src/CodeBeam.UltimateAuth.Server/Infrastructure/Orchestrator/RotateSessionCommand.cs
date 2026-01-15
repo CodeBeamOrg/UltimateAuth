@@ -3,9 +3,9 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    internal sealed record RotateSessionCommand<TUserId>(SessionRotationContext<TUserId> RotationContext) : ISessionCommand<TUserId, IssuedSession<TUserId>>
+    internal sealed record RotateSessionCommand(SessionRotationContext RotationContext) : ISessionCommand<IssuedSession>
     {
-        public Task<IssuedSession<TUserId>> ExecuteAsync(AuthContext _, ISessionIssuer<TUserId> issuer, CancellationToken ct)
+        public Task<IssuedSession> ExecuteAsync(AuthContext _, ISessionIssuer issuer, CancellationToken ct)
         {
             return issuer.RotateSessionAsync(RotationContext, ct);
         }

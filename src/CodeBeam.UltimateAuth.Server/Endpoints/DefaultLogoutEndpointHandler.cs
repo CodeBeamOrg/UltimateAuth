@@ -32,13 +32,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         {
             var auth = _authContext.Current;
 
-            if (auth.SessionId != null)
+            if (auth.Session is SessionSecurityContext session)
             {
                 var request = new LogoutRequest
                 {
                     TenantId = auth.TenantId,
-                    SessionId = auth.SessionId.Value,
-                    At = _clock.UtcNow
+                    SessionId = session.SessionId,
+                    At = _clock.UtcNow,
                 };
 
                 await _flow.LogoutAsync(request, ctx.RequestAborted);
@@ -63,6 +63,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         private void DeleteIfCookie(HttpContext ctx, CredentialResponseOptions delivery)
         {
             if (delivery.Mode != TokenResponseMode.Cookie)
+                return;
+
+            if (delivery.Cookie == null)
                 return;
 
             _cookieManager.Delete(ctx, delivery.Cookie.Name);

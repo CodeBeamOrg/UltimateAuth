@@ -2,15 +2,15 @@
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
-    internal sealed class SessionProjection<TUserId>
+    internal sealed class SessionProjection
     {
         public long Id { get; set; } // EF internal PK
 
         public AuthSessionId SessionId { get; set; } = default!;
-        public ChainId ChainId { get; set; } = default!;
+        public SessionChainId ChainId { get; set; } = default!;
 
         public string? TenantId { get; set; }
-        public TUserId UserId { get; set; } = default!;
+        public UserKey UserKey { get; set; } = default!;
 
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset ExpiresAt { get; set; }
@@ -21,7 +21,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 
         public long SecurityVersionAtCreation { get; set; }
 
-        public DeviceInfo Device { get; set; } = DeviceInfo.Empty;
+        public DeviceContext Device { get; set; }
         public ClaimsSnapshot Claims { get; set; } = ClaimsSnapshot.Empty;
         public SessionMetadata Metadata { get; set; } = SessionMetadata.Empty;
 

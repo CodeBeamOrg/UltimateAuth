@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Server.Auth;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
@@ -6,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Cookies;
 
 internal sealed class DefaultUAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
 {
-    public CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, TimeSpan? logicalLifetime)
+    public CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, CredentialKind kind)
     {
         if (response.Cookie is null)
             throw new InvalidOperationException("Cookie policy requested but Cookie options are null.");
@@ -18,11 +20,11 @@ internal sealed class DefaultUAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilde
             HttpOnly = src.HttpOnly,
             Secure = src.SecurePolicy == CookieSecurePolicy.Always,
             Path = src.Path,
-            Domain = src.Domain
+            Domain = src.Domain,
+            SameSite = ResolveSameSite(src, context)
         };
 
-        options.SameSite = ResolveSameSite(src, context);
-        ApplyLifetime(options, src, logicalLifetime);
+        ApplyLifetime(options, src, context, kind);
 
         return options;
     }
@@ -41,30 +43,51 @@ internal sealed class DefaultUAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilde
         };
     }
 
-    private static void ApplyLifetime(CookieOptions target, UAuthCookieOptions src, TimeSpan? logicalLifetime)
+    private static void ApplyLifetime(CookieOptions target, UAuthCookieOptions src, AuthFlowContext context, CredentialKind kind)
     {
         var buffer = src.Lifetime.IdleBuffer ?? TimeSpan.Zero;
-        TimeSpan? baseLifetime = null;
-
-        // 1️⃣ Hard MaxAge override (base)
-        if (src.MaxAge is not null)
-        {
-            baseLifetime = src.MaxAge;
-        }
-        // 2️⃣ Absolute lifetime override (base)
-        else if (src.Lifetime.AbsoluteLifetimeOverride is not null)
-        {
-            baseLifetime = src.Lifetime.AbsoluteLifetimeOverride;
-        }
-        // 3️⃣ Logical lifetime (effective)
-        else if (logicalLifetime is not null)
-        {
-            baseLifetime = logicalLifetime;
-        }
+        var baseLifetime = ResolveBaseLifetime(context, kind, src);
 
         if (baseLifetime is not null)
         {
             target.MaxAge = baseLifetime.Value + buffer;
         }
+    }
+
+    private static TimeSpan? ResolveBaseLifetime(AuthFlowContext context, CredentialKind kind, UAuthCookieOptions src)
+    {
+        if (src.MaxAge is not null)
+            return src.MaxAge;
+
+        if (src.Lifetime.AbsoluteLifetimeOverride is not null)
+            return src.Lifetime.AbsoluteLifetimeOverride;
+
+        return kind switch
+        {
+            CredentialKind.Session => ResolveSessionLifetime(context),
+            CredentialKind.RefreshToken => context.EffectiveOptions.Options.Tokens.RefreshTokenLifetime,
+            CredentialKind.AccessToken => context.EffectiveOptions.Options.Tokens.AccessTokenLifetime,
+            _ => null
+        };
+    }
+
+    private static TimeSpan? ResolveSessionLifetime(AuthFlowContext context)
+    {
+        var sessionIdle = context.EffectiveOptions.Options.Session.IdleTimeout;
+        var refresh = context.EffectiveOptions.Options.Tokens.RefreshTokenLifetime;
+
+        return context.EffectiveMode switch
+        {
+            UAuthMode.PureOpaque => sessionIdle,
+            UAuthMode.Hybrid => Max(sessionIdle, refresh),
+            _ => sessionIdle
+        };
+    }
+
+    private static TimeSpan? Max(TimeSpan? a, TimeSpan? b)
+    {
+        if (a is null) return b;
+        if (b is null) return a;
+        return a > b ? a : b;
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Abstractions
 {

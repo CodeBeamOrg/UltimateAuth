@@ -15,6 +15,26 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             _outcomes = new Queue<RefreshOutcome>(outcomes);
         }
 
+        public Task BeginPkceAsync(bool navigateToHubLogin = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task BeginPkceAsync(string? returnUrl = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CompletePkceLoginAsync(LoginRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CompletePkceLoginAsync(PkceLoginRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<ClaimsPrincipal> GetCurrentPrincipalAsync()
         {
             throw new NotImplementedException();
@@ -26,6 +46,11 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
         }
 
         public Task LogoutAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string? returnUrl = null)
         {
             throw new NotImplementedException();
         }

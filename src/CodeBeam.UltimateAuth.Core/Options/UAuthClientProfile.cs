@@ -7,6 +7,7 @@
         BlazorServer,
         Maui,
         WebServer,
-        Api
+        Api,
+        UAuthHub = 1000
     }
 }

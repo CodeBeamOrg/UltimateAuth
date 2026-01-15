@@ -21,33 +21,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
         {
             // Base: /auth
             string basePrefix = options.RoutePrefix.TrimStart('/');
-
-            bool useRouteTenant =
-                options.MultiTenant.Enabled &&
-                options.MultiTenant.EnableRoute;
+            bool useRouteTenant = options.MultiTenant.Enabled && options.MultiTenant.EnableRoute;
 
             RouteGroupBuilder group = useRouteTenant
                 ? rootGroup.MapGroup("/{tenant}/" + basePrefix)
                 : rootGroup.MapGroup("/" + basePrefix);
 
             group.AddEndpointFilter<AuthFlowEndpointFilter>();
-
-            if (options.EnablePkceEndpoints != false)
-            {
-                var pkce = group.MapGroup("/pkce");
-
-                pkce.MapPost("/create",
-                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
-
-                pkce.MapPost("/verify",
-                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.VerifyAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
-
-                pkce.MapPost("/consume",
-                    async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                        => await h.ConsumeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
-            }
 
             if (options.EnableLoginEndpoints != false)
             {
@@ -65,6 +45,17 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
                 group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
                     => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
+            }
+
+            if (options.EnablePkceEndpoints != false)
+            {
+                var pkce = group.MapGroup("/pkce");
+
+                pkce.MapPost("/authorize", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                        => await h.AuthorizeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+
+                pkce.MapPost("/complete", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                        => await h.CompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
             }
 
             if (options.EnableTokenEndpoints != false)

@@ -18,13 +18,17 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly IJwtTokenGenerator _jwtGenerator;
         private readonly ITokenHasher _tokenHasher;
+        private readonly IRefreshTokenStore _refreshTokenStore;
+        private readonly IUserIdConverterResolver _converterResolver;
         private readonly IClock _clock;
 
-        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IClock clock)
+        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore refreshTokenStore,IUserIdConverterResolver converterResolver, IClock clock)
         {
             _opaqueGenerator = opaqueGenerator;
             _jwtGenerator = jwtGenerator;
             _tokenHasher = tokenHasher;
+            _refreshTokenStore = refreshTokenStore;
+            _converterResolver = converterResolver;
             _clock = clock;
         }
 
@@ -36,8 +40,9 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             return flow.EffectiveMode switch
             {
+                // TODO: Discuss, Hybrid token may be JWT.
                 UAuthMode.PureOpaque or UAuthMode.Hybrid =>
-                    Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
+                    Task.FromResult(IssueOpaqueAccessToken(expires, flow?.Session?.SessionId.ToString())),
 
                 UAuthMode.SemiHybrid or
                 UAuthMode.PureJwt =>
@@ -48,23 +53,39 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             };
         }
 
-        public Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
+        public async Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
         {
             if (flow.EffectiveMode == UAuthMode.PureOpaque)
-                return Task.FromResult<RefreshToken?>(null);
+                return null;
 
-            var tokens = flow.OriginalOptions.Tokens;
-            var expires = _clock.UtcNow.Add(tokens.RefreshTokenLifetime);
+            var expires = _clock.UtcNow.Add(flow.OriginalOptions.Tokens.RefreshTokenLifetime);
 
             var raw = _opaqueGenerator.Generate();
             var hash = _tokenHasher.Hash(raw);
 
-            return Task.FromResult<RefreshToken?>(new RefreshToken
+            var stored = new StoredRefreshToken
+            {
+                TenantId = flow.TenantId,
+                TokenHash = hash,
+                UserKey = context.UserKey,
+                // TODO: Check here again
+                SessionId = (AuthSessionId)context.SessionId,
+                ChainId = context.ChainId,
+                IssuedAt = _clock.UtcNow,
+                ExpiresAt = expires
+            };
+
+            if (persistence == RefreshTokenPersistence.Persist)
+            {
+                await _refreshTokenStore.StoreAsync(flow.TenantId, stored, ct);
+            }
+
+            return new RefreshToken
             {
                 Token = raw,
                 TokenHash = hash,
                 ExpiresAt = expires
-            });
+            };
         }
 
         private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)
@@ -84,14 +105,14 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         {
             var claims = new Dictionary<string, object>
             {
-                ["sub"] = context.UserId,
+                ["sub"] = context.UserKey,
                 ["tenant"] = context.TenantId
             };
 
             foreach (var kv in context.Claims)
                 claims[kv.Key] = kv.Value;
 
-            if (!string.IsNullOrWhiteSpace(context.SessionId))
+            if (context.SessionId != null)
                 claims["sid"] = context.SessionId!;
 
             if (tokens.AddJwtIdClaim)
@@ -99,7 +120,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             var descriptor = new UAuthJwtTokenDescriptor
             {
-                Subject = context.UserId,
+                Subject = context.UserKey,
                 Issuer = tokens.Issuer,
                 Audience = tokens.Audience,
                 IssuedAt = _clock.UtcNow,
@@ -116,7 +137,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 Token = jwt,
                 Type = TokenType.Jwt,
                 ExpiresAt = expires,
-                SessionId = context.SessionId
+                SessionId = context.SessionId.ToString()
             };
         }
 

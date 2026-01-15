@@ -1,5 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
@@ -7,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     public interface IAuthFlowContextFactory
     {
-        AuthFlowContext Create(HttpContext httpContext, AuthFlowType flowType);
+        ValueTask<AuthFlowContext> CreateAsync(HttpContext httpContext, AuthFlowType flowType, CancellationToken ct = default);
     }
 
     internal sealed class DefaultAuthFlowContextFactory : IAuthFlowContextFactory
@@ -16,23 +19,32 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         private readonly IPrimaryTokenResolver _primaryTokenResolver;
         private readonly IEffectiveServerOptionsProvider _serverOptionsProvider;
         private readonly IAuthResponseResolver _authResponseResolver;
+        private readonly IDeviceResolver _deviceResolver;
+        private readonly IDeviceContextFactory _deviceContextFactory;
+        private readonly ISessionQueryService _sessionQueryService;
 
         public DefaultAuthFlowContextFactory(
             IClientProfileReader clientProfileReader,
             IPrimaryTokenResolver primaryTokenResolver,
             IEffectiveServerOptionsProvider serverOptionsProvider,
-            IAuthResponseResolver authResponseResolver)
+            IAuthResponseResolver authResponseResolver,
+            IDeviceResolver deviceResolver,
+            IDeviceContextFactory deviceContextFactory,
+            ISessionQueryService sessionQueryService)
         {
             _clientProfileReader = clientProfileReader;
             _primaryTokenResolver = primaryTokenResolver;
             _serverOptionsProvider = serverOptionsProvider;
             _authResponseResolver = authResponseResolver;
+            _deviceResolver = deviceResolver;
+            _deviceContextFactory = deviceContextFactory;
+            _sessionQueryService = sessionQueryService;
         }
 
-        public AuthFlowContext Create(HttpContext ctx, AuthFlowType flowType)
+        public async ValueTask<AuthFlowContext> CreateAsync(HttpContext ctx, AuthFlowType flowType, CancellationToken ct = default)
         {
             var tenant = ctx.GetTenantContext();
-            var session = ctx.GetSessionContext();
+            var sessionCtx = ctx.GetSessionContext();
             var user = ctx.GetUserContext();
 
             var clientProfile = _clientProfileReader.Read(ctx);
@@ -44,6 +56,26 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 
             var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
 
+            var deviceInfo = _deviceResolver.Resolve(ctx);
+            var deviceContext = _deviceContextFactory.Create(deviceInfo);
+
+            SessionSecurityContext? sessionSecurityContext = null;
+
+            if (!sessionCtx.IsAnonymous)
+            {
+                var validation = await _sessionQueryService.ValidateSessionAsync(
+                    new SessionValidationContext
+                    {
+                        TenantId = sessionCtx.TenantId,
+                        SessionId = sessionCtx.SessionId!.Value,
+                        Device = deviceContext,
+                        Now = DateTimeOffset.UtcNow
+                    },
+                    ct);
+
+                sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+            }
+
             // TODO: Implement invariant checker
             //_invariantChecker.Validate(flowType, effectiveMode, response, effectiveOptions);
 
@@ -51,10 +83,11 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 flowType,
                 clientProfile,
                 effectiveMode,
+                deviceContext,
                 tenant?.TenantId,
                 user?.IsAuthenticated ?? false,
                 user?.UserId,
-                session?.SessionId,
+                sessionSecurityContext,
                 originalOptions,
                 effectiveOptions,
                 response,

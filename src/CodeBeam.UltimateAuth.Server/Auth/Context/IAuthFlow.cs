@@ -4,6 +4,6 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     public interface IAuthFlow
     {
-        AuthFlowContext Begin(AuthFlowType flowType);
+        ValueTask<AuthFlowContext> BeginAsync(AuthFlowType flowType, CancellationToken ct = default);
     }
 }

@@ -1,7 +1,68 @@
 ﻿@page "/"
+@page "/login"
+@using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Authentication
+@using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Client.Utilities
+@using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.Core.Runtime
+@using CodeBeam.UltimateAuth.Server.Abstractions
+@using CodeBeam.UltimateAuth.Server.Cookies
+@using CodeBeam.UltimateAuth.Server.Infrastructure
+@using CodeBeam.UltimateAuth.Server.Services
+@using CodeBeam.UltimateAuth.Server.Stores
+@inject IUAuthStateManager StateManager
+@inject IHubFlowReader HubFlowReader
+@inject IHubCredentialResolver HubCredentialResolver
+@inject IAuthStore AuthStore
+@inject IBrowserStorage BrowserStorage
+@inject IUAuthFlowService<UserKey> Flow
+@inject ISnackbar Snackbar
+@inject IFlowCredentialResolver CredentialResolver
+@inject IUAuthClient UAuthClient
+@inject NavigationManager Nav
+@inject IUAuthProductInfoProvider ProductInfo
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UAuthClientDiagnostics Diagnostics
 
-<PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="uauth-page d-flex align-center justify-center">
+    <MudStack Class="uauth-stack">
+        @if (_state == null || !_state.IsActive)
+        {
+            <MudText>
+                This page cannot be accessed directly. 
+                UAuthHub login flows can only be initiated by an authorized client application.
+            </MudText>
+            return;
+        }
+        <UALoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce">
+            <MudStack>
+                <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
+                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
+                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
+            </MudStack>
+        </UALoginForm>
 
-Welcome to your new app.
+        <MudStack Class="mud-width-full">
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticPkceLogin">Programmatic Pkce Login</MudButton>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
+            <MudText>Client Profile: @ProductInfo.Get().ClientProfile.ToString()</MudText>
+        </MudStack>
+
+        <MudStack Spacing="0">
+            <MudText>Hub SessionId: @_state?.HubSessionId</MudText>
+            <MudText>Client Profile: @_state?.ClientProfile</MudText>
+            <MudText>Return Url: @_state?.ReturnUrl</MudText>
+            <MudText>Flow Type: @_state?.FlowType</MudText>
+            <MudText>IsActive: @_state?.IsActive</MudText>
+        </MudStack>
+    </MudStack>
+</div>
+

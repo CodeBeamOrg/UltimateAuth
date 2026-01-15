@@ -7,8 +7,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
     {
         public static IReadOnlyCollection<InMemoryCredentialUser> CreateDefaultUsers(IUAuthPasswordHasher passwordHasher)
         {
-            var adminUserId = UserId.New();
-
+            var adminUserId = UserKey.New();
             var passwordHash = passwordHasher.Hash("Password!");
 
             var admin = new InMemoryCredentialUser(

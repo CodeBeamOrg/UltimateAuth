@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Stores
     /// Resolves session store kernels from DI and provides them
     /// to framework-level session stores.
     /// </summary>
-    public sealed class UAuthSessionStoreFactory : ISessionStoreFactory
+    public sealed class UAuthSessionStoreFactory : ISessionStoreKernelFactory
     {
         private readonly IServiceProvider _provider;
 
@@ -17,16 +17,13 @@ namespace CodeBeam.UltimateAuth.Server.Stores
             _provider = provider;
         }
 
-        public ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId)
+        public ISessionStoreKernel Create(string? tenantId)
         {
-            var kernel = _provider.GetService<ISessionStoreKernel<TUserId>>();
+            var kernel = _provider.GetService<ISessionStoreKernel>();
 
-            if (kernel is null)
+            if (kernel is ITenantAwareSessionStore tenantAware)
             {
-                throw new InvalidOperationException(
-                    "No ISessionStoreKernel<TUserId> registered. " +
-                    "Call AddUltimateAuthServer().AddSessionStoreKernel<TKernel, TUserId>()."
-                );
+                tenantAware.BindTenant(tenantId);
             }
 
             return kernel;

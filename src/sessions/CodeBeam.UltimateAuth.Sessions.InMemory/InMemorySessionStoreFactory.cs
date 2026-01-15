@@ -3,19 +3,22 @@ using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Sessions.InMemory
 {
-    public sealed class InMemorySessionStoreFactory : ISessionStoreFactory
+    public sealed class InMemorySessionStoreFactory : ISessionStoreKernelFactory
     {
         private readonly ConcurrentDictionary<string, object> _stores = new();
 
-        public ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId)
+        public ISessionStoreKernel Create(string? tenantId)
         {
             var key = tenantId ?? "__single__";
 
-            var store = _stores.GetOrAdd(
-                key,
-                _ => new InMemorySessionStoreKernel<TUserId>());
+            var store = _stores.GetOrAdd(key, _ =>
+            {
+                var k = new InMemorySessionStoreKernel();
+                k.BindTenant(tenantId);
+                return k;
+            });
 
-            return (ISessionStoreKernel<TUserId>)store;
+            return (ISessionStoreKernel)store;
         }
     }
 }

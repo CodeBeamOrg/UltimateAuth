@@ -22,7 +22,11 @@ namespace CodeBeam.UltimateAuth.Client
                 return;
 
             _started = true;
+            // TODO: Add device id auto creation for MVC, this is only for blazor.
+            var deviceId = await DeviceIdProvider.GetOrCreateAsync();
+            await BrowserUAuthBridge.SetDeviceIdAsync(deviceId.Value);
             await Coordinator.StartAsync();
+            StateHasChanged();
         }
 
         private async void HandleReauthRequired()

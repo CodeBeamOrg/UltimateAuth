@@ -9,9 +9,11 @@ internal sealed class RefreshTokenProjection
     public string? TenantId { get; set; }
 
     public string TokenHash { get; set; } = default!;
-    public string UserId { get; set; } = default!;
-    public string SessionId { get; set; } = default!;
-    public ChainId ChainId { get; set; } = default!;
+    public UserKey UserKey { get; set; } = default!;
+    public AuthSessionId SessionId { get; set; } = default!;
+    public SessionChainId ChainId { get; set; } = default!;
+
+    public string? ReplacedByTokenHash { get; set; }
 
     public DateTimeOffset IssuedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }

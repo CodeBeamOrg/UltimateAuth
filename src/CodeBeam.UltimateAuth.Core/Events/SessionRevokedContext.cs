@@ -31,7 +31,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the identifier of the session chain containing the revoked session.
         /// </summary>
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
 
         /// <summary>
         /// Gets the timestamp at which the session revocation occurred.
@@ -44,7 +44,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         public SessionRevokedContext(
             TUserId userId,
             AuthSessionId sessionId,
-            ChainId chainId,
+            SessionChainId chainId,
             DateTimeOffset revokedAt)
         {
             UserId = userId;

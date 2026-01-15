@@ -16,25 +16,25 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     /// token services, event emitters, logging pipelines, or application-level
     /// consumers — can easily access all updated authentication structures.
     /// </summary>
-    public sealed class SessionResult<TUserId>
+    public sealed class SessionResult
     {
         /// <summary>
         /// Gets the active session produced by the operation.
         /// This is the newest session and the one that should be used when issuing tokens.
         /// </summary>
-        public required ISession<TUserId> Session { get; init; }
+        public required ISession Session { get; init; }
 
         /// <summary>
         /// Gets the session chain associated with the session.
         /// The chain may be newly created (login) or updated (session rotation).
         /// </summary>
-        public required ISessionChain<TUserId> Chain { get; init; }
+        public required ISessionChain Chain { get; init; }
 
         /// <summary>
         /// Gets the user's session root.
         /// This structure may be updated when new chains are added or when security
         /// properties change.
         /// </summary>
-        public required ISessionRoot<TUserId> Root { get; init; }
+        public required ISessionRoot Root { get; init; }
     }
 }

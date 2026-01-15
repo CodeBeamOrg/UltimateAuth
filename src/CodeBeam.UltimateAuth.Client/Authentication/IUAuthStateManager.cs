@@ -21,7 +21,7 @@
         /// <summary>
         /// Called after a successful login.
         /// </summary>
-        Task OnLoginAsync(CancellationToken ct = default);
+        Task OnLoginAsync();
 
         /// <summary>
         /// Called after logout.

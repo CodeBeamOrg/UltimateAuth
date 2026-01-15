@@ -5,19 +5,23 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public class UAuthSessionTests
 {
+    private const string ValidRaw = "session-aaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    private const string ValidDeviceId = "deviceidshouldbelongandstrongenough!?1234567890";
+
     [Fact]
     public void Revoke_marks_session_as_revoked()
     {
         var now = DateTimeOffset.UtcNow;
+        AuthSessionId.TryCreate(ValidRaw, out var sessionId);
 
-        var session = UAuthSession<string>.Create(
-            new AuthSessionId("s1"),
+        var session = UAuthSession.Create(
+            sessionId: sessionId,
             tenantId: null,
-            userId: "user-1",
-            chainId: ChainId.New(),
+            userKey: UserKey.FromString("user-1"),
+            chainId: SessionChainId.New(),
             now,
             now.AddMinutes(10),
-            DeviceInfo.Unknown,
+            DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);
 
@@ -32,15 +36,16 @@ public class UAuthSessionTests
     public void Revoking_twice_returns_same_instance()
     {
         var now = DateTimeOffset.UtcNow;
+        AuthSessionId.TryCreate(ValidRaw, out var sessionId);
 
-        var session = UAuthSession<string>.Create(
-            new AuthSessionId("s1"),
+        var session = UAuthSession.Create(
+            sessionId,
             null,
-            "user-1",
-            ChainId.New(),
+            UserKey.FromString("user-1"),
+            SessionChainId.New(),
             now,
             now.AddMinutes(10),
-            DeviceInfo.Unknown,
+            DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);
 

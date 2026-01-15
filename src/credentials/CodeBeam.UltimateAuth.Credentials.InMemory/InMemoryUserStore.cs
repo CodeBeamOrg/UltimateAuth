@@ -5,17 +5,17 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory
 {
-    internal sealed class InMemoryUserStore : IUAuthUserStore<UserId>
+    internal sealed class InMemoryUserStore : IUAuthUserStore<UserKey>
     {
         private readonly ConcurrentDictionary<string, InMemoryCredentialUser> _usersByUsername;
-        private readonly ConcurrentDictionary<UserId, InMemoryCredentialUser> _usersById;
+        private readonly ConcurrentDictionary<UserKey, InMemoryCredentialUser> _usersById;
 
         public InMemoryUserStore(IEnumerable<InMemoryCredentialUser> seededUsers)
         {
             _usersByUsername = new ConcurrentDictionary<string, InMemoryCredentialUser>(
                 StringComparer.OrdinalIgnoreCase);
 
-            _usersById = new ConcurrentDictionary<UserId, InMemoryCredentialUser>();
+            _usersById = new ConcurrentDictionary<UserKey, InMemoryCredentialUser>();
 
             foreach (var user in seededUsers)
             {
@@ -24,18 +24,18 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
             }
         }
 
-        public Task<IUser<UserId>?> FindByIdAsync(
+        public Task<IUser<UserKey>?> FindByIdAsync(
             string? tenantId,
-            UserId userId,
+            UserKey userId,
             CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
 
             _usersById.TryGetValue(userId, out var user);
-            return Task.FromResult<IUser<UserId>?>(user is { IsActive: true } ? user : null);
+            return Task.FromResult<IUser<UserKey>?>(user is { IsActive: true } ? user : null);
         }
 
-        public Task<UserRecord<UserId>?> FindByUsernameAsync(
+        public Task<UserRecord<UserKey>?> FindByUsernameAsync(
             string? tenantId,
             string username,
             CancellationToken ct = default)
@@ -43,10 +43,10 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
             ct.ThrowIfCancellationRequested();
 
             if (!_usersByUsername.TryGetValue(username, out var user) || user.IsActive is false)
-                return Task.FromResult<UserRecord<UserId>?>(null);
+                return Task.FromResult<UserRecord<UserKey>?>(null);
 
             // Core’daki UserRecord’u kullanıyorsun; InMemory tarafı buna map eder.
-            var record = new UserRecord<UserId>
+            var record = new UserRecord<UserKey>
             {
                 Id = user.UserId,
                 Username = user.Username,
@@ -59,10 +59,10 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
                 IsDeleted = false
             };
 
-            return Task.FromResult<UserRecord<UserId>?>(record);
+            return Task.FromResult<UserRecord<UserKey>?>(record);
         }
 
-        public Task<IUser<UserId>?> FindByLoginAsync(
+        public Task<IUser<UserKey>?> FindByLoginAsync(
             string? tenantId,
             string login,
             CancellationToken token = default)
@@ -70,12 +70,12 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
             token.ThrowIfCancellationRequested();
 
             _usersByUsername.TryGetValue(login, out var user);
-            return Task.FromResult<IUser<UserId>?>(user is { IsActive: true } ? user : null);
+            return Task.FromResult<IUser<UserKey>?>(user is { IsActive: true } ? user : null);
         }
 
         public Task<string?> GetPasswordHashAsync(
             string? tenantId,
-            UserId userId,
+            UserKey userId,
             CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
@@ -88,7 +88,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
 
         public Task SetPasswordHashAsync(
             string? tenantId,
-            UserId userId,
+            UserKey userId,
             string passwordHash,
             CancellationToken token = default)
         {
@@ -102,7 +102,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
             return Task.CompletedTask;
         }
 
-        public Task<long> GetSecurityVersionAsync(string? tenantId, UserId userId, CancellationToken token = default)
+        public Task<long> GetSecurityVersionAsync(string? tenantId, UserKey userId, CancellationToken token = default)
         {
             return Task.FromResult(
                 _usersById.TryGetValue(userId, out var user)
@@ -110,7 +110,7 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
                     : 0L);
         }
 
-        public Task IncrementSecurityVersionAsync(string? tenantId, UserId userId, CancellationToken token = default)
+        public Task IncrementSecurityVersionAsync(string? tenantId, UserKey userId, CancellationToken token = default)
         {
             if (_usersById.TryGetValue(userId, out var user))
             {

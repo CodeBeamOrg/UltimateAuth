@@ -5,14 +5,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class ValidateEndpointHandlerBridge : IValidateEndpointHandler
     {
-        private readonly DefaultValidateEndpointHandler<UserId> _inner;
+        private readonly DefaultValidateEndpointHandler _inner;
 
-        public ValidateEndpointHandlerBridge(DefaultValidateEndpointHandler<UserId> inner)
+        public ValidateEndpointHandlerBridge(DefaultValidateEndpointHandler inner)
         {
             _inner = inner;
         }
 
-        public Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default)
-            => _inner.ValidateAsync(context, ct);
+        public Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default) => _inner.ValidateAsync(context, ct);
     }
 }

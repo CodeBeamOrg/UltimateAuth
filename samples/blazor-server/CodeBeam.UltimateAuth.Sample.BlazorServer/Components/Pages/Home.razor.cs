@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
@@ -36,14 +38,14 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private async Task ProgrammaticLogin()
         {
+            var deviceId = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
                 Identifier = "Admin",
                 Secret = "Password!",
+                Device = DeviceContext.FromDeviceId(deviceId),
             };
             await UAuthClient.LoginAsync(request);
-            await UAuthClient.ValidateAsync();
-            await StateManager.EnsureAsync();
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 

@@ -1,5 +1,9 @@
 ﻿@namespace CodeBeam.UltimateAuth.Client
 @using CodeBeam.UltimateAuth.Client.Abstractions
+@using CodeBeam.UltimateAuth.Client.Device
+@using CodeBeam.UltimateAuth.Client.Infrastructure
+@inject IDeviceIdProvider DeviceIdProvider
+@inject IBrowserUAuthBridge BrowserUAuthBridge
 @inject ISessionCoordinator Coordinator
 
 @implements IAsyncDisposable

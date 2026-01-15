@@ -23,9 +23,13 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             if (!context.Request.Cookies.TryGetValue(cookieName, out var raw))
                 return null;
 
-            return string.IsNullOrWhiteSpace(raw)
-                ? null
-                : new AuthSessionId(raw.Trim());
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            if (!AuthSessionId.TryCreate(raw, out var sessionId))
+                return null;
+
+            return sessionId;
         }
     }
 }

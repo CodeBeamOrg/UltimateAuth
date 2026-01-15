@@ -8,111 +8,74 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
-    public sealed class DefaultRefreshEndpointHandler<TUserId> : IRefreshEndpointHandler where TUserId : notnull
+    public sealed class DefaultRefreshEndpointHandler : IRefreshEndpointHandler
     {
         private readonly IAuthFlowContextAccessor _authContext;
-        private readonly ISessionRefreshService<TUserId> _sessionRefresh;
-        private readonly IRefreshTokenRotationService<TUserId> _tokenRotation;
+        private readonly IRefreshFlowService _refreshFlow;
         private readonly ICredentialResponseWriter _credentialWriter;
         private readonly IRefreshResponseWriter _refreshWriter;
-        private readonly ISessionQueryService<TUserId> _sessionQueries;
         private readonly IRefreshTokenResolver _refreshTokenResolver;
+        private readonly IRefreshResponsePolicy _refreshPolicy;
 
         public DefaultRefreshEndpointHandler(
             IAuthFlowContextAccessor authContext,
-            ISessionRefreshService<TUserId> sessionRefresh,
-            IRefreshTokenRotationService<TUserId> tokenRotation,
+            IRefreshFlowService refreshFlow,
             ICredentialResponseWriter credentialWriter,
             IRefreshResponseWriter refreshWriter,
-            ISessionQueryService<TUserId> sessionQueries,
-            IRefreshTokenResolver refreshTokenResolver)
+            IRefreshTokenResolver refreshTokenResolver,
+            IRefreshResponsePolicy refreshPolicy)
         {
             _authContext = authContext;
-            _sessionRefresh = sessionRefresh;
-            _tokenRotation = tokenRotation;
+            _refreshFlow = refreshFlow;
             _credentialWriter = credentialWriter;
             _refreshWriter = refreshWriter;
-            _sessionQueries = sessionQueries;
             _refreshTokenResolver = refreshTokenResolver;
+            _refreshPolicy = refreshPolicy;
         }
 
         public async Task<IResult> RefreshAsync(HttpContext ctx)
         {
-            var auth = _authContext.Current;
-            var decision = RefreshDecisionResolver.Resolve(auth.EffectiveMode);
+            var flow = _authContext.Current;
 
-            return decision switch
+            if (flow.Session is not SessionSecurityContext session)
             {
-                RefreshDecision.SessionTouch => await HandleSessionTouchAsync(ctx, auth, auth.Response),
-                RefreshDecision.TokenRotation => await HandleTokenRotationAsync(ctx, auth, auth.Response),
+                //_logger.LogDebug("Refresh called without active session.");
+                return Results.Ok(RefreshOutcome.None);
+            }
 
-                _ => Results.StatusCode(StatusCodes.Status409Conflict)
+            var request = new RefreshFlowRequest
+            {
+                SessionId = session.SessionId,
+                RefreshToken = _refreshTokenResolver.Resolve(ctx),
+                Device = flow.Device,
+                Now = DateTimeOffset.UtcNow
             };
-        }
 
-        private async Task<IResult> HandleSessionTouchAsync(HttpContext ctx, AuthFlowContext flow, EffectiveAuthResponse response)
-        {
-            if (flow.SessionId is null)
-                return Results.Unauthorized();
+            var result = await _refreshFlow.RefreshAsync(flow, request, ctx.RequestAborted);
 
-            var now = DateTimeOffset.UtcNow;
-            var validation = await _sessionQueries.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    TenantId = flow.TenantId,
-                    SessionId = flow.SessionId.Value,
-                    Now = now,
-                    Device = DeviceInfoFactory.FromHttpContext(ctx)
-                },
-                ctx.RequestAborted);
-
-            if (!validation.IsValid)
+            if (!result.Succeeded)
             {
                 WriteRefreshHeader(ctx, flow, RefreshOutcome.ReauthRequired);
                 return Results.Unauthorized();
             }
 
-            var result = await _sessionRefresh.RefreshAsync(validation, now, ctx.RequestAborted);
+            var primary = _refreshPolicy.SelectPrimary(flow, request, result);
 
-            if (!result.IsSuccess || result.PrimaryToken is null)
+            if (primary == CredentialKind.Session && result.SessionId is not null)
             {
-                WriteRefreshHeader(ctx, flow, RefreshOutcome.ReauthRequired);
-                return Results.Unauthorized();
+                _credentialWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
+            }
+            else if (primary == CredentialKind.AccessToken && result.AccessToken is not null)
+            {
+                _credentialWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
             }
 
-            _credentialWriter.Write(ctx, CredentialKind.Session, result.PrimaryToken.Value);
-            WriteRefreshHeader(ctx, flow, result.DidTouch ? RefreshOutcome.Touched : RefreshOutcome.NoOp);
-
-            return Results.NoContent();
-        }
-
-        private async Task<IResult> HandleTokenRotationAsync(HttpContext ctx, AuthFlowContext flow, EffectiveAuthResponse response)
-        {
-            var refreshToken = _refreshTokenResolver.Resolve(ctx);
-            if (refreshToken is null)
-                return Results.Unauthorized();
-
-            var now = DateTimeOffset.UtcNow;
-
-            var result = await _tokenRotation.RotateAsync(
-                flow,
-                new RefreshTokenRotationContext<TUserId>
-                {
-                    RefreshToken = refreshToken,
-                    Now = DateTimeOffset.UtcNow
-                },
-                ctx.RequestAborted);
-
-            if (!result.IsSuccess)
+            if (_refreshPolicy.WriteRefreshToken(flow) && result.RefreshToken is not null)
             {
-                WriteRefreshHeader(ctx, flow, RefreshOutcome.ReauthRequired);
-                return Results.Unauthorized();
+                _credentialWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
             }
 
-            _credentialWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
-            _credentialWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
-            WriteRefreshHeader(ctx, flow, RefreshOutcome.Rotated);
-
+            WriteRefreshHeader(ctx, flow, result.Outcome);
             return Results.NoContent();
         }
 
@@ -123,5 +86,6 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 
             _refreshWriter.Write(ctx, outcome);
         }
+
     }
 }

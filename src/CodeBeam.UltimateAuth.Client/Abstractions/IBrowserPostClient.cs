@@ -19,8 +19,10 @@ namespace CodeBeam.UltimateAuth.Client.Abstractions
         /// </summary>
         /// <param name="endpoint"></param>
         /// <returns></returns>
-        Task<BrowserPostResult> FetchPostAsync(string endpoint);
+        Task<BrowserPostResult> FetchPostAsync(string endpoint, IDictionary<string, string>? data = null);
 
-        Task<BrowserPostJsonResult<T>> FetchPostJsonAsync<T>(string url);
+        //Task<BrowserPostJsonResult<T>> FetchPostJsonAsync<T>(string url, IDictionary<string, string>? data = null);
+
+        Task<BrowserPostRawResult> FetchPostJsonRawAsync(string endpoint, IDictionary<string, string>? data = null);
     }
 }

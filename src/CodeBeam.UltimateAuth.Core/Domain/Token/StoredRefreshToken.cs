@@ -6,16 +6,16 @@ namespace CodeBeam.UltimateAuth.Core.Domain
     /// Represents a persisted refresh token bound to a session.
     /// Stored as a hashed value for security reasons.
     /// </summary>
-    public sealed record StoredRefreshToken<TUserId>
+    public sealed record StoredRefreshToken
     {
         public string TokenHash { get; init; } = default!;
 
         public string? TenantId { get; init; }
 
-        public TUserId UserId { get; init; } = default!;
+        public required UserKey UserKey { get; init; }
 
         public AuthSessionId SessionId { get; init; } = default!;
-        public ChainId? ChainId { get; init; }
+        public SessionChainId? ChainId { get; init; }
 
         public DateTimeOffset IssuedAt { get; init; }
         public DateTimeOffset ExpiresAt { get; init; }

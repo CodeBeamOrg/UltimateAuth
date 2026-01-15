@@ -1,7 +1,10 @@
 ﻿@page "/"
 @page "/login"
 @using CodeBeam.UltimateAuth.Client.Authentication
+@using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Client.Runtime
+@using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
 @inject IUAuthStateManager StateManager
 @inject IHttpClientFactory HttpClientFactory
@@ -12,6 +15,8 @@
 @inject IUAuthProductInfoProvider ProductInfo
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UAuthClientDiagnostics Diagnostics
+@inject IUAuthClientBootstrapper Bootstrapper
+@inject IDeviceIdProvider DeviceIdProvider
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
@@ -32,6 +37,7 @@
 
         <MudStack Class="mud-width-full">
             <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StartPkceLogin">Start Pkce Login</MudButton>
         </MudStack>
 
         <MudStack Spacing="0">
@@ -40,8 +46,11 @@
         </MudStack>
 
         <MudStack Spacing="0">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StateHasChanged">StateHasChanged</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAuthState">Refresh Auth State</MudButton>
             <MudText>State of Authentication:</MudText>
-            <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
+            <MudText>From UltimateAuth: @(Auth?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(Auth?.UserKey)</MudText>
+            <MudText>From ASPNET Core: @(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
             <AuthorizeView>
                 <Authorized>
                     <MudText>Authorized context is shown.</MudText>

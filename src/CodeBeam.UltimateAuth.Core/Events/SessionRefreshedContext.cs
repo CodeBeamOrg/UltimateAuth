@@ -33,7 +33,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the identifier of the session chain to which both sessions belong.
         /// </summary>
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
 
         /// <summary>
         /// Gets the timestamp at which the refresh occurred.
@@ -47,7 +47,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
             TUserId userId,
             AuthSessionId oldSessionId,
             AuthSessionId newSessionId,
-            ChainId chainId,
+            SessionChainId chainId,
             DateTimeOffset refreshedAt)
         {
             UserId = userId;

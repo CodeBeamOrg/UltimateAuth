@@ -6,21 +6,21 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     /// Represents the context in which a session is issued
     /// (login, refresh, reauthentication).
     /// </summary>
-    public sealed class AuthenticatedSessionContext<TUserId>
+    public sealed class AuthenticatedSessionContext
     {
         public string? TenantId { get; init; }
-        public required TUserId UserId { get; init; }
-        public DeviceInfo DeviceInfo { get; init; }
+        public required UserKey UserKey { get; init; }
+        public required DeviceContext Device { get; init; }
         public DateTimeOffset Now { get; init; }
         public ClaimsSnapshot? Claims { get; init; }
-        public SessionMetadata Metadata { get; init; }
+        public required SessionMetadata Metadata { get; init; }
 
         /// <summary>
         /// Optional chain identifier.
         /// If null, a new chain will be created.
         /// If provided, session will be issued under the existing chain.
         /// </summary>
-        public ChainId? ChainId { get; init; }
+        public SessionChainId? ChainId { get; init; }
 
         /// <summary>
         /// Indicates that authentication has already been completed.

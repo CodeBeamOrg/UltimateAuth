@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
@@ -15,9 +14,6 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder b)
     {
-        // -------------------------------------------------
-        // REFRESH TOKEN
-        // -------------------------------------------------
         b.Entity<RefreshTokenProjection>(e =>
         {
             e.HasKey(x => x.Id);
@@ -31,16 +27,15 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
             e.HasIndex(x => new { x.TenantId, x.TokenHash })
                 .IsUnique();
 
-            e.HasIndex(x => new { x.TenantId, x.UserId });
+            e.HasIndex(x => new { x.TenantId, x.UserKey });
             e.HasIndex(x => new { x.TenantId, x.SessionId });
             e.HasIndex(x => new { x.TenantId, x.ChainId });
+            e.HasIndex(x => new { x.TenantId, x.ExpiresAt });
+            e.HasIndex(x => new { x.TenantId, x.ReplacedByTokenHash });
 
             e.Property(x => x.ExpiresAt).IsRequired();
         });
 
-        // -------------------------------------------------
-        // REVOKED JTI
-        // -------------------------------------------------
         b.Entity<RevokedTokenIdProjection>(e =>
         {
             e.HasKey(x => x.Id);

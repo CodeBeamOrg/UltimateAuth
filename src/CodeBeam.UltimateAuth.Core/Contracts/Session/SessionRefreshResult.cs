@@ -6,25 +6,22 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     {
         public SessionRefreshStatus Status { get; init; }
 
-        public PrimaryToken? PrimaryToken { get; init; }
-
-        public RefreshToken? RefreshToken { get; init; }
+        public AuthSessionId? SessionId { get; init; }
 
         public bool DidTouch { get; init; }
 
         public bool IsSuccess => Status == SessionRefreshStatus.Success;
+        public bool RequiresReauth => Status == SessionRefreshStatus.ReauthRequired;
 
         private SessionRefreshResult() { }
 
         public static SessionRefreshResult Success(
-            PrimaryToken primaryToken,
-            RefreshToken? refreshToken = null,
+            AuthSessionId sessionId,
             bool didTouch = false)
             => new()
             {
                 Status = SessionRefreshStatus.Success,
-                PrimaryToken = primaryToken,
-                RefreshToken = refreshToken,
+                SessionId = sessionId,
                 DidTouch = didTouch
             };
 
@@ -45,8 +42,6 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         {
             Status = SessionRefreshStatus.Failed
         };
-
-        public bool RequiresReauth => Status == SessionRefreshStatus.ReauthRequired;
 
     }
 }

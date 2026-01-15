@@ -16,9 +16,12 @@ namespace CodeBeam.UltimateAuth.Core.Options
         /// </summary>
         public int AuthorizationCodeLifetimeSeconds { get; set; } = 120;
 
+        public int MaxVerificationAttempts { get; set; } = 5;
+
         internal UAuthPkceOptions Clone() => new()
         {
-            AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds
+            AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds,
+            MaxVerificationAttempts = MaxVerificationAttempts,
         };
 
     }

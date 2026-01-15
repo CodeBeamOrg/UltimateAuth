@@ -5,12 +5,12 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     /// <summary>
     /// Represents the result of a session issuance operation.
     /// </summary>
-    public sealed class IssuedSession<TUserId>
+    public sealed class IssuedSession
     {
         /// <summary>
         /// The issued domain session.
         /// </summary>
-        public required ISession<TUserId> Session { get; init; }
+        public required ISession Session { get; init; }
 
         /// <summary>
         /// Opaque session identifier returned to the client.

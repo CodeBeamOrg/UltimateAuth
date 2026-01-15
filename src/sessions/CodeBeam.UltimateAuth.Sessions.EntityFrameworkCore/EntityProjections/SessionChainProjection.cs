@@ -2,14 +2,15 @@
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
-    internal sealed class SessionChainProjection<TUserId>
+    internal sealed class SessionChainProjection
     {
         public long Id { get; set; }
 
-        public ChainId ChainId { get; set; } = default!;
+        public SessionChainId ChainId { get; set; } = default!;
+        public SessionRootId RootId { get; }
 
         public string? TenantId { get; set; }
-        public TUserId UserId { get; set; } = default!;
+        public UserKey UserKey { get; set; }
 
         public int RotationCount { get; set; }
         public long SecurityVersionAtCreation { get; set; }

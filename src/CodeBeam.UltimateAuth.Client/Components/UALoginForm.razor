@@ -1,6 +1,9 @@
 ﻿@* TODO: Optional double-submit prevention for native form submit *@
 @namespace CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Options
+@using CodeBeam.UltimateAuth.Core.Abstractions
+@using CodeBeam.UltimateAuth.Core.Contracts
 @using CodeBeam.UltimateAuth.Core.Options
 @using Microsoft.Extensions.Options
 @inject IJSRuntime JS
@@ -12,6 +15,15 @@
     <input type="hidden" name="Identifier" value="@Identifier" />
     <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
     <input type="hidden" name="__uauth_client_profile" value="@ClientProfileValue" />
+    <input type="hidden" name="__uauth_device" value="@_deviceId" />
+
+
+    @if (LoginType == UAuthLoginType.Pkce)
+    {
+        <input type="hidden" name="authorization_code" value="@_credentials?.AuthorizationCode" />
+        <input type="hidden" name="code_verifier" value="@_credentials?.CodeVerifier" />
+        <input type="hidden" name="return_url" value="@EffectiveReturnUrl" />
+    }
 
     @ChildContent
 

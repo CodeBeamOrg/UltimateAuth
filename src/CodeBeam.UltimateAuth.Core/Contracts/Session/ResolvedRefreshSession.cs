@@ -2,32 +2,32 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts
 {
-    public sealed record ResolvedRefreshSession<TUserId>
+    public sealed record ResolvedRefreshSession
     {
         public bool IsValid { get; init; }
         public bool IsReuseDetected { get; init; }
 
-        public ISession<TUserId>? Session { get; init; }
-        public ISessionChain<TUserId>? Chain { get; init; }
+        public ISession? Session { get; init; }
+        public ISessionChain? Chain { get; init; }
 
         private ResolvedRefreshSession() { }
 
-        public static ResolvedRefreshSession<TUserId> Invalid()
+        public static ResolvedRefreshSession Invalid()
             => new()
             {
                 IsValid = false
             };
 
-        public static ResolvedRefreshSession<TUserId> Reused()
+        public static ResolvedRefreshSession Reused()
             => new()
             {
                 IsValid = false,
                 IsReuseDetected = true
             };
 
-        public static ResolvedRefreshSession<TUserId> Valid(
-            ISession<TUserId> session,
-            ISessionChain<TUserId> chain)
+        public static ResolvedRefreshSession Valid(
+            ISession session,
+            ISessionChain chain)
             => new()
             {
                 IsValid = true,

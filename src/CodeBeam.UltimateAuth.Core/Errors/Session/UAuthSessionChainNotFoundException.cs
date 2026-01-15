@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Core.Errors
 {
     public sealed class UAuthSessionChainNotFoundException : UAuthChainException
     {
-        public UAuthSessionChainNotFoundException(ChainId chainId)
+        public UAuthSessionChainNotFoundException(SessionChainId chainId)
             : base(chainId, $"Session chain '{chainId}' was not found.")
         {
         }

@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class LogoutEndpointHandlerBridge : ILogoutEndpointHandler
     {
-        private readonly DefaultLogoutEndpointHandler<UserId> _inner;
+        private readonly DefaultLogoutEndpointHandler<UserKey> _inner;
 
-        public LogoutEndpointHandlerBridge(DefaultLogoutEndpointHandler<UserId> inner)
+        public LogoutEndpointHandlerBridge(DefaultLogoutEndpointHandler<UserKey> inner)
         {
             _inner = inner;
         }

@@ -4,10 +4,10 @@ namespace CodeBeam.UltimateAuth.Core.Errors
 {
     public abstract class UAuthChainException : UAuthDomainException
     {
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
 
         protected UAuthChainException(
-            ChainId chainId,
+            SessionChainId chainId,
             string message)
             : base(message)
         {

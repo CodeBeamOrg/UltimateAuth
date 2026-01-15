@@ -1,0 +1,13 @@
+﻿@using CodeBeam.UltimateAuth.Client.Authentication
+@using CodeBeam.UltimateAuth.Client.Runtime
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IUAuthStateManager StateManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IUAuthClientBootstrapper Bootstrapper
+
+<CascadingAuthenticationState>
+    <CascadingValue Value="@_uauthState" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
+</CascadingAuthenticationState>

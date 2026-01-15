@@ -14,7 +14,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         }
 
         public static PrimaryToken FromSession(AuthSessionId sessionId)
-            => new(PrimaryTokenKind.Session, sessionId.Value);
+            => new(PrimaryTokenKind.Session, sessionId.ToString());
 
         public static PrimaryToken FromAccessToken(AccessToken token)
             => new(PrimaryTokenKind.AccessToken, token.Token);

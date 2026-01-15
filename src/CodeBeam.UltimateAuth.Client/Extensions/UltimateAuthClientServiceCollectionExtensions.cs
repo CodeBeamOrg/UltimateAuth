@@ -1,10 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
+using CodeBeam.UltimateAuth.Client.Device;
+using CodeBeam.UltimateAuth.Client.Devices;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Client.Runtime;
+using CodeBeam.UltimateAuth.Client.Utilities;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -103,11 +108,24 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
                     : sp.GetRequiredService<NoOpSessionCoordinator>();
             });
 
+            services.AddScoped<IUAuthClientBootstrapper, UAuthClientBootstrapper>();
             services.AddScoped<BlazorServerSessionCoordinator>();
             services.AddScoped<NoOpSessionCoordinator>();
             services.AddScoped<UAuthClientDiagnostics>();
             services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
             services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
+            services.AddScoped<IBrowserStorage, BrowserStorage>();
+            services.TryAddScoped<IHubCredentialResolver, NoOpHubCredentialResolver>();
+            services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
+            services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
+
+            services.AddScoped<IDeviceIdGenerator, DefaultDeviceIdGenerator>();
+            services.AddScoped<IDeviceIdStorage, BrowserDeviceIdStorage>();
+            services.AddScoped<IDeviceIdProvider, DefaultDeviceIdProvider>();
+            services.AddScoped<IBrowserUAuthBridge, BrowserUAuthBridge>();
+
+            services.AddScoped<UAuthCascadingStateProvider>();
+            services.AddScoped<CascadingValueSource<UAuthState>>(sp => sp.GetRequiredService<UAuthCascadingStateProvider>());
 
             return services;
         }

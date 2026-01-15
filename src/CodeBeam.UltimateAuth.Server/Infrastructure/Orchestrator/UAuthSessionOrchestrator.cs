@@ -4,19 +4,19 @@ using CodeBeam.UltimateAuth.Core.Errors;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class UAuthSessionOrchestrator<TUserId> : ISessionOrchestrator<TUserId>
+    public sealed class UAuthSessionOrchestrator : ISessionOrchestrator
     {
         private readonly IAuthAuthority _authority;
-        private readonly ISessionIssuer<TUserId> _issuer;
+        private readonly ISessionIssuer _issuer;
         private bool _executed;
 
-        public UAuthSessionOrchestrator(IAuthAuthority authority, ISessionIssuer<TUserId> issuer)
+        public UAuthSessionOrchestrator(IAuthAuthority authority, ISessionIssuer issuer)
         {
             _authority = authority;
             _issuer = issuer;
         }
 
-        public async Task<TResult> ExecuteAsync<TResult>(AuthContext authContext, ISessionCommand<TUserId, TResult> command, CancellationToken ct = default)
+        public async Task<TResult> ExecuteAsync<TResult>(AuthContext authContext, ISessionCommand<TResult> command, CancellationToken ct = default)
         {
             if (_executed)
                 throw new InvalidOperationException("Session orchestrator can only be executed once per operation.");

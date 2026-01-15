@@ -11,6 +11,8 @@ namespace CodeBeam.UltimateAuth.Server.Services
     {
         Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default);
 
+        Task<LoginResult> LoginAsync(AuthFlowContext auth, AuthExecutionContext execution, LoginRequest request, CancellationToken ct);
+
         Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default);
 
         Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default);
@@ -21,14 +23,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
         Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default);
 
-        Task<SessionRefreshResult> RefreshSessionAsync(AuthFlowContext flow, SessionRefreshRequest request, CancellationToken ct = default);
-
         Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default);
-
-        Task<PkceChallengeResult> CreatePkceChallengeAsync(PkceCreateRequest request, CancellationToken ct = default);
-
-        Task<PkceVerificationResult> VerifyPkceAsync(PkceVerifyRequest request, CancellationToken ct = default);
-
-        Task ConsumePkceAsync(PkceConsumeRequest request, CancellationToken ct = default);
     }
 }

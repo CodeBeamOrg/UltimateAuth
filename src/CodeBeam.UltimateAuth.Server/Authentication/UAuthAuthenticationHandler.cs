@@ -13,11 +13,8 @@ namespace CodeBeam.UltimateAuth.Server.Authentication;
 internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAuthenticationCookieOptions>
 {
     private readonly ITransportCredentialResolver _transportCredentialResolver;
-    private readonly IFlowCredentialResolver _credentialResolver;
-    private readonly ISessionQueryService<UserId> _sessionQuery;
-    private readonly IAuthFlowContextFactory _flowFactory;
-    private readonly IAuthResponseResolver _responseResolver;
-
+    private readonly ISessionQueryService _sessionQuery;
+    private readonly IDeviceContextFactory _deviceContextFactory;
     private readonly IClock _clock;
 
     public UAuthAuthenticationHandler(
@@ -26,18 +23,14 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         ILoggerFactory logger,
         System.Text.Encodings.Web.UrlEncoder encoder,
         ISystemClock clock,
-        IFlowCredentialResolver credentialResolver,
-        ISessionQueryService<UserId> sessionQuery,
-        IAuthFlowContextFactory flowFactory,
-        IAuthResponseResolver responseResolver,
+        ISessionQueryService sessionQuery,
+        IDeviceContextFactory deviceContextFactory,
         IClock uauthClock)
         : base(options, logger, encoder, clock)
     {
         _transportCredentialResolver = transportCredentialResolver;
-        _credentialResolver = credentialResolver;
         _sessionQuery = sessionQuery;
-        _flowFactory = flowFactory;
-        _responseResolver = responseResolver;
+        _deviceContextFactory = deviceContextFactory;
         _clock = uauthClock;
     }
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -55,11 +48,11 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
             {
                 TenantId = credential.TenantId,
                 SessionId = sessionId,
-                Device = credential.Device,
+                Device = _deviceContextFactory.Create(credential.Device),
                 Now = _clock.UtcNow
             });
 
-        if (!result.IsValid)
+        if (!result.IsValid || result.UserKey is null)
             return AuthenticateResult.NoResult();
 
         var principal = CreatePrincipal(result);
@@ -68,12 +61,12 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         return AuthenticateResult.Success(ticket);
     }
 
-    private static ClaimsPrincipal CreatePrincipal(SessionValidationResult<UserId> result)
+    private static ClaimsPrincipal CreatePrincipal(SessionValidationResult result)
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, result.Session.UserId.Value),
-            new Claim("uauth:session_id", result.Session.SessionId.Value)
+            new Claim(ClaimTypes.NameIdentifier, result.UserKey.Value),
+            new Claim("uauth:session_id", result.SessionId.ToString())
         };
 
         if (!string.IsNullOrEmpty(result.TenantId))
@@ -82,7 +75,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         }
 
         // Session claims (snapshot)
-        foreach (var (key, value) in result.Session.Claims.AsDictionary())
+        foreach (var (key, value) in result.Claims.AsDictionary())
         {
             claims.Add(new Claim(key, value));
         }

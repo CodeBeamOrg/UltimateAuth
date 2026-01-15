@@ -1,39 +1,41 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Domain
 {
-    public sealed class UAuthSession<TUserId> : ISession<TUserId>
+    public sealed class UAuthSession : ISession
     {
         public AuthSessionId SessionId { get; }
         public string? TenantId { get; }
-        public TUserId UserId { get; }
-        public ChainId ChainId { get; }
+        public UserKey UserKey { get; }
+        public SessionChainId ChainId { get; }
         public DateTimeOffset CreatedAt { get; }
         public DateTimeOffset ExpiresAt { get; }
         public DateTimeOffset? LastSeenAt { get; }
         public bool IsRevoked { get; }
         public DateTimeOffset? RevokedAt { get; }
         public long SecurityVersionAtCreation { get; }
-        public DeviceInfo Device { get; }
+        public DeviceContext Device { get; }
         public ClaimsSnapshot Claims { get; }
         public SessionMetadata Metadata { get; }
 
         private UAuthSession(
         AuthSessionId sessionId,
         string? tenantId,
-        TUserId userId,
-        ChainId chainId,
+        UserKey userKey,
+        SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
         DateTimeOffset? lastSeenAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
-        DeviceInfo device,
+        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata)
         {
             SessionId = sessionId;
             TenantId = tenantId;
-            UserId = userId;
+            UserKey = userKey;
             ChainId = chainId;
             CreatedAt = createdAt;
             ExpiresAt = expiresAt;
@@ -46,21 +48,21 @@
             Metadata = metadata;
         }
 
-        public static UAuthSession<TUserId> Create(
+        public static UAuthSession Create(
             AuthSessionId sessionId,
             string? tenantId,
-            TUserId userId,
-            ChainId chainId,
+            UserKey userKey,
+            SessionChainId chainId,
             DateTimeOffset now,
             DateTimeOffset expiresAt,
-            DeviceInfo device,
+            DeviceContext device,
             ClaimsSnapshot claims,
             SessionMetadata metadata)
         {
             return new(
                 sessionId,
                 tenantId,
-                userId,
+                userKey,
                 chainId,
                 createdAt: now,
                 expiresAt: expiresAt,
@@ -74,15 +76,15 @@
             );
         }
 
-        public UAuthSession<TUserId> WithSecurityVersion(long version)
+        public UAuthSession WithSecurityVersion(long version)
         {
             if (SecurityVersionAtCreation == version)
                 return this;
 
-            return new UAuthSession<TUserId>(
+            return new UAuthSession(
                 SessionId,
                 TenantId,
-                UserId,
+                UserKey,
                 ChainId,
                 CreatedAt,
                 ExpiresAt,
@@ -96,12 +98,12 @@
             );
         }
 
-        public ISession<TUserId> Touch(DateTimeOffset at)
+        public ISession Touch(DateTimeOffset at)
         {
-            return new UAuthSession<TUserId>(
+            return new UAuthSession(
                 SessionId,
                 TenantId,
-                UserId,
+                UserKey,
                 ChainId,
                 CreatedAt,
                 ExpiresAt,
@@ -115,14 +117,14 @@
             );
         }
 
-        public ISession<TUserId> Revoke(DateTimeOffset at)
+        public ISession Revoke(DateTimeOffset at)
         {
             if (IsRevoked) return this;
 
-            return new UAuthSession<TUserId>(
+            return new UAuthSession(
                 SessionId,
                 TenantId,
-                UserId,
+                UserKey,
                 ChainId,
                 CreatedAt,
                 ExpiresAt,
@@ -136,25 +138,25 @@
             );
         }
 
-        internal static UAuthSession<TUserId> FromProjection(
-    AuthSessionId sessionId,
-    string? tenantId,
-    TUserId userId,
-    ChainId chainId,
-    DateTimeOffset createdAt,
-    DateTimeOffset expiresAt,
-    DateTimeOffset? lastSeenAt,
-    bool isRevoked,
-    DateTimeOffset? revokedAt,
-    long securityVersionAtCreation,
-    DeviceInfo device,
-    ClaimsSnapshot claims,
-    SessionMetadata metadata)
+        internal static UAuthSession FromProjection(
+            AuthSessionId sessionId,
+            string? tenantId,
+            UserKey userKey,
+            SessionChainId chainId,
+            DateTimeOffset createdAt,
+            DateTimeOffset expiresAt,
+            DateTimeOffset? lastSeenAt,
+            bool isRevoked,
+            DateTimeOffset? revokedAt,
+            long securityVersionAtCreation,
+            DeviceContext device,
+            ClaimsSnapshot claims,
+            SessionMetadata metadata)
         {
-            return new UAuthSession<TUserId>(
+            return new UAuthSession(
                 sessionId,
                 tenantId,
-                userId,
+                userKey,
                 chainId,
                 createdAt,
                 expiresAt,
@@ -181,6 +183,29 @@
 
             return SessionState.Active;
         }
+
+        public ISession WithChain(SessionChainId chainId)
+        {
+            if (!ChainId.IsUnassigned)
+                throw new InvalidOperationException("Chain already assigned.");
+
+            return new UAuthSession(
+                sessionId: SessionId,
+                tenantId: TenantId,
+                userKey: UserKey,
+                chainId: chainId,
+                createdAt: CreatedAt,
+                expiresAt: ExpiresAt,
+                lastSeenAt: LastSeenAt,
+                isRevoked: IsRevoked,
+                revokedAt: RevokedAt,
+                securityVersionAtCreation: SecurityVersionAtCreation,
+                device: Device,
+                claims: Claims,
+                metadata: Metadata
+            );
+        }
+
     }
 
 }

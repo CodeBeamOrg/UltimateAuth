@@ -2,6 +2,7 @@
 @page "/login"
 @using CodeBeam.UltimateAuth.Client
 @using CodeBeam.UltimateAuth.Client.Authentication
+@using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Diagnostics
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
@@ -10,9 +11,9 @@
 @using CodeBeam.UltimateAuth.Server.Infrastructure
 @using CodeBeam.UltimateAuth.Server.Services
 @inject IUAuthStateManager StateManager
-@inject IUAuthFlowService<UserId> Flow
+@inject IUAuthFlowService<UserKey> Flow
 @inject ISnackbar Snackbar
-@inject ISessionQueryService<UserId> SessionQuery
+@inject ISessionQueryService SessionQuery
 @inject IFlowCredentialResolver CredentialResolver
 @inject IClock Clock
 @inject IUAuthCookieManager CookieManager
@@ -22,6 +23,7 @@
 @inject IUAuthProductInfoProvider ProductInfo
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UAuthClientDiagnostics Diagnostics
+@inject IDeviceIdProvider DeviceIdProvider
 
 
 <div class="uauth-page d-flex align-center justify-center">
@@ -53,7 +55,7 @@
         <MudStack Spacing="0">
             <MudText>State of Authentication:</MudText>
             <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
-            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserId)</MudText>
+            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserKey)</MudText>
             <AuthorizeView>
                 <Authorized>
                     <MudText>Authorized context is shown. @context.User.Identity.IsAuthenticated</MudText>
