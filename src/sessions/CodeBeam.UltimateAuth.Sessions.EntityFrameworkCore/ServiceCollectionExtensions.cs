@@ -8,10 +8,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthEntityFrameworkCoreSessions<TUserId>(this IServiceCollection services,Action<DbContextOptionsBuilder> configureDb)where TUserId : notnull
     {
-        services.AddDbContext<UltimateAuthSessionDbContext<TUserId>>(configureDb);
-        services.AddScoped<EfCoreSessionStoreKernel<TUserId>>();
-        services.AddScoped<ISessionStore<TUserId>, EfCoreSessionStore<TUserId>>();
-        services.AddScoped<ISessionActivityWriter<TUserId>, EfCoreSessionActivityWriter<TUserId>>();
+        services.AddDbContext<UltimateAuthSessionDbContext>(configureDb);
+        services.AddScoped<EfCoreSessionStoreKernel>();
+        services.AddScoped<ISessionStore, EfCoreSessionStore>();
 
         return services;
     }

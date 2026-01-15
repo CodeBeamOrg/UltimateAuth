@@ -33,7 +33,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 
         /// <summary>
         /// Updates the password hash for the specified user. This method is invoked by
-        /// password management services and not by <see cref="IUAuthSessionService{TUserId}"/>.
+        /// password management services and not by <see cref="IUAuthSessionManager{TUserId}"/>.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="passwordHash">The new password hash value.</param>

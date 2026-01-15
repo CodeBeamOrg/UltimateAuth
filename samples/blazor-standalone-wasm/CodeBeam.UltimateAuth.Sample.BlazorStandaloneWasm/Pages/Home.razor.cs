@@ -1,5 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
@@ -7,6 +10,9 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
 {
     public partial class Home
     {
+        [CascadingParameter]
+        public UAuthState Auth { get; set; }
+
         private string? _username;
         private string? _password;
 
@@ -17,7 +23,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
         protected override async Task OnInitializedAsync()
         {
             Diagnostics.Changed += OnDiagnosticsChanged;
-            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            //_authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -37,13 +43,16 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
 
         private async Task ProgrammaticLogin()
         {
+            var device = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
                 Identifier = "Admin",
                 Secret = "Password!",
+                Device = new DeviceContext { DeviceId = device },
             };
             await UAuthClient.LoginAsync(request);
-            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            //await StateManager.OnLoginAsync();
+            //_authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         private async Task StartPkceLogin()
@@ -70,6 +79,11 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
         private async Task RefreshAsync()
         {
             await UAuthClient.RefreshAsync();
+        }
+
+        private async Task RefreshAuthState()
+        {
+            await StateManager.OnLoginAsync();
         }
 
         protected override void OnAfterRender(bool firstRender)

@@ -2,10 +2,10 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts
 {
-    public sealed record TokenIssueContext<TUserId>
+    public sealed record TokenIssueContext
     {
         public string? TenantId { get; init; }
-        public ISession<TUserId> Session { get; init; } = default!;
+        public ISession Session { get; init; } = default!;
         public DateTimeOffset At { get; init; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
@@ -85,7 +86,6 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
 
             services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
             services.TryAddSingleton<IUAuthProductInfoProvider, UAuthProductInfoProvider>();
-
 
             return services;
         }

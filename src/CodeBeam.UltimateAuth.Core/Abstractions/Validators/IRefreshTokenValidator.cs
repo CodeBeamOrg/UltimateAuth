@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
-public interface IRefreshTokenValidator<TUserId>
+public interface IRefreshTokenValidator
 {
-    Task<RefreshTokenValidationResult<TUserId>> ValidateAsync(RefreshTokenValidationContext<TUserId> context, CancellationToken ct = default);
+    Task<RefreshTokenValidationResult> ValidateAsync(RefreshTokenValidationContext context, CancellationToken ct = default);
 }

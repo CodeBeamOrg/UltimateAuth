@@ -1,6 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using System.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -10,27 +13,33 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         {
             var request = context.Request;
 
+            var rawDeviceId = ResolveRawDeviceId(context);
+            var deviceId = DeviceId.Create(rawDeviceId);
+
             return new DeviceInfo
             {
-                DeviceId = ResolveDeviceId(context),
+                DeviceId = deviceId,
                 Platform = ResolvePlatform(request),
-                OperatingSystem = null, // optional UA parsing later
-                Browser = request.Headers.UserAgent.ToString(),
-                IpAddress = context.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = request.Headers.UserAgent.ToString(),
-                IsTrusted = null
+                IpAddress = context.Connection.RemoteIpAddress?.ToString()
             };
         }
 
-        private static string ResolveDeviceId(HttpContext context)
+
+        private static string ResolveRawDeviceId(HttpContext context)
         {
-            if (context.Request.Headers.TryGetValue("X-Device-Id", out var header))
+            if (context.Request.Headers.TryGetValue("X-UDID", out var header))
                 return header.ToString();
 
-            if (context.Request.Cookies.TryGetValue("ua_device", out var cookie))
+            if (context.Request.HasFormContentType && context.Request.Form.TryGetValue("__uauth_device", out var formValue) && !StringValues.IsNullOrEmpty(formValue))
+            {
+                return formValue.ToString();
+            }
+
+            if (context.Request.Cookies.TryGetValue("udid", out var cookie))
                 return cookie;
 
-            return "unknown";
+            throw new SecurityException("DeviceId is required.");
         }
 
         private static string? ResolvePlatform(HttpRequest request)
@@ -45,5 +54,6 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
             return "web";
         }
+
     }
 }

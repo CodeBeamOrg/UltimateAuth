@@ -8,17 +8,17 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
-    internal sealed class DefaultValidateEndpointHandler<TUserId> : IValidateEndpointHandler
+    internal sealed class DefaultValidateEndpointHandler : IValidateEndpointHandler
     {
         private readonly IAuthFlowContextAccessor _authContext;
         private readonly IFlowCredentialResolver _credentialResolver;
-        private readonly ISessionQueryService<TUserId> _sessionValidator;
+        private readonly ISessionQueryService _sessionValidator;
         private readonly IClock _clock;
 
         public DefaultValidateEndpointHandler(
             IAuthFlowContextAccessor authContext,
             IFlowCredentialResolver credentialResolver,
-            ISessionQueryService<TUserId> sessionValidator,
+            ISessionQueryService sessionValidator,
             IClock clock)
         {
             _authContext = authContext;
@@ -64,7 +64,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                         TenantId = credential.TenantId,
                         SessionId = sessionId,
                         Now = _clock.UtcNow,
-                        Device = credential.Device
+                        Device = auth.Device
                     },
                     ct);
 
@@ -74,10 +74,10 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
                     Snapshot = new AuthStateSnapshot
                     {
-                        UserId = result?.Session?.UserId?.ToString(),
-                        TenantId = result?.TenantId,
-                        Claims = result?.Session?.Claims ?? ClaimsSnapshot.Empty,
-                        AuthenticatedAt = result?.Session?.CreatedAt,
+                        UserId = result.UserKey,
+                        TenantId = result.TenantId,
+                        Claims = result.Claims,
+                        AuthenticatedAt = _clock.UtcNow,
                     }
                 });
             }

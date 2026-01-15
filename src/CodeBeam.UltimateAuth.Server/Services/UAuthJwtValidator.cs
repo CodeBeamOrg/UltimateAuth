@@ -55,9 +55,9 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var tenantId = jwt.GetClaim("tenant")?.Value ?? jwt.GetClaim("tid")?.Value;
             AuthSessionId? sessionId = null;
             var sid = jwt.GetClaim("sid")?.Value;
-            if (!string.IsNullOrWhiteSpace(sid))
+            if (!AuthSessionId.TryCreate(sid, out AuthSessionId ssid))
             {
-                sessionId = new AuthSessionId(sid);
+                sessionId = ssid;
             }
 
             return TokenValidationResult<TUserId>.Valid(

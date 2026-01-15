@@ -7,14 +7,14 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 {
     public static class HttpContextUserExtensions
     {
-        public static AuthUserSnapshot<UserId> GetUserContext(this HttpContext ctx)
+        public static AuthUserSnapshot<UserKey> GetUserContext(this HttpContext ctx)
         {
-            if (ctx.Items.TryGetValue(UserMiddleware.UserContextKey, out var value) && value is AuthUserSnapshot<UserId> user)
+            if (ctx.Items.TryGetValue(UserMiddleware.UserContextKey, out var value) && value is AuthUserSnapshot<UserKey> user)
             {
                 return user;
             }
 
-            return AuthUserSnapshot<UserId>.Anonymous();
+            return AuthUserSnapshot<UserKey>.Anonymous();
         }
     }
 }

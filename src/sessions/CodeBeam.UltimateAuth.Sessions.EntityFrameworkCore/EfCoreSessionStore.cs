@@ -6,67 +6,75 @@ using System.Security;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
+internal sealed class EfCoreSessionStore : ISessionStore
 {
-    private readonly EfCoreSessionStoreKernel<TUserId> _kernel;
-    private readonly UltimateAuthSessionDbContext<TUserId> _db;
+    private readonly EfCoreSessionStoreKernel _kernel;
+    private readonly UltimateAuthSessionDbContext _db;
 
-    public EfCoreSessionStore(EfCoreSessionStoreKernel<TUserId> kernel, UltimateAuthSessionDbContext<TUserId> db)
+    public EfCoreSessionStore(EfCoreSessionStoreKernel kernel, UltimateAuthSessionDbContext db)
     {
         _kernel = kernel;
         _db = db;
     }
 
-    public async Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
+    public async Task<ISession?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
     {
         var projection = await _db.Sessions
             .AsNoTracking()
-            .Where(x =>
-                x.SessionId == sessionId &&
-                x.TenantId == tenantId)
-            .SingleOrDefaultAsync(ct);
+            .SingleOrDefaultAsync(
+                x => x.SessionId == sessionId &&
+                     x.TenantId == tenantId,
+                ct);
 
-        if (projection is null)
-            return null;
-
-        return projection.ToDomain();
+        return projection?.ToDomain();
     }
 
-    public async Task CreateSessionAsync(IssuedSession<TUserId> issued, SessionStoreContext<TUserId> ctx, CancellationToken ct = default)
+    public async Task CreateSessionAsync(IssuedSession issued, SessionStoreContext ctx, CancellationToken ct = default)
     {
         await _kernel.ExecuteAsync(async ct =>
         {
             var now = ctx.IssuedAt;
 
-            var rootProjection = await _db.Roots.SingleOrDefaultAsync(x => x.TenantId == ctx.TenantId && x.UserId!.Equals(ctx.UserId), ct);
+            var rootProjection = await _db.Roots
+                .SingleOrDefaultAsync(
+                    x => x.TenantId == ctx.TenantId &&
+                         x.UserKey == ctx.UserKey,
+                    ct);
 
-            ISessionRoot<TUserId> root;
+            ISessionRoot root;
 
             if (rootProjection is null)
             {
-                root = UAuthSessionRoot<TUserId>.Create(ctx.TenantId, ctx.UserId, now);
+                root = UAuthSessionRoot.Create(ctx.TenantId, ctx.UserKey, now);
                 _db.Roots.Add(root.ToProjection());
             }
             else
             {
-                var chains = await LoadChainsAsync(ctx, ct);
-                root = rootProjection.ToDomain(chains);
+                var chainProjections = await _db.Chains
+                    .AsNoTracking()
+                    .Where(x => x.RootId == rootProjection.RootId)
+                    .ToListAsync(ct);
+
+                root = rootProjection.ToDomain(
+                    chainProjections.Select(c => c.ToDomain()).ToList());
             }
 
-
-            ISessionChain<TUserId> chain;
+            ISessionChain chain;
 
             if (ctx.ChainId is not null)
             {
-                var chainProjection = await _db.Chains.SingleAsync(x => x.ChainId == ctx.ChainId.Value, ct);
+                var chainProjection = await _db.Chains
+                    .SingleAsync(x => x.ChainId == ctx.ChainId.Value, ct);
+
                 chain = chainProjection.ToDomain();
             }
             else
             {
-                chain = UAuthSessionChain<TUserId>.Create(
-                    ChainId.New(),
+                chain = UAuthSessionChain.Create(
+                    SessionChainId.New(),
+                    root.RootId,
                     ctx.TenantId,
-                    ctx.UserId,
+                    ctx.UserKey,
                     root.SecurityVersion,
                     ClaimsSnapshot.Empty);
 
@@ -74,43 +82,44 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
                 root = root.AttachChain(chain, now);
             }
 
-            var session = UAuthSession<TUserId>.Create(
-                issued.Session.SessionId,
-                ctx.TenantId,
-                ctx.UserId,
-                chain.ChainId,
-                now,
-                issued.Session.ExpiresAt,
-                ctx.DeviceInfo,
-                issued.Session.Claims,
-                metadata: SessionMetadata.Empty
-            );
+            var issuedSession = (UAuthSession)issued.Session;
+
+            if (!issuedSession.ChainId.IsUnassigned)
+                throw new InvalidOperationException("Issued session already has chain.");
+
+            var session = issuedSession.WithChain(chain.ChainId);
 
             _db.Sessions.Add(session.ToProjection());
+
             var updatedChain = chain.AttachSession(session.SessionId);
             _db.Chains.Update(updatedChain.ToProjection());
-
         }, ct);
     }
 
-    public async Task RotateSessionAsync(AuthSessionId currentSessionId, IssuedSession<TUserId> issued, SessionStoreContext<TUserId> ctx, CancellationToken ct = default)
+    public async Task RotateSessionAsync(AuthSessionId currentSessionId, IssuedSession issued, SessionStoreContext ctx, CancellationToken ct = default)
     {
         await _kernel.ExecuteAsync(async ct =>
         {
             var now = ctx.IssuedAt;
 
-            var oldSessionProjection = await _db.Sessions.SingleOrDefaultAsync(
-                x => x.SessionId == currentSessionId &&
-                     x.TenantId == ctx.TenantId,
-                ct);
+            var oldProjection = await _db.Sessions
+                .SingleOrDefaultAsync(
+                    x => x.SessionId == currentSessionId &&
+                         x.TenantId == ctx.TenantId,
+                    ct);
 
-            if (oldSessionProjection is null)
+            if (oldProjection is null)
                 throw new SecurityException("Session not found.");
 
-            var oldSession = oldSessionProjection.ToDomain();
+            var oldSession = oldProjection.ToDomain();
 
-            var chainProjection = await _db.Chains.SingleOrDefaultAsync(
-                x => x.ChainId == oldSession.ChainId, ct);
+            if (oldSession.IsRevoked || oldSession.ExpiresAt <= now)
+                throw new SecurityException("Session is no longer valid.");
+
+            var chainProjection = await _db.Chains
+                .SingleOrDefaultAsync(
+                    x => x.ChainId == oldSession.ChainId,
+                    ct);
 
             if (chainProjection is null)
                 throw new SecurityException("Chain not found.");
@@ -118,152 +127,174 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
             var chain = chainProjection.ToDomain();
 
             if (chain.IsRevoked)
-                throw new SecurityException("Session chain is revoked.");
+                throw new SecurityException("Chain is revoked.");
 
-            var newSession = UAuthSession<TUserId>.Create(
-                issued.Session.SessionId,
-                ctx.TenantId,
-                ctx.UserId,
-                chain.ChainId,
-                now,
-                issued.Session.ExpiresAt,
-                ctx.DeviceInfo,
-                issued.Session.Claims,
-                metadata: SessionMetadata.Empty
-            );
+            var newSession = ((UAuthSession)issued.Session)
+                .WithChain(chain.ChainId);
 
             _db.Sessions.Add(newSession.ToProjection());
 
-            var updatedChain = chain.RotateSession(newSession.SessionId);
-            _db.Chains.Update(updatedChain.ToProjection());
+            var rotatedChain = chain.RotateSession(newSession.SessionId);
+            _db.Chains.Update(rotatedChain.ToProjection());
 
-            var revokedOldSession = oldSession.Revoke(now);
-            _db.Sessions.Update(revokedOldSession.ToProjection());
-
+            var revokedOld = oldSession.Revoke(now);
+            _db.Sessions.Update(revokedOld.ToProjection());
         }, ct);
     }
 
-    public async Task RevokeAllSessionsAsync(string? tenantId, TUserId userId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task<bool> TouchSessionAsync(AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default)
+    {
+        var touched = false;
+
+        await _kernel.ExecuteAsync(async ct =>
+        {
+            var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId, ct);
+
+            if (projection is null)
+                return;
+
+            var session = projection.ToDomain();
+
+            if (session.IsRevoked)
+                return;
+
+            if (mode == SessionTouchMode.IfNeeded && at - session.LastSeenAt < TimeSpan.FromMinutes(1))
+                return;
+
+            var updated = session.Touch(at);
+            _db.Sessions.Update(updated.ToProjection());
+
+            touched = true;
+        }, ct);
+
+        return touched;
+    }
+
+    public Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
+        => _kernel.ExecuteAsync(async ct =>
+        {
+            var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId && x.TenantId == tenantId, ct);
+
+            if (projection is null)
+                return;
+
+            var session = projection.ToDomain();
+
+            if (session.IsRevoked)
+                return;
+
+            _db.Sessions.Update(session.Revoke(at).ToProjection());
+        }, ct);
+
+    public async Task RevokeAllChainsAsync(string? tenantId, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
     {
         await _kernel.ExecuteAsync(async ct =>
+        {
+            var chains = await _db.Chains
+                .Where(x =>
+                    x.TenantId == tenantId &&
+                    x.UserKey == userKey)
+                .ToListAsync(ct);
+
+            foreach (var chainProjection in chains)
+            {
+                if (exceptChainId.HasValue &&
+                    chainProjection.ChainId == exceptChainId.Value)
+                    continue;
+
+                var chain = chainProjection.ToDomain();
+
+                if (!chain.IsRevoked)
+                    _db.Chains.Update(chain.Revoke(at).ToProjection());
+
+                if (chain.ActiveSessionId is not null)
+                {
+                    var sessionProjection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
+
+                    if (sessionProjection is not null)
+                    {
+                        var session = sessionProjection.ToDomain();
+                        if (!session.IsRevoked)
+                            _db.Sessions.Update(session.Revoke(at).ToProjection());
+                    }
+                }
+            }
+        }, ct);
+    }
+
+    public Task RevokeChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
+        => _kernel.ExecuteAsync(async ct =>
+        {
+            var projection = await _db.Chains
+                .SingleOrDefaultAsync(
+                    x => x.ChainId == chainId &&
+                         x.TenantId == tenantId,
+                    ct);
+
+            if (projection is null)
+                return;
+
+            var chain = projection.ToDomain();
+
+            if (chain.IsRevoked)
+                return;
+
+            _db.Chains.Update(chain.Revoke(at).ToProjection());
+
+            if (chain.ActiveSessionId is not null)
+            {
+                var sessionProjection = await _db.Sessions
+                    .SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
+
+                if (sessionProjection is not null)
+                {
+                    var session = sessionProjection.ToDomain();
+                    if (!session.IsRevoked)
+                        _db.Sessions.Update(session.Revoke(at).ToProjection());
+                }
+            }
+        }, ct);
+
+    public Task RevokeRootAsync(string? tenantId, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
+        => _kernel.ExecuteAsync(async ct =>
         {
             var rootProjection = await _db.Roots
                 .SingleOrDefaultAsync(
                     x => x.TenantId == tenantId &&
-                         x.UserId!.Equals(userId),
+                         x.UserKey == userKey,
                     ct);
 
             if (rootProjection is null)
                 return;
 
             var chainProjections = await _db.Chains
-                .Where(x =>
-                    x.TenantId == tenantId &&
-                    x.UserId!.Equals(userId))
+                .Where(x => x.RootId == rootProjection.RootId)
                 .ToListAsync(ct);
 
             foreach (var chainProjection in chainProjections)
             {
                 var chain = chainProjection.ToDomain();
-
-                if (chain.IsRevoked)
-                    continue;
-
-                var revokedChain = chain.Revoke(at);
-                _db.Chains.Update(revokedChain.ToProjection());
+                _db.Chains.Update(chain.Revoke(at).ToProjection());
 
                 if (chain.ActiveSessionId is not null)
                 {
                     var sessionProjection = await _db.Sessions
-                        .SingleOrDefaultAsync(
-                            x => x.SessionId == chain.ActiveSessionId &&
-                                 x.TenantId == tenantId,
-                            ct);
+                        .SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
 
                     if (sessionProjection is not null)
                     {
                         var session = sessionProjection.ToDomain();
-                        var revokedSession = session.Revoke(at);
-                        _db.Sessions.Update(revokedSession.ToProjection());
+                        _db.Sessions.Update(session.Revoke(at).ToProjection());
                     }
                 }
             }
 
-            var root = rootProjection.ToDomain(chainProjections
-                .Select(c => c.ToDomain())
-                .ToList());
+            var root = rootProjection.ToDomain(chainProjections.Select(c => c.ToDomain()).ToList());
 
-            var revokedRoot = root.Revoke(at);
-            _db.Roots.Update(revokedRoot.ToProjection());
-
+            _db.Roots.Update(root.Revoke(at).ToProjection());
         }, ct);
-    }
 
-    public async Task RevokeChainAsync(string? tenantId, ChainId chainId, DateTimeOffset at, CancellationToken ct = default)
-    {
-        await _kernel.ExecuteAsync(async ct =>
-        {
-            var chainProjection = await _db.Chains
-                .SingleOrDefaultAsync(
-                    x => x.ChainId == chainId &&
-                         x.TenantId == tenantId,
-                    ct);
-
-            if (chainProjection is null)
-                return;
-
-            var chain = chainProjection.ToDomain();
-
-            if (chain.IsRevoked)
-                return;
-
-            var revokedChain = chain.Revoke(at);
-            _db.Chains.Update(revokedChain.ToProjection());
-
-            if (chain.ActiveSessionId is not null)
-            {
-                var sessionProjection = await _db.Sessions
-                    .SingleOrDefaultAsync(
-                        x => x.SessionId == chain.ActiveSessionId &&
-                             x.TenantId == tenantId,
-                        ct);
-
-                if (sessionProjection is not null)
-                {
-                    var session = sessionProjection.ToDomain();
-                    var revokedSession = session.Revoke(at);
-                    _db.Sessions.Update(revokedSession.ToProjection());
-                }
-            }
-
-        }, ct);
-    }
-
-    public async Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
-    {
-        await _kernel.ExecuteAsync(async ct =>
-        {
-            var sessionProjection = await _db.Sessions
-                .SingleOrDefaultAsync(
-                    x => x.SessionId == sessionId &&
-                         x.TenantId == tenantId,
-                    ct);
-
-            if (sessionProjection is null)
-                return;
-
-            var session = sessionProjection.ToDomain();
-
-            if (session.IsRevoked)
-                return;
-
-            var revokedSession = session.Revoke(at);
-            _db.Sessions.Update(revokedSession.ToProjection());
-
-        }, ct);
-    }
-
-    public async Task<IReadOnlyList<ISession<TUserId>>> GetSessionsByChainAsync(string? tenantId, ChainId chainId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ISession>> GetSessionsByChainAsync(string? tenantId, SessionChainId chainId, CancellationToken ct = default)
     {
         var projections = await _db.Sessions
             .AsNoTracking()
@@ -275,19 +306,19 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
         return projections.Select(x => x.ToDomain()).ToList();
     }
 
-    public async Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsByUserAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ISessionChain>> GetChainsByUserAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
         var projections = await _db.Chains
             .AsNoTracking()
             .Where(x =>
                 x.TenantId == tenantId &&
-                x.UserId!.Equals(userId))
+                x.UserKey.Equals(userKey))
             .ToListAsync(ct);
 
         return projections.Select(x => x.ToDomain()).ToList();
     }
 
-    public async Task<ISessionChain<TUserId>?> GetChainAsync(string? tenantId, ChainId chainId, CancellationToken ct = default)
+    public async Task<ISessionChain?> GetChainAsync(string? tenantId, SessionChainId chainId, CancellationToken ct = default)
     {
         var projection = await _db.Chains
             .AsNoTracking()
@@ -299,18 +330,18 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
         return projection?.ToDomain();
     }
 
-    public async Task<ChainId?> GetChainIdBySessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
+    public async Task<SessionChainId?> GetChainIdBySessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
     {
         return await _db.Sessions
             .AsNoTracking()
             .Where(x =>
                 x.SessionId == sessionId &&
                 x.TenantId == tenantId)
-            .Select(x => (ChainId?)x.ChainId)
+            .Select(x => (SessionChainId?)x.ChainId)
             .SingleOrDefaultAsync(ct);
     }
 
-    public async Task<AuthSessionId?> GetActiveSessionIdAsync(string? tenantId, ChainId chainId, CancellationToken ct = default)
+    public async Task<AuthSessionId?> GetActiveSessionIdAsync(string? tenantId, SessionChainId chainId, CancellationToken ct = default)
     {
         return await _db.Chains
             .AsNoTracking()
@@ -321,13 +352,13 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
             .SingleOrDefaultAsync(ct);
     }
 
-    public async Task<ISessionRoot<TUserId>?> GetSessionRootAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
+    public async Task<ISessionRoot?> GetSessionRootAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
         var rootProjection = await _db.Roots
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.TenantId == tenantId &&
-                     x.UserId!.Equals(userId),
+                     x.UserKey!.Equals(userKey),
                 ct);
 
         if (rootProjection is null)
@@ -337,24 +368,9 @@ internal sealed class EfCoreSessionStore<TUserId> : ISessionStore<TUserId>
             .AsNoTracking()
             .Where(x =>
                 x.TenantId == tenantId &&
-                x.UserId!.Equals(userId))
+                x.UserKey!.Equals(userKey))
             .ToListAsync(ct);
 
         return rootProjection.ToDomain(chainProjections.Select(x => x.ToDomain()).ToList());
-    }
-
-
-    private async Task<IReadOnlyList<ISessionChain<TUserId>>> LoadChainsAsync(SessionStoreContext<TUserId> ctx, CancellationToken ct)
-    {
-        var chainProjections = await _db.Chains
-            .AsNoTracking()
-            .Where(x =>
-                x.TenantId == ctx.TenantId &&
-                x.UserId!.Equals(ctx.UserId))
-            .ToListAsync(ct);
-
-        return chainProjections
-            .Select(x => x.ToDomain())
-            .ToList();
     }
 }

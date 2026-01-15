@@ -16,7 +16,7 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
 
         public bool IsAuthenticated { get; private set; }
 
-        public UserId? UserId { get; private set; }
+        public UserKey? UserKey { get; private set; }
 
         public string? TenantId { get; private set; }
 
@@ -44,7 +44,13 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
 
         internal void ApplySnapshot(AuthStateSnapshot snapshot, DateTimeOffset validatedAt)
         {
-            UserId = snapshot.UserId;
+            if (string.IsNullOrWhiteSpace(snapshot.UserId))
+            {
+                Clear();
+                return;
+            }
+
+            UserKey = CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(snapshot.UserId);
             TenantId = snapshot.TenantId;
             Claims = snapshot.Claims;
 
@@ -82,7 +88,7 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
         {
             Claims = ClaimsSnapshot.Empty;
 
-            UserId = null;
+            UserKey = null;
             TenantId = null;
             IsAuthenticated = false;
 

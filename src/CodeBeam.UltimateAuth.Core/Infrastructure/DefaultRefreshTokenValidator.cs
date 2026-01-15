@@ -3,50 +3,50 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
-public sealed class DefaultRefreshTokenValidator<TUserId> : IRefreshTokenValidator<TUserId>
+public sealed class DefaultRefreshTokenValidator : IRefreshTokenValidator
 {
-    private readonly IRefreshTokenStore<TUserId> _store;
+    private readonly IRefreshTokenStore _store;
     private readonly ITokenHasher _hasher;
 
-    public DefaultRefreshTokenValidator(IRefreshTokenStore<TUserId> store, ITokenHasher hasher)
+    public DefaultRefreshTokenValidator(IRefreshTokenStore store, ITokenHasher hasher)
     {
         _store = store;
         _hasher = hasher;
     }
 
-    public async Task<RefreshTokenValidationResult<TUserId>> ValidateAsync(RefreshTokenValidationContext<TUserId> context, CancellationToken ct = default)
+    public async Task<RefreshTokenValidationResult> ValidateAsync(RefreshTokenValidationContext context, CancellationToken ct = default)
     {
         var hash = _hasher.Hash(context.RefreshToken);
         var stored = await _store.FindByHashAsync(context.TenantId, hash, ct);
 
         if (stored is null)
-            return RefreshTokenValidationResult<TUserId>.Invalid();
+            return RefreshTokenValidationResult.Invalid();
 
         if (stored.IsRevoked)
-            return RefreshTokenValidationResult<TUserId>.ReuseDetected(
+            return RefreshTokenValidationResult.ReuseDetected(
                 tenantId: stored.TenantId,
                 sessionId: stored.SessionId,
                 chainId: stored.ChainId,
-                userId: stored.UserId);
+                userKey: stored.UserKey);
 
         if (stored.IsExpired(context.Now))
         {
             await _store.RevokeAsync(context.TenantId, hash, context.Now, null, ct);
-            return RefreshTokenValidationResult<TUserId>.Invalid();
+            return RefreshTokenValidationResult.Invalid();
         }
 
         if (context.ExpectedSessionId.HasValue && stored.SessionId != context.ExpectedSessionId)
         {
-            return RefreshTokenValidationResult<TUserId>.Invalid();
+            return RefreshTokenValidationResult.Invalid();
         }
 
         // TODO: Add device binding
         // if (context.Device != null && !stored.MatchesDevice(context.Device))
         //     return Invalid();
 
-        return RefreshTokenValidationResult<TUserId>.Valid(
+        return RefreshTokenValidationResult.Valid(
             tenantId: stored.TenantId,
-            stored.UserId,
+            stored.UserKey,
             stored.SessionId,
             hash,
             stored.ChainId);

@@ -2,9 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory
 {
-    internal sealed class InMemoryCredentialUser : IUser<UserId>
+    internal sealed class InMemoryCredentialUser : IUser<UserKey>
     {
-        public UserId UserId { get; init; }
+        public UserKey UserId { get; init; }
         public string Username { get; init; }
 
         public string PasswordHash { get; private set; } = default!;
@@ -13,10 +13,10 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
 
         public bool IsActive { get; init; } = true;
 
-        IReadOnlyDictionary<string, object>? IUser<UserId>.Claims => null;
+        IReadOnlyDictionary<string, object>? IUser<UserKey>.Claims => null;
 
         public InMemoryCredentialUser(
-            UserId userId,
+            UserKey userId,
             string username,
             string passwordHash,
             long securityVersion = 0,

@@ -4,25 +4,27 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
     internal static class SessionRootProjectionMapper
     {
-        public static ISessionRoot<TUserId> ToDomain<TUserId>(this SessionRootProjection<TUserId> root, IReadOnlyList<ISessionChain<TUserId>> chains)
+        public static ISessionRoot ToDomain(this SessionRootProjection root, IReadOnlyList<ISessionChain>? chains = null)
         {
-            return UAuthSessionRoot<TUserId>.FromProjection(
+            return UAuthSessionRoot.FromProjection(
+                root.RootId,
                 root.TenantId,
-                root.UserId,
+                root.UserKey,
                 root.IsRevoked,
                 root.RevokedAt,
                 root.SecurityVersion,
-                chains,
+                chains ?? Array.Empty<ISessionChain>(),
                 root.LastUpdatedAt
             );
         }
 
-        public static SessionRootProjection<TUserId> ToProjection<TUserId>(this ISessionRoot<TUserId> root)
+        public static SessionRootProjection ToProjection(this ISessionRoot root)
         {
-            return new SessionRootProjection<TUserId>
+            return new SessionRootProjection
             {
+                RootId = root.RootId,
                 TenantId = root.TenantId,
-                UserId = root.UserId,
+                UserKey = root.UserKey,
 
                 IsRevoked = root.IsRevoked,
                 RevokedAt = root.RevokedAt,

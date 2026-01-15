@@ -3,16 +3,16 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public interface ISessionQueryService<TUserId>
+    public interface ISessionQueryService
     {
-        Task<SessionValidationResult<TUserId>> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default);
+        Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default);
 
-        Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default);
+        Task<ISession?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default);
 
-        Task<IReadOnlyList<ISession<TUserId>>> GetSessionsByChainAsync(string? tenantId, ChainId chainId, CancellationToken ct = default);
+        Task<IReadOnlyList<ISession>> GetSessionsByChainAsync(string? tenantId, SessionChainId chainId, CancellationToken ct = default);
 
-        Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsByUserAsync(string? tenantId, TUserId userId, CancellationToken ct = default);
+        Task<IReadOnlyList<ISessionChain>> GetChainsByUserAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
 
-        Task<ChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default);
+        Task<SessionChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default);
     }
 }

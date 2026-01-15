@@ -45,9 +45,9 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
     public async Task<IResult> AuthorizeAsync(HttpContext ctx)
     {
-        var auth = _authContext.Current;
+        var authContext = _authContext.Current;
 
-        if (auth.FlowType != AuthFlowType.Login)
+        if (authContext.FlowType != AuthFlowType.Login)
             return Results.BadRequest("PKCE is only supported for login flow.");
 
         var request = await ReadPkceAuthorizeRequestAsync(ctx);
@@ -63,8 +63,8 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         var authorizationCode = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: auth.ClientProfile,
-            tenantId: auth.TenantId,
+            clientProfile: authContext.ClientProfile,
+            tenantId: authContext.TenantId,
             redirectUri: request.RedirectUri,
             deviceId: string.Empty // TODO: Fix here with device binding
         );
@@ -91,9 +91,9 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
     public async Task<IResult> CompleteAsync(HttpContext ctx)
     {
-        var auth = _authContext.Current;
+        var authContext = _authContext.Current;
 
-        if (auth.FlowType != AuthFlowType.Login)
+        if (authContext.FlowType != AuthFlowType.Login)
             return Results.BadRequest("PKCE is only supported for login flow.");
 
         var request = await ReadPkceCompleteRequestAsync(ctx);
@@ -111,8 +111,8 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
         var validation = _validator.Validate(artifact, request.CodeVerifier,
             new PkceContextSnapshot(
-                clientProfile: auth.ClientProfile,
-                tenantId: auth.TenantId,
+                clientProfile: authContext.ClientProfile,
+                tenantId: authContext.TenantId,
                 redirectUri: null,
                 deviceId: string.Empty),
             _clock.UtcNow);
@@ -120,17 +120,17 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         if (!validation.Success)
         {
             artifact.RegisterAttempt();
-            return RedirectToLoginWithError(ctx, auth, "invalid");
+            return RedirectToLoginWithError(ctx, authContext, "invalid");
         }
 
         var loginRequest = new LoginRequest
         {
             Identifier = request.Identifier,
             Secret = request.Secret,
-            TenantId = auth.TenantId,
+            TenantId = authContext.TenantId,
             At = _clock.UtcNow,
-            DeviceInfo = DeviceInfo.Unknown, // TODO: Device binding will add
-            RequestTokens = auth.AllowsTokenIssuance
+            Device = authContext.Device,
+            RequestTokens = authContext.AllowsTokenIssuance
         };
 
         var execution = new AuthExecutionContext
@@ -138,10 +138,10 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
             EffectiveClientProfile = artifact.Context.ClientProfile,
         };
 
-        var result = await _flow.LoginAsync(auth, execution, loginRequest, ctx.RequestAborted);
+        var result = await _flow.LoginAsync(authContext, execution, loginRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectToLoginWithError(ctx, auth, "invalid");
+            return RedirectToLoginWithError(ctx, authContext, "invalid");
 
         if (result.SessionId is not null)
         {
@@ -150,17 +150,17 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
         if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
+            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
+            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        if (auth.Response.Login.RedirectEnabled)
+        if (authContext.Response.Login.RedirectEnabled)
         {
-            var redirectUrl = request.ReturnUrl ?? _redirectResolver.ResolveRedirect(ctx, auth.Response.Login.SuccessPath);
+            var redirectUrl = request.ReturnUrl ?? _redirectResolver.ResolveRedirect(ctx, authContext.Response.Login.SuccessPath);
             return Results.Redirect(redirectUrl);
         }
 

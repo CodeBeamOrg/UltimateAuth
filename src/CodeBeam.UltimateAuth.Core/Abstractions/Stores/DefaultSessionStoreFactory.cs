@@ -1,21 +1,20 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Abstractions
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     /// <summary>
     /// Default session store factory that throws until a real store implementation is registered.
     /// </summary>
-    public sealed class DefaultSessionStoreFactory : ISessionStoreFactory
+    internal sealed class DefaultSessionStoreFactory : ISessionStoreKernelFactory
     {
-        /// <summary>Creates a session store instance for the given user ID type, but always throws because no store has been registered.</summary>
-        /// <param name="tenantId">The tenant identifier, or <c>null</c> in single-tenant mode.</param>
-        /// <typeparam name="TUserId">The type used to uniquely identify the user.</typeparam>
-        /// <returns>Never returns; always throws.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when no session store implementation has been configured.</exception>
-        public ISessionStoreKernel<TUserId> Create<TUserId>(string? tenantId)
+        private readonly IServiceProvider _sp;
+
+        public DefaultSessionStoreFactory(IServiceProvider sp)
         {
-            throw new InvalidOperationException(
-                "No session store has been configured." +
-                "Call AddUltimateAuthServer().AddSessionStore(...) to register one."
-            );
+            _sp = sp;
         }
+
+        public ISessionStoreKernel Create(string? tenantId)
+            => _sp.GetRequiredService<ISessionStoreKernel>();
     }
 }

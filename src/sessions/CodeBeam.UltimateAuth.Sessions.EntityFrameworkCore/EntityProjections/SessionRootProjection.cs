@@ -1,11 +1,13 @@
-﻿namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
-    internal sealed class SessionRootProjection<TUserId>
+    internal sealed class SessionRootProjection
     {
         public long Id { get; set; }
-
+        public SessionRootId RootId { get; set; }
         public string? TenantId { get; set; }
-        public TUserId UserId { get; set; } = default!;
+        public UserKey UserKey { get; set; }
 
         public bool IsRevoked { get; set; }
         public DateTimeOffset? RevokedAt { get; set; }

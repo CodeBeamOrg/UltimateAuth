@@ -10,10 +10,10 @@ namespace CodeBeam.UltimateAuth.Server.Abstractions
     /// Extends the core ISessionIssuer contract with HttpContext-bound
     /// operations required for cookie-based session binding.
     /// </summary>
-    public interface IHttpSessionIssuer<TUserId> : ISessionIssuer<TUserId>
+    public interface IHttpSessionIssuer : ISessionIssuer
     {
-        Task<IssuedSession<TUserId>> IssueLoginSessionAsync(HttpContext httpContext, AuthenticatedSessionContext<TUserId> context, CancellationToken cancellationToken = default);
+        Task<IssuedSession> IssueLoginSessionAsync(HttpContext httpContext, AuthenticatedSessionContext context, CancellationToken ct = default);
 
-        Task<IssuedSession<TUserId>> RotateSessionAsync(HttpContext httpContext, SessionRotationContext<TUserId> context, CancellationToken cancellationToken = default);
+        Task<IssuedSession> RotateSessionAsync(HttpContext httpContext, SessionRotationContext context, CancellationToken ct = default);
     }
 }

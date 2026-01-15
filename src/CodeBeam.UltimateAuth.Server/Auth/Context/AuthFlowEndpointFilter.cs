@@ -17,9 +17,8 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 
             if (metadata != null)
             {
-                _authFlow.Begin(metadata.FlowType);
+                await _authFlow.BeginAsync(metadata.FlowType);
             }
-
             return await next(context);
         }
 

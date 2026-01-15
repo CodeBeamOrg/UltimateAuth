@@ -4,12 +4,13 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
     internal static class SessionChainProjectionMapper
     {
-        public static ISessionChain<TUserId> ToDomain<TUserId>(this SessionChainProjection<TUserId> p)
+        public static ISessionChain ToDomain(this SessionChainProjection p)
         {
-            return UAuthSessionChain<TUserId>.FromProjection(
+            return UAuthSessionChain.FromProjection(
                 p.ChainId,
+                p.RootId,
                 p.TenantId,
-                p.UserId,
+                p.UserKey,
                 p.RotationCount,
                 p.SecurityVersionAtCreation,
                 p.ClaimsSnapshot,
@@ -19,13 +20,13 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             );
         }
 
-        public static SessionChainProjection<TUserId> ToProjection<TUserId>(this ISessionChain<TUserId> chain)
+        public static SessionChainProjection ToProjection(this ISessionChain chain)
         {
-            return new SessionChainProjection<TUserId>
+            return new SessionChainProjection
             {
                 ChainId = chain.ChainId,
                 TenantId = chain.TenantId,
-                UserId = chain.UserId,
+                UserKey = chain.UserKey,
 
                 RotationCount = chain.RotationCount,
                 SecurityVersionAtCreation = chain.SecurityVersionAtCreation,

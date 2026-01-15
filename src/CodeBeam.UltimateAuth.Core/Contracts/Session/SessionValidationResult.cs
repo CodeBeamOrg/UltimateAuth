@@ -2,49 +2,65 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts
 {
-    public sealed class SessionValidationResult<TUserId>
+    public sealed class SessionValidationResult
     {
-        public string? TenantId { get; }
-        public SessionState State { get; }
-        public ISession<TUserId>? Session { get; }
-        public ISessionChain<TUserId>? Chain { get; }
-        public ISessionRoot<TUserId>? Root { get; }
+        public string? TenantId { get; init; }
 
-        private SessionValidationResult(
-            string? tenantId,
-            SessionState state,
-            ISession<TUserId>? session,
-            ISessionChain<TUserId>? chain,
-            ISessionRoot<TUserId>? root)
-        {
-            TenantId = tenantId;
-            State = state;
-            Session = session;
-            Chain = chain;
-            Root = root;
-        }
+        public required SessionState State { get; init; }
+
+        public UserKey? UserKey { get; init; }
+
+        public AuthSessionId? SessionId { get; init; }
+
+        public SessionChainId? ChainId { get; init; }
+
+        public SessionRootId? RootId { get; init; }
+
+        public DeviceId? BoundDeviceId { get; init; }
+
+        public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
 
         public bool IsValid => State == SessionState.Active;
 
-        public static SessionValidationResult<TUserId> Active(
-            string? tenantId,
-            ISession<TUserId> session,
-            ISessionChain<TUserId> chain,
-            ISessionRoot<TUserId> root)
-            => new(
-                tenantId,
-                SessionState.Active,
-                session,
-                chain,
-                root);
+        private SessionValidationResult() { }
 
-        public static SessionValidationResult<TUserId> Invalid(
-            SessionState state)
-            => new(
-                tenantId: null,
-                state,
-                session: null,
-                chain: null,
-                root: null);
+        public static SessionValidationResult Active(
+            string? tenantId,
+            UserKey? userId,
+            AuthSessionId sessionId,
+            SessionChainId chainId,
+            SessionRootId rootId,
+            ClaimsSnapshot claims,
+            DeviceId? boundDeviceId = null)
+            => new()
+            {
+                TenantId = tenantId,
+                State = SessionState.Active,
+                UserKey = userId,
+                SessionId = sessionId,
+                ChainId = chainId,
+                RootId = rootId,
+                Claims = claims,
+                BoundDeviceId = boundDeviceId
+            };
+
+        public static SessionValidationResult Invalid(
+            SessionState state,
+            UserKey? userId = null,
+            AuthSessionId? sessionId = null,
+            SessionChainId? chainId = null,
+            SessionRootId? rootId = null,
+            DeviceId? boundDeviceId = null)
+        => new()
+        {
+            TenantId = null,
+            State = state,
+            UserKey = userId,
+            SessionId = sessionId,
+            ChainId = chainId,
+            RootId = rootId,
+            Claims = ClaimsSnapshot.Empty,
+            BoundDeviceId = boundDeviceId
+        };
     }
 }

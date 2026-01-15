@@ -11,23 +11,29 @@ namespace CodeBeam.UltimateAuth.Server.Services
 {
     internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService<TUserId>
     {
+        private readonly IAuthFlowContextAccessor _authFlow;
         private readonly IUAuthUserService<TUserId> _users;
-        private readonly ISessionOrchestrator<TUserId> _orchestrator;
-        private readonly ISessionQueryService<TUserId> _queries;
-        private readonly ITokenIssuer<TUserId> _tokens;
-        private readonly IRefreshTokenValidator<TUserId> _tokenValidator;
+        private readonly ISessionOrchestrator _orchestrator;
+        private readonly ISessionQueryService _queries;
+        private readonly ITokenIssuer _tokens;
+        private readonly IUserIdConverterResolver _userIdConverterResolver;
+        private readonly IRefreshTokenValidator _tokenValidator;
 
         public UAuthFlowService(
+            IAuthFlowContextAccessor authFlow,
             IUAuthUserService<TUserId> users,
-            ISessionOrchestrator<TUserId> orchestrator,
-            ISessionQueryService<TUserId> queries,
-            ITokenIssuer<TUserId> tokens,
-            IRefreshTokenValidator<TUserId> tokenValidator)
+            ISessionOrchestrator orchestrator,
+            ISessionQueryService queries,
+            ITokenIssuer tokens,
+            IUserIdConverterResolver userIdConverterResolver,
+            IRefreshTokenValidator tokenValidator)
         {
+            _authFlow = authFlow;
             _users = users;
             _orchestrator = orchestrator;
             _queries = queries;
             _tokens = tokens;
+            _userIdConverterResolver = userIdConverterResolver;
             _tokenValidator = tokenValidator;
         }
 
@@ -49,24 +55,26 @@ namespace CodeBeam.UltimateAuth.Server.Services
         public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
         {
             var now = request.At ?? DateTimeOffset.UtcNow;
-            var device = request.DeviceInfo ?? DeviceInfo.Unknown;
 
             var auth = await _users.AuthenticateAsync(request.TenantId, request.Identifier, request.Secret, ct);
 
             if (!auth.Succeeded)
                 return LoginResult.Failed();
 
-            var sessionContext = new AuthenticatedSessionContext<TUserId>
+            var converter = _userIdConverterResolver.GetConverter<TUserId>();
+            var userKey = UserKey.FromString(converter.ToString(auth.UserId!));
+            var sessionContext = new AuthenticatedSessionContext
             {
                 TenantId = request.TenantId,
-                UserId = auth.UserId!,
+                UserKey = userKey,
                 Now = now,
-                DeviceInfo = device,
+                Device = request.Device,
                 Claims = auth.Claims,
-                ChainId = request.ChainId
+                ChainId = request.ChainId,
+                Metadata = SessionMetadata.Empty // TODO: Check all SessionMetadata.Empty statements
             };
 
-            var authContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Login, now, DeviceContext.From(device));
+            var authContext = flow.ToAuthContext(now);
             var issuedSession = await _orchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
 
             bool shouldIssueTokens = request.RequestTokens;
@@ -78,7 +86,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 var tokenContext = new TokenIssuanceContext
                 {
                     TenantId = request.TenantId,
-                    UserId = auth.UserId!.ToString()!,
+                    UserKey = userKey,
                     SessionId = issuedSession.Session.SessionId,
                     ChainId = request.ChainId,
                     Claims = auth.Claims.AsDictionary()
@@ -96,24 +104,26 @@ namespace CodeBeam.UltimateAuth.Server.Services
         public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
         {
             var now = request.At ?? DateTimeOffset.UtcNow;
-            var device = request.DeviceInfo ?? DeviceInfo.Unknown;
 
             var auth = await _users.AuthenticateAsync(request.TenantId, request.Identifier, request.Secret, ct);
 
             if (!auth.Succeeded)
                 return LoginResult.Failed();
 
-            var sessionContext = new AuthenticatedSessionContext<TUserId>
+            var converter = _userIdConverterResolver.GetConverter<TUserId>();
+            var userKey = UserKey.FromString(converter.ToString(auth.UserId!));
+            var sessionContext = new AuthenticatedSessionContext
             {
                 TenantId = request.TenantId,
-                UserId = auth.UserId!,
+                UserKey = userKey,
                 Now = now,
-                DeviceInfo = device,
+                Device = request.Device,
                 Claims = auth.Claims,
-                ChainId = request.ChainId
+                ChainId = request.ChainId,
+                Metadata = SessionMetadata.Empty
             };
 
-            var authContext = AuthContext.ForAuthenticatedUser(request.TenantId, AuthOperation.Login, now, DeviceContext.From(device));
+            var authContext = flow.ToAuthContext(now);
             var issuedSession = await _orchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
 
             bool shouldIssueTokens = request.RequestTokens;
@@ -125,7 +135,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 var tokenContext = new TokenIssuanceContext
                 {
                     TenantId = request.TenantId,
-                    UserId = auth.UserId!.ToString()!,
+                    UserKey = userKey,
                     SessionId = issuedSession.Session.SessionId,
                     ChainId = request.ChainId,
                     Claims = auth.Claims.AsDictionary()
@@ -152,50 +162,38 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
         public Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
         {
+            var authFlow = _authFlow.Current;
             var now = request.At ?? DateTimeOffset.UtcNow;
-            var authContext = AuthContext.System(request.TenantId, AuthOperation.Revoke,now);
+            var authContext = authFlow.ToAuthContext(now);
 
-            return _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand<TUserId>(request.TenantId, request.SessionId), ct);
+            return _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.TenantId, request.SessionId), ct);
         }
 
         public async Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default)
         {
+            var authFlow = _authFlow.Current;
             var now = request.At ?? DateTimeOffset.UtcNow;
 
-            if (request.CurrentSessionId is null)
-                throw new InvalidOperationException("CurrentSessionId must be provided for logout-all operation.");
+            if (authFlow.Session is not SessionSecurityContext session)
+                throw new InvalidOperationException("LogoutAll requires an active session.");
 
-            var currentSessionId = request.CurrentSessionId.Value;
-
-            var validation = await _queries.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    TenantId = request.TenantId,
-                    SessionId = currentSessionId,
-                    Now = now
-                },
-                ct);
-
-            if (!validation.IsValid || validation.Session is null)
-                throw new InvalidOperationException("Current session is not valid.");
-
-            var userId = validation.Session.UserId;
-
-            ChainId? exceptChainId = null;
+            var authContext = authFlow.ToAuthContext(now);
+            SessionChainId? exceptChainId = null;
 
             if (request.ExceptCurrent)
             {
-                exceptChainId = await _queries.ResolveChainIdAsync(
-                    request.TenantId,
-                    currentSessionId,
-                    ct);
+                exceptChainId = session.ChainId;
 
                 if (exceptChainId is null)
                     throw new InvalidOperationException("Current session chain could not be resolved.");
             }
 
-            var authContext = AuthContext.System(request.TenantId, AuthOperation.Revoke, now);
-            await _orchestrator.ExecuteAsync(authContext, new RevokeAllChainsCommand<TUserId>(userId, exceptChainId), ct);
+            if (authFlow.UserKey is UserKey uaKey)
+            {
+                var command = new RevokeAllChainsCommand(uaKey, exceptChainId);
+                await _orchestrator.ExecuteAsync(authContext, command, ct);
+            }
+            
         }
 
         public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)

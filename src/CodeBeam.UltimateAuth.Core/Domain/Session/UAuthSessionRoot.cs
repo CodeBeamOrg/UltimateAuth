@@ -1,26 +1,29 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
-    public sealed class UAuthSessionRoot<TUserId> : ISessionRoot<TUserId>
+    public sealed class UAuthSessionRoot : ISessionRoot
     {
-        public TUserId UserId { get; }
+        public SessionRootId RootId { get; }
+        public UserKey UserKey { get; }
         public string? TenantId { get; }
         public bool IsRevoked { get; }
         public DateTimeOffset? RevokedAt { get; }
         public long SecurityVersion { get; }
-        public IReadOnlyList<ISessionChain<TUserId>> Chains { get; }
+        public IReadOnlyList<ISessionChain> Chains { get; }
         public DateTimeOffset LastUpdatedAt { get; }
 
         private UAuthSessionRoot(
+            SessionRootId rootId,
             string? tenantId,
-            TUserId userId,
+            UserKey userKey,
             bool isRevoked,
             DateTimeOffset? revokedAt,
             long securityVersion,
-            IReadOnlyList<ISessionChain<TUserId>> chains,
+            IReadOnlyList<ISessionChain> chains,
             DateTimeOffset lastUpdatedAt)
         {
+            RootId = rootId;
             TenantId = tenantId;
-            UserId = userId;
+            UserKey = userKey;
             IsRevoked = isRevoked;
             RevokedAt = revokedAt;
             SecurityVersion = securityVersion;
@@ -28,30 +31,32 @@
             LastUpdatedAt = lastUpdatedAt;
         }
 
-        public static ISessionRoot<TUserId> Create(
+        public static ISessionRoot Create(
             string? tenantId,
-            TUserId userId,
+            UserKey userKey,
             DateTimeOffset issuedAt)
         {
-            return new UAuthSessionRoot<TUserId>(
+            return new UAuthSessionRoot(
+                SessionRootId.New(),
                 tenantId,
-                userId,
+                userKey,
                 isRevoked: false,
                 revokedAt: null,
                 securityVersion: 0,
-                chains: Array.Empty<ISessionChain<TUserId>>(),
+                chains: Array.Empty<ISessionChain>(),
                 lastUpdatedAt: issuedAt
             );
         }
 
-        public ISessionRoot<TUserId> Revoke(DateTimeOffset at)
+        public ISessionRoot Revoke(DateTimeOffset at)
         {
             if (IsRevoked)
                 return this;
 
-            return new UAuthSessionRoot<TUserId>(
+            return new UAuthSessionRoot(
+                RootId,
                 TenantId,
-                UserId,
+                UserKey,
                 isRevoked: true,
                 revokedAt: at,
                 securityVersion: SecurityVersion,
@@ -60,14 +65,15 @@
             );
         }
 
-        public ISessionRoot<TUserId> AttachChain(ISessionChain<TUserId> chain, DateTimeOffset at)
+        public ISessionRoot AttachChain(ISessionChain chain, DateTimeOffset at)
         {
             if (IsRevoked)
                 return this;
 
-            return new UAuthSessionRoot<TUserId>(
+            return new UAuthSessionRoot(
+                RootId,
                 TenantId,
-                UserId,
+                UserKey,
                 IsRevoked,
                 RevokedAt,
                 SecurityVersion,
@@ -76,18 +82,20 @@
             );
         }
 
-        internal static UAuthSessionRoot<TUserId> FromProjection(
-    string? tenantId,
-    TUserId userId,
-    bool isRevoked,
-    DateTimeOffset? revokedAt,
-    long securityVersion,
-    IReadOnlyList<ISessionChain<TUserId>> chains,
-    DateTimeOffset lastUpdatedAt)
+        internal static UAuthSessionRoot FromProjection(
+            SessionRootId rootId,
+            string? tenantId,
+            UserKey userKey,
+            bool isRevoked,
+            DateTimeOffset? revokedAt,
+            long securityVersion,
+            IReadOnlyList<ISessionChain> chains,
+            DateTimeOffset lastUpdatedAt)
         {
-            return new UAuthSessionRoot<TUserId>(
+            return new UAuthSessionRoot(
+                rootId,
                 tenantId,
-                userId,
+                userKey,
                 isRevoked,
                 revokedAt,
                 securityVersion,

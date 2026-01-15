@@ -6,70 +6,70 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class UAuthSessionQueryService<TUserId> : ISessionQueryService<TUserId>
+    public sealed class UAuthSessionQueryService : ISessionQueryService
     {
-        private readonly ISessionStoreFactory _storeFactory;
+        private readonly ISessionStoreKernelFactory _storeFactory;
         private readonly UAuthServerOptions _options;
 
-        public UAuthSessionQueryService(ISessionStoreFactory storeFactory, IOptions<UAuthServerOptions> options)
+        public UAuthSessionQueryService(ISessionStoreKernelFactory storeFactory, IOptions<UAuthServerOptions> options)
         {
             _storeFactory = storeFactory;
             _options = options.Value;
         }
 
-        public async Task<SessionValidationResult<TUserId>> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
+        public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
         {
-            var kernel = _storeFactory.Create<TUserId>(context.TenantId);
+            var kernel = _storeFactory.Create(context.TenantId);
 
-            var session = await kernel.GetSessionAsync(context.TenantId,context.SessionId);
+            var session = await kernel.GetSessionAsync(context.SessionId);
             if (session is null)
-                return SessionValidationResult<TUserId>.Invalid(SessionState.NotFound);
+                return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
 
             var state = session.GetState(context.Now, _options.Session.IdleTimeout);
             if (state != SessionState.Active)
-                return SessionValidationResult<TUserId>.Invalid(state);
+                return SessionValidationResult.Invalid(state, sessionId: session.SessionId, chainId: session.ChainId);
 
-            var chain = await kernel.GetChainAsync(context.TenantId, session.ChainId);
+            var chain = await kernel.GetChainAsync(session.ChainId);
             if (chain is null || chain.IsRevoked)
-                return SessionValidationResult<TUserId>.Invalid(SessionState.Revoked);
+                return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId);
 
-            var root = await kernel.GetSessionRootAsync(context.TenantId, session.UserId);
+            var root = await kernel.GetSessionRootByUserAsync(session.UserKey);
             if (root is null || root.IsRevoked)
-                return SessionValidationResult<TUserId>.Invalid(SessionState.Revoked);
+                return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId, root?.RootId);
 
             if (session.SecurityVersionAtCreation != root.SecurityVersion)
-                return SessionValidationResult<TUserId>.Invalid(SessionState.SecurityMismatch);
+                return SessionValidationResult.Invalid(SessionState.SecurityMismatch, session.UserKey, session.SessionId, session.ChainId, root.RootId);
 
             // TODO: Implement device id, AllowAndRebind behavior and check device mathing in blazor server circuit and external http calls.
             // Currently this line has error on refresh flow.
             //if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
             //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
-            return SessionValidationResult<TUserId>.Active(context.TenantId, session, chain, root);
+            return SessionValidationResult.Active(context.TenantId, session.UserKey, session.SessionId, session.ChainId, root.RootId, session.Claims, boundDeviceId: session.Device.DeviceId);
         }
 
-        public Task<ISession<TUserId>?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
+        public Task<ISession?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
         {
-            var kernel = _storeFactory.Create<TUserId>(tenantId);
-            return kernel.GetSessionAsync(tenantId, sessionId);
+            var kernel = _storeFactory.Create(tenantId);
+            return kernel.GetSessionAsync(sessionId);
         }
 
-        public Task<IReadOnlyList<ISession<TUserId>>> GetSessionsByChainAsync(string? tenantId, ChainId chainId, CancellationToken ct = default)
+        public Task<IReadOnlyList<ISession>> GetSessionsByChainAsync(string? tenantId, SessionChainId chainId, CancellationToken ct = default)
         {
-            var kernel = _storeFactory.Create<TUserId>(tenantId);
-            return kernel.GetSessionsByChainAsync(tenantId, chainId);
+            var kernel = _storeFactory.Create(tenantId);
+            return kernel.GetSessionsByChainAsync(chainId);
         }
 
-        public Task<IReadOnlyList<ISessionChain<TUserId>>> GetChainsByUserAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
+        public Task<IReadOnlyList<ISessionChain>> GetChainsByUserAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
         {
-            var kernel = _storeFactory.Create<TUserId>(tenantId);
-            return kernel.GetChainsByUserAsync(tenantId, userId);
+            var kernel = _storeFactory.Create(tenantId);
+            return kernel.GetChainsByUserAsync(userKey);
         }
 
-        public Task<ChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
+        public Task<SessionChainId?> ResolveChainIdAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)
         {
-            var kernel = _storeFactory.Create<TUserId>(tenantId);
-            return kernel.GetChainIdBySessionAsync(tenantId, sessionId);
+            var kernel = _storeFactory.Create(tenantId);
+            return kernel.GetChainIdBySessionAsync(sessionId);
         }
     }
 

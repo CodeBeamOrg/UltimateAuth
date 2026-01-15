@@ -7,18 +7,14 @@ using System;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
-public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotationService<TUserId>
+public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 {
-    private readonly IRefreshTokenValidator<TUserId> _validator;
-    private readonly IRefreshTokenStore<TUserId> _store;
-    private readonly ITokenIssuer<TUserId> _tokenIssuer;
+    private readonly IRefreshTokenValidator _validator;
+    private readonly IRefreshTokenStore _store;
+    private readonly ITokenIssuer _tokenIssuer;
     private readonly IClock _clock;
 
-    public RefreshTokenRotationService(
-        IRefreshTokenValidator<TUserId> validator,
-        IRefreshTokenStore<TUserId> store,
-        ITokenIssuer<TUserId> tokenIssuer,
-        IClock clock)
+    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStore store, ITokenIssuer tokenIssuer, IClock clock)
     {
         _validator = validator;
         _store = store;
@@ -27,10 +23,10 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
     }
 
     // TODO: Handle reuse detection and make flow knows situation, but don't make security branch.
-    public async Task<RefreshTokenRotationExecution<TUserId>> RotateAsync(AuthFlowContext flow, RefreshTokenRotationContext<TUserId> context, CancellationToken ct = default)
+    public async Task<RefreshTokenRotationExecution> RotateAsync(AuthFlowContext flow, RefreshTokenRotationContext context, CancellationToken ct = default)
     {
         var validation = await _validator.ValidateAsync(
-            new RefreshTokenValidationContext<TUserId>
+            new RefreshTokenValidationContext
             {
                 TenantId = flow.TenantId,
                 RefreshToken = context.RefreshToken,
@@ -41,7 +37,7 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
             ct);
 
         if (!validation.IsValid)
-            return new RefreshTokenRotationExecution<TUserId>() { Result = RefreshTokenRotationResult.Failed() };
+            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
 
         if (validation.IsReuseDetected)
         {
@@ -54,7 +50,12 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
                 await _store.RevokeBySessionAsync(validation.TenantId, validation.SessionId.Value, context.Now, ct);
             }
 
-            return new RefreshTokenRotationExecution<TUserId>() { Result = RefreshTokenRotationResult.Failed() };
+            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
+        }
+
+        if (validation.UserKey is not UserKey uKey)
+        {
+            throw new InvalidOperationException("Validated refresh token does not contain a UserKey.");
         }
 
         var tokenContext = new TokenIssuanceContext
@@ -63,8 +64,8 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
                 ? validation.TenantId
                 : null,
 
-            UserId = validation.UserId!.ToString()!,
-            SessionId = validation.SessionId!.Value,
+            UserKey = uKey,
+            SessionId = validation.SessionId,
             ChainId = validation.ChainId
         };
 
@@ -72,7 +73,7 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
         var refreshToken = await _tokenIssuer.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.DoNotPersist, ct);
 
         if (refreshToken is null)
-            return new RefreshTokenRotationExecution<TUserId>
+            return new RefreshTokenRotationExecution
             {
                 Result = RefreshTokenRotationResult.Failed()
             };
@@ -81,11 +82,11 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
         // TODO: Add _store.ExecuteAsync here to wrap RevokeAsync and StoreAsync
         await _store.RevokeAsync(validation.TenantId, validation.TokenHash, context.Now, refreshToken.TokenHash, ct);
 
-        var stored = new StoredRefreshToken<TUserId>
+        var stored = new StoredRefreshToken
         {
             TenantId = flow.TenantId,
             TokenHash = refreshToken.TokenHash,
-            UserId = validation.UserId,
+            UserKey = uKey,
             SessionId = validation.SessionId.Value,
             ChainId = validation.ChainId,
             IssuedAt = _clock.UtcNow,
@@ -93,10 +94,10 @@ public sealed class RefreshTokenRotationService<TUserId> : IRefreshTokenRotation
         };
         await _store.StoreAsync(validation.TenantId, stored);
 
-        return new RefreshTokenRotationExecution<TUserId>()
+        return new RefreshTokenRotationExecution()
         {
             TenantId = validation.TenantId,
-            UserId = validation.UserId,
+            UserKey = validation.UserKey,
             SessionId = validation.SessionId,
             ChainId = validation.ChainId,
             Result = RefreshTokenRotationResult.Success(accessToken, refreshToken)

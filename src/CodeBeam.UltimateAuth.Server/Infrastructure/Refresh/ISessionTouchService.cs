@@ -6,8 +6,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
     /// Refreshes session lifecycle artifacts.
     /// Used by PureOpaque and Hybrid modes.
     /// </summary>
-    public interface ISessionTouchService<TUserId> : IRefreshService where TUserId : notnull
+    public interface ISessionTouchService : IRefreshService
     {
-        Task<SessionRefreshResult> RefreshAsync(SessionValidationResult<TUserId> validation, SessionTouchPolicy policy, DateTimeOffset now, CancellationToken ct = default);
+        Task<SessionRefreshResult> RefreshAsync(SessionValidationResult validation, SessionTouchPolicy policy, SessionTouchMode sessionTouchMode, DateTimeOffset now, CancellationToken ct = default);
     }
 }

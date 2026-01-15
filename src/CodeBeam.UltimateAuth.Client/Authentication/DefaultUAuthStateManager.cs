@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Client.Runtime;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Client.Authentication
 {
@@ -6,26 +7,23 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
     {
         private readonly IUAuthClient _client;
         private readonly IClock _clock;
+        private readonly IUAuthClientBootstrapper _bootstrapper;
 
         public UAuthState State { get; } = UAuthState.Anonymous();
 
-        public DefaultUAuthStateManager(IUAuthClient client, IClock clock)
+        public DefaultUAuthStateManager(IUAuthClient client, IClock clock, IUAuthClientBootstrapper bootstrapper)
         {
             _client = client;
             _clock = clock;
+            _bootstrapper = bootstrapper;
         }
 
         public async Task EnsureAsync(CancellationToken ct = default)
-        {
-            //if (!State.IsAuthenticated)
-            //    return;
-
-            //if (!State.IsStale)
-            //    return;
-
+        {   
             if (State.IsAuthenticated && !State.IsStale)
                 return;
 
+            await _bootstrapper.EnsureStartedAsync();
             var result = await _client.ValidateAsync();
 
             if (!result.IsValid)
@@ -37,23 +35,11 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
             State.ApplySnapshot(result.Snapshot, _clock.UtcNow);
         }
 
-        public async Task OnLoginAsync(CancellationToken ct = default)
+        public Task OnLoginAsync()
         {
-            var result = await _client.ValidateAsync();
-
-            if (!result.IsValid || result.Snapshot is null)
-            {
-                State.Clear();
-                return;
-            }
-
-            var now = _clock.UtcNow;
-
-            State.ApplySnapshot(
-                result.Snapshot,
-                validatedAt: now);
+            State.MarkStale();
+            return Task.CompletedTask;
         }
-
 
         public Task OnLogoutAsync()
         {

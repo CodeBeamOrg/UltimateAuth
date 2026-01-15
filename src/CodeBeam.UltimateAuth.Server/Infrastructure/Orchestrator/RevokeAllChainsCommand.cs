@@ -4,20 +4,20 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
-    public sealed class RevokeAllChainsCommand<TUserId> : ISessionCommand<TUserId, Unit>
+    public sealed class RevokeAllChainsCommand : ISessionCommand<Unit>
     {
-        public TUserId UserId { get; }
-        public ChainId? ExceptChainId { get; }
+        public UserKey UserKey { get; }
+        public SessionChainId? ExceptChainId { get; }
 
-        public RevokeAllChainsCommand(TUserId userId, ChainId? exceptChainId)
+        public RevokeAllChainsCommand(UserKey userKey, SessionChainId? exceptChainId)
         {
-            UserId = userId;
+            UserKey = userKey;
             ExceptChainId = exceptChainId;
         }
 
-        public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer<TUserId> issuer, CancellationToken ct)
+        public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
         {
-            await issuer.RevokeAllChainsAsync(context.TenantId, UserId, ExceptChainId, context.At, ct);
+            await issuer.RevokeAllChainsAsync(context.TenantId, UserKey, ExceptChainId, context.At, ct);
             return Unit.Value;
         }
     }

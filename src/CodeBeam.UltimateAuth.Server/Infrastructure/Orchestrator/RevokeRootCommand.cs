@@ -1,25 +1,26 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator
 {
-    public sealed class RevokeRootCommand<TUserId> : ISessionCommand<TUserId, Unit>
+    public sealed class RevokeRootCommand : ISessionCommand<Unit>
     {
-        public TUserId UserId { get; }
+        public UserKey UserKey { get; }
 
-        public RevokeRootCommand(TUserId userId)
+        public RevokeRootCommand(UserKey userKey)
         {
-            UserId = userId;
+            UserKey = userKey;
         }
 
         public async Task<Unit> ExecuteAsync(
             AuthContext context,
-            ISessionIssuer<TUserId> issuer,
+            ISessionIssuer issuer,
             CancellationToken ct)
         {
             await issuer.RevokeRootAsync(
                 context.TenantId,
-                UserId,
+                UserKey,
                 context.At,
                 ct);
 

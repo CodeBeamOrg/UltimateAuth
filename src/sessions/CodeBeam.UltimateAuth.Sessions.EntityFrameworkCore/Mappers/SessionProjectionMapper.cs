@@ -4,16 +4,12 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
     internal static class SessionProjectionMapper
     {
-        public static ISession<TUserId> ToDomain<TUserId>(this SessionProjection<TUserId> p)
+        public static ISession ToDomain(this SessionProjection p)
         {
-            var device = p.Device == DeviceInfo.Empty
-                ? DeviceInfo.Unknown
-                : p.Device;
-
-            return UAuthSession<TUserId>.FromProjection(
+            return UAuthSession.FromProjection(
                 p.SessionId,
                 p.TenantId,
-                p.UserId,
+                p.UserKey,
                 p.ChainId,
                 p.CreatedAt,
                 p.ExpiresAt,
@@ -21,19 +17,19 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
                 p.IsRevoked,
                 p.RevokedAt,
                 p.SecurityVersionAtCreation,
-                device,
+                p.Device,
                 p.Claims,
                 p.Metadata
             );
         }
 
-        public static SessionProjection<TUserId> ToProjection<TUserId>(this ISession<TUserId> s)
+        public static SessionProjection ToProjection(this ISession s)
         {
-            return new SessionProjection<TUserId>
+            return new SessionProjection
             {
                 SessionId = s.SessionId,
                 TenantId = s.TenantId,
-                UserId = s.UserId,
+                UserKey = s.UserKey,
                 ChainId = s.ChainId,
 
                 CreatedAt = s.CreatedAt,

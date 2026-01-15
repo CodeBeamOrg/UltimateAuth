@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts
 {
-    public sealed record RefreshTokenValidationResult<TUserId>
+    public sealed record RefreshTokenValidationResult
     {
         public bool IsValid { get; init; }
         public bool IsReuseDetected { get; init; }
@@ -10,32 +10,28 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public string? TokenHash { get; init; }
 
         public string? TenantId { get; init; }
-        public TUserId? UserId { get; init; }
+        public UserKey? UserKey { get; init; }
         public AuthSessionId? SessionId { get; init; }
-        public ChainId? ChainId { get; init; }
+        public SessionChainId? ChainId { get; init; }
 
         public DateTimeOffset? ExpiresAt { get; init; }
 
 
         private RefreshTokenValidationResult() { }
 
-        // ----------------------------
-        // FACTORIES
-        // ----------------------------
-
-        public static RefreshTokenValidationResult<TUserId> Invalid()
+        public static RefreshTokenValidationResult Invalid()
             => new()
             {
                 IsValid = false,
                 IsReuseDetected = false
             };
 
-        public static RefreshTokenValidationResult<TUserId> ReuseDetected(
-        string? tenantId = null,
-        AuthSessionId? sessionId = null,
-        string? tokenHash = null,
-        ChainId? chainId = null,
-        TUserId? userId = default)
+        public static RefreshTokenValidationResult ReuseDetected(
+            string? tenantId = null,
+            AuthSessionId? sessionId = null,
+            string? tokenHash = null,
+            SessionChainId? chainId = null,
+            UserKey? userKey = default)
         => new()
         {
             IsValid = false,
@@ -44,21 +40,21 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
             SessionId = sessionId,
             TokenHash = tokenHash,
             ChainId = chainId,
-            UserId = userId,
+            UserKey = userKey,
         };
 
-        public static RefreshTokenValidationResult<TUserId> Valid(
-        string? tenantId,
-        TUserId userId,
-        AuthSessionId sessionId,
-        string? tokenHash,
-        ChainId? chainId = null)
+        public static RefreshTokenValidationResult Valid(
+            string? tenantId,
+            UserKey userKey,
+            AuthSessionId sessionId,
+            string? tokenHash,
+            SessionChainId? chainId = null)
         => new()
         {
             IsValid = true,
             IsReuseDetected = false,
             TenantId = tenantId,
-            UserId = userId,
+            UserKey = userKey,
             SessionId = sessionId,
             ChainId = chainId,
             TokenHash = tokenHash

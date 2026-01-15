@@ -1,11 +1,13 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Domain
 {
     /// <summary>
     /// Represents a single authentication session belonging to a user.
     /// Sessions are immutable, security-critical units used for validation,
     /// sliding expiration, revocation, and device analytics.
     /// </summary>
-    public interface ISession<TUserId>
+    public interface ISession
     {
         /// <summary>
         /// Gets the unique identifier of the session.
@@ -17,9 +19,9 @@
         /// <summary>
         /// Gets the identifier of the user who owns this session.
         /// </summary>
-        TUserId UserId { get; }
+        UserKey UserKey { get; }
 
-        ChainId ChainId { get; }
+        SessionChainId ChainId { get; }
 
         /// <summary>
         /// Gets the timestamp when this session was originally created.
@@ -58,7 +60,7 @@
         /// Gets metadata describing the client device that created the session.
         /// Includes platform, OS, IP address, fingerprint, and more.
         /// </summary>
-        DeviceInfo Device { get; }
+        DeviceContext Device { get; }
 
         ClaimsSnapshot Claims { get; }
 
@@ -75,8 +77,10 @@
         /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
         SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout);
 
-        ISession<TUserId> Touch(DateTimeOffset now);
-        ISession<TUserId> Revoke(DateTimeOffset at);
+        ISession Touch(DateTimeOffset now);
+        ISession Revoke(DateTimeOffset at);
+
+        ISession WithChain(SessionChainId chainId);
 
     }
 }

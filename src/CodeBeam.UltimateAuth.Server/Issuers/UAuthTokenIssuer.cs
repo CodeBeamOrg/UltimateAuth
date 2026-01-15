@@ -13,16 +13,16 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
     /// Opinionated implementation of ITokenIssuer.
     /// Mode-aware (PureOpaque, Hybrid, SemiHybrid, PureJwt).
     /// </summary>
-    public sealed class UAuthTokenIssuer<TUserId> : ITokenIssuer<TUserId>
+    public sealed class UAuthTokenIssuer : ITokenIssuer
     {
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly IJwtTokenGenerator _jwtGenerator;
         private readonly ITokenHasher _tokenHasher;
-        private readonly IRefreshTokenStore<TUserId> _refreshTokenStore;
+        private readonly IRefreshTokenStore _refreshTokenStore;
         private readonly IUserIdConverterResolver _converterResolver;
         private readonly IClock _clock;
 
-        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore<TUserId> refreshTokenStore,IUserIdConverterResolver converterResolver, IClock clock)
+        public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore refreshTokenStore,IUserIdConverterResolver converterResolver, IClock clock)
         {
             _opaqueGenerator = opaqueGenerator;
             _jwtGenerator = jwtGenerator;
@@ -42,7 +42,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             {
                 // TODO: Discuss, Hybrid token may be JWT.
                 UAuthMode.PureOpaque or UAuthMode.Hybrid =>
-                    Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
+                    Task.FromResult(IssueOpaqueAccessToken(expires, flow?.Session?.SessionId.ToString())),
 
                 UAuthMode.SemiHybrid or
                 UAuthMode.PureJwt =>
@@ -63,14 +63,13 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             var raw = _opaqueGenerator.Generate();
             var hash = _tokenHasher.Hash(raw);
 
-            var converter = _converterResolver.GetConverter<TUserId>();
-
-            var stored = new StoredRefreshToken<TUserId>
+            var stored = new StoredRefreshToken
             {
                 TenantId = flow.TenantId,
                 TokenHash = hash,
-                UserId = converter.FromString(context.UserId),
-                SessionId = AuthSessionId.From(context.SessionId!),
+                UserKey = context.UserKey,
+                // TODO: Check here again
+                SessionId = (AuthSessionId)context.SessionId,
                 ChainId = context.ChainId,
                 IssuedAt = _clock.UtcNow,
                 ExpiresAt = expires
@@ -106,14 +105,14 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
         {
             var claims = new Dictionary<string, object>
             {
-                ["sub"] = context.UserId,
+                ["sub"] = context.UserKey,
                 ["tenant"] = context.TenantId
             };
 
             foreach (var kv in context.Claims)
                 claims[kv.Key] = kv.Value;
 
-            if (!string.IsNullOrWhiteSpace(context.SessionId))
+            if (context.SessionId != null)
                 claims["sid"] = context.SessionId!;
 
             if (tokens.AddJwtIdClaim)
@@ -121,7 +120,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             var descriptor = new UAuthJwtTokenDescriptor
             {
-                Subject = context.UserId,
+                Subject = context.UserKey,
                 Issuer = tokens.Issuer,
                 Audience = tokens.Audience,
                 IssuedAt = _clock.UtcNow,
@@ -138,7 +137,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 Token = jwt,
                 Type = TokenType.Jwt,
                 ExpiresAt = expires,
-                SessionId = context.SessionId
+                SessionId = context.SessionId.ToString()
             };
         }
 

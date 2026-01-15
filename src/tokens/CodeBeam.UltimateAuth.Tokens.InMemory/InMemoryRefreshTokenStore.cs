@@ -4,44 +4,29 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Tokens.InMemory;
 
-public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUserId>
+public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
     private static string NormalizeTenant(string? tenantId) => tenantId ?? "__default__";
 
-    private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken<TUserId>> _tokens = new();
+    private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken> _tokens = new();
 
-    public Task StoreAsync(
-        string? tenantId,
-        StoredRefreshToken<TUserId> token,
-        CancellationToken ct = default)
+    public Task StoreAsync(string? tenantId, StoredRefreshToken token, CancellationToken ct = default)
     {
-        var key = new TokenKey(
-            NormalizeTenant(tenantId),
-            token.TokenHash);
+        var key = new TokenKey(NormalizeTenant(tenantId), token.TokenHash);
 
         _tokens[key] = token;
         return Task.CompletedTask;
     }
 
-    public Task<StoredRefreshToken<TUserId>?> FindByHashAsync(
-        string? tenantId,
-        string tokenHash,
-        CancellationToken ct = default)
+    public Task<StoredRefreshToken?> FindByHashAsync(string? tenantId, string tokenHash, CancellationToken ct = default)
     {
-        var key = new TokenKey(
-            NormalizeTenant(tenantId),
-            tokenHash);
+        var key = new TokenKey(NormalizeTenant(tenantId), tokenHash);
 
         _tokens.TryGetValue(key, out var token);
         return Task.FromResult(token);
     }
 
-    public Task RevokeAsync(
-        string? tenantId,
-        string tokenHash,
-        DateTimeOffset revokedAt,
-        string? replacedByTokenHash = null,
-        CancellationToken ct = default)
+    public Task RevokeAsync(string? tenantId, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
     {
         var key = new TokenKey(NormalizeTenant(tenantId), tokenHash);
 
@@ -57,11 +42,7 @@ public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUse
         return Task.CompletedTask;
     }
 
-    public Task RevokeBySessionAsync(
-        string? tenantId,
-        AuthSessionId sessionId,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeBySessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
         var tenant = NormalizeTenant(tenantId);
 
@@ -78,11 +59,7 @@ public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUse
         return Task.CompletedTask;
     }
 
-    public Task RevokeByChainAsync(
-        string? tenantId,
-        ChainId chainId,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeByChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
         var tenant = NormalizeTenant(tenantId);
 
@@ -99,18 +76,14 @@ public sealed class InMemoryRefreshTokenStore<TUserId> : IRefreshTokenStore<TUse
         return Task.CompletedTask;
     }
 
-    public Task RevokeAllForUserAsync(
-        string? tenantId,
-        TUserId userId,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeAllForUserAsync(string? tenantId, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
         var tenant = NormalizeTenant(tenantId);
 
         foreach (var (key, token) in _tokens)
         {
             if (key.TenantId == tenant &&
-                EqualityComparer<TUserId>.Default.Equals(token.UserId, userId) &&
+                token.UserKey == userKey &&
                 !token.IsRevoked)
             {
                 _tokens[key] = token with { RevokedAt = revokedAt };

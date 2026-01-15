@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public string Identifier { get; init; } = default!; // username, email etc.
         public string Secret { get; init; } = default!;     // password
         public DateTimeOffset? At { get; init; }
-        public DeviceInfo DeviceInfo { get; init; }
+        public required DeviceContext Device { get; init; }
         public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
         /// <summary>
@@ -18,6 +18,6 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public bool RequestTokens { get; init; } = true;
 
         // Optional
-        public ChainId? ChainId { get; init; }
+        public SessionChainId? ChainId { get; init; }
     }
 }

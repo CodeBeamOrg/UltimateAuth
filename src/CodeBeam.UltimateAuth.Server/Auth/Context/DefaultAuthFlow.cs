@@ -19,11 +19,11 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             _accessor = (DefaultAuthFlowContextAccessor)accessor;
         }
 
-        public AuthFlowContext Begin(AuthFlowType flowType)
+        public async ValueTask<AuthFlowContext> BeginAsync(AuthFlowType flowType, CancellationToken ct = default)
         {
             var ctx = _http.HttpContext ?? throw new InvalidOperationException("No HttpContext.");
 
-            var flowContext = _factory.Create(ctx, flowType);
+            var flowContext = await _factory.CreateAsync(ctx, flowType);
             _accessor.Set(flowContext);
 
             return flowContext;

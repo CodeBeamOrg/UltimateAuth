@@ -66,7 +66,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
                 Type t when t == typeof(long) => (TUserId)(object)long.Parse(value, CultureInfo.InvariantCulture),
                 Type t when t == typeof(Guid) => (TUserId)(object)Guid.Parse(value),
                 Type t when t == typeof(string) => (TUserId)(object)value,
-                Type t when t == typeof(UserId) => (TUserId)(object)new UserId(value),
+                Type t when t == typeof(UserKey) => (TUserId)(object)UserKey.FromString(value),
 
                 _ => JsonSerializer.Deserialize<TUserId>(value)
                      ?? throw new UAuthInternalException("Cannot deserialize TUserId")

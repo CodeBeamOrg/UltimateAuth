@@ -35,9 +35,22 @@ window.uauth.storage = {
 };
 
 window.uauth.submitForm = function (form) {
-    if (form) {
-        form.submit();
+    if (!form)
+        return;
+
+    if (!window.uauth.deviceId) {
+        throw new Error("UAuth deviceId is not initialized.");
     }
+
+    //if (!form.querySelector("input[name='__uauth_device']")) {
+        const udid = document.createElement("input");
+        udid.type = "hidden";
+        udid.name = "__uauth_device";
+        udid.value = window.uauth.deviceId;
+        form.appendChild(udid);
+    //}
+
+    form.submit();
 };
 
 window.uauth.post = async function (options) {
@@ -54,12 +67,17 @@ window.uauth.post = async function (options) {
         form.method = "POST";
         form.action = url;
 
-        // client profile (hidden)
         const cp = document.createElement("input");
         cp.type = "hidden";
         cp.name = "__uauth_client_profile";
         cp.value = clientProfile ?? "";
         form.appendChild(cp);
+
+        const udid = document.createElement("input");
+        udid.type = "hidden";
+        udid.name = "__uauth_device";
+        udid.value = window.uauth.deviceId;
+        form.appendChild(udid);
 
         if (data) {
             for (const key in data) {
@@ -77,7 +95,11 @@ window.uauth.post = async function (options) {
     }
 
     let body = null;
+    if (!window.uauth.deviceId) {
+        throw new Error("UAuth deviceId is not initialized.");
+    }
     const headers = {
+        "X-UDID": window.uauth.deviceId,
         "X-UAuth-ClientProfile": clientProfile
     };
 
@@ -112,4 +134,8 @@ window.uauth.post = async function (options) {
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
         body: responseBody
     };
+};
+
+window.uauth.setDeviceId = function (value) {
+    window.uauth.deviceId = value;
 };

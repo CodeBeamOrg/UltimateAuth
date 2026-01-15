@@ -4,9 +4,9 @@ namespace CodeBeam.UltimateAuth.Core.Errors
 {
     public sealed class UAuthSessionChainRevokedException : UAuthChainException
     {
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
 
-        public UAuthSessionChainRevokedException(ChainId chainId)
+        public UAuthSessionChainRevokedException(SessionChainId chainId)
             : base(chainId, $"Session chain '{chainId}' has been revoked.")
         {
         }

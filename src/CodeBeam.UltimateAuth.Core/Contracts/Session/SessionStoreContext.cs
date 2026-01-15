@@ -6,12 +6,12 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     /// Context information required by the session store when
     /// creating or rotating sessions.
     /// </summary>
-    public sealed class SessionStoreContext<TUserId>
+    public sealed class SessionStoreContext
     {
         /// <summary>
         /// The authenticated user identifier.
         /// </summary>
-        public required TUserId UserId { get; init; }
+        public required UserKey UserKey { get; init; }
 
         /// <summary>
         /// The tenant identifier, if multi-tenancy is enabled.
@@ -22,7 +22,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         /// Optional chain identifier.
         /// If null, a new chain should be created.
         /// </summary>
-        public ChainId? ChainId { get; init; }
+        public SessionChainId? ChainId { get; init; }
 
         /// <summary>
         /// Indicates whether the session is metadata-only
@@ -38,6 +38,6 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         /// <summary>
         /// Optional device or client identifier.
         /// </summary>
-        public DeviceInfo? DeviceInfo { get; init; }
+        public required DeviceContext Device { get; init; }
     }
 }

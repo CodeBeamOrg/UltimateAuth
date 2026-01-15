@@ -15,7 +15,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
         public async Task ResolveAsync(HttpContext context)
         {
-            var accessor = _services.GetRequiredService<IUserAccessor<UserId>>();
+            var accessor = _services.GetRequiredService<IUserAccessor<UserKey>>();
             await accessor.ResolveAsync(context);
         }
 

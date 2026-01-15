@@ -27,7 +27,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Gets the identifier of the session chain to which this session belongs.
         /// </summary>
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
 
         /// <summary>
         /// Gets the timestamp on which the session was created.
@@ -37,7 +37,7 @@ namespace CodeBeam.UltimateAuth.Core.Events
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionCreatedContext{TUserId}"/> class.
         /// </summary>
-        public SessionCreatedContext(TUserId userId, AuthSessionId sessionId, ChainId chainId, DateTimeOffset createdAt)
+        public SessionCreatedContext(TUserId userId, AuthSessionId sessionId, SessionChainId chainId, DateTimeOffset createdAt)
         {
             UserId = userId;
             SessionId = sessionId;

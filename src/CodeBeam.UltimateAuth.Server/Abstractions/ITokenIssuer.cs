@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Server.Abstactions
     /// Issues access and refresh tokens according to the active auth mode.
     /// Does not perform persistence or validation.
     /// </summary>
-    public interface ITokenIssuer<TUserId>
+    public interface ITokenIssuer
     {
         Task<AccessToken> IssueAccessTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken cancellationToken = default);
         Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken cancellationToken = default);

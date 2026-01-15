@@ -8,7 +8,7 @@
     public interface IUAuthService<TUserId>
     {
         //IUAuthFlowService<TUserId> Flow { get; }
-        IUAuthSessionService<TUserId> Sessions { get; }
+        IUAuthSessionManager Sessions { get; }
         //IUAuthTokenService<TUserId> Tokens { get; }
         IUAuthUserService<TUserId> Users { get; }
     }

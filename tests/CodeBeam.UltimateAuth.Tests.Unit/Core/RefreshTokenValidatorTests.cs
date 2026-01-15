@@ -10,9 +10,11 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
 {
     public sealed class RefreshTokenValidatorTests
     {
-        private static DefaultRefreshTokenValidator<string> CreateValidator(InMemoryRefreshTokenStore<string> store)
+        private const string ValidDeviceId = "deviceidshouldbelongandstrongenough!?1234567890";
+
+        private static DefaultRefreshTokenValidator CreateValidator(InMemoryRefreshTokenStore store)
         {
-            return new DefaultRefreshTokenValidator<string>(store, CreateHasher());
+            return new DefaultRefreshTokenValidator(store, CreateHasher());
         }
 
         private static ITokenHasher CreateHasher()
@@ -23,15 +25,16 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
         [Fact]
         public async Task Invalid_When_Token_Not_Found()
         {
-            var store = new InMemoryRefreshTokenStore<string>();
+            var store = new InMemoryRefreshTokenStore();
             var validator = CreateValidator(store);
 
             var result = await validator.ValidateAsync(
-                new RefreshTokenValidationContext<string>
+                new RefreshTokenValidationContext
                 {
                     TenantId = null,
                     RefreshToken = "non-existing",
-                    Now = DateTimeOffset.UtcNow
+                    Now = DateTimeOffset.UtcNow,
+                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
                 });
 
             Assert.False(result.IsValid);
@@ -41,7 +44,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
         [Fact]
         public async Task Reuse_Detected_When_Token_is_Revoked()
         {
-            var store = new InMemoryRefreshTokenStore<string>();
+            var store = new InMemoryRefreshTokenStore();
             var hasher = CreateHasher();
             var validator = CreateValidator(store);
 
@@ -50,24 +53,25 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
             var rawToken = "refresh-token-1";
             var hash = hasher.Hash(rawToken);
 
-            await store.StoreAsync(null, new StoredRefreshToken<string>
+            await store.StoreAsync(null, new StoredRefreshToken
             {
                 TenantId = null,
                 TokenHash = hash,
-                UserId = "user-1",
-                SessionId = new AuthSessionId("s1"),
-                ChainId = ChainId.New(),
+                UserKey = UserKey.FromString("user-1"),
+                SessionId = TestIds.Session("session-1-aaaaaaaaaaaaaaaaaaaaaa"),
+                ChainId = SessionChainId.New(),
                 IssuedAt = now.AddMinutes(-5),
                 ExpiresAt = now.AddMinutes(5),
                 RevokedAt = now
             });
 
             var result = await validator.ValidateAsync(
-                new RefreshTokenValidationContext<string>
+                new RefreshTokenValidationContext
                 {
                     TenantId = null,
                     RefreshToken = rawToken,
-                    Now = now
+                    Now = now,
+                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
                 });
 
             Assert.False(result.IsValid);
@@ -77,29 +81,30 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
         [Fact]
         public async Task Invalid_When_Expected_Session_Id_Does_Not_Match()
         {
-            var store = new InMemoryRefreshTokenStore<string>();
+            var store = new InMemoryRefreshTokenStore();
             var validator = CreateValidator(store);
 
             var now = DateTimeOffset.UtcNow;
 
-            await store.StoreAsync(null, new StoredRefreshToken<string>
+            await store.StoreAsync(null, new StoredRefreshToken
             {
                 TenantId = null,
                 TokenHash = "hash-2",
-                UserId = "user-1",
-                SessionId = new AuthSessionId("s1"),
-                ChainId = ChainId.New(),
+                UserKey = UserKey.FromString("user-1"),
+                SessionId = TestIds.Session("session-1-bbbbbbbbbbbbbbbbbbbbbb"),
+                ChainId = SessionChainId.New(),
                 IssuedAt = now,
                 ExpiresAt = now.AddMinutes(10)
             });
 
             var result = await validator.ValidateAsync(
-                new RefreshTokenValidationContext<string>
+                new RefreshTokenValidationContext
                 {
                     TenantId = null,
                     RefreshToken = "hash-2",
-                    ExpectedSessionId = new AuthSessionId("s2"),
-                    Now = now
+                    ExpectedSessionId = TestIds.Session("session-2-cccccccccccccccccccccc"),
+                    Now = now,
+                    Device = new DeviceContext { DeviceId = DeviceId.Create(ValidDeviceId) },
                 });
 
             Assert.False(result.IsValid);

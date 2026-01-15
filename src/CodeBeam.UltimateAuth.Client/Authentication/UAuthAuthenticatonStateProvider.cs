@@ -14,13 +14,6 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
             _stateManager.State.Changed += _ => NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
 
-        //public override Task<AuthenticationState> GetAuthenticationStateAsync()
-        //{
-        //    _stateManager.EnsureAsync();
-        //    var principal = _stateManager.State.ToClaimsPrincipal();
-        //    return Task.FromResult(new AuthenticationState(principal));
-        //}
-
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var principal = _stateManager.State.ToClaimsPrincipal();

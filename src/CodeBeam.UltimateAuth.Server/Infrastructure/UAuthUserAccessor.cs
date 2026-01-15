@@ -8,15 +8,15 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
     public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
     {
-        private readonly ISessionStore<TUserId> _sessionStore;
-        private readonly IUAuthUserStore<TUserId> _userStore;
+        private readonly ISessionStore _sessionStore;
+        private readonly IUserIdConverter<TUserId> _userIdConverter;
 
         public UAuthUserAccessor(
-            ISessionStore<TUserId> sessionStore,
-            IUAuthUserStore<TUserId> userStore)
+            ISessionStore sessionStore,
+            IUserIdConverterResolver converterResolver)
         {
             _sessionStore = sessionStore;
-            _userStore = userStore;
+            _userIdConverter = converterResolver.GetConverter<TUserId>();
         }
 
         public async Task ResolveAsync(HttpContext context)
@@ -37,7 +37,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                 return;
             }
 
-            context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(session.UserId);
+            var userId = _userIdConverter.FromString(session.UserKey.Value);
+            context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(userId);
         }
 
     }

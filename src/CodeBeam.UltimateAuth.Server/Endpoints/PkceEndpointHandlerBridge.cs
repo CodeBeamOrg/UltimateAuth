@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
     internal sealed class PkceEndpointHandlerBridge : IPkceEndpointHandler
     {
-        private readonly DefaultPkceEndpointHandler<UserId> _inner;
+        private readonly DefaultPkceEndpointHandler<UserKey> _inner;
 
-        public PkceEndpointHandlerBridge(DefaultPkceEndpointHandler<UserId> inner)
+        public PkceEndpointHandlerBridge(DefaultPkceEndpointHandler<UserKey> inner)
         {
             _inner = inner;
         }

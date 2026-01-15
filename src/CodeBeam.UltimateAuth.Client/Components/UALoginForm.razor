@@ -1,5 +1,6 @@
 ﻿@* TODO: Optional double-submit prevention for native form submit *@
 @namespace CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Options
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Contracts
@@ -14,6 +15,8 @@
     <input type="hidden" name="Identifier" value="@Identifier" />
     <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
     <input type="hidden" name="__uauth_client_profile" value="@ClientProfileValue" />
+    <input type="hidden" name="__uauth_device" value="@_deviceId" />
+
 
     @if (LoginType == UAuthLoginType.Pkce)
     {

@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -8,6 +8,6 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         public required string Value { get; init; }
 
         public string? TenantId { get; init; }
-        public DeviceInfo? Device { get; init; }
+        public required DeviceInfo Device { get; init; }
     }
 }

@@ -12,11 +12,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         public AuthFlowType FlowType { get; }
         public UAuthClientProfile ClientProfile { get; }
         public UAuthMode EffectiveMode { get; }
+        public DeviceContext Device { get; }
 
         public string? TenantId { get; }
+        public SessionSecurityContext? Session { get; }
         public bool IsAuthenticated { get; }
-        public UserId? UserId { get; }
-        public AuthSessionId? SessionId { get; }
+        public UserKey? UserKey { get; }
 
         public UAuthServerOptions OriginalOptions { get; }
         public EffectiveUAuthServerOptions EffectiveOptions { get; }
@@ -33,10 +34,11 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             AuthFlowType flowType,
             UAuthClientProfile clientProfile,
             UAuthMode effectiveMode,
+            DeviceContext device,
             string? tenantId,
             bool isAuthenticated,
-            UserId? userId,
-            AuthSessionId? sessionId,
+            UserKey? userKey,
+            SessionSecurityContext? session,
             UAuthServerOptions originalOptions,
             EffectiveUAuthServerOptions effectiveOptions,
             EffectiveAuthResponse response,
@@ -45,11 +47,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             FlowType = flowType;
             ClientProfile = clientProfile;
             EffectiveMode = effectiveMode;
+            Device = device;
 
             TenantId = tenantId;
+            Session = session;
             IsAuthenticated = isAuthenticated;
-            UserId = userId;
-            SessionId = sessionId;
+            UserKey = userKey;
 
             OriginalOptions = originalOptions;
             EffectiveOptions = effectiveOptions;

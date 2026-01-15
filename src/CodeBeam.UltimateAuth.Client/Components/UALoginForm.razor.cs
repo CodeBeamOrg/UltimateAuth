@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Device;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -11,6 +12,9 @@ namespace CodeBeam.UltimateAuth.Client
 {
     public partial class UALoginForm
     {
+        [Inject] IDeviceIdProvider DeviceIdProvider { get; set; } = null!;
+        private DeviceId? _deviceId;
+
         [Inject]
         IHubCredentialResolver HubCredentialResolver { get; set; } = null!;
 
@@ -74,6 +78,15 @@ namespace CodeBeam.UltimateAuth.Client
             //        "No 'hub' query parameter was found."
             //    );
             //}
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!firstRender)
+                return;
+
+            _deviceId = await DeviceIdProvider.GetOrCreateAsync();
+            StateHasChanged();
         }
 
         public async Task ReloadCredentialsAsync()

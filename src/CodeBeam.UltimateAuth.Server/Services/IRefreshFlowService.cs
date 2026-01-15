@@ -3,9 +3,8 @@ using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
-    public interface IRefreshFlowService<TUserId>
+    public interface IRefreshFlowService
     {
-        Task<RefreshFlowResult> RefreshAsync(AuthFlowContext flow, RefreshFlowRequest request,
-            CancellationToken ct = default);
+        Task<RefreshFlowResult> RefreshAsync(AuthFlowContext flow, RefreshFlowRequest request, CancellationToken ct = default);
     }
 }

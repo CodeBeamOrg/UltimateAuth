@@ -8,19 +8,19 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
-    internal sealed class DefaultRefreshFlowService<TUserId> : IRefreshFlowService<TUserId> where TUserId : notnull
+    internal sealed class DefaultRefreshFlowService : IRefreshFlowService
     {
-        private readonly ISessionQueryService<TUserId> _sessionQueries;
-        private readonly ISessionTouchService<TUserId> _sessionRefresh;
-        private readonly IRefreshTokenRotationService<TUserId> _tokenRotation;
-        private readonly IRefreshTokenStore<TUserId> _refreshTokenStore;
+        private readonly ISessionQueryService _sessionQueries;
+        private readonly ISessionTouchService _sessionRefresh;
+        private readonly IRefreshTokenRotationService _tokenRotation;
+        private readonly IRefreshTokenStore _refreshTokenStore;
         private readonly IUserIdConverterResolver _userIdConverterResolver;
 
         public DefaultRefreshFlowService(
-            ISessionQueryService<TUserId> sessionQueries,
-            ISessionTouchService<TUserId> sessionRefresh,
-            IRefreshTokenRotationService<TUserId> tokenRotation,
-            IRefreshTokenStore<TUserId> refreshTokenStore,
+            ISessionQueryService sessionQueries,
+            ISessionTouchService sessionRefresh,
+            IRefreshTokenRotationService tokenRotation,
+            IRefreshTokenStore refreshTokenStore,
             IUserIdConverterResolver userIdConverterResolver)
         {
             _sessionQueries = sessionQueries;
@@ -73,7 +73,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
             };
 
-            var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.Now, ct);
+            var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, request.Now, ct);
 
             if (!refresh.IsSuccess || refresh.SessionId is null)
                 return RefreshFlowResult.ReauthRequired();
@@ -88,7 +88,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
             var rotation = await _tokenRotation.RotateAsync(
                 flow,
-                new RefreshTokenRotationContext<TUserId>
+                new RefreshTokenRotationContext
                 {
                     RefreshToken = request.RefreshToken!,
                     Now = request.Now,
@@ -128,7 +128,6 @@ namespace CodeBeam.UltimateAuth.Server.Services
             if (request.SessionId is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 return RefreshFlowResult.ReauthRequired();
 
-            // 1️⃣ Session validation (authority anchor)
             var validation = await _sessionQueries.ValidateSessionAsync(
                 new SessionValidationContext
                 {
@@ -142,10 +141,9 @@ namespace CodeBeam.UltimateAuth.Server.Services
             if (!validation.IsValid)
                 return RefreshFlowResult.ReauthRequired();
 
-            // 2️⃣ Token rotation (continuity proof)
             var rotation = await _tokenRotation.RotateAsync(
                 flow,
-                new RefreshTokenRotationContext<TUserId>
+                new RefreshTokenRotationContext
                 {
                     RefreshToken = request.RefreshToken!,
                     Now = request.Now,
@@ -162,8 +160,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
                 TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
             };
 
-            // 3️⃣ Session touch (sliding expiration)
-            var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.Now, ct);
+            var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, request.Now, ct);
 
             if (!refresh.IsSuccess || refresh.SessionId is null)
                 return RefreshFlowResult.ReauthRequired();
@@ -197,7 +194,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
 
             var rotation = await _tokenRotation.RotateAsync(
                 flow,
-                new RefreshTokenRotationContext<TUserId>
+                new RefreshTokenRotationContext
                 {
                     RefreshToken = request.RefreshToken!,
                     Now = request.Now,

@@ -1,10 +1,11 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain
 {
-    public sealed class UAuthSessionChain<TUserId> : ISessionChain<TUserId>
+    public sealed class UAuthSessionChain : ISessionChain
     {
-        public ChainId ChainId { get; }
+        public SessionChainId ChainId { get; }
+        public SessionRootId RootId { get; }
         public string? TenantId { get; }
-        public TUserId UserId { get; }
+        public UserKey UserKey { get; }
         public int RotationCount { get; }
         public long SecurityVersionAtCreation { get; }
         public ClaimsSnapshot ClaimsSnapshot { get; }
@@ -13,9 +14,10 @@
         public DateTimeOffset? RevokedAt { get; }
 
         private UAuthSessionChain(
-            ChainId chainId,
+            SessionChainId chainId,
+            SessionRootId rootId,
             string? tenantId,
-            TUserId userId,
+            UserKey userKey,
             int rotationCount,
             long securityVersionAtCreation,
             ClaimsSnapshot claimsSnapshot,
@@ -24,8 +26,9 @@
             DateTimeOffset? revokedAt)
         {
             ChainId = chainId;
+            RootId = rootId;
             TenantId = tenantId;
-            UserId = userId;
+            UserKey = userKey;
             RotationCount = rotationCount;
             SecurityVersionAtCreation = securityVersionAtCreation;
             ClaimsSnapshot = claimsSnapshot;
@@ -34,17 +37,19 @@
             RevokedAt = revokedAt;
         }
 
-        public static UAuthSessionChain<TUserId> Create(
-            ChainId chainId,
+        public static UAuthSessionChain Create(
+            SessionChainId chainId,
+            SessionRootId rootId,
             string? tenantId,
-            TUserId userId,
+            UserKey userKey,
             long securityVersion,
             ClaimsSnapshot claimsSnapshot)
         {
-            return new UAuthSessionChain<TUserId>(
+            return new UAuthSessionChain(
                 chainId,
+                rootId,
                 tenantId,
-                userId,
+                userKey,
                 rotationCount: 0,
                 securityVersionAtCreation: securityVersion,
                 claimsSnapshot: claimsSnapshot,
@@ -54,15 +59,16 @@
             );
         }
 
-        public ISessionChain<TUserId> AttachSession(AuthSessionId sessionId)
+        public ISessionChain AttachSession(AuthSessionId sessionId)
         {
             if (IsRevoked)
                 return this;
 
-            return new UAuthSessionChain<TUserId>(
+            return new UAuthSessionChain(
                 ChainId,
+                RootId,
                 TenantId,
-                UserId,
+                UserKey,
                 RotationCount, // Unchanged on first attach
                 SecurityVersionAtCreation,
                 ClaimsSnapshot,
@@ -72,15 +78,16 @@
             );
         }
 
-        public ISessionChain<TUserId> RotateSession(AuthSessionId sessionId)
+        public ISessionChain RotateSession(AuthSessionId sessionId)
         {
             if (IsRevoked)
                 return this;
 
-            return new UAuthSessionChain<TUserId>(
+            return new UAuthSessionChain(
                 ChainId,
+                RootId,
                 TenantId,
-                UserId,
+                UserKey,
                 RotationCount + 1,
                 SecurityVersionAtCreation,
                 ClaimsSnapshot,
@@ -90,15 +97,16 @@
             );
         }
 
-        public ISessionChain<TUserId> Revoke(DateTimeOffset at)
+        public ISessionChain Revoke(DateTimeOffset at)
         {
             if (IsRevoked)
                 return this;
 
-            return new UAuthSessionChain<TUserId>(
+            return new UAuthSessionChain(
                 ChainId,
+                RootId,
                 TenantId,
-                UserId,
+                UserKey,
                 RotationCount,
                 SecurityVersionAtCreation,
                 ClaimsSnapshot,
@@ -108,21 +116,23 @@
             );
         }
 
-        internal static UAuthSessionChain<TUserId> FromProjection(
-    ChainId chainId,
-    string? tenantId,
-    TUserId userId,
-    int rotationCount,
-    long securityVersionAtCreation,
-    ClaimsSnapshot claimsSnapshot,
-    AuthSessionId? activeSessionId,
-    bool isRevoked,
-    DateTimeOffset? revokedAt)
+        internal static UAuthSessionChain FromProjection(
+            SessionChainId chainId,
+            SessionRootId rootId,
+            string? tenantId,
+            UserKey userKey,
+            int rotationCount,
+            long securityVersionAtCreation,
+            ClaimsSnapshot claimsSnapshot,
+            AuthSessionId? activeSessionId,
+            bool isRevoked,
+            DateTimeOffset? revokedAt)
         {
-            return new UAuthSessionChain<TUserId>(
+            return new UAuthSessionChain(
                 chainId,
+                rootId,
                 tenantId,
-                userId,
+                userKey,
                 rotationCount,
                 securityVersionAtCreation,
                 claimsSnapshot,

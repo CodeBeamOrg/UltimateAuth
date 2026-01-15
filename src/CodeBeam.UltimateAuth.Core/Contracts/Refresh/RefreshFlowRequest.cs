@@ -6,7 +6,8 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     {
         public AuthSessionId? SessionId { get; init; }
         public string? RefreshToken { get; init; }
-        public DeviceInfo Device { get; init; } = DeviceInfo.Unknown;
+        public required DeviceContext Device { get; init; }
         public DateTimeOffset Now { get; init; }
+        public SessionTouchMode TouchMode { get; init; } = SessionTouchMode.IfNeeded;
     }
 }

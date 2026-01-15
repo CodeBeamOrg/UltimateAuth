@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
-    internal sealed class UltimateAuthSessionDbContext<TUserId> : DbContext
+    internal sealed class UltimateAuthSessionDbContext : DbContext
     {
-        public DbSet<SessionRootProjection<TUserId>> Roots => Set<SessionRootProjection<TUserId>>();
-        public DbSet<SessionChainProjection<TUserId>> Chains => Set<SessionChainProjection<TUserId>>();
-        public DbSet<SessionProjection<TUserId>> Sessions => Set<SessionProjection<TUserId>>();
+        public DbSet<SessionRootProjection> Roots => Set<SessionRootProjection>();
+        public DbSet<SessionChainProjection> Chains => Set<SessionChainProjection>();
+        public DbSet<SessionProjection> Sessions => Set<SessionProjection>();
 
         public UltimateAuthSessionDbContext(DbContextOptions options) : base(options)
         {
@@ -16,17 +16,17 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 
         protected override void OnModelCreating(ModelBuilder b)
         {
-            b.Entity<SessionRootProjection<TUserId>>(e =>
+            b.Entity<SessionRootProjection>(e =>
             {
                 e.HasKey(x => x.Id);
 
                 e.Property(x => x.RowVersion)
                     .IsRowVersion();
 
-                e.Property(x => x.UserId)
+                e.Property(x => x.UserKey)
                     .IsRequired();
 
-                e.HasIndex(x => new { x.TenantId, x.UserId })
+                e.HasIndex(x => new { x.TenantId, x.UserKey })
                     .IsUnique();
 
                 e.Property(x => x.SecurityVersion)
@@ -34,25 +34,33 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 
                 e.Property(x => x.LastUpdatedAt)
                     .IsRequired();
+
+                e.Property(x => x.RootId)
+                    .HasConversion(
+                        v => v.Value,
+                        v => SessionRootId.From(v))
+                    .IsRequired();
+
+                e.HasIndex(x => new { x.TenantId, x.RootId });
+
             });
 
-            b.Entity<SessionChainProjection<TUserId>>(e =>
+            b.Entity<SessionChainProjection>(e =>
             {
                 e.HasKey(x => x.Id);
 
                 e.Property(x => x.RowVersion)
                     .IsRowVersion();
 
-                e.Property(x => x.UserId)
+                e.Property(x => x.UserKey)
                     .IsRequired();
 
-                e.HasIndex(x => x.ChainId)
-                    .IsUnique();
+                e.HasIndex(x => new { x.TenantId, x.ChainId }).IsUnique();
 
                 e.Property(x => x.ChainId)
                     .HasConversion(
                         v => v.Value,
-                        v => ChainId.From(v))
+                        v => SessionChainId.From(v))
                     .IsRequired();
 
                 e.Property(x => x.ActiveSessionId)
@@ -66,28 +74,26 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
                     .IsRequired();
             });
 
-            b.Entity<SessionProjection<TUserId>>(e =>
+            b.Entity<SessionProjection>(e =>
             {
                 e.HasKey(x => x.Id);
                 e.Property(x => x.RowVersion).IsRowVersion();
 
-                e.HasIndex(x => x.SessionId).IsUnique();
-                e.HasIndex(x => new { x.ChainId, x.RevokedAt });
+                e.HasIndex(x => new { x.TenantId, x.SessionId }).IsUnique();
+                e.HasIndex(x => new { x.TenantId, x.ChainId, x.RevokedAt });
 
                 e.Property(x => x.SessionId)
-                    .HasConversion(
-                        v => v.Value,
-                        v => AuthSessionId.From(v))
+                    .HasConversion(new AuthSessionIdConverter())
                     .IsRequired();
 
                 e.Property(x => x.ChainId)
                     .HasConversion(
                         v => v.Value,
-                        v => ChainId.From(v))
+                        v => SessionChainId.From(v))
                     .IsRequired();
 
                 e.Property(x => x.Device)
-                    .HasConversion(new JsonValueConverter<DeviceInfo>())
+                    .HasConversion(new JsonValueConverter<DeviceContext>())
                     .IsRequired();
 
                 e.Property(x => x.Claims)

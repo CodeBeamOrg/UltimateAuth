@@ -14,24 +14,21 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
 public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 {
-    private readonly IAuthFlowContextAccessor _authContext;
-    private readonly IUAuthFlowService<TUserId> _flow;
-    private readonly IDeviceResolver _deviceResolver;
+    private readonly IAuthFlowContextAccessor _authFlow;
+    private readonly IUAuthFlowService<TUserId> _flowService;
     private readonly IClock _clock;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
     private readonly AuthRedirectResolver _redirectResolver;
 
     public DefaultLoginEndpointHandler(
-        IAuthFlowContextAccessor authContext,
-        IUAuthFlowService<TUserId> flow,
-        IDeviceResolver deviceResolver,
+        IAuthFlowContextAccessor authFlow,
+        IUAuthFlowService<TUserId> flowService,
         IClock clock,
         ICredentialResponseWriter credentialResponseWriter,
         AuthRedirectResolver redirectResolver)
     {
-        _authContext = authContext;
-        _flow = flow;
-        _deviceResolver = deviceResolver;
+        _authFlow = authFlow;
+        _flowService = flowService;
         _clock = clock;
         _credentialResponseWriter = credentialResponseWriter;
         _redirectResolver = redirectResolver;
@@ -39,11 +36,11 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
     public async Task<IResult> LoginAsync(HttpContext ctx)
     {
-        var auth = _authContext.Current;
+        var authFlow = _authFlow.Current;
 
         var shouldIssueTokens =
-            auth.Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-            auth.Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
+            authFlow.Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
+            authFlow.Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
 
         if (!ctx.Request.HasFormContentType)
             return Results.BadRequest("Invalid content type.");
@@ -54,7 +51,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var secret = form["Secret"].ToString();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, auth.OriginalOptions);
+            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, authFlow.OriginalOptions);
 
         var tenantCtx = ctx.GetTenantContext();
 
@@ -64,37 +61,36 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
             Secret = secret,
             TenantId = tenantCtx.TenantId,
             At = _clock.UtcNow,
-            DeviceInfo = _deviceResolver.Resolve(ctx),
+            Device = authFlow.Device,
             RequestTokens = shouldIssueTokens
         };
 
-        var result = await _flow.LoginAsync(auth, flowRequest, ctx.RequestAborted);
+        var result = await _flowService.LoginAsync(authFlow, flowRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, auth.OriginalOptions);
+            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, authFlow.OriginalOptions);
 
-        if (result.SessionId is not null)
+        if (result.SessionId is AuthSessionId sessionId)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
+            _credentialResponseWriter.Write(ctx, CredentialKind.Session, sessionId);
         }
 
         if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken.Token);
+            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken.Token);
+            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        if (auth.Response.Login.RedirectEnabled)
+        if (authFlow.Response.Login.RedirectEnabled)
         {
-            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, auth.Response.Login.SuccessPath);
+            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, authFlow.Response.Login.SuccessPath);
             return Results.Redirect(redirectUrl);
         }
 
-        // PKCE / API login
         return Results.Ok();
     }
 
