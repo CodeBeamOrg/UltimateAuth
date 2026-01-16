@@ -4,10 +4,10 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Credentials;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Users;
+using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators

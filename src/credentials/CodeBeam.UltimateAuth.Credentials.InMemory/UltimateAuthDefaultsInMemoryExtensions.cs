@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Stores;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Validation;
-using CodeBeam.UltimateAuth.Server.Credentials;
+using CodeBeam.UltimateAuth.Credentials;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Models;
-using CodeBeam.UltimateAuth.Server.Credentials;
+using CodeBeam.UltimateAuth.Credentials;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory.Stores
 {

@@ -19,8 +19,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-		<ProjectReference Include="..\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Server.Users.csproj" />
-		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Server.Credentials\CodeBeam.UltimateAuth.Server.Credentials.csproj" />
+		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
+		<ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 ﻿//using CodeBeam.UltimateAuth.Core.Abstractions;
 //using CodeBeam.UltimateAuth.Core.Contracts;
 
-//namespace CodeBeam.UltimateAuth.Server.Users
+//namespace CodeBeam.UltimateAuth.Users
 //{
 //    internal sealed class UAuthUserService<TUserId> : IUAuthUserService<TUserId>
 //    {

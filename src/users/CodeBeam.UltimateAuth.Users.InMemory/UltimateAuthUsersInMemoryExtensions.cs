@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Server.Users;
+﻿using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

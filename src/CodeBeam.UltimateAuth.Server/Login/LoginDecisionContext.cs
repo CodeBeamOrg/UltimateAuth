@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Users;
+using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Server.Login
 {
