@@ -8,6 +8,6 @@
     public interface IUAuthPasswordHasher
     {
         string Hash(string password);
-        bool Verify(string password, string hash);
+        bool Verify(string hash, string secret);
     }
 }

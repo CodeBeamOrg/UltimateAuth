@@ -78,8 +78,8 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages
 
             var request = new PkceLoginRequest
             {
-                Identifier = "Admin",
-                Secret = "Password!",
+                Identifier = "admin",
+                Secret = "admin",
                 AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
                 CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
                 ReturnUrl = _state?.ReturnUrl ?? string.Empty

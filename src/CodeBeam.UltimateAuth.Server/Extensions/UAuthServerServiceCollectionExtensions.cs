@@ -8,11 +8,15 @@ using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
+using CodeBeam.UltimateAuth.Server.Credentials;
+using CodeBeam.UltimateAuth.Server.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Hub;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
+using CodeBeam.UltimateAuth.Server.Login;
+using CodeBeam.UltimateAuth.Server.Login.Orchestrators;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
@@ -31,12 +35,16 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
         {
             services.AddUltimateAuth();
+            AddUsersInternal(services);
+            AddCredentialsInternal(services);
             return services.AddUltimateAuthServerInternal();
         }
 
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddUltimateAuth(configuration);
+            AddUsersInternal(services);
+            AddCredentialsInternal(services);
             services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
 
             return services.AddUltimateAuthServerInternal();
@@ -45,6 +53,8 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
         {
             services.AddUltimateAuth();
+            AddUsersInternal(services);
+            AddCredentialsInternal(services);
             services.Configure(configure);
 
             return services.AddUltimateAuthServerInternal();
@@ -123,16 +133,15 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
 
             // Public resolver
-            services.AddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+            services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
 
             services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
 
-            services.AddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
-            services.AddScoped(typeof(IRefreshFlowService), typeof(DefaultRefreshFlowService));
-            services.AddScoped(typeof(IUAuthSessionManager), typeof(UAuthSessionManager));
-            services.AddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
+            services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
+            services.TryAddScoped(typeof(IRefreshFlowService), typeof(DefaultRefreshFlowService));
+            services.TryAddScoped(typeof(IUAuthSessionManager), typeof(UAuthSessionManager));
 
-            services.AddSingleton<IClock, SystemClock>();
+            services.TryAddSingleton<IClock, SystemClock>();
 
             // TODO: Allow custom cookie manager via options
             //services.AddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
@@ -154,8 +163,10 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
             services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
 
-            services.TryAddScoped(typeof(IUserAuthenticator<>), typeof(DefaultUserAuthenticator<>));
+            //services.TryAddScoped(typeof(IUserAuthenticator<>), typeof(DefaultUserAuthenticator<>));
             services.TryAddScoped(typeof(ISessionOrchestrator), typeof(UAuthSessionOrchestrator));
+            services.TryAddScoped(typeof(ILoginOrchestrator<>), typeof(DefaultLoginOrchestrator<>));
+            services.TryAddScoped<ILoginAuthority, DefaultLoginAuthority>();
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
             services.TryAddScoped(typeof(ISessionQueryService), typeof(UAuthSessionQueryService));
             services.TryAddScoped(typeof(IRefreshTokenResolver), typeof(DefaultRefreshTokenResolver));
@@ -163,11 +174,11 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
             services.TryAddScoped<IFlowCredentialResolver, DefaultFlowCredentialResolver>();
-            services.AddScoped<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
+            services.TryAddScoped<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
             services.TryAddScoped<IPrimaryCredentialResolver, DefaultPrimaryCredentialResolver>();
             services.TryAddScoped<IRefreshResponseWriter, DefaultRefreshResponseWriter>();
             services.TryAddScoped<ISessionContextAccessor, DefaultSessionContextAccessor>();
-            services.AddScoped<AuthRedirectResolver>();
+            services.TryAddScoped<AuthRedirectResolver>();
 
             services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();
             services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
@@ -176,55 +187,54 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddSingleton<IEffectiveAuthModeResolver, DefaultEffectiveAuthModeResolver>();
             services.TryAddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
             services.TryAddSingleton<IPrimaryTokenResolver, DefaultPrimaryTokenResolver>();
-            services.AddScoped<IEffectiveServerOptionsProvider,DefaultEffectiveServerOptionsProvider>();
+            services.TryAddScoped<IEffectiveServerOptionsProvider,DefaultEffectiveServerOptionsProvider>();
 
-            services.AddScoped(typeof(IRefreshTokenValidator), typeof(DefaultRefreshTokenValidator));
-            services.AddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
-            services.AddScoped(typeof(IRefreshTokenRotationService), typeof(RefreshTokenRotationService));
+            services.TryAddScoped(typeof(IRefreshTokenValidator), typeof(DefaultRefreshTokenValidator));
+            services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
+            services.TryAddScoped(typeof(IRefreshTokenRotationService), typeof(RefreshTokenRotationService));
 
-            services.AddSingleton<IUAuthCookiePolicyBuilder, DefaultUAuthCookiePolicyBuilder>();
-            services.AddSingleton<IUAuthHeaderPolicyBuilder, DefaultUAuthHeaderPolicyBuilder>();
-            services.AddSingleton<IUAuthBodyPolicyBuilder, DefaultUAuthBodyPolicyBuilder>();
-            services.AddScoped<IUAuthCookieManager, DefaultUAuthCookieManager>();
-            services.AddSingleton<ITransportCredentialResolver, DefaultTransportCredentialResolver>();
+            services.TryAddSingleton<IUAuthCookiePolicyBuilder, DefaultUAuthCookiePolicyBuilder>();
+            services.TryAddSingleton<IUAuthHeaderPolicyBuilder, DefaultUAuthHeaderPolicyBuilder>();
+            services.TryAddSingleton<IUAuthBodyPolicyBuilder, DefaultUAuthBodyPolicyBuilder>();
+            services.TryAddScoped<IUAuthCookieManager, DefaultUAuthCookieManager>();
 
-            services.AddScoped<IRefreshResponsePolicy, DefaultRefreshResponsePolicy>();
+            services.TryAddScoped<IRefreshResponsePolicy, DefaultRefreshResponsePolicy>();
 
-            services.AddSingleton<IAuthStore, InMemoryAuthStore>();
-            services.AddScoped<IHubFlowReader, DefaultHubFlowReader>();
-            services.AddScoped<IHubCredentialResolver, DefaultHubCredentialResolver>();
-            services.AddScoped<IDeviceContextFactory, DefaultDeviceContextFactory>();
+            services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
+            services.TryAddScoped<IHubFlowReader, DefaultHubFlowReader>();
+            services.TryAddScoped<IHubCredentialResolver, DefaultHubCredentialResolver>();
+            services.TryAddScoped<IDeviceContextFactory, DefaultDeviceContextFactory>();
 
-            services.AddScoped<IHubCapabilities, HubCapabilities>();
+            services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
             // -----------------------------
             // ENDPOINTS
             // -----------------------------
             services.AddHttpContextAccessor();
 
-            services.AddScoped<IAuthFlow, DefaultAuthFlow>();
-            services.AddScoped<IAuthFlowContextAccessor, DefaultAuthFlowContextAccessor>();
-            services.AddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
+            services.TryAddScoped<IAuthFlow, DefaultAuthFlow>();
+            services.TryAddScoped<IAuthFlowContextAccessor, DefaultAuthFlowContextAccessor>();
+            services.TryAddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
 
-            services.AddScoped<AuthFlowEndpointFilter>();
+            services.TryAddScoped<AuthFlowEndpointFilter>();
 
 
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
             
             // Endpoint handlers
-            services.AddScoped<DefaultLoginEndpointHandler<UserKey>>();
+            services.TryAddScoped<DefaultLoginEndpointHandler<UserKey>>();
             services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
 
-            services.AddScoped<DefaultValidateEndpointHandler>();
+            services.TryAddScoped<DefaultValidateEndpointHandler>();
             services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
 
-            services.AddScoped<DefaultLogoutEndpointHandler<UserKey>>();
+            services.TryAddScoped<DefaultLogoutEndpointHandler<UserKey>>();
             services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
 
-            services.AddScoped<DefaultRefreshEndpointHandler>();
+            services.TryAddScoped<DefaultRefreshEndpointHandler>();
             services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
 
-            services.AddScoped<DefaultPkceEndpointHandler<UserKey>>();
+            services.TryAddScoped<DefaultPkceEndpointHandler<UserKey>>();
             services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandlerBridge>();
             //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
@@ -234,6 +244,38 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             return services;
         }
 
+        // =========================
+        // USERS (FRAMEWORK-REQUIRED)
+        // =========================
+        internal static IServiceCollection AddUsersInternal(IServiceCollection services)
+        {
+            // Core user abstractions
+            services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
+            services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+
+            // Security state
+            //services.TryAddScoped(typeof(IUserSecurityEvents<>), typeof(DefaultUserSecurityEvents<>));
+
+            // Claims
+            services.TryAddScoped(typeof(IUserClaimsProvider<>), typeof(DefaultUserClaimsProvider<>));
+
+            return services;
+        }
+
+        // =========================
+        // CREDENTIALS (FRAMEWORK-REQUIRED)
+        // =========================
+        internal static IServiceCollection AddCredentialsInternal(IServiceCollection services)
+        {
+            services.TryAddScoped<ICredentialValidator, DefaultCredentialValidator>();
+
+            // Minimal default store
+            services.TryAddScoped(typeof(ICredentialStore<>), typeof(InMemoryCredentialStore<>));
+
+            return services;
+        }
+
+
         public static IServiceCollection AddUAuthServerInfrastructure(this IServiceCollection services)
         {
             // Flow orchestration
@@ -242,9 +284,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // Issuers
             services.TryAddScoped(typeof(ISessionIssuer), typeof(UAuthSessionIssuer));
             services.TryAddScoped(typeof(ITokenIssuer), typeof(UAuthTokenIssuer));
-
-            // User service
-            services.TryAddScoped(typeof(IUAuthUserService<>), typeof(UAuthUserService<>));
 
             // Endpoints
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();

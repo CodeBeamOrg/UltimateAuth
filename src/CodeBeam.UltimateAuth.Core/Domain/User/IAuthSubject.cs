@@ -5,7 +5,7 @@
     /// Includes the unique user identifier and an optional set of claims that
     /// may be used during authentication or session creation.
     /// </summary>
-    public interface IUser<TUserId>
+    public interface IAuthSubject<TUserId>
     {
         /// <summary>
         /// Gets the unique identifier of the user.

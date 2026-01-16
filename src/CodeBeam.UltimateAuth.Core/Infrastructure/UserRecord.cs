@@ -2,15 +2,26 @@
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure
 {
-    public sealed class UserRecord<TUserId>
-    {
-        public required TUserId Id { get; init; }
-        public required string Username { get; init; }
-        public required string PasswordHash { get; init; }
-        public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
-        public bool RequiresMfa { get; init; }
-        public bool IsActive { get; init; } = true;
-        public DateTimeOffset CreatedAt { get; init; }
-        public bool IsDeleted { get; init; }
-    }
+
+
+        public sealed class UserRecord<TUserId>
+        {
+            public TUserId Id { get; init; } = default!;
+            public string Login { get; init; } = default!;
+            public bool IsActive { get; init; }
+            public DateTimeOffset CreatedAt { get; init; }
+            public bool IsDeleted { get; init; }
+        }
+
+    //public sealed class UserRecord<TUserId>
+    //{
+    //    public required TUserId Id { get; init; }
+    //    public required string Username { get; init; }
+    //    public required string PasswordHash { get; init; }
+    //    public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
+    //    public bool RequiresMfa { get; init; }
+    //    public bool IsActive { get; init; } = true;
+    //    public DateTimeOffset CreatedAt { get; init; }
+    //    public bool IsDeleted { get; init; }
+    //}
 }

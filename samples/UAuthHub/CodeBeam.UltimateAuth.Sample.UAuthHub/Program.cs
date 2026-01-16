@@ -11,6 +11,8 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
+using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
@@ -46,7 +48,8 @@ builder.Services.AddUltimateAuthServer(o => {
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
-    .AddInMemoryCredentials()
+    .AddUltimateAuthUsersInMemory()
+    .AddUltimateAuthCredentialsInMemory()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();

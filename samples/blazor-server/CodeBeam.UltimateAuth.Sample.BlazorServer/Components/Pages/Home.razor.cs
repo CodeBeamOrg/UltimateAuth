@@ -41,8 +41,8 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
             var deviceId = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
-                Identifier = "Admin",
-                Secret = "Password!",
+                Identifier = "admin",
+                Secret = "admin",
                 Device = DeviceContext.FromDeviceId(deviceId),
             };
             await UAuthClient.LoginAsync(request);

@@ -18,7 +18,12 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public bool RequiresMfa => Continuation?.Type == LoginContinuationType.Mfa;
         public bool RequiresPkce => Continuation?.Type == LoginContinuationType.Pkce;
 
-        public static LoginResult Failed() => new() { Status = LoginStatus.Failed };
+        public static LoginResult Failed(AuthFailureReason? reason = null)
+            => new()
+            {
+                Status = LoginStatus.Failed,
+                FailureReason = reason
+            };
 
         public static LoginResult Success(AuthSessionId sessionId, AuthTokens? tokens = null)
             => new()
