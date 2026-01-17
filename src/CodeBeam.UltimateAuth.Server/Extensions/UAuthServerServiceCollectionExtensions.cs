@@ -1,15 +1,15 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
-using CodeBeam.UltimateAuth.Credentials;
-using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Hub;
@@ -166,8 +166,11 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //services.TryAddScoped(typeof(IUserAuthenticator<>), typeof(DefaultUserAuthenticator<>));
             services.TryAddScoped(typeof(ISessionOrchestrator), typeof(UAuthSessionOrchestrator));
             services.TryAddScoped(typeof(ILoginOrchestrator<>), typeof(DefaultLoginOrchestrator<>));
+            services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
             services.TryAddScoped<ILoginAuthority, DefaultLoginAuthority>();
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
+            services.TryAddScoped<IAccessAuthority, DefaultAccessAuthority>();
+            services.TryAddScoped<ISessionService, DefaultSessionService>();
             services.TryAddScoped(typeof(ISessionQueryService), typeof(UAuthSessionQueryService));
             services.TryAddScoped(typeof(IRefreshTokenResolver), typeof(DefaultRefreshTokenResolver));
             services.TryAddScoped(typeof(ISessionTouchService), typeof(DefaultSessionTouchService));
@@ -204,6 +207,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IHubFlowReader, DefaultHubFlowReader>();
             services.TryAddScoped<IHubCredentialResolver, DefaultHubCredentialResolver>();
             services.TryAddScoped<IDeviceContextFactory, DefaultDeviceContextFactory>();
+            services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
             services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
@@ -268,10 +272,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         internal static IServiceCollection AddCredentialsInternal(IServiceCollection services)
         {
             services.TryAddScoped<ICredentialValidator, DefaultCredentialValidator>();
-
-            // Minimal default store
-            services.TryAddScoped(typeof(ICredentialStore<>), typeof(InMemoryCredentialStore<>));
-
             return services;
         }
 

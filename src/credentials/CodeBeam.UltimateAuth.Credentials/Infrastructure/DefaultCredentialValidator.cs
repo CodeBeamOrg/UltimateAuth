@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed class DefaultCredentialValidator : ICredentialValidator
 {

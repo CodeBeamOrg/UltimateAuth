@@ -1,6 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Security.Argon2;
-using CodeBeam.UltimateAuth.Server.Composition;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Server.Composition.Extensions;
 

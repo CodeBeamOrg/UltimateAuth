@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory.Models
 {

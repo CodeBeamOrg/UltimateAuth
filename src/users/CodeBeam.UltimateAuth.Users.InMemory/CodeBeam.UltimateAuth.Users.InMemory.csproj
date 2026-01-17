@@ -10,6 +10,8 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
+	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
 	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>
 

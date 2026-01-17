@@ -65,7 +65,7 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
             return new UserRecord<TUserId>
             {
                 Id = user.Id,
-                Login = user.Login,
+                Identifier = user.Login,
                 IsActive = user.IsActive,
                 IsDeleted = user.IsDeleted,
                 CreatedAt = user.CreatedAt

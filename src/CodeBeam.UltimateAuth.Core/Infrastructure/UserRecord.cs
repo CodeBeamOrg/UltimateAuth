@@ -2,16 +2,27 @@
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure
 {
+    public sealed class UserRecord<TUserId>
+    {
+        public TUserId Id { get; init; } = default!;
 
+        /// <summary>
+        /// Primary login identifier (username / email).
+        /// Used only for discovery and uniqueness checks.
+        /// </summary>
+        public string Identifier { get; init; } = default!;
 
-        public sealed class UserRecord<TUserId>
-        {
-            public TUserId Id { get; init; } = default!;
-            public string Login { get; init; } = default!;
-            public bool IsActive { get; init; }
-            public DateTimeOffset CreatedAt { get; init; }
-            public bool IsDeleted { get; init; }
-        }
+        //public UserStatus Status { get; init; } = UserStatus.Active;
+
+        public bool IsDeleted { get; init; }
+
+        public DateTimeOffset CreatedAt { get; init; }
+
+        public DateTimeOffset? DeletedAt { get; init; }
+
+        public bool IsActive { get; init; } = true;
+    }
+
 
     //public sealed class UserRecord<TUserId>
     //{

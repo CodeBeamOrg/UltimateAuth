@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;

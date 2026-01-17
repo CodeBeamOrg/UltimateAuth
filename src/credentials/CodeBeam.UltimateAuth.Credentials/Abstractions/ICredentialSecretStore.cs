@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials
+﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
+
+namespace CodeBeam.UltimateAuth.Credentials
 {
     public interface ICredentialSecretStore<TUserId>
     {
