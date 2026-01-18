@@ -3,11 +3,11 @@ using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory
 {
-    internal sealed class InMemoryUserClaimsProvider<TUserId> : IUserClaimsProvider<TUserId> where TUserId : notnull
+    internal sealed class InMemoryUserClaimsProvider : IUserClaimsProvider<UserKey>
     {
-        private readonly InMemoryUserStore<TUserId> _store;
+        private readonly InMemoryUserStore _store;
 
-        public InMemoryUserClaimsProvider(InMemoryUserStore<TUserId> store)
+        public InMemoryUserClaimsProvider(InMemoryUserStore store)
         {
             _store = store;
         }

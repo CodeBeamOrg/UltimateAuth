@@ -8,13 +8,13 @@ namespace CodeBeam.UltimateAuth.Users
         /// Finds a user by its application-level user id.
         /// Returns null if the user does not exist or is deleted.
         /// </summary>
-        Task<UserRecord<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken ct = default);
+        Task<AuthUserRecord<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken ct = default);
 
         /// <summary>
         /// Finds a user by a login identifier (username, email, etc).
         /// Used during login discovery phase.
         /// </summary>
-        Task<UserRecord<TUserId>?> FindByLoginAsync(string? tenantId, string login, CancellationToken ct = default);
+        Task<AuthUserRecord<TUserId>?> FindByLoginAsync(string? tenantId, string login, CancellationToken ct = default);
 
         /// <summary>
         /// Checks whether a user exists.

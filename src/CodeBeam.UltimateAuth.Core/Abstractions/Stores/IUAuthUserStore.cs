@@ -12,7 +12,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     {
         Task<IAuthSubject<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
-        Task<UserRecord<TUserId>?> FindByUsernameAsync(string? tenantId, string username, CancellationToken ct = default);
+        Task<AuthUserRecord<TUserId>?> FindByUsernameAsync(string? tenantId, string username, CancellationToken ct = default);
 
         /// <summary>
         /// Retrieves a user by a login credential such as username or email.

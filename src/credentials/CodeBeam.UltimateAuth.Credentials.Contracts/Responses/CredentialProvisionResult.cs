@@ -24,6 +24,14 @@ public sealed record CredentialProvisionResult
             SecurityInvalidated = false
         };
 
+    public static CredentialProvisionResult AlreadyExists(CredentialType type)
+        => new()
+        {
+            Succeeded = true,
+            Type = type,
+            SecurityInvalidated = false
+        };
+
     public static CredentialProvisionResult Failed(string reason)
         => new()
         {

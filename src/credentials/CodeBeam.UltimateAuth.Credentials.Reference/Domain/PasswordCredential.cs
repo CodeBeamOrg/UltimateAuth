@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
 
-namespace CodeBeam.UltimateAuth.Credentials;
+namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
 public sealed class PasswordCredential<TUserId> : ILoginCredential<TUserId>, ISecretCredential<TUserId>
 {

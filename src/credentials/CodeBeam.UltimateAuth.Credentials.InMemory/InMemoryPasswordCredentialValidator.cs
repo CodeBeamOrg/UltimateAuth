@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Credentials.InMemory.Models;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory.Validation
 {
@@ -15,13 +15,15 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory.Validation
 
         public Task<CredentialValidationResult> ValidateAsync<TUserId>(ICredential<TUserId> credential, string providedSecret, CancellationToken ct = default)
         {
-            if (credential is not InMemoryPasswordCredential<TUserId> pwd)
+            ct.ThrowIfCancellationRequested();
+
+            if (credential is not PasswordCredential<TUserId> pwd)
                 return Task.FromResult(CredentialValidationResult.Failed());
 
             if (!pwd.IsActive)
                 return Task.FromResult(CredentialValidationResult.Failed());
 
-            var ok = _hasher.Verify(pwd.PasswordHash, providedSecret);
+            var ok = _hasher.Verify(pwd.SecretHash, providedSecret);
 
             return Task.FromResult(ok
                 ? CredentialValidationResult.Success()

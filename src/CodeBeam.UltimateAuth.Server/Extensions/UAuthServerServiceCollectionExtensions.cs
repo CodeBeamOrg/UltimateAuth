@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Infrastructure.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Hub;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
@@ -207,7 +208,8 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IHubFlowReader, DefaultHubFlowReader>();
             services.TryAddScoped<IHubCredentialResolver, DefaultHubCredentialResolver>();
             services.TryAddScoped<IDeviceContextFactory, DefaultDeviceContextFactory>();
-            services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+            services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+            services.TryAddScoped<IAuthContextFactory, DefaultAuthContextFactory>();
 
             services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 

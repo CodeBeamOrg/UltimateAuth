@@ -12,4 +12,19 @@ public sealed record ChangeCredentialResult
     public bool SecurityInvalidated { get; init; }
 
     public string? FailureReason { get; init; }
+
+    public static ChangeCredentialResult Success(CredentialType type)
+        => new()
+        {
+            Succeeded = true,
+            Type = type,
+            SecurityInvalidated = false
+        };
+
+    public static ChangeCredentialResult Failed(string reason)
+        => new()
+        {
+            Succeeded = false,
+            FailureReason = reason
+        };
 }

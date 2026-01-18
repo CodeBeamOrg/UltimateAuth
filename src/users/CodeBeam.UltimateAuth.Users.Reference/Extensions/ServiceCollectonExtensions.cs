@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -15,6 +16,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.TryAddScoped<IUAuthUserProfileService, DefaultUserProfileService>();
+        services.TryAddScoped<IUserLifecycleService, DefaultUserLifecycleService>();
 
         return services;
     }

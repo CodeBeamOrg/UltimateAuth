@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference.Domain;
 
 namespace CodeBeam.UltimateAuth.Users.Reference
 {
@@ -42,38 +42,36 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             if (string.IsNullOrWhiteSpace(request.Identifier))
                 return UserCreateResult.Failed("Identifier is required.");
 
-            // Aynı login ile user var mı?
             var existing = await _users.FindByLoginAsync(tenantId, request.Identifier, ct);
             if (existing is not null)
                 return UserCreateResult.Failed("User already exists.");
 
             var userKey = UserKey.New();
+            var now = _clock.UtcNow;
 
-            // Core user record
-            var record = new UserRecord<UserKey>
+            var profile = new ReferenceUserProfile
             {
-                Id = userKey,
-                Identifier = request.Identifier,
-                IsActive = true,
+                UserKey = userKey,
+                Email = request.Identifier,
+                DisplayName = request.DisplayName,
+                Status = UserStatus.Active,
                 IsDeleted = false,
-                CreatedAt = _clock.UtcNow
+                CreatedAt = now,
+                UpdatedAt = now,
+                DeletedAt = null,
+                FirstName = request?.Profile?.FirstName,
+                LastName = request?.Profile?.LastName,
             };
 
-            await _userLifecycleStore.CreateAsync(tenantId, record, ct);
+            await _userLifecycleStore.CreateAsync(tenantId, profile, ct);
+            await _profiles.CreateAsync(tenantId, profile, ct);
 
-            // Reference profile
-            await _profiles.UpdateAsync(
-                tenantId,
-                userKey,
-                new UpdateProfileRequest
-                {
-                    DisplayName = request.DisplayName,
-                },
-                ct);
 
-            if (!string.IsNullOrWhiteSpace(request.Password))
+            if (!string.IsNullOrWhiteSpace(request?.Password))
             {
-                await _credentials.SetInitialAsync(tenantId, userKey,
+                await _credentials.SetInitialAsync(
+                    tenantId,
+                    userKey,
                     new SetInitialCredentialRequest
                     {
                         Type = CredentialType.Password,

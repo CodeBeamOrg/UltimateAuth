@@ -16,13 +16,15 @@
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
-		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
+		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
 		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
 		<ProjectReference Include="..\..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
 		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
 		<ProjectReference Include="..\..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
 		<ProjectReference Include="..\..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
 		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users.InMemory\CodeBeam.UltimateAuth.Users.InMemory.csproj" />
+		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
+		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>
 
 </Project>
