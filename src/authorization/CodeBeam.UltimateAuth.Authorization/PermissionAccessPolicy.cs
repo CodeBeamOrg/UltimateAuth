@@ -15,11 +15,11 @@ public sealed class PermissionAccessPolicy : IAccessPolicy
         _operation = operation;
     }
 
-    public bool AppliesTo(AccessContext context) => context.UserKey is not null;
+    public bool AppliesTo(AccessContext context) => context.ActorUserKey is not null;
 
     public AccessDecision Decide(AccessContext context)
     {
-        if (context.UserKey is null)
+        if (context.ActorUserKey is null)
             return AccessDecision.Deny("unauthenticated");
 
         return _permissions.Contains(_operation)

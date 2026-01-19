@@ -10,12 +10,13 @@ namespace CodeBeam.UltimateAuth.Users.InMemory.Extensions
     {
         public static IServiceCollection AddUltimateAuthUsersInMemory(this IServiceCollection services)
         {
-            services.TryAddScoped<InMemoryUserStore>();
-            services.Replace(ServiceDescriptor.Scoped<IUserStore<UserKey>, InMemoryUserStore>());
-            services.Replace(ServiceDescriptor.Scoped(typeof(IUserSecurityStateProvider<>), typeof(InMemoryUserSecurityStateProvider<>)));
+            services.TryAddScoped<IUserStore<UserKey>, InMemoryUserStore>();
+            services.TryAddScoped(typeof(IUserSecurityStateProvider<>), typeof(InMemoryUserSecurityStateProvider<>));
             services.TryAddScoped<IUserLifecycleStore, InMemoryUserLifecycleStore>();
-            services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
+            services.TryAddScoped<IUserIdentifierStore, InMemoryUserIdentifierStore>();
             services.TryAddScoped<IUserProfileStore, InMemoryUserProfileStore>();
+
+            services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
 
             return services;
         }

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -103,11 +104,11 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(string? tenantId, UserKey userKey, UserDeleteMode mode, CancellationToken ct = default)
+    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (mode == UserDeleteMode.Hard)
+        if (mode == DeleteMode.Hard)
         {
             _profiles.TryRemove(userKey, out _);
             return Task.CompletedTask;

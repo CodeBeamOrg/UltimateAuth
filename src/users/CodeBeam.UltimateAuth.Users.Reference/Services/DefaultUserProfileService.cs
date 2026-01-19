@@ -1,8 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using CodeBeam.UltimateAuth.Users.Reference.Mapping;
 
-namespace CodeBeam.UltimateAuth.Users.Reference.Services;
+namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class DefaultUserProfileService : IUAuthUserProfileService
 {

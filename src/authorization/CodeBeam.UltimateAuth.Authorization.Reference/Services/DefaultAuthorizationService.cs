@@ -17,10 +17,10 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
         public async Task<AuthorizationResult> AuthorizeAsync(string? tenantId, AccessContext context, CancellationToken ct = default)
         {
-            if (context.UserKey is null)
+            if (context.ActorUserKey is null)
                 return AuthorizationResult.Deny("unauthenticated");
 
-            var permissions = await _permissionStore.GetPermissionsAsync(tenantId, context.UserKey.Value, ct);
+            var permissions = await _permissionStore.GetPermissionsAsync(tenantId, context.ActorUserKey.Value, ct);
 
             var policy = new PermissionAccessPolicy(permissions,context.Action);
 

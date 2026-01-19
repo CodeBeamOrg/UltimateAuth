@@ -21,6 +21,7 @@
         PermissionQuery,
 
         UserManagement,
+        UserProfile,
         CredentialManagement,
         AuthorizationManagement,
 

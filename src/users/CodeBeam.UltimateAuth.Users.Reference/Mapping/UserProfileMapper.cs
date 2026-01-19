@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference.Domain;
 
-namespace CodeBeam.UltimateAuth.Users.Reference.Mapping;
+namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal static class UserProfileMapper
 {

@@ -106,7 +106,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.CheckPermissionAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.PermissionQuery));
             }
 
-            if (options.EnableUsersEndpoints)
+            if (options.EnableUserLifecycleEndpoints)
             {
                 var users = group.MapGroup("/users");
 
@@ -116,9 +116,31 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 users.MapPost("/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                     => await h.ChangeStatusAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
-                // Intended post here
+                // Post is intended here
                 users.MapPost("/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                     => await h.DeleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+            }
+
+            if (options.EnableUserProfileEndpoints)
+            {
+                var userProfile = group.MapGroup("/users");
+
+                userProfile.MapGet("/me", async ([FromServices] IUserProfileEndpointHandler h, HttpContext ctx)
+                    => await h.GetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfile));
+
+                userProfile.MapPut("/me", async ([FromServices] IUserProfileEndpointHandler h, HttpContext ctx)
+                    => await h.UpdateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserInfo));
+            }
+
+            if (options.EnableAdminChangeUserProfileEndpoints)
+            {
+                var admin = group.MapGroup("/admin/users");
+
+                admin.MapGet("/{userKey}/profile", async ([FromServices] IUserProfileAdminEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.GetAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+
+                admin.MapPut("/{userKey}/profile", async ([FromServices] IUserProfileAdminEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.UpdateAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
             }
 
             if (options.EnableCredentialsEndpoints)

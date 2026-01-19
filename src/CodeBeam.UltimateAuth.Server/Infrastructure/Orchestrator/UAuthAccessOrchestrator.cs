@@ -21,7 +21,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
             _executed = true;
 
-            var policies = command.GetPolicies(context);
+            var policies = command.GetPolicies(context) ?? Array.Empty<IAccessPolicy>();
             var decision = _authority.Decide(context, policies);
 
             if (!decision.IsAllowed)
@@ -33,5 +33,4 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             await command.ExecuteAsync(ct);
         }
     }
-
 }

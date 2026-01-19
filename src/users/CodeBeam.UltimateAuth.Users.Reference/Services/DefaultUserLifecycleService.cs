@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
@@ -118,32 +119,31 @@ namespace CodeBeam.UltimateAuth.Users.Reference
                 return UserDeleteResult.NotFound();
 
             var authContext = _authContextFactory.Create();
-            if (request.Mode == UserDeleteMode.Soft)
+            if (request.Mode == DeleteMode.Soft)
             {
                 if (user.IsDeleted)
-                    return UserDeleteResult.AlreadyDeleted(UserDeleteMode.Soft);
+                    return UserDeleteResult.AlreadyDeleted(DeleteMode.Soft);
 
-                await _userLifecycleStore.MarkDeletedAsync(tenantId, request.UserKey, _clock.UtcNow, ct);
-
+                await _userLifecycleStore.DeleteAsync(tenantId, request.UserKey, request.Mode, _clock.UtcNow, ct);
                 await _credentials.RevokeAllAsync(tenantId, new RevokeAllCredentialsRequest { UserKey = request.UserKey }, ct);
                 await _sessionService.RevokeAllAsync(authContext, request.UserKey, ct);
 
-                return UserDeleteResult.Success(UserDeleteMode.Soft);
+                return UserDeleteResult.Success(DeleteMode.Soft);
             }
 
             // Hard delete
             if (user.IsDeleted == false)
             {
                 // Optional safety: require soft-delete first
-                await _userLifecycleStore.MarkDeletedAsync(tenantId, request.UserKey, _clock.UtcNow, ct);
+                await _userLifecycleStore.DeleteAsync(tenantId, request.UserKey, DeleteMode.Soft, _clock.UtcNow, ct);
             }
             
             await _sessionService.RevokeAllAsync(authContext, request.UserKey, ct);
             await _credentials.DeleteAllAsync(tenantId, request.UserKey, ct);
             await _profiles.DeleteAsync(tenantId, request.UserKey, request.Mode, ct);
-            await _userLifecycleStore.DeleteAsync(tenantId, request.UserKey, ct);
+            await _userLifecycleStore.DeleteAsync(tenantId, request.UserKey, request.Mode, _clock.UtcNow, ct);
 
-            return UserDeleteResult.Success(UserDeleteMode.Hard);
+            return UserDeleteResult.Success(DeleteMode.Hard);
         }
 
 

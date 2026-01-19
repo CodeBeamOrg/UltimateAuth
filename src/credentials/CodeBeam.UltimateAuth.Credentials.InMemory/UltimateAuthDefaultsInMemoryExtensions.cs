@@ -11,10 +11,10 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory.Extensions
         public static IServiceCollection AddUltimateAuthCredentialsInMemory(this IServiceCollection services)
         {
             services.TryAddScoped(typeof(InMemoryCredentialStore<>));
-            services.Replace(ServiceDescriptor.Scoped(typeof(ICredentialStore<>), typeof(InMemoryCredentialStore<>)));
-            services.Replace(ServiceDescriptor.Scoped(typeof(ICredentialSecretStore<>), typeof(InMemoryCredentialStore<>)));
-            services.Replace(ServiceDescriptor.Scoped(typeof(ICredentialSecurityVersionStore<>), typeof(InMemoryCredentialStore<>)));
-            services.Replace(ServiceDescriptor.Scoped<ICredentialValidator, InMemoryPasswordCredentialValidator>());
+            services.TryAddScoped(typeof(ICredentialStore<>), typeof(InMemoryCredentialStore<>));
+            services.TryAddScoped(typeof(ICredentialSecretStore<>), typeof(InMemoryCredentialStore<>));
+            services.TryAddScoped(typeof(ICredentialSecurityVersionStore<>), typeof(InMemoryCredentialStore<>));
+            services.TryAddScoped<ICredentialValidator, InMemoryPasswordCredentialValidator>();
 
             return services;
         }

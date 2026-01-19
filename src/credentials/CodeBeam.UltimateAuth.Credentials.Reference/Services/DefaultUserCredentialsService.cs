@@ -35,13 +35,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService
             return CredentialProvisionResult.AlreadyExists(request.Type);
 
         var hash = _hasher.Hash(request.Secret);
-
-        await _secrets.UpdateSecretAsync(
-            tenantId,
-            userKey,
-            request.Type,
-            hash,
-            ct);
+        await _secrets.UpdateSecretAsync(tenantId, userKey, request.Type, hash, ct);
 
         return CredentialProvisionResult.Success(request.Type);
     }
@@ -52,13 +46,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService
 
         var hash = _hasher.Hash(request.NewSecret);
 
-        await _secrets.UpdateSecretAsync(
-            tenantId,
-            userKey,
-            request.Type,
-            hash,
-            ct);
-
+        await _secrets.UpdateSecretAsync(tenantId, userKey, request.Type, hash, ct);
         await _securityVersions.IncrementAsync(tenantId, userKey, ct);
 
         return ChangeCredentialResult.Success(request.Type);

@@ -7,8 +7,8 @@ namespace CodeBeam.UltimateAuth.Authorization.InMemory.Extensions
     {
         public static IServiceCollection AddUltimateAuthAuthorizationInMemory(this IServiceCollection services)
         {
-            services.AddSingleton<IUserRoleStore, InMemoryUserRoleStore>();
-            services.AddSingleton<IAuthorizationSeeder, InMemoryAuthorizationSeeder>();
+            services.TryAddScoped<IUserRoleStore, InMemoryUserRoleStore>();
+            services.TryAddScoped<IAuthorizationSeeder, InMemoryAuthorizationSeeder>();
 
             return services;
         }

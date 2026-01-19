@@ -33,7 +33,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             var result = await _authorization.AuthorizeAsync(flow.TenantId,
                 new AccessContext
                 {
-                    UserKey = flow.UserKey!.Value,
+                    ActorUserKey = flow.UserKey!.Value,
                     Action = req.Action,
                     Resource = req.Resource,
                     ResourceId = req.ResourceId

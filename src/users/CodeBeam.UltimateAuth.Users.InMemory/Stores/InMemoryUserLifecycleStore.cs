@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -95,35 +96,37 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.CompletedTask;
     }
 
-    public Task MarkDeletedAsync(
-        string? tenantId,
-        UserKey userKey,
-        DateTimeOffset deletedAt,
-        CancellationToken ct = default)
+    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var identity = new UserIdentity(tenantId, userKey);
 
         if (!_users.TryGetValue(identity, out var user))
-            throw new InvalidOperationException($"User '{userKey}' does not exist.");
+        {
+            return Task.CompletedTask;
+        }
 
-        if (user.IsDeleted)
-            return Task.CompletedTask; // idempotent
+        switch (mode)
+        {
+            case DeleteMode.Soft:
+                if (user.IsDeleted)
+                    return Task.CompletedTask;
 
-        user.Status = UserStatus.Deleted;
-        user.IsDeleted = true;
-        user.DeletedAt = deletedAt;
-        user.UpdatedAt = deletedAt;
+                user.Status = UserStatus.Deleted;
+                user.IsDeleted = true;
+                user.DeletedAt = at;
+                user.UpdatedAt = at;
+                break;
 
-        return Task.CompletedTask;
-    }
+            case DeleteMode.Hard:
+                _users.TryRemove(identity, out _);
+                break;
 
-    public Task DeleteAsync(
-        string? tenantId,
-        UserKey userKey,
-        CancellationToken ct = default)
-    {
-        var identity = new UserIdentity(tenantId, userKey);
-        _users.TryRemove(identity, out _);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown delete mode.");
+        }
+
         return Task.CompletedTask;
     }
 

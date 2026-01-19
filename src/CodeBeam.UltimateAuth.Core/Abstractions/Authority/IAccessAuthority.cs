@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     public interface IAccessAuthority
     {
-        AccessDecision Decide(AccessContext context, IEnumerable<IAccessPolicy> policies);
+        AccessDecision Decide(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies);
     }
 
 }
