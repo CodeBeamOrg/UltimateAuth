@@ -1,6 +1,11 @@
+using CodeBeam.UltimateAuth.Authorization.InMemory;
+using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Authentication;
@@ -8,12 +13,11 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Users.Reference;
+using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +55,8 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddUltimateAuthUsersReference()
     .AddUltimateAuthCredentialsInMemory()
     .AddUltimateAuthCredentialsReference()
+    .AddUltimateAuthAuthorizationInMemory()
+    .AddUltimateAuthAuthorizationReference()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
@@ -85,6 +91,17 @@ builder.Services.AddScoped(sp =>
 
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
+    //scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
+    //scope.ServiceProvider.GetRequiredService<IUserStore<UserKey>>();
+
+    var seeder = scope.ServiceProvider.GetService<IAuthorizationSeeder>();
+    //if (seeder is not null)
+    //    await seeder.SeedAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -1,23 +1,23 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Contracts
 {
-    public sealed class AuthorizationResult
+    public sealed class AccessDecisionResult
     {
         public AuthorizationDecision Decision { get; }
         public string? Reason { get; }
 
-        private AuthorizationResult(AuthorizationDecision decision, string? reason)
+        private AccessDecisionResult(AuthorizationDecision decision, string? reason)
         {
             Decision = decision;
             Reason = reason;
         }
 
-        public static AuthorizationResult Allow()
+        public static AccessDecisionResult Allow()
             => new(AuthorizationDecision.Allow, null);
 
-        public static AuthorizationResult Deny(string reason)
+        public static AccessDecisionResult Deny(string reason)
             => new(AuthorizationDecision.Deny, reason);
 
-        public static AuthorizationResult Challenge(string reason)
+        public static AccessDecisionResult Challenge(string reason)
             => new(AuthorizationDecision.Challenge, reason);
 
         // Developer happiness helpers

@@ -75,8 +75,8 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService
         await _securityVersions.IncrementAsync(tenantId, userKey, ct);
     }
 
-    public Task RevokeAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
-        => _securityVersions.IncrementAsync(tenantId, userKey, ct);
+    public Task RevokeAllAsync(string? tenantId, RevokeAllCredentialsRequest request, CancellationToken ct = default)
+        => _securityVersions.IncrementAsync(tenantId, request.UserKey, ct);
 
     public Task DeleteAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
         => _credentials.DeleteByUserAsync(tenantId, userKey, ct);

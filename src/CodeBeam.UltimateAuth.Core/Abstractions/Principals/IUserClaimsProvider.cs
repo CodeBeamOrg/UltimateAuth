@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Users;
+namespace CodeBeam.UltimateAuth.Core;
 
-public interface IUserClaimsProvider<TUserId>
+public interface IUserClaimsProvider
 {
     Task<ClaimsSnapshot> GetClaimsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
 }

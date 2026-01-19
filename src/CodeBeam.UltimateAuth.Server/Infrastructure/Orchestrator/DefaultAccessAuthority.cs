@@ -6,17 +6,15 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
     public sealed class DefaultAccessAuthority : IAccessAuthority
     {
         private readonly IEnumerable<IAccessInvariant> _invariants;
-        private readonly IEnumerable<IAccessPolicy> _policies;
+        private readonly IEnumerable<IAccessPolicy> _globalPolicies;
 
-        public DefaultAccessAuthority(
-            IEnumerable<IAccessInvariant> invariants,
-            IEnumerable<IAccessPolicy> policies)
+        public DefaultAccessAuthority(IEnumerable<IAccessInvariant> invariants, IEnumerable<IAccessPolicy> globalPolicies)
         {
             _invariants = invariants ?? Array.Empty<IAccessInvariant>();
-            _policies = policies ?? Array.Empty<IAccessPolicy>();
+            _globalPolicies = globalPolicies ?? Array.Empty<IAccessPolicy>();
         }
 
-        public AccessDecision Decide(AccessContext context)
+        public AccessDecision Decide(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies)
         {
             foreach (var invariant in _invariants)
             {
@@ -25,9 +23,22 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                     return result;
             }
 
+            foreach (var policy in _globalPolicies)
+            {
+                if (!policy.AppliesTo(context))
+                    continue;
+
+                var result = policy.Decide(context);
+
+                if (!result.IsAllowed)
+                    return result;
+
+                // Allow here means "no objection", NOT permission
+            }
+
             bool requiresReauth = false;
 
-            foreach (var policy in _policies)
+            foreach (var policy in runtimePolicies)
             {
                 if (!policy.AppliesTo(context))
                     continue;
@@ -46,5 +57,4 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                 : AccessDecision.Allow();
         }
     }
-
 }

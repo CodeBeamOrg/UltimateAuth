@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
@@ -246,6 +247,10 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
             //services.TryAddScoped<IUserInfoEndpointHandler, UserInfoEndpointHandler>();
 
+            services.ConfigureHttpJsonOptions(o =>
+            {
+                o.SerializerOptions.Converters.Add(new UserKeyJsonConverter());
+            });
 
             return services;
         }
@@ -262,8 +267,8 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             // Security state
             //services.TryAddScoped(typeof(IUserSecurityEvents<>), typeof(DefaultUserSecurityEvents<>));
 
-            // Claims
-            services.TryAddScoped(typeof(IUserClaimsProvider<>), typeof(DefaultUserClaimsProvider<>));
+            // TODO: Move this into AddAuthorizaionInternal method
+            services.TryAddScoped(typeof(IUserClaimsProvider), typeof(DefaultAuthorizationClaimsProvider));
 
             return services;
         }

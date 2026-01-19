@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         public bool AppliesTo(AuthContext context)
             => context.Device is not null;
 
-        public AuthorizationResult Decide(AuthContext context)
+        public AccessDecisionResult Decide(AuthContext context)
         {
             var device = context.Device;
 
@@ -18,14 +18,14 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
             return context.Operation switch
             {
                 AuthOperation.Access =>
-                    AuthorizationResult.Deny("Access from unknown device."),
+                    AccessDecisionResult.Deny("Access from unknown device."),
 
                 AuthOperation.Refresh =>
-                    AuthorizationResult.Challenge("Device verification required."),
+                    AccessDecisionResult.Challenge("Device verification required."),
 
-                AuthOperation.Login => AuthorizationResult.Allow(), // login establishes device
+                AuthOperation.Login => AccessDecisionResult.Allow(), // login establishes device
 
-                _ => AuthorizationResult.Allow()
+                _ => AccessDecisionResult.Allow()
             };
         }
     }

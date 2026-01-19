@@ -53,13 +53,11 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
             return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, authFlow.OriginalOptions);
 
-        var tenantCtx = ctx.GetTenantContext();
-
         var flowRequest = new LoginRequest
         {
             Identifier = identifier,
             Secret = secret,
-            TenantId = tenantCtx.TenantId,
+            TenantId = authFlow.TenantId,
             At = _clock.UtcNow,
             Device = authFlow.Device,
             RequestTokens = shouldIssueTokens

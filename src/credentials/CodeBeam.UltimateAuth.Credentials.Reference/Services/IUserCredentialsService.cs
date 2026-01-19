@@ -12,6 +12,6 @@ public interface IUserCredentialsService
     Task<CredentialProvisionResult> SetInitialAsync(string? tenantId, UserKey userKey, SetInitialCredentialRequest request, CancellationToken ct = default);
     Task<ChangeCredentialResult> ChangeAsync(string? tenantId, UserKey userKey, ChangeCredentialRequest request, CancellationToken ct = default);
     Task ResetAsync(string? tenantId, UserKey userKey, ResetPasswordRequest request, CancellationToken ct = default);
-    Task RevokeAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
+    Task RevokeAllAsync(string? tenantId, RevokeAllCredentialsRequest request, CancellationToken ct = default);
     Task DeleteAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
 }

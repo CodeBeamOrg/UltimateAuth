@@ -14,9 +14,8 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
             _policies = policies ?? Array.Empty<IAuthorityPolicy>();
         }
 
-        public AuthorizationResult Decide(AuthContext context)
+        public AccessDecisionResult Decide(AuthContext context, IEnumerable<IAuthorityPolicy>? policies = null)
         {
-            // 1. Invariants
             foreach (var invariant in _invariants)
             {
                 var result = invariant.Decide(context);
@@ -24,10 +23,11 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
                     return result;
             }
 
-            // 2. Policies
             bool challenged = false;
 
-            foreach (var policy in _policies)
+            var effectivePolicies = _policies.Concat(policies ?? Enumerable.Empty<IAuthorityPolicy>());
+
+            foreach (var policy in effectivePolicies)
             {
                 if (!policy.AppliesTo(context))
                     continue;
@@ -42,8 +42,9 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
             }
 
             return challenged
-                ? AuthorizationResult.Challenge("Additional verification required.")
-                : AuthorizationResult.Allow();
+                ? AccessDecisionResult.Challenge("Additional verification required.")
+                : AccessDecisionResult.Allow();
         }
+
     }
 }

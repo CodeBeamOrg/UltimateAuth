@@ -6,15 +6,15 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
 {
     public sealed class InvalidOrRevokedSessionInvariant : IAuthorityInvariant
     {
-        public AuthorizationResult Decide(AuthContext context)
+        public AccessDecisionResult Decide(AuthContext context)
         {
             if (context.Operation == AuthOperation.Login)
-                return AuthorizationResult.Allow();
+                return AccessDecisionResult.Allow();
 
             var session = context.Session;
 
             if (session is null)
-                return AuthorizationResult.Deny("Session is required for this operation.");
+                return AccessDecisionResult.Deny("Session is required for this operation.");
 
             if (session.State == SessionState.Invalid ||
                 session.State == SessionState.NotFound ||
@@ -22,10 +22,10 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
                 session.State == SessionState.SecurityMismatch ||
                 session.State == SessionState.DeviceMismatch)
             {
-                return AuthorizationResult.Deny($"Session state is invalid: {session.State}");
+                return AccessDecisionResult.Deny($"Session state is invalid: {session.State}");
             }
 
-            return AuthorizationResult.Allow();
+            return AccessDecisionResult.Allow();
         }
     }
 }

@@ -1,19 +1,24 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
 
 namespace CodeBeam.UltimateAuth.Server.Services
 {
     public sealed class UAuthSessionQueryService : ISessionQueryService
     {
         private readonly ISessionStoreKernelFactory _storeFactory;
+        private readonly IUserClaimsProvider _claimsProvider;
         private readonly UAuthServerOptions _options;
 
-        public UAuthSessionQueryService(ISessionStoreKernelFactory storeFactory, IOptions<UAuthServerOptions> options)
+        public UAuthSessionQueryService(ISessionStoreKernelFactory storeFactory, IUserClaimsProvider claimsProvider, IOptions<UAuthServerOptions> options)
         {
             _storeFactory = storeFactory;
+            _claimsProvider = claimsProvider;
             _options = options.Value;
         }
 
@@ -45,7 +50,8 @@ namespace CodeBeam.UltimateAuth.Server.Services
             //if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
             //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
-            return SessionValidationResult.Active(context.TenantId, session.UserKey, session.SessionId, session.ChainId, root.RootId, session.Claims, boundDeviceId: session.Device.DeviceId);
+            var claims = await _claimsProvider.GetClaimsAsync(context.TenantId, session.UserKey, ct);
+            return SessionValidationResult.Active(context.TenantId, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, boundDeviceId: session.Device.DeviceId);
         }
 
         public Task<ISession?> GetSessionAsync(string? tenantId, AuthSessionId sessionId, CancellationToken ct = default)

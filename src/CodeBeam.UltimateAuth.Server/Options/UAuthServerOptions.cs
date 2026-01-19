@@ -108,6 +108,10 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public bool? EnableSessionEndpoints { get; set; } = true;
         public bool? EnableUserInfoEndpoints { get; set; } = true;
 
+        public bool EnableUsersEndpoints { get; set; } = true;
+        public bool EnableCredentialsEndpoints { get; set; } = true;
+        public bool EnableAuthorizationEndpoints { get; set; } = true;
+
         /// <summary>
         /// If true, server will add anti-forgery headers
         /// and require proper request metadata.
@@ -165,6 +169,9 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 EnableTokenEndpoints = EnableTokenEndpoints,
                 EnableSessionEndpoints = EnableSessionEndpoints,
                 EnableUserInfoEndpoints = EnableUserInfoEndpoints,
+                EnableUsersEndpoints = EnableUsersEndpoints,
+                EnableCredentialsEndpoints = EnableCredentialsEndpoints,
+                EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
 
                 EnableAntiCsrfProtection = EnableAntiCsrfProtection,
                 EnableLoginRateLimiting = EnableLoginRateLimiting,

@@ -4,7 +4,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     public interface IAuthAuthority
     {
-        AuthorizationResult Decide(AuthContext context);
+        AccessDecisionResult Decide(AuthContext context, IEnumerable<IAuthorityPolicy>? policies = null);
     }
-
 }

@@ -82,51 +82,51 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             return UserCreateResult.Success(userKey);
         }
 
-        public async Task<UserStatusChangeResult> ChangeStatusAsync(string? tenantId, UserKey userKey, UserStatus newStatus, CancellationToken ct = default)
+        public async Task<UserStatusChangeResult> ChangeStatusAsync(string? tenantId, ChangeUserStatusRequest request, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
-            var exists = await _users.ExistsAsync(tenantId, userKey, ct);
+            var exists = await _users.ExistsAsync(tenantId, request.UserKey, ct);
             if (!exists)
                 return UserStatusChangeResult.NotFound();
 
-            var profile = await _profiles.GetAsync(tenantId, userKey, ct);
+            var profile = await _profiles.GetAsync(tenantId, request.UserKey, ct);
             if (profile is null)
                 return UserStatusChangeResult.NotFound();
 
             var oldStatus = profile.Status;
-            if (oldStatus == newStatus)
+            if (oldStatus == request.NewStatus)
                 return UserStatusChangeResult.NoChange(oldStatus);
 
-            await _profiles.SetStatusAsync(tenantId, userKey, newStatus, ct);
+            await _profiles.SetStatusAsync(tenantId, request.UserKey, request.NewStatus, ct);
 
             // TODO: Check all status
-            if (newStatus is UserStatus.Disabled or UserStatus.Suspended)
+            if (request.NewStatus is UserStatus.Disabled or UserStatus.Suspended)
             {
-                await _credentials.RevokeAllAsync(tenantId, userKey, ct);
+                await _credentials.RevokeAllAsync(tenantId, new RevokeAllCredentialsRequest { UserKey = request.UserKey }, ct);
             }
 
-            return UserStatusChangeResult.Success(oldStatus, newStatus);
+            return UserStatusChangeResult.Success(oldStatus, request.NewStatus);
         }
 
-        public async Task<UserDeleteResult> DeleteAsync(string? tenantId, UserKey userKey, UserDeleteMode mode = UserDeleteMode.Soft, CancellationToken ct = default)
+        public async Task<UserDeleteResult> DeleteAsync(string? tenantId, DeleteUserRequest request, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
-            var user = await _users.FindByIdAsync(tenantId, userKey, ct);
+            var user = await _users.FindByIdAsync(tenantId, request.UserKey, ct);
             if (user is null)
                 return UserDeleteResult.NotFound();
 
             var authContext = _authContextFactory.Create();
-            if (mode == UserDeleteMode.Soft)
+            if (request.Mode == UserDeleteMode.Soft)
             {
                 if (user.IsDeleted)
                     return UserDeleteResult.AlreadyDeleted(UserDeleteMode.Soft);
 
-                await _userLifecycleStore.MarkDeletedAsync(tenantId, userKey, _clock.UtcNow, ct);
+                await _userLifecycleStore.MarkDeletedAsync(tenantId, request.UserKey, _clock.UtcNow, ct);
 
-                await _credentials.RevokeAllAsync(tenantId, userKey, ct);
-                await _sessionService.RevokeAllAsync(authContext, userKey, ct);
+                await _credentials.RevokeAllAsync(tenantId, new RevokeAllCredentialsRequest { UserKey = request.UserKey }, ct);
+                await _sessionService.RevokeAllAsync(authContext, request.UserKey, ct);
 
                 return UserDeleteResult.Success(UserDeleteMode.Soft);
             }
@@ -135,13 +135,13 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             if (user.IsDeleted == false)
             {
                 // Optional safety: require soft-delete first
-                await _userLifecycleStore.MarkDeletedAsync(tenantId, userKey, _clock.UtcNow, ct);
+                await _userLifecycleStore.MarkDeletedAsync(tenantId, request.UserKey, _clock.UtcNow, ct);
             }
             
-            await _sessionService.RevokeAllAsync(authContext, userKey, ct);
-            await _credentials.DeleteAllAsync(tenantId, userKey, ct);
-            await _profiles.DeleteAsync(tenantId, userKey, mode, ct);
-            await _userLifecycleStore.DeleteAsync(tenantId, userKey, ct);
+            await _sessionService.RevokeAllAsync(authContext, request.UserKey, ct);
+            await _credentials.DeleteAllAsync(tenantId, request.UserKey, ct);
+            await _profiles.DeleteAsync(tenantId, request.UserKey, request.Mode, ct);
+            await _userLifecycleStore.DeleteAsync(tenantId, request.UserKey, ct);
 
             return UserDeleteResult.Success(UserDeleteMode.Hard);
         }

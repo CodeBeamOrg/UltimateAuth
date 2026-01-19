@@ -13,7 +13,6 @@ namespace CodeBeam.UltimateAuth.Users.InMemory.Extensions
             services.TryAddScoped<InMemoryUserStore>();
             services.Replace(ServiceDescriptor.Scoped<IUserStore<UserKey>, InMemoryUserStore>());
             services.Replace(ServiceDescriptor.Scoped(typeof(IUserSecurityStateProvider<>), typeof(InMemoryUserSecurityStateProvider<>)));
-            services.Replace(ServiceDescriptor.Scoped<IUserClaimsProvider<UserKey>, InMemoryUserClaimsProvider>());
             services.TryAddScoped<IUserLifecycleStore, InMemoryUserLifecycleStore>();
             services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
             services.TryAddScoped<IUserProfileStore, InMemoryUserProfileStore>();

@@ -5,7 +5,11 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
 {
     public sealed class InMemoryUserIdProvider : IInMemoryUserIdProvider<UserKey>
     {
-        public UserKey GetAdminUserId() => UserKey.FromString("admin");
-        public UserKey GetUserUserId() => UserKey.FromString("user");
+        private static readonly UserKey Admin = UserKey.FromString("admin");
+        private static readonly UserKey User = UserKey.FromString("user");
+
+        public UserKey GetAdminUserId() => Admin;
+        public UserKey GetUserUserId() => User;
     }
+
 }

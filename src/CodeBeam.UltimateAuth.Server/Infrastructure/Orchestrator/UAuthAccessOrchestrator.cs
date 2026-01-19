@@ -21,7 +21,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
             _executed = true;
 
-            var decision = _authority.Decide(context);
+            var policies = command.GetPolicies(context);
+            var decision = _authority.Decide(context, policies);
 
             if (!decision.IsAllowed)
                 throw new UAuthAuthorizationException(decision.DenyReason);

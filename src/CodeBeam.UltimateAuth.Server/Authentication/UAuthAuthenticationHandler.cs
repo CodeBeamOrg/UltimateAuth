@@ -1,8 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -55,32 +56,47 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (!result.IsValid || result.UserKey is null)
             return AuthenticateResult.NoResult();
 
-        var principal = CreatePrincipal(result);
-        var ticket = new AuthenticationTicket(principal,UAuthCookieDefaults.AuthenticationScheme);
+        var principal = result.Claims.ToClaimsPrincipal(UAuthCookieDefaults.AuthenticationScheme);
+        return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthCookieDefaults.AuthenticationScheme));
 
-        return AuthenticateResult.Success(ticket);
+
+        //var principal = CreatePrincipal(result);
+        //var ticket = new AuthenticationTicket(principal,UAuthCookieDefaults.AuthenticationScheme);
+
+        //return AuthenticateResult.Success(ticket);
     }
 
     private static ClaimsPrincipal CreatePrincipal(SessionValidationResult result)
     {
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, result.UserKey.Value),
-            new Claim("uauth:session_id", result.SessionId.ToString())
-        };
+        //var claims = new List<Claim>
+        //{
+        //    new Claim(ClaimTypes.NameIdentifier, result.UserKey.Value),
+        //    new Claim("uauth:session_id", result.SessionId.ToString())
+        //};
 
-        if (!string.IsNullOrEmpty(result.TenantId))
-        {
-            claims.Add(new Claim("uauth:tenant", result.TenantId));
-        }
+        //if (!string.IsNullOrEmpty(result.TenantId))
+        //{
+        //    claims.Add(new Claim("uauth:tenant", result.TenantId));
+        //}
 
-        // Session claims (snapshot)
-        foreach (var (key, value) in result.Claims.AsDictionary())
-        {
-            claims.Add(new Claim(key, value));
-        }
+        //// Session claims (snapshot)
+        //foreach (var (key, value) in result.Claims.AsDictionary())
+        //{
+        //    if (key == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+        //    {
+        //        foreach (var role in value.Split(','))
+        //            claims.Add(new Claim(ClaimTypes.Role, role));
+        //    }
+        //    else
+        //    {
+        //        claims.Add(new Claim(key, value));
+        //    }
+        //}
 
-        var identity = new ClaimsIdentity(claims, UAuthCookieDefaults.AuthenticationScheme);
+        //var identity = new ClaimsIdentity(claims, UAuthCookieDefaults.AuthenticationScheme);
+        //return new ClaimsPrincipal(identity);
+
+        var identity = new ClaimsIdentity(result.Claims.ToClaims(), UAuthCookieDefaults.AuthenticationScheme);
         return new ClaimsPrincipal(identity);
     }
 

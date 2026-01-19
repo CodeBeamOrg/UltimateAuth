@@ -8,7 +8,8 @@ using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users;
-using CodeBeam.UltimateAuth.Users;
+
+using CodeBeam.UltimateAuth.Core;
 
 namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 {
@@ -21,7 +22,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
         private readonly ILoginAuthority _authority;
         private readonly ISessionOrchestrator _sessionOrchestrator;
         private readonly ITokenIssuer _tokens;
-        private readonly IUserClaimsProvider<TUserId> _claimsProvider;
+        private readonly IUserClaimsProvider _claimsProvider;
         private readonly IUserIdConverterResolver _userIdConverterResolver;
 
         public DefaultLoginOrchestrator(
@@ -32,7 +33,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
             ILoginAuthority authority,
             ISessionOrchestrator sessionOrchestrator,
             ITokenIssuer tokens,
-            IUserClaimsProvider<TUserId> claimsProvider,
+            IUserClaimsProvider claimsProvider,
             IUserIdConverterResolver userIdConverterResolver)
         {
             _credentialStore = credentialStore;
