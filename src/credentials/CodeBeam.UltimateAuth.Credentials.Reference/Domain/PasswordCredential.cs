@@ -2,28 +2,28 @@
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class PasswordCredential<TUserId> : ILoginCredential<TUserId>, ISecretCredential<TUserId>
+public sealed class PasswordCredential<TUserId> : ILoginCredential<TUserId>, ISecretCredential<TUserId>, ISecurableCredential, ICredentialDescriptor
 {
     public TUserId UserId { get; }
     public CredentialType Type => CredentialType.Password;
-    public CredentialStatus Status { get; }
+
     public string LoginIdentifier { get; }
     public string SecretHash { get; }
-    public CredentialMetadata Metadata { get; }
 
-    public bool IsActive => Status == CredentialStatus.Active;
+    public CredentialSecurityState Security { get; }
+    public CredentialMetadata Metadata { get; }
 
     public PasswordCredential(
         TUserId userId,
         string loginIdentifier,
         string secretHash,
-        CredentialStatus status,
+        CredentialSecurityState security,
         CredentialMetadata metadata)
     {
         UserId = userId;
         LoginIdentifier = loginIdentifier;
         SecretHash = secretHash;
-        Status = status;
+        Security = security;
         Metadata = metadata;
     }
 }

@@ -1,10 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference
 {
     public interface IUAuthUserProfileService
     {
-        Task<UserProfileDto> GetCurrentAsync(string? tenantId, CancellationToken ct = default);
-        Task UpdateProfileAsync(string? tenantId, UpdateProfileRequest request, CancellationToken ct = default);
+        Task<UserProfileDto> GetCurrentAsync(AccessContext context, CancellationToken ct = default);
+        Task UpdateCurrentAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default);
     }
 }

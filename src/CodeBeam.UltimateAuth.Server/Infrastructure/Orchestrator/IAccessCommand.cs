@@ -9,4 +9,11 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
         Task ExecuteAsync(CancellationToken ct = default);
     }
 
+    // For get commands
+    public interface IAccessCommand<TResult>
+    {
+        IEnumerable<IAccessPolicy> GetPolicies(AccessContext context);
+        Task<TResult> ExecuteAsync(CancellationToken ct = default);
+    }
+
 }

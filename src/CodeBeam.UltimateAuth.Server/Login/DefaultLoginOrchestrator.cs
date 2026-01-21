@@ -1,15 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users;
-
-using CodeBeam.UltimateAuth.Core;
 
 namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 {
@@ -49,34 +47,44 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
         public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
         {
+            ct.ThrowIfCancellationRequested();
+
             var now = request.At ?? DateTimeOffset.UtcNow;
 
-            // 1. Validate credentials (Credentials domain)
-            var credential = await _credentialStore.FindByLoginAsync(request.TenantId, request.Identifier, ct);
-            bool credentialsValid = false;
-            TUserId? userId = default;
+            var credentials = await _credentialStore.FindByLoginAsync(request.TenantId, request.Identifier, ct);
+            var orderedCredentials = credentials
+                .OfType<ISecurableCredential>()
+                .Where(c => c.Security.IsUsable(now))
+                .Cast<ICredential<TUserId>>()
+                .ToList();
 
-            if (credential is not null)
+            TUserId validatedUserId = default!;
+            bool credentialsValid = false;
+
+            foreach (var credential in orderedCredentials)
             {
-                var credentialValidationResult = await _credentialValidator.ValidateAsync(credential, request.Secret, ct);
-                credentialsValid = credentialValidationResult.IsValid;
-                userId = credential.UserId;
+                var result = await _credentialValidator.ValidateAsync(credential, request.Secret, ct);
+
+                if (result.IsValid)
+                {
+                    validatedUserId = credential.UserId;
+                    credentialsValid = true;
+                    break;
+                }
             }
 
-            bool userExists = userId is not null;
+            bool userExists = credentialsValid;
 
-            // 2. Resolve user security state (Users domain)
             IUserSecurityState? securityState = null;
             UserKey? userKey = null;
 
-            if (userExists)
+            if (credentialsValid)
             {
-                securityState = await _userSecurityStateProvider.GetAsync(request.TenantId, userId!, ct);
+                securityState = await _userSecurityStateProvider.GetAsync(request.TenantId, validatedUserId, ct);
                 var converter = _userIdConverterResolver.GetConverter<TUserId>();
-                userKey = UserKey.FromString(converter.ToString(userId!));
+                userKey = UserKey.FromString(converter.ToString(validatedUserId));
             }
 
-            // 3. Authority decision (Login domain)
             var decisionContext = new LoginDecisionContext
             {
                 TenantId = request.TenantId,
@@ -90,30 +98,16 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
             var decision = _authority.Decide(decisionContext);
 
-            switch (decision.Kind)
+            if (decision.Kind == LoginDecisionKind.Deny)
+                return LoginResult.Failed();
+
+            if (decision.Kind == LoginDecisionKind.Challenge)
             {
-                case LoginDecisionKind.Deny:
-                    return LoginResult.Failed();
-
-                case LoginDecisionKind.Challenge:
-                    {
-                        // Orchestrator decides HOW to continue
-                        var continuation = new LoginContinuation
-                        {
-                            Type = LoginContinuationType.Mfa,
-                            // TODO: Add here
-                            //ContinuationToken = _continuationTokenService.Create(
-                            //    request.TenantId,
-                            //    userKey!,
-                            //    request.ChainId),
-                            Hint = decision.Reason
-                        };
-
-                        return LoginResult.Continue(continuation);
-                    }
-
-                case LoginDecisionKind.Allow:
-                    break;
+                return LoginResult.Continue(new LoginContinuation
+                {
+                    Type = LoginContinuationType.Mfa,
+                    Hint = decision.Reason
+                });
             }
 
             if (userKey is not UserKey validUserKey)
@@ -123,7 +117,6 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
             var claims = await _claimsProvider.GetClaimsAsync(request.TenantId, validUserKey, ct);
 
-            // 4. Create authenticated session
             var sessionContext = new AuthenticatedSessionContext
             {
                 TenantId = request.TenantId,
@@ -138,7 +131,6 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
             var authContext = flow.ToAuthContext(now);
             var issuedSession = await _sessionOrchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand<TUserId>(sessionContext), ct);
 
-            // 6. Issue tokens if requested
             AuthTokens? tokens = null;
 
             if (request.RequestTokens)
@@ -152,17 +144,15 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
                     Claims = claims.AsDictionary()
                 };
 
-                var access = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
-                var refresh = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
-
                 tokens = new AuthTokens
                 {
-                    AccessToken = access,
-                    RefreshToken = refresh
+                    AccessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct),
+                    RefreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct)
                 };
             }
 
             return LoginResult.Success(issuedSession.Session.SessionId, tokens);
+
         }
     }
 }

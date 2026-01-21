@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Reference;
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record CredentialMetadata(
     DateTimeOffset CreatedAt,

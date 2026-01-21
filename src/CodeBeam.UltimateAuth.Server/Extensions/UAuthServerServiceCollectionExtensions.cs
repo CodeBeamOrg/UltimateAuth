@@ -10,10 +10,10 @@ using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Auth.Context;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Infrastructure.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Hub;
 using CodeBeam.UltimateAuth.Server.Infrastructure.Session;
 using CodeBeam.UltimateAuth.Server.Issuers;
@@ -222,6 +222,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<IAuthFlow, DefaultAuthFlow>();
             services.TryAddScoped<IAuthFlowContextAccessor, DefaultAuthFlowContextAccessor>();
             services.TryAddScoped<IAuthFlowContextFactory, DefaultAuthFlowContextFactory>();
+            services.TryAddScoped<IAccessContextFactory, DefaultAccessContextFactory>();
 
             services.TryAddScoped<AuthFlowEndpointFilter>();
 

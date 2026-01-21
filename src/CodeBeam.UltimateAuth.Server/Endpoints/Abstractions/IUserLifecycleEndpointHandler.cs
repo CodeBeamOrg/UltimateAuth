@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
-    public interface IUserEndpointHandler
+    public interface IUserLifecycleEndpointHandler
     {
         Task<IResult> CreateAsync(HttpContext ctx);
         Task<IResult> ChangeStatusAsync(HttpContext ctx);

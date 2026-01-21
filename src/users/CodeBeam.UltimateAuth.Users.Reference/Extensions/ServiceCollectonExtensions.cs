@@ -17,8 +17,12 @@ public static class ServiceCollectionExtensions
         });
 
         services.TryAddScoped<IUAuthUserProfileService, DefaultUserProfileService>();
+        services.TryAddScoped<IUserProfileAdminService, DefaultUserProfileAdminService>();
         services.TryAddScoped<IUserLifecycleService, DefaultUserLifecycleService>();
-        services.TryAddScoped<IUserEndpointHandler, DefaultUserEndpointHandler>();
+        services.TryAddScoped<IUserIdentifierService, DefaultUserIdentifierService>();
+        services.TryAddScoped<IUserLifecycleEndpointHandler, DefaultUserLifecycleEndpointHandler>();
+        services.TryAddScoped<IUserProfileEndpointHandler, DefaultUserProfileEndpointHandler>();
+        services.TryAddScoped<IUserProfileAdminEndpointHandler, DefaultUserProfileAdminEndpointHandler>();
 
         return services;
     }

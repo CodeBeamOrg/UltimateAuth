@@ -1,31 +1,60 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class DefaultUserProfileService : IUAuthUserProfileService
 {
+    private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly IUserProfileStore _profiles;
-    private readonly ICurrentUser _currentUser;
 
-    public DefaultUserProfileService(IUserProfileStore profiles, ICurrentUser currentUser)
+    public DefaultUserProfileService(IAccessOrchestrator accessOrchestrator, IUserProfileStore profiles)
     {
+        _accessOrchestrator = accessOrchestrator;
         _profiles = profiles;
-        _currentUser = currentUser;
     }
 
-    public async Task<UserProfileDto> GetCurrentAsync(string? tenantId, CancellationToken ct = default)
+    public async Task<UserProfileDto> GetCurrentAsync(AccessContext context, CancellationToken ct = default)
     {
-        if (!_currentUser.IsAuthenticated)
-            throw new UnauthorizedAccessException();
+        ct.ThrowIfCancellationRequested();
 
-        var profile = await _profiles.GetAsync(tenantId, _currentUser.UserKey, ct) ?? throw new InvalidOperationException("User profile not found.");
+        var policies = Array.Empty<IAccessPolicy>();
 
-        return UserProfileMapper.ToDto(profile);
+        var cmd = new GetCurrentUserProfileCommand(policies,
+            async innerCt =>
+            {
+                if (context.ActorUserKey is null)
+                    throw new UnauthorizedAccessException();
+
+                var profile = await _profiles.GetAsync(context.ResourceTenantId, (UserKey)context.ActorUserKey, innerCt);
+
+                if (profile is null)
+                    throw new InvalidOperationException("user_profile_not_found");
+
+                return UserProfileMapper.ToDto(profile);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public Task UpdateProfileAsync(string? tenantId, UpdateProfileRequest request, CancellationToken ct = default)
+    public async Task UpdateCurrentAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default)
     {
-        return _profiles.UpdateAsync(tenantId, _currentUser.UserKey, request, ct);
+        ct.ThrowIfCancellationRequested();
+
+        var policies = Array.Empty<IAccessPolicy>();
+
+        var cmd = new UpdateCurrentUserProfileCommand(policies,
+            async innerCt =>
+            {
+                if (context.ActorUserKey is null)
+                    throw new UnauthorizedAccessException();
+
+                await _profiles.UpdateAsync(context.ResourceTenantId, (UserKey)context.ActorUserKey, request, innerCt);
+            });
+
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 }

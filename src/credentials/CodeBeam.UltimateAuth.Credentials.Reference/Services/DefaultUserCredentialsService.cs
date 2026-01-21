@@ -1,71 +1,191 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-internal sealed class DefaultUserCredentialsService : IUserCredentialsService
+internal sealed class DefaultUserCredentialsService : IUserCredentialsService, IUserCredentialsInternalService
 {
+    private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly ICredentialStore<UserKey> _credentials;
     private readonly ICredentialSecretStore<UserKey> _secrets;
-    private readonly ICredentialSecurityVersionStore<UserKey> _securityVersions;
     private readonly IUAuthPasswordHasher _hasher;
     private readonly IClock _clock;
 
     public DefaultUserCredentialsService(
+        IAccessOrchestrator accessOrchestrator,
         ICredentialStore<UserKey> credentials,
         ICredentialSecretStore<UserKey> secrets,
-        ICredentialSecurityVersionStore<UserKey> securityVersions,
         IUAuthPasswordHasher hasher,
         IClock clock)
     {
+        _accessOrchestrator = accessOrchestrator;
         _credentials = credentials;
         _secrets = secrets;
-        _securityVersions = securityVersions;
         _hasher = hasher;
         _clock = clock;
     }
 
-    public async Task<CredentialProvisionResult> SetInitialAsync(string? tenantId, UserKey userKey, SetInitialCredentialRequest request, CancellationToken ct = default)
+    public async Task<GetCredentialsResult> GetAllAsync(AccessContext context, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var existing = await _credentials.GetByUserAsync(tenantId, userKey, ct);
-        if (existing.Any(c => c.Type == request.Type))
-            return CredentialProvisionResult.AlreadyExists(request.Type);
+        var cmd = new GetAllCredentialsCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
 
-        var hash = _hasher.Hash(request.Secret);
-        await _secrets.UpdateSecretAsync(tenantId, userKey, request.Type, hash, ct);
+                var creds = await _credentials.GetByUserAsync(context.ResourceTenantId, userKey, innerCt);
 
-        return CredentialProvisionResult.Success(request.Type);
+                var dtos = creds
+                    .OfType<ICredentialDescriptor>()
+                    .Select(c => new CredentialDto(
+                        c.Type,
+                        c.Security.Status,
+                        c.Metadata.CreatedAt,
+                        c.Metadata.LastUsedAt,
+                        c.Security.RestrictedUntil,
+                        c.Security.ExpiresAt,
+                        c.Metadata.Source))
+                    .ToArray();
+
+                return new GetCredentialsResult(dtos);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<ChangeCredentialResult> ChangeAsync(string? tenantId, UserKey userKey, ChangeCredentialRequest request, CancellationToken ct = default)
+    // ---------------- ADD ----------------
+
+    public async Task<AddCredentialResult> AddAsync(AccessContext context, AddCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var hash = _hasher.Hash(request.NewSecret);
+        var cmd = new AddCredentialCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
 
-        await _secrets.UpdateSecretAsync(tenantId, userKey, request.Type, hash, ct);
-        await _securityVersions.IncrementAsync(tenantId, userKey, ct);
+                var exists = await _credentials.ExistsAsync(context.ResourceTenantId, userKey, request.Type, innerCt);
 
-        return ChangeCredentialResult.Success(request.Type);
+                if (exists)
+                    return AddCredentialResult.Fail("credential_already_exists");
+
+                var hash = _hasher.Hash(request.Secret);
+
+                var credential = new PasswordCredential<UserKey>(
+                    userId: userKey,
+                    loginIdentifier: userKey.Value,
+                    secretHash: hash,
+                    security: new CredentialSecurityState(CredentialSecurityStatus.Active),
+                    metadata: new CredentialMetadata(
+                        _clock.UtcNow,
+                        null,
+                        request.Source));
+
+                await _credentials.AddAsync(context.ResourceTenantId, credential, innerCt);
+
+                return AddCredentialResult.Success(request.Type);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task ResetAsync(string? tenantId, UserKey userKey, ResetPasswordRequest request, CancellationToken ct = default)
+    // ---------------- CHANGE ----------------
+
+    public async Task<ChangeCredentialResult> ChangeAsync(AccessContext context, CredentialType type, ChangeCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var hash = _hasher.Hash(request.NewPassword);
+        var cmd = new ChangeCredentialCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
 
-        await _secrets.UpdateSecretAsync(tenantId, userKey, CredentialType.Password, hash, ct);
+                var hash = _hasher.Hash(request.NewSecret);
 
-        await _securityVersions.IncrementAsync(tenantId, userKey, ct);
+                await _secrets.SetAsync(context.ResourceTenantId, userKey, type, hash, innerCt);
+                return ChangeCredentialResult.Success(type);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public Task RevokeAllAsync(string? tenantId, RevokeAllCredentialsRequest request, CancellationToken ct = default)
-        => _securityVersions.IncrementAsync(tenantId, request.UserKey, ct);
+    // ---------------- REVOKE ----------------
 
-    public Task DeleteAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
-        => _credentials.DeleteByUserAsync(tenantId, userKey, ct);
+    public async Task<CredentialActionResult> RevokeAsync(AccessContext context, CredentialType type, RevokeCredentialRequest request, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var cmd = new RevokeCredentialCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
+
+                var security = new CredentialSecurityState(
+                    CredentialSecurityStatus.Revoked,
+                    restrictedUntil: request.Until,
+                    expiresAt: null,
+                    reason: request.Reason);
+
+                await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+                return CredentialActionResult.Success();
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    public async Task<CredentialActionResult> ActivateAsync(AccessContext context, CredentialType type, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var cmd = new ActivateCredentialCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
+
+                var security = new CredentialSecurityState(CredentialSecurityStatus.Active);
+                await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+
+                return CredentialActionResult.Success();
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    public async Task<CredentialActionResult> DeleteAsync(AccessContext context, CredentialType type, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var cmd = new DeleteCredentialCommand(Array.Empty<IAccessPolicy>(),
+            async innerCt =>
+            {
+                if (context.ActorUserKey is not UserKey userKey)
+                    throw new UnauthorizedAccessException();
+
+                await _credentials.DeleteAsync(context.ResourceTenantId, userKey, type, innerCt);
+                return CredentialActionResult.Success();
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    // ----------------------------------------
+    // INTERNAL ONLY - NEVER CALL THEM DIRECTLY
+    // ----------------------------------------
+    async Task<CredentialActionResult> IUserCredentialsInternalService.DeleteInternalAsync(string? tenantId, UserKey userKey, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        await _credentials.DeleteByUserAsync(tenantId, userKey, ct);
+        return CredentialActionResult.Success();
+    }
 }

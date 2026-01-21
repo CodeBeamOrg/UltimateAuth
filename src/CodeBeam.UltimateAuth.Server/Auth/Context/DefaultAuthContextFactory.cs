@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure.Auth
+namespace CodeBeam.UltimateAuth.Server.Auth
 {
     internal sealed class DefaultAuthContextFactory : IAuthContextFactory
     {

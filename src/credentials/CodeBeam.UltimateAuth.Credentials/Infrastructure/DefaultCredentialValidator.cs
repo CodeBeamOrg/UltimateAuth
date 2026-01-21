@@ -1,28 +1,40 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+
+namespace CodeBeam.UltimateAuth.Credentials;
 
 public sealed class DefaultCredentialValidator : ICredentialValidator
 {
     private readonly IUAuthPasswordHasher _passwordHasher;
+    private readonly IClock _clock;
 
-    public DefaultCredentialValidator(IUAuthPasswordHasher passwordHasher) => _passwordHasher = passwordHasher;
+    public DefaultCredentialValidator(IUAuthPasswordHasher passwordHasher, IClock clock)
+    {
+        _passwordHasher = passwordHasher;
+        _clock = clock;
+    }
 
     public Task<CredentialValidationResult> ValidateAsync<TUserId>(ICredential<TUserId> credential, string providedSecret, CancellationToken ct = default)
     {
-        if (credential is not ISecretCredential<TUserId> secret)
+        ct.ThrowIfCancellationRequested();
+
+        if (credential is ISecurableCredential securable)
         {
-            return Task.FromResult(new CredentialValidationResult(
-                IsValid: false,
-                RequiresReauthentication: false,
-                RequiresSecurityVersionIncrement: false,
-                FailureReason: "Unsupported credential type."));
+            if (!securable.Security.IsUsable(_clock.UtcNow))
+            {
+                return Task.FromResult(CredentialValidationResult.Failed(reason: "credential_not_usable"));
+            }
         }
 
-        var ok = _passwordHasher.Verify(secret.SecretHash, providedSecret);
+        if (credential is ISecretCredential<TUserId> secret)
+        {
+            var ok = _passwordHasher.Verify(secret.SecretHash, providedSecret);
 
-        return Task.FromResult(ok
-            ? new CredentialValidationResult(true, false, false)
-            : new CredentialValidationResult(false, false, false, "Invalid credentials."));
+            return Task.FromResult(ok
+                ? CredentialValidationResult.Success()
+                : CredentialValidationResult.Failed(reason: "invalid_credentials"));
+        }
+
+        return Task.FromResult(CredentialValidationResult.Failed(reason: "unsupported_credential_type"));
     }
 }

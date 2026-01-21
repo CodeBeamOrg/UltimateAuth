@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -24,35 +23,40 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
         _clock = clock;
     }
 
-    public async Task<GetUserIdentifiersResult> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public async Task<GetUserIdentifiersResult> GetAsync(AccessContext context, UserKey targetUserKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var records = await _store.GetAllAsync(tenantId, userKey, ct);
-        var dtos = records.Where(r => r.DeletedAt is null).Select(UserIdentifierMapper.ToDto).ToArray();
+        var policies = Array.Empty<IAccessPolicy>();
 
-        return new GetUserIdentifiersResult
-        {
-            Identifiers = dtos
-        };
+        var cmd = new GetUserIdentifiersCommand(
+            policies,
+            async innerCt =>
+            {
+                var records = await _store.GetAllAsync(
+                    context.ResourceTenantId,
+                    targetUserKey,
+                    innerCt);
+
+                var dtos = records
+                    .Where(r => r.DeletedAt is null)
+                    .Select(UserIdentifierMapper.ToDto)
+                    .ToArray();
+
+                return new GetUserIdentifiersResult
+                {
+                    Identifiers = dtos
+                };
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<IdentifierChangeResult> ChangeAsync(string? tenantId, UserKey userKey, ChangeUserIdentifierRequest request, CancellationToken ct = default)
+    public async Task<IdentifierChangeResult> ChangeAsync(AccessContext context, UserKey targetUserKey, ChangeUserIdentifierRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        var ctx = new AccessContext
-        {
-            TenantId = tenantId,
-            ActorUserKey = userKey,
-            Action = "users.identifiers.change",
-            Resource = "users",
-            ResourceId = userKey.Value,
-        };
 
-        var policies = new IAccessPolicy[]
-        {
-
-        };
+        var policies = Array.Empty<IAccessPolicy>();
 
         var record = new UserIdentifierRecord
         {
@@ -68,64 +72,58 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
             policies,
             async innerCt =>
             {
-                // Domain rule: uniqueness
-                var exists = await _store.ExistsAsync(tenantId, request.Type, request.NewValue, innerCt);
+                var exists = await _store.ExistsAsync(context.ResourceTenantId, request.Type, request.NewValue, innerCt);
 
                 if (exists)
                     throw new InvalidOperationException("identifier_already_exists");
 
-                // Main job
-                await _store.SetAsync(tenantId, userKey, record, innerCt);
+                await _store.SetAsync(context.ResourceTenantId, targetUserKey, record, innerCt);
             });
 
-        await _accessOrchestrator.ExecuteAsync(ctx, cmd, ct);
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
 
         return IdentifierChangeResult.Success();
-
-
-        //var exists = await _store.ExistsAsync(tenantId, request.Type, request.NewValue, ct);
-
-        //if (exists)
-        //{
-        //    return IdentifierChangeResult.Failed("identifier_already_exists");
-        //}
-
-        //var record = new UserIdentifierRecord
-        //{
-        //    Type = request.Type,
-        //    Value = request.NewValue,
-        //    IsVerified = false,
-        //    CreatedAt = _clock.UtcNow,
-        //    VerifiedAt = null,
-        //    DeletedAt = null
-        //};
-
-        //await _store.SetAsync(tenantId, userKey, record, ct);
-
-        //return IdentifierChangeResult.Success();
     }
 
-    public async Task<IdentifierVerificationResult> VerifyAsync(string? tenantId, UserKey userKey, VerifyUserIdentifierRequest request, CancellationToken ct = default)
+    public async Task<IdentifierVerificationResult> VerifyAsync(AccessContext context, UserKey targetUserKey, VerifyUserIdentifierRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await _store.MarkVerifiedAsync(tenantId, userKey, request.Type, _clock.UtcNow, ct);
+        var policies = Array.Empty<IAccessPolicy>();
+
+        var cmd = new VerifyUserIdentifierCommand(
+            policies,
+            async innerCt =>
+            {
+                await _store.MarkVerifiedAsync(context.ResourceTenantId, targetUserKey, request.Type, _clock.UtcNow, innerCt);
+            });
+
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+
         return IdentifierVerificationResult.Success();
     }
 
-    public async Task<IdentifierDeleteResult> DeleteAsync(string? tenantId, UserKey userKey, DeleteUserIdentifierRequest request, CancellationToken ct = default)
+    public async Task<IdentifierDeleteResult> DeleteAsync(AccessContext context, UserKey targetUserKey, DeleteUserIdentifierRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var identifiers = await _store.GetByTypeAsync(tenantId, userKey, request.Type, ct);
-        var activeCount = identifiers.Count(i => i.DeletedAt is null);
+        var policies = Array.Empty<IAccessPolicy>();
 
-        if (activeCount <= 1 && request.Type == UserIdentifierType.Username)
-        {
-            return IdentifierDeleteResult.Fail("last_username_cannot_be_deleted");
-        }
+        var cmd = new DeleteUserIdentifierCommand(
+            policies,
+            async innerCt =>
+            {
+                var identifiers = await _store.GetByTypeAsync(context.ResourceTenantId, targetUserKey, request.Type, innerCt);
 
-        await _store.DeleteAsync(tenantId, userKey, request.Type, request.Value, request.Mode,ct);
+                var activeCount = identifiers.Count(i => i.DeletedAt is null);
+
+                if (activeCount <= 1 && request.Type == UserIdentifierType.Username)
+                    throw new InvalidOperationException("last_username_cannot_be_deleted");
+
+                await _store.DeleteAsync(context.ResourceTenantId, targetUserKey, request.Type, request.Value, request.Mode, innerCt);
+            });
+
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
 
         return IdentifierDeleteResult.Success();
     }

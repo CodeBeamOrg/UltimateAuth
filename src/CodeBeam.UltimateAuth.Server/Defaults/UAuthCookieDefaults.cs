@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Authentication;
+﻿namespace CodeBeam.UltimateAuth.Server.Defaults;
 
 public static class UAuthCookieDefaults
 {

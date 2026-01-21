@@ -32,5 +32,25 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
             await command.ExecuteAsync(ct);
         }
+
+        public async Task<TResult> ExecuteAsync<TResult>(AccessContext context, IAccessCommand<TResult> command, CancellationToken ct = default)
+        {
+            if (_executed)
+                throw new InvalidOperationException("Access orchestrator can only be executed once.");
+
+            _executed = true;
+
+            var policies = command.GetPolicies(context) ?? Array.Empty<IAccessPolicy>();
+            var decision = _authority.Decide(context, policies);
+
+            if (!decision.IsAllowed)
+                throw new UAuthAuthorizationException(decision.DenyReason);
+
+            if (decision.RequiresReauthentication)
+                throw new InvalidOperationException("Requires reauthentication.");
+
+            return await command.ExecuteAsync(ct);
+        }
+
     }
 }

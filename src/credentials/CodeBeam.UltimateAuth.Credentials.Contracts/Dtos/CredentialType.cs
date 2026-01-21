@@ -3,26 +3,21 @@
 public enum CredentialType
 {
     Password = 0,
-    /// <summary>
-    /// Username / email / phone used for login.
-    /// </summary>
-    IdentifierUsername = 10,
-    IdentifierEmail = 11,
-    IdentifierPhone = 12,
 
     // Possession / OTP based
-    OneTimeCode = 30,
-    EmailOtp = 31,
-    SmsOtp = 32,
-    Totp = 50,
+    OneTimeCode = 10,
+    EmailOtp = 11,
+    SmsOtp = 12,
+
+    Totp = 30,
 
     // Modern
-    Passkey = 60,
+    Passkey = 40,
 
     // Machine / system
-    Certificate = 70,
-    ApiKey = 80,
+    Certificate = 50,
+    ApiKey = 60,
 
     // External / Federated // TODO: Add Microsoft, Google, GitHub etc.
-    External = 100
+    External = 70
 }

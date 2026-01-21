@@ -6,8 +6,7 @@ using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using System.Collections.Concurrent;
 
-internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserId>, ICredentialSecretStore<TUserId>, ICredentialSecurityVersionStore<TUserId>
-    where TUserId : notnull
+internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserId>, ICredentialSecretStore<TUserId> where TUserId : notnull
 {
     private readonly ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>> _byLogin;
     private readonly ConcurrentDictionary<TUserId, List<InMemoryPasswordCredentialState<TUserId>>> _byUser;
@@ -20,9 +19,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         _hasher = hasher;
         _userIdProvider = userIdProvider;
 
-        _byLogin = new ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>>(
-            StringComparer.OrdinalIgnoreCase);
-
+        _byLogin = new ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>>(StringComparer.OrdinalIgnoreCase);
         _byUser = new ConcurrentDictionary<TUserId, List<InMemoryPasswordCredentialState<TUserId>>>();
 
         SeedDefault();
@@ -40,85 +37,138 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         {
             UserId = userId,
             Login = login,
-            SecretHash = _hasher.Hash(login), // admin/admin, user/user
-            Status = CredentialStatus.Active,
-            SecurityVersion = 0,
-            Metadata = new CredentialMetadata(
-                CreatedAt: DateTimeOffset.UtcNow,
-                LastUsedAt: null,
-                Source: "seed")
+            SecretHash = _hasher.Hash(login),
+            Security = new CredentialSecurityState(CredentialSecurityStatus.Active),
+            Metadata = new CredentialMetadata(DateTimeOffset.UtcNow, null, "seed")
         };
 
         _byLogin[login] = state;
         _byUser[userId] = new List<InMemoryPasswordCredentialState<TUserId>> { state };
     }
 
-    public Task<ICredential<TUserId>?> FindByLoginAsync(string? tenantId, string loginIdentifier, CancellationToken ct = default)
+    public Task<IReadOnlyCollection<ICredential<TUserId>>> FindByLoginAsync(string? tenantId, string loginIdentifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_byLogin.TryGetValue(loginIdentifier, out var state))
-            return Task.FromResult<ICredential<TUserId>?>(null);
+            return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
-        if (state.Status != CredentialStatus.Active)
-            return Task.FromResult<ICredential<TUserId>?>(null);
-
-        return Task.FromResult<ICredential<TUserId>?>(Map(state));
+        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(new[] { Map(state) });
     }
 
-    public Task<IReadOnlyCollection<ICredential<TUserId>>> GetByUserAsync(string? tenantId, TUserId userId,
-        CancellationToken ct = default)
+    public Task<IReadOnlyCollection<ICredential<TUserId>>> GetByUserAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_byUser.TryGetValue(userId, out var list))
             return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
-        var active = list
-            .Where(c => c.Status == CredentialStatus.Active)
-            .Select(Map)
-            .Cast<ICredential<TUserId>>()
-            .ToArray();
-
-        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(active);
+        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(list.Select(Map).Cast<ICredential<TUserId>>().ToArray());
     }
 
-    public Task UpdateSecretAsync(string? tenantId, TUserId userId, CredentialType type, string newSecretHash, CancellationToken ct = default)
+    public Task<IReadOnlyCollection<ICredential<TUserId>>> GetByUserAndTypeAsync(string? tenantId, TUserId userId, CredentialType type, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_byUser.TryGetValue(userId, out var list))
-            return Task.CompletedTask;
+            return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
-        var state = list.FirstOrDefault(c => c.Type == type);
-        if (state is null)
-            return Task.CompletedTask;
+        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(
+            list.Where(c => c.Type == type)
+                .Select(Map)
+                .Cast<ICredential<TUserId>>()
+                .ToArray());
+    }
 
-        state.SecretHash = newSecretHash;
-        state.SecurityVersion++;
-        state.Metadata = state.Metadata with
+    public Task<bool> ExistsAsync(string? tenantId, TUserId userId, CredentialType type, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        return Task.FromResult(_byUser.TryGetValue(userId, out var list) && list.Any(c => c.Type == type));
+    }
+
+    public Task AddAsync(string? tenantId, ICredential<TUserId> credential, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (credential is not PasswordCredential<TUserId> pwd)
+            throw new NotSupportedException("Only password credential supported in-memory.");
+
+        var state = new InMemoryPasswordCredentialState<TUserId>
         {
-            LastUsedAt = DateTimeOffset.UtcNow
+            UserId = pwd.UserId,
+            Login = pwd.LoginIdentifier,
+            SecretHash = pwd.SecretHash,
+            Security = pwd.Security,
+            Metadata = pwd.Metadata
         };
+
+        _byLogin[pwd.LoginIdentifier] = state;
+        _byUser.AddOrUpdate(pwd.UserId,
+            _ => new List<InMemoryPasswordCredentialState<TUserId>> { state },
+            (_, list) =>
+            {
+                list.Add(state);
+                return list;
+            });
 
         return Task.CompletedTask;
     }
 
-    // Security version
-    public Task<long> GetAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
+    public Task UpdateSecurityStateAsync(string? tenantId, TUserId userId, CredentialType type, CredentialSecurityState securityState, CancellationToken ct = default)
     {
-        if (!_byUser.TryGetValue(userId, out var list))
-            return Task.FromResult(0L);
+        ct.ThrowIfCancellationRequested();
 
-        return Task.FromResult(list.Max(c => c.SecurityVersion));
-    }
-
-    public Task IncrementAsync(string? tenantId, TUserId userId, CancellationToken ct = default)
-    {
         if (_byUser.TryGetValue(userId, out var list))
         {
-            foreach (var c in list)
-                c.SecurityVersion++;
+            var state = list.FirstOrDefault(c => c.Type == type);
+            if (state != null)
+                state.Security = securityState;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateMetadataAsync(string? tenantId, TUserId userId, CredentialType type, CredentialMetadata metadata, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (_byUser.TryGetValue(userId, out var list))
+        {
+            var state = list.FirstOrDefault(c => c.Type == type);
+            if (state != null)
+                state.Metadata = metadata;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task SetAsync(string? tenantId, TUserId userId, CredentialType type, string secretHash, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (_byUser.TryGetValue(userId, out var list))
+        {
+            var state = list.FirstOrDefault(c => c.Type == type);
+            if (state != null)
+                state.SecretHash = secretHash;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(string? tenantId, TUserId userId, CredentialType type, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (_byUser.TryGetValue(userId, out var list))
+        {
+            var state = list.FirstOrDefault(c => c.Type == type);
+            if (state != null)
+            {
+                list.Remove(state);
+                _byLogin.TryRemove(state.Login, out _);
+            }
         }
 
         return Task.CompletedTask;
@@ -131,20 +181,17 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         if (_byUser.TryRemove(userId, out var list))
         {
             foreach (var credential in list)
-            {
                 _byLogin.TryRemove(credential.Login, out _);
-            }
         }
 
         return Task.CompletedTask;
     }
 
-    private static PasswordCredential<TUserId> Map(
-        InMemoryPasswordCredentialState<TUserId> state)
+    private static PasswordCredential<TUserId> Map(InMemoryPasswordCredentialState<TUserId> state)
         => new(
             userId: state.UserId,
             loginIdentifier: state.Login,
             secretHash: state.SecretHash,
-            status: state.Status,
+            security: state.Security,
             metadata: state.Metadata);
 }
