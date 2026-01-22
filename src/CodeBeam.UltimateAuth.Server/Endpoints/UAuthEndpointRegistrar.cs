@@ -173,6 +173,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                 authz.MapPost("/check", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
                     => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
+                authz.MapGet("/users/{userKey}/roles", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.GetRolesAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+
                 authz.MapPost("/users/{userKey}/roles", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                     => await h.AssignRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 

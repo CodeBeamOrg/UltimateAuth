@@ -23,7 +23,7 @@ internal sealed class DefaultUserProfileAdminService : IUserProfileAdminService
 
         var policies = Array.Empty<IAccessPolicy>();
 
-        var cmd = new GetUserProfileAdminCommand(policies,
+        var cmd = new GetUserProfileAdminCommand(
             async innerCt =>
             {
                 var profile = await _profiles.GetAsync(context.ResourceTenantId, targetUserKey, innerCt);
@@ -43,7 +43,7 @@ internal sealed class DefaultUserProfileAdminService : IUserProfileAdminService
 
         var policies = Array.Empty<IAccessPolicy>();
 
-        var cmd = new UpdateUserProfileAdminCommand(policies,
+        var cmd = new UpdateUserProfileAdminCommand(
             async innerCt =>
             {
                 await _profiles.UpdateAsync(context.ResourceTenantId, targetUserKey, request, innerCt);

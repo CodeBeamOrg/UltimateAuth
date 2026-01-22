@@ -7,16 +7,12 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class GetCurrentUserProfileCommand : IAccessCommand<UserProfileDto>
 {
-    private readonly IEnumerable<IAccessPolicy> _policies;
     private readonly Func<CancellationToken, Task<UserProfileDto>> _execute;
 
-    public GetCurrentUserProfileCommand(IEnumerable<IAccessPolicy> policies, Func<CancellationToken, Task<UserProfileDto>> execute)
+    public GetCurrentUserProfileCommand(Func<CancellationToken, Task<UserProfileDto>> execute)
     {
-        _policies = policies ?? Array.Empty<IAccessPolicy>();
         _execute = execute;
     }
-
-    public IEnumerable<IAccessPolicy> GetPolicies(AccessContext context) => _policies;
 
     public Task<UserProfileDto> ExecuteAsync(CancellationToken ct = default) => _execute(ct);
 }

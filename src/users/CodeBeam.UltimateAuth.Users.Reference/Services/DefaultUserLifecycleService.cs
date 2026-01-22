@@ -59,7 +59,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             var userKey = UserKey.New();
             var now = _clock.UtcNow;
 
-            var cmd = new CreateUserCommand(policies,
+            var cmd = new CreateUserCommand(
                 async innerCt =>
                 {
                     var existing = await _users.FindByLoginAsync(context.ResourceTenantId, request.Identifier, innerCt);
@@ -120,7 +120,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             var policies = Array.Empty<IAccessPolicy>();
             UserStatus oldStatus = default;
 
-            var cmd = new ChangeUserStatusCommand(policies,
+            var cmd = new ChangeUserStatusCommand(
                 async innerCt =>
                 {
                     var profile = await _profiles.GetAsync(context.ResourceTenantId, request.UserKey, innerCt);
@@ -145,7 +145,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
             var policies = Array.Empty<IAccessPolicy>();
             
-            var cmd = new DeleteUserCommand(policies,
+            var cmd = new DeleteUserCommand(
                 async innerCt =>
                 {
                     var user = await _users.FindByIdAsync(context.ResourceTenantId, request.UserKey, innerCt);

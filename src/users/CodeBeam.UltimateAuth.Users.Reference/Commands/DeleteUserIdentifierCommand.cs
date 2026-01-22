@@ -7,15 +7,11 @@ namespace CodeBeam.UltimateAuth.Users.Reference
     internal sealed class DeleteUserIdentifierCommand : IAccessCommand
     {
         private readonly Func<CancellationToken, Task> _execute;
-        private readonly IEnumerable<IAccessPolicy> _policies;
 
-        public DeleteUserIdentifierCommand(IEnumerable<IAccessPolicy> policies, Func<CancellationToken, Task> execute)
+        public DeleteUserIdentifierCommand(Func<CancellationToken, Task> execute)
         {
-            _policies = policies ?? Array.Empty<IAccessPolicy>();
             _execute = execute;
         }
-
-        public IEnumerable<IAccessPolicy> GetPolicies(AccessContext context) => _policies;
 
         public Task ExecuteAsync(CancellationToken ct = default) => _execute(ct);
     }

@@ -35,5 +35,15 @@
             public const string Delete = "credentials.delete";
         }
 
+        public static class Authorization
+        {
+            public static class Roles
+            {
+                public const string Read = "authorization.roles.read";
+                public const string Assign = "authorization.roles.assign";
+                public const string Remove = "authorization.roles.remove";
+            }
+        }
+
     }
 }

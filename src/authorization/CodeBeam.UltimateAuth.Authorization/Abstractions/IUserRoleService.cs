@@ -1,13 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Authorization
 {
     public interface IUserRoleService
     {
-        Task AssignAsync(string? tenantId, UserKey userKey, string role, CancellationToken ct = default);
-
-        Task RemoveAsync(string? tenantId, UserKey userKey, string role, CancellationToken ct = default);
-
-        Task<IReadOnlyCollection<string>> GetRolesAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
+        Task AssignAsync(AccessContext context, UserKey targetUserKey, string role, CancellationToken ct = default);
+        Task RemoveAsync(AccessContext context, UserKey targetUserKey, string role, CancellationToken ct = default);
+        Task<IReadOnlyCollection<string>> GetRolesAsync(AccessContext context, UserKey targetUserKey, CancellationToken ct = default);
     }
 }

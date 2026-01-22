@@ -7,10 +7,12 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Policies.Abstractions;
+using CodeBeam.UltimateAuth.Policies.Defaults;
+using CodeBeam.UltimateAuth.Policies.Registry;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Auth.Context;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -23,7 +25,6 @@ using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -39,6 +40,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddUltimateAuth();
             AddUsersInternal(services);
             AddCredentialsInternal(services);
+            AddUltimateAuthPolicies(services);
             return services.AddUltimateAuthServerInternal();
         }
 
@@ -47,6 +49,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddUltimateAuth(configuration);
             AddUsersInternal(services);
             AddCredentialsInternal(services);
+            AddUltimateAuthPolicies(services);
             services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
 
             return services.AddUltimateAuthServerInternal();
@@ -57,6 +60,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.AddUltimateAuth();
             AddUsersInternal(services);
             AddCredentialsInternal(services);
+            AddUltimateAuthPolicies(services);
             services.Configure(configure);
 
             return services.AddUltimateAuthServerInternal();
@@ -248,13 +252,39 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
             //services.TryAddScoped<IUserInfoEndpointHandler, UserInfoEndpointHandler>();
 
-            services.ConfigureHttpJsonOptions(o =>
+            return services;
+        }
+
+        internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
+        {
+            if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
+                throw new InvalidOperationException("UltimateAuth policies already registered.");
+
+            var registry = new AccessPolicyRegistry();
+
+            DefaultPolicySet.Register(registry);
+            configure?.Invoke(registry);
+            services.AddSingleton(registry);
+            services.AddSingleton<IAccessPolicyProvider>(sp =>
             {
-                o.SerializerOptions.Converters.Add(new UserKeyJsonConverter());
+                var compiled = registry.Build();
+                return new DefaultAccessPolicyProvider(compiled, sp);
             });
+
+            services.TryAddScoped<IAccessAuthority>(sp =>
+            {
+                var invariants = sp.GetServices<IAccessInvariant>();
+                var globalPolicies = sp.GetServices<IAccessPolicy>();
+
+                return new DefaultAccessAuthority(invariants, globalPolicies);
+            });
+
+            services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
+
 
             return services;
         }
+
 
         // =========================
         // USERS (FRAMEWORK-REQUIRED)

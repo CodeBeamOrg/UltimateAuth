@@ -30,7 +30,6 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
         var policies = Array.Empty<IAccessPolicy>();
 
         var cmd = new GetUserIdentifiersCommand(
-            policies,
             async innerCt =>
             {
                 var records = await _store.GetAllAsync(
@@ -69,7 +68,6 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
         };
 
         var cmd = new ChangeUserIdentifierCommand(
-            policies,
             async innerCt =>
             {
                 var exists = await _store.ExistsAsync(context.ResourceTenantId, request.Type, request.NewValue, innerCt);
@@ -92,7 +90,6 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
         var policies = Array.Empty<IAccessPolicy>();
 
         var cmd = new VerifyUserIdentifierCommand(
-            policies,
             async innerCt =>
             {
                 await _store.MarkVerifiedAsync(context.ResourceTenantId, targetUserKey, request.Type, _clock.UtcNow, innerCt);
@@ -110,7 +107,6 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
         var policies = Array.Empty<IAccessPolicy>();
 
         var cmd = new DeleteUserIdentifierCommand(
-            policies,
             async innerCt =>
             {
                 var identifiers = await _store.GetByTypeAsync(context.ResourceTenantId, targetUserKey, request.Type, innerCt);

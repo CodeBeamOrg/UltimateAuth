@@ -6,16 +6,12 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 {
     internal sealed class ChangeUserStatusCommand : IAccessCommand
     {
-        private readonly IEnumerable<IAccessPolicy> _policies;
         private readonly Func<CancellationToken, Task> _execute;
 
-        public ChangeUserStatusCommand(IEnumerable<IAccessPolicy> policies, Func<CancellationToken, Task> execute)
+        public ChangeUserStatusCommand(Func<CancellationToken, Task> execute)
         {
-            _policies = policies ?? Array.Empty<IAccessPolicy>();
             _execute = execute;
         }
-
-        public IEnumerable<IAccessPolicy> GetPolicies(AccessContext context) => _policies;
 
         public Task ExecuteAsync(CancellationToken ct = default) => _execute(ct);
     }

@@ -23,7 +23,7 @@ internal sealed class DefaultUserProfileService : IUAuthUserProfileService
 
         var policies = Array.Empty<IAccessPolicy>();
 
-        var cmd = new GetCurrentUserProfileCommand(policies,
+        var cmd = new GetCurrentUserProfileCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is null)
@@ -46,7 +46,7 @@ internal sealed class DefaultUserProfileService : IUAuthUserProfileService
 
         var policies = Array.Empty<IAccessPolicy>();
 
-        var cmd = new UpdateCurrentUserProfileCommand(policies,
+        var cmd = new UpdateCurrentUserProfileCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is null)

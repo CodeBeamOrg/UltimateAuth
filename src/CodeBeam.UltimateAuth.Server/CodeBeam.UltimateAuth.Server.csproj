@@ -23,6 +23,7 @@
 		<ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />
 		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
+		<ProjectReference Include="..\policies\CodeBeam.UltimateAuth.Policies\CodeBeam.UltimateAuth.Policies.csproj" />
 		<ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
 		<ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>

@@ -1,36 +1,37 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Policies.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference
 {
     internal sealed class DefaultAuthorizationService : IAuthorizationService
     {
-        private readonly IUserPermissionStore _permissionStore;
+        private readonly IAccessPolicyProvider _policyProvider;
         private readonly IAccessAuthority _accessAuthority;
 
-        public DefaultAuthorizationService(IUserPermissionStore permissionStore, IAccessAuthority accessAuthority)
+        public DefaultAuthorizationService(IAccessPolicyProvider policyProvider, IAccessAuthority accessAuthority)
         {
-            _permissionStore = permissionStore;
+            _policyProvider = policyProvider;
             _accessAuthority = accessAuthority;
         }
 
-        public async Task<AuthorizationResult> AuthorizeAsync(string? tenantId, AccessContext context, CancellationToken ct = default)
+        public Task<AuthorizationResult> AuthorizeAsync(AccessContext context, CancellationToken ct = default)
         {
-            if (context.ActorUserKey is null)
-                return AuthorizationResult.Deny("unauthenticated");
+            ct.ThrowIfCancellationRequested();
 
-            var permissions = await _permissionStore.GetPermissionsAsync(tenantId, context.ActorUserKey.Value, ct);
+            var policies = _policyProvider.GetPolicies(context);
+            var decision = _accessAuthority.Decide(context, policies);
 
-            var policy = new PermissionAccessPolicy(permissions,context.Action);
+            if (decision.RequiresReauthentication)
+                return Task.FromResult(AuthorizationResult.ReauthRequired());
 
-            var decision = _accessAuthority.Decide(context, new[] { policy });
-
-            return decision.RequiresReauthentication
-                ? AuthorizationResult.ReauthRequired()
-                : decision.IsAllowed
+            return Task.FromResult(
+                decision.IsAllowed
                     ? AuthorizationResult.Allow()
-                    : AuthorizationResult.Deny(decision.DenyReason);
+                    : AuthorizationResult.Deny(decision.DenyReason)
+            );
         }
+
     }
 }
