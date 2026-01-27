@@ -132,7 +132,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
                         return;
 
                     oldStatus = profile.Status;
-                    await _profiles.SetStatusAsync(context.ResourceTenantId, request.UserKey, request.NewStatus, innerCt);
+                    //await _profiles.SetStatusAsync(context.ResourceTenantId, request.UserKey, request.NewStatus, innerCt);
                 });
 
             await _accessOrchestrator.ExecuteAsync(context, cmd, ct);

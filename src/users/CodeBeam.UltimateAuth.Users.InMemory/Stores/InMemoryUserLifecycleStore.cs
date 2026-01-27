@@ -6,7 +6,6 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Domain;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
@@ -62,18 +61,13 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
 
         if (!_users.TryAdd(identity, InitializeUser(user)))
         {
-            throw new InvalidOperationException(
-                $"User '{user.UserKey}' already exists in tenant '{tenantId ?? "<default>"}'.");
+            throw new InvalidOperationException($"User '{user.UserKey}' already exists in tenant '{tenantId ?? "<default>"}'.");
         }
 
         return Task.CompletedTask;
     }
 
-    public Task UpdateStatusAsync(
-        string? tenantId,
-        UserKey userKey,
-        UserStatus status,
-        CancellationToken ct = default)
+    public Task UpdateStatusAsync(string? tenantId, UserKey userKey, UserStatus status, CancellationToken ct = default)
     {
         var identity = new UserIdentity(tenantId, userKey);
 
@@ -84,11 +78,10 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
             throw new InvalidOperationException($"User '{userKey}' is deleted.");
 
         if (user.Status == status)
-            return Task.CompletedTask; // idempotent
+            return Task.CompletedTask;
 
         if (!IsValidStatusTransition(user.Status, status))
-            throw new InvalidOperationException(
-                $"Invalid status transition from '{user.Status}' to '{status}'.");
+            throw new InvalidOperationException($"Invalid status transition from '{user.Status}' to '{status}'.");
 
         user.Status = status;
         user.UpdatedAt = DateTimeOffset.UtcNow;

@@ -29,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
             var request = await ctx.ReadJsonAsync<CreateUserRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 authFlow: flow,
                 action: UAuthActions.Users.Create,
                 resource: "users"
@@ -51,7 +51,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
             var request = await ctx.ReadJsonAsync<ChangeUserStatusRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 authFlow: flow,
                 action: UAuthActions.Users.ChangeStatus,
                 resource: "users",
@@ -74,7 +74,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
             var request = await ctx.ReadJsonAsync<DeleteUserRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 authFlow: flow,
                 action: UAuthActions.Users.Delete,
                 resource: "users",

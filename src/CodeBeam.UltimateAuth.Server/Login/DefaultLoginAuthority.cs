@@ -8,34 +8,26 @@
     {
         public LoginDecision Decide(LoginDecisionContext context)
         {
-            // 1. Credentials must be valid
             if (!context.CredentialsValid)
             {
                 return LoginDecision.Deny("Invalid credentials.");
             }
 
-            // 2. User must exist
             if (!context.UserExists || context.UserKey is null)
             {
-                // Deliberately vague to prevent user enumeration
                 return LoginDecision.Deny("Invalid credentials.");
             }
 
-            // 3. User must be active and not locked
-            if (context.SecurityState is not null)
+            var state = context.SecurityState;
+            if (state is not null)
             {
-                if (context.SecurityState.IsLocked)
-                {
-                    return LoginDecision.Deny("User account is locked.");
-                }
+                if (state.IsLocked)
+                    return LoginDecision.Deny("user_is_locked");
 
-                if (context.SecurityState.RequiresReauthentication)
-                {
-                    return LoginDecision.Challenge("Reauthentication required.");
-                }
+                if (state.RequiresReauthentication)
+                    return LoginDecision.Challenge("reauth_required");
             }
 
-            // 4. All checks passed
             return LoginDecision.Allow();
         }
     }

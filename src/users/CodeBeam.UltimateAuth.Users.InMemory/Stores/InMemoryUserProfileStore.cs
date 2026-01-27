@@ -15,6 +15,8 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
     private readonly IInMemoryUserIdProvider<UserKey> _idProvider;
     private readonly IClock _clock;
 
+    internal IEnumerable<ReferenceUserProfile> AllProfiles => _profiles.Values;
+
     public InMemoryUserProfileStore(IInMemoryUserIdProvider<UserKey> idProvider, IClock clock)
     {
         _idProvider = idProvider;
@@ -86,19 +88,6 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
         profile.FirstName = request.FirstName;
         profile.LastName = request.LastName;
         profile.DisplayName = request.DisplayName;
-        profile.UpdatedAt = DateTimeOffset.UtcNow;
-
-        return Task.CompletedTask;
-    }
-
-    public Task SetStatusAsync(string? tenantId, UserKey userKey, UserStatus status, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_profiles.TryGetValue(userKey, out var profile) || profile.IsDeleted)
-            throw new InvalidOperationException("User profile does not exist.");
-
-        profile.Status = status;
         profile.UpdatedAt = DateTimeOffset.UtcNow;
 
         return Task.CompletedTask;

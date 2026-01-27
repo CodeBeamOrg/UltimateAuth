@@ -27,7 +27,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             if (!flow.IsAuthenticated || flow.UserKey is null)
                 return Results.Unauthorized();
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 authFlow: flow,
                 action: UAuthActions.UserProfiles.GetSelf,
                 resource: "users",
@@ -47,7 +47,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
             var request = await ctx.ReadJsonAsync<UpdateProfileRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 authFlow: flow,
                 action: UAuthActions.UserProfiles.UpdateSelf,
                 resource: "users",

@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Client.Contracts
 {
-    public sealed class BrowserPostRawResult
+    public sealed class UAuthTransportResult
     {
         public bool Ok { get; init; }
         public int Status { get; init; }

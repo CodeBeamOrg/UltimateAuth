@@ -24,7 +24,7 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
                 return;
 
             await _bootstrapper.EnsureStartedAsync();
-            var result = await _client.ValidateAsync();
+            var result = await _client.Flows.ValidateAsync();
 
             if (!result.IsValid)
             {

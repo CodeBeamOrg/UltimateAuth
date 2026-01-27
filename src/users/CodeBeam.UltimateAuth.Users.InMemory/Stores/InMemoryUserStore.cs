@@ -1,80 +1,86 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Domain;
-using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 internal sealed class InMemoryUserStore : IUserStore<UserKey>
 {
-    private readonly ConcurrentDictionary<UserKey, ReferenceUserProfile> _users;
-    private readonly ConcurrentDictionary<string, UserKey> _userKeysByLogin;
+    private readonly InMemoryUserLifecycleStore _lifecycle;
+    private readonly IUserProfileStore _profiles;
 
-    public InMemoryUserStore(IEnumerable<ReferenceUserProfile>? seededUsers = null)
+    public InMemoryUserStore(
+        InMemoryUserLifecycleStore lifecycle,
+        IUserProfileStore profiles)
     {
-        _users = new ConcurrentDictionary<UserKey, ReferenceUserProfile>();
-        _userKeysByLogin = new ConcurrentDictionary<string, UserKey>(StringComparer.OrdinalIgnoreCase);
-
-        if (seededUsers is null)
-            return;
-
-        foreach (var user in seededUsers)
-        {
-            _users[user.UserKey] = user;
-
-            if (!string.IsNullOrWhiteSpace(user.Email))
-                _userKeysByLogin[user.Email] = user.UserKey;
-        }
+        _lifecycle = lifecycle;
+        _profiles = profiles;
     }
 
-    public Task<AuthUserRecord<UserKey>?> FindByIdAsync(string? tenantId, UserKey userId, CancellationToken ct = default)
+    public async Task<AuthUserRecord<UserKey>?> FindByIdAsync(
+        string? tenantId,
+        UserKey userId,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        throw new NotImplementedException();
+        //var lifecycle = await _lifecycle.GetAsync(tenantId, userId, ct);
+        //if (lifecycle is null || lifecycle.IsDeleted)
+        //    return null;
+
+        //var profile = await _profiles.GetAsync(tenantId, userId, ct);
+
+        //return new AuthUserRecord<UserKey>
+        //{
+        //    Id = userId,
+        //    Identifier =
+        //        profile?.Email ??
+        //        profile?.DisplayName ??
+        //        userId.ToString(),
+
+        //    IsActive = lifecycle.Status == UserStatus.Active,
+        //    IsDeleted = lifecycle.IsDeleted,
+        //    CreatedAt = lifecycle.CreatedAt,
+        //    DeletedAt = lifecycle.DeletedAt
+        //};
+    }
+
+    public async Task<AuthUserRecord<UserKey>?> FindByLoginAsync(
+        string? tenantId,
+        string login,
+        CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_users.TryGetValue(userId, out var user))
-            return Task.FromResult<AuthUserRecord<UserKey>?>(null);
+        // InMemory limitation: scan profiles
+        if (_profiles is not InMemoryUserProfileStore mem)
+            throw new InvalidOperationException("InMemory only");
 
-        if (user.IsDeleted)
-            return Task.FromResult<AuthUserRecord<UserKey>?>(null);
+        var profile = mem.AllProfiles
+            .FirstOrDefault(p =>
+                !p.IsDeleted &&
+                !string.IsNullOrWhiteSpace(p.Email) &&
+                string.Equals(p.Email, login, StringComparison.OrdinalIgnoreCase));
 
-        return Task.FromResult<AuthUserRecord<UserKey>?>(Map(user));
+        if (profile is null)
+            return null;
+
+        return await FindByIdAsync(tenantId, profile.UserKey, ct);
     }
 
-    public Task<AuthUserRecord<UserKey>?> FindByLoginAsync(string? tenantId, string login, CancellationToken ct = default)
+    public async Task<bool> ExistsAsync(
+        string? tenantId,
+        UserKey userId,
+        CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_userKeysByLogin.TryGetValue(login, out var userKey))
-            return Task.FromResult<AuthUserRecord<UserKey>?>(null);
+        throw new NotImplementedException();
 
-        if (!_users.TryGetValue(userKey, out var user))
-            return Task.FromResult<AuthUserRecord<UserKey>?>(null);
-
-        if (user.IsDeleted)
-            return Task.FromResult<AuthUserRecord<UserKey>?>(null);
-
-        return Task.FromResult<AuthUserRecord<UserKey>?>(Map(user));
-    }
-
-    public Task<bool> ExistsAsync(string? tenantId, UserKey userId, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        return Task.FromResult(
-            _users.TryGetValue(userId, out var user) && !user.IsDeleted);
-    }
-
-    private static AuthUserRecord<UserKey> Map(ReferenceUserProfile user)
-    {
-        return new AuthUserRecord<UserKey>
-        {
-            Id = user.UserKey,
-            Identifier = user.Email ?? user.DisplayName ?? string.Empty,
-            IsActive = user.Status == UserStatus.Active,
-            IsDeleted = user.IsDeleted,
-            CreatedAt = user.CreatedAt,
-            DeletedAt = user.DeletedAt
-        };
+        //var lifecycle = await _lifecycle.GetAsync(tenantId, userId, ct);
+        //return lifecycle is not null && !lifecycle.IsDeleted;
     }
 }
+

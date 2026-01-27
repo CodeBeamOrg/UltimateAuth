@@ -31,7 +31,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var req = await ctx.ReadJsonAsync<AuthorizationCheckRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: req.Action,
                 resource: req.Resource,
@@ -54,7 +54,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             if (!flow.IsAuthenticated)
                 return Results.Unauthorized();
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Authorization.Roles.Read,
                 resource: "authorization.roles",
@@ -78,7 +78,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var req = await ctx.ReadJsonAsync<AssignRoleRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Authorization.Roles.Assign,
                 resource: "authorization.roles",
@@ -97,7 +97,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var req = await ctx.ReadJsonAsync<AssignRoleRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Authorization.Roles.Remove,
                 resource: "authorization.roles",

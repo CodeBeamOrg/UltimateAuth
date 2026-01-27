@@ -13,10 +13,10 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 {
     internal sealed class DefaultLoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
     {
-        private readonly ICredentialStore<TUserId> _credentialStore;
+        private readonly ICredentialStore<TUserId> _credentialStore; // authentication
         private readonly ICredentialValidator _credentialValidator;
-        private readonly IUserStore<TUserId> _users;
-        private readonly IUserSecurityStateProvider<TUserId> _userSecurityStateProvider;
+        private readonly IUserStore<TUserId> _users; // eligible
+        private readonly IUserSecurityStateProvider<TUserId> _userSecurityStateProvider; // runtime risk
         private readonly ILoginAuthority _authority;
         private readonly ISessionOrchestrator _sessionOrchestrator;
         private readonly ITokenIssuer _tokens;
@@ -83,6 +83,14 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
                 securityState = await _userSecurityStateProvider.GetAsync(request.TenantId, validatedUserId, ct);
                 var converter = _userIdConverterResolver.GetConverter<TUserId>();
                 userKey = UserKey.FromString(converter.ToString(validatedUserId));
+            }
+
+            var user = await _users.FindByIdAsync(request.TenantId, validatedUserId);
+
+            if (user is null || user.IsDeleted || !user.IsActive)
+            {
+                // Deliberately vague
+                return LoginResult.Failed();
             }
 
             var decisionContext = new LoginDecisionContext

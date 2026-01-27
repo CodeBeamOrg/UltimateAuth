@@ -28,7 +28,7 @@ public sealed class DefaultUserProfileAdminEndpointHandler : IUserProfileAdminEn
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var accessContext = _accessContextFactory.Create(
+        var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.GetAdmin,
             resource: "users",
@@ -48,7 +48,7 @@ public sealed class DefaultUserProfileAdminEndpointHandler : IUserProfileAdminEn
 
         var request = await ctx.ReadJsonAsync<UpdateProfileRequest>(ctx.RequestAborted);
 
-        var accessContext = _accessContextFactory.Create(
+        var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.UpdateAdmin,
             resource: "users",

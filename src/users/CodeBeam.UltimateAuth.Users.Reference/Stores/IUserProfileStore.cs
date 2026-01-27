@@ -11,6 +11,5 @@ public interface IUserProfileStore
     Task CreateAsync(string? tenantId, ReferenceUserProfile profile, CancellationToken ct = default);
     Task<ReferenceUserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
     Task UpdateAsync(string? tenantId, UserKey userKey, UpdateProfileRequest request, CancellationToken ct = default);
-    Task SetStatusAsync(string? tenantId, UserKey userKey, UserStatus status, CancellationToken ct = default);
     Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct = default);
 }

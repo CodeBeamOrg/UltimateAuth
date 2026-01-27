@@ -100,7 +100,8 @@ window.uauth.post = async function (options) {
     }
     const headers = {
         "X-UDID": window.uauth.deviceId,
-        "X-UAuth-ClientProfile": clientProfile
+        "X-UAuth-ClientProfile": clientProfile,
+        "X-Requested-With": "UAuth"
     };
 
     if (data) {
@@ -126,6 +127,47 @@ window.uauth.post = async function (options) {
         } catch {
             responseBody = null;
         }
+    }
+
+    return {
+        ok: response.ok,
+        status: response.status,
+        refreshOutcome: response.headers.get("X-UAuth-Refresh"),
+        body: responseBody
+    };
+};
+
+window.uauth.postJson = async function (options) {
+    const {
+        url,
+        payload,
+        clientProfile
+    } = options;
+
+    if (!window.uauth.deviceId) {
+        throw new Error("UAuth deviceId is not initialized.");
+    }
+
+    const headers = {
+        "Content-Type": "application/json",
+        "X-UDID": window.uauth.deviceId,
+        "X-UAuth-ClientProfile": clientProfile ?? "",
+        "X-Requested-With": "UAuth"
+    };
+
+    const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: headers,
+        body: payload ? JSON.stringify(payload) : null
+    });
+
+    let responseBody = null;
+
+    try {
+        responseBody = await response.json();
+    } catch {
+        responseBody = null;
     }
 
     return {

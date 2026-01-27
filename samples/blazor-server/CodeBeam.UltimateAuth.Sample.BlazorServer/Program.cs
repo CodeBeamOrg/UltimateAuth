@@ -19,6 +19,7 @@ using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
 builder.Services
     .AddAuthentication(options =>
@@ -110,6 +113,11 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+}
+else
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();

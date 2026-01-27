@@ -11,6 +11,7 @@ internal static class UserProfileMapper
             UserKey = profile.UserKey.ToString(),
             FirstName = profile.FirstName,
             LastName = profile.LastName,
+            DisplayName = profile.DisplayName,
             Email = profile.Email,
             Phone = profile.Phone,
             Status = profile.Status,

@@ -48,7 +48,7 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure
                 while (await _timer!.WaitForNextTickAsync(ct))
                 {
                     _diagnostics.MarkAutomaticRefresh();
-                    var result = await _client.RefreshAsync(isAuto: true);
+                    var result = await _client.Flows.RefreshAsync(isAuto: true);
 
                     switch (result.Outcome)
                     {

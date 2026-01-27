@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 
@@ -45,13 +46,13 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
                 Secret = "admin",
                 Device = DeviceContext.FromDeviceId(deviceId),
             };
-            await UAuthClient.LoginAsync(request);
+            await UAuth.Flows.LoginAsync(request);
             _authState = await AuthStateProvider.GetAuthenticationStateAsync();
         }
 
         private async Task ValidateAsync()
         {
-            var result = await UAuthClient.ValidateAsync();
+            var result = await UAuth.Flows.ValidateAsync();
 
             Snackbar.Add(
                 result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
@@ -60,13 +61,45 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private async Task LogoutAsync()
         {
-            await UAuthClient.LogoutAsync();
+            await UAuth.Flows.LogoutAsync();
             Snackbar.Add("Logged out", Severity.Success);
         }
 
         private async Task RefreshAsync()
         {
-            await UAuthClient.RefreshAsync();
+            await UAuth.Flows.RefreshAsync();
+        }
+
+        private async Task HandleGetMe()
+        {
+            var profileResult = await UAuth.Users.GetMeAsync();
+            if (profileResult.Ok)
+            {
+                var profile = profileResult.Value;
+                Snackbar.Add($"User Profile: {profile?.UserName} ({profile?.DisplayName})", Severity.Info);
+            }
+            else
+            {
+                Snackbar.Add($"Failed to get profile: {profileResult.Error}", Severity.Error);
+            }
+        }
+
+        private async Task ChangeUserInactive()
+        {
+            ChangeUserStatusRequest request = new ChangeUserStatusRequest
+            {
+                UserKey = UserKey.FromString("user"),
+                NewStatus = UserStatus.Disabled
+            };
+            var result = await UAuth.Users.ChangeStatusAsync(request);
+            if (result.Ok)
+            {
+                Snackbar.Add($"User is disabled.", Severity.Info);
+            }
+            else
+            {
+                Snackbar.Add($"Failed to change user status.", Severity.Error);
+            }
         }
 
         protected override void OnAfterRender(bool firstRender)

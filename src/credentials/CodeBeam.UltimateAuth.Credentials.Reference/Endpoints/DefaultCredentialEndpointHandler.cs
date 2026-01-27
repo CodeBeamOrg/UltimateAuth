@@ -42,7 +42,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
             if (!TryGetAuthenticatedUser(out var flow, out var error))
                 return error!;
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.List,
                 resource: "credentials",
@@ -62,7 +62,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
 
             var request = await ctx.ReadJsonAsync<AddCredentialRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.Add,
                 resource: "credentials",
@@ -86,7 +86,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
 
             var request = await ctx.ReadJsonAsync<ChangeCredentialRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.Change,
                 resource: "credentials",
@@ -111,7 +111,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
 
             var request = await ctx.ReadJsonAsync<RevokeCredentialRequest>(ctx.RequestAborted);
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.Revoke,
                 resource: "credentials",
@@ -129,7 +129,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
             if (!CredentialTypeParser.TryParse(type, out var credentialType))
                 return Results.BadRequest($"Unsupported credential type: {type}");
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.Activate,
                 resource: "credentials",
@@ -147,7 +147,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
             if (!CredentialTypeParser.TryParse(type, out var credentialType))
                 return Results.BadRequest($"Unsupported credential type: {type}");
 
-            var accessContext = _accessContextFactory.Create(
+            var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
                 action: UAuthActions.Credentials.Delete,
                 resource: "credentials",

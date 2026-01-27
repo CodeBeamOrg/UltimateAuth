@@ -1,16 +1,17 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit
 {
-    internal sealed class FakeUAuthClient : IUAuthClient
+    internal sealed class FakeFlowClient : IFlowClient
     {
         private readonly Queue<RefreshOutcome> _outcomes;
 
-        public FakeUAuthClient(params RefreshOutcome[] outcomes)
+        public FakeFlowClient(params RefreshOutcome[] outcomes)
         {
             _outcomes = new Queue<RefreshOutcome>(outcomes);
         }
