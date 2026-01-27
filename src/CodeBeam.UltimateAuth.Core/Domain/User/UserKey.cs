@@ -1,6 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Text.Json.Serialization;
+
+namespace CodeBeam.UltimateAuth.Core.Domain
 {
-    public readonly record struct UserKey
+    [JsonConverter(typeof(UserKeyJsonConverter))]
+    public readonly record struct UserKey : IParsable<UserKey>
     {
         public string Value { get; }
 
@@ -30,6 +34,32 @@
         /// Generates a new GUID-based UserKey.
         /// </summary>
         public static UserKey New() => FromGuid(Guid.NewGuid());
+
+        public static bool TryParse(string? s, IFormatProvider? provider, out UserKey result)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                result = default;
+                return false;
+            }
+
+            if (Guid.TryParse(s, out var guid))
+            {
+                result = FromGuid(guid);
+                return true;
+            }
+
+            result = FromString(s);
+            return true;
+        }
+
+        public static UserKey Parse(string s, IFormatProvider? provider)
+        {
+            if (!TryParse(s, provider, out var result))
+                throw new FormatException($"Invalid UserKey value: '{s}'");
+
+            return result;
+        }
 
         public override string ToString() => Value;
 

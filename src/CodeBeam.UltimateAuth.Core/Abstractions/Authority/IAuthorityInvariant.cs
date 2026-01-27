@@ -4,6 +4,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
 {
     public interface IAuthorityInvariant
     {
-        AuthorizationResult Decide(AuthContext context);
+        AccessDecisionResult Decide(AuthContext context);
     }
 }

@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
     public sealed class UserContext<TUserId>
     {
         public TUserId? UserId { get; init; }
-        public IUser<TUserId>? User { get; init; }
+        public IAuthSubject<TUserId>? User { get; init; }
 
         public bool IsAuthenticated => UserId is not null;
 

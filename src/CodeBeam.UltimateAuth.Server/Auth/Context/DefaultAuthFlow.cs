@@ -9,10 +9,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         private readonly IAuthFlowContextFactory _factory;
         private readonly DefaultAuthFlowContextAccessor _accessor;
 
-        public DefaultAuthFlow(
-            IHttpContextAccessor http,
-            IAuthFlowContextFactory factory,
-            IAuthFlowContextAccessor accessor)
+        public DefaultAuthFlow(IHttpContextAccessor http, IAuthFlowContextFactory factory, IAuthFlowContextAccessor accessor)
         {
             _http = http;
             _factory = factory;

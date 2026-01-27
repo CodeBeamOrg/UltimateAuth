@@ -7,33 +7,33 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
     {
         public bool AppliesTo(AuthContext context) => true; // Applies to all contexts
 
-        public AuthorizationResult Decide(AuthContext context)
+        public AccessDecisionResult Decide(AuthContext context)
         {
             return context.Mode switch
             {
                 UAuthMode.PureOpaque => DecideForPureOpaque(context),
                 UAuthMode.PureJwt => DecideForPureJwt(context),
-                UAuthMode.Hybrid => AuthorizationResult.Allow(),
-                UAuthMode.SemiHybrid => AuthorizationResult.Allow(),
+                UAuthMode.Hybrid => AccessDecisionResult.Allow(),
+                UAuthMode.SemiHybrid => AccessDecisionResult.Allow(),
 
-                _ => AuthorizationResult.Deny("Unsupported authentication mode.")
+                _ => AccessDecisionResult.Deny("Unsupported authentication mode.")
             };
         }
 
-        private static AuthorizationResult DecideForPureOpaque(AuthContext context)
+        private static AccessDecisionResult DecideForPureOpaque(AuthContext context)
         {
             if (context.Operation == AuthOperation.Refresh)
-                return AuthorizationResult.Deny("Refresh operation is not supported in PureOpaque mode.");
+                return AccessDecisionResult.Deny("Refresh operation is not supported in PureOpaque mode.");
 
-            return AuthorizationResult.Allow();
+            return AccessDecisionResult.Allow();
         }
 
-        private static AuthorizationResult DecideForPureJwt(AuthContext context)
+        private static AccessDecisionResult DecideForPureJwt(AuthContext context)
         {
             if (context.Operation == AuthOperation.Access)
-                return AuthorizationResult.Deny("Session-based access is not supported in PureJwt mode.");
+                return AccessDecisionResult.Deny("Session-based access is not supported in PureJwt mode.");
 
-            return AuthorizationResult.Allow();
+            return AccessDecisionResult.Allow();
         }
     }
 }

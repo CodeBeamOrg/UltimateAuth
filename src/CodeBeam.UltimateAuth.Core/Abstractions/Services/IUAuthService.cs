@@ -5,11 +5,11 @@
     /// Provides access to authentication flows,
     /// session lifecycle and user operations.
     /// </summary>
-    public interface IUAuthService<TUserId>
-    {
-        //IUAuthFlowService<TUserId> Flow { get; }
-        IUAuthSessionManager Sessions { get; }
-        //IUAuthTokenService<TUserId> Tokens { get; }
-        IUAuthUserService<TUserId> Users { get; }
-    }
+    //public interface IUAuthService<TUserId>
+    //{
+    //    //IUAuthFlowService<TUserId> Flow { get; }
+    //    IUAuthSessionManager Sessions { get; }
+    //    //IUAuthTokenService<TUserId> Tokens { get; }
+    //    IUAuthUserService<TUserId> Users { get; }
+    //}
 }

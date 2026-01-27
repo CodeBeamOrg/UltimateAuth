@@ -5,24 +5,60 @@ namespace CodeBeam.UltimateAuth.Core.Domain
 {
     public sealed class ClaimsSnapshot
     {
-        public IReadOnlyDictionary<string, string> Claims { get; }
+        private readonly IReadOnlyDictionary<string, IReadOnlyCollection<string>> _claims;
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Claims => _claims;
 
         [JsonConstructor]
-        public ClaimsSnapshot(IReadOnlyDictionary<string, string> claims)
+        public ClaimsSnapshot(IReadOnlyDictionary<string, IReadOnlyCollection<string>> claims)
         {
-            Claims = new Dictionary<string, string>(claims);
+            _claims = claims;
         }
 
-        public IReadOnlyDictionary<string, string> AsDictionary() => Claims;
+        public static ClaimsSnapshot Empty { get; } = new(new Dictionary<string, IReadOnlyCollection<string>>());
 
-        public bool TryGet(string type, out string value) => Claims.TryGetValue(type, out value);
+        public string? Get(string type) => _claims.TryGetValue(type, out var values) ? values.FirstOrDefault() : null;
+        public bool TryGet(string type, out string value)
+        {
+            value = null!;
 
-        public string? Get(string type)
-            => Claims.TryGetValue(type, out var value)
-                ? value
-                : null;
+            if (!Claims.TryGetValue(type, out var values))
+                return false;
 
-        public static ClaimsSnapshot Empty { get; } = new ClaimsSnapshot(new Dictionary<string, string>());
+            var first = values.FirstOrDefault();
+            if (first is null)
+                return false;
+
+            value = first;
+            return true;
+        }
+        public IReadOnlyCollection<string> GetAll(string type) => _claims.TryGetValue(type, out var values) ? values : Array.Empty<string>();
+
+        public bool Has(string type) => _claims.ContainsKey(type);
+        public bool HasValue(string type, string value) => _claims.TryGetValue(type, out var values) && values.Contains(value);
+
+        public IReadOnlyCollection<string> Roles => GetAll(ClaimTypes.Role);
+        public IReadOnlyCollection<string> Permissions => GetAll("uauth:permission");
+
+        public bool IsInRole(string role) => HasValue(ClaimTypes.Role, role);
+        public bool HasPermission(string permission) => HasValue("uauth:permission", permission);
+
+        /// <summary>
+        /// Flattens claims by taking the first value of each claim.
+        /// Useful for logging, diagnostics, or legacy consumers.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> AsDictionary()
+        {
+            var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var (type, values) in Claims)
+            {
+                var first = values.FirstOrDefault();
+                if (first is not null)
+                    dict[type] = first;
+            }
+
+            return dict;
+        }
 
         public override bool Equals(object? obj)
         {
@@ -32,12 +68,15 @@ namespace CodeBeam.UltimateAuth.Core.Domain
             if (Claims.Count != other.Claims.Count)
                 return false;
 
-            foreach (var kv in Claims)
+            foreach (var (type, values) in Claims)
             {
-                if (!other.Claims.TryGetValue(kv.Key, out var v))
+                if (!other.Claims.TryGetValue(type, out var otherValues))
                     return false;
 
-                if (!string.Equals(kv.Value, v, StringComparison.Ordinal))
+                if (values.Count != otherValues.Count)
+                    return false;
+
+                if (!values.All(v => otherValues.Contains(v)))
                     return false;
             }
 
@@ -49,22 +88,37 @@ namespace CodeBeam.UltimateAuth.Core.Domain
             unchecked
             {
                 int hash = 17;
-                foreach (var kv in Claims.OrderBy(x => x.Key))
+
+                foreach (var (type, values) in Claims.OrderBy(x => x.Key))
                 {
-                    hash = hash * 23 + kv.Key.GetHashCode();
-                    hash = hash * 23 + kv.Value.GetHashCode();
+                    hash = hash * 23 + type.GetHashCode();
+
+                    foreach (var value in values.OrderBy(v => v))
+                    {
+                        hash = hash * 23 + value.GetHashCode();
+                    }
                 }
+
                 return hash;
             }
         }
 
         public static ClaimsSnapshot From(params (string Type, string Value)[] claims)
         {
-            var dict = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (type, value) in claims)
-                dict[type] = value;
+            var dict = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
-            return new ClaimsSnapshot(dict);
+            foreach (var (type, value) in claims)
+            {
+                if (!dict.TryGetValue(type, out var set))
+                {
+                    set = new HashSet<string>(StringComparer.Ordinal);
+                    dict[type] = set;
+                }
+
+                set.Add(value);
+            }
+
+            return new ClaimsSnapshot(dict.ToDictionary(kv => kv.Key, kv => (IReadOnlyCollection<string>)kv.Value.ToArray(), StringComparer.Ordinal));
         }
 
         public ClaimsSnapshot With(params (string Type, string Value)[] claims)
@@ -72,14 +126,20 @@ namespace CodeBeam.UltimateAuth.Core.Domain
             if (claims.Length == 0)
                 return this;
 
-            var dict = new Dictionary<string, string>(Claims, StringComparer.Ordinal);
+            var dict = Claims.ToDictionary(kv => kv.Key, kv => new HashSet<string>(kv.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
             foreach (var (type, value) in claims)
             {
-                dict[type] = value;
+                if (!dict.TryGetValue(type, out var set))
+                {
+                    set = new HashSet<string>(StringComparer.Ordinal);
+                    dict[type] = set;
+                }
+
+                set.Add(value);
             }
 
-            return new ClaimsSnapshot(dict);
+            return new ClaimsSnapshot(dict.ToDictionary(kv => kv.Key, kv => (IReadOnlyCollection<string>)kv.Value.ToArray(), StringComparer.Ordinal));
         }
 
         public ClaimsSnapshot Merge(ClaimsSnapshot other)
@@ -90,44 +150,24 @@ namespace CodeBeam.UltimateAuth.Core.Domain
             if (Claims.Count == 0)
                 return other;
 
-            var dict = new Dictionary<string, string>(Claims, StringComparer.Ordinal);
+            var dict = Claims.ToDictionary(kv => kv.Key, kv => new HashSet<string>(kv.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
-            foreach (var kv in other.Claims)
+            foreach (var (type, values) in other.Claims)
             {
-                dict[kv.Key] = kv.Value;
+                if (!dict.TryGetValue(type, out var set))
+                {
+                    set = new HashSet<string>(StringComparer.Ordinal);
+                    dict[type] = set;
+                }
+
+                foreach (var value in values)
+                    set.Add(value);
             }
 
-            return new ClaimsSnapshot(dict);
+            return new ClaimsSnapshot(dict.ToDictionary(kv => kv.Key, kv => (IReadOnlyCollection<string>)kv.Value.ToArray(), StringComparer.Ordinal));
         }
 
-        public static ClaimsSnapshot FromClaimsPrincipal(ClaimsPrincipal principal)
-        {
-            if (principal is null)
-                return Empty;
-
-            if (principal.Identity?.IsAuthenticated != true)
-                return Empty;
-
-            var dict = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            foreach (var claim in principal.Claims)
-            {
-                dict[claim.Type] = claim.Value;
-            }
-
-            return new ClaimsSnapshot(dict);
-        }
-
-        public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
-        {
-            if (Claims.Count == 0)
-                return new ClaimsPrincipal(new ClaimsIdentity());
-
-            var claims = Claims.Select(kv => new Claim(kv.Key, kv.Value));
-            var identity = new ClaimsIdentity(claims, authenticationType);
-
-            return new ClaimsPrincipal(identity);
-        }
+        public static ClaimsSnapshotBuilder Create() => new ClaimsSnapshotBuilder();
 
     }
 }

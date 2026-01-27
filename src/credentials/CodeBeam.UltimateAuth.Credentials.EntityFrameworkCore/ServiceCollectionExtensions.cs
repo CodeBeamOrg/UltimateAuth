@@ -12,7 +12,7 @@ public static class ServiceCollectionExtensions
     {
         services.Configure(configure);
 
-        services.AddScoped<IUAuthUserStore<TUserId>, EfCoreUserStore<TUser, TUserId>>();
+        //services.AddScoped<IUAuthUserStore<TUserId>, EfCoreUserStore<TUser, TUserId>>();
 
         return services;
     }

@@ -108,6 +108,14 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public bool? EnableSessionEndpoints { get; set; } = true;
         public bool? EnableUserInfoEndpoints { get; set; } = true;
 
+        public bool EnableUserLifecycleEndpoints { get; set; } = true;
+        public bool EnableUserProfileEndpoints { get; set; } = true;
+        public bool EnableAdminChangeUserProfileEndpoints { get; set; } = false;
+        public bool EnableCredentialsEndpoints { get; set; } = true;
+        public bool EnableAuthorizationEndpoints { get; set; } = true;
+
+        public UserIdentifierOptions UserIdentifiers { get; set; } = new();
+
         /// <summary>
         /// If true, server will add anti-forgery headers
         /// and require proper request metadata.
@@ -137,7 +145,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public Action<IServiceCollection>? ConfigureServices { get; set; }
 
 
-        internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; } = new();
+        internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
 
         internal UAuthServerOptions Clone()
@@ -159,16 +167,23 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 AuthResponse = AuthResponse.Clone(),
                 Hub = Hub.Clone(),
                 SessionResolution = SessionResolution.Clone(),
+                UserIdentifiers = UserIdentifiers.Clone(),
 
                 EnableLoginEndpoints = EnableLoginEndpoints,
                 EnablePkceEndpoints = EnablePkceEndpoints,
                 EnableTokenEndpoints = EnableTokenEndpoints,
                 EnableSessionEndpoints = EnableSessionEndpoints,
                 EnableUserInfoEndpoints = EnableUserInfoEndpoints,
+                EnableUserLifecycleEndpoints = EnableUserLifecycleEndpoints,
+                EnableUserProfileEndpoints = EnableUserProfileEndpoints,
+                EnableAdminChangeUserProfileEndpoints = EnableAdminChangeUserProfileEndpoints,
+                EnableCredentialsEndpoints = EnableCredentialsEndpoints,
+                EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
 
                 EnableAntiCsrfProtection = EnableAntiCsrfProtection,
                 EnableLoginRateLimiting = EnableLoginRateLimiting,
 
+                ModeConfigurations = ModeConfigurations,
                 OnConfigureEndpoints = OnConfigureEndpoints,
                 ConfigureServices = ConfigureServices,
                 CustomCookieManagerType = CustomCookieManagerType

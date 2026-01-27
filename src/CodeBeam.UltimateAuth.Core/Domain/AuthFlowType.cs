@@ -20,6 +20,11 @@
         UserInfo,
         PermissionQuery,
 
+        UserManagement,
+        UserProfile,
+        CredentialManagement,
+        AuthorizationManagement,
+
         ApiAccess
     }
 }

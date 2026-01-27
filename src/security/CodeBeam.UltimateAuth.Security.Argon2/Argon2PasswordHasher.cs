@@ -30,9 +30,9 @@ namespace CodeBeam.UltimateAuth.Security.Argon2
             return $"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
         }
 
-        public bool Verify(string password, string hash)
+        public bool Verify(string hash, string secret)
         {
-            if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(hash))
+            if (string.IsNullOrWhiteSpace(secret) || string.IsNullOrWhiteSpace(hash))
                 return false;
 
             var parts = hash.Split('.');
@@ -42,7 +42,7 @@ namespace CodeBeam.UltimateAuth.Security.Argon2
             var salt = Convert.FromBase64String(parts[0]);
             var expectedHash = Convert.FromBase64String(parts[1]);
 
-            var argon2 = CreateArgon2(password, salt);
+            var argon2 = CreateArgon2(secret, salt);
             var actualHash = argon2.GetBytes(expectedHash.Length);
 
             return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);

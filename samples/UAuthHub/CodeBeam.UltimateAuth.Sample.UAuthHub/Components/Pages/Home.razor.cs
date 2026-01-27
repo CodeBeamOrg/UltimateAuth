@@ -78,19 +78,19 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages
 
             var request = new PkceLoginRequest
             {
-                Identifier = "Admin",
-                Secret = "Password!",
+                Identifier = "admin",
+                Secret = "admin",
                 AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
                 CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
                 ReturnUrl = _state?.ReturnUrl ?? string.Empty
             };
-            await UAuthClient.CompletePkceLoginAsync(request);
+            await UAuthClient.Flows.CompletePkceLoginAsync(request);
         }
 
         private async Task StartNewPkceAsync()
         {
             var returnUrl = await ResolveReturnUrlAsync();
-            await UAuthClient.BeginPkceAsync(returnUrl);
+            await UAuthClient.Flows.BeginPkceAsync(returnUrl);
         }
 
         private async Task<string> ResolveReturnUrlAsync()

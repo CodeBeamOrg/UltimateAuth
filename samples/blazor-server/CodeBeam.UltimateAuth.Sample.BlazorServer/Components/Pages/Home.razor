@@ -18,7 +18,7 @@
 @inject IClock Clock
 @inject IUAuthCookieManager CookieManager
 @inject IHttpContextAccessor HttpContextAccessor
-@inject IUAuthClient UAuthClient
+@inject IUAuthClient UAuth
 @inject NavigationManager Nav
 @inject IUAuthProductInfoProvider ProductInfo
 @inject AuthenticationStateProvider AuthStateProvider
@@ -45,6 +45,8 @@
 
         <MudStack Class="mud-width-full">
             <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="HandleGetMe">GetMe</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangeUserInactive">Change User Inactive</MudButton>
         </MudStack>
 
         <MudStack Spacing="0">
@@ -63,6 +65,12 @@
                 <NotAuthorized>
                     <MudText>Not Authorized context is shown.</MudText>
                 </NotAuthorized>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <MudText>This is Admin content.</MudText>
+                </Authorized>
             </AuthorizeView>
         </MudStack>
 

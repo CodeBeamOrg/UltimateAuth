@@ -6,22 +6,22 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
 {
     public sealed class ExpiredSessionInvariant : IAuthorityInvariant
     {
-        public AuthorizationResult Decide(AuthContext context)
+        public AccessDecisionResult Decide(AuthContext context)
         {
             if (context.Operation == AuthOperation.Login)
-                return AuthorizationResult.Allow();
+                return AccessDecisionResult.Allow();
 
             var session = context.Session;
 
             if (session is null)
-                return AuthorizationResult.Allow();
+                return AccessDecisionResult.Allow();
 
             if (session.State == SessionState.Expired)
             {
-                return AuthorizationResult.Deny("Session has expired.");
+                return AccessDecisionResult.Deny("Session has expired.");
             }
 
-            return AuthorizationResult.Allow();
+            return AccessDecisionResult.Allow();
         }
     }
 }

@@ -46,22 +46,22 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
             var device = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
-                Identifier = "Admin",
-                Secret = "Password!",
+                Identifier = "admin",
+                Secret = "admin",
                 Device = DeviceContext.FromDeviceId(device),
             };
-            await UAuthClient.LoginAsync(request);
+            await UAuthClient.Flows.LoginAsync(request);
         }
 
         private async Task StartPkceLogin()
         {
-            await UAuthClient.BeginPkceAsync();
+            await UAuthClient.Flows.BeginPkceAsync();
             //await UAuthClient.NavigateToHubLoginAsync(Nav.Uri);
         }
 
         private async Task ValidateAsync()
         {
-            var result = await UAuthClient.ValidateAsync();
+            var result = await UAuthClient.Flows.ValidateAsync();
 
             Snackbar.Add(
                 result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
@@ -70,13 +70,13 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
 
         private async Task LogoutAsync()
         {
-            await UAuthClient.LogoutAsync();
+            await UAuthClient.Flows.LogoutAsync();
             Snackbar.Add("Logged out", Severity.Success);
         }
 
         private async Task RefreshAsync()
         {
-            await UAuthClient.RefreshAsync();
+            await UAuthClient.Flows.RefreshAsync();
         }
 
         private async Task RefreshAuthState()

@@ -13,17 +13,9 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator
             UserKey = userKey;
         }
 
-        public async Task<Unit> ExecuteAsync(
-            AuthContext context,
-            ISessionIssuer issuer,
-            CancellationToken ct)
+        public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
         {
-            await issuer.RevokeRootAsync(
-                context.TenantId,
-                UserKey,
-                context.At,
-                ct);
-
+            await issuer.RevokeRootAsync(context.TenantId, UserKey, context.At, ct);
             return Unit.Value;
         }
     }

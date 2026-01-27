@@ -15,15 +15,15 @@ namespace CodeBeam.UltimateAuth.Client.Options
         /// <summary>
         /// Base URL of UAuthHub (e.g. https://localhost:6110)
         /// </summary>
-        public string Authority { get; set; } = string.Empty;
+        public string Authority { get; set; } = "/auth";
 
-        public string Login { get; set; } = "/auth/login";
-        public string Logout { get; set; } = "/auth/logout";
-        public string Refresh { get; set; } = "/auth/refresh";
-        public string Reauth { get; set; } = "/auth/reauth";
-        public string Validate { get; set; } = "/auth/validate";
-        public string PkceAuthorize { get; set; } = "/auth/pkce/authorize";
-        public string PkceComplete { get; set; } = "/auth/pkce/complete";
+        public string Login { get; set; } = "/login";
+        public string Logout { get; set; } = "/logout";
+        public string Refresh { get; set; } = "/refresh";
+        public string Reauth { get; set; } = "/reauth";
+        public string Validate { get; set; } = "/validate";
+        public string PkceAuthorize { get; set; } = "/pkce/authorize";
+        public string PkceComplete { get; set; } = "/pkce/complete";
         public string HubLoginPath { get; set; } = "/uauthhub/login";
     }
 

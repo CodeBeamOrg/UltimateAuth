@@ -10,16 +10,16 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
     /// </summary>
     public interface IUAuthUserStore<TUserId>
     {
-        Task<IUser<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken token = default);
+        Task<IAuthSubject<TUserId>?> FindByIdAsync(string? tenantId, TUserId userId, CancellationToken token = default);
 
-        Task<UserRecord<TUserId>?> FindByUsernameAsync(string? tenantId, string username, CancellationToken ct = default);
+        Task<AuthUserRecord<TUserId>?> FindByUsernameAsync(string? tenantId, string username, CancellationToken ct = default);
 
         /// <summary>
         /// Retrieves a user by a login credential such as username or email.
         /// Returns <c>null</c> if no matching user exists.
         /// </summary>
         /// <returns>The user instance or <c>null</c> if not found.</returns>
-        Task<IUser<TUserId>?> FindByLoginAsync(string? tenantId, string login, CancellationToken token = default);
+        Task<IAuthSubject<TUserId>?> FindByLoginAsync(string? tenantId, string login, CancellationToken token = default);
 
         /// <summary>
         /// Returns the password hash for the specified user, if the user participates

@@ -33,11 +33,14 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         {
             return id switch
             {
-                int v => v.ToString(CultureInfo.InvariantCulture),
-                long v => v.ToString(CultureInfo.InvariantCulture),
+                UserKey v => v.Value,
                 Guid v => v.ToString("N"),
                 string v => v,
-                _ => JsonSerializer.Serialize(id)
+                int v => v.ToString(CultureInfo.InvariantCulture),
+                long v => v.ToString(CultureInfo.InvariantCulture),
+
+                _ => throw new InvalidOperationException($"Unsupported UserId type: {typeof(TUserId).FullName}. " +
+                    "Provide a custom IUserIdConverter<TUserId>.")
             };
         }
 
@@ -62,11 +65,11 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         {
             return typeof(TUserId) switch
             {
-                Type t when t == typeof(int) => (TUserId)(object)int.Parse(value, CultureInfo.InvariantCulture),
-                Type t when t == typeof(long) => (TUserId)(object)long.Parse(value, CultureInfo.InvariantCulture),
+                Type t when t == typeof(UserKey) => (TUserId)(object)UserKey.FromString(value),
                 Type t when t == typeof(Guid) => (TUserId)(object)Guid.Parse(value),
                 Type t when t == typeof(string) => (TUserId)(object)value,
-                Type t when t == typeof(UserKey) => (TUserId)(object)UserKey.FromString(value),
+                Type t when t == typeof(int) => (TUserId)(object)int.Parse(value, CultureInfo.InvariantCulture),
+                Type t when t == typeof(long) => (TUserId)(object)long.Parse(value, CultureInfo.InvariantCulture),
 
                 _ => JsonSerializer.Deserialize<TUserId>(value)
                      ?? throw new UAuthInternalException("Cannot deserialize TUserId")
@@ -92,8 +95,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure
         /// </summary>
         /// <param name="binary">Binary data representing the user id.</param>
         /// <returns>The reconstructed user id.</returns>
-        public TUserId FromBytes(byte[] binary) =>
-            FromString(Encoding.UTF8.GetString(binary));
+        public TUserId FromBytes(byte[] binary) => FromString(Encoding.UTF8.GetString(binary));
 
         public bool TryFromBytes(byte[] binary, out TUserId? id)
         {

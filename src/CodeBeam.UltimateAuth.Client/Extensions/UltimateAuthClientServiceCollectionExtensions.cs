@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Runtime;
+using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Client.Utilities;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -96,8 +97,10 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
                 o.Refresh.Interval ??= TimeSpan.FromMinutes(5);
             });
 
-            services.AddScoped<IBrowserPostClient, BrowserPostClient>();
+            services.AddScoped<IUAuthRequestClient, UAuthRequestClient>();
             services.AddScoped<IUAuthClient, UAuthClient>();
+            services.AddScoped<IFlowClient, DefaultFlowClient>();
+            services.TryAddScoped<IUserClient, DefaultUserClient>();
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {

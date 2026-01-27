@@ -1,16 +1,24 @@
+using CodeBeam.UltimateAuth.Authorization.InMemory;
+using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Client.Extensions;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Runtime;
-using CodeBeam.UltimateAuth.Credentials.InMemory;
+using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Authentication;
+using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Users.Reference;
+using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
@@ -46,7 +54,12 @@ builder.Services.AddUltimateAuthServer(o => {
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
-    .AddInMemoryCredentials()
+    .AddUltimateAuthUsersInMemory()
+    .AddUltimateAuthUsersReference()
+    .AddUltimateAuthCredentialsInMemory()
+    .AddUltimateAuthCredentialsReference()
+    .AddUltimateAuthAuthorizationInMemory()
+    .AddUltimateAuthAuthorizationReference()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
     .AddUltimateAuthArgon2();
@@ -72,6 +85,19 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
+    scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
+    scope.ServiceProvider.GetRequiredService<IUserStore<UserKey>>();
+
+    var seeder = scope.ServiceProvider.GetService<IAuthorizationSeeder>();
+    //if (seeder is not null)
+    //    await seeder.SeedAsync();
+
+    
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
