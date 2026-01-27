@@ -11,11 +11,11 @@ namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 internal sealed class InMemoryUserProfileStore : IUserProfileStore
 {
-    private readonly ConcurrentDictionary<UserKey, ReferenceUserProfile> _profiles = new();
+    private readonly ConcurrentDictionary<UserKey, UserProfile> _profiles = new();
     private readonly IInMemoryUserIdProvider<UserKey> _idProvider;
     private readonly IClock _clock;
 
-    internal IEnumerable<ReferenceUserProfile> AllProfiles => _profiles.Values;
+    internal IEnumerable<UserProfile> AllProfiles => _profiles.Values;
 
     public InMemoryUserProfileStore(IInMemoryUserIdProvider<UserKey> idProvider, IClock clock)
     {
@@ -34,7 +34,7 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
     {
         var now = _clock.UtcNow;
 
-        _profiles[userKey] = new ReferenceUserProfile
+        _profiles[userKey] = new UserProfile
         {
             UserKey = userKey,
             DisplayName = displayName,
@@ -44,11 +44,11 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
         };
     }
 
-    public Task CreateAsync(string? tenantId, ReferenceUserProfile profile, CancellationToken ct = default)
+    public Task CreateAsync(string? tenantId, UserProfile profile, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var mem = new ReferenceUserProfile
+        var mem = new UserProfile
         {
             UserKey = profile.UserKey,
             FirstName = profile.FirstName,
@@ -68,12 +68,12 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.CompletedTask;
     }
 
-    public Task<ReferenceUserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task<UserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_profiles.TryGetValue(userKey, out var profile) || profile.IsDeleted)
-            return Task.FromResult<ReferenceUserProfile?>(null);
+            return Task.FromResult<UserProfile?>(null);
 
         return Task.FromResult(Map(profile));
     }
@@ -114,7 +114,7 @@ internal sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.CompletedTask;
     }
 
-    private static ReferenceUserProfile Map(ReferenceUserProfile profile)
+    private static UserProfile Map(UserProfile profile)
         => new()
         {
             UserKey = profile.UserKey,

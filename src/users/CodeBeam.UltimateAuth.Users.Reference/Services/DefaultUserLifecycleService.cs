@@ -67,7 +67,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
                     if (existing is not null)
                         throw new InvalidOperationException("user_already_exists");
 
-                    var profile = new ReferenceUserProfile
+                    var profile = new UserProfile
                     {
                         UserKey = userKey,
                         Email = request.Identifier,

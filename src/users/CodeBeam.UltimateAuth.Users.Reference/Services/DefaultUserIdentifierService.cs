@@ -57,7 +57,7 @@ internal sealed class DefaultUserIdentifierService : IUserIdentifierService
 
         var policies = Array.Empty<IAccessPolicy>();
 
-        var record = new UserIdentifierRecord
+        var record = new UserIdentifier
         {
             Type = request.Type,
             Value = request.NewValue,

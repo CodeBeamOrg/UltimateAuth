@@ -8,8 +8,8 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 public interface IUserProfileStore
 {
     // TODO: Do CreateAsync internal with initializer service
-    Task CreateAsync(string? tenantId, ReferenceUserProfile profile, CancellationToken ct = default);
-    Task<ReferenceUserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
+    Task CreateAsync(string? tenantId, UserProfile profile, CancellationToken ct = default);
+    Task<UserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
     Task UpdateAsync(string? tenantId, UserKey userKey, UpdateProfileRequest request, CancellationToken ct = default);
     Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct = default);
 }

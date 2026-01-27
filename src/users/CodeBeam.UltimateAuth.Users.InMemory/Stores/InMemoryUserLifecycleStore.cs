@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
 {
-    private readonly ConcurrentDictionary<UserIdentity, ReferenceUserProfile> _users = new();
+    private readonly ConcurrentDictionary<UserIdentity, UserProfile> _users = new();
     private readonly IInMemoryUserIdProvider<UserKey> _idProvider;
     private readonly IClock _clock;
 
@@ -32,7 +32,7 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
     {
         var now = _clock.UtcNow;
 
-        var profile = new ReferenceUserProfile
+        var profile = new UserProfile
         {
             UserKey = userKey,
             Email = identifier,
@@ -51,7 +51,7 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
             profile);
     }
 
-    public Task CreateAsync(string? tenantId, ReferenceUserProfile user, CancellationToken ct = default)
+    public Task CreateAsync(string? tenantId, UserProfile user, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -123,7 +123,7 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.CompletedTask;
     }
 
-    private static ReferenceUserProfile InitializeUser(ReferenceUserProfile user)
+    private static UserProfile InitializeUser(UserProfile user)
     {
         return user with
         {

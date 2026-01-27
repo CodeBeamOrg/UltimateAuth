@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal static class UserProfileMapper
 {
-    public static UserProfileDto ToDto(ReferenceUserProfile profile)
+    public static UserProfileDto ToDto(UserProfile profile)
         => new()
         {
             UserKey = profile.UserKey.ToString(),

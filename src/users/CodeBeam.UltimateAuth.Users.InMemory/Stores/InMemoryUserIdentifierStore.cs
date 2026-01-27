@@ -8,22 +8,22 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
 {
     internal sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
     {
-        private readonly ConcurrentDictionary<(string? TenantId, UserKey UserKey), List<UserIdentifierRecord>> _byUser = new();
+        private readonly ConcurrentDictionary<(string? TenantId, UserKey UserKey), List<UserIdentifier>> _byUser = new();
         private readonly ConcurrentDictionary<(string? TenantId, UserIdentifierType Type, string Value), UserKey> _lookup = new();
 
-        public Task<IReadOnlyCollection<UserIdentifierRecord>> GetAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        public Task<IReadOnlyCollection<UserIdentifier>> GetAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
             var key = (tenantId, userKey);
 
             if (_byUser.TryGetValue(key, out var list))
-                return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(list.ToArray());
+                return Task.FromResult<IReadOnlyCollection<UserIdentifier>>(list.ToArray());
 
-            return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(Array.Empty<UserIdentifierRecord>());
+            return Task.FromResult<IReadOnlyCollection<UserIdentifier>>(Array.Empty<UserIdentifier>());
         }
 
-        public Task<IReadOnlyCollection<UserIdentifierRecord>> GetByTypeAsync(string? tenantId, UserKey userKey, UserIdentifierType type, CancellationToken ct = default)
+        public Task<IReadOnlyCollection<UserIdentifier>> GetByTypeAsync(string? tenantId, UserKey userKey, UserIdentifierType type, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -32,20 +32,20 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
             if (_byUser.TryGetValue(key, out var list))
             {
                 var result = list.Where(x => x.Type == type).ToArray();
-                return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(result);
+                return Task.FromResult<IReadOnlyCollection<UserIdentifier>>(result);
             }
 
-            return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(Array.Empty<UserIdentifierRecord>());
+            return Task.FromResult<IReadOnlyCollection<UserIdentifier>>(Array.Empty<UserIdentifier>());
         }
 
-        public Task SetAsync(string? tenantId, UserKey userKey, UserIdentifierRecord record, CancellationToken ct = default)
+        public Task SetAsync(string? tenantId, UserKey userKey, UserIdentifier record, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
             var userKeyTuple = (tenantId, userKey);
             var lookupKey = (tenantId, record.Type, record.Value);
 
-            var list = _byUser.GetOrAdd(userKeyTuple, _ => new List<UserIdentifierRecord>());
+            var list = _byUser.GetOrAdd(userKeyTuple, _ => new List<UserIdentifier>());
 
             // replace if same type+value exists
             var existingIndex = list.FindIndex(x => x.Type == record.Type && StringComparer.OrdinalIgnoreCase.Equals(x.Value, record.Value));
