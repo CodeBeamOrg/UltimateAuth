@@ -90,7 +90,7 @@ using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
     scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
-    scope.ServiceProvider.GetRequiredService<IUserStore<UserKey>>();
+    scope.ServiceProvider.GetRequiredService<IUserIdentifierStore>();
 
     var seeder = scope.ServiceProvider.GetService<IAuthorizationSeeder>();
     //if (seeder is not null)

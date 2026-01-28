@@ -10,10 +10,10 @@ namespace CodeBeam.UltimateAuth.Client.Services
         Task<UAuthResult<UserStatusChangeResult>> ChangeStatusAsync(ChangeUserStatusRequest request);
         Task<UAuthResult<UserDeleteResult>> DeleteAsync(DeleteUserRequest request);
 
-        Task<UAuthResult<UserProfileDto>> GetMeAsync();
+        Task<UAuthResult<UserViewDto>> GetMeAsync();
         Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request);
 
-        Task<UAuthResult<UserProfileDto>> GetProfileAsync(UserKey userKey);
+        Task<UAuthResult<UserViewDto>> GetProfileAsync(UserKey userKey);
         Task<UAuthResult> UpdateProfileAsync(UserKey userKey, UpdateProfileRequest request);
     }
 }

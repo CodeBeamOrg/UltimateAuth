@@ -86,6 +86,7 @@ namespace CodeBeam.UltimateAuth.Core.Extensions
 
             services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
             services.TryAddSingleton<IUAuthProductInfoProvider, UAuthProductInfoProvider>();
+            services.TryAddSingleton<SeedRunner>();
 
             return services;
         }

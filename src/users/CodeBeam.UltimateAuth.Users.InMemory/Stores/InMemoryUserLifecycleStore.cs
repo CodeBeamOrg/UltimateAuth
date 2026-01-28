@@ -1,150 +1,110 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using CodeBeam.UltimateAuth.Users.Reference.Domain;
-using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
 {
-    private readonly ConcurrentDictionary<UserIdentity, UserProfile> _users = new();
-    private readonly IInMemoryUserIdProvider<UserKey> _idProvider;
-    private readonly IClock _clock;
+    private readonly Dictionary<(string?, UserKey), UserLifecycle> _store = new();
 
-    public InMemoryUserLifecycleStore(IInMemoryUserIdProvider<UserKey> idProvider, IClock clock)
+    public Task<bool> ExistsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
-        _idProvider = idProvider;
-        _clock = clock;
-        SeedDefault();
+        return Task.FromResult(_store.TryGetValue((tenantId, userKey), out var entity) && !entity.IsDeleted);
     }
 
-    private void SeedDefault()
+    public Task<UserLifecycle?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
-        CreateSeedUser(_idProvider.GetAdminUserId(), "admin");
-        CreateSeedUser(_idProvider.GetUserUserId(), "user");
+        if (!_store.TryGetValue((tenantId, userKey), out var entity))
+            return Task.FromResult<UserLifecycle?>(null);
+
+        if (entity.IsDeleted)
+            return Task.FromResult<UserLifecycle?>(null);
+
+        return Task.FromResult<UserLifecycle?>(entity);
     }
 
-    private void CreateSeedUser(UserKey userKey, string identifier)
+    public Task<PagedResult<UserLifecycle>> QueryAsync(string? tenantId, UserLifecycleQuery query, CancellationToken ct = default)
     {
-        var now = _clock.UtcNow;
+        var baseQuery = _store.Values
+            .Where(x => x?.UserKey != null)
+            .Where(x => x.TenantId == tenantId);
 
-        var profile = new UserProfile
-        {
-            UserKey = userKey,
-            Email = identifier,
-            DisplayName = identifier == "admin"
-                ? "Administrator"
-                : "Standard User",
-            Status = UserStatus.Active,
-            IsDeleted = false,
-            CreatedAt = now,
-            UpdatedAt = now,
-            DeletedAt = null
-        };
+        if (!query.IncludeDeleted)
+            baseQuery = baseQuery.Where(x => !x.IsDeleted);
 
-        _users.TryAdd(
-            new UserIdentity(null, userKey),
-            profile);
+        if (query.Status != null)
+            baseQuery = baseQuery.Where(x => x.Status == query.Status);
+
+        var totalCount = baseQuery.Count();
+
+        var items = baseQuery
+            .OrderBy(x => x.CreatedAt)
+            .Skip(query.Skip)
+            .Take(query.Take)
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount));
     }
 
-    public Task CreateAsync(string? tenantId, UserProfile user, CancellationToken ct = default)
+    public Task CreateAsync(string? tenantId, UserLifecycle lifecycle, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var key = (tenantId, lifecycle.UserKey);
 
-        ArgumentNullException.ThrowIfNull(user);
+        if (_store.ContainsKey(key))
+            throw new InvalidOperationException("UserLifecycle already exists.");
 
-        var identity = new UserIdentity(tenantId, user.UserKey);
+        _store[key] = lifecycle;
+        return Task.CompletedTask;
+    }
 
-        if (!_users.TryAdd(identity, InitializeUser(user)))
-        {
-            throw new InvalidOperationException($"User '{user.UserKey}' already exists in tenant '{tenantId ?? "<default>"}'.");
-        }
+    public Task ChangeStatusAsync(string? tenantId, UserKey userKey, UserStatus newStatus, DateTimeOffset updatedAt, CancellationToken ct = default)
+    {
+        if (!_store.TryGetValue((tenantId, userKey), out var entity) || entity.IsDeleted)
+            throw new InvalidOperationException("UserLifecycle not found.");
+
+        entity.Status = newStatus;
+        entity.UpdatedAt = updatedAt;
 
         return Task.CompletedTask;
     }
 
-    public Task UpdateStatusAsync(string? tenantId, UserKey userKey, UserStatus status, CancellationToken ct = default)
+    public Task ChangeSecurityStampAsync(string? tenantId, UserKey userKey, Guid newSecurityStamp, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
-        var identity = new UserIdentity(tenantId, userKey);
+        if (!_store.TryGetValue((tenantId, userKey), out var entity) || entity.IsDeleted)
+            throw new InvalidOperationException("UserLifecycle not found.");
 
-        if (!_users.TryGetValue(identity, out var user))
-            throw new InvalidOperationException($"User '{userKey}' does not exist.");
-
-        if (user.IsDeleted)
-            throw new InvalidOperationException($"User '{userKey}' is deleted.");
-
-        if (user.Status == status)
+        if (entity.SecurityStamp == newSecurityStamp)
             return Task.CompletedTask;
 
-        if (!IsValidStatusTransition(user.Status, status))
-            throw new InvalidOperationException($"Invalid status transition from '{user.Status}' to '{status}'.");
-
-        user.Status = status;
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        entity.SecurityStamp = newSecurityStamp;
+        entity.UpdatedAt = updatedAt;
 
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset at, CancellationToken ct = default)
+    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var key = (tenantId, userKey);
 
-        var identity = new UserIdentity(tenantId, userKey);
+        if (!_store.TryGetValue(key, out var entity))
+            return Task.CompletedTask;
 
-        if (!_users.TryGetValue(identity, out var user))
+        if (mode == DeleteMode.Hard)
         {
+            _store.Remove(key);
             return Task.CompletedTask;
         }
 
-        switch (mode)
-        {
-            case DeleteMode.Soft:
-                if (user.IsDeleted)
-                    return Task.CompletedTask;
+        // Soft delete (idempotent)
+        if (entity.IsDeleted)
+            return Task.CompletedTask;
 
-                user.Status = UserStatus.Deleted;
-                user.IsDeleted = true;
-                user.DeletedAt = at;
-                user.UpdatedAt = at;
-                break;
-
-            case DeleteMode.Hard:
-                _users.TryRemove(identity, out _);
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown delete mode.");
-        }
+        entity.IsDeleted = true;
+        entity.DeletedAt = deletedAt;
 
         return Task.CompletedTask;
     }
-
-    private static UserProfile InitializeUser(UserProfile user)
-    {
-        return user with
-        {
-            Status = user.Status == default ? UserStatus.Active : user.Status,
-            CreatedAt = user.CreatedAt == default ? DateTimeOffset.UtcNow : user.CreatedAt,
-            UpdatedAt = DateTimeOffset.UtcNow,
-            IsDeleted = false,
-            DeletedAt = null
-        };
-    }
-
-    private static bool IsValidStatusTransition(UserStatus from, UserStatus to)
-    {
-        return from switch
-        {
-            UserStatus.Active => to is UserStatus.Suspended or UserStatus.Disabled,
-            UserStatus.Suspended => to is UserStatus.Active or UserStatus.Disabled,
-            UserStatus.Disabled => to is UserStatus.Active,
-            _ => false
-        };
-    }
-
-    private readonly record struct UserIdentity(string? TenantId, UserKey UserKey);
 }

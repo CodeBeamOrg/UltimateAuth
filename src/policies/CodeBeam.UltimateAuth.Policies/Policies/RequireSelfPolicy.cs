@@ -15,5 +15,5 @@ internal sealed class RequireSelfPolicy : IAccessPolicy
             : AccessDecision.Deny("not_self");
     }
 
-    public bool AppliesTo(AccessContext context) => true;
+    public bool AppliesTo(AccessContext context) => context.Action.EndsWith(".self");
 }

@@ -23,5 +23,5 @@ internal sealed class RequireSelfOrAdminPolicy : IAccessPolicy
         return AccessDecision.Deny("self_or_admin_required");
     }
 
-    public bool AppliesTo(AccessContext context) => true;
+    public bool AppliesTo(AccessContext context) => !context.Action.EndsWith(".self") && !context.Action.EndsWith(".admin");
 }

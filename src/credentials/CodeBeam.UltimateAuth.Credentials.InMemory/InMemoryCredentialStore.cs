@@ -22,7 +22,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         _byLogin = new ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>>(StringComparer.OrdinalIgnoreCase);
         _byUser = new ConcurrentDictionary<TUserId, List<InMemoryPasswordCredentialState<TUserId>>>();
 
-        SeedDefault();
+        //SeedDefault();
     }
 
     private void SeedDefault()

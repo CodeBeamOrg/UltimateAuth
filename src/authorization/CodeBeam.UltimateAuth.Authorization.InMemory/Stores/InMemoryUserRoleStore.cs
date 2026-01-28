@@ -8,15 +8,6 @@ namespace CodeBeam.UltimateAuth.Authorization.InMemory
     {
         private readonly ConcurrentDictionary<UserKey, HashSet<string>> _roles = new();
 
-        public InMemoryUserRoleStore(IInMemoryUserIdProvider<UserKey> ids)
-        {
-            var key = ids.GetAdminUserId();
-            _roles[key] = new HashSet<string>
-            {
-                "Admin"
-            };
-        }
-
         public Task<IReadOnlyCollection<string>> GetRolesAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();

@@ -2,15 +2,25 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
-namespace CodeBeam.UltimateAuth.Users.Reference
+namespace CodeBeam.UltimateAuth.Users.Reference;
+
+public interface IUserIdentifierStore
 {
-    public interface IUserIdentifierStore
-    {
-        Task<IReadOnlyCollection<UserIdentifier>> GetAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
-        Task<IReadOnlyCollection<UserIdentifier>> GetByTypeAsync(string? tenantId, UserKey userKey, UserIdentifierType type, CancellationToken ct = default);
-        Task SetAsync(string? tenantId, UserKey userKey, UserIdentifier record, CancellationToken ct = default);
-        Task MarkVerifiedAsync(string? tenantId, UserKey userKey, UserIdentifierType type, DateTimeOffset verifiedAt, CancellationToken ct = default);
-        Task<bool> ExistsAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default);
-        Task DeleteAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, DeleteMode mode, CancellationToken ct = default);
-    }
+    Task<bool> ExistsAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default);
+
+    Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
+
+    Task<UserIdentifier?> GetAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default);
+
+    Task CreateAsync(string? tenantId, UserIdentifier identifier, CancellationToken ct = default);
+
+    Task UpdateValueAsync(string? tenantId, UserIdentifierType type, string oldValue, string newValue, DateTimeOffset updatedAt, CancellationToken ct = default);
+
+    Task MarkVerifiedAsync(string? tenantId, UserIdentifierType type, string value, DateTimeOffset verifiedAt, CancellationToken ct = default);
+
+    Task SetPrimaryAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, CancellationToken ct = default);
+
+    Task DeleteAsync(string? tenantId, UserIdentifierType type, string value, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default);
+
+    Task DeleteByUserAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default);
 }

@@ -110,14 +110,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var users = group.MapGroup("/users");
 
-                users.MapPost("/create", async ([FromServices] IUserLifecycleEndpointHandler h, HttpContext ctx)
+                users.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                     => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
-                users.MapPost("/status", async ([FromServices] IUserLifecycleEndpointHandler h, HttpContext ctx)
+                users.MapPost("/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                     => await h.ChangeStatusAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
                 // Post is intended for Auth
-                users.MapPost("/delete", async ([FromServices] IUserLifecycleEndpointHandler h, HttpContext ctx)
+                users.MapPost("/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                     => await h.DeleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
             }
 
@@ -125,22 +125,22 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var userProfile = group.MapGroup("/users");
 
-                userProfile.MapPost("/me/get", async ([FromServices] IUserProfileEndpointHandler h, HttpContext ctx)
-                    => await h.GetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfile));
+                userProfile.MapPost("/me/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                    => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfile));
 
-                userProfile.MapPost("/me/update", async ([FromServices] IUserProfileEndpointHandler h, HttpContext ctx)
-                    => await h.UpdateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserInfo));
+                userProfile.MapPost("/me/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                    => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserInfo));
             }
 
             if (options.EnableAdminChangeUserProfileEndpoints)
             {
                 var admin = group.MapGroup("/admin/users");
 
-                admin.MapPost("/{userKey}/profile/get", async ([FromServices] IUserProfileAdminEndpointHandler h, UserKey userKey, HttpContext ctx)
-                    => await h.GetAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                admin.MapPost("/{userKey}/profile/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.GetUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
-                admin.MapPost("/{userKey}/profile/update", async ([FromServices] IUserProfileAdminEndpointHandler h, UserKey userKey, HttpContext ctx)
-                    => await h.UpdateAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                admin.MapPost("/{userKey}/profile/update", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.UpdateUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
             }
 
             if (options.EnableCredentialsEndpoints)

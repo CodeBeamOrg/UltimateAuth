@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
-
-namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed class CredentialSecurityState
 {
@@ -20,6 +18,8 @@ public sealed class CredentialSecurityState
         ExpiresAt = expiresAt;
         Reason = reason;
     }
+
+    public static CredentialSecurityState Active { get; } = new(CredentialSecurityStatus.Active);
 
     /// <summary>
     /// Determines whether the credential can be used at the given time.

@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 {
@@ -15,7 +16,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
     {
         private readonly ICredentialStore<TUserId> _credentialStore; // authentication
         private readonly ICredentialValidator _credentialValidator;
-        private readonly IUserStore<TUserId> _users; // eligible
+        private readonly IUserRuntimeStore _users; // eligible
         private readonly IUserSecurityStateProvider<TUserId> _userSecurityStateProvider; // runtime risk
         private readonly ILoginAuthority _authority;
         private readonly ISessionOrchestrator _sessionOrchestrator;
@@ -26,7 +27,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
         public DefaultLoginOrchestrator(
             ICredentialStore<TUserId> credentialStore,
             ICredentialValidator credentialValidator,
-            IUserStore<TUserId> users,
+            IUserRuntimeStore users,
             IUserSecurityStateProvider<TUserId> userSecurityStateProvider,
             ILoginAuthority authority,
             ISessionOrchestrator sessionOrchestrator,
@@ -85,7 +86,9 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
                 userKey = UserKey.FromString(converter.ToString(validatedUserId));
             }
 
-            var user = await _users.FindByIdAsync(request.TenantId, validatedUserId);
+            var user = userKey is not null
+                ? await _users.GetAsync(request.TenantId, userKey.Value, ct)
+                : null;
 
             if (user is null || user.IsDeleted || !user.IsActive)
             {

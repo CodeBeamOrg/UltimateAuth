@@ -6,8 +6,9 @@ internal static class DefaultPolicySet
 {
     public static void Register(AccessPolicyRegistry registry)
     {
-        // Everyone must be authenticated
+        // Globals
         registry.Add("", _ => new RequireAuthenticatedPolicy());
+        registry.Add("", _ => new DenyCrossTenantPolicy());
 
         // Self operations
         registry.Add("users.profile.", _ => new RequireSelfPolicy());
@@ -18,8 +19,5 @@ internal static class DefaultPolicySet
 
         // Self OR admin
         registry.Add("users.", _ => new RequireSelfOrAdminPolicy());
-
-        // Global safety
-        registry.Add("", _ => new DenyCrossTenantPolicy());
     }
 }

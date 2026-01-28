@@ -23,6 +23,14 @@ namespace CodeBeam.UltimateAuth.Core.Contracts
         public bool IsSelfAction => ActorUserKey != null && ResourceId != null && string.Equals(ActorUserKey.Value, ResourceId, StringComparison.Ordinal);
         public bool HasActor => ActorUserKey != null;
         public bool HasTarget => ResourceId != null;
+
+        public UserKey GetTargetUserKey()
+        {
+            if (ResourceId is null)
+                throw new InvalidOperationException("Target user is not specified.");
+
+            return UserKey.Parse(ResourceId, null);
+        }
     }
 
     internal sealed class EmptyAttributes : IReadOnlyDictionary<string, object>

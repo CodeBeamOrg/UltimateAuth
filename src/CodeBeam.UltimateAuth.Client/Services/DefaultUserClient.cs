@@ -18,11 +18,11 @@ namespace CodeBeam.UltimateAuth.Client.Services
             _options = options.Value;
         }
 
-        public async Task<UAuthResult<UserProfileDto>> GetMeAsync()
+        public async Task<UAuthResult<UserViewDto>> GetMeAsync()
         {
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, "/users/me/get");
             var raw = await _request.SendFormForJsonAsync(url);
-            return UAuthResultMapper.FromJson<UserProfileDto>(raw);
+            return UAuthResultMapper.FromJson<UserViewDto>(raw);
         }
 
         public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
@@ -53,11 +53,11 @@ namespace CodeBeam.UltimateAuth.Client.Services
             return UAuthResultMapper.FromJson<UserDeleteResult>(raw);
         }
 
-        public async Task<UAuthResult<UserProfileDto>> GetProfileAsync(UserKey userKey)
+        public async Task<UAuthResult<UserViewDto>> GetProfileAsync(UserKey userKey)
         {
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/users/{userKey}/profile/get");
             var raw = await _request.SendFormForJsonAsync(url);
-            return UAuthResultMapper.FromJson<UserProfileDto>(raw);
+            return UAuthResultMapper.FromJson<UserViewDto>(raw);
         }
 
         public async Task<UAuthResult> UpdateProfileAsync(UserKey userKey, UpdateProfileRequest request)
