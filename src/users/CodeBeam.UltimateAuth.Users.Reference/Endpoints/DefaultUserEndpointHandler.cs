@@ -51,7 +51,7 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
 
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
-            action: UAuthActions.Users.ChangeStatus,
+            action: UAuthActions.Users.ChangeStatusAdmin,
             resource: "users",
             resourceId: request.UserKey.Value);
 
@@ -90,7 +90,8 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.GetSelf,
-            resource: "users");
+            resource: "users",
+            resourceId: flow?.UserKey?.Value);
 
         var profile = await _users.GetMeAsync(accessContext, ctx.RequestAborted);
         return Results.Ok(profile);
@@ -107,7 +108,8 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.UpdateSelf,
-            resource: "users");
+            resource: "users",
+            resourceId: flow?.UserKey?.Value);
 
         await _users.UpdateUserProfileAsync(accessContext, request, ctx.RequestAborted);
         return Results.Ok();

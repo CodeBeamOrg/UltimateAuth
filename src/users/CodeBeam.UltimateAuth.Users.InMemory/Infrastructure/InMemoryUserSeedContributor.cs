@@ -32,27 +32,11 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
 
         public async Task SeedAsync(string? tenantId, CancellationToken ct = default)
         {
-            await SeedUserAsync(
-                tenantId,
-                _ids.GetAdminUserId(),
-                "Administrator",
-                "admin",
-                ct);
-
-            await SeedUserAsync(
-                tenantId,
-                _ids.GetUserUserId(),
-                "User",
-                "user",
-                ct);
+            await SeedUserAsync(tenantId, _ids.GetAdminUserId(), "Administrator", "admin", ct);
+            await SeedUserAsync(tenantId, _ids.GetUserUserId(), "User", "user", ct);
         }
 
-        private async Task SeedUserAsync(
-            string? tenantId,
-            UserKey userKey,
-            string displayName,
-            string username,
-            CancellationToken ct)
+        private async Task SeedUserAsync(string? tenantId, UserKey userKey, string displayName, string username, CancellationToken ct)
         {
             if (await _lifecycle.ExistsAsync(tenantId, userKey, ct))
                 return;

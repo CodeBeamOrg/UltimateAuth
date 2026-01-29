@@ -1,10 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Users.Abstractions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference
 {
-    internal sealed class UserRuntimeStore : IUserRuntimeStore
+    internal sealed class UserRuntimeStore : IUserRuntimeStateProvider
     {
         private readonly IUserLifecycleStore _lifecycleStore;
 
@@ -24,7 +24,8 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             {
                 UserKey = lifecycle.UserKey,
                 IsActive = lifecycle.Status == UserStatus.Active,
-                IsDeleted = lifecycle.IsDeleted
+                IsDeleted = lifecycle.IsDeleted,
+                Exists = true
             };
         }
     }

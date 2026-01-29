@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Server.Endpoints;
-using CodeBeam.UltimateAuth.Users.Abstractions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
             // Marker only – runtime validation happens via DI resolution
         });
 
-        services.TryAddScoped<IUserRuntimeStore, UserRuntimeStore>();
+        services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStore>();
         services.TryAddScoped<IUserApplicationService, UserApplicationService>();
         services.TryAddScoped<IUserEndpointHandler, DefaultUserEndpointHandler>();
 

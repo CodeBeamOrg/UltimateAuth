@@ -16,7 +16,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
     {
         private readonly ICredentialStore<TUserId> _credentialStore; // authentication
         private readonly ICredentialValidator _credentialValidator;
-        private readonly IUserRuntimeStore _users; // eligible
+        private readonly IUserRuntimeStateProvider _users; // eligible
         private readonly IUserSecurityStateProvider<TUserId> _userSecurityStateProvider; // runtime risk
         private readonly ILoginAuthority _authority;
         private readonly ISessionOrchestrator _sessionOrchestrator;
@@ -27,7 +27,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
         public DefaultLoginOrchestrator(
             ICredentialStore<TUserId> credentialStore,
             ICredentialValidator credentialValidator,
-            IUserRuntimeStore users,
+            IUserRuntimeStateProvider users,
             IUserSecurityStateProvider<TUserId> userSecurityStateProvider,
             ILoginAuthority authority,
             ISessionOrchestrator sessionOrchestrator,
