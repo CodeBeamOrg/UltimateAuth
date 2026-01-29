@@ -39,9 +39,16 @@ namespace CodeBeam.UltimateAuth.Client.Services
             return UAuthResultMapper.FromJson<UserCreateResult>(raw);
         }
 
-        public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusAsync(ChangeUserStatusRequest request)
+        public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusSelfAsync(ChangeUserStatusSelfRequest request)
         {
-            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, "/users/status");
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/users/status");
+            var raw = await _request.SendJsonAsync(url, request);
+            return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
+        }
+
+        public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusAdminAsync(ChangeUserStatusAdminRequest request)
+        {
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/users/{request.UserKey.Value}/status");
             var raw = await _request.SendJsonAsync(url, request);
             return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
         }

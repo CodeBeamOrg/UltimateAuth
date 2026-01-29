@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using static CodeBeam.UltimateAuth.Server.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints
 {
@@ -114,7 +115,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
                 users.MapPost("/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                    => await h.ChangeStatusAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                    => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
                 // Post is intended for Auth
                 users.MapPost("/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
@@ -135,6 +136,9 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             if (options.EnableAdminChangeUserProfileEndpoints)
             {
                 var admin = group.MapGroup("/admin/users");
+
+                admin.MapPost("/{userKey}/status", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.ChangeStatusAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
                 admin.MapPost("/{userKey}/profile/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                     => await h.GetUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));

@@ -110,7 +110,7 @@ namespace CodeBeam.UltimateAuth.Server.Options
 
         public bool EnableUserLifecycleEndpoints { get; set; } = true;
         public bool EnableUserProfileEndpoints { get; set; } = true;
-        public bool EnableAdminChangeUserProfileEndpoints { get; set; } = false;
+        public bool EnableAdminChangeUserProfileEndpoints { get; set; } = true;
         public bool EnableCredentialsEndpoints { get; set; } = true;
         public bool EnableAuthorizationEndpoints { get; set; } = true;
 

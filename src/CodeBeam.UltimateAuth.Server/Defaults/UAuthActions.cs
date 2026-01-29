@@ -6,7 +6,7 @@
         {
             public const string Create = "users.create";
             public const string Delete = "users.delete";
-            public const string ChangeStatus = "users.status.change";
+            public const string ChangeStatusSelf = "users.status.change.self";
             public const string ChangeStatusAdmin = "users.status.change.admin";
         }
 

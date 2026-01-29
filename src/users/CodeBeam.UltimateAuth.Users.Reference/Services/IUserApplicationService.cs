@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
         Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default);
 
-        Task ChangeUserStatusAsync(AccessContext context, ChangeUserStatusRequest request, CancellationToken ct = default);
+        Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default);
 
         Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default);
 

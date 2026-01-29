@@ -125,12 +125,36 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task ChangeUserStatusAsync(AccessContext context, ChangeUserStatusRequest request, CancellationToken ct = default)
+    public async Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
     {
         var command = new ChangeUserStatusCommand(async innerCt =>
         {
+            var newStatus = request switch
+            {
+                ChangeUserStatusSelfRequest r => r.NewStatus,
+                ChangeUserStatusAdminRequest r => r.NewStatus,
+                _ => throw new InvalidOperationException("invalid_request")
+            };
+
+            if (context.IsSelfAction)
+            {
+                if (newStatus is UserStatus.Disabled 
+                    or UserStatus.Suspended
+                    or UserStatus.Locked
+                    or UserStatus.RiskHold
+                    or UserStatus.PendingActivation
+                    or UserStatus.PendingVerification)
+                    throw new InvalidOperationException("self_cannot_set_admin_status");
+            }
+
+            if (!context.IsSelfAction)
+            {
+                if (newStatus is UserStatus.SelfSuspended or UserStatus.Deactivated)
+                    throw new InvalidOperationException("admin_cannot_set_self_status");
+            }
+
             var targetUserKey = context.GetTargetUserKey();
-            await _lifecycleStore.ChangeStatusAsync(context.ResourceTenantId, targetUserKey, request.NewStatus, _clock.UtcNow, innerCt);
+            await _lifecycleStore.ChangeStatusAsync(context.ResourceTenantId, targetUserKey, newStatus, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
