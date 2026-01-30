@@ -116,6 +116,17 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
             return Task.CompletedTask;
         }
 
+        public Task UnsetPrimaryAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, CancellationToken ct = default)
+        {
+            var key = (tenantId, type, value);
+
+            if (!_store.TryGetValue(key, out var target) || target.IsDeleted)
+                throw new InvalidOperationException("Identifier not found.");
+
+            target.IsPrimary = false;
+            return Task.CompletedTask;
+        }
+
         public Task DeleteAsync(string? tenantId, UserIdentifierType type, string value, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
         {
             var key = (tenantId, type, value);

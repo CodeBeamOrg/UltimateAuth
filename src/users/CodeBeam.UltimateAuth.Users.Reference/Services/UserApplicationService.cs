@@ -136,24 +136,21 @@ internal sealed class UserApplicationService : IUserApplicationService
                 _ => throw new InvalidOperationException("invalid_request")
             };
 
-            if (context.IsSelfAction)
-            {
-                if (newStatus is UserStatus.Disabled 
-                    or UserStatus.Suspended
-                    or UserStatus.Locked
-                    or UserStatus.RiskHold
-                    or UserStatus.PendingActivation
-                    or UserStatus.PendingVerification)
-                    throw new InvalidOperationException("self_cannot_set_admin_status");
-            }
+            var targetUserKey = context.GetTargetUserKey();
+            var current = await _lifecycleStore.GetAsync(context.ResourceTenantId, targetUserKey, innerCt);
+
+            if (current is null)
+                throw new InvalidOperationException("user_not_found");
+
+            if (context.IsSelfAction && !IsSelfTransitionAllowed(current.Status, newStatus))
+                throw new InvalidOperationException("self_transition_not_allowed");
 
             if (!context.IsSelfAction)
             {
                 if (newStatus is UserStatus.SelfSuspended or UserStatus.Deactivated)
                     throw new InvalidOperationException("admin_cannot_set_self_status");
             }
-
-            var targetUserKey = context.GetTargetUserKey();
+            
             await _lifecycleStore.ChangeStatusAsync(context.ResourceTenantId, targetUserKey, newStatus, _clock.UtcNow, innerCt);
         });
 
@@ -208,7 +205,6 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-
     public async Task SetPrimaryUserIdentifierAsync(AccessContext context, SetPrimaryUserIdentifierRequest request, CancellationToken ct = default)
     {
         var command = new SetPrimaryUserIdentifierCommand(async innerCt =>
@@ -216,6 +212,31 @@ internal sealed class UserApplicationService : IUserApplicationService
             var userKey = context.GetTargetUserKey();
 
             await _identifierStore.SetPrimaryAsync(context.ResourceTenantId, userKey, request.Type, request.Value, innerCt);
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task UnsetPrimaryUserIdentifierAsync(AccessContext context, UnsetPrimaryUserIdentifierRequest request, CancellationToken ct = default)
+    {
+        var command = new UnsetPrimaryUserIdentifierCommand(async innerCt =>
+        {
+            var userKey = context.GetTargetUserKey();
+
+            var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenantId, userKey, innerCt);
+            var target = identifiers.FirstOrDefault(i => i.Type == request.Type && string.Equals(i.Value, request.Value, StringComparison.OrdinalIgnoreCase) && !i.IsDeleted);
+
+            if (target is null)
+                throw new InvalidOperationException("identifier_not_found");
+
+            if (!target.IsPrimary)
+                throw new InvalidOperationException("identifier_not_primary");
+
+            var otherLoginIdentifiers = identifiers.Where(i => !i.IsDeleted && IsLoginIdentifier(i.Type) && !(i.Type == target.Type && i.Value == target.Value)).ToList();
+            if (otherLoginIdentifiers.Count == 0)
+                throw new InvalidOperationException("cannot_unset_last_primary_login_identifier");
+
+            await _identifierStore.UnsetPrimaryAsync(context.ResourceTenantId, userKey, target.Type, target.Value, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -235,6 +256,21 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new DeleteUserIdentifierCommand(async innerCt =>
         {
+            var targetUserKey = context.GetTargetUserKey();
+
+            var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenantId, targetUserKey, innerCt);
+            var target = identifiers.FirstOrDefault(i => i.Type == request.Type && string.Equals(i.Value, request.Value, StringComparison.OrdinalIgnoreCase) && !i.IsDeleted);
+
+            if (target is null)
+                throw new InvalidOperationException("identifier_not_found");
+
+            var loginIdentifiers = identifiers.Where(i => !i.IsDeleted && IsLoginIdentifier(i.Type)).ToList();
+            if (IsLoginIdentifier(target.Type) && loginIdentifiers.Count == 1)
+                throw new InvalidOperationException("cannot_delete_last_login_identifier");
+
+            if (target.IsPrimary)
+                throw new InvalidOperationException("cannot_delete_primary_identifier");
+
             await _identifierStore.DeleteAsync(context.ResourceTenantId, request.Type, request.Value, request.Mode, _clock.UtcNow, innerCt);
         });
 
@@ -285,4 +321,20 @@ internal sealed class UserApplicationService : IUserApplicationService
             PhoneVerified = primaryPhone?.IsVerified ?? false
         };
     }
+
+    private static bool IsSelfTransitionAllowed(UserStatus from, UserStatus to)
+        => (from, to) switch
+        {
+            (UserStatus.Active, UserStatus.SelfSuspended) => true,
+            (UserStatus.SelfSuspended, UserStatus.Active) => true,
+            (UserStatus.Active or UserStatus.SelfSuspended, UserStatus.Deactivated) => true,
+            _ => false
+        };
+
+    private static bool IsLoginIdentifier(UserIdentifierType type)
+        => type is
+            UserIdentifierType.Username or
+            UserIdentifierType.Email or
+            UserIdentifierType.Phone;
+
 }

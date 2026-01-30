@@ -27,6 +27,20 @@ namespace CodeBeam.UltimateAuth.Policies
                 : AccessDecision.Deny("user_not_active");
         }
 
-        public bool AppliesTo(AccessContext context) => context.IsAuthenticated && !context.IsSystemActor;
+        public bool AppliesTo(AccessContext context)
+        {
+            if (!context.IsAuthenticated || context.IsSystemActor)
+                return false;
+
+            return !AllowedForInactive.Any(prefix => context.Action.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static readonly string[] AllowedForInactive =
+        {
+            "users.status.change.",
+            "credentials.password.reset.",
+            "login.",
+            "reauth."
+        };
     }
 }

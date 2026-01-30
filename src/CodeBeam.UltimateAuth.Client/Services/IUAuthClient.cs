@@ -6,5 +6,6 @@ namespace CodeBeam.UltimateAuth.Client
     {
         IFlowClient Flows { get; }
         IUserClient Users { get; }
+        IUserIdentifierClient Identifiers { get; }
     }
 }

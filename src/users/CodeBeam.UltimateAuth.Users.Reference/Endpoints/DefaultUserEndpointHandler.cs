@@ -77,28 +77,6 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
         return Results.Ok();
     }
 
-    public async Task<IResult> DeleteAsync(HttpContext ctx)
-    {
-        var flow = _authFlow.Current;
-        if (!flow.IsAuthenticated)
-            return Results.Unauthorized();
-
-        var request = await ctx.ReadJsonAsync<DeleteUserRequest>(ctx.RequestAborted);
-
-        var accessContext = await _accessContextFactory.CreateAsync(
-            authFlow: flow,
-            action: UAuthActions.Users.Delete,
-            resource: "users",
-            resourceId: request.UserKey.Value,
-            attributes: new Dictionary<string, object>
-            {
-                ["deleteMode"] = request.Mode
-            });
-
-        await _users.DeleteUserAsync(accessContext, request, ctx.RequestAborted);
-        return Results.Ok();
-    }
-
     public async Task<IResult> GetMeAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
@@ -112,6 +90,22 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
             resourceId: flow?.UserKey?.Value);
 
         var profile = await _users.GetMeAsync(accessContext, ctx.RequestAborted);
+        return Results.Ok(profile);
+    }
+
+    public async Task<IResult> GetUserAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserProfiles.GetAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        var profile = await _users.GetUserProfileAsync(accessContext, ctx.RequestAborted);
         return Results.Ok(profile);
     }
 
@@ -133,22 +127,6 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
         return Results.Ok();
     }
 
-    public async Task<IResult> GetUserAsync(UserKey userKey, HttpContext ctx)
-    {
-        var flow = _authFlow.Current;
-        if (!flow.IsAuthenticated)
-            return Results.Unauthorized();
-
-        var accessContext = await _accessContextFactory.CreateAsync(
-            authFlow: flow,
-            action: UAuthActions.UserProfiles.GetAdmin,
-            resource: "users",
-            resourceId: userKey.Value);
-
-        var profile = await _users.GetUserProfileAsync(accessContext, ctx.RequestAborted);
-        return Results.Ok(profile);
-    }
-
     public async Task<IResult> UpdateUserAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;
@@ -164,6 +142,244 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
             resourceId: userKey.Value);
 
         await _users.UpdateUserProfileAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> DeleteAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<DeleteUserRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.DeleteAdmin,
+            resource: "users",
+            resourceId: userKey.Value,
+            attributes: new Dictionary<string, object>
+            {
+                ["deleteMode"] = request.Mode
+            });
+
+        await _users.DeleteUserAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> AddUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<AddUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.AddSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.AddUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> AddUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<AddUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.AddAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.AddUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> UpdateUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<UpdateUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.UpdateSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.UpdateUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> UpdateUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<UpdateUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.UpdateAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.UpdateUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> SetPrimaryUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<SetPrimaryUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.SetPrimarySelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.SetPrimaryUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> SetPrimaryUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<SetPrimaryUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.SetPrimaryAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.SetPrimaryUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> UnsetPrimaryUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<UnsetPrimaryUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.UnsetPrimarySelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.UnsetPrimaryUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> UnsetPrimaryUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<UnsetPrimaryUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.UnsetPrimaryAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.UnsetPrimaryUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> VerifyUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<VerifyUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.VerifySelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.VerifyUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> VerifyUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<VerifyUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.VerifyAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.VerifyUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> DeleteUserIdentifierSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<DeleteUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.DeleteSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.DeleteUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> DeleteUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<DeleteUserIdentifierRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.DeleteAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.DeleteUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
         return Results.Ok();
     }
 }

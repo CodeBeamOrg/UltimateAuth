@@ -18,24 +18,14 @@ namespace CodeBeam.UltimateAuth.Users.Reference
 
         Task UpdateUserIdentifierAsync(AccessContext context, UpdateUserIdentifierRequest request, CancellationToken ct = default);
 
-        Task SetPrimaryUserIdentifierAsync(
-        AccessContext context,
-        SetPrimaryUserIdentifierRequest request,
-        CancellationToken ct = default);
+        Task SetPrimaryUserIdentifierAsync(AccessContext context, SetPrimaryUserIdentifierRequest request, CancellationToken ct = default);
 
-        Task VerifyUserIdentifierAsync(
-            AccessContext context,
-            VerifyUserIdentifierRequest request,
-            CancellationToken ct = default);
+        Task UnsetPrimaryUserIdentifierAsync(AccessContext context, UnsetPrimaryUserIdentifierRequest request, CancellationToken ct = default);
 
-        Task DeleteUserIdentifierAsync(
-        AccessContext context,
-        DeleteUserIdentifierRequest request,
-        CancellationToken ct = default);
+        Task VerifyUserIdentifierAsync(AccessContext context, VerifyUserIdentifierRequest request, CancellationToken ct = default);
 
-        Task DeleteUserAsync(
-            AccessContext context,
-            DeleteUserRequest request,
-            CancellationToken ct = default);
+        Task DeleteUserIdentifierAsync(AccessContext context, DeleteUserIdentifierRequest request, CancellationToken ct = default);
+
+        Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default);
     }
 }

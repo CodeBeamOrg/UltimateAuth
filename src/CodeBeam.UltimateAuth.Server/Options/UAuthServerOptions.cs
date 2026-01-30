@@ -108,11 +108,11 @@ namespace CodeBeam.UltimateAuth.Server.Options
         public bool? EnableSessionEndpoints { get; set; } = true;
         public bool? EnableUserInfoEndpoints { get; set; } = true;
 
-        public bool EnableUserLifecycleEndpoints { get; set; } = true;
-        public bool EnableUserProfileEndpoints { get; set; } = true;
-        public bool EnableAdminChangeUserProfileEndpoints { get; set; } = true;
-        public bool EnableCredentialsEndpoints { get; set; } = true;
-        public bool EnableAuthorizationEndpoints { get; set; } = true;
+        public bool? EnableUserLifecycleEndpoints { get; set; } = true;
+        public bool? EnableUserProfileEndpoints { get; set; } = true;
+        public bool? EnableUserIdentifierEndpoints { get; set; } = true;
+        public bool? EnableCredentialsEndpoints { get; set; } = true;
+        public bool? EnableAuthorizationEndpoints { get; set; } = true;
 
         public UserIdentifierOptions UserIdentifiers { get; set; } = new();
 
@@ -176,7 +176,6 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 EnableUserInfoEndpoints = EnableUserInfoEndpoints,
                 EnableUserLifecycleEndpoints = EnableUserLifecycleEndpoints,
                 EnableUserProfileEndpoints = EnableUserProfileEndpoints,
-                EnableAdminChangeUserProfileEndpoints = EnableAdminChangeUserProfileEndpoints,
                 EnableCredentialsEndpoints = EnableCredentialsEndpoints,
                 EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
 
