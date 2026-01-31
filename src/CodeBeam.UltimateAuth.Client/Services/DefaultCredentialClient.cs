@@ -7,12 +7,12 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Services
 {
-    internal sealed class DefaultUserCredentialClient : ICredentialClient
+    internal sealed class DefaultCredentialClient : ICredentialClient
     {
         private readonly IUAuthRequestClient _request;
         private readonly UAuthClientOptions _options;
 
-        public DefaultUserCredentialClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
+        public DefaultCredentialClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
         {
             _request = request;
             _options = options.Value;

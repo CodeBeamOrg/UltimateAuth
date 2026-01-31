@@ -33,7 +33,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                 //    didTouch = true;
                 //}
 
-                didTouch = await _sessionStore.TouchSessionAsync(validation.SessionId.Value, now, sessionTouchMode, ct);
+                didTouch = await _sessionStore.TouchSessionAsync(validation.TenantId, validation.SessionId.Value, now, sessionTouchMode, ct);
             }
 
             return SessionRefreshResult.Success(validation.SessionId.Value, didTouch);

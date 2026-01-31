@@ -24,7 +24,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions
         /// </summary>
         Task RotateSessionAsync(AuthSessionId currentSessionId, IssuedSession newSession, SessionStoreContext context, CancellationToken ct = default);
 
-        Task<bool> TouchSessionAsync(AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default);
+        Task<bool> TouchSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default);
 
         /// <summary>
         /// Revokes a single session.

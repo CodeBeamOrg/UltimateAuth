@@ -120,7 +120,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         if (!validation.Success)
         {
             artifact.RegisterAttempt();
-            return RedirectToLoginWithError(ctx, authContext, "invalid");
+            return await RedirectToLoginWithErrorAsync(ctx, authContext, "invalid");
         }
 
         var loginRequest = new LoginRequest
@@ -141,7 +141,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         var result = await _flow.LoginAsync(authContext, execution, loginRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectToLoginWithError(ctx, authContext, "invalid");
+            return await RedirectToLoginWithErrorAsync(ctx, authContext, "invalid");
 
         if (result.SessionId is not null)
         {
@@ -224,26 +224,27 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         return null;
     }
 
-    private IResult RedirectToLoginWithError(HttpContext ctx, AuthFlowContext auth, string error)
+    private async Task<IResult> RedirectToLoginWithErrorAsync(HttpContext ctx, AuthFlowContext auth, string error)
     {
         var basePath = auth.OriginalOptions.Hub.LoginPath ?? "/login";
-
         var hubKey = ctx.Request.Query["hub"].ToString();
 
         if (!string.IsNullOrWhiteSpace(hubKey))
         {
             var key = new AuthArtifactKey(hubKey);
-            var artifact = _authStore.GetAsync(key, ctx.RequestAborted).Result;
+            var artifact = await _authStore.GetAsync(key, ctx.RequestAborted);
 
             if (artifact is HubFlowArtifact hub)
             {
                 hub.MarkCompleted();
-                _authStore.StoreAsync(key, hub, ctx.RequestAborted);
+                await _authStore.StoreAsync(key, hub, ctx.RequestAborted);
             }
-            return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}&__uauth_error={Uri.EscapeDataString(error)}");
+
+            return Results.Redirect(
+                $"{basePath}?hub={Uri.EscapeDataString(hubKey)}&__uauth_error={Uri.EscapeDataString(error)}");
         }
 
-        return Results.Redirect($"{basePath}?__uauth_error={Uri.EscapeDataString(error)}");
+        return Results.Redirect(
+            $"{basePath}?__uauth_error={Uri.EscapeDataString(error)}");
     }
-
 }

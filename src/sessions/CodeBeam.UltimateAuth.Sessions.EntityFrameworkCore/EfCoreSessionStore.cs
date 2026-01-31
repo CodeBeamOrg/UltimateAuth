@@ -142,13 +142,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
         }, ct);
     }
 
-    public async Task<bool> TouchSessionAsync(AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default)
+    public async Task<bool> TouchSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default)
     {
         var touched = false;
 
         await _kernel.ExecuteAsync(async ct =>
         {
-            var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId, ct);
+            var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.SessionId == sessionId, ct);
 
             if (projection is null)
                 return;
@@ -209,7 +209,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
                 if (chain.ActiveSessionId is not null)
                 {
-                    var sessionProjection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
+                    var sessionProjection = await _db.Sessions.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.SessionId == chain.ActiveSessionId, ct);
 
                     if (sessionProjection is not null)
                     {
@@ -243,8 +243,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
             if (chain.ActiveSessionId is not null)
             {
-                var sessionProjection = await _db.Sessions
-                    .SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
+                var sessionProjection = await _db.Sessions.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.SessionId == chain.ActiveSessionId, ct);
 
                 if (sessionProjection is not null)
                 {
@@ -278,8 +277,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
                 if (chain.ActiveSessionId is not null)
                 {
-                    var sessionProjection = await _db.Sessions
-                        .SingleOrDefaultAsync(x => x.SessionId == chain.ActiveSessionId, ct);
+                    var sessionProjection = await _db.Sessions.SingleOrDefaultAsync(x => x.TenantId == tenantId && x.SessionId == chain.ActiveSessionId, ct);
 
                     if (sessionProjection is not null)
                     {

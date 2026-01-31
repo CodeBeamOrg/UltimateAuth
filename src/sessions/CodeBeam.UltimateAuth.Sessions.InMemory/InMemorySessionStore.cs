@@ -5,6 +5,8 @@ using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 using System.Security;
 
+namespace CodeBeam.UltimateAuth.Sessions.InMemory;
+
 public sealed class InMemorySessionStore : ISessionStore
 {
     private readonly ISessionStoreKernelFactory _factory;
@@ -95,7 +97,7 @@ public sealed class InMemorySessionStore : ISessionStore
         }, ct);
     }
 
-    public async Task<bool> TouchSessionAsync(AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default)
+    public async Task<bool> TouchSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, SessionTouchMode mode = SessionTouchMode.IfNeeded, CancellationToken ct = default)
     {
         var k = Kernel(null);
         bool touched = false;
