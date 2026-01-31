@@ -102,6 +102,7 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
             services.TryAddScoped<IFlowClient, DefaultFlowClient>();
             services.TryAddScoped<IUserClient, DefaultUserClient>();
             services.TryAddScoped<IUserIdentifierClient, DefaultUserIdentifierClient>();
+            services.TryAddScoped<IAuthorizationClient, DefaultAuthorizationClient>();
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {

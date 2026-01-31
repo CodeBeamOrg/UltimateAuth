@@ -16,6 +16,7 @@ public interface IUserEndpointHandler
     Task<IResult> GetUserAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> UpdateUserAsync(UserKey userKey, HttpContext ctx);
 
+    Task<IResult> GetMyIdentifiersAsync(HttpContext ctx);
     Task<IResult> AddUserIdentifierSelfAsync(HttpContext ctx);
     Task<IResult> UpdateUserIdentifierSelfAsync(HttpContext ctx);
     Task<IResult> SetPrimaryUserIdentifierSelfAsync(HttpContext ctx);
@@ -23,6 +24,7 @@ public interface IUserEndpointHandler
     Task<IResult> VerifyUserIdentifierSelfAsync(HttpContext ctx);
     Task<IResult> DeleteUserIdentifierSelfAsync(HttpContext ctx);
 
+    Task<IResult> GetUserIdentifiersAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> AddUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> UpdateUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> SetPrimaryUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);

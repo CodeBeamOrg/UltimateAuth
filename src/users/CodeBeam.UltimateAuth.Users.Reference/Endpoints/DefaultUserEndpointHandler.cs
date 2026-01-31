@@ -167,6 +167,40 @@ public sealed class DefaultUserEndpointHandler : IUserEndpointHandler
         return Results.Ok();
     }
 
+    public async Task<IResult> GetMyIdentifiersAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.GetSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        var result = await _users.GetIdentifiersByUserAsync(accessContext,ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
+    public async Task<IResult> GetUserIdentifiersAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.GetAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        var result = await _users.GetIdentifiersByUserAsync(accessContext, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> AddUserIdentifierSelfAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;

@@ -18,6 +18,13 @@ namespace CodeBeam.UltimateAuth.Client.Services
             _options = options.Value;
         }
 
+        public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetMyIdentifiersAsync()
+        {
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, "/users/me/identifiers/get");
+            var raw = await _request.SendFormForJsonAsync(url);
+            return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
+        }
+
         public async Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request)
         {
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/users/me/identifiers/add");
@@ -58,6 +65,13 @@ namespace CodeBeam.UltimateAuth.Client.Services
             var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/users/me/identifiers/delete");
             var raw = await _request.SendJsonAsync(url, request);
             return UAuthResultMapper.FromStatus(raw);
+        }
+
+        public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetUserIdentifiersAsync(UserKey userKey)
+        {
+            var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/users/{userKey.Value}/identifiers/get");
+            var raw = await _request.SendFormForJsonAsync(url);
+            return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
         }
 
         public async Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request)

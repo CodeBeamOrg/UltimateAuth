@@ -20,7 +20,8 @@
 
         public static class UserIdentifiers
         {
-            public const string Get = "users.identifiers.get";
+            public const string GetSelf = "users.identifiers.get.self";
+            public const string GetAdmin = "users.identifiers.get.admin";
             public const string AddSelf = "users.identifiers.add.self";
             public const string AddAdmin = "users.identifiers.add.admin";
             public const string UpdateSelf = "users.identifiers.update.self";
@@ -49,9 +50,10 @@
         {
             public static class Roles
             {
-                public const string Read = "authorization.roles.read";
-                public const string Assign = "authorization.roles.assign";
-                public const string Remove = "authorization.roles.remove";
+                public const string ReadSelf = "authorization.roles.read.self";
+                public const string ReadAdmin = "authorization.roles.read.admin";
+                public const string AssignAdmin = "authorization.roles.assign.admin";
+                public const string RemoveAdmin = "authorization.roles.remove.admin";
             }
         }
 

@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference.Commands;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -168,6 +169,42 @@ internal sealed class UserApplicationService : IUserApplicationService
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<IReadOnlyList<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, CancellationToken ct = default)
+    {
+        var command = new GetUserIdentifiersCommand(async innerCt =>
+        {
+            var targetUserKey = context.GetTargetUserKey();
+            var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenantId, targetUserKey, innerCt);
+
+            return identifiers.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<UserIdentifierDto?> GetIdentifierAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
+    {
+        var command = new GetUserIdentifierCommand(async innerCt =>
+        {
+            var identifier = await _identifierStore.GetAsync(context.ResourceTenantId, type, value, innerCt);
+            return identifier is null
+                ? null
+                : UserIdentifierMapper.ToDto(identifier);
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<bool> UserIdentifierExistsAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
+    {
+        var command = new UserIdentifierExistsCommand(async innerCt =>
+        {
+            return await _identifierStore.ExistsAsync(context.ResourceTenantId, type, value, innerCt);
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
     public async Task AddUserIdentifierAsync(AccessContext context, AddUserIdentifierRequest request, CancellationToken ct = default)

@@ -6,6 +6,7 @@ namespace CodeBeam.UltimateAuth.Client.Services
 {
     public interface IUserIdentifierClient
     {
+        Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetMyIdentifiersAsync();
         Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request);
         Task<UAuthResult> UpdateSelfAsync(UpdateUserIdentifierRequest request);
         Task<UAuthResult> SetPrimarySelfAsync(SetPrimaryUserIdentifierRequest request);
@@ -13,6 +14,7 @@ namespace CodeBeam.UltimateAuth.Client.Services
         Task<UAuthResult> VerifySelfAsync(VerifyUserIdentifierRequest request);
         Task<UAuthResult> DeleteSelfAsync(DeleteUserIdentifierRequest request);
 
+        Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetUserIdentifiersAsync(UserKey userKey);
         Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request);
         Task<UAuthResult> UpdateAdminAsync(UserKey userKey, UpdateUserIdentifierRequest request);
         Task<UAuthResult> SetPrimaryAdminAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request);
