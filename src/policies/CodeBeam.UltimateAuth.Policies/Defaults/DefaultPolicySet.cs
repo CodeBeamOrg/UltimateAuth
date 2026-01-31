@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Policies.Registry;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Policies.Registry;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Policies.Defaults;
 
@@ -6,20 +8,15 @@ internal static class DefaultPolicySet
 {
     public static void Register(AccessPolicyRegistry registry)
     {
-        // Everyone must be authenticated
+        // Invariant
         registry.Add("", _ => new RequireAuthenticatedPolicy());
-
-        // Self operations
-        registry.Add("users.profile.", _ => new RequireSelfPolicy());
-        registry.Add("credentials.self.", _ => new RequireSelfPolicy());
-
-        // Admin-only
-        registry.Add("admin.", _ => new RequireAdminPolicy());
-
-        // Self OR admin
-        registry.Add("users.", _ => new RequireSelfOrAdminPolicy());
-
-        // Global safety
         registry.Add("", _ => new DenyCrossTenantPolicy());
+        registry.Add("", sp => new RequireActiveUserPolicy(sp.GetRequiredService<IUserRuntimeStateProvider>()));
+
+        // Intent-based
+        registry.Add("", _ => new RequireSelfPolicy());
+        registry.Add("", _ => new RequireAdminPolicy());
+        registry.Add("", _ => new RequireSelfOrAdminPolicy());
+        registry.Add("", _ => new RequireSystemPolicy());
     }
 }

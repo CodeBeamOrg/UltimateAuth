@@ -2,132 +2,180 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory
 {
-    internal sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
+    public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
     {
-        private readonly ConcurrentDictionary<(string? TenantId, UserKey UserKey), List<UserIdentifierRecord>> _byUser = new();
-        private readonly ConcurrentDictionary<(string? TenantId, UserIdentifierType Type, string Value), UserKey> _lookup = new();
+        private readonly Dictionary<(string? TenantId, UserIdentifierType Type, string Value), UserIdentifier> _store = new();
 
-        public Task<IReadOnlyCollection<UserIdentifierRecord>> GetAllAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        public Task<bool> ExistsAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default)
         {
-            ct.ThrowIfCancellationRequested();
-
-            var key = (tenantId, userKey);
-
-            if (_byUser.TryGetValue(key, out var list))
-                return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(list.ToArray());
-
-            return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(Array.Empty<UserIdentifierRecord>());
+            return Task.FromResult(_store.TryGetValue((tenantId, type, value), out var id) && !id.IsDeleted);
         }
 
-        public Task<IReadOnlyCollection<UserIdentifierRecord>> GetByTypeAsync(string? tenantId, UserKey userKey, UserIdentifierType type, CancellationToken ct = default)
+        public Task<UserIdentifier?> GetAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default)
         {
-            ct.ThrowIfCancellationRequested();
+            if (!_store.TryGetValue((tenantId, type, value), out var id))
+                return Task.FromResult<UserIdentifier?>(null);
 
-            var key = (tenantId, userKey);
+            if (id.IsDeleted)
+                return Task.FromResult<UserIdentifier?>(null);
 
-            if (_byUser.TryGetValue(key, out var list))
-            {
-                var result = list.Where(x => x.Type == type).ToArray();
-                return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(result);
-            }
-
-            return Task.FromResult<IReadOnlyCollection<UserIdentifierRecord>>(Array.Empty<UserIdentifierRecord>());
+            return Task.FromResult<UserIdentifier?>(id);
         }
 
-        public Task SetAsync(string? tenantId, UserKey userKey, UserIdentifierRecord record, CancellationToken ct = default)
+        public Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        {
+            var result = _store.Values
+                .Where(x => x.TenantId == tenantId)
+                .Where(x => x.UserKey == userKey)
+                .Where(x => !x.IsDeleted)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.CreatedAt)
+                .ToList()
+                .AsReadOnly();
+
+            return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
+        }
+
+        public Task CreateAsync(string? tenantId, UserIdentifier identifier, CancellationToken ct = default)
+        {
+            var key = (tenantId, identifier.Type, identifier.Value);
+
+            if (_store.TryGetValue(key, out var existing) && !existing.IsDeleted)
+                throw new InvalidOperationException("Identifier already exists.");
+
+            _store[key] = identifier;
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateValueAsync(string? tenantId, UserIdentifierType type, string oldValue, string newValue, DateTimeOffset updatedAt, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
 
-            var userKeyTuple = (tenantId, userKey);
-            var lookupKey = (tenantId, record.Type, record.Value);
+            if (string.Equals(oldValue, newValue, StringComparison.Ordinal))
+                throw new InvalidOperationException("identifier_value_unchanged");
 
-            var list = _byUser.GetOrAdd(userKeyTuple, _ => new List<UserIdentifierRecord>());
+            var oldKey = (tenantId, type, oldValue);
 
-            // replace if same type+value exists
-            var existingIndex = list.FindIndex(x => x.Type == record.Type && StringComparer.OrdinalIgnoreCase.Equals(x.Value, record.Value));
+            if (!_store.TryGetValue(oldKey, out var identifier) || identifier.IsDeleted)
+                throw new InvalidOperationException("identifier_not_found");
 
-            if (existingIndex >= 0)
-            {
-                list[existingIndex] = record;
-            }
-            else
-            {
-                list.Add(record);
-                _lookup[lookupKey] = userKey;
-            }
+            var newKey = (tenantId, type, newValue);
+
+            if (_store.ContainsKey(newKey))
+                throw new InvalidOperationException("identifier_value_already_exists");
+
+            _store.Remove(oldKey);
+
+            identifier.Value = newValue;
+            identifier.IsVerified = false;
+            identifier.VerifiedAt = null;
+            identifier.UpdatedAt = updatedAt;
+
+            _store[newKey] = identifier;
 
             return Task.CompletedTask;
         }
 
-        public Task MarkVerifiedAsync(string? tenantId, UserKey userKey, UserIdentifierType type, DateTimeOffset verifiedAt, CancellationToken ct = default)
+        public Task MarkVerifiedAsync(string? tenantId, UserIdentifierType type, string value, DateTimeOffset verifiedAt, CancellationToken ct = default)
         {
-            ct.ThrowIfCancellationRequested();
+            var key = (tenantId, type, value);
 
-            var key = (tenantId, userKey);
+            if (!_store.TryGetValue(key, out var id) || id.IsDeleted)
+                throw new InvalidOperationException("Identifier not found.");
 
-            if (!_byUser.TryGetValue(key, out var list))
+            if (id.IsVerified)
                 return Task.CompletedTask;
 
-            for (int i = 0; i < list.Count; i++)
+            id.IsVerified = true;
+            id.VerifiedAt = verifiedAt;
+
+            return Task.CompletedTask;
+        }
+
+        public Task SetPrimaryAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, CancellationToken ct = default)
+        {
+            foreach (var id in _store.Values.Where(x =>
+                         x.TenantId == tenantId &&
+                         x.UserKey == userKey &&
+                         x.Type == type &&
+                         !x.IsDeleted &&
+                         x.IsPrimary))
             {
-                if (list[i].Type == type && !list[i].VerifiedAt.HasValue)
+                id.IsPrimary = false;
+            }
+
+            var key = (tenantId, type, value);
+
+            if (!_store.TryGetValue(key, out var target) || target.IsDeleted)
+                throw new InvalidOperationException("Identifier not found.");
+
+            target.IsPrimary = true;
+            return Task.CompletedTask;
+        }
+
+        public Task UnsetPrimaryAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, CancellationToken ct = default)
+        {
+            var key = (tenantId, type, value);
+
+            if (!_store.TryGetValue(key, out var target) || target.IsDeleted)
+                throw new InvalidOperationException("Identifier not found.");
+
+            target.IsPrimary = false;
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(string? tenantId, UserIdentifierType type, string value, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+        {
+            var key = (tenantId, type, value);
+
+            if (!_store.TryGetValue(key, out var id))
+                return Task.CompletedTask;
+
+            if (mode == DeleteMode.Hard)
+            {
+                _store.Remove(key);
+                return Task.CompletedTask;
+            }
+
+            if (id.IsDeleted)
+                return Task.CompletedTask;
+
+            id.IsDeleted = true;
+            id.DeletedAt = deletedAt;
+            id.IsPrimary = false;
+
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteByUserAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+        {
+            var identifiers = _store.Values
+                .Where(x => x.TenantId == tenantId)
+                .Where(x => x.UserKey == userKey)
+                .ToList();
+
+            foreach (var id in identifiers)
+            {
+                if (mode == DeleteMode.Hard)
                 {
-                    list[i] = list[i] with
-                    {
-                        VerifiedAt = verifiedAt
-                    };
+                    _store.Remove((tenantId, id.Type, id.Value));
+                }
+                else
+                {
+                    if (id.IsDeleted)
+                        continue;
+
+                    id.IsDeleted = true;
+                    id.DeletedAt = deletedAt;
+                    id.IsPrimary = false;
                 }
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<bool> ExistsAsync(string? tenantId, UserIdentifierType type, string value, CancellationToken ct = default)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var key = (tenantId, type, value);
-            return Task.FromResult(_lookup.ContainsKey(key));
-        }
-
-        public Task DeleteAsync(string? tenantId, UserKey userKey, UserIdentifierType type, string value, DeleteMode mode, CancellationToken ct = default)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var userKeyTuple = (tenantId, userKey);
-            var lookupKey = (tenantId, type, value);
-
-            if (!_byUser.TryGetValue(userKeyTuple, out var list))
-                return Task.CompletedTask;
-
-            var index = list.FindIndex(x => x.Type == type && StringComparer.OrdinalIgnoreCase.Equals(x.Value, value));
-
-            if (index < 0)
-                return Task.CompletedTask;
-
-            var record = list[index];
-
-            if (mode == DeleteMode.Soft)
-            {
-                if (record.DeletedAt.HasValue)
-                    return Task.CompletedTask;
-
-                list[index] = record with
-                {
-                    DeletedAt = DateTimeOffset.UtcNow
-                };
-            }
-            else
-            {
-                list.RemoveAt(index);
-                _lookup.TryRemove(lookupKey, out _);
-            }
-
-            return Task.CompletedTask;
-        }
     }
 }

@@ -7,16 +7,12 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
 {
     internal sealed class AddCredentialCommand : IAccessCommand<AddCredentialResult>
     {
-        private readonly IEnumerable<IAccessPolicy> _policies;
         private readonly Func<CancellationToken, Task<AddCredentialResult>> _execute;
 
-        public AddCredentialCommand(IEnumerable<IAccessPolicy> policies, Func<CancellationToken, Task<AddCredentialResult>> execute)
+        public AddCredentialCommand(Func<CancellationToken, Task<AddCredentialResult>> execute)
         {
-            _policies = policies ?? Array.Empty<IAccessPolicy>();
             _execute = execute;
         }
-
-        public IEnumerable<IAccessPolicy> GetPolicies(AccessContext context) => _policies;
 
         public Task<AddCredentialResult> ExecuteAsync(CancellationToken ct = default) => _execute(ct);
     }

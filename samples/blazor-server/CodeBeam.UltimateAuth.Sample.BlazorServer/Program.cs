@@ -2,8 +2,11 @@ using CodeBeam.UltimateAuth.Authorization.InMemory;
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
@@ -13,6 +16,7 @@ using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
+using CodeBeam.UltimateAuth.Users.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
@@ -96,17 +100,6 @@ builder.Services.AddScoped(sp =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
-    //scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
-    //scope.ServiceProvider.GetRequiredService<IUserStore<UserKey>>();
-
-    var seeder = scope.ServiceProvider.GetService<IAuthorizationSeeder>();
-    //if (seeder is not null)
-    //    await seeder.SeedAsync();
-}
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -118,6 +111,14 @@ else
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    using var scope = app.Services.CreateScope();
+    //scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
+    //scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
+    //scope.ServiceProvider.GetRequiredService<IUserIdentifierStore>();
+    //scope.ServiceProvider.GetRequiredService<ICredentialStore<UserKey>>();
+    var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
+
+    await seedRunner.RunAsync(tenantId: null);
 }
 
 app.UseHttpsRedirection();

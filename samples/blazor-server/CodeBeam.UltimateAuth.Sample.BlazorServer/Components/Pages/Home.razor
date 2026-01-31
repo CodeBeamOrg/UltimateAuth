@@ -31,8 +31,8 @@
         <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password">
             <MudStack>
                 <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
-                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
-                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
+                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: admin or user" />
+                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: admin or user" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
             </MudStack>
         </UALoginForm>

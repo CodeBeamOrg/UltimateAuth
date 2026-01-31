@@ -86,12 +86,12 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
 
         private async Task ChangeUserInactive()
         {
-            ChangeUserStatusRequest request = new ChangeUserStatusRequest
+            ChangeUserStatusAdminRequest request = new ChangeUserStatusAdminRequest
             {
                 UserKey = UserKey.FromString("user"),
                 NewStatus = UserStatus.Disabled
             };
-            var result = await UAuth.Users.ChangeStatusAsync(request);
+            var result = await UAuth.Users.ChangeStatusAdminAsync(request);
             if (result.Ok)
             {
                 Snackbar.Add($"User is disabled.", Severity.Info);

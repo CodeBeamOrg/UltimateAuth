@@ -255,6 +255,36 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             return services;
         }
 
+        //internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
+        //{
+        //    if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
+        //        throw new InvalidOperationException("UltimateAuth policies already registered.");
+
+        //    var registry = new AccessPolicyRegistry();
+
+        //    DefaultPolicySet.Register(registry);
+        //    configure?.Invoke(registry);
+        //    services.AddSingleton(registry);
+        //    services.AddSingleton<IAccessPolicyProvider>(sp =>
+        //    {
+        //        var compiled = registry.Build();
+        //        return new DefaultAccessPolicyProvider(compiled, sp);
+        //    });
+
+        //    services.TryAddScoped<IAccessAuthority>(sp =>
+        //    {
+        //        var invariants = sp.GetServices<IAccessInvariant>();
+        //        var globalPolicies = sp.GetServices<IAccessPolicy>();
+
+        //        return new DefaultAccessAuthority(invariants, globalPolicies);
+        //    });
+
+        //    services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
+
+
+        //    return services;
+        //}
+
         internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
         {
             if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
@@ -264,27 +294,33 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             DefaultPolicySet.Register(registry);
             configure?.Invoke(registry);
+
+            // 1. Registry (global, mutable until Build)
             services.AddSingleton(registry);
-            services.AddSingleton<IAccessPolicyProvider>(sp =>
+
+            // 2. Compiled policy set (immutable, singleton)
+            services.AddSingleton(sp =>
             {
-                var compiled = registry.Build();
-                return new DefaultAccessPolicyProvider(compiled, sp);
+                var r = sp.GetRequiredService<AccessPolicyRegistry>();
+                return r.Build();
             });
 
+            // 3. Policy provider MUST be scoped
+            services.AddScoped<IAccessPolicyProvider, DefaultAccessPolicyProvider>();
+
+            // 4. Authority (scoped, correct)
             services.TryAddScoped<IAccessAuthority>(sp =>
             {
                 var invariants = sp.GetServices<IAccessInvariant>();
                 var globalPolicies = sp.GetServices<IAccessPolicy>();
-
                 return new DefaultAccessAuthority(invariants, globalPolicies);
             });
 
+            // 5. Orchestrator (scoped)
             services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
-
 
             return services;
         }
-
 
         // =========================
         // USERS (FRAMEWORK-REQUIRED)

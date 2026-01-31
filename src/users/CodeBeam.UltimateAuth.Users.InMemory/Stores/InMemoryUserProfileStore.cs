@@ -1,131 +1,102 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using CodeBeam.UltimateAuth.Users.Reference.Domain;
-using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-internal sealed class InMemoryUserProfileStore : IUserProfileStore
+public sealed class InMemoryUserProfileStore : IUserProfileStore
 {
-    private readonly ConcurrentDictionary<UserKey, ReferenceUserProfile> _profiles = new();
-    private readonly IInMemoryUserIdProvider<UserKey> _idProvider;
-    private readonly IClock _clock;
+    private readonly Dictionary<(string? TenantId, UserKey UserKey), UserProfile> _store = new();
 
-    internal IEnumerable<ReferenceUserProfile> AllProfiles => _profiles.Values;
-
-    public InMemoryUserProfileStore(IInMemoryUserIdProvider<UserKey> idProvider, IClock clock)
+    public Task<bool> ExistsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
-        _idProvider = idProvider;
-        _clock = clock;
-        SeedDefault();
+        return Task.FromResult(_store.TryGetValue((tenantId, userKey), out var profile) && profile.DeletedAt == null);
     }
 
-    private void SeedDefault()
+    public Task<UserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
     {
-        SeedProfile(_idProvider.GetAdminUserId(), "Administrator");
-        SeedProfile(_idProvider.GetUserUserId(), "Standard User");
+        if (!_store.TryGetValue((tenantId, userKey), out var profile))
+            return Task.FromResult<UserProfile?>(null);
+
+        if (profile.DeletedAt != null)
+            return Task.FromResult<UserProfile?>(null);
+
+        return Task.FromResult<UserProfile?>(profile);
     }
 
-    private void SeedProfile(UserKey userKey, string displayName)
+    public Task<PagedResult<UserProfile>> QueryAsync(string? tenantId, UserProfileQuery query, CancellationToken ct = default)
     {
-        var now = _clock.UtcNow;
+        var baseQuery = _store.Values
+            .Where(x => x.TenantId == tenantId);
 
-        _profiles[userKey] = new ReferenceUserProfile
-        {
-            UserKey = userKey,
-            DisplayName = displayName,
-            Status = UserStatus.Active,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+        if (!query.IncludeDeleted)
+            baseQuery = baseQuery.Where(x => x.DeletedAt == null);
+
+        var totalCount = baseQuery.Count();
+
+        var items = baseQuery
+            .OrderBy(x => x.CreatedAt)
+            .Skip(query.Skip)
+            .Take(query.Take)
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult(new PagedResult<UserProfile>(items, totalCount));
     }
 
-    public Task CreateAsync(string? tenantId, ReferenceUserProfile profile, CancellationToken ct = default)
+    public Task CreateAsync(string? tenantId, UserProfile profile, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var key = (tenantId, profile.UserKey);
 
-        var mem = new ReferenceUserProfile
-        {
-            UserKey = profile.UserKey,
-            FirstName = profile.FirstName,
-            LastName = profile.LastName,
-            DisplayName = profile.DisplayName,
-            Email = profile.Email,
-            Status = profile.Status,
-            IsDeleted = profile.IsDeleted,
-            CreatedAt = profile.CreatedAt,
-            UpdatedAt = profile.UpdatedAt,
-            DeletedAt = profile.DeletedAt
-        };
+        if (_store.ContainsKey(key))
+            throw new InvalidOperationException("UserProfile already exists.");
 
-        if (!_profiles.TryAdd(profile.UserKey, mem))
-            throw new InvalidOperationException($"User profile '{profile.UserKey}' already exists.");
+        _store[key] = profile;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAsync(string? tenantId, UserKey userKey, UserProfileUpdate update, DateTimeOffset updatedAt, CancellationToken ct = default)
+    {
+        var key = (tenantId, userKey);
+
+        if (!_store.TryGetValue(key, out var existing) || existing.DeletedAt != null)
+            throw new InvalidOperationException("UserProfile not found.");
+
+        existing.FirstName = update.FirstName;
+        existing.LastName = update.LastName;
+        existing.DisplayName = update.DisplayName;
+        existing.BirthDate = update.BirthDate;
+        existing.Gender = update.Gender;
+        existing.Bio = update.Bio;
+        existing.Language = update.Language;
+        existing.TimeZone = update.TimeZone;
+        existing.Culture = update.Culture;
+        existing.Metadata = update.Metadata;
+
+        existing.UpdatedAt = updatedAt;
 
         return Task.CompletedTask;
     }
 
-    public Task<ReferenceUserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var key = (tenantId, userKey);
 
-        if (!_profiles.TryGetValue(userKey, out var profile) || profile.IsDeleted)
-            return Task.FromResult<ReferenceUserProfile?>(null);
-
-        return Task.FromResult(Map(profile));
-    }
-
-    public Task UpdateAsync(string? tenantId, UserKey userKey, UpdateProfileRequest request, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_profiles.TryGetValue(userKey, out var profile) || profile.IsDeleted)
-            throw new InvalidOperationException("User profile does not exist.");
-
-        profile.FirstName = request.FirstName;
-        profile.LastName = request.LastName;
-        profile.DisplayName = request.DisplayName;
-        profile.UpdatedAt = DateTimeOffset.UtcNow;
-
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
+        if (!_store.TryGetValue(key, out var profile))
+            return Task.CompletedTask;
 
         if (mode == DeleteMode.Hard)
         {
-            _profiles.TryRemove(userKey, out _);
+            _store.Remove(key);
             return Task.CompletedTask;
         }
 
-        if (!_profiles.TryGetValue(userKey, out var profile))
-            throw new InvalidOperationException("User profile does not exist.");
+        if (profile.IsDeleted)
+            return Task.CompletedTask;
 
         profile.IsDeleted = true;
-        profile.Status = UserStatus.Deleted;
-        profile.DeletedAt = DateTimeOffset.UtcNow;
-        profile.UpdatedAt = profile.DeletedAt;
+        profile.DeletedAt = deletedAt;
 
         return Task.CompletedTask;
     }
-
-    private static ReferenceUserProfile Map(ReferenceUserProfile profile)
-        => new()
-        {
-            UserKey = profile.UserKey,
-            FirstName = profile.FirstName,
-            LastName = profile.LastName,
-            DisplayName = profile.DisplayName,
-            Email = profile.Email,
-            Status = profile.Status,
-            CreatedAt = profile.CreatedAt,
-            UpdatedAt = profile.UpdatedAt,
-            IsDeleted = profile.IsDeleted,
-            DeletedAt = profile.DeletedAt
-        };
 }

@@ -48,7 +48,28 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
                 : Results.Forbid();
         }
 
-        public async Task<IResult> GetRolesAsync(UserKey userKey, HttpContext ctx)
+        public async Task<IResult> GetMyRolesAsync(HttpContext ctx)
+        {
+            var flow = _authFlow.Current;
+            if (!flow.IsAuthenticated)
+                return Results.Unauthorized();
+            var accessContext = await _accessContextFactory.CreateAsync(
+                flow,
+                action: UAuthActions.Authorization.Roles.ReadSelf,
+                resource: "authorization.roles",
+                resourceId: flow.UserKey!.Value
+            );
+
+            var roles = await _roles.GetRolesAsync(accessContext, flow.UserKey!.Value, ctx.RequestAborted);
+            return Results.Ok(new UserRolesResponse
+            {
+                UserKey = flow.UserKey!.Value,
+                Roles = roles
+            });
+
+        }
+
+        public async Task<IResult> GetUserRolesAsync(UserKey userKey, HttpContext ctx)
         {
             var flow = _authFlow.Current;
             if (!flow.IsAuthenticated)
@@ -56,7 +77,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
-                action: UAuthActions.Authorization.Roles.Read,
+                action: UAuthActions.Authorization.Roles.ReadAdmin,
                 resource: "authorization.roles",
                 resourceId: userKey.Value
             );
@@ -80,7 +101,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
-                action: UAuthActions.Authorization.Roles.Assign,
+                action: UAuthActions.Authorization.Roles.AssignAdmin,
                 resource: "authorization.roles",
                 resourceId: userKey.Value
             );
@@ -99,7 +120,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
 
             var accessContext = await _accessContextFactory.CreateAsync(
                 flow,
-                action: UAuthActions.Authorization.Roles.Remove,
+                action: UAuthActions.Authorization.Roles.RemoveAdmin,
                 resource: "authorization.roles",
                 resourceId: userKey.Value
             );

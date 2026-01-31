@@ -2,35 +2,21 @@
 
 public sealed record CreateUserRequest
 {
-    /// <summary>
-    /// Primary identifier (username, email, external id).
-    /// Interpretation is application-specific.
-    /// </summary>
-    public required string Identifier { get; init; }
+    public string? FirstName { get; init; }
+    public string? LastName { get; init; }
+    public string? DisplayName { get; init; }
 
-    /// <summary>
-    /// Optional password.
-    /// If null, user may be invited or use external login.
-    /// </summary>
     public string? Password { get; init; }
 
-    public string? DisplayName { get; set; }
+    public DateOnly? BirthDate { get; init; }
+    public string? Gender { get; init; }
+    public string? Bio { get; init; }
+    public string? Language { get; init; }
+    public string? TimeZone { get; init; }
+    public string? Culture { get; init; }
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
-    public string? TenantId { get; init; }
-
-    /// <summary>
-    /// Initial user status.
-    /// Defaults to Active.
-    /// </summary>
-    public UserStatus InitialStatus { get; init; } = UserStatus.Active;
-
-    /// <summary>
-    /// Optional initial profile data.
-    /// </summary>
-    public UserProfileInput? Profile { get; init; }
-
-    /// <summary>
-    /// Optional custom metadata.
-    /// </summary>
-    public IReadOnlyDictionary<string, object>? Metadata { get; init; }
+    public UserIdentifierType? PrimaryIdentifierType { get; init; }
+    public string? PrimaryIdentifierValue { get; init; }
+    public bool PrimaryIdentifierVerified { get; init; } = false;
 }

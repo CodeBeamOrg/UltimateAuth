@@ -1,7 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Credentials.Reference;
-using CodeBeam.UltimateAuth.Server.Endpoints;
-using CodeBeam.UltimateAuth.Users.Reference;
+﻿using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -16,13 +14,9 @@ public static class ServiceCollectionExtensions
             // Marker only – runtime validation happens via DI resolution
         });
 
-        services.TryAddScoped<IUAuthUserProfileService, DefaultUserProfileService>();
-        services.TryAddScoped<IUserProfileAdminService, DefaultUserProfileAdminService>();
-        services.TryAddScoped<IUserLifecycleService, DefaultUserLifecycleService>();
-        services.TryAddScoped<IUserIdentifierService, DefaultUserIdentifierService>();
-        services.TryAddScoped<IUserLifecycleEndpointHandler, DefaultUserLifecycleEndpointHandler>();
-        services.TryAddScoped<IUserProfileEndpointHandler, DefaultUserProfileEndpointHandler>();
-        services.TryAddScoped<IUserProfileAdminEndpointHandler, DefaultUserProfileAdminEndpointHandler>();
+        services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStore>();
+        services.TryAddScoped<IUserApplicationService, UserApplicationService>();
+        services.TryAddScoped<IUserEndpointHandler, DefaultUserEndpointHandler>();
 
         return services;
     }

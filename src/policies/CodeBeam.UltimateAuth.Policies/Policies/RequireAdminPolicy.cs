@@ -21,5 +21,5 @@ internal sealed class RequireAdminPolicy : IAccessPolicy
             : AccessDecision.Deny("admin_required");
     }
 
-    public bool AppliesTo(AccessContext context) => true;
+    public bool AppliesTo(AccessContext context) => context.Action.EndsWith(".admin");
 }

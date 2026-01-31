@@ -5,8 +5,9 @@
         public static class Users
         {
             public const string Create = "users.create";
-            public const string Delete = "users.delete";
-            public const string ChangeStatus = "users.status.change";
+            public const string DeleteAdmin = "users.delete.admin";
+            public const string ChangeStatusSelf = "users.status.change.self";
+            public const string ChangeStatusAdmin = "users.status.change.admin";
         }
 
         public static class UserProfiles
@@ -19,29 +20,49 @@
 
         public static class UserIdentifiers
         {
-            public const string Get = "users.identifiers.get";
-            public const string Change = "users.identifiers.change";
-            public const string Verify = "users.identifiers.verify";
-            public const string Delete = "users.identifiers.delete";
+            public const string GetSelf = "users.identifiers.get.self";
+            public const string GetAdmin = "users.identifiers.get.admin";
+            public const string AddSelf = "users.identifiers.add.self";
+            public const string AddAdmin = "users.identifiers.add.admin";
+            public const string UpdateSelf = "users.identifiers.update.self";
+            public const string UpdateAdmin = "users.identifiers.update.admin";
+            public const string SetPrimarySelf = "users.identifiers.setprimary.self";
+            public const string SetPrimaryAdmin = "users.identifiers.setprimary.admin";
+            public const string UnsetPrimarySelf = "users.identifiers.unsetprimary.self";
+            public const string UnsetPrimaryAdmin = "users.identifiers.unsetprimary.admin";
+            public const string VerifySelf = "users.identifiers.verify.self";
+            public const string VerifyAdmin = "users.identifiers.verify.admin";
+            public const string DeleteSelf = "users.identifiers.delete.self";
+            public const string DeleteAdmin = "users.identifiers.delete.admin";
         }
 
         public static class Credentials
         {
-            public const string List = "credentials.list";
-            public const string Add = "credentials.add";
-            public const string Change = "credentials.change";
-            public const string Revoke = "credentials.revoke";
-            public const string Activate = "credentials.activate";
-            public const string Delete = "credentials.delete";
+            public const string ListSelf = "credentials.list.self";
+            public const string ListAdmin = "credentials.list.admin";
+            public const string AddSelf = "credentials.add.self";
+            public const string AddAdmin = "credentials.add.admin";
+            public const string ChangeSelf = "credentials.change.self";
+            public const string ChangeAdmin = "credentials.change.admin";
+            public const string RevokeSelf = "credentials.revoke.self";
+            public const string RevokeAdmin = "credentials.revoke.admin";
+            public const string ActivateSelf = "credentials.activate.self";
+            public const string ActivateAdmin = "credentials.activate.admin";
+            public const string BeginResetSelf = "credentials.beginreset.self";
+            public const string BeginResetAdmin = "credentials.beginreset.admin";
+            public const string CompleteResetSelf = "credentials.completereset.self";
+            public const string CompleteResetAdmin = "credentials.completereset.admin";
+            public const string DeleteAdmin = "credentials.delete.admin";
         }
 
         public static class Authorization
         {
             public static class Roles
             {
-                public const string Read = "authorization.roles.read";
-                public const string Assign = "authorization.roles.assign";
-                public const string Remove = "authorization.roles.remove";
+                public const string ReadSelf = "authorization.roles.read.self";
+                public const string ReadAdmin = "authorization.roles.read.admin";
+                public const string AssignAdmin = "authorization.roles.assign.admin";
+                public const string RemoveAdmin = "authorization.roles.remove.admin";
             }
         }
 

@@ -97,10 +97,12 @@ namespace CodeBeam.UltimateAuth.Client.Extensions
                 o.Refresh.Interval ??= TimeSpan.FromMinutes(5);
             });
 
-            services.AddScoped<IUAuthRequestClient, UAuthRequestClient>();
-            services.AddScoped<IUAuthClient, UAuthClient>();
-            services.AddScoped<IFlowClient, DefaultFlowClient>();
+            services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
+            services.TryAddScoped<IUAuthClient, UAuthClient>();
+            services.TryAddScoped<IFlowClient, DefaultFlowClient>();
             services.TryAddScoped<IUserClient, DefaultUserClient>();
+            services.TryAddScoped<IUserIdentifierClient, DefaultUserIdentifierClient>();
+            services.TryAddScoped<IAuthorizationClient, DefaultAuthorizationClient>();
 
             services.AddScoped<ISessionCoordinator>(sp =>
             {
