@@ -189,30 +189,53 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             if (options.EnableCredentialsEndpoints != false)
             {
                 var credentials = group.MapGroup("/credentials");
+                var adminCredentials = group.MapGroup("/admin/users/{userKey}/credentials");
 
                 credentials.MapPost("/get", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
                     => await h.GetAllAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-                credentials.MapPost("/post", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
+                credentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
                     => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-                credentials.MapPost("/update/{type}", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
+                credentials.MapPost("/{type}/change", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
                     => await h.ChangeAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
                 credentials.MapPost("/{type}/revoke", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
                     => await h.RevokeAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-                credentials.MapPost("/{type}/activate", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                    => await h.ActivateAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                credentials.MapPost("/{type}/reset/begin", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
+                    => await h.BeginResetAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-                credentials.MapPost("/delete/{type}", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                    => await h.DeleteAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                credentials.MapPost("/{type}/reset/complete", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
+                    => await h.CompleteResetAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+
+                adminCredentials.MapPost("/get", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.GetAllAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.AddAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/{type}/revoke", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
+                    => await h.RevokeAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/{type}/activate", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
+                    => await h.ActivateAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/{type}/reset/begin", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
+                    => await h.BeginResetAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/{type}/reset/complete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
+                    => await h.CompleteResetAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+
+                adminCredentials.MapPost("/{type}/delete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
+                    => await h.DeleteAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
             }
 
             if (options.EnableAuthorizationEndpoints != false)
             {
                 var authz = group.MapGroup("/authorization");
-                var authzAdmin = group.MapGroup("/admin/authorization");
+                var adminAuthz = group.MapGroup("/admin/authorization");
 
                 authz.MapPost("/check", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
                     => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
@@ -221,13 +244,13 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
                     => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
 
-                authzAdmin.MapPost("/users/{userKey}/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
+                adminAuthz.MapPost("/users/{userKey}/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                     => await h.GetUserRolesAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
-                authzAdmin.MapPost("/users/{userKey}/roles/post", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
+                adminAuthz.MapPost("/users/{userKey}/roles/post", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                     => await h.AssignRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
-                authzAdmin.MapPost("/users/{userKey}/roles/delete", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
+                adminAuthz.MapPost("/users/{userKey}/roles/delete", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                     => await h.RemoveRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
             }
 

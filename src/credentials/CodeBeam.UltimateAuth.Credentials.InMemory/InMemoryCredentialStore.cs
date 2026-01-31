@@ -6,10 +6,12 @@ using CodeBeam.UltimateAuth.Credentials.InMemory;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using System.Collections.Concurrent;
 
+namespace CodeBeam.UltimateAuth.Credentials.InMemory;
+
 internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserId>, ICredentialSecretStore<TUserId> where TUserId : notnull
 {
-    private readonly ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>> _byLogin;
-    private readonly ConcurrentDictionary<TUserId, List<InMemoryPasswordCredentialState<TUserId>>> _byUser;
+    private readonly ConcurrentDictionary<(string? TenantId, string Login), InMemoryPasswordCredentialState<TUserId>> _byLogin;
+    private readonly ConcurrentDictionary<(string? TenantId, TUserId UserId), List<InMemoryPasswordCredentialState<TUserId>>> _byUser;
 
     private readonly IUAuthPasswordHasher _hasher;
     private readonly IInMemoryUserIdProvider<TUserId> _userIdProvider;
@@ -19,38 +21,15 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         _hasher = hasher;
         _userIdProvider = userIdProvider;
 
-        _byLogin = new ConcurrentDictionary<string, InMemoryPasswordCredentialState<TUserId>>(StringComparer.OrdinalIgnoreCase);
-        _byUser = new ConcurrentDictionary<TUserId, List<InMemoryPasswordCredentialState<TUserId>>>();
-
-        //SeedDefault();
-    }
-
-    private void SeedDefault()
-    {
-        SeedUser("admin", _userIdProvider.GetAdminUserId());
-        SeedUser("user", _userIdProvider.GetUserUserId());
-    }
-
-    private void SeedUser(string login, TUserId userId)
-    {
-        var state = new InMemoryPasswordCredentialState<TUserId>
-        {
-            UserId = userId,
-            Login = login,
-            SecretHash = _hasher.Hash(login),
-            Security = new CredentialSecurityState(CredentialSecurityStatus.Active),
-            Metadata = new CredentialMetadata(DateTimeOffset.UtcNow, null, "seed")
-        };
-
-        _byLogin[login] = state;
-        _byUser[userId] = new List<InMemoryPasswordCredentialState<TUserId>> { state };
+        _byLogin = new ConcurrentDictionary<(string?, string), InMemoryPasswordCredentialState<TUserId>>();
+        _byUser = new ConcurrentDictionary<(string?, TUserId), List<InMemoryPasswordCredentialState<TUserId>>>();
     }
 
     public Task<IReadOnlyCollection<ICredential<TUserId>>> FindByLoginAsync(string? tenantId, string loginIdentifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_byLogin.TryGetValue(loginIdentifier, out var state))
+        if (!_byLogin.TryGetValue((tenantId, loginIdentifier), out var state))
             return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
         return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(new[] { Map(state) });
@@ -60,23 +39,22 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_byUser.TryGetValue(userId, out var list))
+        if (!_byUser.TryGetValue((tenantId, userId), out var list))
             return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
-        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(list.Select(Map).Cast<ICredential<TUserId>>().ToArray());
+        return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(list.Select(Map).ToArray());
     }
 
     public Task<IReadOnlyCollection<ICredential<TUserId>>> GetByUserAndTypeAsync(string? tenantId, TUserId userId, CredentialType type, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_byUser.TryGetValue(userId, out var list))
+        if (!_byUser.TryGetValue((tenantId, userId), out var list))
             return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(Array.Empty<ICredential<TUserId>>());
 
         return Task.FromResult<IReadOnlyCollection<ICredential<TUserId>>>(
             list.Where(c => c.Type == type)
                 .Select(Map)
-                .Cast<ICredential<TUserId>>()
                 .ToArray());
     }
 
@@ -84,7 +62,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        return Task.FromResult(_byUser.TryGetValue(userId, out var list) && list.Any(c => c.Type == type));
+        return Task.FromResult(_byUser.TryGetValue((tenantId, userId), out var list) && list.Any(c => c.Type == type));
     }
 
     public Task AddAsync(string? tenantId, ICredential<TUserId> credential, CancellationToken ct = default)
@@ -92,7 +70,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
         ct.ThrowIfCancellationRequested();
 
         if (credential is not PasswordCredential<TUserId> pwd)
-            throw new NotSupportedException("Only password credential supported in-memory.");
+            throw new NotSupportedException("Only password credentials are supported in-memory.");
 
         var state = new InMemoryPasswordCredentialState<TUserId>
         {
@@ -103,8 +81,10 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
             Metadata = pwd.Metadata
         };
 
-        _byLogin[pwd.LoginIdentifier] = state;
-        _byUser.AddOrUpdate(pwd.UserId,
+        _byLogin[(tenantId, pwd.LoginIdentifier)] = state;
+
+        _byUser.AddOrUpdate(
+            (tenantId, pwd.UserId),
             _ => new List<InMemoryPasswordCredentialState<TUserId>> { state },
             (_, list) =>
             {
@@ -119,7 +99,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_byUser.TryGetValue(userId, out var list))
+        if (_byUser.TryGetValue((tenantId, userId), out var list))
         {
             var state = list.FirstOrDefault(c => c.Type == type);
             if (state != null)
@@ -133,7 +113,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_byUser.TryGetValue(userId, out var list))
+        if (_byUser.TryGetValue((tenantId, userId), out var list))
         {
             var state = list.FirstOrDefault(c => c.Type == type);
             if (state != null)
@@ -147,7 +127,7 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_byUser.TryGetValue(userId, out var list))
+        if (_byUser.TryGetValue((tenantId, userId), out var list))
         {
             var state = list.FirstOrDefault(c => c.Type == type);
             if (state != null)
@@ -161,13 +141,13 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_byUser.TryGetValue(userId, out var list))
+        if (_byUser.TryGetValue((tenantId, userId), out var list))
         {
             var state = list.FirstOrDefault(c => c.Type == type);
             if (state != null)
             {
                 list.Remove(state);
-                _byLogin.TryRemove(state.Login, out _);
+                _byLogin.TryRemove((tenantId, state.Login), out _);
             }
         }
 
@@ -178,10 +158,10 @@ internal sealed class InMemoryCredentialStore<TUserId> : ICredentialStore<TUserI
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_byUser.TryRemove(userId, out var list))
+        if (_byUser.TryRemove((tenantId, userId), out var list))
         {
             foreach (var credential in list)
-                _byLogin.TryRemove(credential.Login, out _);
+                _byLogin.TryRemove((tenantId, credential.Login), out _);
         }
 
         return Task.CompletedTask;

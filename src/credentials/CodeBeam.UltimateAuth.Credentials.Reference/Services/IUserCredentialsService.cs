@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
@@ -15,6 +14,10 @@ public interface IUserCredentialsService
     Task<CredentialActionResult> RevokeAsync(AccessContext context, CredentialType type, RevokeCredentialRequest request, CancellationToken ct = default);
 
     Task<CredentialActionResult> ActivateAsync(AccessContext context, CredentialType type, CancellationToken ct = default);
+
+    Task BeginResetAsync(AccessContext context, CredentialType type, BeginCredentialResetRequest request, CancellationToken ct = default);
+
+    Task CompleteResetAsync(AccessContext context, CredentialType type, CompleteCredentialResetRequest request, CancellationToken ct = default);
 
     Task<CredentialActionResult> DeleteAsync(AccessContext context, CredentialType type, CancellationToken ct = default);
 }

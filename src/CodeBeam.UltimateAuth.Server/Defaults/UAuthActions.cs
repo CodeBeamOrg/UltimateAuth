@@ -38,12 +38,21 @@
 
         public static class Credentials
         {
-            public const string List = "credentials.list";
-            public const string Add = "credentials.add";
-            public const string Change = "credentials.change";
-            public const string Revoke = "credentials.revoke";
-            public const string Activate = "credentials.activate";
-            public const string Delete = "credentials.delete";
+            public const string ListSelf = "credentials.list.self";
+            public const string ListAdmin = "credentials.list.admin";
+            public const string AddSelf = "credentials.add.self";
+            public const string AddAdmin = "credentials.add.admin";
+            public const string ChangeSelf = "credentials.change.self";
+            public const string ChangeAdmin = "credentials.change.admin";
+            public const string RevokeSelf = "credentials.revoke.self";
+            public const string RevokeAdmin = "credentials.revoke.admin";
+            public const string ActivateSelf = "credentials.activate.self";
+            public const string ActivateAdmin = "credentials.activate.admin";
+            public const string BeginResetSelf = "credentials.beginreset.self";
+            public const string BeginResetAdmin = "credentials.beginreset.admin";
+            public const string CompleteResetSelf = "credentials.completereset.self";
+            public const string CompleteResetAdmin = "credentials.completereset.admin";
+            public const string DeleteAdmin = "credentials.delete.admin";
         }
 
         public static class Authorization

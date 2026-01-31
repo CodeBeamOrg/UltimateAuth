@@ -33,7 +33,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new GetAllCredentialsCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new GetAllCredentialsCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
@@ -65,7 +65,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AddCredentialCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new AddCredentialCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
@@ -102,7 +102,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new ChangeCredentialCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new ChangeCredentialCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
@@ -123,7 +123,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new RevokeCredentialCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new RevokeCredentialCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
@@ -146,7 +146,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new ActivateCredentialCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new ActivateCredentialCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
@@ -161,11 +161,46 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
+    public async Task BeginResetAsync(AccessContext context, CredentialType type, BeginCredentialResetRequest request, CancellationToken ct)
+    {
+        var cmd = new BeginCredentialResetCommand(async innerCt =>
+        {
+            if (context.ActorUserKey is not UserKey userKey)
+                throw new UnauthorizedAccessException();
+
+            var security = new CredentialSecurityState(CredentialSecurityStatus.ResetRequested, reason: request.Reason);
+
+            await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+            return CredentialActionResult.Success();
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    public async Task CompleteResetAsync(AccessContext context, CredentialType type, CompleteCredentialResetRequest request, CancellationToken ct)
+    {
+        var cmd = new CompleteCredentialResetCommand(async innerCt =>
+        {
+            if (context.ActorUserKey is not UserKey userKey)
+                throw new UnauthorizedAccessException();
+
+            var hash = _hasher.Hash(request.NewSecret);
+
+            await _secrets.SetAsync(context.ResourceTenantId, userKey, type, hash, innerCt);
+
+            var security = new CredentialSecurityState(CredentialSecurityStatus.Active);
+            await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+            return CredentialActionResult.Success();
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
     public async Task<CredentialActionResult> DeleteAsync(AccessContext context, CredentialType type, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new DeleteCredentialCommand(Array.Empty<IAccessPolicy>(),
+        var cmd = new DeleteCredentialCommand(
             async innerCt =>
             {
                 if (context.ActorUserKey is not UserKey userKey)
