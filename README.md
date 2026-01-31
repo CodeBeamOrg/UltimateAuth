@@ -1,6 +1,6 @@
 ![UltimateAuth Banner](https://github.com/user-attachments/assets/4204666e-b57a-4cb5-8846-dc7e4f16bfe9)
 
-⚠️ This project is in development. First preview release expected Q1 2026 - coming soon.
+⚠️ UltimateAuth is under active development. Core architecture and public APIs are now in place. The first release (v 0.0.1) is expected within days.
 
 ![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
