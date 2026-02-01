@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Options
+﻿namespace CodeBeam.UltimateAuth.Core.Options;
+
+public enum HeaderTokenFormat
 {
-    public enum HeaderTokenFormat
-    {
-        Bearer,
-        Raw
-    }
+    Bearer,
+    Raw
 }

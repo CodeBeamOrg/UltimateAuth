@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -200,22 +201,14 @@ namespace CodeBeam.UltimateAuth.Client.Services
         private static string CreateVerifier()
         {
             var bytes = RandomNumberGenerator.GetBytes(32);
-            return Base64UrlEncode(bytes);
+            return Base64Url.Encode(bytes);
         }
 
         private static string CreateChallenge(string verifier)
         {
             using var sha256 = SHA256.Create();
             var hash = sha256.ComputeHash(Encoding.ASCII.GetBytes(verifier));
-            return Base64UrlEncode(hash);
-        }
-
-        private static string Base64UrlEncode(byte[] input)
-        {
-            return Convert.ToBase64String(input)
-                .TrimEnd('=')
-                .Replace('+', '-')
-                .Replace('/', '_');
+            return Base64Url.Encode(hash);
         }
     }
 }

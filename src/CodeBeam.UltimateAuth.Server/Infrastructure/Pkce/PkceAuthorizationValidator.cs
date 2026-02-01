@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -55,16 +56,8 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
         using var sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(Encoding.ASCII.GetBytes(verifier));
 
-        string computedChallenge = Base64UrlEncode(hash);
+        string computedChallenge = Base64Url.Encode(hash);
 
         return CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(computedChallenge), Encoding.ASCII.GetBytes(expectedChallenge));
-    }
-
-    private static string Base64UrlEncode(byte[] input)
-    {
-        return Convert.ToBase64String(input)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
     }
 }

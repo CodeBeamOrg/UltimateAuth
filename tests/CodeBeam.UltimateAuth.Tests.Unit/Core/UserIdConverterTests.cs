@@ -13,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             var key = UserKey.New();
             var converter = new UAuthUserIdConverter<UserKey>();
 
-            var str = converter.ToString(key);
+            var str = converter.ToCanonicalString(key);
             var parsed = converter.FromString(str);
 
             Assert.Equal(key, parsed);
@@ -25,7 +25,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             var id = Guid.NewGuid();
             var converter = new UAuthUserIdConverter<Guid>();
 
-            var str = converter.ToString(id);
+            var str = converter.ToCanonicalString(id);
             var parsed = converter.FromString(str);
 
             Assert.Equal(id, parsed);
@@ -37,7 +37,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             var id = "user_123";
             var converter = new UAuthUserIdConverter<string>();
 
-            var str = converter.ToString(id);
+            var str = converter.ToCanonicalString(id);
             var parsed = converter.FromString(str);
 
             Assert.Equal(id, parsed);
@@ -49,7 +49,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             var id = 1234;
             var converter = new UAuthUserIdConverter<int>();
 
-            var str = converter.ToString(id);
+            var str = converter.ToCanonicalString(id);
 
             Assert.Equal(id.ToString(CultureInfo.InvariantCulture), str);
         }
@@ -60,7 +60,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
             var id = 9_223_372_036_854_775_000L;
             var converter = new UAuthUserIdConverter<long>();
 
-            var str = converter.ToString(id);
+            var str = converter.ToCanonicalString(id);
             var parsed = converter.FromString(str);
 
             Assert.Equal(id, parsed);
@@ -71,7 +71,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
         {
             var converter = new UAuthUserIdConverter<double>();
 
-            Assert.ThrowsAny<Exception>(() => converter.ToString(12.34));
+            Assert.ThrowsAny<Exception>(() => converter.ToCanonicalString(12.34));
         }
 
         private sealed class CustomUserId
@@ -84,7 +84,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit
         {
             var converter = new UAuthUserIdConverter<CustomUserId>();
 
-            Assert.ThrowsAny<Exception>(() => converter.ToString(new CustomUserId()));
+            Assert.ThrowsAny<Exception>(() => converter.ToCanonicalString(new CustomUserId()));
         }
 
         [Fact]
