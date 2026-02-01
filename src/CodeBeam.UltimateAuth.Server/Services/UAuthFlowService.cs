@@ -73,7 +73,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var now = request.At ?? DateTimeOffset.UtcNow;
             var authContext = authFlow.ToAuthContext(now);
 
-            return _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.TenantId, request.SessionId), ct);
+            return _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.SessionId), ct);
         }
 
         public async Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default)

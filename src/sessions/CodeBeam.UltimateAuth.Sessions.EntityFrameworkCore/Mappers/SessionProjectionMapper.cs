@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
     internal static class SessionProjectionMapper
     {
-        public static ISession ToDomain(this SessionProjection p)
+        public static UAuthSession ToDomain(this SessionProjection p)
         {
             return UAuthSession.FromProjection(
                 p.SessionId,
@@ -23,7 +23,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             );
         }
 
-        public static SessionProjection ToProjection(this ISession s)
+        public static SessionProjection ToProjection(this UAuthSession s)
         {
             return new SessionProjection
             {

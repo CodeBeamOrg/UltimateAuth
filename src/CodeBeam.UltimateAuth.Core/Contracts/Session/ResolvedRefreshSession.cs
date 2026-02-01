@@ -7,8 +7,8 @@ public sealed record ResolvedRefreshSession
     public bool IsValid { get; init; }
     public bool IsReuseDetected { get; init; }
 
-    public ISession? Session { get; init; }
-    public ISessionChain? Chain { get; init; }
+    public UAuthSession? Session { get; init; }
+    public UAuthSessionChain? Chain { get; init; }
 
     private ResolvedRefreshSession() { }
 
@@ -25,9 +25,7 @@ public sealed record ResolvedRefreshSession
             IsReuseDetected = true
         };
 
-    public static ResolvedRefreshSession Valid(
-        ISession session,
-        ISessionChain chain)
+    public static ResolvedRefreshSession Valid(UAuthSession session, UAuthSessionChain chain)
         => new()
         {
             IsValid = true,

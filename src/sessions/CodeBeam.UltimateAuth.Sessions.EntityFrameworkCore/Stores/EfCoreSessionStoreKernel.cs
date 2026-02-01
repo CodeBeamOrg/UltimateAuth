@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 
@@ -8,10 +9,12 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
     internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
     {
         private readonly UltimateAuthSessionDbContext _db;
+        private readonly TenantContext _tenant;
 
-        public EfCoreSessionStoreKernel(UltimateAuthSessionDbContext db)
+        public EfCoreSessionStoreKernel(UltimateAuthSessionDbContext db, TenantContext tenant)
         {
             _db = db;
+            _tenant = tenant;
         }
 
         public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
@@ -45,7 +48,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             });
         }
 
-        public async Task<ISession?> GetSessionAsync(AuthSessionId sessionId)
+        public async Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId)
         {
             var projection = await _db.Sessions
                 .AsNoTracking()
@@ -54,7 +57,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return projection?.ToDomain();
         }
 
-        public async Task SaveSessionAsync(ISession session)
+        public async Task SaveSessionAsync(UAuthSession session)
         {
             var projection = session.ToProjection();
 
@@ -83,7 +86,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             _db.Sessions.Update(revoked.ToProjection());
         }
 
-        public async Task<ISessionChain?> GetChainAsync(SessionChainId chainId)
+        public async Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)
         {
             var projection = await _db.Chains
                 .AsNoTracking()
@@ -92,7 +95,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return projection?.ToDomain();
         }
 
-        public async Task SaveChainAsync(ISessionChain chain)
+        public async Task SaveChainAsync(UAuthSessionChain chain)
         {
             var projection = chain.ToProjection();
 
@@ -141,7 +144,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             _db.Chains.Update(projection);
         }
 
-        public async Task<ISessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
+        public async Task<UAuthSessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
         {
             var rootProjection = await _db.Roots
                 .AsNoTracking()
@@ -158,7 +161,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return rootProjection.ToDomain(chains.Select(c => c.ToDomain()).ToList());
         }
 
-        public async Task SaveSessionRootAsync(ISessionRoot root)
+        public async Task SaveSessionRootAsync(UAuthSessionRoot root)
         {
             var projection = root.ToProjection();
 
@@ -191,7 +194,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<IReadOnlyList<ISessionChain>> GetChainsByUserAsync(UserKey userKey)
+        public async Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey)
         {
             var projections = await _db.Chains
                 .AsNoTracking()
@@ -201,7 +204,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return projections.Select(x => x.ToDomain()).ToList();
         }
 
-        public async Task<IReadOnlyList<ISession>> GetSessionsByChainAsync(SessionChainId chainId)
+        public async Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId)
         {
             var projections = await _db.Sessions
                 .AsNoTracking()
@@ -211,7 +214,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return projections.Select(x => x.ToDomain()).ToList();
         }
 
-        public async Task<ISessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
+        public async Task<UAuthSessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
         {
             var rootProjection = await _db.Roots
                 .AsNoTracking()

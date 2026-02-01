@@ -5,9 +5,7 @@ namespace CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 internal static class TenantValidation
 {
-    public static UAuthTenantContext FromResolvedTenant(
-        string rawTenantId,
-        UAuthMultiTenantOptions options)
+    public static UAuthTenantContext FromResolvedTenant(string rawTenantId, UAuthMultiTenantOptions options)
     {
         if (string.IsNullOrWhiteSpace(rawTenantId))
             return UAuthTenantContext.NotResolved();

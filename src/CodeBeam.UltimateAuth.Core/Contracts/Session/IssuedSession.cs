@@ -10,7 +10,7 @@ public sealed class IssuedSession
     /// <summary>
     /// The issued domain session.
     /// </summary>
-    public required ISession Session { get; init; }
+    public required UAuthSession Session { get; init; }
 
     /// <summary>
     /// Opaque session identifier returned to the client.

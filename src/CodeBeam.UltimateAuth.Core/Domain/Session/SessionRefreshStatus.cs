@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum SessionRefreshStatus
 {
-    public enum SessionRefreshStatus
-    {
-        Success,
-        ReauthRequired,
-        InvalidRequest,
-        Failed
-    }
+    Success,
+    ReauthRequired,
+    InvalidRequest,
+    Failed
 }

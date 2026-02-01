@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
@@ -9,13 +10,25 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
         public DbSet<SessionChainProjection> Chains => Set<SessionChainProjection>();
         public DbSet<SessionProjection> Sessions => Set<SessionProjection>();
 
-        public UltimateAuthSessionDbContext(DbContextOptions options) : base(options)
-        {
 
+        private readonly TenantContext _tenant;
+
+        public UltimateAuthSessionDbContext(DbContextOptions options, TenantContext tenant) : base(options)
+        {
+            _tenant = tenant;
         }
 
         protected override void OnModelCreating(ModelBuilder b)
         {
+            b.Entity<SessionProjection>()
+                .HasQueryFilter(x => _tenant.IsGlobal || x.TenantId == _tenant.TenantId);
+
+            b.Entity<SessionChainProjection>()
+                .HasQueryFilter(x => _tenant.IsGlobal || x.TenantId == _tenant.TenantId);
+
+            b.Entity<SessionRootProjection>()
+                .HasQueryFilter(x => _tenant.IsGlobal || x.TenantId == _tenant.TenantId);
+
             b.Entity<SessionRootProjection>(e =>
             {
                 e.HasKey(x => x.Id);

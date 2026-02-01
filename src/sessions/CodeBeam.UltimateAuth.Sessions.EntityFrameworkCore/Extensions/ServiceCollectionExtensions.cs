@@ -10,7 +10,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddDbContext<UltimateAuthSessionDbContext>(configureDb);
         services.AddScoped<EfCoreSessionStoreKernel>();
-        services.AddScoped<ISessionStore, EfCoreSessionStore>();
 
         return services;
     }

@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
     internal static class SessionChainProjectionMapper
     {
-        public static ISessionChain ToDomain(this SessionChainProjection p)
+        public static UAuthSessionChain ToDomain(this SessionChainProjection p)
         {
             return UAuthSessionChain.FromProjection(
                 p.ChainId,
@@ -20,7 +20,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             );
         }
 
-        public static SessionChainProjection ToProjection(this ISessionChain chain)
+        public static SessionChainProjection ToProjection(this UAuthSessionChain chain)
         {
             return new SessionChainProjection
             {

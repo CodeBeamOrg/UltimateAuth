@@ -5,6 +5,6 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 public sealed record TokenIssueContext
 {
     public string? TenantId { get; init; }
-    public ISession Session { get; init; } = default!;
+    public UAuthSession Session { get; init; } = default!;
     public DateTimeOffset At { get; init; }
 }

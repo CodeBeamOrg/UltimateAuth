@@ -13,14 +13,18 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 {
     public sealed class UAuthSessionIssuer : IHttpSessionIssuer
     {
-        private readonly ISessionStore _sessionStore;
+        private readonly ISessionStoreKernelFactory _kernelFactory;
         private readonly IOpaqueTokenGenerator _opaqueGenerator;
         private readonly UAuthServerOptions _options;
         private readonly IUAuthCookieManager _cookieManager;
 
-        public UAuthSessionIssuer(ISessionStore sessionStore, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options, IUAuthCookieManager cookieManager)
+        public UAuthSessionIssuer(
+            ISessionStoreKernelFactory kernelFactory,
+            IOpaqueTokenGenerator opaqueGenerator,
+            IOptions<UAuthServerOptions> options,
+            IUAuthCookieManager cookieManager)
         {
-            _sessionStore = sessionStore;
+            _kernelFactory = kernelFactory;
             _opaqueGenerator = opaqueGenerator;
             _options = options.Value;
             _cookieManager = cookieManager;
@@ -80,17 +84,40 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
             };
 
-            await _sessionStore.CreateSessionAsync(issued,
-                new SessionStoreContext
+            var kernel = _kernelFactory.Create(context.TenantId);
+
+            await kernel.ExecuteAsync(async _ =>
+            {
+                var root = await kernel.GetSessionRootByUserAsync(context.UserKey)
+                    ?? UAuthSessionRoot.Create(context.TenantId, context.UserKey, now);
+
+                UAuthSessionChain chain;
+
+                if (context.ChainId is not null)
                 {
-                    TenantId = context.TenantId,
-                    UserKey = context.UserKey,
-                    ChainId = context.ChainId,
-                    IssuedAt = now,
-                    Device = context.Device
-                },
-                ct
-            );
+                    chain = await kernel.GetChainAsync(context.ChainId.Value)
+                        ?? throw new SecurityException("Chain not found.");
+                }
+                else
+                {
+                    chain = UAuthSessionChain.Create(
+                        SessionChainId.New(),
+                        root.RootId,
+                        context.TenantId,
+                        context.UserKey,
+                        root.SecurityVersion,
+                        ClaimsSnapshot.Empty);
+
+                    await kernel.SaveChainAsync(chain);
+                    root = root.AttachChain(chain, now);
+                }
+
+                var boundSession = session.WithChain(chain.ChainId);
+
+                await kernel.SaveSessionAsync(boundSession);
+                await kernel.SetActiveSessionIdAsync(chain.ChainId, boundSession.SessionId);
+                await kernel.SaveSessionRootAsync(root);
+            }, ct);
 
             return issued;
         }
@@ -110,6 +137,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
         private async Task<IssuedSession> RotateInternalAsync(HttpContext httpContext, SessionRotationContext context, CancellationToken ct = default)
         {
+            var kernel = _kernelFactory.Create(context.TenantId);
             var now = context.Now;
 
             var opaqueSessionId = _opaqueGenerator.Generate();
@@ -141,38 +169,66 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
             };
 
-            await _sessionStore.RotateSessionAsync(context.CurrentSessionId, issued,
-                new SessionStoreContext
-                {
-                    TenantId = context.TenantId,
-                    UserKey = context.UserKey,
-                    IssuedAt = now,
-                    Device = context.Device,
-                },
-                ct
-            );
+            await kernel.ExecuteAsync(async _ =>
+            {
+                var oldSession = await kernel.GetSessionAsync(context.CurrentSessionId)
+                    ?? throw new SecurityException("Session not found");
+
+                if (oldSession.IsRevoked || oldSession.ExpiresAt <= now)
+                    throw new SecurityException("Session is not valid");
+
+                var chain = await kernel.GetChainAsync(oldSession.ChainId)
+                    ?? throw new SecurityException("Chain not found");
+
+                var bound = issued.Session.WithChain(chain.ChainId);
+
+                await kernel.SaveSessionAsync(bound);
+                await kernel.SetActiveSessionIdAsync(chain.ChainId, bound.SessionId);
+                await kernel.RevokeSessionAsync(oldSession.SessionId, now);
+            }, ct);
 
             return issued;
         }
 
         public async Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
         {
-            await _sessionStore.RevokeSessionAsync(tenantId, sessionId, at, ct );
+            var kernel = _kernelFactory.Create(tenantId);
+            await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
         }
 
         public async Task RevokeChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
         {
-            await _sessionStore.RevokeChainAsync(tenantId, chainId, at, ct );
+            var kernel = _kernelFactory.Create(tenantId);
+            await kernel.ExecuteAsync(_ => kernel.RevokeChainAsync(chainId, at), ct);
         }
 
         public async Task RevokeAllChainsAsync(string? tenantId, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
         {
-            await _sessionStore.RevokeAllChainsAsync(tenantId, userKey, exceptChainId, at, ct );
+            var kernel = _kernelFactory.Create(tenantId);
+            await kernel.ExecuteAsync(async _ =>
+            {
+                var chains = await kernel.GetChainsByUserAsync(userKey);
+
+                foreach (var chain in chains)
+                {
+                    if (exceptChainId.HasValue && chain.ChainId == exceptChainId.Value)
+                        continue;
+
+                    if (!chain.IsRevoked)
+                        await kernel.RevokeChainAsync(chain.ChainId, at);
+
+                    var activeSessionId = await kernel.GetActiveSessionIdAsync(chain.ChainId);
+                    if (activeSessionId is not null)
+                        await kernel.RevokeSessionAsync(activeSessionId.Value, at);
+                }
+            }, ct);
         }
 
+        // TODO: Discuss revoking chains/sessions when root is revoked
         public async Task RevokeRootAsync(string? tenantId, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
         {
-            await _sessionStore.RevokeRootAsync(tenantId, userKey, at, ct );
+            var kernel = _kernelFactory.Create(tenantId);
+            await kernel.ExecuteAsync(_ => kernel.RevokeSessionRootAsync(userKey, at), ct);
         }
 
     }
