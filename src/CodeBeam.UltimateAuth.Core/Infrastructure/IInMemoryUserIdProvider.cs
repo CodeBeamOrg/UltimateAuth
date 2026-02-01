@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Infrastructure
+﻿namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+
+public interface IInMemoryUserIdProvider<TUserId>
 {
-    public interface IInMemoryUserIdProvider<TUserId>
-    {
-        TUserId GetAdminUserId();
-        TUserId GetUserUserId();
-    }
+    TUserId GetAdminUserId();
+    TUserId GetUserUserId();
 }

@@ -1,18 +1,17 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
-{
-    public enum RefreshTokenPersistence
-    {
-        /// <summary>
-        /// Refresh token store'a yazılır.
-        /// Login, first-issue gibi normal akışlar için.
-        /// </summary>
-        Persist,
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-        /// <summary>
-        /// Refresh token store'a yazılmaz.
-        /// Rotation gibi özel akışlarda,
-        /// caller tarafından kontrol edilir.
-        /// </summary>
-        DoNotPersist
-    }
+public enum RefreshTokenPersistence
+{
+    /// <summary>
+    /// Refresh token store'a yazılır.
+    /// Login, first-issue gibi normal akışlar için.
+    /// </summary>
+    Persist,
+
+    /// <summary>
+    /// Refresh token store'a yazılmaz.
+    /// Rotation gibi özel akışlarda,
+    /// caller tarafından kontrol edilir.
+    /// </summary>
+    DoNotPersist
 }

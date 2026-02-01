@@ -1,12 +1,11 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum AuthOperation
 {
-    public enum AuthOperation
-    {
-        Login,
-        Access,
-        Refresh,
-        Revoke,
-        Logout,
-        System
-    }
+    Login,
+    Access,
+    Refresh,
+    Revoke,
+    Logout,
+    System
 }

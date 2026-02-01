@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum DeleteMode
 {
-    public enum DeleteMode
-    {
-        Soft,
-        Hard
-    }
+    Soft,
+    Hard
 }

@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record ReauthResult
 {
-    public sealed record ReauthResult
-    {
-        public bool Success { get; init; }
-    }
+    public bool Success { get; init; }
 }

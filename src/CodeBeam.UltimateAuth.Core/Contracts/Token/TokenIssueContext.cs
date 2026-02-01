@@ -1,11 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Contracts
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record TokenIssueContext
 {
-    public sealed record TokenIssueContext
-    {
-        public string? TenantId { get; init; }
-        public ISession Session { get; init; } = default!;
-        public DateTimeOffset At { get; init; }
-    }
+    public string? TenantId { get; init; }
+    public ISession Session { get; init; } = default!;
+    public DateTimeOffset At { get; init; }
 }

@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
-{
-    public sealed record TokenRefreshContext
-    {
-        public string? TenantId { get; init; }
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-        public string RefreshToken { get; init; } = default!;
-    }
+public sealed record TokenRefreshContext
+{
+    public string? TenantId { get; init; }
+
+    public string RefreshToken { get; init; } = default!;
 }

@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 
-namespace CodeBeam.UltimateAuth.Core.Infrastructure
+namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+
+public sealed class GuidUserIdFactory : IUserIdFactory<Guid>
 {
-    public sealed class GuidUserIdFactory : IUserIdFactory<Guid>
-    {
-        public Guid Create() => Guid.NewGuid();
-    }
+    public Guid Create() => Guid.NewGuid();
 }

@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions
+namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface IAuthorityInvariant
 {
-    public interface IAuthorityInvariant
-    {
-        AccessDecisionResult Decide(AuthContext context);
-    }
+    AccessDecisionResult Decide(AuthContext context);
 }

@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Abstractions
+﻿namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface IHubCapabilities
 {
-    public interface IHubCapabilities
-    {
-        bool SupportsPkce { get; }
-    }
+    bool SupportsPkce { get; }
 }

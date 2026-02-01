@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum UAuthLoginType
 {
-    public enum UAuthLoginType
-    {
-        Password,   // /auth/login
-        Pkce        // /auth/pkce/complete
-    }
+    Password,   // /auth/login
+    Pkce        // /auth/pkce/complete
 }

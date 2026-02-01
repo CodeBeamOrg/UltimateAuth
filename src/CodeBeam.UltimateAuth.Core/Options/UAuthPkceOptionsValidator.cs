@@ -1,21 +1,20 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Core.Options
+namespace CodeBeam.UltimateAuth.Core.Options;
+
+internal sealed class UAuthPkceOptionsValidator : IValidateOptions<UAuthPkceOptions>
 {
-    internal sealed class UAuthPkceOptionsValidator : IValidateOptions<UAuthPkceOptions>
+    public ValidateOptionsResult Validate(string? name, UAuthPkceOptions options)
     {
-        public ValidateOptionsResult Validate(string? name, UAuthPkceOptions options)
+        var errors = new List<string>();
+
+        if (options.AuthorizationCodeLifetimeSeconds <= 0)
         {
-            var errors = new List<string>();
-
-            if (options.AuthorizationCodeLifetimeSeconds <= 0)
-            {
-                errors.Add("Pkce.AuthorizationCodeLifetimeSeconds must be > 0.");
-            }
-
-            return errors.Count == 0
-                ? ValidateOptionsResult.Success
-                : ValidateOptionsResult.Fail(errors);
+            errors.Add("Pkce.AuthorizationCodeLifetimeSeconds must be > 0.");
         }
+
+        return errors.Count == 0
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(errors);
     }
 }

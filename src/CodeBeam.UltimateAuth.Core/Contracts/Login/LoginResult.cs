@@ -1,44 +1,41 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Contracts
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record LoginResult
 {
-    public sealed record LoginResult
-    {
-        public LoginStatus Status { get; init; }
-        public AuthSessionId? SessionId { get; init; }
-        public AccessToken? AccessToken { get; init; }
-        public RefreshToken? RefreshToken { get; init; }
-        public LoginContinuation? Continuation { get; init; }
-        public AuthFailureReason? FailureReason { get; init; }
+    public LoginStatus Status { get; init; }
+    public AuthSessionId? SessionId { get; init; }
+    public AccessToken? AccessToken { get; init; }
+    public RefreshToken? RefreshToken { get; init; }
+    public LoginContinuation? Continuation { get; init; }
+    public AuthFailureReason? FailureReason { get; init; }
 
-        // Helpers
-        public bool IsSuccess => Status == LoginStatus.Success;
-        public bool RequiresContinuation => Continuation is not null;
-        public bool RequiresMfa => Continuation?.Type == LoginContinuationType.Mfa;
-        public bool RequiresPkce => Continuation?.Type == LoginContinuationType.Pkce;
+    public bool IsSuccess => Status == LoginStatus.Success;
+    public bool RequiresContinuation => Continuation is not null;
+    public bool RequiresMfa => Continuation?.Type == LoginContinuationType.Mfa;
+    public bool RequiresPkce => Continuation?.Type == LoginContinuationType.Pkce;
 
-        public static LoginResult Failed(AuthFailureReason? reason = null)
-            => new()
-            {
-                Status = LoginStatus.Failed,
-                FailureReason = reason
-            };
+    public static LoginResult Failed(AuthFailureReason? reason = null)
+        => new()
+        {
+            Status = LoginStatus.Failed,
+            FailureReason = reason
+        };
 
-        public static LoginResult Success(AuthSessionId sessionId, AuthTokens? tokens = null)
-            => new()
-            {
-                Status = LoginStatus.Success,
-                SessionId = sessionId,
-                AccessToken = tokens?.AccessToken,
-                RefreshToken = tokens?.RefreshToken
-            };
+    public static LoginResult Success(AuthSessionId sessionId, AuthTokens? tokens = null)
+        => new()
+        {
+            Status = LoginStatus.Success,
+            SessionId = sessionId,
+            AccessToken = tokens?.AccessToken,
+            RefreshToken = tokens?.RefreshToken
+        };
 
-        public static LoginResult Continue(LoginContinuation continuation)
-            => new()
-            {
-                Status = LoginStatus.RequiresContinuation,
-                Continuation = continuation
-            };
-    }
+    public static LoginResult Continue(LoginContinuation continuation)
+        => new()
+        {
+            Status = LoginStatus.RequiresContinuation,
+            Continuation = continuation
+        };
 }

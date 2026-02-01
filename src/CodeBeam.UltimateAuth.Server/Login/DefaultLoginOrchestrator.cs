@@ -83,7 +83,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
             {
                 securityState = await _userSecurityStateProvider.GetAsync(request.TenantId, validatedUserId, ct);
                 var converter = _userIdConverterResolver.GetConverter<TUserId>();
-                userKey = UserKey.FromString(converter.ToString(validatedUserId));
+                userKey = UserKey.FromString(converter.ToCanonicalString(validatedUserId));
             }
 
             var user = userKey is not null

@@ -9,7 +9,7 @@ public sealed class SeedRunner
     public SeedRunner(IEnumerable<ISeedContributor> contributors)
     {
         _contributors = contributors;
-        Console.WriteLine("SeedRunner contributors:");
+
         foreach (var c in contributors)
         {
             Console.WriteLine($"- {c.GetType().FullName}");

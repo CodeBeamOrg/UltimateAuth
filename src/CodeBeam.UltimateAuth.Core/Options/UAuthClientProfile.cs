@@ -1,13 +1,12 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Options
+﻿namespace CodeBeam.UltimateAuth.Core.Options;
+
+public enum UAuthClientProfile
 {
-    public enum UAuthClientProfile
-    {
-        NotSpecified,
-        BlazorWasm,
-        BlazorServer,
-        Maui,
-        WebServer,
-        Api,
-        UAuthHub = 1000
-    }
+    NotSpecified,
+    BlazorWasm,
+    BlazorServer,
+    Maui,
+    WebServer,
+    Api,
+    UAuthHub = 1000
 }

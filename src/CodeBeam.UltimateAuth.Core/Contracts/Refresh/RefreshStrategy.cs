@@ -1,11 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum RefreshStrategy
 {
-    public enum RefreshStrategy
-    {
-        NotSupported,
-        SessionOnly,           // PureOpaque
-        TokenOnly,             // PureJwt
-        TokenWithSessionCheck, // SemiHybrid
-        SessionAndToken        // Hybrid
-    }
+    NotSupported,
+    SessionOnly,           // PureOpaque
+    TokenOnly,             // PureJwt
+    TokenWithSessionCheck, // SemiHybrid
+    SessionAndToken        // Hybrid
 }

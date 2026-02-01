@@ -176,7 +176,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped<ILoginAuthority, DefaultLoginAuthority>();
             services.TryAddScoped<IAuthAuthority, DefaultAuthAuthority>();
             services.TryAddScoped<IAccessAuthority, DefaultAccessAuthority>();
-            services.TryAddScoped<ISessionService, DefaultSessionService>();
             services.TryAddScoped(typeof(ISessionQueryService), typeof(UAuthSessionQueryService));
             services.TryAddScoped(typeof(IRefreshTokenResolver), typeof(DefaultRefreshTokenResolver));
             services.TryAddScoped(typeof(ISessionTouchService), typeof(DefaultSessionTouchService));

@@ -1,86 +1,83 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Domain
+/// <summary>
+/// Represents a single authentication session belonging to a user.
+/// Sessions are immutable, security-critical units used for validation,
+/// sliding expiration, revocation, and device analytics.
+/// </summary>
+public interface ISession
 {
     /// <summary>
-    /// Represents a single authentication session belonging to a user.
-    /// Sessions are immutable, security-critical units used for validation,
-    /// sliding expiration, revocation, and device analytics.
+    /// Gets the unique identifier of the session.
     /// </summary>
-    public interface ISession
-    {
-        /// <summary>
-        /// Gets the unique identifier of the session.
-        /// </summary>
-        AuthSessionId SessionId { get; }
+    AuthSessionId SessionId { get; }
 
-        string? TenantId { get; }
+    string? TenantId { get; }
 
-        /// <summary>
-        /// Gets the identifier of the user who owns this session.
-        /// </summary>
-        UserKey UserKey { get; }
+    /// <summary>
+    /// Gets the identifier of the user who owns this session.
+    /// </summary>
+    UserKey UserKey { get; }
 
-        SessionChainId ChainId { get; }
+    SessionChainId ChainId { get; }
 
-        /// <summary>
-        /// Gets the timestamp when this session was originally created.
-        /// </summary>
-        DateTimeOffset CreatedAt { get; }
+    /// <summary>
+    /// Gets the timestamp when this session was originally created.
+    /// </summary>
+    DateTimeOffset CreatedAt { get; }
 
-        /// <summary>
-        /// Gets the timestamp when the session becomes invalid due to expiration.
-        /// </summary>
-        DateTimeOffset ExpiresAt { get; }
+    /// <summary>
+    /// Gets the timestamp when the session becomes invalid due to expiration.
+    /// </summary>
+    DateTimeOffset ExpiresAt { get; }
 
-        /// <summary>
-        /// Gets the timestamp of the last successful usage.
-        /// Used when evaluating sliding expiration policies.
-        /// </summary>
-        DateTimeOffset? LastSeenAt { get; }
+    /// <summary>
+    /// Gets the timestamp of the last successful usage.
+    /// Used when evaluating sliding expiration policies.
+    /// </summary>
+    DateTimeOffset? LastSeenAt { get; }
 
-        /// <summary>
-        /// Gets a value indicating whether this session has been explicitly revoked.
-        /// </summary>
-        bool IsRevoked { get; }
+    /// <summary>
+    /// Gets a value indicating whether this session has been explicitly revoked.
+    /// </summary>
+    bool IsRevoked { get; }
 
-        /// <summary>
-        /// Gets the timestamp when the session was revoked, if applicable.
-        /// </summary>
-        DateTimeOffset? RevokedAt { get; }
+    /// <summary>
+    /// Gets the timestamp when the session was revoked, if applicable.
+    /// </summary>
+    DateTimeOffset? RevokedAt { get; }
 
-        /// <summary>
-        /// Gets the user's security version at the moment of session creation.
-        /// If the stored version does not match the user's current version,
-        /// the session becomes invalid (e.g., after password or MFA reset).
-        /// </summary>
-        long SecurityVersionAtCreation { get; }
+    /// <summary>
+    /// Gets the user's security version at the moment of session creation.
+    /// If the stored version does not match the user's current version,
+    /// the session becomes invalid (e.g., after password or MFA reset).
+    /// </summary>
+    long SecurityVersionAtCreation { get; }
 
-        /// <summary>
-        /// Gets metadata describing the client device that created the session.
-        /// Includes platform, OS, IP address, fingerprint, and more.
-        /// </summary>
-        DeviceContext Device { get; }
+    /// <summary>
+    /// Gets metadata describing the client device that created the session.
+    /// Includes platform, OS, IP address, fingerprint, and more.
+    /// </summary>
+    DeviceContext Device { get; }
 
-        ClaimsSnapshot Claims { get; }
+    ClaimsSnapshot Claims { get; }
 
-        /// <summary>
-        /// Gets session-scoped metadata used for application-specific extensions,
-        /// such as tenant data, app version, locale, or CSRF tokens.
-        /// </summary>
-        SessionMetadata Metadata { get; }
+    /// <summary>
+    /// Gets session-scoped metadata used for application-specific extensions,
+    /// such as tenant data, app version, locale, or CSRF tokens.
+    /// </summary>
+    SessionMetadata Metadata { get; }
 
-        /// <summary>
-        /// Computes the effective runtime state of the session (Active, Expired,
-        /// Revoked, SecurityVersionMismatch, etc.) based on the provided timestamp.
-        /// </summary>
-        /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
-        SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout);
+    /// <summary>
+    /// Computes the effective runtime state of the session (Active, Expired,
+    /// Revoked, SecurityVersionMismatch, etc.) based on the provided timestamp.
+    /// </summary>
+    /// <returns>The evaluated <see cref="SessionState"/> of this session.</returns>
+    SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout);
 
-        ISession Touch(DateTimeOffset now);
-        ISession Revoke(DateTimeOffset at);
+    ISession Touch(DateTimeOffset now);
+    ISession Revoke(DateTimeOffset at);
 
-        ISession WithChain(SessionChainId chainId);
+    ISession WithChain(SessionChainId chainId);
 
-    }
 }

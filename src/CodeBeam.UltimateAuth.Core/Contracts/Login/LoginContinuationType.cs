@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum LoginContinuationType
 {
-    public enum LoginContinuationType
-    {
-        Mfa,
-        Pkce,
-        External
-    }
+    Mfa,
+    Pkce,
+    External
 }

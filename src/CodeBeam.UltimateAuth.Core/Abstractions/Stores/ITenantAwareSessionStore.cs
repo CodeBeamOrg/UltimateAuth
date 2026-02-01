@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Abstractions
+﻿namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface ITenantAwareSessionStore
 {
-    public interface ITenantAwareSessionStore
-    {
-        void BindTenant(string? tenantId);
-    }
+    void BindTenant(string? tenantId);
 }

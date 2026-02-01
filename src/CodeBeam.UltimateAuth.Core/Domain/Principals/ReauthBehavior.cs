@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum ReauthBehavior
 {
-    public enum ReauthBehavior
-    {
-        RedirectToLogin,
-        None,
-        RaiseEvent
-    }
+    RedirectToLogin,
+    None,
+    RaiseEvent
 }

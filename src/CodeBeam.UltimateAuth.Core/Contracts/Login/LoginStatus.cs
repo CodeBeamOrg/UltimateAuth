@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum LoginStatus
 {
-    public enum LoginStatus
-    {
-        Success,
-        RequiresContinuation,
-        Failed
-    }
+    Success,
+    RequiresContinuation,
+    Failed
 }

@@ -1,14 +1,13 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum AuthFailureReason
 {
-    public enum AuthFailureReason
-    {
-        InvalidCredentials,
-        LockedOut,
-        RequiresMfa,
-        SessionExpired,
-        SessionRevoked,
-        TenantDisabled,
-        Unauthorized,
-        Unknown
-    }
+    InvalidCredentials,
+    LockedOut,
+    RequiresMfa,
+    SessionExpired,
+    SessionRevoked,
+    TenantDisabled,
+    Unauthorized,
+    Unknown
 }

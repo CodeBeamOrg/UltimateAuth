@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum CredentialKind
 {
-    public enum CredentialKind
-    {
-        Session,
-        AccessToken,
-        RefreshToken
-    }
+    Session,
+    AccessToken,
+    RefreshToken
 }

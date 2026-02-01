@@ -2,27 +2,26 @@
 using Microsoft.Extensions.Options;
 using System.Reflection;
 
-namespace CodeBeam.UltimateAuth.Core.Runtime
+namespace CodeBeam.UltimateAuth.Core.Runtime;
+
+internal sealed class UAuthProductInfoProvider : IUAuthProductInfoProvider
 {
-    internal sealed class UAuthProductInfoProvider : IUAuthProductInfoProvider
+    private readonly UAuthProductInfo _info;
+
+    public UAuthProductInfoProvider(IOptions<UAuthOptions> options)
     {
-        private readonly UAuthProductInfo _info;
+        var asm = typeof(UAuthProductInfoProvider).Assembly;
 
-        public UAuthProductInfoProvider(IOptions<UAuthOptions> options)
+        _info = new UAuthProductInfo
         {
-            var asm = typeof(UAuthProductInfoProvider).Assembly;
+            Version = asm.GetName().Version?.ToString(3) ?? "unknown",
+            InformationalVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
 
-            _info = new UAuthProductInfo
-            {
-                Version = asm.GetName().Version?.ToString(3) ?? "unknown",
-                InformationalVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
-
-                ClientProfile = options.Value.ClientProfile,
-                ClientProfileAutoDetected = options.Value.AutoDetectClientProfile,
-                StartedAt = DateTimeOffset.UtcNow
-            };
-        }
-
-        public UAuthProductInfo Get() => _info;
+            ClientProfile = options.Value.ClientProfile,
+            ClientProfileAutoDetected = options.Value.AutoDetectClientProfile,
+            StartedAt = DateTimeOffset.UtcNow
+        };
     }
+
+    public UAuthProductInfo Get() => _info;
 }

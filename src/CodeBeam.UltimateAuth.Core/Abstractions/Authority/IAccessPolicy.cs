@@ -1,10 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions
+namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface IAccessPolicy
 {
-    public interface IAccessPolicy
-    {
-        bool AppliesTo(AccessContext context);
-        AccessDecision Decide(AccessContext context);
-    }
+    bool AppliesTo(AccessContext context);
+    AccessDecision Decide(AccessContext context);
 }
