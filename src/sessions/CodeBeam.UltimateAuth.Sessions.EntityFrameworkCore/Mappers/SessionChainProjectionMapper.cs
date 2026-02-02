@@ -9,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return UAuthSessionChain.FromProjection(
                 p.ChainId,
                 p.RootId,
-                p.TenantId,
+                p.Tenant,
                 p.UserKey,
                 p.RotationCount,
                 p.SecurityVersionAtCreation,
@@ -25,7 +25,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return new SessionChainProjection
             {
                 ChainId = chain.ChainId,
-                TenantId = chain.TenantId,
+                Tenant = chain.Tenant,
                 UserKey = chain.UserKey,
 
                 RotationCount = chain.RotationCount,

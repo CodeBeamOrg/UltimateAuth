@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Contracts
+﻿namespace CodeBeam.UltimateAuth.Client.Contracts;
+
+public enum CoordinatorTerminationReason
 {
-    public enum CoordinatorTerminationReason
-    {
-        None = 0,
-        ReauthRequired = 1
-    }
+    None = 0,
+    ReauthRequired = 1
 }

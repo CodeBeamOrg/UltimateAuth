@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Authentication
+﻿namespace CodeBeam.UltimateAuth.Client.Authentication;
+
+public enum UAuthStateChangeReason
 {
-    public enum UAuthStateChangeReason
-    {
-        Authenticated,
-        Validated,
-        MarkedStale,
-        Cleared
-    }
+    Authenticated,
+    Validated,
+    MarkedStale,
+    Cleared
 }

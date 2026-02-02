@@ -1,11 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Policies
+﻿namespace CodeBeam.UltimateAuth.Policies;
+
+public interface IPolicyScopeBuilder
 {
-    public interface IPolicyScopeBuilder
-    {
-        IPolicyScopeBuilder RequireAuthenticated();
-        IPolicyScopeBuilder RequireSelf();
-        IPolicyScopeBuilder RequireAdmin();
-        IPolicyScopeBuilder RequireSelfOrAdmin();
-        IPolicyScopeBuilder DenyCrossTenant();
-    }
+    IPolicyScopeBuilder RequireAuthenticated();
+    IPolicyScopeBuilder RequireSelf();
+    IPolicyScopeBuilder RequireAdmin();
+    IPolicyScopeBuilder RequireSelfOrAdmin();
+    IPolicyScopeBuilder DenyCrossTenant();
 }

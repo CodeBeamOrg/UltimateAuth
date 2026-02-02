@@ -1,5 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+
+public sealed record GetCredentialsResult
 {
-    public sealed record GetCredentialsResult(
-        IReadOnlyCollection<CredentialDto> Credentials);
+    public IReadOnlyCollection<CredentialDto> Credentials { get; init; } = Array.Empty<CredentialDto>();
 }

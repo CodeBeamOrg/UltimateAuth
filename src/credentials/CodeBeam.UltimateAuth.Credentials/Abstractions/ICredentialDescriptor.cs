@@ -1,11 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
 
-namespace CodeBeam.UltimateAuth.Credentials
+namespace CodeBeam.UltimateAuth.Credentials;
+
+public interface ICredentialDescriptor
 {
-    public interface ICredentialDescriptor
-    {
-        CredentialType Type { get; }
-        CredentialSecurityState Security { get; }
-        CredentialMetadata Metadata { get; }
-    }
+    CredentialType Type { get; }
+    CredentialSecurityState Security { get; }
+    CredentialMetadata Metadata { get; }
 }

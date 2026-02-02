@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory.Extensions
 {
-    public static class UltimateAuthCredentialsInMemoryExtensions
+    public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddUltimateAuthCredentialsInMemory(this IServiceCollection services)
         {

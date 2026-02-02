@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -17,7 +18,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            tenantId: null,
+            tenant: TenantKey.Single,
             userKey: UserKey.FromString("user-1"),
             securityVersion: 0,
             ClaimsSnapshot.Empty);
@@ -33,7 +34,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             0,
             ClaimsSnapshot.Empty);
@@ -52,7 +53,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             0,
             ClaimsSnapshot.Empty);
@@ -72,7 +73,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             0,
             ClaimsSnapshot.Empty);
@@ -92,7 +93,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             0,
             ClaimsSnapshot.Empty);
@@ -111,7 +112,7 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             0,
             ClaimsSnapshot.Empty);

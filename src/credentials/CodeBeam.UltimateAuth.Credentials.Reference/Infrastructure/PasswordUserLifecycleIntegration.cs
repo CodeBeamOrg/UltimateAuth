@@ -36,7 +36,7 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
             loginIdentifier: r.PrimaryIdentifierValue!,
             secretHash: hash,
             security: new CredentialSecurityState(CredentialSecurityStatus.Active, null, null, null),
-            metadata: new CredentialMetadata(_clock.UtcNow, _clock.UtcNow, null));
+            metadata: new CredentialMetadata { CreatedAt = _clock.UtcNow, LastUsedAt = _clock.UtcNow });
 
         await _credentialStore.AddAsync(tenant, credential, ct);
     }

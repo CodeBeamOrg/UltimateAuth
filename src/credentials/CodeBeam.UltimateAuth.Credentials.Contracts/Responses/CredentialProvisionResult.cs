@@ -14,8 +14,6 @@ public sealed record CredentialProvisionResult
 
     public string? FailureReason { get; init; }
 
-    /* ----------------- Helpers ----------------- */
-
     public static CredentialProvisionResult Success(CredentialType type)
         => new()
         {

@@ -18,8 +18,9 @@ public sealed class EfCoreSessionStoreKernelFactory : ISessionStoreKernelFactory
         return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(tenant));
     }
 
-    public ISessionStoreKernel CreateGlobal()
-    {
-        return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(null, isGlobal: true));
-    }
+    // TODO: Implement global here
+    //public ISessionStoreKernel CreateGlobal()
+    //{
+    //    return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(null, isGlobal: true));
+    //}
 }

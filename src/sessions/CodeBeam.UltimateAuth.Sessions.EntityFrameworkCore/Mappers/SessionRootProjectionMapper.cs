@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
         {
             return UAuthSessionRoot.FromProjection(
                 root.RootId,
-                root.TenantId,
+                root.Tenant,
                 root.UserKey,
                 root.IsRevoked,
                 root.RevokedAt,
@@ -23,7 +23,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
             return new SessionRootProjection
             {
                 RootId = root.RootId,
-                TenantId = root.TenantId,
+                Tenant = root.Tenant,
                 UserKey = root.UserKey,
 
                 IsRevoked = root.IsRevoked,

@@ -44,17 +44,20 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
 
                 var dtos = creds
                     .OfType<ICredentialDescriptor>()
-                    .Select(c => new CredentialDto(
-                        c.Type,
-                        c.Security.Status,
-                        c.Metadata.CreatedAt,
-                        c.Metadata.LastUsedAt,
-                        c.Security.RestrictedUntil,
-                        c.Security.ExpiresAt,
-                        c.Metadata.Source))
+                    .Select(c => new CredentialDto {
+                        Type = c.Type,
+                        Status = c.Security.Status,
+                        CreatedAt = c.Metadata.CreatedAt,
+                        LastUsedAt = c.Metadata.LastUsedAt,
+                        RestrictedUntil = c.Security.RestrictedUntil,
+                        ExpiresAt = c.Security.ExpiresAt,
+                        Source = c.Metadata.Source})
                     .ToArray();
 
-                return new GetCredentialsResult(dtos);
+                return new GetCredentialsResult
+                {
+                    Credentials = dtos
+                };
             });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -84,10 +87,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                     loginIdentifier: userKey.Value,
                     secretHash: hash,
                     security: new CredentialSecurityState(CredentialSecurityStatus.Active),
-                    metadata: new CredentialMetadata(
-                        _clock.UtcNow,
-                        null,
-                        request.Source));
+                    metadata: new CredentialMetadata { CreatedAt = _clock.UtcNow, Source = request.Source });
 
                 await _credentials.AddAsync(context.ResourceTenant, credential, innerCt);
 

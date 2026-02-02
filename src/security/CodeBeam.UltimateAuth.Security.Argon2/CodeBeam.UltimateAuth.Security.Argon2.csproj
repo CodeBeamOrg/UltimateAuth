@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<Version>0.0.1-preview</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

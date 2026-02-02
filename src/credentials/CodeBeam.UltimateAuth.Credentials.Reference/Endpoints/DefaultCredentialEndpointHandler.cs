@@ -14,10 +14,7 @@ public sealed class DefaultCredentialEndpointHandler : ICredentialEndpointHandle
     private readonly IAccessContextFactory _accessContextFactory;
     private readonly IUserCredentialsService _credentials;
 
-    public DefaultCredentialEndpointHandler(
-        IAuthFlowContextAccessor authFlow,
-        IAccessContextFactory accessContextFactory,
-        IUserCredentialsService credentials)
+    public DefaultCredentialEndpointHandler(IAuthFlowContextAccessor authFlow, IAccessContextFactory accessContextFactory, IUserCredentialsService credentials)
     {
         _authFlow = authFlow;
         _accessContextFactory = accessContextFactory;

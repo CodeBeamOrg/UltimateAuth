@@ -1,9 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿namespace CodeBeam.UltimateAuth.Client.Runtime;
 
-namespace CodeBeam.UltimateAuth.Client.Runtime
+public interface IUAuthClientBootstrapper
 {
-    public interface IUAuthClientBootstrapper
-    {
-        Task EnsureStartedAsync();
-    }
+    Task EnsureStartedAsync();
 }

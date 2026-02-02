@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using System.Text;
@@ -31,7 +32,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
             var result = await validator.ValidateAsync(
                 new RefreshTokenValidationContext
                 {
-                    TenantId = null,
+                    Tenant = TenantKey.Single,
                     RefreshToken = "non-existing",
                     Now = DateTimeOffset.UtcNow,
                     Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
@@ -53,9 +54,9 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
             var rawToken = "refresh-token-1";
             var hash = hasher.Hash(rawToken);
 
-            await store.StoreAsync(null, new StoredRefreshToken
+            await store.StoreAsync(TenantKey.Single, new StoredRefreshToken
             {
-                TenantId = null,
+                Tenant = TenantKey.Single,
                 TokenHash = hash,
                 UserKey = UserKey.FromString("user-1"),
                 SessionId = TestIds.Session("session-1-aaaaaaaaaaaaaaaaaaaaaa"),
@@ -68,7 +69,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
             var result = await validator.ValidateAsync(
                 new RefreshTokenValidationContext
                 {
-                    TenantId = null,
+                    Tenant = TenantKey.Single,
                     RefreshToken = rawToken,
                     Now = now,
                     Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
@@ -86,9 +87,9 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
 
             var now = DateTimeOffset.UtcNow;
 
-            await store.StoreAsync(null, new StoredRefreshToken
+            await store.StoreAsync(TenantKey.Single, new StoredRefreshToken
             {
-                TenantId = null,
+                Tenant = TenantKey.Single,
                 TokenHash = "hash-2",
                 UserKey = UserKey.FromString("user-1"),
                 SessionId = TestIds.Session("session-1-bbbbbbbbbbbbbbbbbbbbbb"),
@@ -100,7 +101,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Core
             var result = await validator.ValidateAsync(
                 new RefreshTokenValidationContext
                 {
-                    TenantId = null,
+                    Tenant = TenantKey.Single,
                     RefreshToken = "hash-2",
                     ExpectedSessionId = TestIds.Session("session-2-cccccccccccccccccccccc"),
                     Now = now,

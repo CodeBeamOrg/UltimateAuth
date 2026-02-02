@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
 
-namespace CodeBeam.UltimateAuth.Credentials
+namespace CodeBeam.UltimateAuth.Credentials;
+
+public interface ISecurableCredential
 {
-    public interface ISecurableCredential
-    {
-        CredentialSecurityState Security { get; }
-    }
+    CredentialSecurityState Security { get; }
 }

@@ -1,14 +1,24 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts
-{
-    public sealed record AddCredentialResult(
-        bool Succeeded,
-        string? Error,
-        CredentialType? Type = null)
-    {
-        public static AddCredentialResult Success(CredentialType type)
-            => new(true, null, type);
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
-        public static AddCredentialResult Fail(string error)
-            => new(false, error);
-    }
+public sealed record AddCredentialResult
+{
+    public bool Succeeded { get; init; }
+
+    public string? Error { get; init; }
+
+    public CredentialType? Type { get; init; }
+
+    public static AddCredentialResult Success(CredentialType type)
+        => new()
+        {
+            Succeeded = true,
+            Type = type
+        };
+
+    public static AddCredentialResult Fail(string error)
+        => new()
+        {
+            Succeeded = false,
+            Error = error
+        };
 }

@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 
-namespace CodeBeam.UltimateAuth.Client.Infrastructure
+namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+
+internal sealed class NoOpHubCapabilities : IHubCapabilities
 {
-    internal sealed class NoOpHubCapabilities : IHubCapabilities
-    {
-        public bool SupportsPkce => false;
-    }
+    public bool SupportsPkce => false;
 }

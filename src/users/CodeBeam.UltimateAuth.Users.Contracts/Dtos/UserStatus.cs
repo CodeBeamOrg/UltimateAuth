@@ -1,21 +1,20 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public enum UserStatus
 {
-    public enum UserStatus
-    {
 
-        Active = 0,
+    Active = 0,
 
-        SelfSuspended = 10,
+    SelfSuspended = 10,
 
-        Disabled = 20,
-        Suspended = 30,
+    Disabled = 20,
+    Suspended = 30,
 
-        Locked = 40,
-        RiskHold = 50,
+    Locked = 40,
+    RiskHold = 50,
 
-        PendingActivation = 60,
-        PendingVerification = 70,
+    PendingActivation = 60,
+    PendingVerification = 70,
 
-        Deactivated = 80,
-    }
+    Deactivated = 80,
 }

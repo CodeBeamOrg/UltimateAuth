@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+
+public sealed record CompleteCredentialResetRequest
 {
-    public sealed record CompleteCredentialResetRequest
-    {
-        public required string NewSecret { get; init; }
-        public string? Source { get; init; }
-    }
+    public required string NewSecret { get; init; }
+    public string? Source { get; init; }
 }

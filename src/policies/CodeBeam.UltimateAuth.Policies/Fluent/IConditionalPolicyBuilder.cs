@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Policies
+﻿namespace CodeBeam.UltimateAuth.Policies;
+
+public interface IConditionalPolicyBuilder
 {
-    public interface IConditionalPolicyBuilder
-    {
-        IPolicyScopeBuilder Then();
-        IPolicyScopeBuilder Otherwise();
-    }
+    IPolicyScopeBuilder Then();
+    IPolicyScopeBuilder Otherwise();
 }

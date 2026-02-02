@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Stores;
@@ -41,7 +42,7 @@ public sealed class HubLoginController : Controller
             hubSessionId: hubSessionId,
             flowType: HubFlowType.Login,
             clientProfile: client_profile,
-            tenantId: null,
+            tenant: TenantKeys.System,
             returnUrl: return_url,
             payload: payload,
             expiresAt: _clock.UtcNow.Add(_options.Hub.FlowLifetime));
