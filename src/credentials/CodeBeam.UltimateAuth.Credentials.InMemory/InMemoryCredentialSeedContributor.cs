@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 
@@ -21,18 +22,18 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory
             _hasher = hasher;
         }
 
-        public async Task SeedAsync(string? tenantId, CancellationToken ct = default)
+        public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
         {
-            await SeedCredentialAsync("admin", _ids.GetAdminUserId(), tenantId, ct);
-            await SeedCredentialAsync("user", _ids.GetUserUserId(), tenantId, ct);
+            await SeedCredentialAsync("admin", _ids.GetAdminUserId(), tenant, ct);
+            await SeedCredentialAsync("user", _ids.GetUserUserId(), tenant, ct);
         }
 
-        private async Task SeedCredentialAsync(string login, UserKey userKey, string? tenantId, CancellationToken ct)
+        private async Task SeedCredentialAsync(string login, UserKey userKey, TenantKey tenant, CancellationToken ct)
         {
-            if (await _credentials.ExistsAsync(tenantId, userKey, CredentialType.Password, ct))
+            if (await _credentials.ExistsAsync(tenant, userKey, CredentialType.Password, ct))
                 return;
 
-            await _credentials.AddAsync(tenantId,
+            await _credentials.AddAsync(tenant,
                 new PasswordCredential<UserKey>(
                     userKey,
                     login,

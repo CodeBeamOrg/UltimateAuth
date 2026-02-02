@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Server.Login
@@ -12,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Server.Login
         /// <summary>
         /// Gets the tenant identifier.
         /// </summary>
-        public string? TenantId { get; init; }
+        public TenantKey Tenant { get; init; }
 
         /// <summary>
         /// Gets the login identifier (e.g. username or email).

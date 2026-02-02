@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         {
             return new AuthContext
             {
-                TenantId = flow.TenantId,
+                Tenant = flow.Tenant,
                 Operation = flow.FlowType.ToAuthOperation(),
                 Mode = flow.EffectiveMode,
                 At = now,
@@ -26,7 +26,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
                 profile,
                 flow.EffectiveMode,
                 flow.Device,
-                flow.TenantId,
+                flow.Tenant,
                 flow.IsAuthenticated,
                 flow.UserKey,
                 flow.Session,

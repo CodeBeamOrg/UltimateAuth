@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -8,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 /// </summary>
 public sealed class AuthenticatedSessionContext
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
     public required UserKey UserKey { get; init; }
     public required DeviceContext Device { get; init; }
     public DateTimeOffset Now { get; init; }

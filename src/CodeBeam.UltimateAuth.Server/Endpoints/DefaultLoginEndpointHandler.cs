@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
@@ -57,7 +56,7 @@ public sealed class DefaultLoginEndpointHandler<TUserId> : ILoginEndpointHandler
         {
             Identifier = identifier,
             Secret = secret,
-            TenantId = authFlow.TenantId,
+            Tenant = authFlow.Tenant,
             At = _clock.UtcNow,
             Device = authFlow.Device,
             RequestTokens = shouldIssueTokens

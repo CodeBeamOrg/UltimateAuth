@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -9,7 +10,7 @@ public sealed record RefreshTokenValidationResult
 
     public string? TokenHash { get; init; }
 
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
     public UserKey? UserKey { get; init; }
     public AuthSessionId? SessionId { get; init; }
     public SessionChainId? ChainId { get; init; }
@@ -27,7 +28,7 @@ public sealed record RefreshTokenValidationResult
         };
 
     public static RefreshTokenValidationResult ReuseDetected(
-        string? tenantId = null,
+        TenantKey tenant,
         AuthSessionId? sessionId = null,
         string? tokenHash = null,
         SessionChainId? chainId = null,
@@ -36,7 +37,7 @@ public sealed record RefreshTokenValidationResult
     {
         IsValid = false,
         IsReuseDetected = true,
-        TenantId = tenantId,
+        Tenant = tenant,
         SessionId = sessionId,
         TokenHash = tokenHash,
         ChainId = chainId,
@@ -44,7 +45,7 @@ public sealed record RefreshTokenValidationResult
     };
 
     public static RefreshTokenValidationResult Valid(
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         AuthSessionId sessionId,
         string? tokenHash,
@@ -53,7 +54,7 @@ public sealed record RefreshTokenValidationResult
     {
         IsValid = true,
         IsReuseDetected = false,
-        TenantId = tenantId,
+        Tenant = tenant,
         UserKey = userKey,
         SessionId = sessionId,
         ChainId = chainId,

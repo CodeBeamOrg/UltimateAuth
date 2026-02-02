@@ -17,7 +17,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
 
         public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
         {
-            await issuer.RevokeAllChainsAsync(context.TenantId, UserKey, ExceptChainId, context.At, ct);
+            await issuer.RevokeAllChainsAsync(context.Tenant, UserKey, ExceptChainId, context.At, ct);
             return Unit.Value;
         }
     }

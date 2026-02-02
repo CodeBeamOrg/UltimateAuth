@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -16,7 +17,7 @@ public sealed class SessionStoreContext
     /// <summary>
     /// The tenant identifier, if multi-tenancy is enabled.
     /// </summary>
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 
     /// <summary>
     /// Optional chain identifier.

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
@@ -7,7 +8,7 @@ public sealed record TokenValidationResult<TUserId>
 {
     public bool IsValid { get; init; }
     public TokenType Type { get; init; }
-    public string? TenantId { get; init; }
+    public TenantKey? Tenant { get; init; }
     public TUserId? UserId { get; init; }
     public AuthSessionId? SessionId { get; init; }
     public IReadOnlyCollection<Claim> Claims { get; init; } = Array.Empty<Claim>();
@@ -17,7 +18,7 @@ public sealed record TokenValidationResult<TUserId>
     private TokenValidationResult(
         bool isValid,
         TokenType type,
-        string? tenantId,
+        TenantKey? tenant,
         TUserId? userId,
         AuthSessionId? sessionId,
         IReadOnlyCollection<Claim>? claims,
@@ -26,7 +27,7 @@ public sealed record TokenValidationResult<TUserId>
         )
     {
         IsValid = isValid;
-        TenantId = tenantId;
+        Tenant = tenant;
         UserId = userId;
         SessionId = sessionId;
         Claims = claims ?? Array.Empty<Claim>();
@@ -36,7 +37,7 @@ public sealed record TokenValidationResult<TUserId>
 
     public static TokenValidationResult<TUserId> Valid(
         TokenType type,
-        string? tenantId,
+        TenantKey tenant,
         TUserId userId,
         AuthSessionId? sessionId,
         IReadOnlyCollection<Claim> claims,
@@ -44,7 +45,7 @@ public sealed record TokenValidationResult<TUserId>
         => new(
             isValid: true,
             type,
-            tenantId,
+            tenant,
             userId,
             sessionId,
             claims,
@@ -55,8 +56,8 @@ public sealed record TokenValidationResult<TUserId>
     public static TokenValidationResult<TUserId> Invalid(TokenType type, TokenInvalidReason reason)
         => new(
             isValid: false,
-            type,
-            tenantId: null,
+            type: type,
+            tenant: null,
             userId: default,
             sessionId: null,
             claims: null,

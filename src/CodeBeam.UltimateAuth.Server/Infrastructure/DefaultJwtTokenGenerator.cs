@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -51,10 +52,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
                 ["sub"] = descriptor.Subject
             };
 
-            if (descriptor.TenantId is not null)
-            {
-                claims["tenant"] = descriptor.TenantId;
-            }
+            claims["tenant"] = descriptor.Tenant;
 
             if (descriptor.Claims is not null)
             {

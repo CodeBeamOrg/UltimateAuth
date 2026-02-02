@@ -13,9 +13,9 @@ public sealed class EfCoreSessionStoreKernelFactory : ISessionStoreKernelFactory
         _sp = sp;
     }
 
-    public ISessionStoreKernel Create(string? tenantId)
+    public ISessionStoreKernel Create(TenantKey tenant)
     {
-        return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(tenantId));
+        return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(tenant));
     }
 
     public ISessionStoreKernel CreateGlobal()

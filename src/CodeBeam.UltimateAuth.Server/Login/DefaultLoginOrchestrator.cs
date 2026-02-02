@@ -52,7 +52,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
             var now = request.At ?? DateTimeOffset.UtcNow;
 
-            var credentials = await _credentialStore.FindByLoginAsync(request.TenantId, request.Identifier, ct);
+            var credentials = await _credentialStore.FindByLoginAsync(request.Tenant, request.Identifier, ct);
             var orderedCredentials = credentials
                 .OfType<ISecurableCredential>()
                 .Where(c => c.Security.IsUsable(now))
@@ -81,13 +81,13 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
             if (credentialsValid)
             {
-                securityState = await _userSecurityStateProvider.GetAsync(request.TenantId, validatedUserId, ct);
+                securityState = await _userSecurityStateProvider.GetAsync(request.Tenant, validatedUserId, ct);
                 var converter = _userIdConverterResolver.GetConverter<TUserId>();
                 userKey = UserKey.FromString(converter.ToCanonicalString(validatedUserId));
             }
 
             var user = userKey is not null
-                ? await _users.GetAsync(request.TenantId, userKey.Value, ct)
+                ? await _users.GetAsync(request.Tenant, userKey.Value, ct)
                 : null;
 
             if (user is null || user.IsDeleted || !user.IsActive)
@@ -98,7 +98,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
 
             var decisionContext = new LoginDecisionContext
             {
-                TenantId = request.TenantId,
+                Tenant = request.Tenant,
                 Identifier = request.Identifier,
                 CredentialsValid = credentialsValid,
                 UserExists = userExists,
@@ -126,11 +126,11 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
                 return LoginResult.Failed();
             }
 
-            var claims = await _claimsProvider.GetClaimsAsync(request.TenantId, validUserKey, ct);
+            var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, validUserKey, ct);
 
             var sessionContext = new AuthenticatedSessionContext
             {
-                TenantId = request.TenantId,
+                Tenant = request.Tenant,
                 UserKey = validUserKey,
                 Now = now,
                 Device = request.Device,
@@ -148,7 +148,7 @@ namespace CodeBeam.UltimateAuth.Server.Login.Orchestrators
             {
                 var tokenContext = new TokenIssuanceContext
                 {
-                    TenantId = request.TenantId,
+                    Tenant = request.Tenant,
                     UserKey = validUserKey,
                     SessionId = issuedSession.Session.SessionId,
                     ChainId = request.ChainId,

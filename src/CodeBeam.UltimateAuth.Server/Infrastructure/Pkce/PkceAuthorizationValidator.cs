@@ -36,7 +36,7 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
         if (!original.ClientProfile.Equals(completion.ClientProfile))
             return false;
 
-        if (!string.Equals(original.TenantId, completion.TenantId, StringComparison.Ordinal))
+        if (!string.Equals(original.Tenant, completion.Tenant, StringComparison.Ordinal))
             return false;
 
         if (!string.Equals(original.RedirectUri, completion.RedirectUri, StringComparison.Ordinal))

@@ -2,12 +2,12 @@
 
 public sealed class TenantContext
 {
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
     public bool IsGlobal { get; }
 
-    public TenantContext(string? tenantId, bool isGlobal = false)
+    public TenantContext(TenantKey tenant, bool isGlobal = false)
     {
-        TenantId = tenantId;
+        Tenant = tenant;
         IsGlobal = isGlobal;
     }
 }

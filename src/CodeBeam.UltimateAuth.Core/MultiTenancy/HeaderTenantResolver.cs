@@ -28,7 +28,7 @@ public sealed class HeaderTenantResolver : ITenantIdResolver
             context.Headers.TryGetValue(_headerName, out var value) &&
             !string.IsNullOrWhiteSpace(value))
         {
-            return Task.FromResult<string?>(value);
+            return Task.FromResult<string?>(value.ToString().Trim());
         }
 
         return Task.FromResult<string?>(null);

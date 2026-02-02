@@ -17,21 +17,21 @@ public sealed class DefaultRefreshTokenValidator : IRefreshTokenValidator
     public async Task<RefreshTokenValidationResult> ValidateAsync(RefreshTokenValidationContext context, CancellationToken ct = default)
     {
         var hash = _hasher.Hash(context.RefreshToken);
-        var stored = await _store.FindByHashAsync(context.TenantId, hash, ct);
+        var stored = await _store.FindByHashAsync(context.Tenant, hash, ct);
 
         if (stored is null)
             return RefreshTokenValidationResult.Invalid();
 
         if (stored.IsRevoked)
             return RefreshTokenValidationResult.ReuseDetected(
-                tenantId: stored.TenantId,
+                tenant: stored.Tenant,
                 sessionId: stored.SessionId,
                 chainId: stored.ChainId,
                 userKey: stored.UserKey);
 
         if (stored.IsExpired(context.Now))
         {
-            await _store.RevokeAsync(context.TenantId, hash, context.Now, null, ct);
+            await _store.RevokeAsync(context.Tenant, hash, context.Now, null, ct);
             return RefreshTokenValidationResult.Invalid();
         }
 
@@ -45,7 +45,7 @@ public sealed class DefaultRefreshTokenValidator : IRefreshTokenValidator
         //     return Invalid();
 
         return RefreshTokenValidationResult.Valid(
-            tenantId: stored.TenantId,
+            tenant: stored.Tenant,
             stored.UserKey,
             stored.SessionId,
             hash,

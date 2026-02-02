@@ -14,14 +14,8 @@ public sealed class UAuthMultiTenantOptions
     public bool Enabled { get; set; } = false;
 
     /// <summary>
-    /// If tenant cannot be resolved, this value is used.
-    /// If null and RequireTenant = true, request fails.
-    /// </summary>
-    public string? DefaultTenantId { get; set; }
-
-    /// <summary>
-    /// If true, a resolved tenant id must always exist.
-    /// If resolver cannot determine tenant, request will fail.
+    /// If true, tenant resolution MUST succeed for external requests.
+    /// If false, unresolved tenants fall back to single-tenant behavior.
     /// </summary>
     public bool RequireTenant { get; set; } = false;
 
@@ -33,28 +27,11 @@ public sealed class UAuthMultiTenantOptions
     public bool AllowUnknownTenants { get; set; } = true;
 
     /// <summary>
-    /// Tenant ids that cannot be used by clients.
-    /// Protects system-level tenant identifiers.
-    /// </summary>
-    public HashSet<string> ReservedTenantIds { get; set; } = new()
-    {
-        "system",
-        "root",
-        "admin",
-        "public"
-    };
-
-    /// <summary>
     /// If true, tenant identifiers are normalized to lowercase.
     /// Recommended for host-based tenancy.
     /// </summary>
     public bool NormalizeToLowercase { get; set; } = true;
 
-    /// <summary>
-    /// Optional validation for tenant id format.
-    /// Default: alphanumeric + hyphens allowed.
-    /// </summary>
-    public string TenantIdRegex { get; set; } = "^[a-zA-Z0-9\\-]+$";
 
     /// <summary>
     /// Enables tenant resolution from the URL path and
@@ -70,12 +47,9 @@ public sealed class UAuthMultiTenantOptions
     internal UAuthMultiTenantOptions Clone() => new()
     {
         Enabled = Enabled,
-        DefaultTenantId = DefaultTenantId,
         RequireTenant = RequireTenant,
         AllowUnknownTenants = AllowUnknownTenants,
-        ReservedTenantIds = new HashSet<string>(ReservedTenantIds),
         NormalizeToLowercase = NormalizeToLowercase,
-        TenantIdRegex = TenantIdRegex,
         EnableRoute = EnableRoute,
         EnableHeader = EnableHeader,
         EnableDomain = EnableDomain,

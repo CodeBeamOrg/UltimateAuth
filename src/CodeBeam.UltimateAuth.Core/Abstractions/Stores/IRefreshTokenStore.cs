@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
@@ -8,15 +9,15 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 /// </summary>
 public interface IRefreshTokenStore
 {
-    Task StoreAsync(string? tenantId, StoredRefreshToken token, CancellationToken ct = default);
+    Task StoreAsync(TenantKey tenant, StoredRefreshToken token, CancellationToken ct = default);
 
-    Task<StoredRefreshToken?> FindByHashAsync(string? tenantId, string tokenHash, CancellationToken ct = default);
+    Task<StoredRefreshToken?> FindByHashAsync(TenantKey tenant, string tokenHash, CancellationToken ct = default);
 
-    Task RevokeAsync(string? tenantId, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default);
+    Task RevokeAsync(TenantKey tenant, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default);
 
-    Task RevokeBySessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeBySessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);
 
-    Task RevokeByChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeByChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
 
-    Task RevokeAllForUserAsync(string? tenantId, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeAllForUserAsync(TenantKey tenant, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default);
 }

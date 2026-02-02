@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
@@ -9,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
         public AuthSessionId SessionId { get; set; } = default!;
         public SessionChainId ChainId { get; set; } = default!;
 
-        public string? TenantId { get; set; }
+        public TenantKey Tenant { get; set; }
         public UserKey UserKey { get; set; } = default!;
 
         public DateTimeOffset CreatedAt { get; set; }

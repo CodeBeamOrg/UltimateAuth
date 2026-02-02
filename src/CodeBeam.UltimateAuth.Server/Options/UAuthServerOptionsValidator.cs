@@ -48,25 +48,6 @@ namespace CodeBeam.UltimateAuth.Server.Options
                 }
             }
 
-            // -------------------------
-            // MULTI-TENANT VALIDATION
-            // -------------------------
-            if (options.MultiTenant.Enabled)
-            {
-                if (options.MultiTenant.RequireTenant &&
-                    string.IsNullOrWhiteSpace(options.MultiTenant.DefaultTenantId))
-                {
-                    // This is allowed, but warn-worthy logic
-                    // We still allow it, middleware will reject requests
-                }
-
-                if (string.IsNullOrWhiteSpace(options.MultiTenant.TenantIdRegex))
-                {
-                    return ValidateOptionsResult.Fail(
-                        "MultiTenant.TenantIdRegex must be specified.");
-                }
-            }
-
             return ValidateOptionsResult.Success;
         }
     }

@@ -1,10 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth
@@ -23,6 +23,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         private readonly IDeviceResolver _deviceResolver;
         private readonly IDeviceContextFactory _deviceContextFactory;
         private readonly ISessionValidator _sessionValidator;
+        private readonly IClock _clock;
 
         public DefaultAuthFlowContextFactory(
             IClientProfileReader clientProfileReader,
@@ -31,7 +32,8 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             IAuthResponseResolver authResponseResolver,
             IDeviceResolver deviceResolver,
             IDeviceContextFactory deviceContextFactory,
-            ISessionValidator sessionValidator)
+            ISessionValidator sessionValidator,
+            IClock clock)
         {
             _clientProfileReader = clientProfileReader;
             _primaryTokenResolver = primaryTokenResolver;
@@ -40,11 +42,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             _deviceResolver = deviceResolver;
             _deviceContextFactory = deviceContextFactory;
             _sessionValidator = sessionValidator;
+            _clock = clock;
         }
 
         public async ValueTask<AuthFlowContext> CreateAsync(HttpContext ctx, AuthFlowType flowType, CancellationToken ct = default)
         {
-            var tenant = ctx.GetTenantContext();
+            var tenant = ctx.GetTenant();
             var sessionCtx = ctx.GetSessionContext();
             var user = ctx.GetUserContext();
 
@@ -67,15 +70,18 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 var validation = await _sessionValidator.ValidateSessionAsync(
                     new SessionValidationContext
                     {
-                        TenantId = sessionCtx.TenantId,
+                        Tenant = tenant,
                         SessionId = sessionCtx.SessionId!.Value,
                         Device = deviceContext,
-                        Now = DateTimeOffset.UtcNow
+                        Now = _clock.UtcNow
                     },
                     ct);
 
                 sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
             }
+
+            if (tenant.IsUnresolved)
+                throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
 
             // TODO: Implement invariant checker
             //_invariantChecker.Validate(flowType, effectiveMode, response, effectiveOptions);
@@ -85,7 +91,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 clientProfile,
                 effectiveMode,
                 deviceContext,
-                tenant?.TenantId,
+                tenant,
                 user?.IsAuthenticated ?? false,
                 user?.UserId,
                 sessionSecurityContext,

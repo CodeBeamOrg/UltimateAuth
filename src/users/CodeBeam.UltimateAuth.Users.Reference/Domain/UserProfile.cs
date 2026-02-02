@@ -1,11 +1,12 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
 // TODO: Multi profile (e.g., public profiles, private profiles, profiles per application, etc. with ProfileKey)
 public sealed record class UserProfile
 {
-    public string? TenantId { get; set; }
+    public TenantKey Tenant { get; set; }
 
     public UserKey UserKey { get; init; } = default!;
 

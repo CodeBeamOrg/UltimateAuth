@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record RefreshTokenValidationContext
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
     public string RefreshToken { get; init; } = default!;
     public DateTimeOffset Now { get; init; }
 

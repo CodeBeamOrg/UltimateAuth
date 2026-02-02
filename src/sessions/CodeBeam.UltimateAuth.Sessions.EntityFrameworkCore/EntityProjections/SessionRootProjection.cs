@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
 {
@@ -6,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore
     {
         public long Id { get; set; }
         public SessionRootId RootId { get; set; }
-        public string? TenantId { get; set; }
+        public TenantKey Tenant { get; set; }
         public UserKey UserKey { get; set; }
 
         public bool IsRevoked { get; set; }

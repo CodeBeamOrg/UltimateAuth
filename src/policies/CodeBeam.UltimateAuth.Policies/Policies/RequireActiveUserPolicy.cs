@@ -17,7 +17,7 @@ namespace CodeBeam.UltimateAuth.Policies
             if (context.ActorUserKey is null)
                 return AccessDecision.Deny("missing_actor");
 
-            var state = _runtime.GetAsync(context.ActorTenantId, context.ActorUserKey!.Value).GetAwaiter().GetResult();
+            var state = _runtime.GetAsync(context.ActorTenant, context.ActorUserKey!.Value).GetAwaiter().GetResult();
 
             if (state == null || !state.Exists || state.IsDeleted)
                 return AccessDecision.Deny("user_not_found");

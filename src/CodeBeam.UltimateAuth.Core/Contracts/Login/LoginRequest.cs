@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record LoginRequest
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
     public string Identifier { get; init; } = default!;
     public string Secret { get; init; } = default!;
     public DateTimeOffset? At { get; init; }

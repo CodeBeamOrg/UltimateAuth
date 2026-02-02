@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client.Authentication
@@ -18,7 +19,7 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
 
         public UserKey? UserKey { get; private set; }
 
-        public string? TenantId { get; private set; }
+        public TenantKey Tenant { get; private set; }
 
         /// <summary>
         /// When this authentication snapshot was created.
@@ -44,14 +45,14 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
 
         internal void ApplySnapshot(AuthStateSnapshot snapshot, DateTimeOffset validatedAt)
         {
-            if (string.IsNullOrWhiteSpace(snapshot.UserId))
+            if (string.IsNullOrWhiteSpace(snapshot.UserKey))
             {
                 Clear();
                 return;
             }
 
-            UserKey = CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(snapshot.UserId);
-            TenantId = snapshot.TenantId;
+            UserKey = CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(snapshot.UserKey);
+            Tenant = snapshot.Tenant;
             Claims = snapshot.Claims;
 
             IsAuthenticated = true;
@@ -89,7 +90,6 @@ namespace CodeBeam.UltimateAuth.Client.Authentication
             Claims = ClaimsSnapshot.Empty;
 
             UserKey = null;
-            TenantId = null;
             IsAuthenticated = false;
 
             AuthenticatedAt = null;

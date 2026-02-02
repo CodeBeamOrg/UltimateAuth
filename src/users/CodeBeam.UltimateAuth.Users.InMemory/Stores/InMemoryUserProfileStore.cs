@@ -1,21 +1,22 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 public sealed class InMemoryUserProfileStore : IUserProfileStore
 {
-    private readonly Dictionary<(string? TenantId, UserKey UserKey), UserProfile> _store = new();
+    private readonly Dictionary<(TenantKey Tenant, UserKey UserKey), UserProfile> _store = new();
 
-    public Task<bool> ExistsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task<bool> ExistsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        return Task.FromResult(_store.TryGetValue((tenantId, userKey), out var profile) && profile.DeletedAt == null);
+        return Task.FromResult(_store.TryGetValue((tenant, userKey), out var profile) && profile.DeletedAt == null);
     }
 
-    public Task<UserProfile?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task<UserProfile?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        if (!_store.TryGetValue((tenantId, userKey), out var profile))
+        if (!_store.TryGetValue((tenant, userKey), out var profile))
             return Task.FromResult<UserProfile?>(null);
 
         if (profile.DeletedAt != null)
@@ -24,10 +25,10 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.FromResult<UserProfile?>(profile);
     }
 
-    public Task<PagedResult<UserProfile>> QueryAsync(string? tenantId, UserProfileQuery query, CancellationToken ct = default)
+    public Task<PagedResult<UserProfile>> QueryAsync(TenantKey tenant, UserProfileQuery query, CancellationToken ct = default)
     {
         var baseQuery = _store.Values
-            .Where(x => x.TenantId == tenantId);
+            .Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);
@@ -44,9 +45,9 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.FromResult(new PagedResult<UserProfile>(items, totalCount));
     }
 
-    public Task CreateAsync(string? tenantId, UserProfile profile, CancellationToken ct = default)
+    public Task CreateAsync(TenantKey tenant, UserProfile profile, CancellationToken ct = default)
     {
-        var key = (tenantId, profile.UserKey);
+        var key = (tenant, profile.UserKey);
 
         if (_store.ContainsKey(key))
             throw new InvalidOperationException("UserProfile already exists.");
@@ -55,9 +56,9 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(string? tenantId, UserKey userKey, UserProfileUpdate update, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public Task UpdateAsync(TenantKey tenant, UserKey userKey, UserProfileUpdate update, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
-        var key = (tenantId, userKey);
+        var key = (tenant, userKey);
 
         if (!_store.TryGetValue(key, out var existing) || existing.DeletedAt != null)
             throw new InvalidOperationException("UserProfile not found.");
@@ -78,9 +79,9 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+    public Task DeleteAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
-        var key = (tenantId, userKey);
+        var key = (tenant, userKey);
 
         if (!_store.TryGetValue(key, out var profile))
             return Task.CompletedTask;

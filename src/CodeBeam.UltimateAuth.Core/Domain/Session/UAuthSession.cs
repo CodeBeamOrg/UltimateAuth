@@ -1,9 +1,11 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Domain;
 
 public sealed class UAuthSession
 {
     public AuthSessionId SessionId { get; }
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
     public UserKey UserKey { get; }
     public SessionChainId ChainId { get; }
     public DateTimeOffset CreatedAt { get; }
@@ -18,7 +20,7 @@ public sealed class UAuthSession
 
     private UAuthSession(
     AuthSessionId sessionId,
-    string? tenantId,
+    TenantKey tenant,
     UserKey userKey,
     SessionChainId chainId,
     DateTimeOffset createdAt,
@@ -32,7 +34,7 @@ public sealed class UAuthSession
     SessionMetadata metadata)
     {
         SessionId = sessionId;
-        TenantId = tenantId;
+        Tenant = tenant;
         UserKey = userKey;
         ChainId = chainId;
         CreatedAt = createdAt;
@@ -48,7 +50,7 @@ public sealed class UAuthSession
 
     public static UAuthSession Create(
         AuthSessionId sessionId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         SessionChainId chainId,
         DateTimeOffset now,
@@ -59,7 +61,7 @@ public sealed class UAuthSession
     {
         return new(
             sessionId,
-            tenantId,
+            tenant,
             userKey,
             chainId,
             createdAt: now,
@@ -81,7 +83,7 @@ public sealed class UAuthSession
 
         return new UAuthSession(
             SessionId,
-            TenantId,
+            Tenant,
             UserKey,
             ChainId,
             CreatedAt,
@@ -100,7 +102,7 @@ public sealed class UAuthSession
     {
         return new UAuthSession(
             SessionId,
-            TenantId,
+            Tenant,
             UserKey,
             ChainId,
             CreatedAt,
@@ -121,7 +123,7 @@ public sealed class UAuthSession
 
         return new UAuthSession(
             SessionId,
-            TenantId,
+            Tenant,
             UserKey,
             ChainId,
             CreatedAt,
@@ -138,7 +140,7 @@ public sealed class UAuthSession
 
     internal static UAuthSession FromProjection(
         AuthSessionId sessionId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         SessionChainId chainId,
         DateTimeOffset createdAt,
@@ -153,7 +155,7 @@ public sealed class UAuthSession
     {
         return new UAuthSession(
             sessionId,
-            tenantId,
+            tenant,
             userKey,
             chainId,
             createdAt,
@@ -189,7 +191,7 @@ public sealed class UAuthSession
 
         return new UAuthSession(
             sessionId: SessionId,
-            tenantId: TenantId,
+            tenant: Tenant,
             userKey: UserKey,
             chainId: chainId,
             createdAt: CreatedAt,

@@ -19,14 +19,14 @@ namespace CodeBeam.UltimateAuth.Server.Middlewares
         {
             var sessionIdResolver = context.RequestServices.GetRequiredService<ISessionIdResolver>();
 
-            var tenant = context.GetTenantContext();
+            var tenant = context.GetTenant();
             var sessionId = sessionIdResolver.Resolve(context);
 
             var sessionContext = sessionId is null
                 ? SessionContext.Anonymous()
                 : SessionContext.FromSessionId(
                     sessionId.Value,
-                    tenant.TenantId);
+                    tenant);
 
             context.Items[SessionContextItemKeys.SessionContext] = sessionContext;
 

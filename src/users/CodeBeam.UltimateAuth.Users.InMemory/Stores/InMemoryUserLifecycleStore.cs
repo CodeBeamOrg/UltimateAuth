@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
@@ -7,16 +8,16 @@ namespace CodeBeam.UltimateAuth.Users.InMemory;
 
 public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
 {
-    private readonly Dictionary<(string?, UserKey), UserLifecycle> _store = new();
+    private readonly Dictionary<(TenantKey, UserKey), UserLifecycle> _store = new();
 
-    public Task<bool> ExistsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task<bool> ExistsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        return Task.FromResult(_store.TryGetValue((tenantId, userKey), out var entity) && !entity.IsDeleted);
+        return Task.FromResult(_store.TryGetValue((tenant, userKey), out var entity) && !entity.IsDeleted);
     }
 
-    public Task<UserLifecycle?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+    public Task<UserLifecycle?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        if (!_store.TryGetValue((tenantId, userKey), out var entity))
+        if (!_store.TryGetValue((tenant, userKey), out var entity))
             return Task.FromResult<UserLifecycle?>(null);
 
         if (entity.IsDeleted)
@@ -25,11 +26,11 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.FromResult<UserLifecycle?>(entity);
     }
 
-    public Task<PagedResult<UserLifecycle>> QueryAsync(string? tenantId, UserLifecycleQuery query, CancellationToken ct = default)
+    public Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
     {
         var baseQuery = _store.Values
             .Where(x => x?.UserKey != null)
-            .Where(x => x.TenantId == tenantId);
+            .Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => !x.IsDeleted);
@@ -49,9 +50,9 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount));
     }
 
-    public Task CreateAsync(string? tenantId, UserLifecycle lifecycle, CancellationToken ct = default)
+    public Task CreateAsync(TenantKey tenant, UserLifecycle lifecycle, CancellationToken ct = default)
     {
-        var key = (tenantId, lifecycle.UserKey);
+        var key = (tenant, lifecycle.UserKey);
 
         if (_store.ContainsKey(key))
             throw new InvalidOperationException("UserLifecycle already exists.");
@@ -60,9 +61,9 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.CompletedTask;
     }
 
-    public Task ChangeStatusAsync(string? tenantId, UserKey userKey, UserStatus newStatus, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public Task ChangeStatusAsync(TenantKey tenant, UserKey userKey, UserStatus newStatus, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
-        if (!_store.TryGetValue((tenantId, userKey), out var entity) || entity.IsDeleted)
+        if (!_store.TryGetValue((tenant, userKey), out var entity) || entity.IsDeleted)
             throw new InvalidOperationException("UserLifecycle not found.");
 
         entity.Status = newStatus;
@@ -71,9 +72,9 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.CompletedTask;
     }
 
-    public Task ChangeSecurityStampAsync(string? tenantId, UserKey userKey, Guid newSecurityStamp, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public Task ChangeSecurityStampAsync(TenantKey tenant, UserKey userKey, Guid newSecurityStamp, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
-        if (!_store.TryGetValue((tenantId, userKey), out var entity) || entity.IsDeleted)
+        if (!_store.TryGetValue((tenant, userKey), out var entity) || entity.IsDeleted)
             throw new InvalidOperationException("UserLifecycle not found.");
 
         if (entity.SecurityStamp == newSecurityStamp)
@@ -85,9 +86,9 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(string? tenantId, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+    public Task DeleteAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
-        var key = (tenantId, userKey);
+        var key = (tenant, userKey);
 
         if (!_store.TryGetValue(key, out var entity))
             return Task.CompletedTask;

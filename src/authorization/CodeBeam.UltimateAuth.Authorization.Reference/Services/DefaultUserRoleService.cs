@@ -26,7 +26,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             var cmd = new AssignUserRoleCommand(Array.Empty<IAccessPolicy>(),
                 async innerCt =>
                 {
-                    await _store.AssignAsync(context.ResourceTenantId, targetUserKey, role, innerCt);
+                    await _store.AssignAsync(context.ResourceTenant, targetUserKey, role, innerCt);
                 });
 
             await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -42,7 +42,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             var cmd = new RemoveUserRoleCommand(Array.Empty<IAccessPolicy>(),
                 async innerCt =>
                 {
-                    await _store.RemoveAsync(context.ResourceTenantId, targetUserKey, role, innerCt);
+                    await _store.RemoveAsync(context.ResourceTenant, targetUserKey, role, innerCt);
                 });
 
             await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -54,7 +54,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             ct.ThrowIfCancellationRequested();
 
             var cmd = new GetUserRolesCommand(Array.Empty<IAccessPolicy>(),
-                innerCt => _store.GetRolesAsync(context.ResourceTenantId, targetUserKey, innerCt));
+                innerCt => _store.GetRolesAsync(context.ResourceTenant, targetUserKey, innerCt));
 
             return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
         }

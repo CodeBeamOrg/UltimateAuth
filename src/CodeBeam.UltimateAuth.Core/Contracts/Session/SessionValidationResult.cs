@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed class SessionValidationResult
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 
     public required SessionState State { get; init; }
 
@@ -25,7 +26,7 @@ public sealed class SessionValidationResult
     private SessionValidationResult() { }
 
     public static SessionValidationResult Active(
-        string? tenantId,
+        TenantKey tenant,
         UserKey? userId,
         AuthSessionId sessionId,
         SessionChainId chainId,
@@ -34,7 +35,7 @@ public sealed class SessionValidationResult
         DeviceId? boundDeviceId = null)
         => new()
         {
-            TenantId = tenantId,
+            Tenant = tenant,
             State = SessionState.Active,
             UserKey = userId,
             SessionId = sessionId,
@@ -53,7 +54,6 @@ public sealed class SessionValidationResult
         DeviceId? boundDeviceId = null)
     => new()
     {
-        TenantId = null,
         State = state,
         UserKey = userId,
         SessionId = sessionId,

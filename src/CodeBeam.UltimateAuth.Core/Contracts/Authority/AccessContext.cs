@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
@@ -7,19 +8,19 @@ public sealed class AccessContext
 {
     // Actor
     public UserKey? ActorUserKey { get; init; }
-    public string? ActorTenantId { get; init; }
+    public TenantKey ActorTenant { get; init; }
     public bool IsAuthenticated { get; init; }
     public bool IsSystemActor { get; init; }
 
     // Target
     public string? Resource { get; init; }
     public string? ResourceId { get; init; }
-    public string? ResourceTenantId { get; init; }
+    public TenantKey ResourceTenant { get; init; }
 
     public string Action { get; init; } = default!;
     public IReadOnlyDictionary<string, object> Attributes { get; init; } = EmptyAttributes.Instance;
 
-    public bool IsCrossTenant => ActorTenantId != null && ResourceTenantId != null && !string.Equals(ActorTenantId, ResourceTenantId, StringComparison.Ordinal);
+    public bool IsCrossTenant => !string.Equals(ActorTenant, ResourceTenant, StringComparison.Ordinal);
     public bool IsSelfAction => ActorUserKey != null && ResourceId != null && string.Equals(ActorUserKey.Value, ResourceId, StringComparison.Ordinal);
     public bool HasActor => ActorUserKey != null;
     public bool HasTarget => ResourceId != null;

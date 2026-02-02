@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference
 {
@@ -18,7 +19,7 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
                 }
             };
 
-        public Task<IReadOnlyCollection<Permission>> ResolveAsync(string? tenantId, IEnumerable<string> roles, CancellationToken ct = default)
+        public Task<IReadOnlyCollection<Permission>> ResolveAsync(TenantKey tenant, IEnumerable<string> roles, CancellationToken ct = default)
         {
             var result = new List<Permission>();
 

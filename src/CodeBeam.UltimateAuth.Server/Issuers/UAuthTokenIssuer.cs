@@ -65,7 +65,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             var stored = new StoredRefreshToken
             {
-                TenantId = flow.TenantId,
+                Tenant = flow.Tenant,
                 TokenHash = hash,
                 UserKey = context.UserKey,
                 // TODO: Check here again
@@ -77,7 +77,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
 
             if (persistence == RefreshTokenPersistence.Persist)
             {
-                await _refreshTokenStore.StoreAsync(flow.TenantId, stored, ct);
+                await _refreshTokenStore.StoreAsync(flow.Tenant, stored, ct);
             }
 
             return new RefreshToken
@@ -106,7 +106,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
             var claims = new Dictionary<string, object>
             {
                 ["sub"] = context.UserKey,
-                ["tenant"] = context.TenantId
+                ["tenant"] = context.Tenant
             };
 
             foreach (var kv in context.Claims)
@@ -125,7 +125,7 @@ namespace CodeBeam.UltimateAuth.Server.Issuers
                 Audience = tokens.Audience,
                 IssuedAt = _clock.UtcNow,
                 ExpiresAt = expires,
-                TenantId = context.TenantId,
+                Tenant = context.Tenant,
                 Claims = claims,
                 KeyId = tokens.KeyId
             };

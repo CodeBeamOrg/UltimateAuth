@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
@@ -8,5 +9,5 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 /// </summary>
 public interface IUserRuntimeStateProvider
 {
-    Task<UserRuntimeRecord?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
+    Task<UserRuntimeRecord?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
 }

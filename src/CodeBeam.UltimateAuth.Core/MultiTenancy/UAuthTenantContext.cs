@@ -5,18 +5,20 @@
 /// </summary>
 public sealed class UAuthTenantContext
 {
-    public string? TenantId { get; }
-    public bool IsResolved { get; }
+    public TenantKey Tenant { get; }
 
-    private UAuthTenantContext(string? tenantId, bool resolved)
+    private UAuthTenantContext(TenantKey tenant)
     {
-        TenantId = tenantId;
-        IsResolved = resolved;
+        if (tenant.IsUnresolved)
+            throw new InvalidOperationException("Runtime tenant context cannot be unresolved.");
+
+        Tenant = tenant;
     }
 
-    public static UAuthTenantContext NotResolved()
-        => new(null, false);
+    public bool IsSingleTenant => Tenant.IsSingle;
+    public bool IsSystem => Tenant.IsSystem;
 
-    public static UAuthTenantContext Resolved(string tenantId)
-        => new(tenantId, true);
+    public static UAuthTenantContext SingleTenant() => new(TenantKey.Single);
+    public static UAuthTenantContext System() => new(TenantKey.System);
+    public static UAuthTenantContext Resolved(TenantKey tenant) => new(tenant);
 }

@@ -64,7 +64,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
         var snapshot = new PkceContextSnapshot(
             clientProfile: authContext.ClientProfile,
-            tenantId: authContext.TenantId,
+            tenant: authContext.Tenant,
             redirectUri: request.RedirectUri,
             deviceId: string.Empty // TODO: Fix here with device binding
         );
@@ -112,7 +112,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         var validation = _validator.Validate(artifact, request.CodeVerifier,
             new PkceContextSnapshot(
                 clientProfile: authContext.ClientProfile,
-                tenantId: authContext.TenantId,
+                tenant: authContext.Tenant,
                 redirectUri: null,
                 deviceId: string.Empty),
             _clock.UtcNow);
@@ -127,7 +127,7 @@ internal sealed class DefaultPkceEndpointHandler<TUserId> : IPkceEndpointHandler
         {
             Identifier = request.Identifier,
             Secret = request.Secret,
-            TenantId = authContext.TenantId,
+            Tenant = authContext.Tenant,
             At = _clock.UtcNow,
             Device = authContext.Device,
             RequestTokens = authContext.AllowsTokenIssuance

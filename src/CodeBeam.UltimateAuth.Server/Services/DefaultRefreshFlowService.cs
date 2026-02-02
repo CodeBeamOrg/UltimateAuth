@@ -55,7 +55,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
-                    TenantId = flow.TenantId,
+                    Tenant = flow.Tenant,
                     SessionId = request.SessionId.Value,
                     Now = request.Now,
                     Device = request.Device
@@ -128,7 +128,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
-                    TenantId = flow.TenantId,
+                    Tenant = flow.Tenant,
                     SessionId = request.SessionId.Value,
                     Now = request.Now,
                     Device = request.Device
@@ -179,7 +179,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
-                    TenantId = flow.TenantId,
+                    Tenant = flow.Tenant,
                     SessionId = request.SessionId.Value,
                     Now = request.Now,
                     Device = request.Device

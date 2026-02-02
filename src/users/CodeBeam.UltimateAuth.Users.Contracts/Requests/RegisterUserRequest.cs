@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Users.Contracts
 {
     /// <summary>
     /// Request to register a new user with credentials.
@@ -20,7 +22,7 @@
         /// <summary>
         /// Optional tenant identifier.
         /// </summary>
-        public string? TenantId { get; init; }
+        public TenantKey Tenant { get; init; }
 
         /// <summary>
         /// Optional initial claims or metadata.

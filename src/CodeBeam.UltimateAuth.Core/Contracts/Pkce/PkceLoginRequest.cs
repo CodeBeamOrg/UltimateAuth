@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed class PkceLoginRequest
 {
@@ -9,5 +11,5 @@ public sealed class PkceLoginRequest
     public string Identifier { get; init; } = default!;
     public string Secret { get; init; } = default!;
 
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 }

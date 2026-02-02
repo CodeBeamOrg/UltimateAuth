@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 using System.Security;
@@ -48,7 +49,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
         var session = UAuthSession.Create(
             sessionId: sessionId,
-            tenantId: context.TenantId,
+            tenant: context.Tenant,
             userKey: context.UserKey,
             chainId: SessionChainId.Unassigned,
             now: now,
@@ -65,12 +66,12 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
         };
 
-        var kernel = _kernelFactory.Create(context.TenantId);
+        var kernel = _kernelFactory.Create(context.Tenant);
 
         await kernel.ExecuteAsync(async _ =>
         {
             var root = await kernel.GetSessionRootByUserAsync(context.UserKey)
-                ?? UAuthSessionRoot.Create(context.TenantId, context.UserKey, now);
+                ?? UAuthSessionRoot.Create(context.Tenant, context.UserKey, now);
 
             UAuthSessionChain chain;
 
@@ -84,7 +85,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 chain = UAuthSessionChain.Create(
                     SessionChainId.New(),
                     root.RootId,
-                    context.TenantId,
+                    context.Tenant,
                     context.UserKey,
                     root.SecurityVersion,
                     ClaimsSnapshot.Empty);
@@ -105,7 +106,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
     public async Task<IssuedSession> RotateSessionAsync(SessionRotationContext context, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(context.TenantId);
+        var kernel = _kernelFactory.Create(context.Tenant);
         var now = context.Now;
 
         var opaqueSessionId = _opaqueGenerator.Generate();
@@ -124,7 +125,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         {
             Session = UAuthSession.Create(
                 sessionId: newSessionId,
-                tenantId: context.TenantId,
+                tenant: context.Tenant,
                 userKey: context.UserKey,
                 chainId: SessionChainId.Unassigned,
                 now: now,
@@ -158,21 +159,21 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         return issued;
     }
 
-    public async Task RevokeSessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenantId);
+        var kernel = _kernelFactory.Create(tenant);
         await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
     }
 
-    public async Task RevokeChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenantId);
+        var kernel = _kernelFactory.Create(tenant);
         await kernel.ExecuteAsync(_ => kernel.RevokeChainAsync(chainId, at), ct);
     }
 
-    public async Task RevokeAllChainsAsync(string? tenantId, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task RevokeAllChainsAsync(TenantKey tenant, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenantId);
+        var kernel = _kernelFactory.Create(tenant);
         await kernel.ExecuteAsync(async _ =>
         {
             var chains = await kernel.GetChainsByUserAsync(userKey);
@@ -193,9 +194,9 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     }
 
     // TODO: Discuss revoking chains/sessions when root is revoked
-    public async Task RevokeRootAsync(string? tenantId, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
+    public async Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenantId);
+        var kernel = _kernelFactory.Create(tenant);
         await kernel.ExecuteAsync(_ => kernel.RevokeSessionRootAsync(userKey, at), ct);
     }
 

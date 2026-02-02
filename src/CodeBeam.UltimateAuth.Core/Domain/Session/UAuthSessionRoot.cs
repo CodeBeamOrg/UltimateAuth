@@ -1,10 +1,12 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Domain;
 
 public sealed class UAuthSessionRoot
 {
     public SessionRootId RootId { get; }
     public UserKey UserKey { get; }
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long SecurityVersion { get; }
@@ -13,7 +15,7 @@ public sealed class UAuthSessionRoot
 
     private UAuthSessionRoot(
         SessionRootId rootId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         bool isRevoked,
         DateTimeOffset? revokedAt,
@@ -22,7 +24,7 @@ public sealed class UAuthSessionRoot
         DateTimeOffset lastUpdatedAt)
     {
         RootId = rootId;
-        TenantId = tenantId;
+        Tenant = tenant;
         UserKey = userKey;
         IsRevoked = isRevoked;
         RevokedAt = revokedAt;
@@ -32,13 +34,13 @@ public sealed class UAuthSessionRoot
     }
 
     public static UAuthSessionRoot Create(
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         DateTimeOffset issuedAt)
     {
         return new UAuthSessionRoot(
             SessionRootId.New(),
-            tenantId,
+            tenant,
             userKey,
             isRevoked: false,
             revokedAt: null,
@@ -55,7 +57,7 @@ public sealed class UAuthSessionRoot
 
         return new UAuthSessionRoot(
             RootId,
-            TenantId,
+            Tenant,
             UserKey,
             isRevoked: true,
             revokedAt: at,
@@ -72,7 +74,7 @@ public sealed class UAuthSessionRoot
 
         return new UAuthSessionRoot(
             RootId,
-            TenantId,
+            Tenant,
             UserKey,
             IsRevoked,
             RevokedAt,
@@ -84,7 +86,7 @@ public sealed class UAuthSessionRoot
 
     internal static UAuthSessionRoot FromProjection(
         SessionRootId rootId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         bool isRevoked,
         DateTimeOffset? revokedAt,
@@ -94,7 +96,7 @@ public sealed class UAuthSessionRoot
     {
         return new UAuthSessionRoot(
             rootId,
-            tenantId,
+            tenant,
             userKey,
             isRevoked,
             revokedAt,

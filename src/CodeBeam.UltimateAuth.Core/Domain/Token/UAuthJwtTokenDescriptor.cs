@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Domain;
 
 /// <summary>
 /// Framework-agnostic JWT description used by IJwtTokenGenerator.
@@ -13,7 +15,7 @@ public sealed class UAuthJwtTokenDescriptor
 
     public required DateTimeOffset IssuedAt { get; init; }
     public required DateTimeOffset ExpiresAt { get; init; }
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 
     public IReadOnlyDictionary<string, object>? Claims { get; init; }
 

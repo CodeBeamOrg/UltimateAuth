@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
@@ -112,13 +113,9 @@ else
     app.MapOpenApi();
     app.MapScalarApiReference();
     using var scope = app.Services.CreateScope();
-    //scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
-    //scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
-    //scope.ServiceProvider.GetRequiredService<IUserIdentifierStore>();
-    //scope.ServiceProvider.GetRequiredService<ICredentialStore<UserKey>>();
     var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
 
-    await seedRunner.RunAsync(tenantId: null);
+    await seedRunner.RunAsync(null);
 }
 
 app.UseHttpsRedirection();

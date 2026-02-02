@@ -1,10 +1,12 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Domain;
 
 public sealed class UAuthSessionChain
 {
     public SessionChainId ChainId { get; }
     public SessionRootId RootId { get; }
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
     public UserKey UserKey { get; }
     public int RotationCount { get; }
     public long SecurityVersionAtCreation { get; }
@@ -16,7 +18,7 @@ public sealed class UAuthSessionChain
     private UAuthSessionChain(
         SessionChainId chainId,
         SessionRootId rootId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         int rotationCount,
         long securityVersionAtCreation,
@@ -27,7 +29,7 @@ public sealed class UAuthSessionChain
     {
         ChainId = chainId;
         RootId = rootId;
-        TenantId = tenantId;
+        Tenant = tenant;
         UserKey = userKey;
         RotationCount = rotationCount;
         SecurityVersionAtCreation = securityVersionAtCreation;
@@ -40,7 +42,7 @@ public sealed class UAuthSessionChain
     public static UAuthSessionChain Create(
         SessionChainId chainId,
         SessionRootId rootId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         long securityVersion,
         ClaimsSnapshot claimsSnapshot)
@@ -48,7 +50,7 @@ public sealed class UAuthSessionChain
         return new UAuthSessionChain(
             chainId,
             rootId,
-            tenantId,
+            tenant,
             userKey,
             rotationCount: 0,
             securityVersionAtCreation: securityVersion,
@@ -67,7 +69,7 @@ public sealed class UAuthSessionChain
         return new UAuthSessionChain(
             ChainId,
             RootId,
-            TenantId,
+            Tenant,
             UserKey,
             RotationCount, // Unchanged on first attach
             SecurityVersionAtCreation,
@@ -86,7 +88,7 @@ public sealed class UAuthSessionChain
         return new UAuthSessionChain(
             ChainId,
             RootId,
-            TenantId,
+            Tenant,
             UserKey,
             RotationCount + 1,
             SecurityVersionAtCreation,
@@ -105,7 +107,7 @@ public sealed class UAuthSessionChain
         return new UAuthSessionChain(
             ChainId,
             RootId,
-            TenantId,
+            Tenant,
             UserKey,
             RotationCount,
             SecurityVersionAtCreation,
@@ -119,7 +121,7 @@ public sealed class UAuthSessionChain
     internal static UAuthSessionChain FromProjection(
         SessionChainId chainId,
         SessionRootId rootId,
-        string? tenantId,
+        TenantKey tenant,
         UserKey userKey,
         int rotationCount,
         long securityVersionAtCreation,
@@ -131,7 +133,7 @@ public sealed class UAuthSessionChain
         return new UAuthSessionChain(
             chainId,
             rootId,
-            tenantId,
+            tenant,
             userKey,
             rotationCount,
             securityVersionAtCreation,

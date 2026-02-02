@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -10,17 +11,17 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 public sealed class SessionContext
 {
     public AuthSessionId? SessionId { get; }
-    public string? TenantId { get; }
+    public TenantKey? Tenant { get; }
 
     public bool IsAnonymous => SessionId is null;
 
-    private SessionContext(AuthSessionId? sessionId, string? tenantId)
+    private SessionContext(AuthSessionId? sessionId, TenantKey? tenant)
     {
         SessionId = sessionId;
-        TenantId = tenantId;
+        Tenant = tenant;
     }
 
     public static SessionContext Anonymous() => new(null, null);
 
-    public static SessionContext FromSessionId(AuthSessionId sessionId, string? tenantId) => new(sessionId, tenantId);
+    public static SessionContext FromSessionId(AuthSessionId sessionId, TenantKey tenant) => new(sessionId, tenant);
 }

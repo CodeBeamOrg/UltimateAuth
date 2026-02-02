@@ -126,7 +126,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
                 return resolvers.Count switch
                 {
-                    0 => new FixedTenantResolver(opts.DefaultTenantId ?? "default"),
+                    0 => new NullTenantResolver(),
                     1 => resolvers[0],
                     _ => new CompositeTenantResolver(resolvers)
                 };
@@ -335,4 +335,10 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
         }
 
     }
+
+    internal sealed class NullTenantResolver : ITenantIdResolver
+    {
+        public Task<string?> ResolveTenantIdAsync(TenantResolutionContext context) => Task.FromResult<string?>(null);
+    }
+
 }

@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
 /// <summary>
 /// Contributes seed data for a specific domain (Users, Credentials, Authorization, etc).
@@ -12,5 +14,5 @@ public interface ISeedContributor
     /// </summary>
     int Order { get; }
 
-    Task SeedAsync(string? tenantId, CancellationToken ct = default);
+    Task SeedAsync(TenantKey tenant, CancellationToken ct = default);
 }

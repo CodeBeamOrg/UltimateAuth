@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record SessionRotationContext
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
     public AuthSessionId CurrentSessionId { get; init; }
     public UserKey UserKey { get; init; }
     public DateTimeOffset Now { get; init; }

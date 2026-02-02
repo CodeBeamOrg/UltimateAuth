@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
@@ -11,12 +12,12 @@ public sealed class PkceContextSnapshot
 {
     public PkceContextSnapshot(
         UAuthClientProfile clientProfile,
-        string? tenantId,
+        TenantKey tenant,
         string? redirectUri,
         string? deviceId)
     {
         ClientProfile = clientProfile;
-        TenantId = tenantId;
+        Tenant = tenant;
         RedirectUri = redirectUri;
         DeviceId = deviceId;
     }
@@ -29,7 +30,7 @@ public sealed class PkceContextSnapshot
     /// <summary>
     /// Tenant context at the time of authorization.
     /// </summary>
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
 
     /// <summary>
     /// Redirect URI used during authorization.

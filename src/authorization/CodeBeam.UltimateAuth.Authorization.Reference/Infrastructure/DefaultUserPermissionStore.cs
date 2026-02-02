@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference
 {
@@ -14,10 +15,10 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference
             _resolver = resolver;
         }
 
-        public async Task<IReadOnlyCollection<Permission>> GetPermissionsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        public async Task<IReadOnlyCollection<Permission>> GetPermissionsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
         {
-            var roles = await _roles.GetRolesAsync(tenantId, userKey, ct);
-            return await _resolver.ResolveAsync(tenantId, roles, ct);
+            var roles = await _roles.GetRolesAsync(tenant, userKey, ct);
+            return await _resolver.ResolveAsync(tenant, roles, ct);
         }
     }
 

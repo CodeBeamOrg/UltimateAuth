@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
@@ -57,10 +58,12 @@ internal sealed class DefaultValidateEndpointHandler : IValidateEndpointHandler
                 );
             }
 
+            var tenant = context.GetTenant();
+
             var result = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
-                    TenantId = credential.TenantId,
+                    Tenant = tenant,
                     SessionId = sessionId,
                     Now = _clock.UtcNow,
                     Device = auth.Device
@@ -73,8 +76,8 @@ internal sealed class DefaultValidateEndpointHandler : IValidateEndpointHandler
                 State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
                 Snapshot = new AuthStateSnapshot
                 {
-                    UserId = result.UserKey,
-                    TenantId = result.TenantId,
+                    UserKey = (UserKey)result.UserKey,
+                    Tenant = result.Tenant,
                     Claims = result.Claims,
                     AuthenticatedAt = _clock.UtcNow,
                 }

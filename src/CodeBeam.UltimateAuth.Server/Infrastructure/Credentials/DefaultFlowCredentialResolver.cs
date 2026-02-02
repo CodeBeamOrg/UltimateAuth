@@ -3,9 +3,7 @@ using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure
 {
@@ -52,7 +50,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             {
                 Kind = PrimaryCredentialKind.Stateful,
                 Value = raw.Trim(),
-                TenantId = context.GetTenantContext().TenantId,
+                Tenant = context.GetTenant(),
                 Device = context.GetDevice()
             };
         }
@@ -84,7 +82,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure
             {
                 Kind = PrimaryCredentialKind.Stateless,
                 Value = value,
-                TenantId = context.GetTenantContext().TenantId,
+                Tenant = context.GetTenant(),
                 Device = context.GetDevice()
             };
         }

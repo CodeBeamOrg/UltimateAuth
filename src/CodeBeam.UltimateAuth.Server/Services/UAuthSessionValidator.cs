@@ -26,7 +26,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
     // Validate runs before AuthFlowContext is set, do not call _authFlow here.
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
-        var kernel = _storeFactory.Create(context.TenantId);
+        var kernel = _storeFactory.Create(context.Tenant);
         var session = await kernel.GetSessionAsync(context.SessionId);
 
         if (session is null)
@@ -52,7 +52,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         //if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
         //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
-        var claims = await _claimsProvider.GetClaimsAsync(context.TenantId, session.UserKey, ct);
-        return SessionValidationResult.Active(context.TenantId, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, boundDeviceId: session.Device.DeviceId);
+        var claims = await _claimsProvider.GetClaimsAsync(context.Tenant, session.UserKey, ct);
+        return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, boundDeviceId: session.Device.DeviceId);
     }
 }

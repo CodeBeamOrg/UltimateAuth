@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
@@ -10,7 +11,7 @@ public sealed record StoredRefreshToken
 {
     public string TokenHash { get; init; } = default!;
 
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 
     public required UserKey UserKey { get; init; }
 

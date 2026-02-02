@@ -36,7 +36,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints
             {
                 var request = new LogoutRequest
                 {
-                    TenantId = auth.TenantId,
+                    Tenant = auth.Tenant,
                     SessionId = session.SessionId,
                     At = _clock.UtcNow,
                 };

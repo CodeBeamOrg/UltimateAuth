@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Authorization
@@ -15,10 +16,10 @@ namespace CodeBeam.UltimateAuth.Authorization
             _permissions = permissions;
         }
 
-        public async Task<ClaimsSnapshot> GetClaimsAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        public async Task<ClaimsSnapshot> GetClaimsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
         {
-            var roles = await _roles.GetRolesAsync(tenantId, userKey, ct);
-            var perms = await _permissions.GetPermissionsAsync(tenantId, userKey, ct);
+            var roles = await _roles.GetRolesAsync(tenant, userKey, ct);
+            var perms = await _permissions.GetPermissionsAsync(tenant, userKey, ct);
 
             var builder = ClaimsSnapshot.Create();
 

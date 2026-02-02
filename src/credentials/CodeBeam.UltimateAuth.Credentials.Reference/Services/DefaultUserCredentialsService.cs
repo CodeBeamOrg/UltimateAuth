@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -39,7 +40,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                 if (context.ActorUserKey is not UserKey userKey)
                     throw new UnauthorizedAccessException();
 
-                var creds = await _credentials.GetByUserAsync(context.ResourceTenantId, userKey, innerCt);
+                var creds = await _credentials.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
 
                 var dtos = creds
                     .OfType<ICredentialDescriptor>()
@@ -71,7 +72,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                 if (context.ActorUserKey is not UserKey userKey)
                     throw new UnauthorizedAccessException();
 
-                var exists = await _credentials.ExistsAsync(context.ResourceTenantId, userKey, request.Type, innerCt);
+                var exists = await _credentials.ExistsAsync(context.ResourceTenant, userKey, request.Type, innerCt);
 
                 if (exists)
                     return AddCredentialResult.Fail("credential_already_exists");
@@ -88,7 +89,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                         null,
                         request.Source));
 
-                await _credentials.AddAsync(context.ResourceTenantId, credential, innerCt);
+                await _credentials.AddAsync(context.ResourceTenant, credential, innerCt);
 
                 return AddCredentialResult.Success(request.Type);
             });
@@ -110,7 +111,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
 
                 var hash = _hasher.Hash(request.NewSecret);
 
-                await _secrets.SetAsync(context.ResourceTenantId, userKey, type, hash, innerCt);
+                await _secrets.SetAsync(context.ResourceTenant, userKey, type, hash, innerCt);
                 return ChangeCredentialResult.Success(type);
             });
 
@@ -135,7 +136,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                     expiresAt: null,
                     reason: request.Reason);
 
-                await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+                await _credentials.UpdateSecurityStateAsync(context.ResourceTenant, userKey, type, security, innerCt);
                 return CredentialActionResult.Success();
             });
 
@@ -153,7 +154,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                     throw new UnauthorizedAccessException();
 
                 var security = new CredentialSecurityState(CredentialSecurityStatus.Active);
-                await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+                await _credentials.UpdateSecurityStateAsync(context.ResourceTenant, userKey, type, security, innerCt);
 
                 return CredentialActionResult.Success();
             });
@@ -170,7 +171,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
 
             var security = new CredentialSecurityState(CredentialSecurityStatus.ResetRequested, reason: request.Reason);
 
-            await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+            await _credentials.UpdateSecurityStateAsync(context.ResourceTenant, userKey, type, security, innerCt);
             return CredentialActionResult.Success();
         });
 
@@ -186,10 +187,10 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
 
             var hash = _hasher.Hash(request.NewSecret);
 
-            await _secrets.SetAsync(context.ResourceTenantId, userKey, type, hash, innerCt);
+            await _secrets.SetAsync(context.ResourceTenant, userKey, type, hash, innerCt);
 
             var security = new CredentialSecurityState(CredentialSecurityStatus.Active);
-            await _credentials.UpdateSecurityStateAsync(context.ResourceTenantId, userKey, type, security, innerCt);
+            await _credentials.UpdateSecurityStateAsync(context.ResourceTenant, userKey, type, security, innerCt);
             return CredentialActionResult.Success();
         });
 
@@ -206,7 +207,7 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
                 if (context.ActorUserKey is not UserKey userKey)
                     throw new UnauthorizedAccessException();
 
-                await _credentials.DeleteAsync(context.ResourceTenantId, userKey, type, innerCt);
+                await _credentials.DeleteAsync(context.ResourceTenant, userKey, type, innerCt);
                 return CredentialActionResult.Success();
             });
 
@@ -216,11 +217,11 @@ internal sealed class DefaultUserCredentialsService : IUserCredentialsService, I
     // ----------------------------------------
     // INTERNAL ONLY - NEVER CALL THEM DIRECTLY
     // ----------------------------------------
-    async Task<CredentialActionResult> IUserCredentialsInternalService.DeleteInternalAsync(string? tenantId, UserKey userKey, CancellationToken ct)
+    async Task<CredentialActionResult> IUserCredentialsInternalService.DeleteInternalAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        await _credentials.DeleteByUserAsync(tenantId, userKey, ct);
+        await _credentials.DeleteByUserAsync(tenant, userKey, ct);
         return CredentialActionResult.Success();
     }
 }

@@ -8,7 +8,7 @@ internal sealed record RevokeSessionCommand(AuthSessionId SessionId) : ISessionC
 {
     public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
     {
-        await issuer.RevokeSessionAsync(context.TenantId, SessionId, context.At, ct);
+        await issuer.RevokeSessionAsync(context.Tenant, SessionId, context.At, ct);
         return Unit.Value;
     }
 }

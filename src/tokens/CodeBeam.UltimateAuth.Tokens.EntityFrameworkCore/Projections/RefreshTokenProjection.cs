@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
@@ -6,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 internal sealed class RefreshTokenProjection
 {
     public long Id { get; set; }               // Surrogate PK
-    public string? TenantId { get; set; }
+    public TenantKey Tenant { get; set; }
 
     public string TokenHash { get; set; } = default!;
     public UserKey UserKey { get; set; } = default!;

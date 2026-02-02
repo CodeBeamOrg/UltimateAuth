@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.InMemory;
 
@@ -17,10 +18,10 @@ internal sealed class InMemoryAuthorizationSeedContributor : ISeedContributor
         _ids = ids;
     }
 
-    public async Task SeedAsync(string? tenantId, CancellationToken ct = default)
+    public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
     {
         var adminKey = _ids.GetAdminUserId();
 
-        await _roles.AssignAsync(tenantId, adminKey, "Admin", ct);
+        await _roles.AssignAsync(tenant, adminKey, "Admin", ct);
     }
 }

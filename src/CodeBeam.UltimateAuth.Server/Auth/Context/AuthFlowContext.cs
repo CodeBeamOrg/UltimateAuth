@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
 
@@ -14,7 +15,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         public UAuthMode EffectiveMode { get; }
         public DeviceContext Device { get; }
 
-        public string? TenantId { get; }
+        public TenantKey Tenant { get; }
         public SessionSecurityContext? Session { get; }
         public bool IsAuthenticated { get; }
         public UserKey? UserKey { get; }
@@ -30,12 +31,15 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
             Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
 
+        public bool IsSingleTenant => Tenant.IsSingle;
+        public bool IsMultiTenant => !Tenant.IsSingle && !Tenant.IsSystem;
+
         internal AuthFlowContext(
             AuthFlowType flowType,
             UAuthClientProfile clientProfile,
             UAuthMode effectiveMode,
             DeviceContext device,
-            string? tenantId,
+            TenantKey tenantKey,
             bool isAuthenticated,
             UserKey? userKey,
             SessionSecurityContext? session,
@@ -44,12 +48,15 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             EffectiveAuthResponse response,
             PrimaryTokenKind primaryTokenKind)
         {
+            if (tenantKey.IsUnresolved)
+                throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
+
             FlowType = flowType;
             ClientProfile = clientProfile;
             EffectiveMode = effectiveMode;
             Device = device;
 
-            TenantId = tenantId;
+            Tenant = tenantKey;
             Session = session;
             IsAuthenticated = isAuthenticated;
             UserKey = userKey;

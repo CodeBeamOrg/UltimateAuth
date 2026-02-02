@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Server.Abstractions
 {
@@ -12,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Server.Abstractions
         /// </summary>
         public string Value { get; init; } = default!;
 
-        public string? TenantId { get; init; } = default!;
+        public TenantKey Tenant { get; init; }
 
         public DeviceInfo Device { get; init; } = default!;
     }

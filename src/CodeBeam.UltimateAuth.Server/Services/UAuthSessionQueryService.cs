@@ -39,7 +39,7 @@ public sealed class UAuthSessionQueryService : ISessionQueryService
 
     private ISessionStoreKernel CreateKernel()
     {
-        var tenantId = _authFlow.Current.TenantId;
+        var tenantId = _authFlow.Current.Tenant;
         return _storeFactory.Create(tenantId);
     }
 

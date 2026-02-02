@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed class LogoutAllRequest
 {
-    public string? TenantId { get; init; }
+    public TenantKey Tenant { get; init; }
 
     /// <summary>
     /// The current session initiating the logout-all operation.

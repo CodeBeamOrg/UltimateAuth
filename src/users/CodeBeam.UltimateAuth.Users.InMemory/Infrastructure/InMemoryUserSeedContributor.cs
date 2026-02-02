@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
@@ -30,18 +31,18 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
             _clock = clock;
         }
 
-        public async Task SeedAsync(string? tenantId, CancellationToken ct = default)
+        public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
         {
-            await SeedUserAsync(tenantId, _ids.GetAdminUserId(), "Administrator", "admin", ct);
-            await SeedUserAsync(tenantId, _ids.GetUserUserId(), "User", "user", ct);
+            await SeedUserAsync(tenant, _ids.GetAdminUserId(), "Administrator", "admin", ct);
+            await SeedUserAsync(tenant, _ids.GetUserUserId(), "User", "user", ct);
         }
 
-        private async Task SeedUserAsync(string? tenantId, UserKey userKey, string displayName, string username, CancellationToken ct)
+        private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string username, CancellationToken ct)
         {
-            if (await _lifecycle.ExistsAsync(tenantId, userKey, ct))
+            if (await _lifecycle.ExistsAsync(tenant, userKey, ct))
                 return;
 
-            await _lifecycle.CreateAsync(tenantId,
+            await _lifecycle.CreateAsync(tenant,
                 new UserLifecycle
                 {
                     UserKey = userKey,
@@ -49,7 +50,7 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
                     CreatedAt = _clock.UtcNow
                 }, ct);
 
-            await _profiles.CreateAsync(tenantId,
+            await _profiles.CreateAsync(tenant,
                 new UserProfile
                 {
                     UserKey = userKey,
@@ -57,7 +58,7 @@ namespace CodeBeam.UltimateAuth.Users.InMemory
                     CreatedAt = _clock.UtcNow
                 }, ct);
 
-            await _identifiers.CreateAsync(tenantId,
+            await _identifiers.CreateAsync(tenant,
                 new UserIdentifier
                 {
                     UserKey = userKey,

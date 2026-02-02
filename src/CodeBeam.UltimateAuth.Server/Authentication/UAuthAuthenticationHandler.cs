@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Server.Defaults;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -43,10 +44,12 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
             return AuthenticateResult.Fail("Invalid credential");
 
+        var tenant = Context.GetTenant();
+
         var result = await _sessionValidator.ValidateSessionAsync(
             new SessionValidationContext
             {
-                TenantId = credential.TenantId,
+                Tenant = tenant,
                 SessionId = sessionId,
                 Device = _deviceContextFactory.Create(credential.Device),
                 Now = _clock.UtcNow

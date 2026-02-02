@@ -22,7 +22,7 @@ public sealed class DefaultSessionTouchService : ISessionTouchService
         if (!policy.TouchInterval.HasValue)
             return SessionRefreshResult.Success(validation.SessionId.Value, didTouch: false);
 
-        var kernel = _kernelFactory.Create(validation.TenantId);
+        var kernel = _kernelFactory.Create(validation.Tenant);
 
         bool didTouch = false;
 

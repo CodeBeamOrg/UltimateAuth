@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Reference
 {
@@ -13,9 +14,9 @@ namespace CodeBeam.UltimateAuth.Users.Reference
             _lifecycleStore = lifecycleStore;
         }
 
-        public async Task<UserRuntimeRecord?> GetAsync(string? tenantId, UserKey userKey, CancellationToken ct = default)
+        public async Task<UserRuntimeRecord?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
         {
-            var lifecycle = await _lifecycleStore.GetAsync(tenantId, userKey, ct);
+            var lifecycle = await _lifecycleStore.GetAsync(tenant, userKey, ct);
 
             if (lifecycle is null)
                 return null;
