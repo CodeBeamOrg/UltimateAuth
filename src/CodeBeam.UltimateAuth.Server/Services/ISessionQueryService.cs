@@ -11,12 +11,6 @@ namespace CodeBeam.UltimateAuth.Server.Services;
 public interface ISessionQueryService
 {
     /// <summary>
-    /// Validates a session for runtime authentication.
-    /// Hot path – must be fast and side-effect free.
-    /// </summary>
-    Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default);
-
-    /// <summary>
     /// Retrieves a specific session by id.
     /// </summary>
     Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default);

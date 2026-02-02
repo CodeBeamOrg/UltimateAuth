@@ -10,24 +10,21 @@ namespace CodeBeam.UltimateAuth.Server.Services
 {
     internal sealed class DefaultRefreshFlowService : IRefreshFlowService
     {
-        private readonly ISessionQueryService _sessionQueries;
+        private readonly ISessionValidator _sessionValidator;
         private readonly ISessionTouchService _sessionRefresh;
         private readonly IRefreshTokenRotationService _tokenRotation;
         private readonly IRefreshTokenStore _refreshTokenStore;
-        private readonly IUserIdConverterResolver _userIdConverterResolver;
 
         public DefaultRefreshFlowService(
-            ISessionQueryService sessionQueries,
+            ISessionValidator sessionValidator,
             ISessionTouchService sessionRefresh,
             IRefreshTokenRotationService tokenRotation,
-            IRefreshTokenStore refreshTokenStore,
-            IUserIdConverterResolver userIdConverterResolver)
+            IRefreshTokenStore refreshTokenStore)
         {
-            _sessionQueries = sessionQueries;
+            _sessionValidator = sessionValidator;
             _sessionRefresh = sessionRefresh;
             _tokenRotation = tokenRotation;
             _refreshTokenStore = refreshTokenStore;
-            _userIdConverterResolver = userIdConverterResolver;
         }
 
         public async Task<RefreshFlowResult> RefreshAsync(AuthFlowContext flow, RefreshFlowRequest request, CancellationToken ct = default)
@@ -55,7 +52,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             if (request.SessionId is null)
                 return RefreshFlowResult.ReauthRequired();
 
-            var validation = await _sessionQueries.ValidateSessionAsync(
+            var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
                     TenantId = flow.TenantId,
@@ -128,7 +125,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             if (request.SessionId is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 return RefreshFlowResult.ReauthRequired();
 
-            var validation = await _sessionQueries.ValidateSessionAsync(
+            var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
                     TenantId = flow.TenantId,
@@ -179,7 +176,7 @@ namespace CodeBeam.UltimateAuth.Server.Services
             if (request.SessionId is null || string.IsNullOrWhiteSpace(request.RefreshToken))
                 return RefreshFlowResult.ReauthRequired();
 
-            var validation = await _sessionQueries.ValidateSessionAsync(
+            var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext
                 {
                     TenantId = flow.TenantId,

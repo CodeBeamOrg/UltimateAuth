@@ -22,7 +22,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
         private readonly IAuthResponseResolver _authResponseResolver;
         private readonly IDeviceResolver _deviceResolver;
         private readonly IDeviceContextFactory _deviceContextFactory;
-        private readonly ISessionQueryService _sessionQueryService;
+        private readonly ISessionValidator _sessionValidator;
 
         public DefaultAuthFlowContextFactory(
             IClientProfileReader clientProfileReader,
@@ -31,7 +31,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             IAuthResponseResolver authResponseResolver,
             IDeviceResolver deviceResolver,
             IDeviceContextFactory deviceContextFactory,
-            ISessionQueryService sessionQueryService)
+            ISessionValidator sessionValidator)
         {
             _clientProfileReader = clientProfileReader;
             _primaryTokenResolver = primaryTokenResolver;
@@ -39,7 +39,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             _authResponseResolver = authResponseResolver;
             _deviceResolver = deviceResolver;
             _deviceContextFactory = deviceContextFactory;
-            _sessionQueryService = sessionQueryService;
+            _sessionValidator = sessionValidator;
         }
 
         public async ValueTask<AuthFlowContext> CreateAsync(HttpContext ctx, AuthFlowType flowType, CancellationToken ct = default)
@@ -64,7 +64,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 
             if (!sessionCtx.IsAnonymous)
             {
-                var validation = await _sessionQueryService.ValidateSessionAsync(
+                var validation = await _sessionValidator.ValidateSessionAsync(
                     new SessionValidationContext
                     {
                         TenantId = sessionCtx.TenantId,

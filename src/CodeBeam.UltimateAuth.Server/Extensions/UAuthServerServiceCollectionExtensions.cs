@@ -179,6 +179,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
             services.TryAddScoped(typeof(ISessionQueryService), typeof(UAuthSessionQueryService));
             services.TryAddScoped(typeof(IRefreshTokenResolver), typeof(DefaultRefreshTokenResolver));
             services.TryAddScoped(typeof(ISessionTouchService), typeof(DefaultSessionTouchService));
+            services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
             services.TryAddScoped<IDeviceResolver, DefaultDeviceResolver>();
             services.TryAddScoped<ICredentialResponseWriter, DefaultCredentialResponseWriter>();
             services.TryAddScoped<IFlowCredentialResolver, DefaultFlowCredentialResolver>();
@@ -229,7 +230,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.TryAddScoped<AuthFlowEndpointFilter>();
 
-
             services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
             
             // Endpoint handlers
@@ -247,42 +247,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             services.TryAddScoped<DefaultPkceEndpointHandler<UserKey>>();
             services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandlerBridge>();
-            //services.TryAddScoped<IReauthEndpointHandler, ReauthEndpointHandler>();
-            //services.TryAddScoped<ITokenEndpointHandler, TokenEndpointHandler>();
-            //services.TryAddScoped<IUserInfoEndpointHandler, UserInfoEndpointHandler>();
 
             return services;
         }
-
-        //internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
-        //{
-        //    if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
-        //        throw new InvalidOperationException("UltimateAuth policies already registered.");
-
-        //    var registry = new AccessPolicyRegistry();
-
-        //    DefaultPolicySet.Register(registry);
-        //    configure?.Invoke(registry);
-        //    services.AddSingleton(registry);
-        //    services.AddSingleton<IAccessPolicyProvider>(sp =>
-        //    {
-        //        var compiled = registry.Build();
-        //        return new DefaultAccessPolicyProvider(compiled, sp);
-        //    });
-
-        //    services.TryAddScoped<IAccessAuthority>(sp =>
-        //    {
-        //        var invariants = sp.GetServices<IAccessInvariant>();
-        //        var globalPolicies = sp.GetServices<IAccessPolicy>();
-
-        //        return new DefaultAccessAuthority(invariants, globalPolicies);
-        //    });
-
-        //    services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
-
-
-        //    return services;
-        //}
 
         internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
         {
