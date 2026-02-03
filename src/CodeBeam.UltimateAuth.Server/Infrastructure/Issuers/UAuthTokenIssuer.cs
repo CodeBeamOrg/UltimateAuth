@@ -63,13 +63,15 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         var raw = _opaqueGenerator.Generate();
         var hash = _tokenHasher.Hash(raw);
 
+        if (context.SessionId is not AuthSessionId sessionId)
+            return null;
+
         var stored = new StoredRefreshToken
         {
             Tenant = flow.Tenant,
             TokenHash = hash,
             UserKey = context.UserKey,
-            // TODO: Check here again
-            SessionId = (AuthSessionId)context.SessionId,
+            SessionId = sessionId,
             ChainId = context.ChainId,
             IssuedAt = _clock.UtcNow,
             ExpiresAt = expires

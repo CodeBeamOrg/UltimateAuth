@@ -24,7 +24,7 @@ internal sealed class ClientProfileReader : IClientProfileReader
         return UAuthClientProfile.NotSpecified;
     }
 
-    private static bool TryParse(string value, out UAuthClientProfile profile)
+    private static bool TryParse(string? value, out UAuthClientProfile profile)
     {
         return Enum.TryParse(value, ignoreCase: true, out profile);
     }

@@ -56,7 +56,7 @@ public sealed class UAuthSession
         DateTimeOffset now,
         DateTimeOffset expiresAt,
         DeviceContext device,
-        ClaimsSnapshot claims,
+        ClaimsSnapshot? claims,
         SessionMetadata metadata)
     {
         return new(
@@ -71,7 +71,7 @@ public sealed class UAuthSession
             revokedAt: null,
             securityVersionAtCreation: 0,
             device: device,
-            claims: claims,
+            claims: claims ?? ClaimsSnapshot.Empty,
             metadata: metadata
         );
     }

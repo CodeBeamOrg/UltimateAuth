@@ -19,6 +19,9 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         if (token.Tenant != tenantId)
             throw new InvalidOperationException("TenantId mismatch between context and token.");
 
+        if (token.ChainId is null)
+            throw new InvalidOperationException("Refresh token must have a ChainId before being stored.");
+
         _db.RefreshTokens.Add(new RefreshTokenProjection
         {
             Tenant = tenantId,

@@ -10,7 +10,7 @@ public readonly record struct AuthSessionId
         Value = value;
     }
 
-    public static bool TryCreate(string raw, out AuthSessionId id)
+    public static bool TryCreate(string? raw, out AuthSessionId id)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {

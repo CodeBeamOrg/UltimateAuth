@@ -1,13 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Errors
+namespace CodeBeam.UltimateAuth.Core.Errors;
+
+public sealed class UAuthSessionNotFoundException : UAuthSessionException
 {
-    public sealed class UAuthSessionNotFoundException
-    : UAuthSessionException
+    public UAuthSessionNotFoundException(AuthSessionId sessionId)
+        : base(sessionId, $"Session '{sessionId}' was not found.")
     {
-        public UAuthSessionNotFoundException(AuthSessionId sessionId)
-            : base(sessionId, $"Session '{sessionId}' was not found.")
-        {
-        }
     }
 }

@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.Encodings.Web;
 
 namespace CodeBeam.UltimateAuth.Server.Authentication;
 
@@ -22,12 +23,11 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         ITransportCredentialResolver transportCredentialResolver,
         IOptionsMonitor<UAuthAuthenticationCookieOptions> options,
         ILoggerFactory logger,
-        System.Text.Encodings.Web.UrlEncoder encoder,
-        ISystemClock clock,
+        UrlEncoder encoder,
         ISessionValidator sessionValidator,
         IDeviceContextFactory deviceContextFactory,
         IClock uauthClock)
-        : base(options, logger, encoder, clock)
+        : base(options, logger, encoder)
     {
         _transportCredentialResolver = transportCredentialResolver;
         _sessionValidator = sessionValidator;

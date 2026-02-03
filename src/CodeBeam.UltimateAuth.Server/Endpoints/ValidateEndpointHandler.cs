@@ -70,13 +70,25 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 },
                 ct);
 
+            if (result.UserKey is not UserKey userKey)
+            {
+                return Results.Json(
+                    new AuthValidationResult
+                    {
+                        IsValid = false,
+                        State = "invalid"
+                    },
+                    statusCode: StatusCodes.Status401Unauthorized
+                );
+            }
+
             return Results.Ok(new AuthValidationResult
             {
                 IsValid = result.IsValid,
                 State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
                 Snapshot = new AuthStateSnapshot
                 {
-                    UserKey = (UserKey)result.UserKey,
+                    UserKey = userKey,
                     Tenant = result.Tenant,
                     Claims = result.Claims,
                     AuthenticatedAt = _clock.UtcNow,

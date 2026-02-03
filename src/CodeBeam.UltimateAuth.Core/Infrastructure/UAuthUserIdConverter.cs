@@ -76,7 +76,7 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
         };
     }
 
-    public bool TryFromString(string value, out TUserId? id)
+    public bool TryFromString(string value, out TUserId id)
     {
         try
         {
@@ -85,7 +85,7 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
         }
         catch
         {
-            id = default;
+            id = default!;
             return false;
         }
     }
@@ -97,7 +97,7 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
     /// <returns>The reconstructed user id.</returns>
     public TUserId FromBytes(byte[] binary) => FromString(Encoding.UTF8.GetString(binary));
 
-    public bool TryFromBytes(byte[] binary, out TUserId? id)
+    public bool TryFromBytes(byte[] binary, out TUserId id)
     {
         try
         {
@@ -106,7 +106,7 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
         }
         catch
         {
-            id = default;
+            id = default!;
             return false;
         }
     }

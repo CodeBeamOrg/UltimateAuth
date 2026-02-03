@@ -23,10 +23,10 @@ internal sealed class HubCredentialResolver : IHubCredentialResolver
         if (flow.IsCompleted)
             return null;
 
-        if (!flow.Payload.TryGet("authorization_code", out string? authorizationCode))
+        if (!flow.Payload.TryGet("authorization_code", out string? authorizationCode) || string.IsNullOrWhiteSpace(authorizationCode))
             return null;
 
-        if (!flow.Payload.TryGet("code_verifier", out string? codeVerifier))
+        if (!flow.Payload.TryGet("code_verifier", out string? codeVerifier) || string.IsNullOrWhiteSpace(codeVerifier))
             return null;
 
         return new HubCredentials

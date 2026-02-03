@@ -26,7 +26,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager
         await _bootstrapper.EnsureStartedAsync();
         var result = await _client.Flows.ValidateAsync();
 
-        if (!result.IsValid)
+        if (!result.IsValid || result.Snapshot == null)
         {
             State.Clear();
             return;

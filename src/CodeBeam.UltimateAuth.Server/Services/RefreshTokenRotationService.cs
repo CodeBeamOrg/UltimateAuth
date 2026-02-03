@@ -58,6 +58,16 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             throw new InvalidOperationException("Validated refresh token does not contain a UserKey.");
         }
 
+        if (validation.SessionId is not AuthSessionId sessionId)
+        {
+            throw new InvalidOperationException("Validated refresh token does not contain a SessionId.");
+        }
+
+        if (validation.TokenHash == null)
+        {
+            throw new InvalidOperationException("Validated refresh token does not contain a hashed token.");
+        }
+
         var tokenContext = new TokenIssuanceContext
         {
             Tenant = flow.OriginalOptions.MultiTenant.Enabled
@@ -87,7 +97,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             Tenant = flow.Tenant,
             TokenHash = refreshToken.TokenHash,
             UserKey = uKey,
-            SessionId = validation.SessionId.Value,
+            SessionId = sessionId,
             ChainId = validation.ChainId,
             IssuedAt = _clock.UtcNow,
             ExpiresAt = refreshToken.ExpiresAt

@@ -22,7 +22,7 @@ internal sealed class SessionProjection
 
     public long SecurityVersionAtCreation { get; set; }
 
-    public DeviceContext Device { get; set; }
+    public DeviceContext Device { get; set; } = DeviceContext.Anonymous();
     public ClaimsSnapshot Claims { get; set; } = ClaimsSnapshot.Empty;
     public SessionMetadata Metadata { get; set; } = SessionMetadata.Empty;
 

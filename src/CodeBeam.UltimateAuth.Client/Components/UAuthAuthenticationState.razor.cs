@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Client.Components;
 public partial class UAuthAuthenticationState
 {
     private bool _initialized;
-    private UAuthState _uauthState;
+    private UAuthState _uauthState = UAuthState.Anonymous();
 
     [Parameter]
     public RenderFragment ChildContent { get; set; } = default!;
