@@ -1,11 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum RefreshOutcome
 {
-    public enum RefreshOutcome
-    {
-        None,
-        NoOp,
-        Touched,
-        Rotated,
-        ReauthRequired
-    }
+    None,
+    NoOp,
+    Touched,
+    Rotated,
+    ReauthRequired
 }

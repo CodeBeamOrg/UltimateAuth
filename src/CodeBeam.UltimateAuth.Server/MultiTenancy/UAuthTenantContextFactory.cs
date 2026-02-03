@@ -1,22 +1,28 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
-using System.Text.RegularExpressions;
+
+namespace CodeBeam.UltimateAuth.Server.MultiTenancy;
 
 public static class UAuthTenantContextFactory
 {
-    public static UAuthTenantContext Create(
-        string tenantId,
-        UAuthMultiTenantOptions options)
+    public static UAuthTenantContext Create(string? rawTenantId, UAuthMultiTenantOptions options)
     {
-        if (options.NormalizeToLowercase)
-            tenantId = tenantId.ToLowerInvariant();
+        if (!options.Enabled)
+            return UAuthTenantContext.SingleTenant();
 
-        if (!Regex.IsMatch(tenantId, options.TenantIdRegex))
-            return UAuthTenantContext.NotResolved();
+        if (string.IsNullOrWhiteSpace(rawTenantId))
+        {
+            if (options.RequireTenant)
+                throw new InvalidOperationException("Tenant is required but could not be resolved.");
 
-        if (options.ReservedTenantIds.Contains(tenantId))
-            return UAuthTenantContext.NotResolved();
+            throw new InvalidOperationException("Tenant could not be resolved.");
+        }
 
-        return UAuthTenantContext.Resolved(tenantId);
+        var tenantId = options.NormalizeToLowercase
+            ? rawTenantId.Trim().ToLowerInvariant()
+            : rawTenantId.Trim();
+
+        var tenantKey = TenantKey.FromExternal(tenantId);
+        return UAuthTenantContext.Resolved(tenantKey);
     }
 }

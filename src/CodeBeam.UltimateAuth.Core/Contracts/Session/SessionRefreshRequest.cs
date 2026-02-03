@@ -1,8 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record SessionRefreshRequest
 {
-    public sealed record SessionRefreshRequest
-    {
-        public string? TenantId { get; init; }
-        public string RefreshToken { get; init; } = default!;
-    }
+    public TenantKey Tenant { get; init; }
+    public string RefreshToken { get; init; } = default!;
 }

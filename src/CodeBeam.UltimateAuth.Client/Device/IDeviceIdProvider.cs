@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Client.Device
+namespace CodeBeam.UltimateAuth.Client.Device;
+
+public interface IDeviceIdProvider
 {
-    public interface IDeviceIdProvider
-    {
-        ValueTask<DeviceId> GetOrCreateAsync(CancellationToken ct = default);
-    }
+    ValueTask<DeviceId> GetOrCreateAsync(CancellationToken ct = default);
 }

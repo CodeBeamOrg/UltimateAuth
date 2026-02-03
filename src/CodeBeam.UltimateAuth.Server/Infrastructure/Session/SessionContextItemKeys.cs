@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure
+﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+internal static class SessionContextItemKeys
 {
-    internal static class SessionContextItemKeys
-    {
-        public const string SessionContext = "__UAuth.SessionContext";
-    }
+    public const string SessionContext = "__UAuth.SessionContext";
 }

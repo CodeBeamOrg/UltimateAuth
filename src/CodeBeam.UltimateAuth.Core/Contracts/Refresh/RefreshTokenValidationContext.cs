@@ -1,15 +1,14 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Core.Contracts
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record RefreshTokenValidationContext
 {
-    public sealed record RefreshTokenValidationContext
-    {
-        public string? TenantId { get; init; }
-        public string RefreshToken { get; init; } = default!;
-        public DateTimeOffset Now { get; init; }
+    public TenantKey Tenant { get; init; }
+    public string RefreshToken { get; init; } = default!;
+    public DateTimeOffset Now { get; init; }
 
-        // For Hybrid & Advanced
-        public required DeviceContext Device { get; init; }
-        public AuthSessionId? ExpectedSessionId { get; init; }
-    }
+    public required DeviceContext Device { get; init; }
+    public AuthSessionId? ExpectedSessionId { get; init; }
 }

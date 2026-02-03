@@ -5,75 +5,74 @@ using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 // TODO: Add fluent helper API like RequiredOk
-namespace CodeBeam.UltimateAuth.Client.Infrastructure
+namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+
+internal sealed class UAuthRequestClient : IUAuthRequestClient
 {
-    internal sealed class UAuthRequestClient : IUAuthRequestClient
+    private readonly IJSRuntime _js;
+    private UAuthOptions _coreOptions;
+
+    public UAuthRequestClient(IJSRuntime js, IOptions<UAuthOptions> coreOptions)
     {
-        private readonly IJSRuntime _js;
-        private UAuthOptions _coreOptions;
+        _js = js;
+        _coreOptions = coreOptions.Value;
+    }
 
-        public UAuthRequestClient(IJSRuntime js, IOptions<UAuthOptions> coreOptions)
+    public Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        return _js.InvokeVoidAsync("uauth.post", ct, new
         {
-            _js = js;
-            _coreOptions = coreOptions.Value;
-        }
+            url = endpoint,
+            mode = "navigate",
+            data = form,
+            clientProfile = _coreOptions.ClientProfile.ToString()
+        }).AsTask();
+    }
 
-        public Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
         {
-            ct.ThrowIfCancellationRequested();
+            url = endpoint,
+            mode = "fetch",
+            expectJson = false,
+            data = form,
+            clientProfile = _coreOptions.ClientProfile.ToString()
+        });
 
-            return _js.InvokeVoidAsync("uauth.post", ct, new
-            {
-                url = endpoint,
-                mode = "navigate",
-                data = form,
-                clientProfile = _coreOptions.ClientProfile.ToString()
-            }).AsTask();
-        }
+        return result;
+    }
 
-        public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
-        {
-            ct.ThrowIfCancellationRequested();
+    public async Task<UAuthTransportResult> SendFormForJsonAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
 
-            var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
+        var postData = form ?? new Dictionary<string, string>();
+        return await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
+            new
             {
                 url = endpoint,
                 mode = "fetch",
-                expectJson = false,
-                data = form,
+                expectJson = true,
+                data = postData,
                 clientProfile = _coreOptions.ClientProfile.ToString()
             });
-
-            return result;
-        }
-
-        public async Task<UAuthTransportResult> SendFormForJsonAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var postData = form ?? new Dictionary<string, string>();
-            return await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
-                new
-                {
-                    url = endpoint,
-                    mode = "fetch",
-                    expectJson = true,
-                    data = postData,
-                    clientProfile = _coreOptions.ClientProfile.ToString()
-                });
-        }
-
-        public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            return await _js.InvokeAsync<UAuthTransportResult>("uauth.postJson", ct, new
-            {
-                url = endpoint,
-                payload = payload,
-                clientProfile = _coreOptions.ClientProfile.ToString()
-            });
-        }
-
     }
+
+    public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        return await _js.InvokeAsync<UAuthTransportResult>("uauth.postJson", ct, new
+        {
+            url = endpoint,
+            payload = payload,
+            clientProfile = _coreOptions.ClientProfile.ToString()
+        });
+    }
+
 }

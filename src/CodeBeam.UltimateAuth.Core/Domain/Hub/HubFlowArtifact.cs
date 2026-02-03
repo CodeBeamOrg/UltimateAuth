@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
@@ -8,7 +9,7 @@ public sealed class HubFlowArtifact : AuthArtifact
     public HubFlowType FlowType { get; }
 
     public UAuthClientProfile ClientProfile { get; }
-    public string? TenantId { get; }
+    public TenantKey Tenant { get; }
     public string? ReturnUrl { get; }
 
     public HubFlowPayload Payload { get; }
@@ -17,7 +18,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         HubSessionId hubSessionId,
         HubFlowType flowType,
         UAuthClientProfile clientProfile,
-        string? tenantId,
+        TenantKey tenant,
         string? returnUrl,
         HubFlowPayload payload,
         DateTimeOffset expiresAt)
@@ -26,7 +27,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         HubSessionId = hubSessionId;
         FlowType = flowType;
         ClientProfile = clientProfile;
-        TenantId = tenantId;
+        Tenant = tenant;
         ReturnUrl = returnUrl;
         Payload = payload;
     }

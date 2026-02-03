@@ -2,21 +2,16 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using System.Collections.Concurrent;
 
-internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantAwareSessionStore
+namespace CodeBeam.UltimateAuth.Sessions.InMemory;
+
+internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
 {
     private readonly SemaphoreSlim _tx = new(1, 1);
 
-    private readonly ConcurrentDictionary<AuthSessionId, ISession> _sessions = new();
-    private readonly ConcurrentDictionary<SessionChainId, ISessionChain> _chains = new();
-    private readonly ConcurrentDictionary<UserKey, ISessionRoot> _roots = new();
+    private readonly ConcurrentDictionary<AuthSessionId, UAuthSession> _sessions = new();
+    private readonly ConcurrentDictionary<SessionChainId, UAuthSessionChain> _chains = new();
+    private readonly ConcurrentDictionary<UserKey, UAuthSessionRoot> _roots = new();
     private readonly ConcurrentDictionary<SessionChainId, AuthSessionId> _activeSessions = new();
-
-    public string? TenantId { get; private set; }
-
-    public void BindTenant(string? tenantId)
-    {
-        TenantId = tenantId ?? "__single__";
-    }
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -31,10 +26,9 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantA
         }
     }
 
-    public Task<ISession?> GetSessionAsync(AuthSessionId sessionId)
-        => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
+    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId) => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
 
-    public Task SaveSessionAsync(ISession session)
+    public Task SaveSessionAsync(UAuthSession session)
     {
         _sessions[session.SessionId] = session;
         return Task.CompletedTask;
@@ -49,10 +43,10 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantA
         return Task.CompletedTask;
     }
 
-    public Task<ISessionChain?> GetChainAsync(SessionChainId chainId)
+    public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)
         => Task.FromResult(_chains.TryGetValue(chainId, out var c) ? c : null);
 
-    public Task SaveChainAsync(ISessionChain chain)
+    public Task SaveChainAsync(UAuthSessionChain chain)
     {
         _chains[chain.ChainId] = chain;
         return Task.CompletedTask;
@@ -76,13 +70,13 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantA
         return Task.CompletedTask;
     }
 
-    public Task<ISessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
+    public Task<UAuthSessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
         => Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
 
-    public Task<ISessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
+    public Task<UAuthSessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
         => Task.FromResult(_roots.Values.FirstOrDefault(r => r.RootId == rootId));
 
-    public Task SaveSessionRootAsync(ISessionRoot root)
+    public Task SaveSessionRootAsync(UAuthSessionRoot root)
     {
         _roots[root.UserKey] = root;
         return Task.CompletedTask;
@@ -105,21 +99,21 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantA
         return Task.FromResult<SessionChainId?>(null);
     }
 
-    public Task<IReadOnlyList<ISessionChain>> GetChainsByUserAsync(UserKey userKey)
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey)
     {
         if (!_roots.TryGetValue(userKey, out var root))
-            return Task.FromResult<IReadOnlyList<ISessionChain>>(Array.Empty<ISessionChain>());
+            return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(Array.Empty<UAuthSessionChain>());
 
-        return Task.FromResult<IReadOnlyList<ISessionChain>>(root.Chains.ToList());
+        return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(root.Chains.ToList());
     }
 
-    public Task<IReadOnlyList<ISession>> GetSessionsByChainAsync(SessionChainId chainId)
+    public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId)
     {
         var result = _sessions.Values
             .Where(s => s.ChainId == chainId)
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<ISession>>(result);
+        return Task.FromResult<IReadOnlyList<UAuthSession>>(result);
     }
 
     public Task DeleteExpiredSessionsAsync(DateTimeOffset at)
@@ -130,7 +124,13 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel, ITenantA
 
             if (session.ExpiresAt <= at)
             {
-                _sessions[kvp.Key] = session.Revoke(at);
+                var revoked = session.Revoke(at);
+                _sessions[kvp.Key] = revoked;
+
+                if (_activeSessions.TryGetValue(revoked.ChainId, out var activeId) && activeId == revoked.SessionId)
+                {
+                    _activeSessions.TryRemove(revoked.ChainId, out _);
+                }
             }
         }
 

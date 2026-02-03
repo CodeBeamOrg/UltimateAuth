@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Runtime
+﻿namespace CodeBeam.UltimateAuth.Core.Runtime;
+
+/// <summary>
+/// Marker interface indicating that the current application
+/// hosts an UltimateAuth Hub.
+/// </summary>
+public interface IUAuthHubMarker
 {
-    /// <summary>
-    /// Marker interface indicating that the current application
-    /// hosts an UltimateAuth Hub.
-    /// </summary>
-    public interface IUAuthHubMarker
-    {
-    }
 }

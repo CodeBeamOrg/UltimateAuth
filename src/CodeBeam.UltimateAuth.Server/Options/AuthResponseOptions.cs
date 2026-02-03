@@ -1,22 +1,21 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Options
+﻿namespace CodeBeam.UltimateAuth.Server.Options;
+
+public sealed class AuthResponseOptions
 {
-    public sealed class AuthResponseOptions
+    public CredentialResponseOptions SessionIdDelivery { get; set; } = new();
+    public CredentialResponseOptions AccessTokenDelivery { get; set; } = new();
+    public CredentialResponseOptions RefreshTokenDelivery { get; set; } = new();
+
+    public LoginRedirectOptions Login { get; set; } = new();
+    public LogoutRedirectOptions Logout { get; set; } = new();
+
+    internal AuthResponseOptions Clone() => new()
     {
-        public CredentialResponseOptions SessionIdDelivery { get; set; } = new();
-        public CredentialResponseOptions AccessTokenDelivery { get; set; } = new();
-        public CredentialResponseOptions RefreshTokenDelivery { get; set; } = new();
+        SessionIdDelivery = SessionIdDelivery.Clone(),
+        AccessTokenDelivery = AccessTokenDelivery.Clone(),
+        RefreshTokenDelivery = RefreshTokenDelivery.Clone(),
+        Login = Login.Clone(),
+        Logout = Logout.Clone()
+    };
 
-        public LoginRedirectOptions Login { get; set; } = new();
-        public LogoutRedirectOptions Logout { get; set; } = new();
-
-        internal AuthResponseOptions Clone() => new()
-        {
-            SessionIdDelivery = SessionIdDelivery.Clone(),
-            AccessTokenDelivery = AccessTokenDelivery.Clone(),
-            RefreshTokenDelivery = RefreshTokenDelivery.Clone(),
-            Login = Login.Clone(),
-            Logout = Logout.Clone()
-        };
-
-    }
 }

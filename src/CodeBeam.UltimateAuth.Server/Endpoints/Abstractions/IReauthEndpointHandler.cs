@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Endpoints
+namespace CodeBeam.UltimateAuth.Server.Endpoints;
+
+public interface IReauthEndpointHandler
 {
-    public interface IReauthEndpointHandler
-    {
-        Task<IResult> ReauthAsync(HttpContext ctx);
-    }
+    Task<IResult> ReauthAsync(HttpContext ctx);
 }

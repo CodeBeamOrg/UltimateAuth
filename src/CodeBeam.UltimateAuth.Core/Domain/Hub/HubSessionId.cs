@@ -1,11 +1,24 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
 // TODO: Bind id with IP and UA
-public readonly record struct HubSessionId(string Value)
+public readonly record struct HubSessionId
 {
+    public string Value { get; }
+
+    private HubSessionId(string value)
+    {
+        Value = value;
+    }
+
     public static HubSessionId New() => new(Guid.NewGuid().ToString("N"));
 
-    public override string ToString() => Value;
+    public static HubSessionId Parse(string value)
+    {
+        if (!TryParse(value, out var id))
+            throw new FormatException("Invalid HubSessionId.");
+
+        return id;
+    }
 
     public static bool TryParse(string? value, out HubSessionId sessionId)
     {
@@ -20,4 +33,6 @@ public readonly record struct HubSessionId(string Value)
         sessionId = new HubSessionId(value);
         return true;
     }
+
+    public override string ToString() => Value;
 }

@@ -1,9 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿namespace CodeBeam.UltimateAuth.Core.Options;
 
-namespace CodeBeam.UltimateAuth.Core.Options
+public interface IClientProfileDetector
 {
-    public interface IClientProfileDetector
-    {
-        UAuthClientProfile Detect(IServiceProvider services);
-    }
+    UAuthClientProfile Detect(IServiceProvider services);
 }

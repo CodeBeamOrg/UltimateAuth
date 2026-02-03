@@ -1,32 +1,30 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Core.Infrastructure
+namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+
+public sealed class DeviceMismatchPolicy : IAuthorityPolicy
 {
-    public sealed class DeviceMismatchPolicy : IAuthorityPolicy
+    public bool AppliesTo(AuthContext context) => context.Device is not null;
+
+    public AccessDecisionResult Decide(AuthContext context)
     {
-        public bool AppliesTo(AuthContext context)
-            => context.Device is not null;
+        var device = context.Device;
 
-        public AccessDecisionResult Decide(AuthContext context)
+        //if (device.IsKnownDevice)
+        //    return AuthorizationResult.Allow();
+
+        return context.Operation switch
         {
-            var device = context.Device;
+            AuthOperation.Access =>
+                AccessDecisionResult.Deny("Access from unknown device."),
 
-            //if (device.IsKnownDevice)
-            //    return AuthorizationResult.Allow();
+            AuthOperation.Refresh =>
+                AccessDecisionResult.Challenge("Device verification required."),
 
-            return context.Operation switch
-            {
-                AuthOperation.Access =>
-                    AccessDecisionResult.Deny("Access from unknown device."),
+            AuthOperation.Login => AccessDecisionResult.Allow(), // login establishes device
 
-                AuthOperation.Refresh =>
-                    AccessDecisionResult.Challenge("Device verification required."),
-
-                AuthOperation.Login => AccessDecisionResult.Allow(), // login establishes device
-
-                _ => AccessDecisionResult.Allow()
-            };
-        }
+            _ => AccessDecisionResult.Allow()
+        };
     }
 }

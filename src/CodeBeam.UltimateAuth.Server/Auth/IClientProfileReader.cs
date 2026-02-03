@@ -1,10 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Auth
+namespace CodeBeam.UltimateAuth.Server.Auth;
+
+public interface IClientProfileReader
 {
-    public interface IClientProfileReader
-    {
-        UAuthClientProfile Read(HttpContext context);
-    }
+    UAuthClientProfile Read(HttpContext context);
 }

@@ -1,23 +1,24 @@
-﻿namespace CodeBeam.UltimateAuth.Core.MultiTenancy
+﻿namespace CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+/// <summary>
+/// Represents the resolved tenant result for the current request.
+/// </summary>
+public sealed class UAuthTenantContext
 {
-    /// <summary>
-    /// Represents the resolved tenant result for the current request.
-    /// </summary>
-    public sealed class UAuthTenantContext
+    public TenantKey Tenant { get; }
+
+    private UAuthTenantContext(TenantKey tenant)
     {
-        public string? TenantId { get; }
-        public bool IsResolved { get; }
+        if (tenant.IsUnresolved)
+            throw new InvalidOperationException("Runtime tenant context cannot be unresolved.");
 
-        private UAuthTenantContext(string? tenantId, bool resolved)
-        {
-            TenantId = tenantId;
-            IsResolved = resolved;
-        }
-
-        public static UAuthTenantContext NotResolved()
-            => new(null, false);
-
-        public static UAuthTenantContext Resolved(string tenantId)
-            => new(tenantId, true);
+        Tenant = tenant;
     }
+
+    public bool IsSingleTenant => Tenant.IsSingle;
+    public bool IsSystem => Tenant.IsSystem;
+
+    public static UAuthTenantContext SingleTenant() => new(TenantKey.Single);
+    public static UAuthTenantContext System() => new(TenantKey.System);
+    public static UAuthTenantContext Resolved(TenantKey tenant) => new(tenant);
 }

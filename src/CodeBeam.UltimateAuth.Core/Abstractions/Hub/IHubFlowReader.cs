@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions
+namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface IHubFlowReader
 {
-    public interface IHubFlowReader
-    {
-        Task<HubFlowState?> GetStateAsync(HubSessionId hubSessionId, CancellationToken ct = default);
-    }
+    Task<HubFlowState?> GetStateAsync(HubSessionId hubSessionId, CancellationToken ct = default);
 }

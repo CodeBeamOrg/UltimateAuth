@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Contracts
+﻿namespace CodeBeam.UltimateAuth.Client.Contracts;
+
+public enum StorageScope
 {
-    public enum StorageScope
-    {
-        Session,
-        Local
-    }
+    Session,
+    Local
 }

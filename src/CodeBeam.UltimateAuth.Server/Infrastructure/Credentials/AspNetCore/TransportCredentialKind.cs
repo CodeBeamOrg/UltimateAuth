@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure
+﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+public enum TransportCredentialKind
 {
-    public enum TransportCredentialKind
-    {
-        Session,
-        AccessToken,
-        RefreshToken,
-        Hub
-    }
+    Session,
+    AccessToken,
+    RefreshToken,
+    Hub
 }

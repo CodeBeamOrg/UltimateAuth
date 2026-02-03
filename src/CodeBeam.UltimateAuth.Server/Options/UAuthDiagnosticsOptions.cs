@@ -1,19 +1,16 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿namespace CodeBeam.UltimateAuth.Server.Options;
 
-namespace CodeBeam.UltimateAuth.Server.Options
+public sealed class UAuthDiagnosticsOptions
 {
-    public sealed class UAuthDiagnosticsOptions
+    /// <summary>
+    /// Enables debug / sample-only response headers such as X-UAuth-Refresh.
+    /// Should be disabled in production.
+    /// </summary>
+    public bool EnableRefreshHeaders { get; set; } = false;
+
+    internal UAuthDiagnosticsOptions Clone() => new()
     {
-        /// <summary>
-        /// Enables debug / sample-only response headers such as X-UAuth-Refresh.
-        /// Should be disabled in production.
-        /// </summary>
-        public bool EnableRefreshHeaders { get; set; } = false;
+        EnableRefreshHeaders = EnableRefreshHeaders
+    };
 
-        internal UAuthDiagnosticsOptions Clone() => new()
-        {
-            EnableRefreshHeaders = EnableRefreshHeaders
-        };
-
-    }
 }

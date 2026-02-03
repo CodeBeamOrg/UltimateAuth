@@ -1,7 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Users
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Users;
+
+public interface IUserSecurityStateProvider<TUserId>
 {
-    public interface IUserSecurityStateProvider<TUserId>
-    {
-        Task<IUserSecurityState?> GetAsync(string? tenantId, TUserId userId, CancellationToken ct = default);
-    }
+    Task<IUserSecurityState?> GetAsync(TenantKey tenant, TUserId userId, CancellationToken ct = default);
 }

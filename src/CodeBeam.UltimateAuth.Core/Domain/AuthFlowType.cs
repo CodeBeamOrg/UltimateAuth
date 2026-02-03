@@ -1,31 +1,30 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+
+public enum AuthFlowType
 {
-    public enum AuthFlowType
-    {
-        Login,
-        Reauthentication,
+    Login,
+    Reauthentication,
 
-        Logout,
-        RefreshSession,
-        ValidateSession,
+    Logout,
+    RefreshSession,
+    ValidateSession,
 
-        IssueToken,
-        RefreshToken,
-        IntrospectToken,
-        RevokeToken,
+    IssueToken,
+    RefreshToken,
+    IntrospectToken,
+    RevokeToken,
 
-        QuerySession,
-        RevokeSession,
+    QuerySession,
+    RevokeSession,
 
-        UserInfo,
-        PermissionQuery,
+    UserInfo,
+    PermissionQuery,
 
-        UserManagement,
-        UserProfileManagement,
-        UserIdentifierManagement,
-        CredentialManagement,
-        AuthorizationManagement,
+    UserManagement,
+    UserProfileManagement,
+    UserIdentifierManagement,
+    CredentialManagement,
+    AuthorizationManagement,
 
-        ApiAccess
-    }
+    ApiAccess
 }

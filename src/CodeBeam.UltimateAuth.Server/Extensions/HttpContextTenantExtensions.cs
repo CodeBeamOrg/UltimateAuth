@@ -2,26 +2,17 @@
 using CodeBeam.UltimateAuth.Server.Middlewares;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Extensions
+namespace CodeBeam.UltimateAuth.Server.Extensions;
+
+public static class HttpContextTenantExtensions
 {
-    public static class HttpContextTenantExtensions
+    public static TenantKey GetTenant(this HttpContext context)
     {
-        public static string? GetTenantId(this HttpContext ctx)
+        if (!context.Items.TryGetValue(TenantMiddleware.TenantContextKey, out var value) || value is not UAuthTenantContext tenantCtx)
         {
-            return ctx.GetTenantContext().TenantId;
+            throw new InvalidOperationException("TenantContext is missing. TenantMiddleware must run before authentication.");
         }
 
-        public static UAuthTenantContext GetTenantContext(this HttpContext ctx)
-        {
-            if (ctx.Items.TryGetValue(
-                TenantMiddleware.TenantContextKey,
-                out var value)
-                && value is UAuthTenantContext tenant)
-            {
-                return tenant;
-            }
-
-            return UAuthTenantContext.NotResolved();
-        }
+        return tenantCtx.Tenant;
     }
 }

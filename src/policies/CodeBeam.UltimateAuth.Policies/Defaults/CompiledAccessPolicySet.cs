@@ -2,33 +2,32 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Policies.Registry;
 
-namespace CodeBeam.UltimateAuth.Policies.Defaults
+namespace CodeBeam.UltimateAuth.Policies.Defaults;
+
+public sealed class CompiledAccessPolicySet
 {
-    public sealed class CompiledAccessPolicySet
+    private readonly PolicyRegistration[] _registrations;
+
+    internal CompiledAccessPolicySet(PolicyRegistration[] registrations)
     {
-        private readonly PolicyRegistration[] _registrations;
+        _registrations = registrations;
+    }
 
-        internal CompiledAccessPolicySet(PolicyRegistration[] registrations)
+    public IReadOnlyList<IAccessPolicy> Resolve(AccessContext context, IServiceProvider services)
+    {
+        var list = new List<IAccessPolicy>();
+
+        foreach (var r in _registrations)
         {
-            _registrations = registrations;
-        }
-
-        public IReadOnlyList<IAccessPolicy> Resolve(AccessContext context, IServiceProvider services)
-        {
-            var list = new List<IAccessPolicy>();
-
-            foreach (var r in _registrations)
+            if (context.Action.StartsWith(r.ActionPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                if (context.Action.StartsWith(r.ActionPrefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    var policy = r.Factory(services);
+                var policy = r.Factory(services);
 
-                    if (policy.AppliesTo(context))
-                        list.Add(policy);
-                }
+                if (policy.AppliesTo(context))
+                    list.Add(policy);
             }
-
-            return list;
         }
+
+        return list;
     }
 }

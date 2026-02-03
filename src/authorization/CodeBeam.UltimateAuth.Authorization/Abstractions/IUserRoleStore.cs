@@ -1,11 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Authorization
+namespace CodeBeam.UltimateAuth.Authorization;
+
+public interface IUserRoleStore
 {
-    public interface IUserRoleStore
-    {
-        Task AssignAsync(string? tenantId, UserKey userKey, string role, CancellationToken ct = default);
-        Task RemoveAsync(string? tenantId, UserKey userKey, string role, CancellationToken ct = default);
-        Task<IReadOnlyCollection<string>> GetRolesAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
-    }
+    Task AssignAsync(TenantKey tenant, UserKey userKey, string role, CancellationToken ct = default);
+    Task RemoveAsync(TenantKey tenant, UserKey userKey, string role, CancellationToken ct = default);
+    Task<IReadOnlyCollection<string>> GetRolesAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
 }

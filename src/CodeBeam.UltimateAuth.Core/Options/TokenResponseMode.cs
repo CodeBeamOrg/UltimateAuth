@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Options
+﻿namespace CodeBeam.UltimateAuth.Core.Options;
+
+public enum TokenResponseMode
 {
-    public enum TokenResponseMode
-    {
-        None,
-        Cookie,
-        Header,
-        Body
-    }
+    None,
+    Cookie,
+    Header,
+    Body
 }

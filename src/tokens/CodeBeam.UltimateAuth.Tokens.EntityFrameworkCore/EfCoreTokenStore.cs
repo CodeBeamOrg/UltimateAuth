@@ -1,7 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
+
+namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 {
@@ -12,14 +14,17 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         _db = db;
     }
 
-    public async Task StoreAsync(string? tenantId, StoredRefreshToken token, CancellationToken ct = default)
+    public async Task StoreAsync(TenantKey tenantId, StoredRefreshToken token, CancellationToken ct = default)
     {
-        if (token.TenantId != tenantId)
+        if (token.Tenant != tenantId)
             throw new InvalidOperationException("TenantId mismatch between context and token.");
+
+        if (token.ChainId is null)
+            throw new InvalidOperationException("Refresh token must have a ChainId before being stored.");
 
         _db.RefreshTokens.Add(new RefreshTokenProjection
         {
-            TenantId = tenantId,
+            Tenant = tenantId,
             TokenHash = token.TokenHash,
             UserKey = token.UserKey,
             SessionId = token.SessionId,
@@ -31,13 +36,13 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<StoredRefreshToken?> FindByHashAsync(string? tenantId, string tokenHash, CancellationToken ct = default)
+    public async Task<StoredRefreshToken?> FindByHashAsync(TenantKey tenant, string tokenHash, CancellationToken ct = default)
     {
         var e = await _db.RefreshTokens
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.TokenHash == tokenHash &&
-                     x.TenantId == tenantId,
+                     x.Tenant == tenant,
                 ct);
 
         if (e is null)
@@ -45,7 +50,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 
         return new StoredRefreshToken
         {
-            TenantId = e.TenantId,
+            Tenant = e.Tenant,
             TokenHash = e.TokenHash,
             UserKey = e.UserKey,
             SessionId = e.SessionId,
@@ -56,12 +61,12 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         };
     }
 
-    public Task RevokeAsync(string? tenantId, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
+    public Task RevokeAsync(TenantKey tenant, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
     {
         var query = _db.RefreshTokens
             .Where(x =>
                 x.TokenHash == tokenHash &&
-                x.TenantId == tenantId &&
+                x.Tenant == tenant &&
                 x.RevokedAt == null);
 
         if (replacedByTokenHash == null)
@@ -76,28 +81,28 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
             ct);
     }
 
-    public Task RevokeBySessionAsync(string? tenantId, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeBySessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
         => _db.RefreshTokens
             .Where(x =>
-                x.TenantId == tenantId &&
+                x.Tenant == tenant &&
                 x.SessionId == sessionId.Value &&
                 x.RevokedAt == null)
             .ExecuteUpdateAsync(x => x.SetProperty(t => t.RevokedAt, revokedAt), ct);
 
-    public Task RevokeByChainAsync(string? tenantId, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeByChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
         => _db.RefreshTokens
             .Where(x =>
-                x.TenantId == tenantId &&
+                x.Tenant == tenant &&
                 x.ChainId == chainId &&
                 x.RevokedAt == null)
             .ExecuteUpdateAsync(x => x.SetProperty(t => t.RevokedAt, revokedAt), ct);
 
-    public Task RevokeAllForUserAsync(string? tenantId, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeAllForUserAsync(TenantKey tenant, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
 
         return _db.RefreshTokens
             .Where(x =>
-                x.TenantId == tenantId &&
+                x.Tenant == tenant &&
                 x.UserKey == userKey &&
                 x.RevokedAt == null)
             .ExecuteUpdateAsync(x => x.SetProperty(t => t.RevokedAt, revokedAt), ct);

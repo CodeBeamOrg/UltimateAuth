@@ -1,16 +1,16 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Core.Infrastructure
+namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+
+internal sealed class NoopAccessTokenIdStore : IAccessTokenIdStore
 {
-    internal sealed class NoopAccessTokenIdStore : IAccessTokenIdStore
-    {
-        public Task StoreAsync(string? tenantId, string jti, DateTimeOffset expiresAt, CancellationToken ct = default)
-            => Task.CompletedTask;
+    public Task StoreAsync(TenantKey tenant, string jti, DateTimeOffset expiresAt, CancellationToken ct = default)
+        => Task.CompletedTask;
 
-        public Task<bool> IsRevokedAsync(string? tenantId, string jti, CancellationToken ct = default)
-            => Task.FromResult(false);
+    public Task<bool> IsRevokedAsync(TenantKey tenant, string jti, CancellationToken ct = default)
+        => Task.FromResult(false);
 
-        public Task RevokeAsync(string? tenantId, string jti, DateTimeOffset revokedAt, CancellationToken ct = default)
-            => Task.CompletedTask;
-    }
+    public Task RevokeAsync(TenantKey tenant, string jti, DateTimeOffset revokedAt, CancellationToken ct = default)
+        => Task.CompletedTask;
 }

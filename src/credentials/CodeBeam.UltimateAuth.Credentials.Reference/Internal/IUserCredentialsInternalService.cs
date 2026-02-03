@@ -1,10 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 
-namespace CodeBeam.UltimateAuth.Credentials.Reference.Internal
+namespace CodeBeam.UltimateAuth.Credentials.Reference.Internal;
+
+internal interface IUserCredentialsInternalService
 {
-    internal interface IUserCredentialsInternalService
-    {
-        Task<CredentialActionResult> DeleteInternalAsync(string? tenantId, UserKey userKey, CancellationToken ct = default);
-    }
+    Task<CredentialActionResult> DeleteInternalAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
 }

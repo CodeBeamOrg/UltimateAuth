@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+public interface ITransportCredentialResolver
 {
-    public interface ITransportCredentialResolver
-    {
-        TransportCredential? Resolve(HttpContext context);
-    }
+    TransportCredential? Resolve(HttpContext context);
 }

@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using Xunit;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -16,7 +16,7 @@ public class UAuthSessionTests
 
         var session = UAuthSession.Create(
             sessionId: sessionId,
-            tenantId: null,
+            tenant: TenantKey.Single,
             userKey: UserKey.FromString("user-1"),
             chainId: SessionChainId.New(),
             now,
@@ -40,7 +40,7 @@ public class UAuthSessionTests
 
         var session = UAuthSession.Create(
             sessionId,
-            null,
+            TenantKey.Single,
             UserKey.FromString("user-1"),
             SessionChainId.New(),
             now,

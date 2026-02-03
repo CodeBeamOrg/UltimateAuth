@@ -24,14 +24,14 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
             e.Property(x => x.TokenHash)
                 .IsRequired();
 
-            e.HasIndex(x => new { x.TenantId, x.TokenHash })
+            e.HasIndex(x => new { x.Tenant, x.TokenHash })
                 .IsUnique();
 
-            e.HasIndex(x => new { x.TenantId, x.UserKey });
-            e.HasIndex(x => new { x.TenantId, x.SessionId });
-            e.HasIndex(x => new { x.TenantId, x.ChainId });
-            e.HasIndex(x => new { x.TenantId, x.ExpiresAt });
-            e.HasIndex(x => new { x.TenantId, x.ReplacedByTokenHash });
+            e.HasIndex(x => new { x.Tenant, x.UserKey });
+            e.HasIndex(x => new { x.Tenant, x.SessionId });
+            e.HasIndex(x => new { x.Tenant, x.ChainId });
+            e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
+            e.HasIndex(x => new { x.Tenant, x.ReplacedByTokenHash });
 
             e.Property(x => x.ExpiresAt).IsRequired();
         });
@@ -49,7 +49,7 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
             e.HasIndex(x => x.Jti)
                 .IsUnique();
 
-            e.HasIndex(x => new { x.TenantId, x.Jti });
+            e.HasIndex(x => new { x.Tenant, x.Jti });
 
             e.Property(x => x.ExpiresAt)
                 .IsRequired();

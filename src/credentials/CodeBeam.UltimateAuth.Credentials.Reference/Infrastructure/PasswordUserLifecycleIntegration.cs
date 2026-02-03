@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Users.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -20,7 +21,7 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
         _clock = clock;
     }
 
-    public async Task OnUserCreatedAsync(string? tenantId, UserKey userKey, object request, CancellationToken ct)
+    public async Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, CancellationToken ct)
     {
         if (request is not CreateUserRequest r)
             return;
@@ -35,13 +36,13 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
             loginIdentifier: r.PrimaryIdentifierValue!,
             secretHash: hash,
             security: new CredentialSecurityState(CredentialSecurityStatus.Active, null, null, null),
-            metadata: new CredentialMetadata(_clock.UtcNow, _clock.UtcNow, null));
+            metadata: new CredentialMetadata { CreatedAt = _clock.UtcNow, LastUsedAt = _clock.UtcNow });
 
-        await _credentialStore.AddAsync(tenantId, credential, ct);
+        await _credentialStore.AddAsync(tenant, credential, ct);
     }
 
-    public async Task OnUserDeletedAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct)
+    public async Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct)
     {
-        await _credentialStore.DeleteByUserAsync(tenantId, userKey, ct);
+        await _credentialStore.DeleteByUserAsync(tenant, userKey, ct);
     }
 }

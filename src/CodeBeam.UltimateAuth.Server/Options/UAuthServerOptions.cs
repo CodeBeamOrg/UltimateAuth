@@ -4,189 +4,188 @@ using CodeBeam.UltimateAuth.Server.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CodeBeam.UltimateAuth.Server.Options
+namespace CodeBeam.UltimateAuth.Server.Options;
+
+/// <summary>
+/// Server-side configuration for UltimateAuth.
+/// Does NOT duplicate Core options.
+/// Instead, it composes SessionOptions, TokenOptions, PkceOptions, MultiTenantOptions
+/// and adds server-only behaviors (routing, endpoint activation, policies).
+/// </summary>
+public sealed class UAuthServerOptions
 {
     /// <summary>
-    /// Server-side configuration for UltimateAuth.
-    /// Does NOT duplicate Core options.
-    /// Instead, it composes SessionOptions, TokenOptions, PkceOptions, MultiTenantOptions
-    /// and adds server-only behaviors (routing, endpoint activation, policies).
+    /// Defines how UltimateAuth executes authentication flows.
+    /// Default is Hybrid.
     /// </summary>
-    public sealed class UAuthServerOptions
+    public UAuthMode? Mode { get; set; }
+
+    /// <summary>
+    /// Defines how UAuthHub is deployed relative to the application.
+    /// Default is Integrated
+    /// Blazor server projects should choose embedded mode for maximum security.
+    /// </summary>
+    public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
+
+    // -------------------------------------------------------
+    // ROUTING
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Base API route. Default: "/auth"
+    /// Changing this prevents conflicts with other auth systems.
+    /// </summary>
+    public string RoutePrefix { get; set; } = "/auth";
+
+
+    // -------------------------------------------------------
+    // CORE OPTION COMPOSITION
+    // (Server must NOT duplicate Core options)
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Session behavior (lifetime, sliding expiration, etc.)
+    /// Fully defined in Core.
+    /// </summary>
+    public UAuthSessionOptions Session { get; set; } = new();
+
+    /// <summary>
+    /// Token issuing behavior (lifetimes, refresh policies).
+    /// Fully defined in Core.
+    /// </summary>
+    public UAuthTokenOptions Tokens { get; set; } = new();
+
+    /// <summary>
+    /// PKCE configuration (required for WASM).
+    /// Fully defined in Core.
+    /// </summary>
+    public UAuthPkceOptions Pkce { get; set; } = new();
+
+    /// <summary>
+    /// Multi-tenancy behavior (resolver, normalization, etc.)
+    /// Fully defined in Core.
+    /// </summary>
+    public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+
+    /// <summary>
+    /// Allows advanced users to override cookie behavior.
+    /// Unsafe combinations will be rejected at startup.
+    /// </summary>
+    public UAuthCookieSetOptions Cookie { get; set; } = new();
+
+    public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
+
+    internal Type? CustomCookieManagerType { get; private set; }
+
+    public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager
     {
-        /// <summary>
-        /// Defines how UltimateAuth executes authentication flows.
-        /// Default is Hybrid.
-        /// </summary>
-        public UAuthMode? Mode { get; set; }
+        CustomCookieManagerType = typeof(T);
+    }
 
-        /// <summary>
-        /// Defines how UAuthHub is deployed relative to the application.
-        /// Default is Integrated
-        /// Blazor server projects should choose embedded mode for maximum security.
-        /// </summary>
-        public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
+    // -------------------------------------------------------
+    // SERVER-ONLY BEHAVIOR
+    // -------------------------------------------------------
 
-        // -------------------------------------------------------
-        // ROUTING
-        // -------------------------------------------------------
+    public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
-        /// <summary>
-        /// Base API route. Default: "/auth"
-        /// Changing this prevents conflicts with other auth systems.
-        /// </summary>
-        public string RoutePrefix { get; set; } = "/auth";
+    public AuthResponseOptions AuthResponse { get; init; } = new();
+
+    public UAuthHubServerOptions Hub { get; set; } = new();
+
+    /// <summary>
+    /// Controls how session identifiers are resolved from incoming requests
+    /// (cookie, header, bearer, query, order, etc.)
+    /// </summary>
+    public UAuthSessionResolutionOptions SessionResolution { get; set; } = new();
+
+    /// <summary>
+    /// Enables/disables specific endpoint groups.
+    /// Useful for API hardening.
+    /// </summary>
+    public bool? EnableLoginEndpoints { get; set; } = true;
+    public bool? EnablePkceEndpoints { get; set; } = true;
+    public bool? EnableTokenEndpoints { get; set; } = true;
+    public bool? EnableSessionEndpoints { get; set; } = true;
+    public bool? EnableUserInfoEndpoints { get; set; } = true;
+
+    public bool? EnableUserLifecycleEndpoints { get; set; } = true;
+    public bool? EnableUserProfileEndpoints { get; set; } = true;
+    public bool? EnableUserIdentifierEndpoints { get; set; } = true;
+    public bool? EnableCredentialsEndpoints { get; set; } = true;
+    public bool? EnableAuthorizationEndpoints { get; set; } = true;
+
+    public UserIdentifierOptions UserIdentifiers { get; set; } = new();
+
+    /// <summary>
+    /// If true, server will add anti-forgery headers
+    /// and require proper request metadata.
+    /// </summary>
+    public bool EnableAntiCsrfProtection { get; set; } = true;
+
+    /// <summary>
+    /// If true, login attempts are rate-limited to prevent brute force attacks.
+    /// </summary>
+    public bool EnableLoginRateLimiting { get; set; } = true;
 
 
-        // -------------------------------------------------------
-        // CORE OPTION COMPOSITION
-        // (Server must NOT duplicate Core options)
-        // -------------------------------------------------------
+    // -------------------------------------------------------
+    // CUSTOMIZATION HOOKS
+    // -------------------------------------------------------
 
-        /// <summary>
-        /// Session behavior (lifetime, sliding expiration, etc.)
-        /// Fully defined in Core.
-        /// </summary>
-        public UAuthSessionOptions Session { get; set; } = new();
+    /// <summary>
+    /// Allows developers to mutate endpoint routing AFTER UltimateAuth registers defaults.
+    /// Example: adding new routes, overriding authorization, adding filters.
+    /// </summary>
+    public Action<WebApplication>? OnConfigureEndpoints { get; set; }
 
-        /// <summary>
-        /// Token issuing behavior (lifetimes, refresh policies).
-        /// Fully defined in Core.
-        /// </summary>
-        public UAuthTokenOptions Tokens { get; set; } = new();
+    /// <summary>
+    /// Allows developers to add or replace server services before DI is built.
+    /// Example: overriding default ILoginService.
+    /// </summary>
+    public Action<IServiceCollection>? ConfigureServices { get; set; }
 
-        /// <summary>
-        /// PKCE configuration (required for WASM).
-        /// Fully defined in Core.
-        /// </summary>
-        public UAuthPkceOptions Pkce { get; set; } = new();
 
-        /// <summary>
-        /// Multi-tenancy behavior (resolver, normalization, etc.)
-        /// Fully defined in Core.
-        /// </summary>
-        public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+    internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
-        /// <summary>
-        /// Allows advanced users to override cookie behavior.
-        /// Unsafe combinations will be rejected at startup.
-        /// </summary>
-        public UAuthCookieSetOptions Cookie { get; set; } = new();
 
-        public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
-
-        internal Type? CustomCookieManagerType { get; private set; }
-
-        public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager
+    internal UAuthServerOptions Clone()
+    {
+        return new UAuthServerOptions
         {
-            CustomCookieManagerType = typeof(T);
-        }
+            Mode = Mode,
+            HubDeploymentMode = HubDeploymentMode,
+            RoutePrefix = RoutePrefix,
 
-        // -------------------------------------------------------
-        // SERVER-ONLY BEHAVIOR
-        // -------------------------------------------------------
+            Session = Session.Clone(),
+            Tokens = Tokens.Clone(),
+            Pkce = Pkce.Clone(),
+            MultiTenant = MultiTenant.Clone(),
+            Cookie = Cookie.Clone(),
+            Diagnostics = Diagnostics.Clone(),
 
-        public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
+            PrimaryCredential = PrimaryCredential.Clone(),
+            AuthResponse = AuthResponse.Clone(),
+            Hub = Hub.Clone(),
+            SessionResolution = SessionResolution.Clone(),
+            UserIdentifiers = UserIdentifiers.Clone(),
 
-        public AuthResponseOptions AuthResponse { get; init; } = new();
+            EnableLoginEndpoints = EnableLoginEndpoints,
+            EnablePkceEndpoints = EnablePkceEndpoints,
+            EnableTokenEndpoints = EnableTokenEndpoints,
+            EnableSessionEndpoints = EnableSessionEndpoints,
+            EnableUserInfoEndpoints = EnableUserInfoEndpoints,
+            EnableUserLifecycleEndpoints = EnableUserLifecycleEndpoints,
+            EnableUserProfileEndpoints = EnableUserProfileEndpoints,
+            EnableCredentialsEndpoints = EnableCredentialsEndpoints,
+            EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
 
-        public UAuthHubServerOptions Hub { get; set; } = new();
+            EnableAntiCsrfProtection = EnableAntiCsrfProtection,
+            EnableLoginRateLimiting = EnableLoginRateLimiting,
 
-        /// <summary>
-        /// Controls how session identifiers are resolved from incoming requests
-        /// (cookie, header, bearer, query, order, etc.)
-        /// </summary>
-        public UAuthSessionResolutionOptions SessionResolution { get; set; } = new();
-
-        /// <summary>
-        /// Enables/disables specific endpoint groups.
-        /// Useful for API hardening.
-        /// </summary>
-        public bool? EnableLoginEndpoints { get; set; } = true;
-        public bool? EnablePkceEndpoints { get; set; } = true;
-        public bool? EnableTokenEndpoints { get; set; } = true;
-        public bool? EnableSessionEndpoints { get; set; } = true;
-        public bool? EnableUserInfoEndpoints { get; set; } = true;
-
-        public bool? EnableUserLifecycleEndpoints { get; set; } = true;
-        public bool? EnableUserProfileEndpoints { get; set; } = true;
-        public bool? EnableUserIdentifierEndpoints { get; set; } = true;
-        public bool? EnableCredentialsEndpoints { get; set; } = true;
-        public bool? EnableAuthorizationEndpoints { get; set; } = true;
-
-        public UserIdentifierOptions UserIdentifiers { get; set; } = new();
-
-        /// <summary>
-        /// If true, server will add anti-forgery headers
-        /// and require proper request metadata.
-        /// </summary>
-        public bool EnableAntiCsrfProtection { get; set; } = true;
-
-        /// <summary>
-        /// If true, login attempts are rate-limited to prevent brute force attacks.
-        /// </summary>
-        public bool EnableLoginRateLimiting { get; set; } = true;
-
-
-        // -------------------------------------------------------
-        // CUSTOMIZATION HOOKS
-        // -------------------------------------------------------
-
-        /// <summary>
-        /// Allows developers to mutate endpoint routing AFTER UltimateAuth registers defaults.
-        /// Example: adding new routes, overriding authorization, adding filters.
-        /// </summary>
-        public Action<WebApplication>? OnConfigureEndpoints { get; set; }
-
-        /// <summary>
-        /// Allows developers to add or replace server services before DI is built.
-        /// Example: overriding default ILoginService.
-        /// </summary>
-        public Action<IServiceCollection>? ConfigureServices { get; set; }
-
-
-        internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
-
-
-        internal UAuthServerOptions Clone()
-        {
-            return new UAuthServerOptions
-            {
-                Mode = Mode,
-                HubDeploymentMode = HubDeploymentMode,
-                RoutePrefix = RoutePrefix,
-
-                Session = Session.Clone(),
-                Tokens = Tokens.Clone(),
-                Pkce = Pkce.Clone(),
-                MultiTenant = MultiTenant.Clone(),
-                Cookie = Cookie.Clone(),
-                Diagnostics = Diagnostics.Clone(),
-
-                PrimaryCredential = PrimaryCredential.Clone(),
-                AuthResponse = AuthResponse.Clone(),
-                Hub = Hub.Clone(),
-                SessionResolution = SessionResolution.Clone(),
-                UserIdentifiers = UserIdentifiers.Clone(),
-
-                EnableLoginEndpoints = EnableLoginEndpoints,
-                EnablePkceEndpoints = EnablePkceEndpoints,
-                EnableTokenEndpoints = EnableTokenEndpoints,
-                EnableSessionEndpoints = EnableSessionEndpoints,
-                EnableUserInfoEndpoints = EnableUserInfoEndpoints,
-                EnableUserLifecycleEndpoints = EnableUserLifecycleEndpoints,
-                EnableUserProfileEndpoints = EnableUserProfileEndpoints,
-                EnableCredentialsEndpoints = EnableCredentialsEndpoints,
-                EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
-
-                EnableAntiCsrfProtection = EnableAntiCsrfProtection,
-                EnableLoginRateLimiting = EnableLoginRateLimiting,
-
-                ModeConfigurations = ModeConfigurations,
-                OnConfigureEndpoints = OnConfigureEndpoints,
-                ConfigureServices = ConfigureServices,
-                CustomCookieManagerType = CustomCookieManagerType
-            };
-        }
+            ModeConfigurations = ModeConfigurations,
+            OnConfigureEndpoints = OnConfigureEndpoints,
+            ConfigureServices = ConfigureServices,
+            CustomCookieManagerType = CustomCookieManagerType
+        };
     }
 }

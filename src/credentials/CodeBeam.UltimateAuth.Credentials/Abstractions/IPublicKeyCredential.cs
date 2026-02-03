@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials
+﻿namespace CodeBeam.UltimateAuth.Credentials;
+
+public interface IPublicKeyCredential<TUserId> : ICredential<TUserId>
 {
-    public interface IPublicKeyCredential<TUserId> : ICredential<TUserId>
-    {
-        byte[] PublicKey { get; }
-    }
+    byte[] PublicKey { get; }
 }

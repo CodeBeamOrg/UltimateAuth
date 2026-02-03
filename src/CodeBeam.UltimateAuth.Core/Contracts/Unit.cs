@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public readonly struct Unit
 {
-    public readonly struct Unit
-    {
-        public static readonly Unit Value = new();
-    }
+    public static readonly Unit Value = new();
 }

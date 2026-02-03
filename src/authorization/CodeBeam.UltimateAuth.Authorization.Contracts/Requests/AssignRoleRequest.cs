@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts
+﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
+
+public sealed class AssignRoleRequest
 {
-    public sealed class AssignRoleRequest
-    {
-        public required string Role { get; init; }
-    }
+    public required string Role { get; init; }
 }

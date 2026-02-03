@@ -1,23 +1,16 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Errors
+namespace CodeBeam.UltimateAuth.Core.Errors;
+
+public sealed class UAuthSessionDeviceMismatchException : UAuthSessionException
 {
-    public sealed class UAuthSessionDeviceMismatchException : UAuthSessionException
-    {
-        public DeviceInfo Expected { get; }
-        public DeviceInfo Actual { get; }
+    public DeviceContext Expected { get; }
+    public DeviceContext Actual { get; }
 
-        public UAuthSessionDeviceMismatchException(
-            AuthSessionId sessionId,
-            DeviceInfo expected,
-            DeviceInfo actual)
-            : base(
-                sessionId,
-                $"Session '{sessionId}' device mismatch detected.")
-        {
-            Expected = expected;
-            Actual = actual;
-        }
+    public UAuthSessionDeviceMismatchException(AuthSessionId sessionId, DeviceContext expected, DeviceContext actual)
+        : base(sessionId, $"Session '{sessionId}' device mismatch detected.")
+    {
+        Expected = expected;
+        Actual = actual;
     }
 }

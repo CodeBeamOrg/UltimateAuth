@@ -1,12 +1,11 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public sealed record IdentifierChangeResult
 {
-    public sealed record IdentifierChangeResult
-    {
-        public bool Succeeded { get; init; }
-        public string? FailureReason { get; init; }
+    public bool Succeeded { get; init; }
+    public string? FailureReason { get; init; }
 
-        public static IdentifierChangeResult Success() => new() { Succeeded = true };
+    public static IdentifierChangeResult Success() => new() { Succeeded = true };
 
-        public static IdentifierChangeResult Failed(string reason) => new() { Succeeded = false, FailureReason = reason };
-    }
+    public static IdentifierChangeResult Failed(string reason) => new() { Succeeded = false, FailureReason = reason };
 }

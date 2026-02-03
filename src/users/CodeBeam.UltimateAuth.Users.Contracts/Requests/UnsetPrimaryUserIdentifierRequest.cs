@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public sealed record UnsetPrimaryUserIdentifierRequest
 {
-    public sealed record UnsetPrimaryUserIdentifierRequest
-    {
-        public UserIdentifierType Type { get; init; }
-        public string Value { get; init; } = default!;
-    }
+    public UserIdentifierType Type { get; init; }
+    public string Value { get; init; } = default!;
 }

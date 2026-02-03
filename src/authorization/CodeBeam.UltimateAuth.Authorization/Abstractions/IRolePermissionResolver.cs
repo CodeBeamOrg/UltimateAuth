@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Authorization
+namespace CodeBeam.UltimateAuth.Authorization;
+
+public interface IRolePermissionResolver
 {
-    public interface IRolePermissionResolver
-    {
-        Task<IReadOnlyCollection<Permission>> ResolveAsync(string? tenantId, IEnumerable<string> roles, CancellationToken ct = default);
-    }
+    Task<IReadOnlyCollection<Permission>> ResolveAsync(TenantKey tenant, IEnumerable<string> roles, CancellationToken ct = default);
 }

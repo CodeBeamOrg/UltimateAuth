@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
+
+namespace CodeBeam.UltimateAuth.Core.Errors;
 
 public sealed class UAuthSessionSecurityMismatchException : UAuthSessionException
 {

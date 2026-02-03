@@ -1,46 +1,45 @@
 ﻿using CodeBeam.UltimateAuth.Client.Authentication;
 using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client.Components
+namespace CodeBeam.UltimateAuth.Client.Components;
+
+public partial class UAuthAuthenticationState
 {
-    public partial class UAuthAuthenticationState
+    private bool _initialized;
+    private UAuthState _uauthState = UAuthState.Anonymous();
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        private bool _initialized;
-        private UAuthState _uauthState;
+        if (!firstRender)
+            return;
 
-        [Parameter]
-        public RenderFragment ChildContent { get; set; } = default!;
+        if (_initialized)
+            return;
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        _initialized = true;
+        //await Bootstrapper.EnsureStartedAsync();
+        await StateManager.EnsureAsync();
+        _uauthState = StateManager.State;
+
+        StateManager.State.Changed += OnStateChanged;
+    }
+
+    private void OnStateChanged(UAuthStateChangeReason _)
+    {
+        //StateManager.EnsureAsync();
+        if (_ == UAuthStateChangeReason.MarkedStale)
         {
-            if (!firstRender)
-                return;
-
-            if (_initialized)
-                return;
-
-            _initialized = true;
-            //await Bootstrapper.EnsureStartedAsync();
-            await StateManager.EnsureAsync();
-            _uauthState = StateManager.State;
-
-            StateManager.State.Changed += OnStateChanged;
+            StateManager.EnsureAsync();
         }
+        _uauthState = StateManager.State;
+        InvokeAsync(StateHasChanged);
+    }
 
-        private void OnStateChanged(UAuthStateChangeReason _)
-        {
-            //StateManager.EnsureAsync();
-            if (_ == UAuthStateChangeReason.MarkedStale)
-            {
-                StateManager.EnsureAsync();
-            }
-            _uauthState = StateManager.State;
-            InvokeAsync(StateHasChanged);
-        }
-
-        public void Dispose()
-        {
-            StateManager.State.Changed -= OnStateChanged;
-        }
+    public void Dispose()
+    {
+        StateManager.State.Changed -= OnStateChanged;
     }
 }

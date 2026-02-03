@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
     public partial class Home
     {
         [CascadingParameter]
-        public UAuthState Auth { get; set; }
+        public UAuthState Auth { get; set; } = null!;
 
         private string? _username;
         private string? _password;

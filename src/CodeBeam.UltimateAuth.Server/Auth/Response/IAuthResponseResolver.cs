@@ -2,10 +2,9 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 
-namespace CodeBeam.UltimateAuth.Server.Auth
+namespace CodeBeam.UltimateAuth.Server.Auth;
+
+public interface IAuthResponseResolver
 {
-    public interface IAuthResponseResolver
-    {
-        EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
-    }
+    EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
 }

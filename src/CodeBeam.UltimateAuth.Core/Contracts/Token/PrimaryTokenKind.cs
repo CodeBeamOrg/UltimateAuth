@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public enum PrimaryTokenKind
 {
-    public enum PrimaryTokenKind
-    {
-        Session = 1,
-        AccessToken = 2
-    }
+    Session = 1,
+    AccessToken = 2
 }

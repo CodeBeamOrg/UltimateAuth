@@ -1,16 +1,14 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using System.Security.Claims;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Core.Contracts
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed record AuthStateSnapshot
 {
-    public sealed record AuthStateSnapshot
-    {
-        // It's not UserId type
-        public string? UserId { get; init; }
-        public string? TenantId { get; init; }
+    public UserKey UserKey { get; init; }
+    public TenantKey Tenant { get; init; }
 
-        public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
+    public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
 
-        public DateTimeOffset? AuthenticatedAt { get; init; }
-    }
+    public DateTimeOffset? AuthenticatedAt { get; init; }
 }

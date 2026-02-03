@@ -1,10 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+public interface ISessionIdResolver
 {
-    public interface ISessionIdResolver
-    {
-        AuthSessionId? Resolve(HttpContext context);
-    }
+    AuthSessionId? Resolve(HttpContext context);
 }

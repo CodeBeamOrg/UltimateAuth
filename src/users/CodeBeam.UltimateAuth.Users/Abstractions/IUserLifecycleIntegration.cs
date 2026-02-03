@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Abstractions;
 
@@ -9,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Users.Abstractions;
 /// </summary>
 public interface IUserLifecycleIntegration
 {
-    Task OnUserCreatedAsync(string? tenantId, UserKey userKey, object request, CancellationToken ct = default);
+    Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, CancellationToken ct = default);
 
-    Task OnUserDeletedAsync(string? tenantId, UserKey userKey, DeleteMode mode, CancellationToken ct = default);
+    Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct = default);
 }

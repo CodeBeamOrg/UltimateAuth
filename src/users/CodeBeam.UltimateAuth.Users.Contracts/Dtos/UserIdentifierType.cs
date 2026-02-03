@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public enum UserIdentifierType
 {
-    public enum UserIdentifierType
-    {
-        Username,
-        Email,
-        Phone
-    }
+    Username,
+    Email,
+    Phone
 }

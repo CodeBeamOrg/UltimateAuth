@@ -1,28 +1,25 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Core.Options;
 
-namespace CodeBeam.UltimateAuth.Core.Options
+/// <summary>
+/// Configuration settings for PKCE (Proof Key for Code Exchange)
+/// authorization flows. Controls how long authorization codes remain
+/// valid before they must be exchanged for tokens.
+/// </summary>
+public sealed class UAuthPkceOptions
 {
     /// <summary>
-    /// Configuration settings for PKCE (Proof Key for Code Exchange)
-    /// authorization flows. Controls how long authorization codes remain
-    /// valid before they must be exchanged for tokens.
+    /// Lifetime of a PKCE authorization code in seconds.
+    /// Shorter values provide stronger replay protection,
+    /// while longer values allow more tolerance for slow clients.
     /// </summary>
-    public sealed class UAuthPkceOptions
+    public int AuthorizationCodeLifetimeSeconds { get; set; } = 120;
+
+    public int MaxVerificationAttempts { get; set; } = 5;
+
+    internal UAuthPkceOptions Clone() => new()
     {
-        /// <summary>
-        /// Lifetime of a PKCE authorization code in seconds.
-        /// Shorter values provide stronger replay protection,
-        /// while longer values allow more tolerance for slow clients.
-        /// </summary>
-        public int AuthorizationCodeLifetimeSeconds { get; set; } = 120;
+        AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds,
+        MaxVerificationAttempts = MaxVerificationAttempts,
+    };
 
-        public int MaxVerificationAttempts { get; set; } = 5;
-
-        internal UAuthPkceOptions Clone() => new()
-        {
-            AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds,
-            MaxVerificationAttempts = MaxVerificationAttempts,
-        };
-
-    }
 }

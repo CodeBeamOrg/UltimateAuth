@@ -1,0 +1,49 @@
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+
+public sealed class AuthAuthority : IAuthAuthority
+{
+    private readonly IEnumerable<IAuthorityInvariant> _invariants;
+    private readonly IEnumerable<IAuthorityPolicy> _policies;
+
+    public AuthAuthority(IEnumerable<IAuthorityInvariant> invariants, IEnumerable<IAuthorityPolicy> policies)
+    {
+        _invariants = invariants ?? Array.Empty<IAuthorityInvariant>();
+        _policies = policies ?? Array.Empty<IAuthorityPolicy>();
+    }
+
+    public AccessDecisionResult Decide(AuthContext context, IEnumerable<IAuthorityPolicy>? policies = null)
+    {
+        foreach (var invariant in _invariants)
+        {
+            var result = invariant.Decide(context);
+            if (!result.IsAllowed)
+                return result;
+        }
+
+        bool challenged = false;
+
+        var effectivePolicies = _policies.Concat(policies ?? Enumerable.Empty<IAuthorityPolicy>());
+
+        foreach (var policy in effectivePolicies)
+        {
+            if (!policy.AppliesTo(context))
+                continue;
+
+            var result = policy.Decide(context);
+
+            if (!result.IsAllowed)
+                return result;
+
+            if (result.RequiresChallenge)
+                challenged = true;
+        }
+
+        return challenged
+            ? AccessDecisionResult.Challenge("Additional verification required.")
+            : AccessDecisionResult.Allow();
+    }
+
+}

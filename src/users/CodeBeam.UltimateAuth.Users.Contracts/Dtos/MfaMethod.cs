@@ -1,10 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public enum MfaMethod
 {
-    public enum MfaMethod
-    {
-        Totp = 10,
-        Sms = 20,
-        Email = 30,
-        Passkey = 40
-    }
+    Totp = 10,
+    Sms = 20,
+    Email = 30,
+    Passkey = 40
 }

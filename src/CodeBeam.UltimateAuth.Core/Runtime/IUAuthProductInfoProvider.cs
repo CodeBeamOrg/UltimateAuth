@@ -1,9 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Runtime;
+﻿namespace CodeBeam.UltimateAuth.Core.Runtime;
 
-namespace CodeBeam.UltimateAuth.Core.Runtime
+public interface IUAuthProductInfoProvider
 {
-    public interface IUAuthProductInfoProvider
-    {
-        UAuthProductInfo Get();
-    }
+    UAuthProductInfo Get();
 }

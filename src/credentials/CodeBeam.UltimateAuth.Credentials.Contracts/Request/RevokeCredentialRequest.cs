@@ -1,6 +1,15 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+
+public sealed record RevokeCredentialRequest
 {
-    public sealed record RevokeCredentialRequest(
-        DateTimeOffset? Until = null,
-        string? Reason = null);
+    /// <summary>
+    /// If specified, credential is revoked until this time.
+    /// Null means permanent revocation.
+    /// </summary>
+    public DateTimeOffset? Until { get; init; }
+
+    /// <summary>
+    /// Optional human-readable reason for audit/logging purposes.
+    /// </summary>
+    public string? Reason { get; init; }
 }

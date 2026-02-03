@@ -1,29 +1,27 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Core.Contracts
+namespace CodeBeam.UltimateAuth.Core.Contracts;
+
+/// <summary>
+/// Lightweight session context resolved from the incoming request.
+/// Does NOT load or validate the session.
+/// Used only by middleware and engines as input.
+/// </summary>
+public sealed class SessionContext
 {
-    /// <summary>
-    /// Lightweight session context resolved from the incoming request.
-    /// Does NOT load or validate the session.
-    /// Used only by middleware and engines as input.
-    /// </summary>
-    public sealed class SessionContext
+    public AuthSessionId? SessionId { get; }
+    public TenantKey? Tenant { get; }
+
+    public bool IsAnonymous => SessionId is null;
+
+    private SessionContext(AuthSessionId? sessionId, TenantKey? tenant)
     {
-        public AuthSessionId? SessionId { get; }
-        public string? TenantId { get; }
-
-        public bool IsAnonymous => SessionId is null;
-
-        private SessionContext(AuthSessionId? sessionId, string? tenantId)
-        {
-            SessionId = sessionId;
-            TenantId = tenantId;
-        }
-
-        public static SessionContext Anonymous()
-            => new(null, null);
-
-        public static SessionContext FromSessionId(AuthSessionId sessionId, string? tenantId)
-            => new(sessionId, tenantId);
+        SessionId = sessionId;
+        Tenant = tenant;
     }
+
+    public static SessionContext Anonymous() => new(null, null);
+
+    public static SessionContext FromSessionId(AuthSessionId sessionId, TenantKey tenant) => new(sessionId, tenant);
 }

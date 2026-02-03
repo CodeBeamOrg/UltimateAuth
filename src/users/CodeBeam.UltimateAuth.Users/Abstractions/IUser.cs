@@ -1,8 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Users
+﻿namespace CodeBeam.UltimateAuth.Users;
+
+public interface IUser<TUserId>
 {
-    public interface IUser<TUserId>
-    {
-        TUserId UserId { get; }
-        bool IsActive { get; }
-    }
+    TUserId UserId { get; }
+    bool IsActive { get; }
 }

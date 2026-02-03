@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions
+namespace CodeBeam.UltimateAuth.Core.Abstractions;
+
+public interface IHubCredentialResolver
 {
-    public interface IHubCredentialResolver
-    {
-        Task<HubCredentials?> ResolveAsync(HubSessionId hubSessionId, CancellationToken ct = default);
-    }
+    Task<HubCredentials?> ResolveAsync(HubSessionId hubSessionId, CancellationToken ct = default);
 }

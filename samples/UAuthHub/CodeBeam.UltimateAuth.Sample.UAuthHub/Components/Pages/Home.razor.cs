@@ -27,7 +27,8 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages
                 return;
             }
 
-            _state = await HubFlowReader.GetStateAsync(new HubSessionId(HubKey));
+            if (!HubSessionId.TryParse(HubKey, out var hubSessionId))
+                _state = await HubFlowReader.GetStateAsync(hubSessionId);
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -74,7 +75,10 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages
             if (hub is null)
                 return;
 
-            var credentials = await HubCredentialResolver.ResolveAsync(new HubSessionId(HubKey));
+            if (!HubSessionId.TryParse(HubKey, out var hubSessionId))
+                return;
+
+            var credentials = await HubCredentialResolver.ResolveAsync(hubSessionId);
 
             var request = new PkceLoginRequest
             {

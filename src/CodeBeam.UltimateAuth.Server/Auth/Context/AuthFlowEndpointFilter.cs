@@ -1,26 +1,24 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Auth
+namespace CodeBeam.UltimateAuth.Server.Auth;
+
+internal sealed class AuthFlowEndpointFilter : IEndpointFilter
 {
-    internal sealed class AuthFlowEndpointFilter : IEndpointFilter
+    private readonly IAuthFlow _authFlow;
+
+    public AuthFlowEndpointFilter(IAuthFlow authFlow)
     {
-        private readonly IAuthFlow _authFlow;
+        _authFlow = authFlow;
+    }
 
-        public AuthFlowEndpointFilter(IAuthFlow authFlow)
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var metadata = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<AuthFlowMetadata>();
+
+        if (metadata != null)
         {
-            _authFlow = authFlow;
+            await _authFlow.BeginAsync(metadata.FlowType);
         }
-
-        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-        {
-            var metadata = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<AuthFlowMetadata>();
-
-            if (metadata != null)
-            {
-                await _authFlow.BeginAsync(metadata.FlowType);
-            }
-            return await next(context);
-        }
-
+        return await next(context);
     }
 }

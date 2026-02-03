@@ -12,10 +12,10 @@ public static class UltimateAuthServerBuilderValidationExtensions
         if (!services.Any(sd => sd.ServiceType == typeof(IUAuthPasswordHasher)))
             throw new InvalidOperationException("No IUAuthPasswordHasher registered. Call UseArgon2() or another hasher.");
 
-        if (!services.Any(sd => sd.ServiceType.IsAssignableTo(typeof(IUAuthUserStore<>))))
-            throw new InvalidOperationException("No credential store registered.");
+        //if (!services.Any(sd => sd.ServiceType.IsAssignableTo(typeof(IUAuthUserStore<>))))
+        //    throw new InvalidOperationException("No credential store registered.");
 
-        if (!services.Any(sd => sd.ServiceType.IsAssignableTo(typeof(ISessionStore))))
+        if (!services.Any(sd => sd.ServiceType.IsAssignableTo(typeof(ISessionStoreKernel))))
             throw new InvalidOperationException("No session store registered.");
 
         return services;

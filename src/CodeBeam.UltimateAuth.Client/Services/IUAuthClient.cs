@@ -1,13 +1,12 @@
 ﻿using CodeBeam.UltimateAuth.Client.Services;
 
-namespace CodeBeam.UltimateAuth.Client
+namespace CodeBeam.UltimateAuth.Client;
+
+public interface IUAuthClient
 {
-    public interface IUAuthClient
-    {
-        IFlowClient Flows { get; }
-        IUserClient Users { get; }
-        IUserIdentifierClient Identifiers { get; }
-        ICredentialClient Credentials { get; }
-        IAuthorizationClient Authorization { get; }
-    }
+    IFlowClient Flows { get; }
+    IUserClient Users { get; }
+    IUserIdentifierClient Identifiers { get; }
+    ICredentialClient Credentials { get; }
+    IAuthorizationClient Authorization { get; }
 }

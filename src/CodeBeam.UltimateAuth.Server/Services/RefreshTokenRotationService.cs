@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using System;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -28,7 +28,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
         var validation = await _validator.ValidateAsync(
             new RefreshTokenValidationContext
             {
-                TenantId = flow.TenantId,
+                Tenant = flow.Tenant,
                 RefreshToken = context.RefreshToken,
                 Now = context.Now,
                 Device = context.Device,
@@ -43,11 +43,11 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
         {
             if (validation.ChainId is not null)
             {
-                await _store.RevokeByChainAsync(validation.TenantId, validation.ChainId.Value, context.Now, ct);
+                await _store.RevokeByChainAsync(validation.Tenant, validation.ChainId.Value, context.Now, ct);
             }
             else if (validation.SessionId is not null)
             {
-                await _store.RevokeBySessionAsync(validation.TenantId, validation.SessionId.Value, context.Now, ct);
+                await _store.RevokeBySessionAsync(validation.Tenant, validation.SessionId.Value, context.Now, ct);
             }
 
             return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
@@ -58,11 +58,21 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             throw new InvalidOperationException("Validated refresh token does not contain a UserKey.");
         }
 
+        if (validation.SessionId is not AuthSessionId sessionId)
+        {
+            throw new InvalidOperationException("Validated refresh token does not contain a SessionId.");
+        }
+
+        if (validation.TokenHash == null)
+        {
+            throw new InvalidOperationException("Validated refresh token does not contain a hashed token.");
+        }
+
         var tokenContext = new TokenIssuanceContext
         {
-            TenantId = flow.OriginalOptions.MultiTenant.Enabled
-                ? validation.TenantId
-                : null,
+            Tenant = flow.OriginalOptions.MultiTenant.Enabled
+                ? validation.Tenant
+                : TenantKey.Single,
 
             UserKey = uKey,
             SessionId = validation.SessionId,
@@ -80,23 +90,23 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         // Never issue new refresh token before revoke old. Upperline doesn't persist token currently.
         // TODO: Add _store.ExecuteAsync here to wrap RevokeAsync and StoreAsync
-        await _store.RevokeAsync(validation.TenantId, validation.TokenHash, context.Now, refreshToken.TokenHash, ct);
+        await _store.RevokeAsync(validation.Tenant, validation.TokenHash, context.Now, refreshToken.TokenHash, ct);
 
         var stored = new StoredRefreshToken
         {
-            TenantId = flow.TenantId,
+            Tenant = flow.Tenant,
             TokenHash = refreshToken.TokenHash,
             UserKey = uKey,
-            SessionId = validation.SessionId.Value,
+            SessionId = sessionId,
             ChainId = validation.ChainId,
             IssuedAt = _clock.UtcNow,
             ExpiresAt = refreshToken.ExpiresAt
         };
-        await _store.StoreAsync(validation.TenantId, stored);
+        await _store.StoreAsync(validation.Tenant, stored);
 
         return new RefreshTokenRotationExecution()
         {
-            TenantId = validation.TenantId,
+            Tenant = validation.Tenant,
             UserKey = validation.UserKey,
             SessionId = validation.SessionId,
             ChainId = validation.ChainId,

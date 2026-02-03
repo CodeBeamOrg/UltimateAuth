@@ -60,7 +60,7 @@
             <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserKey)</MudText>
             <AuthorizeView>
                 <Authorized>
-                    <MudText>Authorized context is shown. @context.User.Identity.IsAuthenticated</MudText>
+                    <MudText>Authorized context is shown. @context?.User?.Identity?.IsAuthenticated</MudText>
                 </Authorized>
                 <NotAuthorized>
                     <MudText>Not Authorized context is shown.</MudText>

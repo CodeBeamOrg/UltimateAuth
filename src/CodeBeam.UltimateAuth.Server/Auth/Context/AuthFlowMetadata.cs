@@ -1,14 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Server.Auth
-{
-    public sealed class AuthFlowMetadata
-    {
-        public AuthFlowType FlowType { get; }
+namespace CodeBeam.UltimateAuth.Server.Auth;
 
-        public AuthFlowMetadata(AuthFlowType flowType)
-        {
-            FlowType = flowType;
-        }
+public sealed class AuthFlowMetadata
+{
+    public AuthFlowType FlowType { get; }
+
+    public AuthFlowMetadata(AuthFlowType flowType)
+    {
+        FlowType = flowType;
     }
 }

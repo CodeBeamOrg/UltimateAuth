@@ -1,9 +1,11 @@
-﻿namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
+﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class RevokedTokenIdProjection
 {
     public long Id { get; set; }
-    public string? TenantId { get; set; }
+    public TenantKey Tenant { get; set; }
 
     public string Jti { get; set; } = default!;
 
