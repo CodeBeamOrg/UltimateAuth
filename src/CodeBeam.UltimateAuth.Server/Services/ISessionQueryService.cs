@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
 // TenantId parameter only come from AuthFlowContext.
 namespace CodeBeam.UltimateAuth.Server.Services;

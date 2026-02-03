@@ -2,22 +2,21 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+internal sealed class UserAccessorBridge : IUserAccessor
 {
-    internal sealed class UserAccessorBridge : IUserAccessor
+    private readonly IServiceProvider _services;
+
+    public UserAccessorBridge(IServiceProvider services)
     {
-        private readonly IServiceProvider _services;
-
-        public UserAccessorBridge(IServiceProvider services)
-        {
-            _services = services;
-        }
-
-        public async Task ResolveAsync(HttpContext context)
-        {
-            var accessor = _services.GetRequiredService<IUserAccessor<UserKey>>();
-            await accessor.ResolveAsync(context);
-        }
-
+        _services = services;
     }
+
+    public async Task ResolveAsync(HttpContext context)
+    {
+        var accessor = _services.GetRequiredService<IUserAccessor<UserKey>>();
+        await accessor.ResolveAsync(context);
+    }
+
 }

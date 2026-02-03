@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using Xunit;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

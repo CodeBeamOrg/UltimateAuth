@@ -2,13 +2,12 @@
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit
+namespace CodeBeam.UltimateAuth.Tests.Unit;
+
+internal static class TestHelpers
 {
-    internal static class TestHelpers
+    public static EffectiveServerOptionsProvider CreateEffectiveOptionsProvider(UAuthServerOptions options, IEffectiveAuthModeResolver? modeResolver = null)
     {
-        public static DefaultEffectiveServerOptionsProvider CreateEffectiveOptionsProvider(UAuthServerOptions options, IEffectiveAuthModeResolver? modeResolver = null)
-        {
-            return new DefaultEffectiveServerOptionsProvider(Options.Create(options), modeResolver ?? new DefaultEffectiveAuthModeResolver());
-        }
+        return new EffectiveServerOptionsProvider(Options.Create(options), modeResolver ?? new EffectiveAuthModeResolver());
     }
 }

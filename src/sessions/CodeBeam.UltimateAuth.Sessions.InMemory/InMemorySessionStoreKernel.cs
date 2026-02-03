@@ -2,6 +2,8 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using System.Collections.Concurrent;
 
+namespace CodeBeam.UltimateAuth.Sessions.InMemory;
+
 internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
 {
     private readonly SemaphoreSlim _tx = new(1, 1);
@@ -24,8 +26,7 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
         }
     }
 
-    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId)
-        => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
+    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId) => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
 
     public Task SaveSessionAsync(UAuthSession session)
     {

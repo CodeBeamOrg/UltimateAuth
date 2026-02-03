@@ -8,11 +8,6 @@ using Microsoft.AspNetCore.Routing;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
-public interface IAuthEndpointRegistrar
-{
-    void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options);
-}
-
 // TODO: Add Scalar/Swagger integration
 // TODO: Add endpoint based guards
 public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
@@ -254,5 +249,4 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         }
 
     }
-
 }

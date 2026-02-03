@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Abstractions
+namespace CodeBeam.UltimateAuth.Server.Abstractions;
+
+public interface IRefreshTokenResolver
 {
-    public interface IRefreshTokenResolver
-    {
-        /// <summary>
-        /// Resolves refresh token from incoming HTTP request.
-        /// Returns null if no refresh token is present.
-        /// </summary>
-        string? Resolve(HttpContext context);
-    }
+    /// <summary>
+    /// Resolves refresh token from incoming HTTP request.
+    /// Returns null if no refresh token is present.
+    /// </summary>
+    string? Resolve(HttpContext context);
 }

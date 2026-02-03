@@ -1,10 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Users.Contracts
+namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public sealed class DeleteUserRequest
 {
-    public sealed class DeleteUserRequest
-    {
-        public DeleteMode Mode { get; init; } = DeleteMode.Soft;
-    }
+    public DeleteMode Mode { get; init; } = DeleteMode.Soft;
 }

@@ -2,21 +2,20 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure.Orchestrator
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+public sealed class RevokeRootCommand : ISessionCommand<Unit>
 {
-    public sealed class RevokeRootCommand : ISessionCommand<Unit>
+    public UserKey UserKey { get; }
+
+    public RevokeRootCommand(UserKey userKey)
     {
-        public UserKey UserKey { get; }
+        UserKey = userKey;
+    }
 
-        public RevokeRootCommand(UserKey userKey)
-        {
-            UserKey = userKey;
-        }
-
-        public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
-        {
-            await issuer.RevokeRootAsync(context.Tenant, UserKey, context.At, ct);
-            return Unit.Value;
-        }
+    public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
+    {
+        await issuer.RevokeRootAsync(context.Tenant, UserKey, context.At, ct);
+        return Unit.Value;
     }
 }

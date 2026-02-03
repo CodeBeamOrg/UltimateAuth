@@ -99,11 +99,11 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
         services.TryAddScoped<IUAuthClient, UAuthClient>();
-        services.TryAddScoped<IFlowClient, DefaultFlowClient>();
-        services.TryAddScoped<IUserClient, DefaultUserClient>();
-        services.TryAddScoped<IUserIdentifierClient, DefaultUserIdentifierClient>();
-        services.TryAddScoped<ICredentialClient, DefaultCredentialClient>();
-        services.TryAddScoped<IAuthorizationClient, DefaultAuthorizationClient>();
+        services.TryAddScoped<IFlowClient, UAuthFlowClient>();
+        services.TryAddScoped<IUserClient, UAuthUserClient>();
+        services.TryAddScoped<IUserIdentifierClient, UAuthUserIdentifierClient>();
+        services.TryAddScoped<ICredentialClient, UAuthCredentialClient>();
+        services.TryAddScoped<IAuthorizationClient, UAuthAuthorizationClient>();
 
         services.AddScoped<ISessionCoordinator>(sp =>
         {
@@ -118,16 +118,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BlazorServerSessionCoordinator>();
         services.AddScoped<NoOpSessionCoordinator>();
         services.AddScoped<UAuthClientDiagnostics>();
-        services.AddScoped<IUAuthStateManager, DefaultUAuthStateManager>();
+        services.AddScoped<IUAuthStateManager, UAuthStateManager>();
         services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
         services.AddScoped<IBrowserStorage, BrowserStorage>();
         services.TryAddScoped<IHubCredentialResolver, NoOpHubCredentialResolver>();
         services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
         services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
 
-        services.AddScoped<IDeviceIdGenerator, DefaultDeviceIdGenerator>();
+        services.AddScoped<IDeviceIdGenerator, UAuthDeviceIdGenerator>();
         services.AddScoped<IDeviceIdStorage, BrowserDeviceIdStorage>();
-        services.AddScoped<IDeviceIdProvider, DefaultDeviceIdProvider>();
+        services.AddScoped<IDeviceIdProvider, UAuthDeviceIdProvider>();
         services.AddScoped<IBrowserUAuthBridge, BrowserUAuthBridge>();
 
         services.AddScoped<UAuthCascadingStateProvider>();

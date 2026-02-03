@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Authorization.InMemory
+﻿namespace CodeBeam.UltimateAuth.Authorization.InMemory;
+
+public interface IAuthorizationSeeder
 {
-    public interface IAuthorizationSeeder
-    {
-        Task SeedAsync(CancellationToken ct = default);
-    }
+    Task SeedAsync(CancellationToken ct = default);
 }

@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Endpoints
+namespace CodeBeam.UltimateAuth.Server.Endpoints;
+
+public interface IRefreshEndpointHandler
 {
-    public interface IRefreshEndpointHandler
-    {
-        Task<IResult> RefreshAsync(HttpContext ctx);
-    }
+    Task<IResult> RefreshAsync(HttpContext ctx);
 }

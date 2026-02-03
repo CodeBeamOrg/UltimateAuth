@@ -8,8 +8,7 @@ internal static class AuthSessionIdEfConverter
     {
         if (!AuthSessionId.TryCreate(raw, out var id))
         {
-            throw new InvalidOperationException(
-                $"Invalid AuthSessionId value in database: '{raw}'");
+            throw new InvalidOperationException($"Invalid AuthSessionId value in database: '{raw}'");
         }
 
         return id;
@@ -25,8 +24,7 @@ internal static class AuthSessionIdEfConverter
 
         if (!AuthSessionId.TryCreate(raw, out var id))
         {
-            throw new InvalidOperationException(
-                $"Invalid AuthSessionId value in database: '{raw}'");
+            throw new InvalidOperationException($"Invalid AuthSessionId value in database: '{raw}'");
         }
 
         return id;

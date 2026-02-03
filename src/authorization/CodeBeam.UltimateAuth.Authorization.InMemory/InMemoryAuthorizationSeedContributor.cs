@@ -21,7 +21,6 @@ internal sealed class InMemoryAuthorizationSeedContributor : ISeedContributor
     public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
     {
         var adminKey = _ids.GetAdminUserId();
-
         await _roles.AssignAsync(tenant, adminKey, "Admin", ct);
     }
 }

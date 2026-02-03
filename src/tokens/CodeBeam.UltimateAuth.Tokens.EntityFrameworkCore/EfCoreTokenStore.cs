@@ -1,8 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+
+namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 {

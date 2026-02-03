@@ -1,7 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public sealed record BeginMfaSetupRequest
 {
-    public sealed record BeginMfaSetupRequest
-    {
-        public MfaMethod Method { get; init; }
-    }
+    public MfaMethod Method { get; init; }
 }

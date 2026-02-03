@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;

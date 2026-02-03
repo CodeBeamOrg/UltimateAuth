@@ -1,11 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Server.Extensions
+namespace CodeBeam.UltimateAuth.Server.Extensions;
+
+public static class AuthFlowTypeExtensions
 {
-    public static class AuthFlowTypeExtensions
-    {
-        public static AuthOperation ToAuthOperation(this AuthFlowType flowType)
+    public static AuthOperation ToAuthOperation(this AuthFlowType flowType)
         => flowType switch
         {
             AuthFlowType.Login => AuthOperation.Login,
@@ -29,5 +29,4 @@ namespace CodeBeam.UltimateAuth.Server.Extensions
 
             _ => throw new InvalidOperationException($"Unsupported flow type: {flowType}")
         };
-    }
 }

@@ -2,20 +2,17 @@
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Extensions
+namespace CodeBeam.UltimateAuth.Server.Extensions;
+
+public static class HttpContextSessionExtensions
 {
-    public static class HttpContextSessionExtensions
+    public static SessionContext GetSessionContext(this HttpContext context)
     {
-        public static SessionContext GetSessionContext(this HttpContext context)
+        if (context.Items.TryGetValue(SessionContextItemKeys.SessionContext, out var value) && value is SessionContext session)
         {
-            if (context.Items.TryGetValue(SessionContextItemKeys.SessionContext, out var value)
-                && value is SessionContext session)
-            {
-                return session;
-            }
-
-            return SessionContext.Anonymous();
+            return session;
         }
-    }
 
+        return SessionContext.Anonymous();
+    }
 }

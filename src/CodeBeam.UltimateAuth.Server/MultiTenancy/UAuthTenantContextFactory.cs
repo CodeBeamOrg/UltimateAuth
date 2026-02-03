@@ -7,7 +7,6 @@ public static class UAuthTenantContextFactory
 {
     public static UAuthTenantContext Create(string? rawTenantId, UAuthMultiTenantOptions options)
     {
-        // 🔹 Single-tenant mode
         if (!options.Enabled)
             return UAuthTenantContext.SingleTenant();
 

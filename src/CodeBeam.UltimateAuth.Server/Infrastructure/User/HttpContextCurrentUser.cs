@@ -4,22 +4,20 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Middlewares;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+
+internal sealed class HttpContextCurrentUser : ICurrentUser
 {
-    internal sealed class HttpContextCurrentUser : ICurrentUser
+    private readonly IHttpContextAccessor _http;
+
+    public HttpContextCurrentUser(IHttpContextAccessor http)
     {
-        private readonly IHttpContextAccessor _http;
-
-        public HttpContextCurrentUser(IHttpContextAccessor http)
-        {
-            _http = http;
-        }
-
-        public bool IsAuthenticated => Snapshot?.IsAuthenticated == true;
-
-        public UserKey UserKey => Snapshot?.UserId ?? throw new InvalidOperationException("Current user is not authenticated.");
-
-        private AuthUserSnapshot<UserKey>? Snapshot => _http.HttpContext?.Items[UserMiddleware.UserContextKey] as AuthUserSnapshot<UserKey>;
+        _http = http;
     }
 
+    public bool IsAuthenticated => Snapshot?.IsAuthenticated == true;
+
+    public UserKey UserKey => Snapshot?.UserId ?? throw new InvalidOperationException("Current user is not authenticated.");
+
+    private AuthUserSnapshot<UserKey>? Snapshot => _http.HttpContext?.Items[UserMiddleware.UserContextKey] as AuthUserSnapshot<UserKey>;
 }

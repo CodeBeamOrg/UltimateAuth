@@ -5,27 +5,21 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Server.Extensions
+namespace CodeBeam.UltimateAuth.Server.Extensions;
+
+public static class EndpointRouteBuilderExtensions
 {
-    public static class EndpointRouteBuilderExtensions
+    public static IEndpointRouteBuilder MapUAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        public static IEndpointRouteBuilder MapUAuthEndpoints(this IEndpointRouteBuilder endpoints)
-        {
-            using var scope = endpoints.ServiceProvider.CreateScope();
+        using var scope = endpoints.ServiceProvider.CreateScope();
+        var registrar = scope.ServiceProvider.GetRequiredService<IAuthEndpointRegistrar>();
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
 
-            var registrar = scope.ServiceProvider
-                .GetRequiredService<IAuthEndpointRegistrar>();
+        // Root group ("/")
+        var rootGroup = endpoints.MapGroup("");
 
-            var options = scope.ServiceProvider
-                .GetRequiredService<IOptions<UAuthServerOptions>>()
-                .Value;
+        registrar.MapEndpoints(rootGroup, options);
 
-            // Root group ("/")
-            var rootGroup = endpoints.MapGroup("");
-
-            registrar.MapEndpoints(rootGroup, options);
-
-            return endpoints;
-        }
+        return endpoints;
     }
 }

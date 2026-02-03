@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Options;
 
-namespace CodeBeam.UltimateAuth.Server.Auth
+namespace CodeBeam.UltimateAuth.Server.Auth;
+
+public sealed record AuthExecutionContext
 {
-    public sealed record AuthExecutionContext
-    {
-        public required UAuthClientProfile? EffectiveClientProfile { get; init; }
-    }
+    public required UAuthClientProfile? EffectiveClientProfile { get; init; }
 }

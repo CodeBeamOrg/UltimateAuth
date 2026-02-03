@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Tokens.InMemory;
 
 public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
-    private static string NormalizeTenant(string? tenantId) => tenantId ?? "__default__";
+    private static string NormalizeTenant(string? tenantId) => tenantId ?? "__single__";
 
     private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken> _tokens = new();
 
