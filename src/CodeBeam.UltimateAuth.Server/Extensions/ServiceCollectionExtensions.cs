@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
@@ -19,6 +20,7 @@ using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.Extensions.Configuration;
@@ -67,6 +69,8 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
     {
+        services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
         services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();

@@ -33,7 +33,12 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddUltimateAuth(this IServiceCollection services, IConfiguration configurationSection)
     {
-        services.Configure<UAuthOptions>(configurationSection);
+        services.AddOptions<UAuthOptions>()
+        .Configure<DirectCoreConfigurationMarker>((options, marker) =>
+        {
+            marker.MarkConfigured();
+            configurationSection.Bind(options);
+        });
         return services.AddUltimateAuthInternal();
     }
 
@@ -45,6 +50,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUltimateAuth(this IServiceCollection services, Action<UAuthOptions> configure)
     {
         services.Configure(configure);
+        services.AddOptions<UAuthOptions>()
+        .Configure<DirectCoreConfigurationMarker>((options, marker) =>
+        {
+            marker.MarkConfigured();
+            configure(options);
+        });
         return services.AddUltimateAuthInternal();
     }
 
@@ -74,6 +85,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddUltimateAuthInternal(this IServiceCollection services)
     {
+        services.TryAddSingleton<DirectCoreConfigurationMarker>();
+        services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigureGuard>();
+
+
         services.AddSingleton<IValidateOptions<UAuthOptions>, UAuthOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthSessionOptions>, UAuthSessionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthTokenOptions>, UAuthTokenOptionsValidator>();
@@ -86,6 +101,32 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
         services.TryAddSingleton<IUAuthProductInfoProvider, UAuthProductInfoProvider>();
         services.TryAddSingleton<SeedRunner>();
+
+        //services.PostConfigure<UAuthOptions>(options =>
+        //{
+        //    var hasRuntimeMarker = services.Any(sd => sd.ServiceType == typeof(IUAuthRuntimeMarker));
+
+        //    if (hasRuntimeMarker && options.AllowDirectCoreConfiguration)
+        //    {
+        //        throw new InvalidOperationException(
+        //            "Direct core configuration is not allowed in server-hosted applications. " +
+        //            "Configure authentication policies via AddUltimateAuthServer instead.");
+        //    }
+        //});
+
+        //services.PostConfigure<UAuthOptions, DirectCoreConfigurationMarker>(
+        //(options, marker) =>
+        //{
+        //    if (!options.AllowDirectCoreConfiguration && marker.IsConfigured)
+        //    {
+        //        throw new InvalidOperationException(
+        //            "Direct core configuration is not allowed. " +
+        //            "Set AllowDirectCoreConfiguration = true only for advanced, non-server scenarios, " +
+        //            "or configure authentication policies via AddUltimateAuthServer.");
+        //    }
+        //});
+
+
 
         return services;
     }

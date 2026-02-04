@@ -13,6 +13,8 @@ namespace CodeBeam.UltimateAuth.Core.Options;
 /// </summary>
 public sealed class UAuthOptions
 {
+    public bool AllowDirectCoreConfiguration { get; set; } = false;
+
     /// <summary>
     /// Configuration settings for interactive login flows,
     /// including lockout thresholds and failed-attempt policies.

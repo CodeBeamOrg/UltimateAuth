@@ -54,7 +54,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddUltimateAuth();
 
-builder.Services.AddUltimateAuthServer(o => {
+builder.Services.AddUltimateAuthServer(o =>
+{
     o.Diagnostics.EnableRefreshHeaders = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
