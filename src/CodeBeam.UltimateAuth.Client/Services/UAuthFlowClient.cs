@@ -118,7 +118,7 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task BeginPkceAsync(string? returnUrl = null)
     {
-        var pkce = _options.Login.Pkce;
+        var pkce = _options.Pkce;
 
         if (!pkce.Enabled)
             throw new InvalidOperationException("PKCE login is disabled by configuration.");

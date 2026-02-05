@@ -107,5 +107,4 @@ public sealed class UAuthSessionOptions
         EnableIpBinding = EnableIpBinding,
         EnableUserAgentBinding = EnableUserAgentBinding
     };
-
 }

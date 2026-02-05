@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using System.Text;
 

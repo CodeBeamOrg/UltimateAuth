@@ -5,11 +5,11 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-internal sealed class UserRuntimeStore : IUserRuntimeStateProvider
+internal sealed class UserRuntimeStateProvider : IUserRuntimeStateProvider
 {
     private readonly IUserLifecycleStore _lifecycleStore;
 
-    public UserRuntimeStore(IUserLifecycleStore lifecycleStore)
+    public UserRuntimeStateProvider(IUserLifecycleStore lifecycleStore)
     {
         _lifecycleStore = lifecycleStore;
     }

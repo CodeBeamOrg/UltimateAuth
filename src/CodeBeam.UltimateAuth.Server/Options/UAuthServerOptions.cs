@@ -43,6 +43,8 @@ public sealed class UAuthServerOptions
     // (Server must NOT duplicate Core options)
     // -------------------------------------------------------
 
+    public UAuthLoginOptions Login { get; set; } = new();
+
     /// <summary>
     /// Session behavior (lifetime, sliding expiration, etc.)
     /// Fully defined in Core.
@@ -156,6 +158,7 @@ public sealed class UAuthServerOptions
             HubDeploymentMode = HubDeploymentMode,
             RoutePrefix = RoutePrefix,
 
+            Login = Login.Clone(),
             Session = Session.Clone(),
             Tokens = Tokens.Clone(),
             Pkce = Pkce.Clone(),

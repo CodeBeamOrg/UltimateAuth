@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

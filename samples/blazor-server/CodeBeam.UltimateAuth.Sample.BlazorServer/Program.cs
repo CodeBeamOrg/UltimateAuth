@@ -60,6 +60,7 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+    o.Login.MaxFailedAttempts = 2;
 })
     .AddUltimateAuthUsersInMemory()
     .AddUltimateAuthUsersReference()

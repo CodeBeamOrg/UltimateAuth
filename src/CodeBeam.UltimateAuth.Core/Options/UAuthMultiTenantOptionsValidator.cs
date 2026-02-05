@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Options;
 
@@ -17,9 +16,7 @@ internal sealed class UAuthMultiTenantOptionsValidator : IValidateOptions<UAuthM
             return ValidateOptionsResult.Success;
         }
 
-        if (!options.EnableRoute &&
-            !options.EnableHeader &&
-            !options.EnableDomain)
+        if (!options.EnableRoute && !options.EnableHeader && !options.EnableDomain)
         {
             return ValidateOptionsResult.Fail(
                 "Multi-tenancy is enabled but no tenant resolver is active " +

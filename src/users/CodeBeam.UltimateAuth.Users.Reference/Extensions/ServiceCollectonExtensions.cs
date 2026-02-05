@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
             // Marker only – runtime validation happens via DI resolution
         });
 
-        services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStore>();
+        services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
         services.TryAddScoped<IUserApplicationService, UserApplicationService>();
         services.TryAddScoped<IUserEndpointHandler, UserEndpointHandler>();
 

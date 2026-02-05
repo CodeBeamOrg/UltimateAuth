@@ -5,11 +5,9 @@ namespace CodeBeam.UltimateAuth.Core.Options;
 
 /// <summary>
 /// Top-level configuration container for all UltimateAuth features.
-/// Combines login policies, session lifecycle rules, token behavior,
-/// PKCE settings, multi-tenancy behavior, and user-id normalization.
+/// Combines login policies, session lifecycle rules, token behavior, PKCE settings, multi-tenancy behavior, and user-id normalization.
 /// 
-/// All sub-options are resolved from configuration (appsettings.json)
-/// or through inline setup in AddUltimateAuth().
+/// All sub-options are resolved from configuration (appsettings.json) or through inline setup in AddUltimateAuth().
 /// </summary>
 public sealed class UAuthOptions
 {

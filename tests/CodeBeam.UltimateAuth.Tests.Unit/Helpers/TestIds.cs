@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit;
+namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 internal static class TestIds
 {

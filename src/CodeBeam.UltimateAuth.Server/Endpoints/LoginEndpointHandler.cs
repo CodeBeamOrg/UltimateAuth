@@ -95,15 +95,12 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
     {
         var login = options.AuthResponse.Login;
 
-        var code =
-            login.FailureCodes != null &&
+        var code = login.FailureCodes != null &&
             login.FailureCodes.TryGetValue(reason, out var mapped)
                 ? mapped
                 : "failed";
 
-        var redirectUrl = _redirectResolver.ResolveRedirect(
-            ctx,
-            login.FailureRedirect,
+        var redirectUrl = _redirectResolver.ResolveRedirect(ctx, login.FailureRedirect,
             new Dictionary<string, string?>
             {
                 [login.FailureQueryKey] = code

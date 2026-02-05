@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Extensions;
 
-// TODO: Check it before stable release
 /// <summary>
 /// Provides extension methods for registering UltimateAuth core services into
 /// the application's dependency injection container.

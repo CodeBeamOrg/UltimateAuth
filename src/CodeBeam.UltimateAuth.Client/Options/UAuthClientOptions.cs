@@ -5,7 +5,12 @@ namespace CodeBeam.UltimateAuth.Client.Options;
 public sealed class UAuthClientOptions
 {
     public AuthEndpointOptions Endpoints { get; set; } = new();
-    public LoginOptions Login { get; set; } = new();
+    public LoginFlowOptions Login { get; set; } = new();
+
+    /// <summary>
+    /// Options related to PKCE-based login flows.
+    /// </summary>
+    public PkceLoginOptions Pkce { get; set; } = new();
     public UAuthClientRefreshOptions Refresh { get; set; } = new();
     public ReauthOptions Reauth { get; init; } = new();
 }
@@ -27,18 +32,13 @@ public sealed class AuthEndpointOptions
     public string HubLoginPath { get; set; } = "/uauthhub/login";
 }
 
-public sealed class LoginOptions
+public sealed class LoginFlowOptions
 {
     /// <summary>
     /// Default return URL after a successful login flow.
     /// If not set, current location will be used.
     /// </summary>
     public string? DefaultReturnUrl { get; set; }
-
-    /// <summary>
-    /// Options related to PKCE-based login flows.
-    /// </summary>
-    public PkceLoginOptions Pkce { get; set; } = new();
 
     /// <summary>
     /// Enables or disables direct credential-based login.

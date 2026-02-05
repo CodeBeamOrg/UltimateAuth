@@ -3,6 +3,9 @@
 public interface IUserSecurityState
 {
     long SecurityVersion { get; }
-    bool IsLocked { get; }
+    int FailedLoginAttempts { get; }
+    DateTimeOffset? LockedUntil { get; }
     bool RequiresReauthentication { get; }
+
+    bool IsLocked => LockedUntil.HasValue && LockedUntil > DateTimeOffset.UtcNow;
 }

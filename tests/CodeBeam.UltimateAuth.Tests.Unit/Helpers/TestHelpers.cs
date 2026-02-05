@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit;
+namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 internal static class TestHelpers
 {
