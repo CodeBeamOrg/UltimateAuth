@@ -21,5 +21,4 @@ public sealed class UAuthPkceOptions
         AuthorizationCodeLifetimeSeconds = AuthorizationCodeLifetimeSeconds,
         MaxVerificationAttempts = MaxVerificationAttempts,
     };
-
 }

@@ -87,7 +87,11 @@ public static class ServiceCollectionExtensions
         // -----------------------------
         // OPTIONS VALIDATION
         // -----------------------------
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>());
+        //services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>());
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerLoginOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
 
         // Tenant Resolution
         services.TryAddSingleton<ITenantIdResolver>(sp =>

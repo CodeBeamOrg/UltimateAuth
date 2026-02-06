@@ -4,14 +4,13 @@ namespace CodeBeam.UltimateAuth.Core.Options;
 
 // TODO: Add rotate on refresh (especially for Hybrid). Default behavior should be single session in chain for Hybrid, but can be configured.
 // And add RotateAsync method.
+// Implement all options.
 
 /// <summary>
-/// Defines configuration settings that control the lifecycle,
-/// security behavior, and device constraints of UltimateAuth
+/// Defines configuration settings that control the lifecycle, security behavior, and device constraints of UltimateAuth
 /// session management.
 /// 
-/// These values influence how sessions are created, refreshed,
-/// expired, revoked, and grouped into device chains.
+/// These values influence how sessions are created, refreshed, expired, revoked, and grouped into device chains.
 /// </summary>
 public sealed class UAuthSessionOptions
 {
@@ -50,45 +49,78 @@ public sealed class UAuthSessionOptions
     /// <summary>
     /// Maximum number of device session chains a single user may have.
     /// Set to zero to indicate no user-level chain limit.
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public int MaxChainsPerUser { get; set; } = 0;
 
     /// <summary>
     /// Maximum number of session rotations within a single chain.
     /// Used for cleanup, replay protection, and analytics.
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public int MaxSessionsPerChain { get; set; } = 100;
 
     /// <summary>
     /// Optional limit on the number of session chains allowed per platform
     /// (e.g. "web" = 1, "mobile" = 1).
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public Dictionary<string, int>? MaxChainsPerPlatform { get; set; }
 
     /// <summary>
     /// Defines platform categories that map multiple platforms
     /// into a single abstract group (e.g. mobile: [ "ios", "android", "tablet" ]).
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public Dictionary<string, string[]>? PlatformCategories { get; set; }
 
     /// <summary>
     /// Limits how many session chains can exist per platform category
     /// (e.g. mobile = 1, desktop = 2).
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public Dictionary<string, int>? MaxChainsPerCategory { get; set; }
 
     /// <summary>
     /// Enables binding sessions to the user's IP address.
     /// When enabled, IP mismatches can invalidate a session.
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public bool EnableIpBinding { get; set; } = false;
 
     /// <summary>
     /// Enables binding sessions to the user's User-Agent header.
     /// When enabled, UA mismatches can invalidate a session.
+    /// 
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
     /// </summary>
     public bool EnableUserAgentBinding { get; set; } = false;
 
+    /// <summary>
+    /// NOTE:
+    /// Enforcement is not active in v0.0.1.
+    /// This option is reserved for future security policies.
+    /// </summary>
     public DeviceMismatchBehavior DeviceMismatchBehavior { get; set; } = DeviceMismatchBehavior.Reject;
 
     internal UAuthSessionOptions Clone() => new()

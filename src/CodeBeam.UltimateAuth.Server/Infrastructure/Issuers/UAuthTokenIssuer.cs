@@ -19,16 +19,14 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
     private readonly IJwtTokenGenerator _jwtGenerator;
     private readonly ITokenHasher _tokenHasher;
     private readonly IRefreshTokenStore _refreshTokenStore;
-    private readonly IUserIdConverterResolver _converterResolver;
     private readonly IClock _clock;
 
-    public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore refreshTokenStore,IUserIdConverterResolver converterResolver, IClock clock)
+    public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore refreshTokenStore, IClock clock)
     {
         _opaqueGenerator = opaqueGenerator;
         _jwtGenerator = jwtGenerator;
         _tokenHasher = tokenHasher;
         _refreshTokenStore = refreshTokenStore;
-        _converterResolver = converterResolver;
         _clock = clock;
     }
 
@@ -118,7 +116,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             claims["sid"] = context.SessionId!;
 
         if (tokens.AddJwtIdClaim)
-            claims["jti"] = _opaqueGenerator.Generate(16);
+            claims["jti"] = _opaqueGenerator.GenerateJwtId();
 
         var descriptor = new UAuthJwtTokenDescriptor
         {

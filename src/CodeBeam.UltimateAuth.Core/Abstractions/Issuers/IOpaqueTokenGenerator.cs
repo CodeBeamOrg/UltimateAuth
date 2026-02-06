@@ -6,5 +6,6 @@
 /// </summary>
 public interface IOpaqueTokenGenerator
 {
-    string Generate(int byteLength = 32);
+    string Generate();
+    string GenerateJwtId();
 }
