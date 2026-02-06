@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
@@ -26,6 +27,7 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
     private readonly IUserIdConverterResolver _userIdConverterResolver;
     private readonly IUserSecurityStateWriter<TUserId> _securityWriter;
     private readonly IUserSecurityStateProvider<TUserId> _securityStateProvider; // runtime risk
+    private readonly UAuthEventDispatcher _events;
     private readonly UAuthServerOptions _options;
 
     public LoginOrchestrator(
@@ -39,6 +41,7 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         IUserIdConverterResolver userIdConverterResolver,
         IUserSecurityStateWriter<TUserId> securityWriter,
         IUserSecurityStateProvider<TUserId> securityStateProvider,
+        UAuthEventDispatcher events,
         IOptions<UAuthServerOptions> options)
     {
         _credentialStore = credentialStore;
@@ -51,6 +54,7 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         _userIdConverterResolver = userIdConverterResolver;
         _securityWriter = securityWriter;
         _securityStateProvider = securityStateProvider;
+        _events = events;
         _options = options.Value;
     }
 
@@ -201,6 +205,8 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
                 RefreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct)
             };
         }
+
+        await _events.DispatchAsync(new UserLoggedInContext(request.Tenant, validUserKey, now, request.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
 

@@ -41,7 +41,7 @@ public sealed class UAuthOptions
     /// Event hooks raised during authentication lifecycle events
     /// such as login, logout, session creation, refresh, or revocation.
     /// </summary>
-    public UAuthEvents UAuthEvents { get; set; } = new();
+    public UAuthEvents Events { get; set; } = new();
 
     /// <summary>
     /// Multi-tenancy configuration controlling how tenants are resolved,

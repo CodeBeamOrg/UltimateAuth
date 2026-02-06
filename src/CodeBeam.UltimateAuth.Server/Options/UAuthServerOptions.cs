@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -62,6 +63,8 @@ public sealed class UAuthServerOptions
     /// Fully defined in Core.
     /// </summary>
     public UAuthPkceOptions Pkce { get; set; } = new();
+
+    public UAuthEvents Events { get; set; } = new();
 
     /// <summary>
     /// Multi-tenancy behavior (resolver, normalization, etc.)
@@ -162,6 +165,7 @@ public sealed class UAuthServerOptions
             Session = Session.Clone(),
             Tokens = Tokens.Clone(),
             Pkce = Pkce.Clone(),
+            Events = Events.Clone(),
             MultiTenant = MultiTenant.Clone(),
             Cookie = Cookie.Clone(),
             Diagnostics = Diagnostics.Clone(),

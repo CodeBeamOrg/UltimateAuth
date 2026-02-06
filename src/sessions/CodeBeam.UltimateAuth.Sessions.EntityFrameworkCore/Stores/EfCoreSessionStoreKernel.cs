@@ -48,6 +48,38 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         });
     }
 
+    public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
+    {
+        var strategy = _db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            var connection = _db.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                await connection.OpenAsync(ct);
+
+            await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+            _db.Database.UseTransaction(tx);
+
+            try
+            {
+                var result = await action(ct);
+                await _db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return result;
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+            finally
+            {
+                _db.Database.UseTransaction(null);
+            }
+        });
+    }
+
     public async Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId)
     {
         var projection = await _db.Sessions
@@ -70,20 +102,21 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
             _db.Sessions.Add(projection);
     }
 
-    public async Task RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
+    public async Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
     {
-        var projection = await _db.Sessions
-            .SingleOrDefaultAsync(x => x.SessionId == sessionId);
+        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId);
 
         if (projection is null)
-            return;
+            return false;
 
         var session = projection.ToDomain();
         if (session.IsRevoked)
-            return;
+            return false;
 
         var revoked = session.Revoke(at);
         _db.Sessions.Update(revoked.ToProjection());
+
+        return true;
     }
 
     public async Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)

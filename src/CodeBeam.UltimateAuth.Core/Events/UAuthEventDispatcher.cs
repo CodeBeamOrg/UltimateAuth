@@ -16,27 +16,12 @@ internal sealed class UAuthEventDispatcher
 
         switch (context)
         {
-            case SessionCreatedContext<object> c:
-                if (_events.OnSessionCreated != null)
-                    await SafeInvoke(() => _events.OnSessionCreated(c));
-                break;
-
-            case SessionRefreshedContext<object> c:
-                if (_events.OnSessionRefreshed != null)
-                    await SafeInvoke(() => _events.OnSessionRefreshed(c));
-                break;
-
-            case SessionRevokedContext<object> c:
-                if (_events.OnSessionRevoked != null)
-                    await SafeInvoke(() => _events.OnSessionRevoked(c));
-                break;
-
-            case UserLoggedInContext<object> c:
+            case UserLoggedInContext c:
                 if (_events.OnUserLoggedIn != null)
                     await SafeInvoke(() => _events.OnUserLoggedIn(c));
                 break;
 
-            case UserLoggedOutContext<object> c:
+            case UserLoggedOutContext c:
                 if (_events.OnUserLoggedOut != null)
                     await SafeInvoke(() => _events.OnUserLoggedOut(c));
                 break;
@@ -48,5 +33,4 @@ internal sealed class UAuthEventDispatcher
         try { await func(); }
         catch { /* swallow → event hook must not break auth flow */ }
     }
-
 }

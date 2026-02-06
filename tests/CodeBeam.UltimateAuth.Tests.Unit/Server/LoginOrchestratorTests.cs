@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
@@ -333,5 +334,88 @@ public class LoginOrchestratorTests
 
         var state2 = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
         state2!.LockedUntil.Should().Be(lockedUntil);
+    }
+
+    [Fact]
+    public async Task Login_success_should_trigger_UserLoggedIn_event()
+    {
+        // arrange
+        UserLoggedInContext? captured = null;
+
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Events.OnUserLoggedIn = ctx =>
+            {
+                captured = ctx;
+                return Task.CompletedTask;
+            };
+        });
+
+        var orchestrator = runtime.GetLoginOrchestrator();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        // act
+        await orchestrator.LoginAsync(flow, new LoginRequest
+        {
+            Tenant = TenantKey.Single,
+            Identifier = "user",
+            Secret = "user",
+            Device = TestDevice.Default()
+        });
+
+        // assert
+        captured.Should().NotBeNull();
+        captured!.UserKey.Should().Be(UserKey.Parse("user", null));
+    }
+
+    [Fact]
+    public async Task Login_success_should_trigger_OnAnyEvent()
+    {
+        var count = 0;
+
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Events.OnAnyEvent = _ =>
+            {
+                count++;
+                return Task.CompletedTask;
+            };
+        });
+
+        var orchestrator = runtime.GetLoginOrchestrator();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        await orchestrator.LoginAsync(flow, new LoginRequest
+        {
+            Tenant = TenantKey.Single,
+            Identifier = "user",
+            Secret = "user",
+            Device = TestDevice.Default()
+        });
+
+        count.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task Event_handler_exception_should_not_break_login_flow()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Events.OnUserLoggedIn = _ =>
+                throw new Exception("boom");
+        });
+
+        var orchestrator = runtime.GetLoginOrchestrator();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var result = await orchestrator.LoginAsync(flow, new LoginRequest
+        {
+            Tenant = TenantKey.Single,
+            Identifier = "user",
+            Secret = "user",
+            Device = TestDevice.Default()
+        });
+
+        result.IsSuccess.Should().BeTrue();
     }
 }

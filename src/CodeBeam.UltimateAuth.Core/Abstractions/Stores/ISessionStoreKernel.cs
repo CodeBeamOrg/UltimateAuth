@@ -5,10 +5,11 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 public interface ISessionStoreKernel
 {
     Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default);
+    Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default);
 
     Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId);
     Task SaveSessionAsync(UAuthSession session);
-    Task RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at);
+    Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at);
 
     Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId);
     Task SaveChainAsync(UAuthSessionChain chain);

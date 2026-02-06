@@ -159,10 +159,10 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         return issued;
     }
 
-    public async Task RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task<bool> RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _kernelFactory.Create(tenant);
-        await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
+        return await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
     }
 
     public async Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)

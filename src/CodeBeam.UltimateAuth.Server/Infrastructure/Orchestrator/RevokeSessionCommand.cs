@@ -4,11 +4,10 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-internal sealed record RevokeSessionCommand(AuthSessionId SessionId) : ISessionCommand<Unit>
+internal sealed record RevokeSessionCommand(AuthSessionId SessionId) : ISessionCommand<bool>
 {
-    public async Task<Unit> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
+    public async Task<bool> ExecuteAsync(AuthContext context, ISessionIssuer issuer, CancellationToken ct)
     {
-        await issuer.RevokeSessionAsync(context.Tenant, SessionId, context.At, ct);
-        return Unit.Value;
+        return await issuer.RevokeSessionAsync(context.Tenant, SessionId, context.At, ct);
     }
 }

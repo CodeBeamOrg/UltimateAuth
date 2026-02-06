@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -92,6 +93,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerLoginOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
+
+        // EVENTS
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            return options.Events.Clone();
+        });
+
+        services.AddSingleton<UAuthEventDispatcher>();
 
         // Tenant Resolution
         services.TryAddSingleton<ITenantIdResolver>(sp =>
