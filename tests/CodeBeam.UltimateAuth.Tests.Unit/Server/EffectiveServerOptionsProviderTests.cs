@@ -19,19 +19,11 @@ public class EffectiveServerOptionsProviderTests
         };
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
-        var ctx = new DefaultHttpContext();
+        var ctx = TestHttpContext.Create();
+        var effective = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
+        effective.Options.Token.AccessTokenLifetime = TimeSpan.FromSeconds(10);
 
-        var effective = provider.GetEffective(
-            ctx,
-            AuthFlowType.Login,
-            UAuthClientProfile.BlazorServer);
-
-        effective.Options.Tokens.AccessTokenLifetime = TimeSpan.FromSeconds(10);
-
-        Assert.NotEqual(
-            baseOptions.Tokens.AccessTokenLifetime,
-            effective.Options.Tokens.AccessTokenLifetime
-        );
+        Assert.NotEqual(baseOptions.Token.AccessTokenLifetime, effective.Options.Token.AccessTokenLifetime);
     }
 
 
@@ -40,16 +32,12 @@ public class EffectiveServerOptionsProviderTests
     {
         var baseOptions = new UAuthServerOptions
         {
-            Mode = null // Not specified
+            Mode = null
         };
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
-        var ctx = new DefaultHttpContext();
-
-        var effective = provider.GetEffective(
-            ctx,
-            AuthFlowType.Login,
-            UAuthClientProfile.Api);
+        var ctx = TestHttpContext.Create();
+        var effective = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.Api);
 
         Assert.Equal(UAuthMode.PureJwt, effective.Mode);
     }
@@ -63,12 +51,8 @@ public class EffectiveServerOptionsProviderTests
         };
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
-        var ctx = new DefaultHttpContext();
-
-        var effective = provider.GetEffective(
-            ctx,
-            AuthFlowType.Login,
-            UAuthClientProfile.BlazorServer);
+        var ctx = TestHttpContext.Create();
+        var effective = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
 
         Assert.True(effective.Options.Session.SlidingExpiration);
         Assert.NotNull(effective.Options.Session.IdleTimeout);
@@ -84,21 +68,14 @@ public class EffectiveServerOptionsProviderTests
 
         baseOptions.ConfigureMode(UAuthMode.Hybrid, o =>
         {
-            o.Tokens.AccessTokenLifetime = TimeSpan.FromMinutes(1);
+            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(1);
         });
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
-        var ctx = new DefaultHttpContext();
+        var ctx = TestHttpContext.Create();
+        var effective = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
 
-        var effective = provider.GetEffective(
-            ctx,
-            AuthFlowType.Login,
-            UAuthClientProfile.BlazorServer);
-
-        Assert.Equal(
-            TimeSpan.FromMinutes(1),
-            effective.Options.Tokens.AccessTokenLifetime
-        );
+        Assert.Equal(TimeSpan.FromMinutes(1), effective.Options.Token.AccessTokenLifetime);
     }
 
     [Fact]
@@ -110,7 +87,7 @@ public class EffectiveServerOptionsProviderTests
         };
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
-        var ctx = new DefaultHttpContext();
+        var ctx = TestHttpContext.Create();
 
         var first = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
         var second = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);

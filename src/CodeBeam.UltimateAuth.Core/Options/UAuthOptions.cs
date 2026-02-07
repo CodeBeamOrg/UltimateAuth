@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Events;
+﻿using CodeBeam.UltimateAuth.Core.Events;
 
 namespace CodeBeam.UltimateAuth.Core.Options;
 
@@ -48,13 +47,4 @@ public sealed class UAuthOptions
     /// validated, and optionally enforced.
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
-
-    /// <summary>
-    /// Provides converters used to normalize and serialize TUserId
-    /// across the system (sessions, stores, tokens, logging).
-    /// </summary>
-    public IUserIdConverterResolver? UserIdConverters { get; set; }
-
-    public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
-    public bool AutoDetectClientProfile { get; set; } = true;
 }

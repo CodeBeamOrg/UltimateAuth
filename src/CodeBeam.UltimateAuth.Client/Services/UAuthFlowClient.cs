@@ -19,20 +19,17 @@ internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
     private readonly UAuthClientOptions _options;
-    private readonly UAuthOptions _coreOptions;
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
     public UAuthFlowClient(
         IUAuthRequestClient post,
         IOptions<UAuthClientOptions> options,
-        IOptions<UAuthOptions> coreOptions,
         UAuthClientDiagnostics diagnostics,
         NavigationManager nav)
     {
         _post = post;
         _options = options.Value;
-        _coreOptions = coreOptions.Value;
         _diagnostics = diagnostics;
         _nav = nav;
     }
@@ -188,7 +185,7 @@ internal class UAuthFlowClient : IFlowClient
             ["authorization_code"] = authorizationCode,
             ["code_verifier"] = codeVerifier,
             ["return_url"] = returnUrl,
-            ["client_profile"] = _coreOptions.ClientProfile.ToString()
+            ["client_profile"] = _options.ClientProfile.ToString()
         };
 
         return _post.NavigateAsync(hubLoginUrl, data);

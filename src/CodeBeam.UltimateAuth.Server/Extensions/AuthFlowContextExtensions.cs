@@ -18,21 +18,4 @@ public static class AuthFlowContextExtensions
             Session = flow.Session
         };
     }
-
-    public static AuthFlowContext WithClientProfile(this AuthFlowContext flow, UAuthClientProfile profile)
-    {
-        return new AuthFlowContext(
-            flow.FlowType,
-            profile,
-            flow.EffectiveMode,
-            flow.Device,
-            flow.Tenant,
-            flow.IsAuthenticated,
-            flow.UserKey,
-            flow.Session,
-            flow.OriginalOptions,
-            flow.EffectiveOptions,
-            flow.Response,
-            flow.PrimaryTokenKind);
-    }
 }

@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
@@ -10,12 +11,12 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 internal sealed class UAuthRequestClient : IUAuthRequestClient
 {
     private readonly IJSRuntime _js;
-    private UAuthOptions _coreOptions;
+    private UAuthClientOptions _options;
 
-    public UAuthRequestClient(IJSRuntime js, IOptions<UAuthOptions> coreOptions)
+    public UAuthRequestClient(IJSRuntime js, IOptions<UAuthClientOptions> options)
     {
         _js = js;
-        _coreOptions = coreOptions.Value;
+        _options = options.Value;
     }
 
     public Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
@@ -27,7 +28,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "navigate",
             data = form,
-            clientProfile = _coreOptions.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString()
         }).AsTask();
     }
 
@@ -41,7 +42,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             mode = "fetch",
             expectJson = false,
             data = form,
-            clientProfile = _coreOptions.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString()
         });
 
         return result;
@@ -59,7 +60,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 mode = "fetch",
                 expectJson = true,
                 data = postData,
-                clientProfile = _coreOptions.ClientProfile.ToString()
+                clientProfile = _options.ClientProfile.ToString()
             });
     }
 
@@ -71,7 +72,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         {
             url = endpoint,
             payload = payload,
-            clientProfile = _coreOptions.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString()
         });
     }
 

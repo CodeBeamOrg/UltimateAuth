@@ -65,8 +65,8 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
         return kind switch
         {
             CredentialKind.Session => ResolveSessionLifetime(context),
-            CredentialKind.RefreshToken => context.EffectiveOptions.Options.Tokens.RefreshTokenLifetime,
-            CredentialKind.AccessToken => context.EffectiveOptions.Options.Tokens.AccessTokenLifetime,
+            CredentialKind.RefreshToken => context.EffectiveOptions.Options.Token.RefreshTokenLifetime,
+            CredentialKind.AccessToken => context.EffectiveOptions.Options.Token.AccessTokenLifetime,
             _ => null
         };
     }
@@ -74,7 +74,7 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
     private static TimeSpan? ResolveSessionLifetime(AuthFlowContext context)
     {
         var sessionIdle = context.EffectiveOptions.Options.Session.IdleTimeout;
-        var refresh = context.EffectiveOptions.Options.Tokens.RefreshTokenLifetime;
+        var refresh = context.EffectiveOptions.Options.Token.RefreshTokenLifetime;
 
         return context.EffectiveMode switch
         {

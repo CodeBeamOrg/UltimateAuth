@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
         // services.AddSingleton<IValidateOptions<UAuthClientOptions>, ...>();
 
         services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
-        services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigure>();
+        services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
 
         //services.PostConfigure<UAuthOptions>(o =>
@@ -107,9 +107,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionCoordinator>(sp =>
         {
-            var core = sp.GetRequiredService<IOptions<UAuthOptions>>().Value;
+            var options = sp.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
 
-            return core.ClientProfile == UAuthClientProfile.BlazorServer
+            return options.ClientProfile == UAuthClientProfile.BlazorServer
                 ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
                 : sp.GetRequiredService<NoOpSessionCoordinator>();
         });

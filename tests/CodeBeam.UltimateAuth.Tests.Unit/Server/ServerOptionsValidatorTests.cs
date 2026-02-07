@@ -64,8 +64,8 @@ public class ServerOptionsValidatorTests
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
         {
-            o.Tokens.IssueOpaque = true;
-            o.Tokens.OpaqueIdBytes = 8;
+            o.Token.IssueOpaque = true;
+            o.Token.OpaqueIdBytes = 8;
         });
 
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
@@ -88,11 +88,11 @@ public class ServerOptionsValidatorTests
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
         {
-            o.Tokens.IssueJwt = true;
-            o.Tokens.IssueOpaque = true;
-            o.Tokens.AccessTokenLifetime = TimeSpan.FromMinutes(5);
-            o.Tokens.RefreshTokenLifetime = TimeSpan.FromDays(1);
-            o.Tokens.OpaqueIdBytes = 32;
+            o.Token.IssueJwt = true;
+            o.Token.IssueOpaque = true;
+            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(5);
+            o.Token.RefreshTokenLifetime = TimeSpan.FromDays(1);
+            o.Token.OpaqueIdBytes = 32;
         });
 
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();

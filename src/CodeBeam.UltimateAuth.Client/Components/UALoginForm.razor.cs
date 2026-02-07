@@ -115,7 +115,7 @@ public partial class UALoginForm
         await JS.InvokeVoidAsync("uauth.submitForm", _form);
     }
 
-    private string ClientProfileValue => CoreOptions.Value.ClientProfile.ToString();
+    private string ClientProfileValue => Options.Value.ClientProfile.ToString();
 
     private string EffectiveEndpoint => LoginType == UAuthLoginType.Pkce
         ? Options.Value.Endpoints.PkceComplete

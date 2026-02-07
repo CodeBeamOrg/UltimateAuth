@@ -7,7 +7,7 @@ internal sealed class UAuthServerTokenOptionsValidator : IValidateOptions<UAuthS
     public ValidateOptionsResult Validate(string? name, UAuthServerOptions options)
     {
         var errors = new List<string>();
-        var tokens = options.Tokens;
+        var tokens = options.Token;
 
         if (!tokens.IssueJwt && !tokens.IssueOpaque)
             errors.Add("Token: At least one of IssueJwt or IssueOpaque must be enabled.");

@@ -12,7 +12,7 @@ internal sealed class OpaqueTokenGenerator : IOpaqueTokenGenerator
 
     public OpaqueTokenGenerator(IOptions<UAuthServerOptions> options)
     {
-        _options = options.Value.Tokens;
+        _options = options.Value.Token;
     }
 
     public string Generate() => GenerateBytes(_options.OpaqueIdBytes);

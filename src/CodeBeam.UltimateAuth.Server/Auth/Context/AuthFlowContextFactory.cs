@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -97,4 +98,34 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         );
     }
 
+    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthClientProfile overriddenProfile, CancellationToken ct = default)
+    {
+        var flowType = existing.FlowType;
+        var tenant = existing.Tenant;
+
+        var originalOptions = existing.OriginalOptions;
+        var effectiveOptions = _serverOptionsProvider.GetEffective(tenant, flowType, overriddenProfile);
+
+        var effectiveMode = effectiveOptions.Mode;
+        var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, overriddenProfile, effectiveOptions);
+
+        var deviceContext = existing.Device;
+        var session = existing.Session;
+
+        return new AuthFlowContext(
+            flowType,
+            overriddenProfile,
+            effectiveMode,
+            deviceContext,
+            tenant,
+            existing.IsAuthenticated,
+            existing.UserKey,
+            session,
+            originalOptions,
+            effectiveOptions,
+            response,
+            primaryTokenKind
+        );
+    }
 }

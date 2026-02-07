@@ -21,6 +21,12 @@ internal sealed class UAuthOptionsValidator : IValidateOptions<UAuthOptions>
         if (options.Pkce is null)
             errors.Add("UltimateAuth.Pkce configuration section is missing.");
 
+        if (options.Events is null)
+            errors.Add("UltimateAuth.Events configuration section is missing.");
+
+        if (options.MultiTenant is null)
+            errors.Add("UltimateAuth.MultiTenant configuration section is missing.");
+
         if (errors.Count > 0)
             return ValidateOptionsResult.Fail(errors);
 

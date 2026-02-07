@@ -1,9 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Options;
 
 public sealed class UAuthClientOptions
 {
+    public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
+    public bool AutoDetectClientProfile { get; set; } = true;
+
     public AuthEndpointOptions Endpoints { get; set; } = new();
     public LoginFlowOptions Login { get; set; } = new();
 

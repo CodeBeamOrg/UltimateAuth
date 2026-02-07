@@ -56,7 +56,7 @@ public sealed class UAuthServerOptions
     /// Token issuing behavior (lifetimes, refresh policies).
     /// Fully defined in Core.
     /// </summary>
-    public UAuthTokenOptions Tokens { get; set; } = new();
+    public UAuthTokenOptions Token { get; set; } = new();
 
     /// <summary>
     /// PKCE configuration (required for WASM).
@@ -163,7 +163,7 @@ public sealed class UAuthServerOptions
 
             Login = Login.Clone(),
             Session = Session.Clone(),
-            Tokens = Tokens.Clone(),
+            Token = Token.Clone(),
             Pkce = Pkce.Clone(),
             Events = Events.Clone(),
             MultiTenant = MultiTenant.Clone(),

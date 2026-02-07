@@ -1,6 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -24,6 +26,12 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
 
     public EffectiveUAuthServerOptions GetEffective(HttpContext context, AuthFlowType flowType, UAuthClientProfile clientProfile)
     {
+        var tenant = context.GetTenant();
+        return GetEffective(tenant, flowType, clientProfile);
+    }
+
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, AuthFlowType flowType, UAuthClientProfile clientProfile)
+    {
         var original = _baseOptions.Value;
         var effectiveMode = _modeResolver.Resolve(original.Mode, clientProfile, flowType);
         var options = original.Clone();
@@ -42,5 +50,4 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
             Options = options
         };
     }
-
 }

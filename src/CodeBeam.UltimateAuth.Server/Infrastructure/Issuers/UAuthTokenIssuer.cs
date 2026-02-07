@@ -32,7 +32,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
     public Task<AccessToken> IssueAccessTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
     {
-        var tokens = flow.OriginalOptions.Tokens;
+        var tokens = flow.OriginalOptions.Token;
         var now = _clock.UtcNow;
         var expires = now.Add(tokens.AccessTokenLifetime);
 
@@ -46,8 +46,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             UAuthMode.PureJwt =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
-            _ => throw new InvalidOperationException(
-                $"Unsupported auth mode: {flow.EffectiveMode}")
+            _ => throw new InvalidOperationException($"Unsupported auth mode: {flow.EffectiveMode}")
         };
     }
 
@@ -56,7 +55,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         if (flow.EffectiveMode == UAuthMode.PureOpaque)
             return null;
 
-        var expires = _clock.UtcNow.Add(flow.OriginalOptions.Tokens.RefreshTokenLifetime);
+        var expires = _clock.UtcNow.Add(flow.OriginalOptions.Token.RefreshTokenLifetime);
 
         var raw = _opaqueGenerator.Generate();
         var hash = _tokenHasher.Hash(raw);
@@ -105,7 +104,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
     {
         var claims = new Dictionary<string, object>
         {
-            ["sub"] = context.UserKey,
+            ["sub"] = context.UserKey.Value,
             ["tenant"] = context.Tenant
         };
 

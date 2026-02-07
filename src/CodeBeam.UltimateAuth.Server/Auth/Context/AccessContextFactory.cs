@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections.ObjectModel;
 
@@ -8,10 +10,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 internal sealed class AccessContextFactory : IAccessContextFactory
 {
     private readonly IUserRoleStore _roleStore;
+    private readonly IUserIdConverterResolver _converterResolver;
 
-    public AccessContextFactory(IUserRoleStore roleStore)
+    public AccessContextFactory(IUserRoleStore roleStore, IUserIdConverterResolver converterResolver)
     {
         _roleStore = roleStore;
+        _converterResolver = converterResolver;
     }
 
     public async Task<AccessContext> CreateAsync(AuthFlowContext authFlow, string action, string resource, string? resourceId = null, IDictionary<string, object>? attributes = null, CancellationToken ct = default)
@@ -45,22 +49,31 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             attrs["roles"] = roles;
         }
 
-        return new AccessContext
+        UserKey? targetUserKey = null;
+
+        if (!string.IsNullOrWhiteSpace(resourceId))
         {
-            ActorUserKey = authFlow.UserKey,
-            ActorTenant = authFlow.Tenant,
-            IsAuthenticated = authFlow.IsAuthenticated,
-            IsSystemActor = authFlow.Tenant.IsSystem,
+            var converter = _converterResolver.GetConverter<UserKey>(null);
 
-            Resource = resource,
-            ResourceId = resourceId,
-            ResourceTenant = resourceTenant,
+            if (!converter.TryFromString(resourceId, out var parsed))
+                throw new InvalidOperationException("Invalid resource user id.");
 
-            Action = action,
-            Attributes = attrs.Count > 0
+            var canonical = converter.ToCanonicalString(parsed);
+            targetUserKey = UserKey.FromString(canonical);
+        }
+
+        return new AccessContext(
+            actorUserKey: authFlow.UserKey,
+            actorTenant: authFlow.Tenant,
+            isAuthenticated: authFlow.IsAuthenticated,
+            isSystemActor: authFlow.Tenant.IsSystem,
+            resource: resource,
+            targetUserKey: targetUserKey,
+            resourceTenant: resourceTenant,
+            action: action,
+            attributes: attrs.Count > 0
                 ? new ReadOnlyDictionary<string, object>(attrs)
                 : EmptyAttributes.Instance
-        };
+        );
     }
-
 }
