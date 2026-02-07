@@ -22,7 +22,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         string? returnUrl,
         HubFlowPayload payload,
         DateTimeOffset expiresAt)
-        : base(AuthArtifactType.HubFlow, expiresAt, maxAttempts: 1)
+        : base(AuthArtifactType.HubFlow, expiresAt)
     {
         HubSessionId = hubSessionId;
         FlowType = flowType;

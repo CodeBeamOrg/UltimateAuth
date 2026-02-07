@@ -8,23 +8,15 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
 {
     public PkceValidationResult Validate(PkceAuthorizationArtifact artifact, string codeVerifier, PkceContextSnapshot completionContext, DateTimeOffset now)
     {
-        // 1️⃣ Expiration
         if (artifact.IsExpired(now))
             return PkceValidationResult.Fail(PkceValidationFailureReason.ArtifactExpired);
 
-        // 2️⃣ Attempt limit
-        if (!artifact.CanAttempt())
-            return PkceValidationResult.Fail(PkceValidationFailureReason.MaxAttemptsExceeded);
-
-        // 3️⃣ Context consistency
         //if (!IsContextValid(artifact.Context, completionContext))
             //return PkceValidationResult.Fail(PkceValidationFailureReason.ContextMismatch);
 
-        // 4️⃣ Challenge method
         if (artifact.ChallengeMethod != PkceChallengeMethod.S256)
             return PkceValidationResult.Fail(PkceValidationFailureReason.UnsupportedChallengeMethod);
 
-        // 5️⃣ Verifier check
         if (!IsVerifierValid(codeVerifier, artifact.CodeChallenge))
             return PkceValidationResult.Fail(PkceValidationFailureReason.InvalidVerifier);
 

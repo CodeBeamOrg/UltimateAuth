@@ -1,6 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Core.Extensions;
+﻿using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -103,4 +104,123 @@ public class ServerOptionsValidatorTests
         options.Should().NotBeNull();
     }
 
+    [Fact]
+    public void Pkce_authorization_code_lifetime_must_be_positive()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pkce.AuthorizationCodeLifetimeSeconds = 0;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPkceOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<OptionsValidationException>(() =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        });
+
+        Assert.Contains("Pkce.AuthorizationCodeLifetimeSeconds must be > 0", ex.Message);
+    }
+
+    [Fact]
+    public void MultiTenant_enabled_without_resolver_should_fail()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.MultiTenant.Enabled = true;
+                o.MultiTenant.EnableRoute = false;
+                o.MultiTenant.EnableHeader = false;
+                o.MultiTenant.EnableDomain = false;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+
+        var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        };
+
+        act.Should().Throw<OptionsValidationException>().WithMessage("*no tenant resolver is active*");
+    }
+
+    [Fact]
+    public void MultiTenant_disabled_with_resolver_should_fail()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.MultiTenant.Enabled = false;
+                o.MultiTenant.EnableRoute = true; // no-meaning if multi-tenancy is disabled
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+
+        var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        };
+
+        act.Should().Throw<OptionsValidationException>().WithMessage("*Multi-tenancy is disabled*");
+    }
+
+    [Fact]
+    public void Header_enabled_without_header_name_should_fail()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.MultiTenant.Enabled = true;
+                o.MultiTenant.EnableHeader = true;
+                o.MultiTenant.HeaderName = "";
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+
+        var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        };
+
+        act.Should().Throw<OptionsValidationException>().WithMessage("*HeaderName must be specified*");
+    }
+
+    [Fact]
+    public void Valid_multi_tenant_route_only_should_pass()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.MultiTenant.Enabled = true;
+                o.MultiTenant.EnableRoute = true;
+                o.MultiTenant.EnableHeader = false;
+                o.MultiTenant.EnableDomain = false;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+
+        var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        options.MultiTenant.Enabled.Should().BeTrue();
+        options.MultiTenant.EnableRoute.Should().BeTrue();
+    }
 }

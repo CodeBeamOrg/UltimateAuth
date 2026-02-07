@@ -32,12 +32,12 @@ public sealed class TenantMiddleware
 
         if (!resolution.IsResolved)
         {
-            if (opts.RequireTenant)
-            {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("Tenant is required.");
-                return;
-            }
+            //if (opts.RequireTenant)
+            //{
+            //    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            //    await context.Response.WriteAsync("Tenant is required.");
+            //    return;
+            //}
 
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync("Tenant could not be resolved.");

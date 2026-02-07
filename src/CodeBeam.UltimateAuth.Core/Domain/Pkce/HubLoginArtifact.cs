@@ -8,9 +8,8 @@ public sealed class HubLoginArtifact : AuthArtifact
     public HubLoginArtifact(
         string authorizationCode,
         string codeVerifier,
-        DateTimeOffset expiresAt,
-        int maxAttempts = 3)
-        : base(AuthArtifactType.HubLogin, expiresAt, maxAttempts)
+        DateTimeOffset expiresAt)
+        : base(AuthArtifactType.HubLogin, expiresAt)
     {
         AuthorizationCode = authorizationCode;
         CodeVerifier = codeVerifier;
