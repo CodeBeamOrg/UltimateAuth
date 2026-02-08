@@ -1,9 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Cookies;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
@@ -51,10 +49,8 @@ public sealed class UAuthServerOptions
 
     /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
-    ///
     /// This is a safety guardrail, not a mode selection mechanism.
     /// The final mode is still resolved via IEffectiveAuthModeResolver.
-    ///
     /// If null or empty, all modes are allowed.
     /// </summary>
     public IReadOnlyCollection<UAuthMode>? AllowedModes { get; set; }
@@ -80,13 +76,6 @@ public sealed class UAuthServerOptions
 
     public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
 
-    internal Type? CustomCookieManagerType { get; private set; }
-
-    public void ReplaceSessionCookieManager<T>() where T : class, IUAuthCookieManager
-    {
-        CustomCookieManagerType = typeof(T);
-    }
-
     public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
     public AuthResponseOptions AuthResponse { get; init; } = new();
@@ -100,33 +89,22 @@ public sealed class UAuthServerOptions
     public UAuthSessionResolutionOptions SessionResolution { get; set; } = new();
 
     /// <summary>
-    /// Enables/disables specific endpoint groups.
-    /// Useful for API hardening.
+    /// Enables/disables specific endpoint groups. Useful for API hardening.
     /// </summary>
-    public bool? EnableLoginEndpoints { get; set; } = true;
-    public bool? EnablePkceEndpoints { get; set; } = true;
-    public bool? EnableTokenEndpoints { get; set; } = true;
-    public bool? EnableSessionEndpoints { get; set; } = true;
-    public bool? EnableUserInfoEndpoints { get; set; } = true;
-
-    public bool? EnableUserLifecycleEndpoints { get; set; } = true;
-    public bool? EnableUserProfileEndpoints { get; set; } = true;
-    public bool? EnableUserIdentifierEndpoints { get; set; } = true;
-    public bool? EnableCredentialsEndpoints { get; set; } = true;
-    public bool? EnableAuthorizationEndpoints { get; set; } = true;
+    public UAuthServerEndpointOptions Endpoints { get; set; } = new();
 
     public UserIdentifierOptions UserIdentifiers { get; set; } = new();
 
-    /// <summary>
-    /// If true, server will add anti-forgery headers
-    /// and require proper request metadata.
-    /// </summary>
-    public bool EnableAntiCsrfProtection { get; set; } = true;
+    ///// <summary>
+    ///// If true, server will add anti-forgery headers
+    ///// and require proper request metadata.
+    ///// </summary>
+    //public bool EnableAntiCsrfProtection { get; set; } = true;
 
-    /// <summary>
-    /// If true, login attempts are rate-limited to prevent brute force attacks.
-    /// </summary>
-    public bool EnableLoginRateLimiting { get; set; } = true;
+    ///// <summary>
+    ///// If true, login attempts are rate-limited to prevent brute force attacks.
+    ///// </summary>
+    //public bool EnableLoginRateLimiting { get; set; } = true;
 
 
     // -------------------------------------------------------
@@ -138,13 +116,6 @@ public sealed class UAuthServerOptions
     /// Example: adding new routes, overriding authorization, adding filters.
     /// </summary>
     public Action<WebApplication>? OnConfigureEndpoints { get; set; }
-
-    /// <summary>
-    /// Allows developers to add or replace server services before DI is built.
-    /// Example: overriding default ILoginService.
-    /// </summary>
-    public Action<IServiceCollection>? ConfigureServices { get; set; }
-
 
     internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
@@ -171,25 +142,14 @@ public sealed class UAuthServerOptions
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             UserIdentifiers = UserIdentifiers.Clone(),
+            Endpoints = Endpoints.Clone(),
 
-            EnableLoginEndpoints = EnableLoginEndpoints,
-            EnablePkceEndpoints = EnablePkceEndpoints,
-            EnableTokenEndpoints = EnableTokenEndpoints,
-            EnableSessionEndpoints = EnableSessionEndpoints,
-            EnableUserInfoEndpoints = EnableUserInfoEndpoints,
-            EnableUserLifecycleEndpoints = EnableUserLifecycleEndpoints,
-            EnableUserProfileEndpoints = EnableUserProfileEndpoints,
-            EnableCredentialsEndpoints = EnableCredentialsEndpoints,
-            EnableAuthorizationEndpoints = EnableAuthorizationEndpoints,
-
-            EnableAntiCsrfProtection = EnableAntiCsrfProtection,
-            EnableLoginRateLimiting = EnableLoginRateLimiting,
+            //EnableAntiCsrfProtection = EnableAntiCsrfProtection,
+            //EnableLoginRateLimiting = EnableLoginRateLimiting,
 
             ModeConfigurations = new Dictionary<UAuthMode, Action<UAuthServerOptions>>(ModeConfigurations),
 
             OnConfigureEndpoints = OnConfigureEndpoints,
-            ConfigureServices = ConfigureServices,
-            CustomCookieManagerType = CustomCookieManagerType
         };
     }
 }

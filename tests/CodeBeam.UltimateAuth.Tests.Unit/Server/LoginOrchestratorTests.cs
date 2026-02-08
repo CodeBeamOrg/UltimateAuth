@@ -401,8 +401,7 @@ public class LoginOrchestratorTests
     {
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
-            o.Events.OnUserLoggedIn = _ =>
-                throw new Exception("boom");
+            o.Events.OnUserLoggedIn = _ => throw new Exception("boom");
         });
 
         var orchestrator = runtime.GetLoginOrchestrator();

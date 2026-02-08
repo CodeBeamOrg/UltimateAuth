@@ -3,8 +3,10 @@ using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -14,6 +16,7 @@ public class ServerOptionsValidatorTests
     public void Server_session_options_with_negative_idle_timeout_should_fail()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
@@ -39,6 +42,7 @@ public class ServerOptionsValidatorTests
     public void Valid_server_session_options_should_pass()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
@@ -60,6 +64,7 @@ public class ServerOptionsValidatorTests
     public void Server_token_options_with_small_opaque_id_should_fail()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
@@ -84,6 +89,7 @@ public class ServerOptionsValidatorTests
     public void Valid_server_token_options_should_pass()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddUltimateAuth();
         services.AddUltimateAuthServer(o =>
@@ -108,6 +114,7 @@ public class ServerOptionsValidatorTests
     public void Pkce_authorization_code_lifetime_must_be_positive()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
@@ -130,6 +137,7 @@ public class ServerOptionsValidatorTests
     public void MultiTenant_enabled_without_resolver_should_fail()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
@@ -156,6 +164,7 @@ public class ServerOptionsValidatorTests
     public void MultiTenant_disabled_with_resolver_should_fail()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
@@ -180,6 +189,7 @@ public class ServerOptionsValidatorTests
     public void Header_enabled_without_header_name_should_fail()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
@@ -205,6 +215,7 @@ public class ServerOptionsValidatorTests
     public void Valid_multi_tenant_route_only_should_pass()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>

@@ -24,7 +24,8 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -34,38 +35,71 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
+    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
+    //{
+    //    services.AddUltimateAuth();
+    //    AddUsersInternal(services);
+    //    AddCredentialsInternal(services);
+    //    AddAuthorizationInternal(services);
+    //    AddUltimateAuthPolicies(services);
+    //    return services.AddUltimateAuthServerInternal();
+    //}
+
+    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
+    //{
+    //    services.AddUltimateAuth(configuration);
+    //    AddUsersInternal(services);
+    //    AddCredentialsInternal(services);
+    //    AddAuthorizationInternal(services);
+    //    AddUltimateAuthPolicies(services);
+    //    services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
+
+    //    return services.AddUltimateAuthServerInternal();
+    //}
+
+    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
+    //{
+    //    services.AddUltimateAuth();
+    //    AddUsersInternal(services);
+    //    AddCredentialsInternal(services);
+    //    AddAuthorizationInternal(services);
+    //    AddUltimateAuthPolicies(services);
+
+    //    if (configure != null)
+    //    {
+    //        services.Configure(configure);
+    //    }
+
+    //    services.AddUltimateAuthServerInternal();
+    //    var sp = services.BuildServiceProvider();
+    //    var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+    //    options.ConfigureServices?.Invoke(services);
+
+    //    return services;
+    //}
+
+    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
     {
         services.AddUltimateAuth();
+
         AddUsersInternal(services);
         AddCredentialsInternal(services);
         AddAuthorizationInternal(services);
         AddUltimateAuthPolicies(services);
-        return services.AddUltimateAuthServerInternal();
-    }
 
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddUltimateAuth(configuration);
-        AddUsersInternal(services);
-        AddCredentialsInternal(services);
-        AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
-        services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
+        // Program.cs customization
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
 
-        return services.AddUltimateAuthServerInternal();
-    }
+        // appsettings.json configuration (overrides Program.cs)
+        services.AddOptions<UAuthServerOptions>().BindConfiguration("UltimateAuth:Server");
 
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
-    {
-        services.AddUltimateAuth();
-        AddUsersInternal(services);
-        AddCredentialsInternal(services);
-        AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
-        services.Configure(configure);
+        services.AddUltimateAuthServerInternal();
+        services.AddSingleton<IStartupFilter, UAuthServerStartupFilter>();
 
-        return services.AddUltimateAuthServerInternal();
+        return services;
     }
 
     private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
@@ -83,7 +117,6 @@ public static class ServiceCollectionExtensions
 
             return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
         });
-
 
         // -----------------------------
         // OPTIONS VALIDATION
@@ -133,26 +166,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
         services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
 
-        // Public resolver
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
-        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
 
         services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
 
         services.TryAddSingleton<IClock, SystemClock>();
-
-        // TODO: Allow custom cookie manager via options
-        //services.AddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
-        //if (options.CustomCookieManagerType is not null)
-        //{
-        //    services.AddSingleton(typeof(IUAuthSessionCookieManager), options.CustomCookieManagerType);
-        //}
-        //else
-        //{
-        //    services.AddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
-        //}
 
         services.TryAddScoped<ISessionIssuer, UAuthSessionIssuer>();
         services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
@@ -175,6 +195,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
 
+        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
         services.TryAddScoped<IFlowCredentialResolver, FlowCredentialResolver>();
@@ -203,9 +224,9 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
         services.TryAddScoped<IEffectiveServerOptionsProvider,EffectiveServerOptionsProvider>();
 
-        services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
         services.TryAddSingleton<IUAuthBodyPolicyBuilder, UAuthBodyPolicyBuilder>();
+        services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
         services.TryAddScoped<IUAuthCookieManager, UAuthCookieManager>();
 
         services.TryAddScoped<IAuthFlow, AuthFlow>();
@@ -318,6 +339,19 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+}
+
+internal sealed class UAuthServerStartupFilter : IStartupFilter
+{
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+    {
+        return app =>
+        {
+            next(app);
+            var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            options.OnConfigureEndpoints?.Invoke((WebApplication)app);
+        };
+    }
 }
 
 internal sealed class NullTenantResolver : ITenantIdResolver

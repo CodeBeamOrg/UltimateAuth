@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
@@ -9,13 +11,12 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
-using CodeBeam.UltimateAuth.Users.Reference;
-using Microsoft.Extensions.DependencyInjection;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
-using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
+using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Users.Reference;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -46,6 +47,11 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         services.AddScoped<ILoginOrchestrator<TUserId>, LoginOrchestrator<TUserId>>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
+
+        services.AddSingleton<IConfiguration>(configuration);
+
 
         Services = services.BuildServiceProvider();
         Services.GetRequiredService<SeedRunner>().RunAsync(null).GetAwaiter().GetResult();

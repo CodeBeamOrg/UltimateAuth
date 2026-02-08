@@ -24,7 +24,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
         group.AddEndpointFilter<AuthFlowEndpointFilter>();
 
-        if (options.EnableLoginEndpoints != false)
+        if (options.Endpoints.Login != false)
         {
             group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                 => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
@@ -42,7 +42,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
         }
 
-        if (options.EnablePkceEndpoints != false)
+        if (options.Endpoints.Pkce != false)
         {
             var pkce = group.MapGroup("/pkce");
 
@@ -53,7 +53,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                     => await h.CompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
         }
 
-        if (options.EnableTokenEndpoints != false)
+        if (options.Endpoints.Token != false)
         {
             var token = group.MapGroup("");
 
@@ -70,7 +70,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeToken));
         }
 
-        if (options.EnableSessionEndpoints != false)
+        if (options.Endpoints.Session != false)
         {
             var session = group.MapGroup("/session");
 
@@ -103,7 +103,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         //        => await h.CheckPermissionAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.PermissionQuery));
         //}
 
-        if (options.EnableUserLifecycleEndpoints != false)
+        if (options.Endpoints.UserLifecycle != false)
         {
             users.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
@@ -119,7 +119,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.DeleteAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
         }
 
-        if (options.EnableUserProfileEndpoints != false)
+        if (options.Endpoints.UserProfile != false)
         {
             users.MapPost("/me/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
@@ -134,7 +134,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.UpdateUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
         }
 
-        if (options.EnableUserIdentifierEndpoints != false)
+        if (options.Endpoints.UserIdentifier != false)
         {
             users.MapPost("/me/identifiers/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
@@ -180,7 +180,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.DeleteUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
         }
 
-        if (options.EnableCredentialsEndpoints != false)
+        if (options.Endpoints.Credentials != false)
         {
             var credentials = group.MapGroup("/credentials");
             var adminCredentials = group.MapGroup("/admin/users/{userKey}/credentials");
@@ -226,7 +226,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.DeleteAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
         }
 
-        if (options.EnableAuthorizationEndpoints != false)
+        if (options.Endpoints.Authorization != false)
         {
             var authz = group.MapGroup("/authorization");
             var adminAuthz = group.MapGroup("/admin/authorization");
@@ -247,6 +247,5 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             adminAuthz.MapPost("/users/{userKey}/roles/delete", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.RemoveRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
         }
-
     }
 }

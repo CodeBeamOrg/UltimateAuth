@@ -17,5 +17,4 @@ public sealed class AuthResponseOptions
         Login = Login.Clone(),
         Logout = Logout.Clone()
     };
-
 }
