@@ -1,10 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -13,27 +13,21 @@ public class EffectiveServerOptionsProviderTests
     [Fact]
     public void Original_Options_Are_Not_Mutated()
     {
-        var baseOptions = new UAuthServerOptions
-        {
-            Mode = UAuthMode.Hybrid
-        };
+        var baseOptions = new UAuthServerOptions();
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
+
         var effective = provider.GetEffective(ctx, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
         effective.Options.Token.AccessTokenLifetime = TimeSpan.FromSeconds(10);
 
         Assert.NotEqual(baseOptions.Token.AccessTokenLifetime, effective.Options.Token.AccessTokenLifetime);
     }
 
-
     [Fact]
-    public void EffectiveMode_Comes_From_ModeResolver()
+    public void EffectiveMode_Is_Determined_By_ModeResolver()
     {
-        var baseOptions = new UAuthServerOptions
-        {
-            Mode = null
-        };
+        var baseOptions = new UAuthServerOptions();
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
@@ -43,12 +37,9 @@ public class EffectiveServerOptionsProviderTests
     }
 
     [Fact]
-    public void Mode_Defaults_Are_Applied()
+    public void Mode_Defaults_Are_Applied_Before_Overrides()
     {
-        var baseOptions = new UAuthServerOptions
-        {
-            Mode = UAuthMode.PureOpaque
-        };
+        var baseOptions = new UAuthServerOptions();
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
@@ -59,14 +50,11 @@ public class EffectiveServerOptionsProviderTests
     }
 
     [Fact]
-    public void ModeConfiguration_Overrides_Defaults()
+    public void ModeConfiguration_Overrides_Mode_Defaults()
     {
-        var baseOptions = new UAuthServerOptions
-        {
-            Mode = UAuthMode.Hybrid
-        };
+        var baseOptions = new UAuthServerOptions();
 
-        baseOptions.ConfigureMode(UAuthMode.Hybrid, o =>
+        baseOptions.ConfigureMode(UAuthMode.PureOpaque, o =>
         {
             o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(1);
         });
@@ -81,10 +69,7 @@ public class EffectiveServerOptionsProviderTests
     [Fact]
     public void Each_Call_Returns_New_EffectiveOptions_Instance()
     {
-        var baseOptions = new UAuthServerOptions
-        {
-            Mode = UAuthMode.Hybrid
-        };
+        var baseOptions = new UAuthServerOptions();
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();

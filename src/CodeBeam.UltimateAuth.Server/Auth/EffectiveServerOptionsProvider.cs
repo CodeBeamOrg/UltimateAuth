@@ -33,11 +33,10 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
     public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, AuthFlowType flowType, UAuthClientProfile clientProfile)
     {
         var original = _baseOptions.Value;
-        var effectiveMode = _modeResolver.Resolve(original.Mode, clientProfile, flowType);
+        var effectiveMode = _modeResolver.Resolve(clientProfile, flowType);
         var options = original.Clone();
-        options.Mode = effectiveMode;
 
-        ConfigureDefaults.ApplyModeDefaults(options);
+        ConfigureDefaults.ApplyModeDefaults(effectiveMode, options);
 
         if (original.ModeConfigurations.TryGetValue(effectiveMode, out var configure))
         {

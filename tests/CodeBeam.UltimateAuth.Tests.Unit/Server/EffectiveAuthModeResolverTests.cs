@@ -9,17 +9,6 @@ public class EffectiveAuthModeResolverTests
 {
     private readonly EffectiveAuthModeResolver _resolver = new();
 
-    [Fact]
-    public void ConfiguredMode_Wins_Over_ClientProfile()
-    {
-        var mode = _resolver.Resolve(
-            configuredMode: UAuthMode.PureJwt,
-            clientProfile: UAuthClientProfile.BlazorWasm,
-            flowType: AuthFlowType.Login);
-
-        Assert.Equal(UAuthMode.PureJwt, mode);
-    }
-
     [Theory]
     [InlineData(UAuthClientProfile.BlazorServer, UAuthMode.PureOpaque)]
     [InlineData(UAuthClientProfile.BlazorWasm, UAuthMode.Hybrid)]
@@ -27,12 +16,7 @@ public class EffectiveAuthModeResolverTests
     [InlineData(UAuthClientProfile.Api, UAuthMode.PureJwt)]
     public void Default_Mode_Is_Derived_From_ClientProfile(UAuthClientProfile profile, UAuthMode expected)
     {
-        var mode = _resolver.Resolve(
-            configuredMode: null,
-            clientProfile: profile,
-            flowType: AuthFlowType.Login);
-
+        var mode = _resolver.Resolve(clientProfile: profile, flowType: AuthFlowType.Login);
         Assert.Equal(expected, mode);
     }
-
 }

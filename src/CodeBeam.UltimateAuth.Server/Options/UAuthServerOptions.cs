@@ -15,29 +15,6 @@ namespace CodeBeam.UltimateAuth.Server.Options;
 /// </summary>
 public sealed class UAuthServerOptions
 {
-    /// <summary>
-    /// Defines how UltimateAuth executes authentication flows.
-    /// Default is Hybrid.
-    /// </summary>
-    public UAuthMode? Mode { get; set; }
-
-    /// <summary>
-    /// Defines how UAuthHub is deployed relative to the application.
-    /// Default is Integrated
-    /// Blazor server projects should choose embedded mode for maximum security.
-    /// </summary>
-    public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
-
-    // -------------------------------------------------------
-    // ROUTING
-    // -------------------------------------------------------
-
-    /// <summary>
-    /// Base API route. Default: "/auth"
-    /// Changing this prevents conflicts with other auth systems.
-    /// </summary>
-    public string RoutePrefix { get; set; } = "/auth";
-
 
     // -------------------------------------------------------
     // CORE OPTION COMPOSITION
@@ -47,30 +24,53 @@ public sealed class UAuthServerOptions
     public UAuthLoginOptions Login { get; set; } = new();
 
     /// <summary>
-    /// Session behavior (lifetime, sliding expiration, etc.)
-    /// Fully defined in Core.
+    /// Session behavior (lifetime, sliding expiration, etc.) Fully defined in Core.
     /// </summary>
     public UAuthSessionOptions Session { get; set; } = new();
 
     /// <summary>
-    /// Token issuing behavior (lifetimes, refresh policies).
-    /// Fully defined in Core.
+    /// Token issuing behavior (lifetimes, refresh policies). Fully defined in Core.
     /// </summary>
     public UAuthTokenOptions Token { get; set; } = new();
 
     /// <summary>
-    /// PKCE configuration (required for WASM).
-    /// Fully defined in Core.
+    /// PKCE configuration (required for WASM). Fully defined in Core.
     /// </summary>
     public UAuthPkceOptions Pkce { get; set; } = new();
 
     public UAuthEvents Events { get; set; } = new();
 
     /// <summary>
-    /// Multi-tenancy behavior (resolver, normalization, etc.)
-    /// Fully defined in Core.
+    /// Multi-tenancy behavior (resolver, normalization, etc.) Fully defined in Core.
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+
+    // -------------------------------------------------------
+    // SERVER-ONLY BEHAVIOR
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Defines which authentication modes are allowed to be used by the server.
+    ///
+    /// This is a safety guardrail, not a mode selection mechanism.
+    /// The final mode is still resolved via IEffectiveAuthModeResolver.
+    ///
+    /// If null or empty, all modes are allowed.
+    /// </summary>
+    public IReadOnlyCollection<UAuthMode>? AllowedModes { get; set; }
+
+    /// <summary>
+    /// Defines how UAuthHub is deployed relative to the application.
+    /// Default is Integrated
+    /// Blazor server projects should choose embedded mode for maximum security.
+    /// </summary>
+    public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
+
+    /// <summary>
+    /// Base API route. Default: "/auth"
+    /// Changing this prevents conflicts with other auth systems.
+    /// </summary>
+    public string RoutePrefix { get; set; } = "/auth";
 
     /// <summary>
     /// Allows advanced users to override cookie behavior.
@@ -86,10 +86,6 @@ public sealed class UAuthServerOptions
     {
         CustomCookieManagerType = typeof(T);
     }
-
-    // -------------------------------------------------------
-    // SERVER-ONLY BEHAVIOR
-    // -------------------------------------------------------
 
     public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
@@ -157,7 +153,7 @@ public sealed class UAuthServerOptions
     {
         return new UAuthServerOptions
         {
-            Mode = Mode,
+            AllowedModes = AllowedModes,
             HubDeploymentMode = HubDeploymentMode,
             RoutePrefix = RoutePrefix,
 
@@ -189,7 +185,8 @@ public sealed class UAuthServerOptions
             EnableAntiCsrfProtection = EnableAntiCsrfProtection,
             EnableLoginRateLimiting = EnableLoginRateLimiting,
 
-            ModeConfigurations = ModeConfigurations,
+            ModeConfigurations = new Dictionary<UAuthMode, Action<UAuthServerOptions>>(ModeConfigurations),
+
             OnConfigureEndpoints = OnConfigureEndpoints,
             ConfigureServices = ConfigureServices,
             CustomCookieManagerType = CustomCookieManagerType

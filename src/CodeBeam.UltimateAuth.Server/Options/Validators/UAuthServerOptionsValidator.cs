@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using Microsoft.Extensions.Options;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
@@ -18,16 +17,34 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
             return ValidateOptionsResult.Fail("RoutePrefix cannot contain '//'.");
         }
 
-        if (options.Mode.HasValue && !Enum.IsDefined(typeof(UAuthMode), options.Mode))
+        var allowedModes = options.AllowedModes;
+
+        if (allowedModes is { Count: > 0 })
         {
-            return ValidateOptionsResult.Fail($"Invalid UAuthMode: {options.Mode}");
+            foreach (var mode in allowedModes)
+            {
+                if (!Enum.IsDefined(typeof(UAuthMode), mode))
+                {
+                    return ValidateOptionsResult.Fail($"Invalid UAuthMode value: {mode}");
+                }
+
+                // TODO: Delete here when SemiHybrid and PureJwt modes are implemented.
+                if (mode is UAuthMode.SemiHybrid or UAuthMode.PureJwt)
+                {
+                    return ValidateOptionsResult.Fail($"Auth mode '{mode}' is not implemented yet and cannot be enabled.");
+                }
+            }
         }
 
-        if (options.Mode != UAuthMode.PureJwt)
+        bool anySessionModeAllowed = allowedModes is null || allowedModes.Count == 0 ||
+            allowedModes.Contains(UAuthMode.Hybrid) || allowedModes.Contains(UAuthMode.PureOpaque) || allowedModes.Contains(UAuthMode.SemiHybrid);
+
+        if (anySessionModeAllowed)
         {
             if (options.Session.Lifetime <= TimeSpan.Zero)
             {
-                return ValidateOptionsResult.Fail("Session.Lifetime must be greater than zero.");
+                return ValidateOptionsResult.Fail(
+                    "Session.Lifetime must be greater than zero.");
             }
 
             if (options.Session.MaxLifetime is not null &&
@@ -37,6 +54,7 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
                     "Session.MaxLifetime must be greater than zero when specified.");
             }
         }
+
 
         // Only add cross-option validation beyond this point, individual options should validate in their own validators.
         if (options.Token!.AccessTokenLifetime > options.Session!.MaxLifetime)

@@ -32,5 +32,4 @@ public sealed class UAuthSessionResolutionOptions
         QueryParameterName = QueryParameterName,
         Order = new List<string>(Order)
     };
-
 }

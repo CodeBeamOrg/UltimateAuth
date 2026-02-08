@@ -15,6 +15,7 @@ public sealed class AuthenticatedSessionContext
     public DateTimeOffset Now { get; init; }
     public ClaimsSnapshot? Claims { get; init; }
     public required SessionMetadata Metadata { get; init; }
+    public required UAuthMode Mode { get; init; }
 
     /// <summary>
     /// Optional chain identifier.

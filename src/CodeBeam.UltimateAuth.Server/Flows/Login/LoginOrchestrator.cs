@@ -180,7 +180,8 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
             Device = request.Device,
             Claims = claims,
             ChainId = request.ChainId,
-            Metadata = SessionMetadata.Empty
+            Metadata = SessionMetadata.Empty,
+            Mode = flow.EffectiveMode
         };
 
         var authContext = flow.ToAuthContext(now);

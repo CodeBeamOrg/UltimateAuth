@@ -51,11 +51,16 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var originalOptions = _serverOptionsProvider.GetOriginal(ctx);
         var effectiveOptions = _serverOptionsProvider.GetEffective(ctx, flowType, clientProfile);
 
+        var allowedModes = originalOptions.AllowedModes;
+
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        {
+            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+        }
+
         var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
-
         var deviceInfo = _deviceResolver.Resolve(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
 
@@ -105,6 +110,13 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         var originalOptions = existing.OriginalOptions;
         var effectiveOptions = _serverOptionsProvider.GetEffective(tenant, flowType, overriddenProfile);
+
+        var allowedModes = originalOptions.AllowedModes;
+
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        {
+            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+        }
 
         var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
