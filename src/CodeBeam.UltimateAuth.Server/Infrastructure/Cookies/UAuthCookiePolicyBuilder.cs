@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Cookies;
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
 {

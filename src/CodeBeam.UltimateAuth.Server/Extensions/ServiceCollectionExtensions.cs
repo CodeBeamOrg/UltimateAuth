@@ -15,7 +15,6 @@ using CodeBeam.UltimateAuth.Policies.Registry;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -33,49 +32,6 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
-    //{
-    //    services.AddUltimateAuth();
-    //    AddUsersInternal(services);
-    //    AddCredentialsInternal(services);
-    //    AddAuthorizationInternal(services);
-    //    AddUltimateAuthPolicies(services);
-    //    return services.AddUltimateAuthServerInternal();
-    //}
-
-    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
-    //{
-    //    services.AddUltimateAuth(configuration);
-    //    AddUsersInternal(services);
-    //    AddCredentialsInternal(services);
-    //    AddAuthorizationInternal(services);
-    //    AddUltimateAuthPolicies(services);
-    //    services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
-
-    //    return services.AddUltimateAuthServerInternal();
-    //}
-
-    //public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
-    //{
-    //    services.AddUltimateAuth();
-    //    AddUsersInternal(services);
-    //    AddCredentialsInternal(services);
-    //    AddAuthorizationInternal(services);
-    //    AddUltimateAuthPolicies(services);
-
-    //    if (configure != null)
-    //    {
-    //        services.Configure(configure);
-    //    }
-
-    //    services.AddUltimateAuthServerInternal();
-    //    var sp = services.BuildServiceProvider();
-    //    var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
-    //    options.ConfigureServices?.Invoke(services);
-
-    //    return services;
-    //}
-
     public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace CodeBeam.UltimateAuth.Server.Cookies;
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IUAuthCookieManager
 {

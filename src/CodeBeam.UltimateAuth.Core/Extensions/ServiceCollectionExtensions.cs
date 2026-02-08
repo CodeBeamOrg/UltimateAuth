@@ -20,45 +20,31 @@ namespace CodeBeam.UltimateAuth.Core.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
-    /// Registers UltimateAuth services using configuration binding (e.g., appsettings.json).
-    /// The provided configuration section must contain valid UltimateAuthOptions and nested Session, Token, PKCE, and MultiTenant
-    /// configuration sections. Validation occurs at application startup via IValidateOptions.
-    /// </summary>
-    public static IServiceCollection AddUltimateAuth(this IServiceCollection services, IConfiguration configurationSection)
+    public static IServiceCollection AddUltimateAuth(this IServiceCollection services, Action<UAuthOptions>? configure = null)
     {
-        services.AddOptions<UAuthOptions>()
-            .Configure<DirectCoreConfigurationMarker>((options, marker) =>
-            {
-                marker.MarkConfigured();
-                configurationSection.Bind(options);
-            });
-        return services.AddUltimateAuthInternal();
-    }
+        ArgumentNullException.ThrowIfNull(services);
 
-    /// <summary>
-    /// Registers UltimateAuth services using programmatic configuration.
-    /// This is useful when settings are derived dynamically or are not stored in appsettings.json.
-    /// </summary>
-    public static IServiceCollection AddUltimateAuth(this IServiceCollection services, Action<UAuthOptions> configure)
-    {
-        services.Configure(configure);
-        services.AddOptions<UAuthOptions>()
-            .Configure<DirectCoreConfigurationMarker>((options, marker) =>
+        var optionsBuilder = services.AddOptions<UAuthOptions>();
+
+        if (configure is not null)
+        {
+            optionsBuilder.Configure<DirectCoreConfigurationMarker>((options, marker) =>
             {
                 marker.MarkConfigured();
                 configure(options);
             });
-        return services.AddUltimateAuthInternal();
-    }
+        }
 
-    /// <summary>
-    /// Registers UltimateAuth services using default empty configuration.
-    /// Intended for advanced or fully manual scenarios where options will be configured later or overridden by the server layer.
-    /// </summary>
-    public static IServiceCollection AddUltimateAuth(this IServiceCollection services)
-    {
-        services.Configure<UAuthOptions>(_ => { });
+        optionsBuilder.BindConfiguration("UltimateAuth:Core");
+
+        services.TryAddSingleton<IPostConfigureOptions<UAuthOptions>>(sp =>
+        {
+            var marker = sp.GetRequiredService<DirectCoreConfigurationMarker>();
+            var config = sp.GetService<IConfiguration>();
+
+            return new CoreConfigurationIntentDetector(marker, config);
+        });
+
         return services.AddUltimateAuthInternal();
     }
 

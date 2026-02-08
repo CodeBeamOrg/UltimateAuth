@@ -18,22 +18,20 @@ internal sealed class UAuthOptionsPostConfigureGuard : IPostConfigureOptions<UAu
     {
         var hasServerRuntime = _runtimeMarkers.Any();
 
-        if (hasServerRuntime && _directConfigMarker.IsConfigured)
-        {
-            throw new InvalidOperationException(
-                "Direct core configuration is not allowed in server-hosted applications. " +
-                "Configure authentication policies via AddUltimateAuthServer instead.");
-        }
-
-        if (!hasServerRuntime && !_directConfigMarker.IsConfigured && options.AllowDirectCoreConfiguration == false)
+        if (!_directConfigMarker.IsConfigured)
         {
             return;
         }
 
-        if (!hasServerRuntime && _directConfigMarker.IsConfigured && options.AllowDirectCoreConfiguration == false)
+        if (hasServerRuntime)
         {
-            throw new InvalidOperationException(
-                "Direct core configuration is not allowed. " +
+            throw new InvalidOperationException("Direct core configuration is not allowed in server-hosted applications. " +
+                "Configure authentication policies via AddUltimateAuthServer instead.");
+        }
+
+        if (!options.AllowDirectCoreConfiguration)
+        {
+            throw new InvalidOperationException("Direct core configuration is not allowed. " +
                 "Set AllowDirectCoreConfiguration = true only for advanced, non-server scenarios.");
         }
     }

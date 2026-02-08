@@ -1,6 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,6 +17,7 @@ public sealed class ConfigurationGuardsTests
         var provider = Build(services =>
         {
             services.AddUltimateAuth();
+            services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
         });
 
         var _ = provider.GetRequiredService<IOptions<UAuthOptions>>().Value;
@@ -106,26 +109,49 @@ public sealed class ConfigurationGuardsTests
     }
 
     [Fact]
-    public void Configuration_Binding_Is_Also_Blocked()
+    public void Core_configuration_is_blocked_when_server_is_present()
     {
         var dict = new Dictionary<string, string?>
         {
-            ["UltimateAuth:Session:IdleTimeout"] = "00:05:00"
+            ["UltimateAuth:Core:Session:IdleTimeout"] = "00:05:00"
         };
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(dict)
-            .Build();
+        var config = new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
 
-        Assert.Throws<InvalidOperationException>(() =>
+        var provider = Build(services =>
         {
-            var provider = Build(services =>
-            {
-                services.AddUltimateAuth(config);
-            });
-
-            var _ = provider.GetRequiredService<IOptions<UAuthOptions>>().Value;
+            services.AddSingleton<IConfiguration>(config);
+            services.AddUltimateAuth();
+            services.AddUltimateAuthServer();
         });
+
+        Action act = () =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthOptions>>().Value;
+        };
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Direct core configuration is not allowed*");
+    }
+
+    [Fact]
+    public void Core_configuration_is_allowed_when_server_is_not_present()
+    {
+        var dict = new Dictionary<string, string?>
+        {
+            ["UltimateAuth:Core:AllowDirectCoreConfiguration"] = "true",
+            ["UltimateAuth:Core:Session:IdleTimeout"] = "00:05:00"
+        };
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
+
+        var provider = Build(services =>
+        {
+            services.AddSingleton<IConfiguration>(config);
+            services.AddUltimateAuth();
+        });
+
+        var options = provider.GetRequiredService<IOptions<UAuthOptions>>().Value;
+        options.Session.IdleTimeout.Should().Be(TimeSpan.FromMinutes(5));
     }
 
     private sealed class FakeServerMarker : IUAuthRuntimeMarker { }
@@ -133,6 +159,7 @@ public sealed class ConfigurationGuardsTests
     private static IServiceProvider Build(Action<IServiceCollection> configure)
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
         configure(services);
         return services.BuildServiceProvider();
     }
