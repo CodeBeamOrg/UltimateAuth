@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class PrimaryCredentialPolicy
+public sealed class UAuthPrimaryCredentialPolicy
 {
     /// <summary>
     /// Default primary credential for UI-style requests.
@@ -14,7 +14,7 @@ public sealed class PrimaryCredentialPolicy
     /// </summary>
     public PrimaryCredentialKind Api { get; set; } = PrimaryCredentialKind.Stateless;
 
-    internal PrimaryCredentialPolicy Clone() => new()
+    internal UAuthPrimaryCredentialPolicy Clone() => new()
     {
         Ui = Ui,
         Api = Api

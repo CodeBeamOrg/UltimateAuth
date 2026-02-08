@@ -130,7 +130,7 @@ public partial class UALoginForm
                 ? EffectiveEndpoint
                 : Endpoint;
 
-            var baseUrl = UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, loginPath);
+            var baseUrl = UAuthUrlBuilder.Build(Options.Value.Endpoints.BasePath, loginPath, Options.Value.MultiTenant);
             var returnUrl = EffectiveReturnUrl;
 
             if (string.IsNullOrWhiteSpace(returnUrl))

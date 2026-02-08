@@ -47,9 +47,9 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         );
     }
 
-    private static AuthResponseOptions BindCookies(AuthResponseOptions response, UAuthServerOptions server)
+    private static UAuthResponseOptions BindCookies(UAuthResponseOptions response, UAuthServerOptions server)
     {
-        return new AuthResponseOptions
+        return new UAuthResponseOptions
         {
             SessionIdDelivery = Bind(response.SessionIdDelivery, server),
             AccessTokenDelivery = Bind(response.AccessTokenDelivery, server),
@@ -75,7 +75,7 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         return delivery.WithCookie(cookie);
     }
 
-    private static void Validate(AuthResponseOptions response)
+    private static void Validate(UAuthResponseOptions response)
     {
         ValidateDelivery(response.SessionIdDelivery);
         ValidateDelivery(response.AccessTokenDelivery);

@@ -15,7 +15,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddUltimateAuth();
 builder.Services.AddUltimateAuthClient(o =>
 {
-    o.Endpoints.Authority = "https://localhost:6110";
+    o.Endpoints.BasePath = "https://localhost:6110";
 });
 
 //builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();

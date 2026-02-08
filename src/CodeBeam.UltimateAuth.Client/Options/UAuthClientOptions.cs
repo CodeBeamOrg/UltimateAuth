@@ -8,7 +8,7 @@ public sealed class UAuthClientOptions
     public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
     public bool AutoDetectClientProfile { get; set; } = true;
 
-    public AuthEndpointOptions Endpoints { get; set; } = new();
+    public UAuthClientEndpointOptions Endpoints { get; set; } = new();
     public LoginFlowOptions Login { get; set; } = new();
 
     /// <summary>
@@ -17,14 +17,15 @@ public sealed class UAuthClientOptions
     public PkceLoginOptions Pkce { get; set; } = new();
     public UAuthClientRefreshOptions Refresh { get; set; } = new();
     public ReauthOptions Reauth { get; init; } = new();
+    public UAuthClientMultiTenantOptions MultiTenant { get; set; } = new();
 }
 
-public sealed class AuthEndpointOptions
+public sealed class UAuthClientEndpointOptions
 {
     /// <summary>
     /// Base URL of UAuthHub (e.g. https://localhost:6110)
     /// </summary>
-    public string Authority { get; set; } = "/auth";
+    public string BasePath { get; set; } = "/auth";
 
     public string Login { get; set; } = "/login";
     public string Logout { get; set; } = "/logout";

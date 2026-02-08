@@ -18,7 +18,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         _options = options.Value;
     }
 
-    private string Url(string path) => UAuthUrlBuilder.Combine(_options.Endpoints.Authority, path);
+    private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
     public async Task<UAuthResult<GetCredentialsResult>> GetMyAsync()
     {

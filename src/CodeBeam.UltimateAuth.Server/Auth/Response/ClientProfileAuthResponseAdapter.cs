@@ -8,9 +8,9 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class ClientProfileAuthResponseAdapter
 {
-    public AuthResponseOptions Adapt(AuthResponseOptions template, UAuthClientProfile clientProfile, UAuthMode effectiveMode, EffectiveUAuthServerOptions effectiveOptions)
+    public UAuthResponseOptions Adapt(UAuthResponseOptions template, UAuthClientProfile clientProfile, UAuthMode effectiveMode, EffectiveUAuthServerOptions effectiveOptions)
     {
-        return new AuthResponseOptions
+        return new UAuthResponseOptions
         {
             SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, CredentialKind.Session, clientProfile),
             AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, CredentialKind.AccessToken, clientProfile),

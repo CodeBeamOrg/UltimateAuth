@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class BearerSessionIdResolver : IInnerSessionIdResolver
 {
-    public string Key => "bearer";
+    public string Name => "bearer";
 
     public AuthSessionId? Resolve(HttpContext context)
     {

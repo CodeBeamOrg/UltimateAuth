@@ -12,10 +12,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints;
 // TODO: Add endpoint based guards
 public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 {
+
+    // NOTE:
+    // All endpoints intentionally use POST to avoid caching,
+    // CSRF ambiguity, and credential leakage via query strings.
     public void MapEndpoints(RouteGroupBuilder rootGroup, UAuthServerOptions options)
     {
         // Default base: /auth
-        string basePrefix = options.RoutePrefix.TrimStart('/');
+        string basePrefix = options.Endpoints.BasePath.TrimStart('/');
         bool useRouteTenant = options.MultiTenant.Enabled && options.MultiTenant.EnableRoute;
 
         RouteGroupBuilder group = useRouteTenant
@@ -87,7 +91,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.RevokeAllAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
         }
 
-        var user = group.MapGroup("");
+        //var user = group.MapGroup("");
         var users = group.MapGroup("/users");
         var adminUsers = group.MapGroup("/admin/users");
 
@@ -247,5 +251,11 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             adminAuthz.MapPost("/users/{userKey}/roles/delete", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.RemoveRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
         }
+
+        // IMPORTANT:
+        // Escape hatch is invoked AFTER all UltimateAuth endpoints are registered.
+        // Developers may add metadata, filters, authorization, rate limits, etc.
+        // Removing or remapping UltimateAuth endpoints is unsupported.
+        options.OnConfigureEndpoints?.Invoke(rootGroup);
     }
 }

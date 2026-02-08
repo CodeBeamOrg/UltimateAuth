@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class CookieSessionIdResolver : IInnerSessionIdResolver
 {
-    public string Key => "cookie";
+    public string Name => "cookie";
 
     private readonly UAuthServerOptions _options;
 

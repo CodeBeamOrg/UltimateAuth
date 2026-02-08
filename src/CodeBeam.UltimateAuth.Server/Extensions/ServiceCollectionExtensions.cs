@@ -24,8 +24,6 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -80,6 +78,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
 
         AddUsersInternal(services);
@@ -87,17 +86,20 @@ public static class ServiceCollectionExtensions
         AddAuthorizationInternal(services);
         AddUltimateAuthPolicies(services);
 
-        // Program.cs customization
-        if (configure is not null)
-        {
-            services.Configure(configure);
-        }
-
-        // appsettings.json configuration (overrides Program.cs)
-        services.AddOptions<UAuthServerOptions>().BindConfiguration("UltimateAuth:Server");
+        services.AddOptions<UAuthServerOptions>()
+            // Program.cs configuration (lowest precedence)
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            // appsettings.json (highest precedence)
+            .BindConfiguration("UltimateAuth:Server")
+            .PostConfigure(options =>
+            {
+                // Add any default values or adjustments here if needed
+            });
 
         services.AddUltimateAuthServerInternal();
-        services.AddSingleton<IStartupFilter, UAuthServerStartupFilter>();
 
         return services;
     }
@@ -110,11 +112,10 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
         services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
 
-        services.TryAddSingleton<ITokenHasher>(sp =>
+        services.TryAddScoped<ITokenHasher>(sp =>
         {
             var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
             var key = keyProvider.Resolve(null);
-
             return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
         });
 
@@ -127,6 +128,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
 
         // EVENTS
         services.AddSingleton(sp =>
@@ -287,8 +290,6 @@ public static class ServiceCollectionExtensions
             return new UAuthAccessAuthority(invariants, globalPolicies);
         });
 
-        services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
-
         return services;
     }
 
@@ -339,19 +340,6 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-}
-
-internal sealed class UAuthServerStartupFilter : IStartupFilter
-{
-    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
-    {
-        return app =>
-        {
-            next(app);
-            var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
-            options.OnConfigureEndpoints?.Invoke((WebApplication)app);
-        };
-    }
 }
 
 internal sealed class NullTenantResolver : ITenantIdResolver

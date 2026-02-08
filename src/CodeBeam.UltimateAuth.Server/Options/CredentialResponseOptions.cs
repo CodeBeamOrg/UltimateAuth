@@ -33,14 +33,18 @@ public sealed class CredentialResponseOptions
     };
 
     public CredentialResponseOptions WithCookie(UAuthCookieOptions cookie)
-    => new()
     {
-        Kind = Kind,
-        Mode = Mode,
-        Name = Name,
-        HeaderFormat = HeaderFormat,
-        TokenFormat = TokenFormat,
-        Cookie = cookie
-    };
+        if (Mode != TokenResponseMode.Cookie)
+            throw new InvalidOperationException("Cookie can only be set when Mode = Cookie.");
 
+        return new CredentialResponseOptions()
+        {
+            Kind = Kind,
+            Mode = Mode,
+            Name = Name,
+            HeaderFormat = HeaderFormat,
+            TokenFormat = TokenFormat,
+            Cookie = cookie
+        };
+    }
 }

@@ -3,8 +3,10 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -15,6 +17,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserProfileStore _profileStore;
     private readonly IUserIdentifierStore _identifierStore;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
+    private readonly UAuthUserIdentifierOptions _identifierOptions;
     private readonly IClock _clock;
 
     public UserApplicationService(
@@ -23,6 +26,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserProfileStore profileStore,
         IUserIdentifierStore identifierStore,
         IEnumerable<IUserLifecycleIntegration> integrations,
+        IOptions<UAuthServerOptions> options,
         IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
@@ -30,6 +34,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _profileStore = profileStore;
         _identifierStore = identifierStore;
         _integrations = integrations;
+        _identifierOptions = options.Value.UserIdentifiers;
         _clock = clock;
     }
 
@@ -213,6 +218,17 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             var userKey = context.GetTargetUserKey();
 
+            var existing = await _identifierStore.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
+            EnsureOverrideAllowed(context);
+            EnsureMultipleIdentifierAllowed(request.Type, existing);
+
+            if (request.IsPrimary)
+            {
+                // new identifiers are not verified by default, so we check against the requirement even if the request doesn't explicitly set it to true.
+                // This prevents adding a primary identifier that doesn't meet verification requirements.
+                EnsureVerificationRequirements(request.Type, isVerified: false );
+            }
+
             await _identifierStore.CreateAsync(context.ResourceTenant,
                 new UserIdentifier
                 {
@@ -236,6 +252,13 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (string.Equals(request.OldValue, request.NewValue, StringComparison.Ordinal))
                 throw new InvalidOperationException("identifier_value_unchanged");
 
+            EnsureOverrideAllowed(context);
+
+            if (request.Type == UserIdentifierType.Username && !_identifierOptions.AllowUsernameChange)
+            {
+                throw new InvalidOperationException("username_change_not_allowed");
+            }
+
             await _identifierStore.UpdateValueAsync(context.ResourceTenant, request.Type, request.OldValue, request.NewValue, _clock.UtcNow, innerCt);
         });
 
@@ -248,6 +271,15 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             var userKey = context.GetTargetUserKey();
 
+            var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
+            var target = identifiers.FirstOrDefault(i => i.Type == request.Type && string.Equals(i.Value, request.Value, StringComparison.OrdinalIgnoreCase) && !i.IsDeleted);
+
+            if (target is null)
+                throw new InvalidOperationException("identifier_not_found");
+
+            EnsureOverrideAllowed(context);
+            EnsureVerificationRequirements(target.Type, target.IsVerified);
+
             await _identifierStore.SetPrimaryAsync(context.ResourceTenant, userKey, request.Type, request.Value, innerCt);
         });
 
@@ -259,6 +291,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new UnsetPrimaryUserIdentifierCommand(async innerCt =>
         {
             var userKey = context.GetTargetUserKey();
+
+            EnsureOverrideAllowed(context);
 
             var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
             var target = identifiers.FirstOrDefault(i => i.Type == request.Type && string.Equals(i.Value, request.Value, StringComparison.OrdinalIgnoreCase) && !i.IsDeleted);
@@ -294,6 +328,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new DeleteUserIdentifierCommand(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
+
+            EnsureOverrideAllowed(context);
 
             var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenant, targetUserKey, innerCt);
             var target = identifiers.FirstOrDefault(i => i.Type == request.Type && string.Equals(i.Value, request.Value, StringComparison.OrdinalIgnoreCase) && !i.IsDeleted);
@@ -357,6 +393,45 @@ internal sealed class UserApplicationService : IUserApplicationService
             EmailVerified = primaryEmail?.IsVerified ?? false,
             PhoneVerified = primaryPhone?.IsVerified ?? false
         };
+    }
+
+    private void EnsureMultipleIdentifierAllowed(UserIdentifierType type, IReadOnlyList<UserIdentifier> existing)
+    {
+        bool hasSameType = existing.Any(i => !i.IsDeleted && i.Type == type);
+
+        if (!hasSameType)
+            return;
+
+        if (type == UserIdentifierType.Username && !_identifierOptions.AllowMultipleUsernames)
+            throw new InvalidOperationException("multiple_usernames_not_allowed");
+
+        if (type == UserIdentifierType.Email && !_identifierOptions.AllowMultipleEmail)
+            throw new InvalidOperationException("multiple_emails_not_allowed");
+
+        if (type == UserIdentifierType.Phone && !_identifierOptions.AllowMultiplePhone)
+            throw new InvalidOperationException("multiple_phones_not_allowed");
+    }
+
+    private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
+    {
+        if (type == UserIdentifierType.Email && _identifierOptions.RequireEmailVerification && !isVerified)
+        {
+            throw new InvalidOperationException("email_verification_required");
+        }
+
+        if (type == UserIdentifierType.Phone && _identifierOptions.RequirePhoneVerification && !isVerified)
+        {
+            throw new InvalidOperationException("phone_verification_required");
+        }
+    }
+
+    private void EnsureOverrideAllowed(AccessContext context)
+    {
+        if (context.IsSelfAction && !_identifierOptions.AllowUserOverride)
+            throw new InvalidOperationException("user_override_not_allowed");
+
+        if (!context.IsSelfAction && !_identifierOptions.AllowAdminOverride)
+            throw new InvalidOperationException("admin_override_not_allowed");
     }
 
     private static bool IsSelfTransitionAllowed(UserStatus from, UserStatus to)

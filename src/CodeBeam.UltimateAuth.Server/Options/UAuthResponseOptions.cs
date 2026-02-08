@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class AuthResponseOptions
+public sealed class UAuthResponseOptions
 {
     public CredentialResponseOptions SessionIdDelivery { get; set; } = new();
     public CredentialResponseOptions AccessTokenDelivery { get; set; } = new();
@@ -9,7 +9,7 @@ public sealed class AuthResponseOptions
     public LoginRedirectOptions Login { get; set; } = new();
     public LogoutRedirectOptions Logout { get; set; } = new();
 
-    internal AuthResponseOptions Clone() => new()
+    internal UAuthResponseOptions Clone() => new()
     {
         SessionIdDelivery = SessionIdDelivery.Clone(),
         AccessTokenDelivery = AccessTokenDelivery.Clone(),

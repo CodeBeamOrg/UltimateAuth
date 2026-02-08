@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class UAuthCookieSetOptions
+public sealed class UAuthCookiePolicyOptions
 {
     public UAuthCookieOptions Session { get; init; } = new()
     {
@@ -20,7 +20,7 @@ public sealed class UAuthCookieSetOptions
         HttpOnly = true,
     };
 
-    internal UAuthCookieSetOptions Clone() => new()
+    internal UAuthCookiePolicyOptions Clone() => new()
     {
         Session = Session.Clone(),
         RefreshToken = RefreshToken.Clone(),

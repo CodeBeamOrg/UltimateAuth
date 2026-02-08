@@ -7,7 +7,7 @@ public sealed class UAuthSessionResolutionOptions
     public bool EnableBearer { get; set; } = true;
     public bool EnableHeader { get; set; } = true;
     public bool EnableCookie { get; set; } = true;
-    public bool EnableQuery { get; set; } = false;
+    public bool EnableQuery { get; set; } = true;
 
     public string HeaderName { get; set; } = "X-UAuth-Session";
     public string QueryParameterName { get; set; } = "session_id";

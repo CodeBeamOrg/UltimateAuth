@@ -7,14 +7,14 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
 {
     public ValidateOptionsResult Validate(string? name, UAuthServerOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.RoutePrefix))
+        if (string.IsNullOrWhiteSpace(options.Endpoints.BasePath))
         {
-            return ValidateOptionsResult.Fail( "RoutePrefix must be specified.");
+            return ValidateOptionsResult.Fail( "BasePath must be specified.");
         }
 
-        if (options.RoutePrefix.Contains("//"))
+        if (options.Endpoints.BasePath.Contains("//"))
         {
-            return ValidateOptionsResult.Fail("RoutePrefix cannot contain '//'.");
+            return ValidateOptionsResult.Fail("BasePath cannot contain '//'.");
         }
 
         var allowedModes = options.AllowedModes;

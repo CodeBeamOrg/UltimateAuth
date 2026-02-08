@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthResponseOptionsModeTemplateResolver
 {
-    public AuthResponseOptions Resolve(UAuthMode mode, AuthFlowType flowType)
+    public UAuthResponseOptions Resolve(UAuthMode mode, AuthFlowType flowType)
     {
         return mode switch
         {
@@ -20,7 +20,7 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
         };
     }
 
-    private static AuthResponseOptions PureOpaque(AuthFlowType flow)
+    private static UAuthResponseOptions PureOpaque(AuthFlowType flow)
         => new()
         {
             SessionIdDelivery = new()
@@ -48,7 +48,7 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             Logout = { RedirectEnabled = true }
         };
 
-    private static AuthResponseOptions Hybrid(AuthFlowType flow)
+    private static UAuthResponseOptions Hybrid(AuthFlowType flow)
         => new()
         {
             SessionIdDelivery = new()
@@ -76,7 +76,7 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             Logout = { RedirectEnabled = true }
         };
 
-    private static AuthResponseOptions SemiHybrid(AuthFlowType flow)
+    private static UAuthResponseOptions SemiHybrid(AuthFlowType flow)
         => new()
         {
             SessionIdDelivery = new()
@@ -104,7 +104,7 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             Logout = { RedirectEnabled = true }
         };
 
-    private static AuthResponseOptions PureJwt(AuthFlowType flow)
+    private static UAuthResponseOptions PureJwt(AuthFlowType flow)
         => new()
         {
             SessionIdDelivery = new()

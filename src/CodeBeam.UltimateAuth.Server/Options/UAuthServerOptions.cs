@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
-using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
@@ -63,22 +63,16 @@ public sealed class UAuthServerOptions
     public UAuthHubDeploymentMode HubDeploymentMode { get; set; } = UAuthHubDeploymentMode.Integrated;
 
     /// <summary>
-    /// Base API route. Default: "/auth"
-    /// Changing this prevents conflicts with other auth systems.
-    /// </summary>
-    public string RoutePrefix { get; set; } = "/auth";
-
-    /// <summary>
     /// Allows advanced users to override cookie behavior.
     /// Unsafe combinations will be rejected at startup.
     /// </summary>
-    public UAuthCookieSetOptions Cookie { get; set; } = new();
+    public UAuthCookiePolicyOptions Cookie { get; set; } = new();
 
     public UAuthDiagnosticsOptions Diagnostics { get; set; } = new();
 
-    public PrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
+    public UAuthPrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
-    public AuthResponseOptions AuthResponse { get; init; } = new();
+    public UAuthResponseOptions AuthResponse { get; init; } = new();
 
     public UAuthHubServerOptions Hub { get; set; } = new();
 
@@ -93,7 +87,7 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthServerEndpointOptions Endpoints { get; set; } = new();
 
-    public UserIdentifierOptions UserIdentifiers { get; set; } = new();
+    public UAuthUserIdentifierOptions UserIdentifiers { get; set; } = new();
 
     ///// <summary>
     ///// If true, server will add anti-forgery headers
@@ -112,10 +106,11 @@ public sealed class UAuthServerOptions
     // -------------------------------------------------------
 
     /// <summary>
-    /// Allows developers to mutate endpoint routing AFTER UltimateAuth registers defaults.
-    /// Example: adding new routes, overriding authorization, adding filters.
+    /// Allows developers to mutate endpoint routing AFTER UltimateAuth registers defaults like
+    /// adding new routes, overriding authorization, adding filters.
+    /// This hook must not remove or re-map UltimateAuth endpoints. Misuse may break security guarantees.
     /// </summary>
-    public Action<WebApplication>? OnConfigureEndpoints { get; set; }
+    public Action<IEndpointRouteBuilder>? OnConfigureEndpoints { get; set; }
 
     internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
@@ -124,9 +119,8 @@ public sealed class UAuthServerOptions
     {
         return new UAuthServerOptions
         {
-            AllowedModes = AllowedModes,
+            AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
-            RoutePrefix = RoutePrefix,
 
             Login = Login.Clone(),
             Session = Session.Clone(),

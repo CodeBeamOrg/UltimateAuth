@@ -6,9 +6,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
+namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public class ServerOptionsValidatorTests
 {
@@ -233,5 +232,131 @@ public class ServerOptionsValidatorTests
         var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
         options.MultiTenant.Enabled.Should().BeTrue();
         options.MultiTenant.EnableRoute.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UserIdentifiers_both_admin_and_user_override_disabled_should_fail()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.UserIdentifiers.AllowAdminOverride = false;
+                o.UserIdentifiers.AllowUserOverride = false;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
+
+        var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+        {
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        };
+
+        act.Should().Throw<OptionsValidationException>().WithMessage("*AllowAdminOverride and AllowUserOverride*");
+    }
+
+    [Fact]
+    public void UserIdentifiers_at_least_one_override_enabled_should_pass()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.UserIdentifiers.AllowAdminOverride = true;
+                o.UserIdentifiers.AllowUserOverride = false;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        options.UserIdentifiers.AllowAdminOverride.Should().BeTrue();
+    }
+
+    [Fact]
+    public void No_session_resolver_enabled_should_fail()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.SessionResolution.EnableBearer = false;
+                o.SessionResolution.EnableHeader = false;
+                o.SessionResolution.EnableCookie = false;
+                o.SessionResolution.EnableQuery = false;
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+        Action act = () => _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        act.Should().Throw<OptionsValidationException>().WithMessage("*At least one session resolver must be enabled*");
+    }
+
+    [Fact]
+    public void Disabled_resolver_in_order_should_fail()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.SessionResolution.EnableBearer = true;
+                o.SessionResolution.EnableQuery = false;
+                o.SessionResolution.Order = new() { "Bearer", "Query" };
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+        Action act = () => _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        act.Should().Throw<OptionsValidationException>().WithMessage("*not enabled*");
+    }
+
+    [Fact]
+    public void Header_enabled_without_name_should_fail()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.SessionResolution.EnableHeader = true;
+                o.SessionResolution.HeaderName = "";
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+        Action act = () => _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        act.Should().Throw<OptionsValidationException>().WithMessage("*HeaderName*");
+    }
+
+    [Fact]
+    public void Valid_session_resolution_should_pass()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.SessionResolution.EnableBearer = true;
+                o.SessionResolution.EnableHeader = false;
+                o.SessionResolution.EnableCookie = false;
+                o.SessionResolution.EnableQuery = false;
+                o.SessionResolution.Order = new() { "Bearer" };
+            });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        options.SessionResolution.EnableBearer.Should().BeTrue();
     }
 }

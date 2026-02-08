@@ -2,6 +2,12 @@
 
 public sealed class UAuthServerEndpointOptions
 {
+    /// <summary>
+    /// Base API route. Default: "/auth"
+    /// Changing this prevents conflicts with other auth systems.
+    /// </summary>
+    public string BasePath { get; set; } = "/auth";
+
     public bool Login { get; set; } = true;
     public bool Pkce { get; set; } = true;
     public bool Token { get; set; } = true;

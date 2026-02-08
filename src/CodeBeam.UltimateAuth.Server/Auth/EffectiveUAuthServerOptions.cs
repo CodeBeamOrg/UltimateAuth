@@ -12,5 +12,5 @@ public sealed class EffectiveUAuthServerOptions
     /// </summary>
     public UAuthServerOptions Options { get; init; } = default!;
 
-    public AuthResponseOptions AuthResponse => Options.AuthResponse;
+    public UAuthResponseOptions AuthResponse => Options.AuthResponse;
 }

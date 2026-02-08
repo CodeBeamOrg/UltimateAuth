@@ -22,11 +22,7 @@ internal class UAuthFlowClient : IFlowClient
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(
-        IUAuthRequestClient post,
-        IOptions<UAuthClientOptions> options,
-        UAuthClientDiagnostics diagnostics,
-        NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
     {
         _post = post;
         _options = options.Value;
@@ -34,15 +30,17 @@ internal class UAuthFlowClient : IFlowClient
         _nav = nav;
     }
 
+    private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
+
     public async Task LoginAsync(LoginRequest request)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Login);
+        var url = Url(_options.Endpoints.Login);
         await _post.NavigateAsync(url, request.ToDictionary());
     }
 
     public async Task LogoutAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Logout);
+        var url = Url(_options.Endpoints.Logout);
         await _post.NavigateAsync(url);
     }
 
@@ -53,7 +51,7 @@ internal class UAuthFlowClient : IFlowClient
             _diagnostics.MarkManualRefresh();
         }
 
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Refresh);
+        var url = Url(_options.Endpoints.Refresh);
         var result = await _post.SendFormAsync(url);
         var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
         switch (refreshOutcome)
@@ -82,13 +80,13 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task ReauthAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Reauth);
+        var url = Url(_options.Endpoints.Reauth);
         await _post.NavigateAsync(_options.Endpoints.Reauth);
     }
 
     public async Task<AuthValidationResult> ValidateAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Validate);
+        var url = Url(_options.Endpoints.Validate);
         var raw = await _post.SendFormForJsonAsync(url);
 
         if (!raw.Ok || raw.Body is null)
@@ -123,7 +121,7 @@ internal class UAuthFlowClient : IFlowClient
         var verifier = CreateVerifier();
         var challenge = CreateChallenge(verifier);
 
-        var authorizeUrl = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.PkceAuthorize);
+        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
 
         var raw = await _post.SendFormForJsonAsync(
             authorizeUrl,
@@ -161,7 +159,7 @@ internal class UAuthFlowClient : IFlowClient
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.PkceComplete);
+        var url = Url(_options.Endpoints.PkceComplete);
 
         var payload = new Dictionary<string, string>
         {
@@ -178,7 +176,7 @@ internal class UAuthFlowClient : IFlowClient
 
     private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl)
     {
-        var hubLoginUrl = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.HubLoginPath);
+        var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
 
         var data = new Dictionary<string, string>
         {
