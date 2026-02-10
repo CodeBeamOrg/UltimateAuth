@@ -25,25 +25,13 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         // TODO: This is currently implicit
         Validate(bound);
 
+        var redirect = ResolveRedirect(flowType, bound);
+
         return new EffectiveAuthResponse(
             bound.SessionIdDelivery,
             bound.AccessTokenDelivery,
             bound.RefreshTokenDelivery,
-
-            new EffectiveLoginRedirectResponse(
-                bound.Login.RedirectEnabled,
-                bound.Login.SuccessRedirect,
-                bound.Login.FailureRedirect,
-                bound.Login.FailureQueryKey,
-                bound.Login.CodeQueryKey,
-                bound.Login.FailureCodes
-            ),
-
-            new EffectiveLogoutRedirectResponse(
-                bound.Logout.RedirectEnabled,
-                bound.Logout.RedirectUrl,
-                bound.Logout.AllowReturnUrlOverride
-            )
+            redirect        
         );
     }
 
@@ -90,4 +78,17 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         }
     }
 
+    private static EffectiveRedirectResponse ResolveRedirect(AuthFlowType flowType, UAuthResponseOptions bound)
+    {
+        return flowType switch
+        {
+            AuthFlowType.Login or AuthFlowType.Reauthentication
+                => EffectiveRedirectResponse.FromLogin(bound.Login),
+
+            AuthFlowType.Logout
+                => EffectiveRedirectResponse.FromLogout(bound.Logout),
+
+            _ => EffectiveRedirectResponse.Disabled
+        };
+    }
 }

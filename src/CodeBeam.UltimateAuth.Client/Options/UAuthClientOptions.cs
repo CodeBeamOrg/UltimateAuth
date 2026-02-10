@@ -8,47 +8,23 @@ public sealed class UAuthClientOptions
     public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
     public bool AutoDetectClientProfile { get; set; } = true;
 
+    /// <summary>
+    /// Global fallback return URL used by interactive authentication flows
+    /// when no flow-specific return URL is provided.
+    /// </summary>
+    public string? DefaultReturnUrl { get; set; }
+
+
     public UAuthClientEndpointOptions Endpoints { get; set; } = new();
-    public LoginFlowOptions Login { get; set; } = new();
+    public UAuthClientLoginFlowOptions Login { get; set; } = new();
 
     /// <summary>
     /// Options related to PKCE-based login flows.
     /// </summary>
-    public PkceLoginOptions Pkce { get; set; } = new();
+    public UAuthClientPkceLoginFlowOptions Pkce { get; set; } = new();
     public UAuthClientRefreshOptions Refresh { get; set; } = new();
     public ReauthOptions Reauth { get; init; } = new();
     public UAuthClientMultiTenantOptions MultiTenant { get; set; } = new();
-}
-
-public sealed class UAuthClientEndpointOptions
-{
-    /// <summary>
-    /// Base URL of UAuthHub (e.g. https://localhost:6110)
-    /// </summary>
-    public string BasePath { get; set; } = "/auth";
-
-    public string Login { get; set; } = "/login";
-    public string Logout { get; set; } = "/logout";
-    public string Refresh { get; set; } = "/refresh";
-    public string Reauth { get; set; } = "/reauth";
-    public string Validate { get; set; } = "/validate";
-    public string PkceAuthorize { get; set; } = "/pkce/authorize";
-    public string PkceComplete { get; set; } = "/pkce/complete";
-    public string HubLoginPath { get; set; } = "/uauthhub/login";
-}
-
-public sealed class LoginFlowOptions
-{
-    /// <summary>
-    /// Default return URL after a successful login flow.
-    /// If not set, current location will be used.
-    /// </summary>
-    public string? DefaultReturnUrl { get; set; }
-
-    /// <summary>
-    /// Enables or disables direct credential-based login.
-    /// </summary>
-    public bool AllowDirectLogin { get; set; } = true;
 }
 
 public sealed class UAuthClientRefreshOptions

@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
@@ -23,7 +22,7 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
     private readonly IClock _clock;
     private readonly UAuthServerOptions _options;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly AuthRedirectResolver _redirectResolver;
+    private readonly IAuthRedirectResolver _redirectResolver;
 
     public PkceEndpointHandler(
         IAuthFlowContextAccessor authContext,
@@ -33,7 +32,7 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
         IClock clock,
         IOptions<UAuthServerOptions> options,
         ICredentialResponseWriter credentialResponseWriter,
-        AuthRedirectResolver redirectResolver)
+        IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;
@@ -159,13 +158,11 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
             _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        if (authContext.Response.Login.RedirectEnabled)
-        {
-            var redirectUrl = request.ReturnUrl ?? _redirectResolver.ResolveRedirect(ctx, authContext.Response.Login.SuccessPath);
-            return Results.Redirect(redirectUrl);
-        }
+        var decision = _redirectResolver.ResolveSuccess(authContext, ctx);
 
-        return Results.Ok();
+        return decision.Enabled
+            ? Results.Redirect(decision.TargetUrl!)
+            : Results.Ok();
     }
 
     private static async Task<PkceAuthorizeRequest?> ReadPkceAuthorizeRequestAsync(HttpContext ctx)

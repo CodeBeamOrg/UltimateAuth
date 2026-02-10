@@ -15,9 +15,9 @@ public sealed class LogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
     private readonly IUAuthFlowService<TUserId> _flow;
     private readonly IClock _clock;
     private readonly IUAuthCookieManager _cookieManager;
-    private readonly AuthRedirectResolver _redirectResolver;
+    private readonly IAuthRedirectResolver _redirectResolver;
 
-    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, AuthRedirectResolver redirectResolver)
+    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;
@@ -28,13 +28,13 @@ public sealed class LogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
 
     public async Task<IResult> LogoutAsync(HttpContext ctx)
     {
-        var auth = _authContext.Current;
+        var authFlow = _authContext.Current;
 
-        if (auth.Session is SessionSecurityContext session)
+        if (authFlow.Session is SessionSecurityContext session)
         {
             var request = new LogoutRequest
             {
-                Tenant = auth.Tenant,
+                Tenant = authFlow.Tenant,
                 SessionId = session.SessionId,
                 At = _clock.UtcNow,
             };
@@ -42,20 +42,15 @@ public sealed class LogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
             await _flow.LogoutAsync(request, ctx.RequestAborted);
         }
 
-        DeleteIfCookie(ctx, auth.Response.SessionIdDelivery);
-        DeleteIfCookie(ctx, auth.Response.RefreshTokenDelivery);
-        DeleteIfCookie(ctx, auth.Response.AccessTokenDelivery);
+        DeleteIfCookie(ctx, authFlow.Response.SessionIdDelivery);
+        DeleteIfCookie(ctx, authFlow.Response.RefreshTokenDelivery);
+        DeleteIfCookie(ctx, authFlow.Response.AccessTokenDelivery);
 
-        if (auth.Response.Logout.RedirectEnabled)
-        {
-            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, auth.Response.Logout.RedirectPath);
-            return Results.Redirect(redirectUrl);
-        }
+        var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
 
-        return Results.Ok(new LogoutResponse
-        {
-            Success = true
-        });
+        return decision.Enabled
+            ? Results.Redirect(decision.TargetUrl!)
+            : Results.Ok(new LogoutResponse { Success = true });
     }
 
     private void DeleteIfCookie(HttpContext ctx, CredentialResponseOptions delivery)
@@ -68,5 +63,4 @@ public sealed class LogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
 
         _cookieManager.Delete(ctx, delivery.Cookie.Name);
     }
-
 }

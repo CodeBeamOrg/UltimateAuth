@@ -24,6 +24,7 @@ public sealed class AuthFlowContext
     public EffectiveUAuthServerOptions EffectiveOptions { get; }
 
     public EffectiveAuthResponse Response { get; }
+    public string? ReturnUrl { get; }
     public PrimaryTokenKind PrimaryTokenKind { get; }
 
     // Helpers
@@ -46,7 +47,8 @@ public sealed class AuthFlowContext
         UAuthServerOptions originalOptions,
         EffectiveUAuthServerOptions effectiveOptions,
         EffectiveAuthResponse response,
-        PrimaryTokenKind primaryTokenKind)
+        PrimaryTokenKind primaryTokenKind,
+        string? returnUrl)
     {
         if (tenantKey.IsUnresolved)
             throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
@@ -66,5 +68,7 @@ public sealed class AuthFlowContext
 
         Response = response;
         PrimaryTokenKind = primaryTokenKind;
+
+        ReturnUrl = returnUrl;
     }
 }

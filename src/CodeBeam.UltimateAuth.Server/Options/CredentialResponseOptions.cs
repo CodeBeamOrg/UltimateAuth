@@ -47,4 +47,11 @@ public sealed class CredentialResponseOptions
             Cookie = cookie
         };
     }
+
+    public static CredentialResponseOptions Disabled(CredentialKind kind)
+        => new()
+        {
+            Kind = kind,
+            Mode = TokenResponseMode.None
+        };
 }

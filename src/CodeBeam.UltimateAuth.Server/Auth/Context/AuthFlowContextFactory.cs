@@ -63,6 +63,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
         var deviceInfo = _deviceResolver.Resolve(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
+        var returnUrl = ctx.GetReturnUrl();
 
         SessionSecurityContext? sessionSecurityContext = null;
 
@@ -99,7 +100,8 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             originalOptions,
             effectiveOptions,
             response,
-            primaryTokenKind
+            primaryTokenKind,
+            returnUrl
         );
     }
 
@@ -121,6 +123,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, overriddenProfile, effectiveOptions);
+        var returnUrl = existing.ReturnUrl;
 
         var deviceContext = existing.Device;
         var session = existing.Session;
@@ -137,7 +140,8 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             originalOptions,
             effectiveOptions,
             response,
-            primaryTokenKind
+            primaryTokenKind,
+            returnUrl
         );
     }
 }

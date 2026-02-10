@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Client.Options;
 
-public sealed class PkceLoginOptions
+public sealed class UAuthClientPkceLoginFlowOptions
 {
     /// <summary>
     /// Enables PKCE login support.

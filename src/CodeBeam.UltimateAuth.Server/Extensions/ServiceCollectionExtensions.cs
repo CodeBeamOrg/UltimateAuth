@@ -154,6 +154,12 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
 
+        services.AddSingleton<IClientBaseAddressProvider, OriginHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, ConfiguredClientBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RequestHostBaseAddressProvider>();
+        services.AddSingleton<ClientBaseAddressResolver>();
+
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
@@ -165,7 +171,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
         services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
-        services.TryAddScoped<AuthRedirectResolver>();
+        services.TryAddSingleton<IAuthRedirectResolver, AuthRedirectResolver>();
 
         services.TryAddScoped<ISessionTouchService, SessionTouchService>();
         services.TryAddScoped<ISessionQueryService, UAuthSessionQueryService>();

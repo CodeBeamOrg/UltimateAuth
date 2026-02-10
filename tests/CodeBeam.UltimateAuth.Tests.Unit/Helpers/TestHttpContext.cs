@@ -15,6 +15,8 @@ internal static class TestHttpContext
         ctx.Items[TenantMiddleware.TenantContextKey] = UAuthTenantContext.Resolved(resolvedTenant);
         
         ctx.Request.Headers["User-Agent"] = "UltimateAuth-Test";
+        ctx.Request.Scheme = "https";
+        ctx.Request.Host = new HostString("app.example.com");
 
         return ctx;
     }

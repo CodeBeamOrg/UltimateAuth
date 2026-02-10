@@ -34,8 +34,42 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task LoginAsync(LoginRequest request)
     {
+        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+
+        if (!_options.Login.AllowCredentialPost && !canPost)
+        {
+            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
+                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
+                "If this is a trusted server-hosted client, you may explicitly enable " +
+                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
+        }
+
         var url = Url(_options.Endpoints.Login);
         await _post.NavigateAsync(url, request.ToDictionary());
+    }
+
+    public async Task LoginAsync(LoginRequest request, string? returnUrl)
+    {
+        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+
+        if (!_options.Login.AllowCredentialPost && !canPost)
+            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
+                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
+                "If this is a trusted server-hosted client, you may explicitly enable " +
+                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
+
+        var resolvedReturnUrl =
+            returnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl;
+
+        var payload = request.ToDictionary();
+
+        if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
+            payload["return_url"] = resolvedReturnUrl;
+
+        var url = Url(_options.Endpoints.Login);
+        await _post.NavigateAsync(url, payload);
     }
 
     public async Task LogoutAsync()
@@ -145,7 +179,8 @@ internal class UAuthFlowClient : IFlowClient
 
         var resolvedReturnUrl = returnUrl
             ?? pkce.ReturnUrl
-            ?? _options.Login.DefaultReturnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl
             ?? _nav.Uri;
 
         if (pkce.AutoRedirect)
@@ -158,6 +193,12 @@ internal class UAuthFlowClient : IFlowClient
     {
         if (request is null)
             throw new ArgumentNullException(nameof(request));
+
+        if (!_options.Pkce.Enabled)
+        {
+            throw new InvalidOperationException("PKCE login is disabled by configuration, but a PKCE completion was attempted. " +
+                "This usually indicates a misconfiguration or an unexpected redirect flow.");
+        }
 
         var url = Url(_options.Endpoints.PkceComplete);
 
