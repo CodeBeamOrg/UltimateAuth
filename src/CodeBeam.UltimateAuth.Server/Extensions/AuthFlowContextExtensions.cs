@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
@@ -10,6 +9,7 @@ public static class AuthFlowContextExtensions
     {
         return new AuthContext
         {
+            ClientProfile = flow.ClientProfile,
             Tenant = flow.Tenant,
             Operation = flow.FlowType.ToAuthOperation(),
             Mode = flow.EffectiveMode,

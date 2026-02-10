@@ -3,14 +3,13 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
-public sealed class DevicePresenceInvariant : IAuthorityInvariant
+public sealed class TenantResolvedInvariant : IAuthorityInvariant
 {
     public AccessDecisionResult Decide(AuthContext context)
     {
-        if (context.Operation is AuthOperation.Login or AuthOperation.Refresh)
+        if (context.Tenant.IsUnresolved)
         {
-            if (context.Device is null)
-                return AccessDecisionResult.Deny("Device information is required.");
+            return AccessDecisionResult.Deny("Tenant is not resolved.");
         }
 
         return AccessDecisionResult.Allow();
