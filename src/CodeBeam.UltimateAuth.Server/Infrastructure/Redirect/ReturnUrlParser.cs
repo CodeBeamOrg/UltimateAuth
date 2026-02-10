@@ -7,14 +7,22 @@ internal static class ReturnUrlParser
         if (string.IsNullOrWhiteSpace(returnUrl))
             return ReturnUrlInfo.None();
 
-        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs))
+        returnUrl = returnUrl.Trim();
+
+        if (returnUrl.StartsWith("/", StringComparison.Ordinal) ||
+            returnUrl.StartsWith("./", StringComparison.Ordinal) ||
+            returnUrl.StartsWith("../", StringComparison.Ordinal))
+        {
+            return ReturnUrlInfo.Relative(returnUrl);
+        }
+
+        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs) && (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+        {
             return ReturnUrlInfo.Absolute(abs);
+        }
 
         if (returnUrl.StartsWith("//", StringComparison.Ordinal))
             throw new InvalidOperationException("Invalid returnUrl.");
-
-        if (returnUrl.StartsWith("/", StringComparison.Ordinal))
-            return ReturnUrlInfo.Relative(returnUrl);
 
         throw new InvalidOperationException("Invalid returnUrl.");
     }
