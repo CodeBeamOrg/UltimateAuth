@@ -125,7 +125,6 @@ public class RedirectTests
         var ctx = TestHttpContext.Create(); // https://app.example.com
 
         var decision = resolver.ResolveSuccess(flow, ctx);
-
         decision.TargetUrl.Should().Be("https://app.example.com/dashboard");
     }
 

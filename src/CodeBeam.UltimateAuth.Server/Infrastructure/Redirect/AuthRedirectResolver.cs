@@ -29,7 +29,7 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
 
         if (redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
         {
-            if (info.IsAbsolute)
+            if (info.IsAbsolute && (info.AbsoluteUri!.Scheme == Uri.UriSchemeHttp || info.AbsoluteUri!.Scheme == Uri.UriSchemeHttps))
             {
                 var origin = info.AbsoluteUri!.GetLeftPart(UriPartial.Authority);
                 ValidateAllowed(origin, flow.OriginalOptions);
@@ -39,8 +39,7 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
             if (!string.IsNullOrWhiteSpace(info.RelativePath))
             {
                 var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
-                return RedirectDecision.To(
-                    UrlComposer.Combine(baseAddress, info.RelativePath));
+                return RedirectDecision.To(UrlComposer.Combine(baseAddress, info.RelativePath));
             }
         }
 
