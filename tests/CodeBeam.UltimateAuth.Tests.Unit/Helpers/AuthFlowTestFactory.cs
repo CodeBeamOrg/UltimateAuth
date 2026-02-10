@@ -4,13 +4,14 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 internal static class AuthFlowTestFactory
 {
-    public static AuthFlowContext LoginSuccess(string? returnUrl = null, EffectiveRedirectResponse? redirect = null)
+    public static AuthFlowContext LoginSuccess(ReturnUrlInfo? returnUrlInfo = null, EffectiveRedirectResponse? redirect = null)
     {
         return new AuthFlowContext(
             flowType: AuthFlowType.Login,
@@ -30,7 +31,7 @@ internal static class AuthFlowTestFactory
                 redirect: redirect ?? EffectiveRedirectResponse.Disabled
             ),
             primaryTokenKind: PrimaryTokenKind.Session,
-            returnUrl: returnUrl
+            returnUrlInfo: returnUrlInfo ?? ReturnUrlInfo.None()
         );
     }
 }

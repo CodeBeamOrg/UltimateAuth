@@ -44,8 +44,16 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.None
             },
-            Login = { RedirectEnabled = true },
-            Logout = { RedirectEnabled = true }
+
+            Login = new LoginRedirectOptions
+            {
+                RedirectEnabled = true
+            },
+
+            Logout = new LogoutRedirectOptions
+            {
+                RedirectEnabled = true
+            }
         };
 
     private static UAuthResponseOptions Hybrid(AuthFlowType flow)
@@ -72,8 +80,16 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Cookie
             },
-            Login = { RedirectEnabled = true },
-            Logout = { RedirectEnabled = true }
+
+            Login = new LoginRedirectOptions
+            {
+                RedirectEnabled = true
+            },
+
+            Logout = new LogoutRedirectOptions
+            {
+                RedirectEnabled = true
+            }
         };
 
     private static UAuthResponseOptions SemiHybrid(AuthFlowType flow)
@@ -100,8 +116,16 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Header
             },
-            Login = { RedirectEnabled = true },
-            Logout = { RedirectEnabled = true }
+
+            Login = new LoginRedirectOptions
+            {
+                RedirectEnabled = true
+            },
+
+            Logout = new LogoutRedirectOptions
+            {
+                RedirectEnabled = true
+            }
         };
 
     private static UAuthResponseOptions PureJwt(AuthFlowType flow)
@@ -128,7 +152,15 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Header
             },
-            Login = { RedirectEnabled = true },
-            Logout = { RedirectEnabled = true }
+
+            Login = new LoginRedirectOptions
+            {
+                RedirectEnabled = true
+            },
+
+            Logout = new LogoutRedirectOptions
+            {
+                RedirectEnabled = true
+            }
         };
 }

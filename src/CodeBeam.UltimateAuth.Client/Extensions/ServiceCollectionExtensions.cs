@@ -59,6 +59,8 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddUltimateAuthClientInternal(this IServiceCollection services)
     {
+        services.AddScoped<IUAuthClientProductInfoProvider, UAuthClientProductInfoProvider>();
+
         services.AddOptions<UAuthClientOptions>();
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();

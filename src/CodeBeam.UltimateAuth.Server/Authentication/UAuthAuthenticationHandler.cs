@@ -58,7 +58,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (!result.IsValid || result.UserKey is null)
             return AuthenticateResult.NoResult();
 
-        var principal = result.Claims.ToClaimsPrincipal(UAuthCookieDefaults.AuthenticationScheme);
+        var principal = result.Claims.ToClaimsPrincipal(result.UserKey, UAuthCookieDefaults.AuthenticationScheme);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthCookieDefaults.AuthenticationScheme));
     }
 }

@@ -12,7 +12,7 @@ internal sealed class ClientBaseAddressResolver
         _providers = providers.ToList();
     }
 
-    public string Resolve(HttpContext ctx, UAuthServerOptions options, string? returnUrl)
+    public string Resolve(HttpContext ctx, UAuthServerOptions options)
     {
         string? fallback = null;
 

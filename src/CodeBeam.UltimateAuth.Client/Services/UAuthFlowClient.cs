@@ -6,7 +6,6 @@ using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
-using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -32,7 +31,7 @@ internal class UAuthFlowClient : IFlowClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task LoginAsync(LoginRequest request)
+    public async Task LoginAsync(LoginRequest request, string? returnUrl = null)
     {
         var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
 
@@ -44,20 +43,6 @@ internal class UAuthFlowClient : IFlowClient
                 "Login.AllowCredentialPost, but doing so is insecure for public clients.");
         }
 
-        var url = Url(_options.Endpoints.Login);
-        await _post.NavigateAsync(url, request.ToDictionary());
-    }
-
-    public async Task LoginAsync(LoginRequest request, string? returnUrl)
-    {
-        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
-
-        if (!_options.Login.AllowCredentialPost && !canPost)
-            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
-                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
-                "If this is a trusted server-hosted client, you may explicitly enable " +
-                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
-
         var resolvedReturnUrl =
             returnUrl
             ?? _options.Login.ReturnUrl
@@ -66,7 +51,9 @@ internal class UAuthFlowClient : IFlowClient
         var payload = request.ToDictionary();
 
         if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
+        {
             payload["return_url"] = resolvedReturnUrl;
+        }
 
         var url = Url(_options.Endpoints.Login);
         await _post.NavigateAsync(url, payload);

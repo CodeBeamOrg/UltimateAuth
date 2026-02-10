@@ -19,6 +19,25 @@ public static class ClaimsSnapshotExtensions
         return new ClaimsPrincipal(identity);
     }
 
+    public static ClaimsPrincipal ToClaimsPrincipal(this ClaimsSnapshot snapshot, UserKey? userKey, string authenticationType)
+    {
+        if (snapshot == null)
+            return new ClaimsPrincipal(new ClaimsIdentity());
+
+        var claims = snapshot.Claims.SelectMany(kv => kv.Value.Select(v => new Claim(kv.Key, v))).ToList();
+
+        if (userKey is not null)
+        {
+            var value = userKey.Value.ToString();
+            claims.Add(new Claim(ClaimTypes.Name, value));
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, value));
+        }
+
+        var identity = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
+        return new ClaimsPrincipal(identity);
+    }
+
+
     /// <summary>
     /// Converts an ASP.NET Core ClaimsPrincipal into a ClaimsSnapshot.
     /// </summary>

@@ -14,7 +14,6 @@ public sealed class UAuthClientOptions
     /// </summary>
     public string? DefaultReturnUrl { get; set; }
 
-
     public UAuthClientEndpointOptions Endpoints { get; set; } = new();
     public UAuthClientLoginFlowOptions Login { get; set; } = new();
 

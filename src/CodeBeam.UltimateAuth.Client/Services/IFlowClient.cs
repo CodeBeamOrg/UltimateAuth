@@ -5,8 +5,7 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 
 public interface IFlowClient
 {
-    Task LoginAsync(LoginRequest request);
-    Task LoginAsync(LoginRequest request, string? returnUrl);
+    Task LoginAsync(LoginRequest request, string? returnUrl = null);
     Task LogoutAsync();
     Task<RefreshResult> RefreshAsync(bool isAuto = false);
     Task ReauthAsync();

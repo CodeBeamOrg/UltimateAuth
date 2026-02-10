@@ -4,6 +4,7 @@
 @using CodeBeam.UltimateAuth.Client.Authentication
 @using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Client.Runtime
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
 @using CodeBeam.UltimateAuth.Server.Abstractions
@@ -19,7 +20,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IUAuthClient UAuth
 @inject NavigationManager Nav
-@inject IUAuthProductInfoProvider ProductInfo
+@inject IUAuthClientProductInfoProvider ClientProductInfo
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UAuthClientDiagnostics Diagnostics
 @inject IDeviceIdProvider DeviceIdProvider
@@ -49,8 +50,8 @@
         </MudStack>
 
         <MudStack Spacing="0">
-            <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
-            <MudText>Client Profile: @ProductInfo.Get().ClientProfile.ToString()</MudText>
+            <MudText><b>@ClientProductInfo.Get().ProductName</b> v @ClientProductInfo.Get().Version</MudText>
+            <MudText>Client Profile: @ClientProductInfo.Get().ClientProfile.ToString()</MudText>
         </MudStack>
 
         <MudStack Spacing="0">

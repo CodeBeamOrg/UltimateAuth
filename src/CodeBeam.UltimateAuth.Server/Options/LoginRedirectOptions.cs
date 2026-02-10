@@ -6,13 +6,18 @@ public sealed class LoginRedirectOptions
 {
     public bool RedirectEnabled { get; set; } = true;
 
-    public string SuccessRedirect { get; init; } = "/";
-    public string FailureRedirect { get; init; } = "/login";
+    public string SuccessRedirect { get; set; } = "/";
+    public string FailureRedirect { get; set; } = "/login";
 
-    public string FailureQueryKey { get; init; } = "error";
+    public string FailureQueryKey { get; set; } = "error";
     public string CodeQueryKey { get; set; } = "code";
 
     public Dictionary<AuthFailureReason, string> FailureCodes { get; set; } = new();
+
+    /// <summary>
+    /// Whether query-based returnUrl override is allowed.
+    /// </summary>
+    public bool AllowReturnUrlOverride { get; set; } = true;
 
     internal LoginRedirectOptions Clone() => new()
     {
@@ -21,6 +26,7 @@ public sealed class LoginRedirectOptions
         FailureRedirect = FailureRedirect,
         FailureQueryKey = FailureQueryKey,
         CodeQueryKey = CodeQueryKey,
-        FailureCodes = new Dictionary<AuthFailureReason, string>(FailureCodes)
+        FailureCodes = new Dictionary<AuthFailureReason, string>(FailureCodes),
+        AllowReturnUrlOverride = AllowReturnUrlOverride
     };
 }

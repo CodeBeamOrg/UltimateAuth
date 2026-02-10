@@ -15,7 +15,7 @@ public class ClientBaseAddressProviderTests
 
         var options = new UAuthServerOptions();
 
-        var result = resolver.Resolve(ctx, options, "https://app.example.com/dashboard");
+        var result = resolver.Resolve(ctx, options);
 
         result.Should().Be("https://app.example.com");
     }
@@ -34,7 +34,7 @@ public class ClientBaseAddressProviderTests
             Hub = { ClientBaseAddress = "https://fallback.example.com" }
         };
 
-        var result = resolver.Resolve(ctx, options, "/dashboard");
+        var result = resolver.Resolve(ctx, options);
 
         result.Should().Be("https://fallback.example.com");
     }
@@ -56,7 +56,7 @@ public class ClientBaseAddressProviderTests
         }
         };
 
-        Action act = () => resolver.Resolve(ctx, options, "https://evil.com");
+        Action act = () => resolver.Resolve(ctx, options);
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*not allowed*");
     }

@@ -15,63 +15,69 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
     }
 
     public RedirectDecision ResolveSuccess(AuthFlowContext flow, HttpContext ctx)
+        => Resolve(flow, ctx, flow.Response.Redirect.SuccessPath, null);
+
+    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext ctx, AuthFailureReason reason)
+        => Resolve(flow, ctx, flow.Response.Redirect.FailurePath, reason);
+
+    private RedirectDecision Resolve(AuthFlowContext flow, HttpContext ctx, string? fallbackPath, AuthFailureReason? failureReason)
     {
         var redirect = flow.Response.Redirect;
 
         if (!redirect.Enabled)
             return RedirectDecision.None();
 
-        var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions, flow.ReturnUrl);
-
-        if (redirect.AllowReturnUrlOverride && !string.IsNullOrWhiteSpace(flow.ReturnUrl))
+        if (redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
         {
-            return RedirectDecision.To(ResolveReturnUrl(baseAddress, flow.ReturnUrl, flow.OriginalOptions));
-        }
-
-        if (string.IsNullOrWhiteSpace(redirect.SuccessPath))
-            return RedirectDecision.None();
-
-        return RedirectDecision.To(UrlComposer.Combine(baseAddress, redirect.SuccessPath));
-    }
-
-    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext context, AuthFailureReason reason)
-    {
-        var redirect = flow.Response.Redirect;
-
-        if (!redirect.Enabled || string.IsNullOrWhiteSpace(redirect.FailurePath))
-            return RedirectDecision.None();
-
-        var baseAddress = _baseAddressResolver.Resolve(context, flow.OriginalOptions, flow.ReturnUrl);
-
-        var code = redirect.FailureCodes != null && redirect.FailureCodes.TryGetValue(reason, out var mapped)
-            ? mapped
-            : "failed";
-
-        var query = new Dictionary<string, string?>
-        {
-            [redirect.FailureQueryKey ?? "error"] = code
-        };
-
-        var url = UrlComposer.Combine(baseAddress, redirect.FailurePath, query);
-
-        return RedirectDecision.To(url);
-    }
-
-    private static string ResolveReturnUrl(string baseAddress, string returnUrl, UAuthServerOptions options)
-    {
-        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs))
-        {
-            var origin = abs.GetLeftPart(UriPartial.Authority);
-
-            if (options.Hub.AllowedClientOrigins.Count > 0 && !options.Hub.AllowedClientOrigins.Any(o => Normalize(o) == Normalize(origin)))
+            if (info.IsAbsolute)
             {
-                throw new InvalidOperationException($"Redirect to '{origin}' is not allowed.");
+                var origin = info.AbsoluteUri!.GetLeftPart(UriPartial.Authority);
+                ValidateAllowed(origin, flow.OriginalOptions);
+                return RedirectDecision.To(info.AbsoluteUri.ToString());
             }
 
-            return abs.ToString();
+            if (!string.IsNullOrWhiteSpace(info.RelativePath))
+            {
+                var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
+                return RedirectDecision.To(
+                    UrlComposer.Combine(baseAddress, info.RelativePath));
+            }
         }
 
-        return UrlComposer.Combine(baseAddress, returnUrl);
+        if (!string.IsNullOrWhiteSpace(fallbackPath))
+        {
+            var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
+
+            IDictionary<string, string?>? query = null;
+
+            if (failureReason is not null)
+            {
+                var code = redirect.FailureCodes != null &&
+                           redirect.FailureCodes.TryGetValue(failureReason.Value, out var mapped)
+                    ? mapped
+                    : "failed";
+
+                query = new Dictionary<string, string?>
+                {
+                    [redirect.FailureQueryKey ?? "error"] = code
+                };
+            }
+
+            return RedirectDecision.To(UrlComposer.Combine(baseAddress, fallbackPath, query));
+        }
+
+        return RedirectDecision.None();
+    }
+
+    private static void ValidateAllowed(string baseAddress, UAuthServerOptions options)
+    {
+        if (options.Hub.AllowedClientOrigins.Count == 0)
+            return;
+
+        if (!options.Hub.AllowedClientOrigins.Any(o => Normalize(o) == Normalize(baseAddress)))
+        {
+            throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed.");
+        }
     }
 
     private static string Normalize(string uri) => uri.TrimEnd('/').ToLowerInvariant();

@@ -37,7 +37,7 @@ public sealed class EffectiveRedirectResponse
             login.FailureRedirect,
             login.FailureQueryKey,
             login.FailureCodes,
-            allowReturnUrlOverride: true
+            login.AllowReturnUrlOverride
         );
 
     public static EffectiveRedirectResponse FromLogout(LogoutRedirectOptions logout)

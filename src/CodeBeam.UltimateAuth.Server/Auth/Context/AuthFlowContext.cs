@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
@@ -24,7 +25,8 @@ public sealed class AuthFlowContext
     public EffectiveUAuthServerOptions EffectiveOptions { get; }
 
     public EffectiveAuthResponse Response { get; }
-    public string? ReturnUrl { get; }
+    public ReturnUrlInfo ReturnUrlInfo { get; }
+
     public PrimaryTokenKind PrimaryTokenKind { get; }
 
     // Helpers
@@ -48,7 +50,7 @@ public sealed class AuthFlowContext
         EffectiveUAuthServerOptions effectiveOptions,
         EffectiveAuthResponse response,
         PrimaryTokenKind primaryTokenKind,
-        string? returnUrl)
+        ReturnUrlInfo returnUrlInfo)
     {
         if (tenantKey.IsUnresolved)
             throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
@@ -69,6 +71,6 @@ public sealed class AuthFlowContext
         Response = response;
         PrimaryTokenKind = primaryTokenKind;
 
-        ReturnUrl = returnUrl;
+        ReturnUrlInfo = returnUrlInfo;
     }
 }
