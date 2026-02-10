@@ -2,7 +2,7 @@
 
 public enum ReauthBehavior
 {
-    RedirectToLogin,
+    Redirect,
     None,
     RaiseEvent
 }

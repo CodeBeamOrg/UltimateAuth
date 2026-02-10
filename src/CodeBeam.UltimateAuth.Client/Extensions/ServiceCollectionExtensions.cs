@@ -69,19 +69,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
 
-        //services.PostConfigure<UAuthOptions>(o =>
-        //{
-        //    if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
-        //        return;
-
-        //    using var sp = services.BuildServiceProvider();
-        //    var detector = sp.GetRequiredService<IClientProfileDetector>();
-        //    o.ClientProfile = detector.Detect(sp);
-        //});
-
         services.PostConfigure<UAuthClientOptions>(o =>
         {
-            o.Refresh.Interval ??= TimeSpan.FromMinutes(5);
+            o.AutoRefresh.Interval ??= TimeSpan.FromMinutes(5);
         });
 
         services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
