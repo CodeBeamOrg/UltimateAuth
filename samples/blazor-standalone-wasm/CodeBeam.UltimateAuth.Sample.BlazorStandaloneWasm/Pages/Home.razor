@@ -7,7 +7,6 @@
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
 @inject IUAuthStateManager StateManager
-@inject IHttpClientFactory HttpClientFactory
 @inject IUAuthProductInfoProvider ProductInfo
 @inject ISnackbar Snackbar
 @inject IUAuthClient UAuthClient
@@ -108,38 +107,38 @@
 
     private async Task CallHub()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("UAuthHub");
-            var response = await client.GetStringAsync("/health");
+        // try
+        // {
+        //     var client = HttpClientFactory.CreateClient("UAuthHub");
+        //     var response = await client.GetStringAsync("/health");
 
-            _result = $"UAuthHub response: {response}";
-            _severity = Severity.Success;
-        }
-        catch (Exception ex)
-        {
-            _result = $"UAuthHub error: {ex.Message}";
-            _severity = Severity.Error;
-        }
-        Snackbar.Add(_result, _severity);
+        //     _result = $"UAuthHub response: {response}";
+        //     _severity = Severity.Success;
+        // }
+        // catch (Exception ex)
+        // {
+        //     _result = $"UAuthHub error: {ex.Message}";
+        //     _severity = Severity.Error;
+        // }
+        // Snackbar.Add(_result, _severity);
     }
 
     private async Task CallApi()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("ResourceApi");
-            var response = await client.GetStringAsync("/health");
+        // try
+        // {
+        //     var client = HttpClientFactory.CreateClient("ResourceApi");
+        //     var response = await client.GetStringAsync("/health");
 
-            _result = $"ResourceApi response: {response}";
-            _severity = Severity.Success;
-        }
-        catch (Exception ex)
-        {
-            _result = $"ResourceApi error: {ex.Message}";
-            _severity = Severity.Error;
-        }
-        Snackbar.Add(_result, _severity);
+        //     _result = $"ResourceApi response: {response}";
+        //     _severity = Severity.Success;
+        // }
+        // catch (Exception ex)
+        // {
+        //     _result = $"ResourceApi error: {ex.Message}";
+        //     _severity = Severity.Error;
+        // }
+        // Snackbar.Add(_result, _severity);
     }
 }
 

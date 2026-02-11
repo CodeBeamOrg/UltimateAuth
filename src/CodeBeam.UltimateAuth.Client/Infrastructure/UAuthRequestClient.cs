@@ -1,7 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 

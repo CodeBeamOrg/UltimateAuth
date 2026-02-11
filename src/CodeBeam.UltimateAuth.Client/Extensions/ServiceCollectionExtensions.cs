@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
+using CodeBeam.UltimateAuth.Client.Defaults;
 using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Devices;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
@@ -31,7 +32,8 @@ namespace CodeBeam.UltimateAuth.Client.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services, Action<UAuthClientOptions>? configure = null)
+    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services,
+        Action<UAuthClientOptions>? configure = null, Action<IServiceProvider, HttpClient>? configureHttpClient = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -43,6 +45,11 @@ public static class ServiceCollectionExtensions
             })
             // appsettings.json (highest precedence)
             .BindConfiguration("UltimateAuth:Client");
+
+        if (configureHttpClient is not null)
+        {
+            services.AddSingleton(configureHttpClient);
+        }
 
         return services.AddUltimateAuthClientInternal();
     }

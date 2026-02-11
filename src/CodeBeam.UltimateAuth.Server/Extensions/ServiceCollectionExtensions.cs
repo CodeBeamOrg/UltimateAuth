@@ -15,6 +15,8 @@ using CodeBeam.UltimateAuth.Policies.Registry;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Authentication;
+using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -23,6 +25,7 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -136,7 +139,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
 
-        services.TryAddSingleton<IClock, SystemClock>();
+        services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
         services.TryAddScoped<ISessionIssuer, UAuthSessionIssuer>();
         services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
@@ -226,6 +229,23 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<PkceEndpointHandler<UserKey>>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandlerBridge>();
+
+        // ------------------------------
+        // ASP.NET CORE INTEGRATION
+        // ------------------------------
+        services.AddAuthentication();
+
+        services.PostConfigureAll<AuthenticationOptions>(options =>
+        {
+            options.DefaultAuthenticateScheme ??= UAuthCookieDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme ??= UAuthCookieDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme ??= UAuthCookieDefaults.AuthenticationScheme;
+        });
+
+        services.AddAuthentication().AddUAuthCookies();
+
+
+        services.AddAuthorization();
 
         return services;
     }
