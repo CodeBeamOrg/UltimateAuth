@@ -1,11 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Http;
@@ -20,9 +20,9 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
     private readonly IAuthStore _authStore;
     private readonly IPkceAuthorizationValidator _validator;
     private readonly IClock _clock;
-    private readonly UAuthPkceOptions _pkceOptions;
+    private readonly UAuthServerOptions _options;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly AuthRedirectResolver _redirectResolver;
+    private readonly IAuthRedirectResolver _redirectResolver;
 
     public PkceEndpointHandler(
         IAuthFlowContextAccessor authContext,
@@ -30,16 +30,16 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
         IAuthStore authStore,
         IPkceAuthorizationValidator validator,
         IClock clock,
-        IOptions<UAuthPkceOptions> pkceOptions,
+        IOptions<UAuthServerOptions> options,
         ICredentialResponseWriter credentialResponseWriter,
-        AuthRedirectResolver redirectResolver)
+        IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;
         _authStore = authStore;
         _validator = validator;
         _clock = clock;
-        _pkceOptions = pkceOptions.Value;
+        _options = options.Value;
         _credentialResponseWriter = credentialResponseWriter;
         _redirectResolver = redirectResolver;
     }
@@ -70,14 +70,13 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
             deviceId: string.Empty // TODO: Fix here with device binding
         );
 
-        var expiresAt = _clock.UtcNow.AddSeconds(_pkceOptions.AuthorizationCodeLifetimeSeconds);
+        var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
 
         var artifact = new PkceAuthorizationArtifact(
             authorizationCode: authorizationCode,
             codeChallenge: request.CodeChallenge,
             challengeMethod: PkceChallengeMethod.S256,
             expiresAt: expiresAt,
-            maxAttempts: _pkceOptions.MaxVerificationAttempts,
             context: snapshot
         );
 
@@ -86,7 +85,7 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
         return Results.Ok(new PkceAuthorizeResponse
         {
             AuthorizationCode = authorizationCode.Value,
-            ExpiresIn = _pkceOptions.AuthorizationCodeLifetimeSeconds
+            ExpiresIn = _options.Pkce.AuthorizationCodeLifetimeSeconds
         });
     }
 
@@ -159,13 +158,11 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
             _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        if (authContext.Response.Login.RedirectEnabled)
-        {
-            var redirectUrl = request.ReturnUrl ?? _redirectResolver.ResolveRedirect(ctx, authContext.Response.Login.SuccessPath);
-            return Results.Redirect(redirectUrl);
-        }
+        var decision = _redirectResolver.ResolveSuccess(authContext, ctx);
 
-        return Results.Ok();
+        return decision.Enabled
+            ? Results.Redirect(decision.TargetUrl!)
+            : Results.Ok();
     }
 
     private static async Task<PkceAuthorizeRequest?> ReadPkceAuthorizeRequestAsync(HttpContext ctx)

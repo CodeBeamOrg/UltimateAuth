@@ -1,27 +1,34 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
 internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService<TUserId>
 {
     private readonly IAuthFlowContextAccessor _authFlow;
+    private readonly IAuthFlowContextFactory _authFlowContextFactory;
     private readonly ILoginOrchestrator<TUserId> _loginOrchestrator;
     private readonly ISessionOrchestrator _orchestrator;
+    private readonly UAuthEventDispatcher _events;
 
     public UAuthFlowService(
         IAuthFlowContextAccessor authFlow,
+        IAuthFlowContextFactory authFlowContextFactory,
         ILoginOrchestrator<TUserId> loginOrchestrator,
-        ISessionOrchestrator orchestrator)
+        ISessionOrchestrator orchestrator,
+        UAuthEventDispatcher events)
     {
         _authFlow = authFlow;
+        _authFlowContextFactory = authFlowContextFactory;
         _loginOrchestrator = loginOrchestrator;
         _orchestrator = orchestrator;
+        _events = events;
     }
 
     public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
@@ -44,21 +51,29 @@ internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService<TUserId>
         return _loginOrchestrator.LoginAsync(flow, request, ct);
     }
 
-    public Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
+    public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
     {
         var effectiveFlow = execution.EffectiveClientProfile is null
             ? flow
-            : flow.WithClientProfile((UAuthClientProfile)execution.EffectiveClientProfile);
-        return _loginOrchestrator.LoginAsync(effectiveFlow, request, ct);
+            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthClientProfile)execution.EffectiveClientProfile, ct);
+        return await _loginOrchestrator.LoginAsync(effectiveFlow, request, ct);
     }
 
-    public Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
+    public async Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
     {
         var authFlow = _authFlow.Current;
         var now = request.At ?? DateTimeOffset.UtcNow;
         var authContext = authFlow.ToAuthContext(now);
 
-        return _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.SessionId), ct);
+        var revoked = await _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.SessionId), ct);
+
+        if (!revoked)
+            return;
+
+        if (authFlow.UserKey is not UserKey uaKey)
+            return;
+
+        await _events.DispatchAsync(new UserLoggedOutContext(request.Tenant, uaKey, request.At ?? DateTimeOffset.Now, LogoutReason.Explicit, request.SessionId));
     }
 
     public async Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default)

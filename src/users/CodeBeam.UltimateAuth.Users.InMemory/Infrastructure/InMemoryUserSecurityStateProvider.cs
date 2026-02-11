@@ -2,11 +2,17 @@
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-internal sealed class InMemoryUserSecurityStateProvider<TUserId> : IUserSecurityStateProvider<TUserId>
+internal sealed class InMemoryUserSecurityStateProvider<TUserId> : IUserSecurityStateProvider<TUserId> where TUserId : notnull
 {
+    private readonly InMemoryUserSecurityStore<TUserId> _store;
+
+    public InMemoryUserSecurityStateProvider(InMemoryUserSecurityStore<TUserId> store)
+    {
+        _store = store;
+    }
+
     public Task<IUserSecurityState?> GetAsync(TenantKey tenant, TUserId userId, CancellationToken ct = default)
     {
-        // InMemory default: no MFA, no lockout, no risk signals
-        return Task.FromResult<IUserSecurityState?>(null);
+        return Task.FromResult<IUserSecurityState?>(_store.Get(tenant, userId));
     }
 }

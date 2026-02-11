@@ -18,8 +18,7 @@ public sealed class UAuthTenantResolver : ITenantResolver
 
     public async Task<TenantResolutionResult> ResolveAsync(HttpContext context)
     {
-        var resolutionContext =
-            TenantResolutionContextFactory.FromHttpContext(context);
+        var resolutionContext =TenantResolutionContextFactory.FromHttpContext(context);
 
         var raw = await _idResolver.ResolveTenantIdAsync(resolutionContext);
 

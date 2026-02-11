@@ -1,4 +1,7 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Events;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Core.Events;
 
 /// <summary>
 /// Represents contextual data emitted when a user successfully completes the login process.
@@ -14,28 +17,30 @@
 /// - integrating with SIEM or monitoring systems
 /// 
 /// NOTE:
-/// This event is distinct from <see cref="SessionCreatedContext{TUserId}"/>.
+/// This event is distinct from session create.
 /// A user may log in without creating a new session (e.g., external SSO),
 /// or multiple sessions may be created after a single login depending on client application flows.
 /// </summary>
-public sealed class UserLoggedInContext<TUserId> : IAuthEventContext
+public sealed class UserLoggedInContext : IAuthEventContext
 {
-    /// <summary>
-    /// Gets the identifier of the user who has logged in.
-    /// </summary>
-    public TUserId UserId { get; }
-
-    /// <summary>
-    /// Gets the timestamp at which the login event occurred.
-    /// </summary>
+    public TenantKey Tenant { get; }
+    public UserKey UserKey { get; }
     public DateTimeOffset LoggedInAt { get; }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserLoggedInContext{TUserId}"/> class.
-    /// </summary>
-    public UserLoggedInContext(TUserId userId, DateTimeOffset at)
+    public DeviceContext? Device { get; }
+    public AuthSessionId? SessionId { get; }
+
+    public UserLoggedInContext(
+        TenantKey tenant,
+        UserKey userKey,
+        DateTimeOffset at,
+        DeviceContext? device = null,
+        AuthSessionId? sessionId = null)
     {
-        UserId = userId;
+        Tenant = tenant;
+        UserKey = userKey;
         LoggedInAt = at;
+        Device = device;
+        SessionId = sessionId;
     }
 }

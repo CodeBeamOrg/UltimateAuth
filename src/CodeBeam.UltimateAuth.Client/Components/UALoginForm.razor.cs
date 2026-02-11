@@ -115,7 +115,7 @@ public partial class UALoginForm
         await JS.InvokeVoidAsync("uauth.submitForm", _form);
     }
 
-    private string ClientProfileValue => CoreOptions.Value.ClientProfile.ToString();
+    private string ClientProfileValue => Options.Value.ClientProfile.ToString();
 
     private string EffectiveEndpoint => LoginType == UAuthLoginType.Pkce
         ? Options.Value.Endpoints.PkceComplete
@@ -130,7 +130,7 @@ public partial class UALoginForm
                 ? EffectiveEndpoint
                 : Endpoint;
 
-            var baseUrl = UAuthUrlBuilder.Combine(Options.Value.Endpoints.Authority, loginPath);
+            var baseUrl = UAuthUrlBuilder.Build(Options.Value.Endpoints.BasePath, loginPath, Options.Value.MultiTenant);
             var returnUrl = EffectiveReturnUrl;
 
             if (string.IsNullOrWhiteSpace(returnUrl))

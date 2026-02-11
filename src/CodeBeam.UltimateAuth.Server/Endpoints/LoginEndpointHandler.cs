@@ -17,14 +17,14 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
     private readonly IUAuthFlowService<TUserId> _flowService;
     private readonly IClock _clock;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
-    private readonly AuthRedirectResolver _redirectResolver;
+    private readonly IAuthRedirectResolver _redirectResolver;
 
     public LoginEndpointHandler(
         IAuthFlowContextAccessor authFlow,
         IUAuthFlowService<TUserId> flowService,
         IClock clock,
         ICredentialResponseWriter credentialResponseWriter,
-        AuthRedirectResolver redirectResolver)
+        IAuthRedirectResolver redirectResolver)
     {
         _authFlow = authFlow;
         _flowService = flowService;
@@ -37,10 +37,6 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
     {
         var authFlow = _authFlow.Current;
 
-        var shouldIssueTokens =
-            authFlow.Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-            authFlow.Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
-
         if (!ctx.Request.HasFormContentType)
             return Results.BadRequest("Invalid content type.");
 
@@ -50,7 +46,13 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
         var secret = form["Secret"].ToString();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(secret))
-            return RedirectFailure(ctx, AuthFailureReason.InvalidCredentials, authFlow.OriginalOptions);
+        {
+            var decisionFailureInvalid = _redirectResolver.ResolveFailure(authFlow, ctx, AuthFailureReason.InvalidCredentials);
+
+            return decisionFailureInvalid.Enabled
+                ? Results.Redirect(decisionFailureInvalid.TargetUrl!)
+                : Results.Unauthorized();
+        }
 
         var flowRequest = new LoginRequest
         {
@@ -59,13 +61,19 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
             Tenant = authFlow.Tenant,
             At = _clock.UtcNow,
             Device = authFlow.Device,
-            RequestTokens = shouldIssueTokens
+            RequestTokens = authFlow.AllowsTokenIssuance
         };
 
         var result = await _flowService.LoginAsync(authFlow, flowRequest, ctx.RequestAborted);
 
         if (!result.IsSuccess)
-            return RedirectFailure(ctx, result.FailureReason ?? AuthFailureReason.Unknown, authFlow.OriginalOptions);
+        {
+            var decisionFailure = _redirectResolver.ResolveFailure(authFlow, ctx, result.FailureReason ?? AuthFailureReason.Unknown);
+
+            return decisionFailure.Enabled
+                ? Results.Redirect(decisionFailure.TargetUrl!)
+                : Results.Unauthorized();
+        }
 
         if (result.SessionId is AuthSessionId sessionId)
         {
@@ -82,33 +90,10 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
             _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        if (authFlow.Response.Login.RedirectEnabled)
-        {
-            var redirectUrl = _redirectResolver.ResolveRedirect(ctx, authFlow.Response.Login.SuccessPath);
-            return Results.Redirect(redirectUrl);
-        }
+        var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
 
-        return Results.Ok();
-    }
-
-    private IResult RedirectFailure(HttpContext ctx, AuthFailureReason reason, UAuthServerOptions options)
-    {
-        var login = options.AuthResponse.Login;
-
-        var code =
-            login.FailureCodes != null &&
-            login.FailureCodes.TryGetValue(reason, out var mapped)
-                ? mapped
-                : "failed";
-
-        var redirectUrl = _redirectResolver.ResolveRedirect(
-            ctx,
-            login.FailureRedirect,
-            new Dictionary<string, string?>
-            {
-                [login.FailureQueryKey] = code
-            });
-
-        return Results.Redirect(redirectUrl);
+        return decision.Enabled
+            ? Results.Redirect(decision.TargetUrl!)
+            : Results.Ok();
     }
 }

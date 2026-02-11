@@ -12,4 +12,5 @@ public sealed record SessionRotationContext
     public required DeviceContext Device { get; init; }
     public ClaimsSnapshot? Claims { get; init; }
     public required SessionMetadata Metadata { get; init; } = SessionMetadata.Empty;
+    public required UAuthMode Mode { get; init; }
 }

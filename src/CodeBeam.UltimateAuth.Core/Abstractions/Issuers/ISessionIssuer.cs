@@ -10,7 +10,7 @@ public interface ISessionIssuer
 
     Task<IssuedSession> RotateSessionAsync(SessionRotationContext context, CancellationToken cancellationToken = default);
 
-    Task RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken cancellationToken = default);
+    Task<bool> RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken cancellationToken = default);
 
     Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken cancellationToken = default);
 

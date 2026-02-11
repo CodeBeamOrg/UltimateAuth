@@ -15,9 +15,8 @@ public sealed class PkceAuthorizationArtifact : AuthArtifact
         string codeChallenge,
         PkceChallengeMethod challengeMethod,
         DateTimeOffset expiresAt,
-        int maxAttempts,
         PkceContextSnapshot context)
-        : base(AuthArtifactType.PkceAuthorizationCode, expiresAt, maxAttempts)
+        : base(AuthArtifactType.PkceAuthorizationCode, expiresAt)
     {
         AuthorizationCode = authorizationCode;
         CodeChallenge = codeChallenge;

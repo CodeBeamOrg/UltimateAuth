@@ -12,5 +12,4 @@ public sealed class UAuthDiagnosticsOptions
     {
         EnableRefreshHeaders = EnableRefreshHeaders
     };
-
 }

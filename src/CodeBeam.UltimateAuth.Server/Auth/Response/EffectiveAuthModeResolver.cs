@@ -6,11 +6,8 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthMode? configuredMode, UAuthClientProfile clientProfile, AuthFlowType flowType)
+    public UAuthMode Resolve(UAuthClientProfile clientProfile, AuthFlowType flowType)
     {
-        if (configuredMode.HasValue)
-            return configuredMode.Value;
-
         return clientProfile switch
         {
             UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,

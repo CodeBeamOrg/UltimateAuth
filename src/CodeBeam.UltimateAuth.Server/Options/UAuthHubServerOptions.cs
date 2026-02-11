@@ -21,5 +21,4 @@ public sealed class UAuthHubServerOptions
         FlowLifetime = FlowLifetime,
         LoginPath = LoginPath
     };
-
 }

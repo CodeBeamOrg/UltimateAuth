@@ -2,10 +2,12 @@
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
@@ -13,15 +15,14 @@ using CodeBeam.UltimateAuth.Policies.Registry;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -31,59 +32,74 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services)
+    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
+
         AddUsersInternal(services);
         AddCredentialsInternal(services);
         AddAuthorizationInternal(services);
         AddUltimateAuthPolicies(services);
-        return services.AddUltimateAuthServerInternal();
-    }
 
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddUltimateAuth(configuration);
-        AddUsersInternal(services);
-        AddCredentialsInternal(services);
-        AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
-        services.Configure<UAuthServerOptions>(configuration.GetSection("UltimateAuth:Server"));
+        services.AddOptions<UAuthServerOptions>()
+            // Program.cs configuration (lowest precedence)
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            // appsettings.json (highest precedence)
+            .BindConfiguration("UltimateAuth:Server")
+            .PostConfigure(options =>
+            {
+                // Add any default values or adjustments here if needed
+            });
 
-        return services.AddUltimateAuthServerInternal();
-    }
+        services.AddUltimateAuthServerInternal();
 
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions> configure)
-    {
-        services.AddUltimateAuth();
-        AddUsersInternal(services);
-        AddCredentialsInternal(services);
-        AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
-        services.Configure(configure);
-
-        return services.AddUltimateAuthServerInternal();
+        return services;
     }
 
     private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
     {
+        services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
         services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
 
-        services.TryAddSingleton<ITokenHasher>(sp =>
+        services.TryAddScoped<ITokenHasher>(sp =>
         {
             var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
             var key = keyProvider.Resolve(null);
-
             return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
         });
-
 
         // -----------------------------
         // OPTIONS VALIDATION
         // -----------------------------
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>());
+        //services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>());
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerLoginOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, DeviceRequiredInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, ExpiredSessionInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, InvalidOrRevokedSessionInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, TenantResolvedInvariant>());
+
+        // EVENTS
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            return options.Events.Clone();
+        });
+
+        services.AddSingleton<UAuthEventDispatcher>();
 
         // Tenant Resolution
         services.TryAddSingleton<ITenantIdResolver>(sp =>
@@ -114,26 +130,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
         services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
 
-        // Public resolver
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
-        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
 
         services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
 
         services.TryAddSingleton<IClock, SystemClock>();
-
-        // TODO: Allow custom cookie manager via options
-        //services.AddSingleton<IUAuthCookieManager, UAuthSessionCookieManager>();
-        //if (options.CustomCookieManagerType is not null)
-        //{
-        //    services.AddSingleton(typeof(IUAuthSessionCookieManager), options.CustomCookieManagerType);
-        //}
-        //else
-        //{
-        //    services.AddSingleton<IUAuthSessionCookieManager, UAuthSessionCookieManager>();
-        //}
 
         services.TryAddScoped<ISessionIssuer, UAuthSessionIssuer>();
         services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
@@ -156,6 +159,13 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
 
+        services.AddSingleton<IClientBaseAddressProvider, OriginHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, ConfiguredClientBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RequestHostBaseAddressProvider>();
+        services.AddSingleton<ClientBaseAddressResolver>();
+
+        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
         services.TryAddScoped<IFlowCredentialResolver, FlowCredentialResolver>();
@@ -166,7 +176,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
         services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
-        services.TryAddScoped<AuthRedirectResolver>();
+        services.TryAddSingleton<IAuthRedirectResolver, AuthRedirectResolver>();
 
         services.TryAddScoped<ISessionTouchService, SessionTouchService>();
         services.TryAddScoped<ISessionQueryService, UAuthSessionQueryService>();
@@ -184,9 +194,9 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
         services.TryAddScoped<IEffectiveServerOptionsProvider,EffectiveServerOptionsProvider>();
 
-        services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
         services.TryAddSingleton<IUAuthBodyPolicyBuilder, UAuthBodyPolicyBuilder>();
+        services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
         services.TryAddScoped<IUAuthCookieManager, UAuthCookieManager>();
 
         services.TryAddScoped<IAuthFlow, AuthFlow>();
@@ -246,8 +256,6 @@ public static class ServiceCollectionExtensions
             var globalPolicies = sp.GetServices<IAccessPolicy>();
             return new UAuthAccessAuthority(invariants, globalPolicies);
         });
-
-        services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
 
         return services;
     }

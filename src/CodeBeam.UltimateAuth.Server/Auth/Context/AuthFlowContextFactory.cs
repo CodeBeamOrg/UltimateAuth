@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -50,13 +51,20 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var originalOptions = _serverOptionsProvider.GetOriginal(ctx);
         var effectiveOptions = _serverOptionsProvider.GetEffective(ctx, flowType, clientProfile);
 
+        var allowedModes = originalOptions.AllowedModes;
+
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        {
+            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+        }
+
         var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
-
         var deviceInfo = _deviceResolver.Resolve(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
+        var returnUrl = ctx.GetReturnUrl();
+        var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
         SessionSecurityContext? sessionSecurityContext = null;
 
@@ -93,8 +101,48 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             originalOptions,
             effectiveOptions,
             response,
-            primaryTokenKind
+            primaryTokenKind,
+            returnUrlInfo
         );
     }
 
+    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthClientProfile overriddenProfile, CancellationToken ct = default)
+    {
+        var flowType = existing.FlowType;
+        var tenant = existing.Tenant;
+
+        var originalOptions = existing.OriginalOptions;
+        var effectiveOptions = _serverOptionsProvider.GetEffective(tenant, flowType, overriddenProfile);
+
+        var allowedModes = originalOptions.AllowedModes;
+
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        {
+            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+        }
+
+        var effectiveMode = effectiveOptions.Mode;
+        var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, overriddenProfile, effectiveOptions);
+
+        var returnUrlInfo = existing.ReturnUrlInfo;
+        var deviceContext = existing.Device;
+        var session = existing.Session;
+
+        return new AuthFlowContext(
+            flowType,
+            overriddenProfile,
+            effectiveMode,
+            deviceContext,
+            tenant,
+            existing.IsAuthenticated,
+            existing.UserKey,
+            session,
+            originalOptions,
+            effectiveOptions,
+            response,
+            primaryTokenKind,
+            returnUrlInfo
+        );
+    }
 }

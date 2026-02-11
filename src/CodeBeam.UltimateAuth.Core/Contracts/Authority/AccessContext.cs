@@ -14,23 +14,47 @@ public sealed class AccessContext
 
     // Target
     public string? Resource { get; init; }
-    public string? ResourceId { get; init; }
+    public UserKey? TargetUserKey { get; init; }
     public TenantKey ResourceTenant { get; init; }
 
     public string Action { get; init; } = default!;
     public IReadOnlyDictionary<string, object> Attributes { get; init; } = EmptyAttributes.Instance;
 
     public bool IsCrossTenant => !string.Equals(ActorTenant, ResourceTenant, StringComparison.Ordinal);
-    public bool IsSelfAction => ActorUserKey != null && ResourceId != null && string.Equals(ActorUserKey.Value, ResourceId, StringComparison.Ordinal);
+    public bool IsSelfAction => ActorUserKey != null && TargetUserKey != null && string.Equals(ActorUserKey.Value, TargetUserKey.Value, StringComparison.Ordinal);
     public bool HasActor => ActorUserKey != null;
-    public bool HasTarget => ResourceId != null;
+    public bool HasTarget => TargetUserKey != null;
 
     public UserKey GetTargetUserKey()
     {
-        if (ResourceId is null)
-            throw new InvalidOperationException("Target user is not specified.");
+        if (TargetUserKey is not UserKey targetUserKey)
+            throw new InvalidOperationException("Target user is not found.");
 
-        return UserKey.Parse(ResourceId, null);
+        return targetUserKey;
+    }
+
+    internal AccessContext(
+        UserKey? actorUserKey,
+        TenantKey actorTenant,
+        bool isAuthenticated,
+        bool isSystemActor,
+        string resource,
+        UserKey? targetUserKey,
+        TenantKey resourceTenant,
+        string action,
+        IReadOnlyDictionary<string, object> attributes)
+    {
+        ActorUserKey = actorUserKey;
+        ActorTenant = actorTenant;
+        IsAuthenticated = isAuthenticated;
+        IsSystemActor = isSystemActor;
+
+        Resource = resource;
+        TargetUserKey = targetUserKey;
+        ResourceTenant = resourceTenant;
+
+        Action = action;
+        Attributes = attributes;
     }
 }
 

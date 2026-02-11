@@ -18,31 +18,29 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
         _options = options.Value;
     }
 
+    private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
+
     public async Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, "/authorization/check");
-        var raw = await _request.SendJsonAsync(url, request);
+        var raw = await _request.SendJsonAsync(Url("/authorization/check"), request);
         return UAuthResultMapper.FromJson<AuthorizationResult>(raw);
     }
 
     public async Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, "/authorization/users/me/roles/get");
-        var raw = await _request.SendFormForJsonAsync(url);
+        var raw = await _request.SendFormForJsonAsync(Url("/authorization/users/me/roles/get"));
         return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
     }
 
     public async Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/authorization/users/{userKey}/roles/get");
-        var raw = await _request.SendFormForJsonAsync(url);
+        var raw = await _request.SendFormForJsonAsync(Url($"/admin/authorization/users/{userKey}/roles/get"));
         return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
     }
 
     public async Task<UAuthResult> AssignRoleAsync(UserKey userKey, string role)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/authorization/users/{userKey}/roles/post");
-        var raw = await _request.SendJsonAsync(url, new AssignRoleRequest
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey}/roles/post"), new AssignRoleRequest
         {
             Role = role
         });
@@ -52,9 +50,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult> RemoveRoleAsync(UserKey userKey, string role)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, $"/admin/authorization/users/{userKey}/roles/delete");
-
-        var raw = await _request.SendJsonAsync(url, new AssignRoleRequest
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey}/roles/delete"), new AssignRoleRequest
         {
             Role = role
         });

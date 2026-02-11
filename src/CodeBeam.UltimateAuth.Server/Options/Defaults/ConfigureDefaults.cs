@@ -6,9 +6,9 @@ namespace CodeBeam.UltimateAuth.Server.Options;
 
 internal class ConfigureDefaults
 {
-    internal static void ApplyModeDefaults(UAuthServerOptions o)
+    internal static void ApplyModeDefaults(UAuthMode effectiveMode, UAuthServerOptions o)
     {
-        switch (o.Mode)
+        switch (effectiveMode)
         {
             case UAuthMode.PureOpaque:
                 ApplyPureOpaqueDefaults(o);
@@ -27,14 +27,14 @@ internal class ConfigureDefaults
                 break;
 
             default:
-                throw new InvalidOperationException($"Unsupported UAuthMode: {o.Mode}");
+                throw new InvalidOperationException($"Unsupported UAuthMode: {effectiveMode}");
         }
     }
 
     private static void ApplyPureOpaqueDefaults(UAuthServerOptions o)
     {
         var s = o.Session;
-        var t = o.Tokens;
+        var t = o.Token;
         var c = o.Cookie;
         var r = o.AuthResponse;
 
@@ -72,7 +72,7 @@ internal class ConfigureDefaults
     private static void ApplyHybridDefaults(UAuthServerOptions o)
     {
         var s = o.Session;
-        var t = o.Tokens;
+        var t = o.Token;
         var c = o.Cookie;
         var r = o.AuthResponse;
 
@@ -97,7 +97,7 @@ internal class ConfigureDefaults
     private static void ApplySemiHybridDefaults(UAuthServerOptions o)
     {
         var s = o.Session;
-        var t = o.Tokens;
+        var t = o.Token;
         var p = o.Pkce;
         var c = o.Cookie;
 
@@ -117,7 +117,7 @@ internal class ConfigureDefaults
     private static void ApplyPureJwtDefaults(UAuthServerOptions o)
     {
         var s = o.Session;
-        var t = o.Tokens;
+        var t = o.Token;
         var p = o.Pkce;
         var c = o.Cookie;
 

@@ -12,8 +12,8 @@ public static class UAuthTenantContextFactory
 
         if (string.IsNullOrWhiteSpace(rawTenantId))
         {
-            if (options.RequireTenant)
-                throw new InvalidOperationException("Tenant is required but could not be resolved.");
+            //if (options.RequireTenant)
+            //    throw new InvalidOperationException("Tenant is required but could not be resolved.");
 
             throw new InvalidOperationException("Tenant could not be resolved.");
         }

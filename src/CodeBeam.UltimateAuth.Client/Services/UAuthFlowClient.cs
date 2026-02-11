@@ -6,7 +6,6 @@ using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
-using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -19,33 +18,50 @@ internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
     private readonly UAuthClientOptions _options;
-    private readonly UAuthOptions _coreOptions;
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(
-        IUAuthRequestClient post,
-        IOptions<UAuthClientOptions> options,
-        IOptions<UAuthOptions> coreOptions,
-        UAuthClientDiagnostics diagnostics,
-        NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
     {
         _post = post;
         _options = options.Value;
-        _coreOptions = coreOptions.Value;
         _diagnostics = diagnostics;
         _nav = nav;
     }
 
-    public async Task LoginAsync(LoginRequest request)
+    private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
+
+    public async Task LoginAsync(LoginRequest request, string? returnUrl = null)
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Login);
-        await _post.NavigateAsync(url, request.ToDictionary());
+        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+
+        if (!_options.Login.AllowCredentialPost && !canPost)
+        {
+            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
+                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
+                "If this is a trusted server-hosted client, you may explicitly enable " +
+                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
+        }
+
+        var resolvedReturnUrl =
+            returnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl;
+
+        var payload = request.ToDictionary();
+
+        if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
+        {
+            payload["return_url"] = resolvedReturnUrl;
+        }
+
+        var url = Url(_options.Endpoints.Login);
+        await _post.NavigateAsync(url, payload);
     }
 
     public async Task LogoutAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Logout);
+        var url = Url(_options.Endpoints.Logout);
         await _post.NavigateAsync(url);
     }
 
@@ -56,7 +72,7 @@ internal class UAuthFlowClient : IFlowClient
             _diagnostics.MarkManualRefresh();
         }
 
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Refresh);
+        var url = Url(_options.Endpoints.Refresh);
         var result = await _post.SendFormAsync(url);
         var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
         switch (refreshOutcome)
@@ -85,13 +101,13 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task ReauthAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Reauth);
+        var url = Url(_options.Endpoints.Reauth);
         await _post.NavigateAsync(_options.Endpoints.Reauth);
     }
 
     public async Task<AuthValidationResult> ValidateAsync()
     {
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.Validate);
+        var url = Url(_options.Endpoints.Validate);
         var raw = await _post.SendFormForJsonAsync(url);
 
         if (!raw.Ok || raw.Body is null)
@@ -118,7 +134,7 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task BeginPkceAsync(string? returnUrl = null)
     {
-        var pkce = _options.Login.Pkce;
+        var pkce = _options.Pkce;
 
         if (!pkce.Enabled)
             throw new InvalidOperationException("PKCE login is disabled by configuration.");
@@ -126,7 +142,7 @@ internal class UAuthFlowClient : IFlowClient
         var verifier = CreateVerifier();
         var challenge = CreateChallenge(verifier);
 
-        var authorizeUrl = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.PkceAuthorize);
+        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
 
         var raw = await _post.SendFormForJsonAsync(
             authorizeUrl,
@@ -150,7 +166,8 @@ internal class UAuthFlowClient : IFlowClient
 
         var resolvedReturnUrl = returnUrl
             ?? pkce.ReturnUrl
-            ?? _options.Login.DefaultReturnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl
             ?? _nav.Uri;
 
         if (pkce.AutoRedirect)
@@ -164,7 +181,13 @@ internal class UAuthFlowClient : IFlowClient
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
-        var url = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.PkceComplete);
+        if (!_options.Pkce.Enabled)
+        {
+            throw new InvalidOperationException("PKCE login is disabled by configuration, but a PKCE completion was attempted. " +
+                "This usually indicates a misconfiguration or an unexpected redirect flow.");
+        }
+
+        var url = Url(_options.Endpoints.PkceComplete);
 
         var payload = new Dictionary<string, string>
         {
@@ -181,14 +204,14 @@ internal class UAuthFlowClient : IFlowClient
 
     private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl)
     {
-        var hubLoginUrl = UAuthUrlBuilder.Combine(_options.Endpoints.Authority, _options.Endpoints.HubLoginPath);
+        var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
 
         var data = new Dictionary<string, string>
         {
             ["authorization_code"] = authorizationCode,
             ["code_verifier"] = codeVerifier,
             ["return_url"] = returnUrl,
-            ["client_profile"] = _coreOptions.ClientProfile.ToString()
+            ["client_profile"] = _options.ClientProfile.ToString()
         };
 
         return _post.NavigateAsync(hubLoginUrl, data);

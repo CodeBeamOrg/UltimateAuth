@@ -45,6 +45,11 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
+    public Task LoginAsync(LoginRequest request, string? returnUrl)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task LogoutAsync()
     {
         throw new NotImplementedException();

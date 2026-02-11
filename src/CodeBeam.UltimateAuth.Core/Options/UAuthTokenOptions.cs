@@ -75,5 +75,4 @@ public sealed class UAuthTokenOptions
         AddJwtIdClaim = AddJwtIdClaim,
         KeyId = KeyId
     };
-
 }

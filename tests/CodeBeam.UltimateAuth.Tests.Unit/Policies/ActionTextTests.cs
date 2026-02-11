@@ -1,5 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Policies;
+﻿using CodeBeam.UltimateAuth.Policies;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -11,23 +11,16 @@ public class ActionTextTests
     [InlineData("users.profile.get", false)]
     public void RequireAdminPolicy_AppliesTo_Works(string action, bool expected)
     {
-        var context = new AccessContext { Action = action };
+        var context = TestAccessContext.WithAction(action);
         var policy = new RequireAdminPolicy();
-
         Assert.Equal(expected, policy.AppliesTo(context));
     }
 
     [Fact]
     public void RequireAdminPolicy_DoesNotMatch_Substrings()
     {
-        var context = new AccessContext
-        {
-            Action = "users.profile.get.administrator"
-        };
-
+        var context = TestAccessContext.WithAction("users.profile.get.administrator");
         var policy = new RequireAdminPolicy();
-
         Assert.False(policy.AppliesTo(context));
     }
-
 }

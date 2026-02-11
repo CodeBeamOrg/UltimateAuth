@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class HeaderSessionIdResolver : IInnerSessionIdResolver
 {
-    public string Key => "header";
+    public string Name => "header";
     private readonly UAuthServerOptions _options;
 
     public HeaderSessionIdResolver(IOptions<UAuthServerOptions> options)

@@ -15,10 +15,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     private readonly IOpaqueTokenGenerator _opaqueGenerator;
     private readonly UAuthServerOptions _options;
 
-    public UAuthSessionIssuer(
-        ISessionStoreKernelFactory kernelFactory,
-        IOpaqueTokenGenerator opaqueGenerator,
-        IOptions<UAuthServerOptions> options)
+    public UAuthSessionIssuer(ISessionStoreKernelFactory kernelFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
     {
         _kernelFactory = kernelFactory;
         _opaqueGenerator = opaqueGenerator;
@@ -28,7 +25,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     public async Task<IssuedSession> IssueLoginSessionAsync(AuthenticatedSessionContext context, CancellationToken ct = default)
     {
         // Defensive guard — enforcement belongs to Authority
-        if (_options.Mode == UAuthMode.PureJwt)
+        if (context.Mode == UAuthMode.PureJwt)
         {
             throw new InvalidOperationException("Session issuance is not allowed in PureJwt mode.");
         }
@@ -63,7 +60,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         {
             Session = session,
             OpaqueSessionId = opaqueSessionId,
-            IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
+            IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
         };
 
         var kernel = _kernelFactory.Create(context.Tenant);
@@ -135,7 +132,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 metadata: context.Metadata
             ),
             OpaqueSessionId = opaqueSessionId,
-            IsMetadataOnly = _options.Mode == UAuthMode.SemiHybrid
+            IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
         };
 
         await kernel.ExecuteAsync(async _ =>
@@ -159,10 +156,10 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         return issued;
     }
 
-    public async Task RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
+    public async Task<bool> RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _kernelFactory.Create(tenant);
-        await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
+        return await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
     }
 
     public async Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)

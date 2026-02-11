@@ -15,6 +15,7 @@ using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory;
@@ -54,11 +55,13 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddUltimateAuth();
 
-builder.Services.AddUltimateAuthServer(o => {
+builder.Services.AddUltimateAuthServer(o =>
+{
     o.Diagnostics.EnableRefreshHeaders = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+    o.AuthResponse.Login.AllowReturnUrlOverride = true;
 })
     .AddUltimateAuthUsersInMemory()
     .AddUltimateAuthUsersReference()

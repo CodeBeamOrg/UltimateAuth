@@ -12,7 +12,6 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -32,34 +31,19 @@ namespace CodeBeam.UltimateAuth.Client.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
-    /// Registers UltimateAuth client services using configuration binding
-    /// (e.g. appsettings.json).
-    /// </summary>
-    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services, IConfiguration configurationSection)
+    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services, Action<UAuthClientOptions>? configure = null)
     {
-        services.Configure<UAuthClientOptions>(configurationSection);
-        return services.AddUltimateAuthClientInternal();
-    }
+        ArgumentNullException.ThrowIfNull(services);
 
-    /// <summary>
-    /// Registers UltimateAuth client services using programmatic configuration.
-    /// </summary>
-    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services, Action<UAuthClientOptions> configure)
-    {
-        services.Configure(configure);
-        return services.AddUltimateAuthClientInternal();
-    }
+        services.AddOptions<UAuthClientOptions>()
+            // Program.cs configuration (lowest precedence)
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            // appsettings.json (highest precedence)
+            .BindConfiguration("UltimateAuth:Client");
 
-    /// <summary>
-    /// Registers UltimateAuth client services with default (empty) configuration.
-    ///
-    /// Intended for advanced scenarios where configuration is fully controlled
-    /// by the hosting application or overridden later.
-    /// </summary>
-    public static IServiceCollection AddUltimateAuthClient(this IServiceCollection services)
-    {
-        services.Configure<UAuthClientOptions>(_ => { });
         return services.AddUltimateAuthClientInternal();
     }
 
@@ -75,26 +59,19 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddUltimateAuthClientInternal(this IServiceCollection services)
     {
-        // Options validation can be added here later if needed
-        // services.AddSingleton<IValidateOptions<UAuthClientOptions>, ...>();
+        services.AddScoped<IUAuthClientProductInfoProvider, UAuthClientProductInfoProvider>();
+
+        services.AddOptions<UAuthClientOptions>();
+        services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();
 
         services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
-        services.AddSingleton<IPostConfigureOptions<UAuthOptions>, UAuthOptionsPostConfigure>();
+        services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
-
-        //services.PostConfigure<UAuthOptions>(o =>
-        //{
-        //    if (!o.AutoDetectClientProfile || o.ClientProfile != UAuthClientProfile.NotSpecified)
-        //        return;
-
-        //    using var sp = services.BuildServiceProvider();
-        //    var detector = sp.GetRequiredService<IClientProfileDetector>();
-        //    o.ClientProfile = detector.Detect(sp);
-        //});
 
         services.PostConfigure<UAuthClientOptions>(o =>
         {
-            o.Refresh.Interval ??= TimeSpan.FromMinutes(5);
+            o.AutoRefresh.Interval ??= TimeSpan.FromMinutes(5);
         });
 
         services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
@@ -107,9 +84,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionCoordinator>(sp =>
         {
-            var core = sp.GetRequiredService<IOptions<UAuthOptions>>().Value;
+            var options = sp.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
 
-            return core.ClientProfile == UAuthClientProfile.BlazorServer
+            return options.ClientProfile == UAuthClientProfile.BlazorServer
                 ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
                 : sp.GetRequiredService<NoOpSessionCoordinator>();
         });

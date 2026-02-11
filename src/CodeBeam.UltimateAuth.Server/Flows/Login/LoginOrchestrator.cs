@@ -2,12 +2,16 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -16,33 +20,42 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
     private readonly ICredentialStore<TUserId> _credentialStore; // authentication
     private readonly ICredentialValidator _credentialValidator;
     private readonly IUserRuntimeStateProvider _users; // eligible
-    private readonly IUserSecurityStateProvider<TUserId> _userSecurityStateProvider; // runtime risk
     private readonly ILoginAuthority _authority;
     private readonly ISessionOrchestrator _sessionOrchestrator;
     private readonly ITokenIssuer _tokens;
     private readonly IUserClaimsProvider _claimsProvider;
     private readonly IUserIdConverterResolver _userIdConverterResolver;
+    private readonly IUserSecurityStateWriter<TUserId> _securityWriter;
+    private readonly IUserSecurityStateProvider<TUserId> _securityStateProvider; // runtime risk
+    private readonly UAuthEventDispatcher _events;
+    private readonly UAuthServerOptions _options;
 
     public LoginOrchestrator(
         ICredentialStore<TUserId> credentialStore,
         ICredentialValidator credentialValidator,
         IUserRuntimeStateProvider users,
-        IUserSecurityStateProvider<TUserId> userSecurityStateProvider,
         ILoginAuthority authority,
         ISessionOrchestrator sessionOrchestrator,
         ITokenIssuer tokens,
         IUserClaimsProvider claimsProvider,
-        IUserIdConverterResolver userIdConverterResolver)
+        IUserIdConverterResolver userIdConverterResolver,
+        IUserSecurityStateWriter<TUserId> securityWriter,
+        IUserSecurityStateProvider<TUserId> securityStateProvider,
+        UAuthEventDispatcher events,
+        IOptions<UAuthServerOptions> options)
     {
         _credentialStore = credentialStore;
         _credentialValidator = credentialValidator;
         _users = users;
-        _userSecurityStateProvider = userSecurityStateProvider;
         _authority = authority;
         _sessionOrchestrator = sessionOrchestrator;
         _tokens = tokens;
         _claimsProvider = claimsProvider;
         _userIdConverterResolver = userIdConverterResolver;
+        _securityWriter = securityWriter;
+        _securityStateProvider = securityStateProvider;
+        _events = events;
+        _options = options.Value;
     }
 
     public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
@@ -50,49 +63,56 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         ct.ThrowIfCancellationRequested();
 
         var now = request.At ?? DateTimeOffset.UtcNow;
-
         var credentials = await _credentialStore.FindByLoginAsync(request.Tenant, request.Identifier, ct);
-        var orderedCredentials = credentials
-            .OfType<ISecurableCredential>()
-            .Where(c => c.Security.IsUsable(now))
-            .Cast<ICredential<TUserId>>()
-            .ToList();
 
+        bool hasCandidateUser = false;
+        TUserId candidateUserId = default!;
         TUserId validatedUserId = default!;
         bool credentialsValid = false;
 
-        foreach (var credential in orderedCredentials)
+        foreach (var credential in credentials.OfType<ISecurableCredential>())
         {
-            var result = await _credentialValidator.ValidateAsync(credential, request.Secret, ct);
+            if (!credential.Security.IsUsable(now))
+                continue;
+
+            var typed = (ICredential<TUserId>)credential;
+
+            if (!hasCandidateUser)
+            {
+                candidateUserId = typed.UserId;
+                hasCandidateUser = true;
+            }
+
+            var result = await _credentialValidator.ValidateAsync((ICredential<TUserId>)credential, request.Secret, ct);
 
             if (result.IsValid)
             {
-                validatedUserId = credential.UserId;
+                validatedUserId = ((ICredential<TUserId>)credential).UserId;
                 credentialsValid = true;
                 break;
             }
         }
 
-        bool userExists = credentialsValid;
-
+        bool userExists = false;
         IUserSecurityState? securityState = null;
         UserKey? userKey = null;
 
-        if (credentialsValid)
+        if (candidateUserId is not null)
         {
-            securityState = await _userSecurityStateProvider.GetAsync(request.Tenant, validatedUserId, ct);
+            securityState = await _securityStateProvider.GetAsync(request.Tenant, candidateUserId, ct);
             var converter = _userIdConverterResolver.GetConverter<TUserId>();
-            userKey = UserKey.FromString(converter.ToCanonicalString(validatedUserId));
-        }
+            var canonicalUserId = converter.ToCanonicalString(candidateUserId);
 
-        var user = userKey is not null
-            ? await _users.GetAsync(request.Tenant, userKey.Value, ct)
-            : null;
-
-        if (user is null || user.IsDeleted || !user.IsActive)
-        {
-            // Deliberately vague
-            return LoginResult.Failed();
+            if (!string.IsNullOrWhiteSpace(canonicalUserId))
+            {
+                var tempUserKey = UserKey.FromString(canonicalUserId);
+                var user = await _users.GetAsync(request.Tenant, tempUserKey, ct);
+                if (user is not null && user.IsActive && !user.IsDeleted)
+                {
+                    userKey = tempUserKey;
+                    userExists = true;
+                }
+            }
         }
 
         var decisionContext = new LoginDecisionContext
@@ -108,6 +128,33 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
 
         var decision = _authority.Decide(decisionContext);
 
+        if (candidateUserId is not null)
+        {
+            if (decision.Kind == LoginDecisionKind.Allow)
+            {
+                await _securityWriter.ResetFailuresAsync(request.Tenant, candidateUserId, ct);
+            }
+            else
+            {
+                var isCurrentlyLocked = securityState?.IsLocked == true && securityState?.LockedUntil is DateTimeOffset until && until > now;
+
+                if (!isCurrentlyLocked)
+                {
+                    await _securityWriter.RecordFailedLoginAsync(request.Tenant, candidateUserId, now, ct);
+
+                    var currentFailures = securityState?.FailedLoginAttempts ?? 0;
+                    var nextCount = currentFailures + 1;
+
+                    if (_options.Login.MaxFailedAttempts > 0 && nextCount >= _options.Login.MaxFailedAttempts)
+                    {
+                        var lockedUntil = now.AddMinutes(_options.Login.LockoutMinutes);
+                        await _securityWriter.LockUntilAsync(request.Tenant, candidateUserId, lockedUntil, ct);
+                    }
+                }
+                
+            }
+        }
+
         if (decision.Kind == LoginDecisionKind.Deny)
             return LoginResult.Failed();
 
@@ -120,10 +167,8 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
             });
         }
 
-        if (userKey is not UserKey validUserKey)
-        {
+        if (validatedUserId is null || userKey is not UserKey validUserKey)
             return LoginResult.Failed();
-        }
 
         var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, validUserKey, ct);
 
@@ -135,7 +180,8 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
             Device = request.Device,
             Claims = claims,
             ChainId = request.ChainId,
-            Metadata = SessionMetadata.Empty
+            Metadata = SessionMetadata.Empty,
+            Mode = flow.EffectiveMode
         };
 
         var authContext = flow.ToAuthContext(now);
@@ -160,6 +206,8 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
                 RefreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct)
             };
         }
+
+        await _events.DispatchAsync(new UserLoggedInContext(request.Tenant, validUserKey, now, request.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
 

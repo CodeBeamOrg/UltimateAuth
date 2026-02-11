@@ -26,6 +26,19 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
         }
     }
 
+    public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
+    {
+        await _tx.WaitAsync(ct);
+        try
+        {
+            return await action(ct);
+        }
+        finally
+        {
+            _tx.Release();
+        }
+    }
+
     public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId) => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
 
     public Task SaveSessionAsync(UAuthSession session)
@@ -34,13 +47,16 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
         return Task.CompletedTask;
     }
 
-    public Task RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
+    public Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
     {
-        if (_sessions.TryGetValue(sessionId, out var session))
-        {
-            _sessions[sessionId] = session.Revoke(at);
-        }
-        return Task.CompletedTask;
+        if (!_sessions.TryGetValue(sessionId, out var session))
+            return Task.FromResult(false);
+
+        if (session.IsRevoked)
+            return Task.FromResult(false);
+
+        _sessions[sessionId] = session.Revoke(at);
+        return Task.FromResult(true);
     }
 
     public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)

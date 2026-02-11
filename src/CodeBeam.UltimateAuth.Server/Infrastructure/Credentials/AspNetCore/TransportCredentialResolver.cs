@@ -65,7 +65,7 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
 
     private static bool TryFromCookies(
     HttpContext ctx,
-    UAuthCookieSetOptions cookieSet,
+    UAuthCookiePolicyOptions cookieSet,
     out TransportCredential credential)
     {
         credential = default!;

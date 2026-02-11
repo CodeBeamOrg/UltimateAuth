@@ -3,7 +3,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Cookies;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 

@@ -6,5 +6,5 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 public interface IEffectiveAuthModeResolver
 {
-    UAuthMode Resolve(UAuthMode? configuredMode, UAuthClientProfile clientProfile, AuthFlowType flowType);
+    UAuthMode Resolve(UAuthClientProfile clientProfile, AuthFlowType flowType);
 }

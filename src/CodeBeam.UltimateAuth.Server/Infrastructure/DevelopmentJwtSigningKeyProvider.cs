@@ -26,7 +26,6 @@ public sealed class DevelopmentJwtSigningKeyProvider : IJwtSigningKeyProvider
 
     public JwtSigningKey Resolve(string? keyId)
     {
-        // signing veya verify için tek key
         return _key;
     }
 }

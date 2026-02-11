@@ -25,31 +25,19 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         // TODO: This is currently implicit
         Validate(bound);
 
+        var redirect = ResolveRedirect(flowType, bound);
+
         return new EffectiveAuthResponse(
             bound.SessionIdDelivery,
             bound.AccessTokenDelivery,
             bound.RefreshTokenDelivery,
-
-            new EffectiveLoginRedirectResponse(
-                bound.Login.RedirectEnabled,
-                bound.Login.SuccessRedirect,
-                bound.Login.FailureRedirect,
-                bound.Login.FailureQueryKey,
-                bound.Login.CodeQueryKey,
-                bound.Login.FailureCodes
-            ),
-
-            new EffectiveLogoutRedirectResponse(
-                bound.Logout.RedirectEnabled,
-                bound.Logout.RedirectUrl,
-                bound.Logout.AllowReturnUrlOverride
-            )
+            redirect        
         );
     }
 
-    private static AuthResponseOptions BindCookies(AuthResponseOptions response, UAuthServerOptions server)
+    private static UAuthResponseOptions BindCookies(UAuthResponseOptions response, UAuthServerOptions server)
     {
-        return new AuthResponseOptions
+        return new UAuthResponseOptions
         {
             SessionIdDelivery = Bind(response.SessionIdDelivery, server),
             AccessTokenDelivery = Bind(response.AccessTokenDelivery, server),
@@ -75,7 +63,7 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         return delivery.WithCookie(cookie);
     }
 
-    private static void Validate(AuthResponseOptions response)
+    private static void Validate(UAuthResponseOptions response)
     {
         ValidateDelivery(response.SessionIdDelivery);
         ValidateDelivery(response.AccessTokenDelivery);
@@ -90,4 +78,17 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         }
     }
 
+    private static EffectiveRedirectResponse ResolveRedirect(AuthFlowType flowType, UAuthResponseOptions bound)
+    {
+        return flowType switch
+        {
+            AuthFlowType.Login or AuthFlowType.Reauthentication
+                => EffectiveRedirectResponse.FromLogin(bound.Login),
+
+            AuthFlowType.Logout
+                => EffectiveRedirectResponse.FromLogout(bound.Logout),
+
+            _ => EffectiveRedirectResponse.Disabled
+        };
+    }
 }

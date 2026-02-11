@@ -30,12 +30,15 @@ internal sealed class BlazorServerSessionCoordinator : ISessionCoordinator
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        if (!_options.AutoRefresh.Enabled)
+            return;
+
         if (_timer is not null)
             return;
 
         _diagnostics.MarkStarted();
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var interval = _options.Refresh.Interval ?? TimeSpan.FromMinutes(5);
+        var interval = _options.AutoRefresh.Interval ?? TimeSpan.FromMinutes(5);
         _timer = new PeriodicTimer(interval);
 
         _ = RunAsync(_cts.Token);
@@ -64,8 +67,8 @@ internal sealed class BlazorServerSessionCoordinator : ISessionCoordinator
                     case RefreshOutcome.ReauthRequired:
                         switch (_options.Reauth.Behavior)
                         {
-                            case ReauthBehavior.RedirectToLogin:
-                                _navigation.NavigateTo(_options.Reauth.LoginPath, forceLoad: true);
+                            case ReauthBehavior.Redirect:
+                                _navigation.NavigateTo(_options.Reauth.RedirectPath ?? _options.Endpoints.Login, forceLoad: true);
                                 break;
 
                             case ReauthBehavior.RaiseEvent:

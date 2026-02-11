@@ -1,18 +1,17 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Events;
+﻿using CodeBeam.UltimateAuth.Core.Events;
 
 namespace CodeBeam.UltimateAuth.Core.Options;
 
 /// <summary>
 /// Top-level configuration container for all UltimateAuth features.
-/// Combines login policies, session lifecycle rules, token behavior,
-/// PKCE settings, multi-tenancy behavior, and user-id normalization.
+/// Combines login policies, session lifecycle rules, token behavior, PKCE settings, multi-tenancy behavior, and user-id normalization.
 /// 
-/// All sub-options are resolved from configuration (appsettings.json)
-/// or through inline setup in AddUltimateAuth().
+/// All sub-options are resolved from configuration (appsettings.json) or through inline setup in AddUltimateAuth().
 /// </summary>
 public sealed class UAuthOptions
 {
+    public bool AllowDirectCoreConfiguration { get; set; } = false;
+
     /// <summary>
     /// Configuration settings for interactive login flows,
     /// including lockout thresholds and failed-attempt policies.
@@ -41,20 +40,11 @@ public sealed class UAuthOptions
     /// Event hooks raised during authentication lifecycle events
     /// such as login, logout, session creation, refresh, or revocation.
     /// </summary>
-    public UAuthEvents UAuthEvents { get; set; } = new();
+    public UAuthEvents Events { get; set; } = new();
 
     /// <summary>
     /// Multi-tenancy configuration controlling how tenants are resolved,
     /// validated, and optionally enforced.
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
-
-    /// <summary>
-    /// Provides converters used to normalize and serialize TUserId
-    /// across the system (sessions, stores, tokens, logging).
-    /// </summary>
-    public IUserIdConverterResolver? UserIdConverters { get; set; }
-
-    public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
-    public bool AutoDetectClientProfile { get; set; } = true;
 }

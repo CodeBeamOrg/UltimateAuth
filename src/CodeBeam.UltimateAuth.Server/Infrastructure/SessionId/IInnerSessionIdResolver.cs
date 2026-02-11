@@ -5,6 +5,6 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IInnerSessionIdResolver
 {
-    string Key { get; }
+    string Name { get; }
     AuthSessionId? Resolve(HttpContext context);
 }

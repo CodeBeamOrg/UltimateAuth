@@ -11,14 +11,15 @@ public static class EndpointRouteBuilderExtensions
 {
     public static IEndpointRouteBuilder MapUAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        using var scope = endpoints.ServiceProvider.CreateScope();
-        var registrar = scope.ServiceProvider.GetRequiredService<IAuthEndpointRegistrar>();
-        var options = scope.ServiceProvider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
-
-        // Root group ("/")
+        var registrar = endpoints.ServiceProvider.GetRequiredService<IAuthEndpointRegistrar>();
+        var options = endpoints.ServiceProvider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
         var rootGroup = endpoints.MapGroup("");
-
         registrar.MapEndpoints(rootGroup, options);
+
+        if (endpoints is WebApplication app)
+        {
+            options.OnConfigureEndpoints?.Invoke(app);
+        }
 
         return endpoints;
     }
