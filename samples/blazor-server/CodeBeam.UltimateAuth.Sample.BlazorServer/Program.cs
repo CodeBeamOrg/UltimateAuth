@@ -75,12 +75,10 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-app.UseUltimateAuthServer();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
-app.MapUAuthEndpoints();
+app.MapUltimateAuthEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
