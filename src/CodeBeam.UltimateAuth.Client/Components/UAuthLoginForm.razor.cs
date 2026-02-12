@@ -1,6 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Client.Device;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Components;
@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client;
 
-public partial class UALoginForm
+public partial class UAuthLoginForm
 {
     [Inject] IDeviceIdProvider DeviceIdProvider { get; set; } = null!;
     private DeviceId? _deviceId;
@@ -136,13 +136,13 @@ public partial class UALoginForm
             if (string.IsNullOrWhiteSpace(returnUrl))
                 return baseUrl;
 
-            return $"{baseUrl}?{(_credentials != null ? "hub=" + EffectiveHubSessionId + "&" : null)}returnUrl={Uri.EscapeDataString(returnUrl)}";
+            return $"{baseUrl}?{(_credentials != null ? "hub=" + EffectiveHubSessionId + "&" : null)}{UAuthConstants.Query.ReturnUrl}={Uri.EscapeDataString(returnUrl)}";
         }
     }
 
     private string EffectiveReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl)
-            ? ReturnUrl
-            : LoginType == UAuthLoginType.Pkce ? _flow?.ReturnUrl ?? string.Empty : Navigation.Uri;
+        ? ReturnUrl
+        : LoginType == UAuthLoginType.Pkce ? _flow?.ReturnUrl ?? string.Empty : Navigation.Uri;
 
     private HubSessionId? EffectiveHubSessionId
     {
@@ -154,7 +154,7 @@ public partial class UALoginForm
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             var query = QueryHelpers.ParseQuery(uri.Query);
 
-            if (query.TryGetValue("hub", out var hubValue) && CodeBeam.UltimateAuth.Core.Domain.HubSessionId.TryParse(hubValue, out var parsed))
+            if (query.TryGetValue(UAuthConstants.Query.Hub, out var hubValue) && CodeBeam.UltimateAuth.Core.Domain.HubSessionId.TryParse(hubValue, out var parsed))
             {
                 return parsed;
             }
@@ -162,5 +162,4 @@ public partial class UALoginForm
             return null;
         }
     }
-
 }

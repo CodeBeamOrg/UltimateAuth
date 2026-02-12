@@ -8,8 +8,6 @@ public sealed class UserMiddleware
 {
     private readonly RequestDelegate _next;
 
-    public const string UserContextKey = "__UAuthUser";
-
     public UserMiddleware(RequestDelegate next)
     {
         _next = next;

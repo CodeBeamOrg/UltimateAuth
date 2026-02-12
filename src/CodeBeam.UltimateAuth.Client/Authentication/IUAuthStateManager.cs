@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Authentication;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Orchestrates the lifecycle of UAuthState.

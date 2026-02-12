@@ -16,8 +16,6 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
         private string? _username;
         private string? _password;
 
-        private UALoginForm _form = null!;
-
         private AuthenticationState _authState = null!;
 
         protected override async Task OnInitializedAsync()

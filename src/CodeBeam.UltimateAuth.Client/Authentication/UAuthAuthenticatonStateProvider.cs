@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 
-namespace CodeBeam.UltimateAuth.Client.Authentication;
+namespace CodeBeam.UltimateAuth.Client;
 
 internal sealed class UAuthAuthenticationStateProvider : AuthenticationStateProvider
 {
@@ -17,5 +17,4 @@ internal sealed class UAuthAuthenticationStateProvider : AuthenticationStateProv
         var principal = _stateManager.State.ToClaimsPrincipal();
         return Task.FromResult(new AuthenticationState(principal));
     }
-
 }

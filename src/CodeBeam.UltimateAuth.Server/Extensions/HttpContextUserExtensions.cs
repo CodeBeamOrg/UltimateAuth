@@ -1,6 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Middlewares;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
@@ -9,7 +9,7 @@ public static class HttpContextUserExtensions
 {
     public static AuthUserSnapshot<UserKey> GetUserContext(this HttpContext ctx)
     {
-        if (ctx.Items.TryGetValue(UserMiddleware.UserContextKey, out var value) && value is AuthUserSnapshot<UserKey> user)
+        if (ctx.Items.TryGetValue(UAuthConstants.HttpItems.UserContextKey, out var value) && value is AuthUserSnapshot<UserKey> user)
         {
             return user;
         }

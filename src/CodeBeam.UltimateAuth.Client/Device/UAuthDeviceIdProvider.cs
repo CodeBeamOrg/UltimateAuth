@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Client.Devices;
+namespace CodeBeam.UltimateAuth.Client;
 
 public sealed class UAuthDeviceIdProvider : IDeviceIdProvider
 {

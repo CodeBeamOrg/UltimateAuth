@@ -37,14 +37,14 @@
             </MudText>
             return;
         }
-        <UALoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce">
+        <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce">
             <MudStack>
                 <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
                 <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
                 <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
             </MudStack>
-        </UALoginForm>
+        </UAuthLoginForm>
 
         <MudStack Class="mud-width-full">
             <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticPkceLogin">Programmatic Pkce Login</MudButton>

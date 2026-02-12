@@ -1,7 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Client.Authentication;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client.Components;
+namespace CodeBeam.UltimateAuth.Client;
 
 public partial class UAuthAuthenticationState
 {

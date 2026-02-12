@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -26,7 +27,7 @@ public sealed class SessionResolutionMiddleware
             ? SessionContext.Anonymous()
             : SessionContext.FromSessionId(sessionId.Value, tenant);
 
-        context.Items[SessionContextItemKeys.SessionContext] = sessionContext;
+        context.Items[UAuthConstants.HttpItems.SessionContext] = sessionContext;
 
         await _next(context);
     }

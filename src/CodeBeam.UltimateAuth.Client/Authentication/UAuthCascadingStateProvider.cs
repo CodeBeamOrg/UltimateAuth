@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client.Authentication;
+namespace CodeBeam.UltimateAuth.Client;
 
 internal sealed class UAuthCascadingStateProvider : CascadingValueSource<UAuthState>, IDisposable
 {

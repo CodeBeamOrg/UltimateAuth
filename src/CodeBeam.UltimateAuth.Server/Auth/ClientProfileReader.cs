@@ -1,21 +1,19 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class ClientProfileReader : IClientProfileReader
 {
-    private const string HeaderName = "X-UAuth-ClientProfile";
-    private const string FormFieldName = "__uauth_client_profile";
-
     public UAuthClientProfile Read(HttpContext context)
     {
-        if (context.Request.Headers.TryGetValue(HeaderName, out var headerValue) && TryParse(headerValue, out var headerProfile))
+        if (context.Request.Headers.TryGetValue(UAuthConstants.Headers.ClientProfile, out var headerValue) && TryParse(headerValue, out var headerProfile))
         {
             return headerProfile;
         }
 
-        if (context.Request.HasFormContentType && context.Request.Form.TryGetValue(FormFieldName, out var formValue) &&
+        if (context.Request.HasFormContentType && context.Request.Form.TryGetValue(UAuthConstants.Form.ClientProfile, out var formValue) &&
             TryParse(formValue, out var formProfile))
         {
             return formProfile;
@@ -28,5 +26,4 @@ internal sealed class ClientProfileReader : IClientProfileReader
     {
         return Enum.TryParse(value, ignoreCase: true, out profile);
     }
-
 }

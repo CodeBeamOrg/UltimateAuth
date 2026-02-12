@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Authentication;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 public enum UAuthStateChangeReason
 {

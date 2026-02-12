@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
-namespace CodeBeam.UltimateAuth.Client.Authentication;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents the client-side authentication snapshot for UltimateAuth.
