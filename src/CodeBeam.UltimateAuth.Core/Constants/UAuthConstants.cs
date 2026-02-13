@@ -27,5 +27,11 @@ public static class UAuthConstants
         public const string ClientProfile = "X-UAuth-ClientProfile";
         public const string DeviceId = "X-UDID";
         public const string Refresh = "X-UAuth-Refresh";
+        public const string AuthState = "X-UAuth-AuthState";
+    }
+
+    public static class Routes
+    {
+        public const string LoginRedirect = "/__uauth/login-redirect";
     }
 }

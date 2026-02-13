@@ -1,1 +1,69 @@
 ﻿@page "/home"
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthProvider
+@inject IUAuthStateManager StateManager
+@inject IUAuthClient UAuthClient
+
+<MudPage FullScreen="FullScreen.Full">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudPaper Class="pa-6">
+
+                <MudAvatar Size="Size.Large" Color="Color.Primary">
+                    @(_aspNetUserName?.Substring(0, 1).ToUpper())
+                </MudAvatar>
+
+                <MudText Typo="Typo.h5" Class="mt-2">
+                    @_aspNetUserName
+                </MudText>
+
+                <MudDivider Class="my-4" />
+
+                <MudText><b>ASP.NET Authenticated:</b> @_aspNetAuthenticated</MudText>
+                <MudText><b>UAuth Authenticated:</b> @_uAuthAuthenticated</MudText>
+
+                <MudText><b>UserKey:</b> @_uAuthUserKey</MudText>
+                <MudText><b>Client Profile:</b> @_clientProfile</MudText>
+                <MudText><b>Tenant:</b> @_tenant</MudText>
+
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6">
+            <MudPaper Class="pa-6">
+
+                <MudText Typo="Typo.h6">User Operations</MudText>
+                <MudDivider Class="my-4" />
+
+                <MudStack Spacing="2">
+
+                    <AuthorizeView Roles="Admin">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
+                            Add User
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
+                            Assign Role
+                        </MudButton>
+                    </AuthorizeView>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
+                        Change Password
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
+                        Manual Refresh
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
+                        Logout
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+</MudPage>

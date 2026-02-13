@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
+using CodeBeam.UltimateAuth.Client;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
@@ -80,6 +81,7 @@ app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddUltimateAuthClientRoutes(typeof(UAuthClientMarker).Assembly);
 
 app.Run();

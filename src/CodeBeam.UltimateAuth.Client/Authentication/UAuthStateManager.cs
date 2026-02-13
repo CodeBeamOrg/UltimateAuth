@@ -19,7 +19,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager
     }
 
     public async Task EnsureAsync(CancellationToken ct = default)
-    {   
+    {
         if (State.IsAuthenticated && !State.IsStale)
             return;
 

@@ -89,6 +89,9 @@ public sealed class UAuthServerOptions
 
     public UAuthUserIdentifierOptions UserIdentifiers { get; set; } = new();
 
+    public UAuthNavigationOptions Navigation { get; set; } = new();
+
+
     ///// <summary>
     ///// If true, server will add anti-forgery headers
     ///// and require proper request metadata.
@@ -137,6 +140,7 @@ public sealed class UAuthServerOptions
             SessionResolution = SessionResolution.Clone(),
             UserIdentifiers = UserIdentifiers.Clone(),
             Endpoints = Endpoints.Clone(),
+            Navigation = Navigation.Clone(),
 
             //EnableAntiCsrfProtection = EnableAntiCsrfProtection,
             //EnableLoginRateLimiting = EnableLoginRateLimiting,

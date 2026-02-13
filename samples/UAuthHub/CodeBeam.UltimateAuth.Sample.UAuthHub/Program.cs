@@ -33,9 +33,9 @@ builder.Services.AddMudExtensions();
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = UAuthCookieDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = UAuthCookieDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = UAuthSchemeDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = UAuthSchemeDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = UAuthSchemeDefaults.AuthenticationScheme;
     })
     .AddUAuthCookies();
 

@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+
+namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
 public partial class LandingPage
 {
@@ -10,6 +12,6 @@ public partial class LandingPage
         var state = await AuthProvider.GetAuthenticationStateAsync();
         var isAuthenticated = state.User.Identity?.IsAuthenticated == true;
 
-        Nav.NavigateTo(isAuthenticated ? "/home" : "/login", true);
+        Nav.NavigateTo(isAuthenticated ? "/home" : $"{UAuthConstants.Routes.LoginRedirect}?fresh=true");
     }
 }
