@@ -19,7 +19,7 @@ public sealed record AuthStateSnapshot
     /// <summary>
     /// Authentication identity information such as UserKey, Tenant and authentication metadata.
     /// </summary>
-    public required AuthIdentity Identity { get; init; }
+    public required AuthIdentitySnapshot Identity { get; init; }
 
     /// <summary>
     /// Authorization claims associated with the identity. These are security claims, not profile or display data.

@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Users.Abstractions;
+namespace CodeBeam.UltimateAuth.Users;
 
 /// <summary>
 /// Optional integration point for reacting to user lifecycle events.

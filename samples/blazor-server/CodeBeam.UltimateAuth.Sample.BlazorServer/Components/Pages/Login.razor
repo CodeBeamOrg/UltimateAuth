@@ -41,7 +41,7 @@
         <MudStack Spacing="0">
             <MudText>State of Authentication:</MudText>
             <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
-            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserKey)</MudText>
+            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager?.State?.Identity?.UserKey)</MudText>
             <AuthorizeView>
                 <Authorized>
                     <MudText>Authorized context is shown. @context?.User?.Identity?.IsAuthenticated</MudText>

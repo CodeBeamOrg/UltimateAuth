@@ -25,6 +25,7 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
+using CodeBeam.UltimateAuth.Users;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -161,6 +162,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
+        services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
 
         services.AddSingleton<IClientBaseAddressProvider, OriginHeaderBaseAddressProvider>();
         services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();

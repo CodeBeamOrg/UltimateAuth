@@ -10,7 +10,7 @@
             <MudPaper Class="pa-6">
 
                 <MudAvatar Size="Size.Large" Color="Color.Primary">
-                    @(AuthState?.UserKey?.Value.Substring(0, 2).ToUpper())
+                    @(AuthState?.Identity?.UserKey.Value.Substring(0, 2).ToUpper())
                 </MudAvatar>
 
                 <MudDivider Class="my-4" />
@@ -26,9 +26,13 @@
 
                 <MudText Typo="Typo.h6"><b>UAuth State</b></MudText>
                 <MudText>IsAuthenticated: @AuthState.IsAuthenticated</MudText>
-                <MudText>UserKey: @AuthState.UserKey</MudText>
-                <MudText>Tenant: @AuthState.Tenant</MudText>
-                <MudText>Authenticated At: @AuthState.AuthenticatedAt</MudText>
+                <MudText>UserKey: @AuthState?.Identity?.UserKey.Value</MudText>
+                <MudText>User Name: @AuthState?.Identity?.PrimaryUserName</MudText>
+                <MudText>Primary Email: @AuthState?.Identity?.PrimaryEmail</MudText>
+                <MudText>Primary Phone: @AuthState?.Identity?.PrimaryPhone</MudText>
+                <MudText>Tenant: @AuthState?.Identity?.Tenant.Value</MudText>
+                <MudText>Authenticated At: @AuthState?.Identity?.AuthenticatedAt</MudText>
+                <MudText>Last Validated At: @AuthState?.LastValidatedAt</MudText>
                 <MudText>Roles: @string.Join(", ", AuthState.Claims.Roles)</MudText>
             </MudPaper>
         </MudItem>

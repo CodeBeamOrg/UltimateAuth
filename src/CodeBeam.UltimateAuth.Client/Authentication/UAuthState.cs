@@ -1,7 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client;
@@ -16,45 +15,29 @@ public sealed class UAuthState
 {
     private UAuthState() { }
 
-    public bool IsAuthenticated { get; private set; }
+    public AuthIdentitySnapshot? Identity { get; private set; }
+    public ClaimsSnapshot Claims { get; private set; } = ClaimsSnapshot.Empty;
 
-    public UserKey? UserKey { get; private set; }
-
-    public TenantKey Tenant { get; private set; }
-
-    /// <summary>
-    /// When this authentication snapshot was created.
-    /// </summary>
-    public DateTimeOffset? AuthenticatedAt { get; private set; }
-
-    /// <summary>
-    /// When this snapshot was last validated or refreshed.
-    /// </summary>
     public DateTimeOffset? LastValidatedAt { get; private set; }
 
     /// <summary>
-    /// Indicates whether the snapshot may be stale
-    /// (e.g. after navigation, reload, or time-based heuristics).
+    /// Indicates whether the snapshot may be stale (e.g. after navigation, reload, or time-based heuristics).
     /// </summary>
     public bool IsStale { get; private set; }
 
-    public ClaimsSnapshot Claims { get; private set; } = ClaimsSnapshot.Empty;
-
     public event Action<UAuthStateChangeReason>? Changed;
+
+    public bool IsAuthenticated => Identity is not null;
 
     public static UAuthState Anonymous() => new();
 
     internal void ApplySnapshot(AuthStateSnapshot snapshot, DateTimeOffset validatedAt)
     {
-        UserKey = snapshot.Identity.UserKey;
-        Tenant = snapshot.Identity.Tenant;
+        Identity = snapshot.Identity;
         Claims = snapshot.Claims;
 
-        IsAuthenticated = true;
-
-        AuthenticatedAt = snapshot.Identity.AuthenticatedAt;
-        LastValidatedAt = validatedAt;
         IsStale = false;
+        LastValidatedAt = validatedAt;
 
         Changed?.Invoke(UAuthStateChangeReason.Authenticated);
     }
@@ -81,13 +64,9 @@ public sealed class UAuthState
 
     internal void Clear()
     {
+        Identity = null;
         Claims = ClaimsSnapshot.Empty;
 
-        UserKey = null;
-        IsAuthenticated = false;
-
-        AuthenticatedAt = null;
-        LastValidatedAt = null;
         IsStale = false;
 
         Changed?.Invoke(UAuthStateChangeReason.Cleared);
@@ -98,14 +77,14 @@ public sealed class UAuthState
     /// </summary>
     public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
     {
-        if (!IsAuthenticated || UserKey is null)
+        if (!IsAuthenticated || Identity is null)
             return new ClaimsPrincipal(new ClaimsIdentity());
 
         var claims = Claims.ToClaims().ToList();
-        claims.Add(new Claim(ClaimTypes.NameIdentifier, UserKey.Value));
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, Identity.UserKey.Value));
 
-        if (!string.IsNullOrWhiteSpace(Claims.Get(ClaimTypes.Name)))
-            claims.Add(new Claim(ClaimTypes.Name, Claims.Get(ClaimTypes.Name)!));
+        if (!string.IsNullOrWhiteSpace(Identity.PrimaryUserName))
+            claims.Add(new Claim(ClaimTypes.Name, Identity.PrimaryUserName));
 
         var identity = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
         return new ClaimsPrincipal(identity);
