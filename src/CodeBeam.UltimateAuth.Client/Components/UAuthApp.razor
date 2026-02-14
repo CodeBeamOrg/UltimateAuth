@@ -8,7 +8,7 @@
 @inject IUAuthClientBootstrapper Bootstrapper
 
 <CascadingAuthenticationState>
-    <CascadingValue Value="@_uauthState" IsFixed="false">
+    <CascadingValue Value="@StateManager.State" IsFixed="false">
         @ChildContent
     </CascadingValue>
 </CascadingAuthenticationState>

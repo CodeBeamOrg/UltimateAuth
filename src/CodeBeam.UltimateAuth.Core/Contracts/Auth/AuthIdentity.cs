@@ -3,12 +3,10 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed record AuthStateSnapshot
+public sealed record AuthIdentity
 {
-    public UserKey UserKey { get; init; }
-    public TenantKey Tenant { get; init; }
-
-    public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
-
+    public required UserKey UserKey { get; init; }
+    public required TenantKey Tenant { get; init; }
+    public string? UserName { get; init; }
     public DateTimeOffset? AuthenticatedAt { get; init; }
 }

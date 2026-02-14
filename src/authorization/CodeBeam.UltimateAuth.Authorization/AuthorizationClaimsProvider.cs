@@ -23,6 +23,9 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 
         var builder = ClaimsSnapshot.Create();
 
+        builder.Add(ClaimTypes.Name, userKey.Value);
+        builder.Add("uauth:tenant", tenant.Value);
+
         foreach (var role in roles)
             builder.Add(ClaimTypes.Role, role);
 

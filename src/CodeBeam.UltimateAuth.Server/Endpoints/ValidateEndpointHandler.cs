@@ -88,10 +88,13 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
                 Snapshot = new AuthStateSnapshot
                 {
-                    UserKey = userKey,
-                    Tenant = result.Tenant,
-                    Claims = result.Claims,
-                    AuthenticatedAt = _clock.UtcNow,
+                    Identity = new AuthIdentity
+                    {
+                        UserKey = userKey,
+                        Tenant = result.Tenant,
+                        AuthenticatedAt = result.AuthenticatedAt
+                    },
+                    Claims = result.Claims
                 }
             });
         }

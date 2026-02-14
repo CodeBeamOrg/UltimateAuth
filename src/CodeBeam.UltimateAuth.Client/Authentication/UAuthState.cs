@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
 
@@ -45,25 +46,18 @@ public sealed class UAuthState
 
     internal void ApplySnapshot(AuthStateSnapshot snapshot, DateTimeOffset validatedAt)
     {
-        if (string.IsNullOrWhiteSpace(snapshot.UserKey))
-        {
-            Clear();
-            return;
-        }
-
-        UserKey = CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(snapshot.UserKey);
-        Tenant = snapshot.Tenant;
+        UserKey = snapshot.Identity.UserKey;
+        Tenant = snapshot.Identity.Tenant;
         Claims = snapshot.Claims;
 
         IsAuthenticated = true;
 
-        AuthenticatedAt = snapshot.AuthenticatedAt;
+        AuthenticatedAt = snapshot.Identity.AuthenticatedAt;
         LastValidatedAt = validatedAt;
         IsStale = false;
 
         Changed?.Invoke(UAuthStateChangeReason.Authenticated);
     }
-
 
     internal void MarkValidated(DateTimeOffset now)
     {
@@ -104,15 +98,16 @@ public sealed class UAuthState
     /// </summary>
     public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
     {
-        if (!IsAuthenticated)
+        if (!IsAuthenticated || UserKey is null)
             return new ClaimsPrincipal(new ClaimsIdentity());
 
-        var identity = new ClaimsIdentity(
-            Claims.AsDictionary()
-                  .Select(kv => new Claim(kv.Key, kv.Value)),
-            authenticationType);
+        var claims = Claims.ToClaims().ToList();
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, UserKey.Value));
 
+        if (!string.IsNullOrWhiteSpace(Claims.Get(ClaimTypes.Name)))
+            claims.Add(new Claim(ClaimTypes.Name, Claims.Get(ClaimTypes.Name)!));
+
+        var identity = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
         return new ClaimsPrincipal(identity);
     }
-
 }

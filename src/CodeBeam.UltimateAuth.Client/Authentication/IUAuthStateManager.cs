@@ -16,7 +16,7 @@ public interface IUAuthStateManager
     /// Ensures the authentication state is valid.
     /// May call server validate/refresh if needed.
     /// </summary>
-    Task EnsureAsync(CancellationToken ct = default);
+    Task EnsureAsync(bool force = false, CancellationToken ct = default);
 
     /// <summary>
     /// Called after a successful login.

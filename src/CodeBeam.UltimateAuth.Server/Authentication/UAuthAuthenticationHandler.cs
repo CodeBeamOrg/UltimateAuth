@@ -40,6 +40,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         _serverOptions = serverOptions.Value;
         _clock = uauthClock;
     }
+
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var credential = _transportCredentialResolver.Resolve(Context);

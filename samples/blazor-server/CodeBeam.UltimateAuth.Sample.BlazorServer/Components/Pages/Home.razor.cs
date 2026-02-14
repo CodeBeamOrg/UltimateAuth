@@ -1,27 +1,24 @@
-﻿namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
+﻿using CodeBeam.UltimateAuth.Client;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
+
+namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
 public partial class Home
 {
-    private string? _aspNetUserName;
-    private bool _aspNetAuthenticated;
-    private bool _uAuthAuthenticated;
-    private string? _uAuthUserKey;
-    private string? _clientProfile;
-    private string? _tenant;
+    private ClaimsPrincipal? _aspNetCoreState;
+
+    [CascadingParameter]
+    public UAuthState AuthState { get; set; } = default!;
+
+    [CascadingParameter]
+    Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthProvider.GetAuthenticationStateAsync();
-        var user = state.User;
-
-        _aspNetAuthenticated = user.Identity?.IsAuthenticated == true;
-        _aspNetUserName = user.Identity?.Name;
-
-        var uAuth = StateManager.State;
-
-        _uAuthAuthenticated = uAuth?.IsAuthenticated == true;
-        _uAuthUserKey = uAuth?.UserKey?.ToString();
-        _tenant = uAuth?.Tenant.Value;
+        var state = await AuthenticationStateTask;
+        _aspNetCoreState = state.User;
     }
 
     private async Task Logout()

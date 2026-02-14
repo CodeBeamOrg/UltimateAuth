@@ -3,6 +3,16 @@ using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
+/// <summary>
+/// Represents a deterministic, immutable collection of authorization claims.
+///
+/// This object contains only security-related claims such as:
+/// - Roles
+/// - Permissions
+/// - Policy markers.
+///
+/// It must not contain profile data, display data or identity metadata.
+/// </summary>
 public sealed class ClaimsSnapshot
 {
     private readonly IReadOnlyDictionary<string, IReadOnlyCollection<string>> _claims;

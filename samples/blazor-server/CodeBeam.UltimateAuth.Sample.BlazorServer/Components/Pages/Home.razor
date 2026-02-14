@@ -2,31 +2,34 @@
 @attribute [Authorize]
 
 @inject AuthenticationStateProvider AuthProvider
-@inject IUAuthStateManager StateManager
 @inject IUAuthClient UAuthClient
 
-<MudPage FullScreen="FullScreen.Full">
+<MudPage Class="mud-width-full" FullScreen="FullScreen.Full" Column="1" Row="1">
     <MudGrid>
         <MudItem xs="12" sm="6">
             <MudPaper Class="pa-6">
 
                 <MudAvatar Size="Size.Large" Color="Color.Primary">
-                    @(_aspNetUserName?.Substring(0, 1).ToUpper())
+                    @(AuthState?.UserKey?.Value.Substring(0, 2).ToUpper())
                 </MudAvatar>
-
-                <MudText Typo="Typo.h5" Class="mt-2">
-                    @_aspNetUserName
-                </MudText>
 
                 <MudDivider Class="my-4" />
 
-                <MudText><b>ASP.NET Authenticated:</b> @_aspNetAuthenticated</MudText>
-                <MudText><b>UAuth Authenticated:</b> @_uAuthAuthenticated</MudText>
+                <MudText Typo="Typo.h6"><b>ASP.NET Core State</b></MudText>
+                <MudText>IsAuthenticated: @_aspNetCoreState?.Identity?.IsAuthenticated</MudText>
+                <MudText>User Id: @_aspNetCoreState?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value</MudText>
+                <MudText>User Name: @_aspNetCoreState?.Identity?.Name</MudText>
+                <MudText>Authentication Type: @_aspNetCoreState?.Identity?.AuthenticationType</MudText>
+                <MudText>Is Admin: @_aspNetCoreState?.IsInRole("Admin")</MudText>
 
-                <MudText><b>UserKey:</b> @_uAuthUserKey</MudText>
-                <MudText><b>Client Profile:</b> @_clientProfile</MudText>
-                <MudText><b>Tenant:</b> @_tenant</MudText>
+                <MudDivider Class="my-4" />
 
+                <MudText Typo="Typo.h6"><b>UAuth State</b></MudText>
+                <MudText>IsAuthenticated: @AuthState.IsAuthenticated</MudText>
+                <MudText>UserKey: @AuthState.UserKey</MudText>
+                <MudText>Tenant: @AuthState.Tenant</MudText>
+                <MudText>Authenticated At: @AuthState.AuthenticatedAt</MudText>
+                <MudText>Roles: @string.Join(", ", AuthState.Claims.Roles)</MudText>
             </MudPaper>
         </MudItem>
 
@@ -65,5 +68,4 @@
             </MudPaper>
         </MudItem>
     </MudGrid>
-
 </MudPage>

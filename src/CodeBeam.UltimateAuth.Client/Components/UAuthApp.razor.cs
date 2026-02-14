@@ -2,10 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Client;
 
-public partial class UAuthAuthenticationState
+public partial class UAuthApp
 {
     private bool _initialized;
-    private UAuthState _uauthState = UAuthState.Anonymous();
 
     [Parameter]
     public RenderFragment ChildContent { get; set; } = default!;
@@ -21,19 +20,20 @@ public partial class UAuthAuthenticationState
         _initialized = true;
         //await Bootstrapper.EnsureStartedAsync();
         await StateManager.EnsureAsync();
-        _uauthState = StateManager.State;
 
         StateManager.State.Changed += OnStateChanged;
     }
 
-    private void OnStateChanged(UAuthStateChangeReason _)
+    private void OnStateChanged(UAuthStateChangeReason reason)
     {
-        //StateManager.EnsureAsync();
-        if (_ == UAuthStateChangeReason.MarkedStale)
+        if (reason == UAuthStateChangeReason.MarkedStale)
         {
-            StateManager.EnsureAsync();
+            _ = InvokeAsync(async () =>
+            {
+                await StateManager.EnsureAsync();
+            });
         }
-        _uauthState = StateManager.State;
+
         InvokeAsync(StateHasChanged);
     }
 
