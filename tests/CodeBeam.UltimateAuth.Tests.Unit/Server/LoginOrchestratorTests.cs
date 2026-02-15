@@ -73,7 +73,7 @@ public class LoginOrchestratorTests
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
 
-        var state = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state = store.GetState(TenantKey.Single, TestUsers.User);
 
         state!.FailedLoginAttempts.Should().Be(1);
     }
@@ -109,7 +109,7 @@ public class LoginOrchestratorTests
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
 
-        var state = store.GetState(TenantKey.Single,UserKey.Parse("user", null));
+        var state = store.GetState(TenantKey.Single, TestUsers.User);
         state.Should().BeNull();
     }
 
@@ -172,7 +172,7 @@ public class LoginOrchestratorTests
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
-        var state = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state = store.GetState(TenantKey.Single, TestUsers.User);
 
         state!.IsLocked.Should().BeTrue();
     }
@@ -232,7 +232,7 @@ public class LoginOrchestratorTests
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
-        var state1 = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state1 = store.GetState(TenantKey.Single, TestUsers.User);
 
         await orchestrator.LoginAsync(flow,
             new LoginRequest
@@ -243,7 +243,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var state2 = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state2 = store.GetState(TenantKey.Single, TestUsers.User);
 
         state2!.FailedLoginAttempts.Should().Be(state1!.FailedLoginAttempts);
     }
@@ -272,7 +272,7 @@ public class LoginOrchestratorTests
         }
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
-        var state = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state = store.GetState(TenantKey.Single, TestUsers.User);
 
         state!.IsLocked.Should().BeFalse();
         state.FailedLoginAttempts.Should().Be(5);
@@ -319,7 +319,7 @@ public class LoginOrchestratorTests
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
-        var state1 = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state1 = store.GetState(TenantKey.Single, TestUsers.User);
 
         var lockedUntil = state1!.LockedUntil;
 
@@ -332,14 +332,13 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var state2 = store.GetState(TenantKey.Single, UserKey.Parse("user", null));
+        var state2 = store.GetState(TenantKey.Single, TestUsers.User);
         state2!.LockedUntil.Should().Be(lockedUntil);
     }
 
     [Fact]
     public async Task Login_success_should_trigger_UserLoggedIn_event()
     {
-        // arrange
         UserLoggedInContext? captured = null;
 
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
@@ -354,7 +353,6 @@ public class LoginOrchestratorTests
         var orchestrator = runtime.GetLoginOrchestrator();
         var flow = await runtime.CreateLoginFlowAsync();
 
-        // act
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
             Tenant = TenantKey.Single,
@@ -363,9 +361,8 @@ public class LoginOrchestratorTests
             Device = TestDevice.Default()
         });
 
-        // assert
         captured.Should().NotBeNull();
-        captured!.UserKey.Should().Be(UserKey.Parse("user", null));
+        captured!.UserKey.Should().Be(TestUsers.User);
     }
 
     [Fact]

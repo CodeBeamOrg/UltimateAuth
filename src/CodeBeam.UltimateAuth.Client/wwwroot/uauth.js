@@ -42,13 +42,14 @@ window.uauth.submitForm = function (form) {
         throw new Error("UAuth deviceId is not initialized.");
     }
 
-    //if (!form.querySelector("input[name='__uauth_device']")) {
-        const udid = document.createElement("input");
+    let udid = form.querySelector("input[name='__uauth_device']");
+    if (!udid) {
+        udid = document.createElement("input");
         udid.type = "hidden";
         udid.name = "__uauth_device";
-        udid.value = window.uauth.deviceId;
         form.appendChild(udid);
-    //}
+    }
+    udid.value = window.uauth.deviceId;
 
     form.submit();
 };
