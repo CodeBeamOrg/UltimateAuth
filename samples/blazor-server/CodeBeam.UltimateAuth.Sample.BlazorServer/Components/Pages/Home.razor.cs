@@ -19,6 +19,12 @@ public partial class Home
     {
         var state = await AuthenticationStateTask;
         _aspNetCoreState = state.User;
+        Diagnostics.Changed += OnDiagnosticsChanged;
+    }
+
+    private void OnDiagnosticsChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Logout()
@@ -30,4 +36,9 @@ public partial class Home
     private Task CreateUser() => Task.CompletedTask;
     private Task AssignRole() => Task.CompletedTask;
     private Task ChangePassword() => Task.CompletedTask;
+
+    public void Dispose()
+    {
+        Diagnostics.Changed -= OnDiagnosticsChanged;
+    }
 }

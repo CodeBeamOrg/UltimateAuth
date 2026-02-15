@@ -2,13 +2,12 @@
 @attribute [UAuthLoginPage]
 
 @inject IUAuthClient UAuth
-@inject IUAuthStateManager StateManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
-@inject IUAuthClientProductInfoProvider ClientProductInfo
-@inject UAuthClientDiagnostics Diagnostics
+@inject IUAuthClientProductInfoProvider ClientProductInfoProvider
 @inject IDeviceIdProvider DeviceIdProvider
+@inject UAuthClientDiagnostics Diagnostics
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
@@ -34,14 +33,15 @@
         </MudStack>
 
         <MudStack Spacing="0">
-            <MudText><b>@ClientProductInfo.Get().ProductName</b> v @ClientProductInfo.Get().Version</MudText>
-            <MudText>Client Profile: @ClientProductInfo.Get().ClientProfile.ToString()</MudText>
+            <MudText><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
+            <MudText>Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
+            <MudText>Framework Description: @_productInfo?.FrameworkDescription</MudText>
         </MudStack>
 
         <MudStack Spacing="0">
             <MudText>State of Authentication:</MudText>
-            <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
-            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager?.State?.Identity?.UserKey)</MudText>
+            <MudText>@(_aspNetCoreState?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_aspNetCoreState?.Identity?.Name)</MudText>
+            <MudText>UAuthState @(AuthState.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(AuthState.Identity?.UserKey)</MudText>
             <AuthorizeView>
                 <Authorized>
                     <MudText>Authorized context is shown. @context?.User?.Identity?.IsAuthenticated</MudText>
@@ -57,37 +57,5 @@
                 </Authorized>
             </AuthorizeView>
         </MudStack>
-
-        <MudStack>
-            <MudPaper Class="pa-4 mt-4">
-                <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
-
-                <MudDivider Class="my-2" />
-
-                <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
-                <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
-                <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
-
-                <MudDivider Class="my-2" />
-
-                <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
-                <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
-                <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
-
-                <MudText Color="Color.Success">
-                    Touched Success: @Diagnostics.RefreshTouchedCount
-                </MudText>
-                <MudText Color="Color.Success">
-                    No-Op Success: @Diagnostics.RefreshNoOpCount
-                </MudText>
-                <MudText Color="Color.Warning">
-                    ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
-                </MudText>
-                <MudText Color="Color.Warning">
-                    Unknown: @Diagnostics.RefreshUnknownCount
-                </MudText>
-            </MudPaper>
-        </MudStack>
     </MudStack>
-
 </div>

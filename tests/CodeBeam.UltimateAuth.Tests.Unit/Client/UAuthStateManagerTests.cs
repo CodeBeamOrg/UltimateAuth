@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Authentication;
-using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -41,9 +40,7 @@ public class UAuthStateManagerTests
         var clock = new Mock<IClock>();
         clock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
-        var bootstrap = new Mock<IUAuthClientBootstrapper>();
-
-        var manager = new UAuthStateManager(client.Object, clock.Object, bootstrap.Object);
+        var manager = new UAuthStateManager(client.Object, clock.Object);
 
         await manager.EnsureAsync();
         await manager.EnsureAsync();
@@ -56,7 +53,6 @@ public class UAuthStateManagerTests
     {
         var client = new Mock<IUAuthClient>();
         var clock = new Mock<IClock>();
-        var bootstrap = new Mock<IUAuthClientBootstrapper>();
 
         client.Setup(x => x.Flows.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult
@@ -64,7 +60,7 @@ public class UAuthStateManagerTests
                 IsValid = false
             });
 
-        var manager = new UAuthStateManager(client.Object, clock.Object, bootstrap.Object);
+        var manager = new UAuthStateManager(client.Object, clock.Object);
 
         await manager.EnsureAsync(force: true);
         await manager.EnsureAsync(force: true);
@@ -77,7 +73,6 @@ public class UAuthStateManagerTests
     {
         var client = new Mock<IUAuthClient>();
         var clock = new Mock<IClock>();
-        var bootstrap = new Mock<IUAuthClientBootstrapper>();
 
         client.Setup(x => x.Flows.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult
@@ -85,7 +80,7 @@ public class UAuthStateManagerTests
                 IsValid = false
             });
 
-        var manager = new UAuthStateManager(client.Object, clock.Object, bootstrap.Object);
+        var manager = new UAuthStateManager(client.Object, clock.Object);
 
         await manager.EnsureAsync();
 

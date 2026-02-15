@@ -1,9 +1,11 @@
-﻿<MudThemeProvider />
+﻿@inject ISnackbar Snackbar
+
+<MudThemeProvider />
 <MudPopoverProvider />
 <MudSnackbarProvider />
 <MudDialogProvider />
 
-<UAuthApp>
+<UAuthApp OnReauthRequired="HandleReauth">
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -17,3 +19,10 @@
         </NotFound>
     </Router>
 </UAuthApp>
+
+@code {
+    private void HandleReauth()
+    {
+        Snackbar.Add("Reauthentication required. Please log in again.", Severity.Warning);
+    }
+}

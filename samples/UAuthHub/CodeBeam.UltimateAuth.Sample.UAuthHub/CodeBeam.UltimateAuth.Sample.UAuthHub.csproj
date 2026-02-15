@@ -4,13 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-	  <Version>0.0.1-preview</Version>
+	  <Version>0.0.1</Version>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-preview.3" />
-    <PackageReference Include="MudBlazor" Version="9.0.0-preview.1" />
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-rc.1" />
+    <PackageReference Include="MudBlazor" Version="9.0.0-rc.1" />
   </ItemGroup>
 
   <ItemGroup>

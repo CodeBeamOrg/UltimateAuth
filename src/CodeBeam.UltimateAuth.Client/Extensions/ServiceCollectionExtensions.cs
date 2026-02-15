@@ -10,7 +10,6 @@ using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Client.Utilities;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -82,33 +81,24 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICredentialClient, UAuthCredentialClient>();
         services.TryAddScoped<IAuthorizationClient, UAuthAuthorizationClient>();
 
-        services.AddScoped<ISessionCoordinator>(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
-
-            return options.ClientProfile == UAuthClientProfile.BlazorServer
-                ? sp.GetRequiredService<BlazorServerSessionCoordinator>()
-                : sp.GetRequiredService<NoOpSessionCoordinator>();
-        });
-
-        services.AddScoped<IUAuthClientBootstrapper, UAuthClientBootstrapper>();
-        services.AddScoped<BlazorServerSessionCoordinator>();
-        services.AddScoped<NoOpSessionCoordinator>();
+        services.TryAddScoped<ISessionCoordinator, SessionCoordinator>();
+        services.TryAddScoped<IUAuthClientBootstrapper, UAuthClientBootstrapper>();
         services.AddScoped<UAuthClientDiagnostics>();
-        services.AddScoped<IUAuthStateManager, UAuthStateManager>();
+        services.TryAddScoped<IUAuthStateManager, UAuthStateManager>();
         services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
-        services.AddScoped<IBrowserStorage, BrowserStorage>();
+        services.TryAddScoped<IDeviceIdProvider, UAuthDeviceIdProvider>();
+        services.TryAddScoped<IBrowserStorage, BrowserStorage>();
+        services.TryAddScoped<IDeviceIdStorage, BrowserDeviceIdStorage>();
+
+        services.AddScoped<IDeviceIdGenerator, UAuthDeviceIdGenerator>();
+        services.AddScoped<IBrowserUAuthBridge, BrowserUAuthBridge>();
+
         services.TryAddScoped<IHubCredentialResolver, NoOpHubCredentialResolver>();
         services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
         services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
 
-        services.AddScoped<IDeviceIdGenerator, UAuthDeviceIdGenerator>();
-        services.AddScoped<IDeviceIdStorage, BrowserDeviceIdStorage>();
-        services.AddScoped<IDeviceIdProvider, UAuthDeviceIdProvider>();
-        services.AddScoped<IBrowserUAuthBridge, BrowserUAuthBridge>();
-
-        services.AddScoped<UAuthCascadingStateProvider>();
-        services.AddScoped<CascadingValueSource<UAuthState>>(sp => sp.GetRequiredService<UAuthCascadingStateProvider>());
+        //services.AddScoped<UAuthCascadingStateProvider>();
+        //services.AddScoped<CascadingValueSource<UAuthState>>(sp => sp.GetRequiredService<UAuthCascadingStateProvider>());
 
         return services;
     }

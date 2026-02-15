@@ -11,13 +11,20 @@ internal sealed class UAuthClientProductInfoProvider : IUAuthClientProductInfoPr
     public UAuthClientProductInfoProvider(IOptions<UAuthClientOptions> options)
     {
         var asm = typeof(UAuthClientProductInfoProvider).Assembly;
+        var opts = options.Value;
 
         _info = new UAuthClientProductInfo
         {
             Version = asm.GetName().Version?.ToString(3) ?? "unknown",
             InformationalVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
             StartedAt = DateTimeOffset.UtcNow,
-            ClientProfile = options.Value.ClientProfile
+            ClientProfile = opts.ClientProfile,
+
+            AutoRefreshEnabled = opts.AutoRefresh.Enabled,
+            RefreshInterval = opts.AutoRefresh.Interval,
+            ReauthBehavior = opts.Reauth.Behavior,
+
+            FrameworkDescription = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription
         };
     }
 

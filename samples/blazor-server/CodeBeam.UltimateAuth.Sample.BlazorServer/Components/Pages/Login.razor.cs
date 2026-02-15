@@ -1,8 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Runtime;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
@@ -10,22 +14,21 @@ public partial class Login
 {
     private string? _username;
     private string? _password;
+    private ClaimsPrincipal? _aspNetCoreState;
+    private UAuthClientProductInfo? _productInfo;
 
-    private AuthenticationState _authState = null!;
+    [CascadingParameter]
+    public UAuthState AuthState { get; set; } = default!;
+
+    [CascadingParameter]
+    Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthenticationStateTask;
+        _aspNetCoreState = state.User;
         Diagnostics.Changed += OnDiagnosticsChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await StateManager.EnsureAsync();
-            _authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            StateHasChanged();
-        }
+        _productInfo = ClientProductInfoProvider.Get();
     }
 
     private void OnDiagnosticsChanged()
@@ -43,7 +46,6 @@ public partial class Login
             Device = DeviceContext.FromDeviceId(deviceId),
         };
         await UAuth.Flows.LoginAsync(request, "/home");
-        _authState = await AuthStateProvider.GetAuthenticationStateAsync();
     }
 
     private async Task ValidateAsync()
@@ -132,10 +134,4 @@ public partial class Login
         var clean = uri.GetLeftPart(UriPartial.Path);
         Nav.NavigateTo(clean, replace: true);
     }
-
-    public void Dispose()
-    {
-        Diagnostics.Changed -= OnDiagnosticsChanged;
-    }
-
 }
