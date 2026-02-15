@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Runtime;
-using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Client.Authentication;
 
@@ -7,23 +6,20 @@ internal sealed class UAuthStateManager : IUAuthStateManager
 {
     private readonly IUAuthClient _client;
     private readonly IClock _clock;
-    private readonly IUAuthClientBootstrapper _bootstrapper;
 
     public UAuthState State { get; } = UAuthState.Anonymous();
 
-    public UAuthStateManager(IUAuthClient client, IClock clock, IUAuthClientBootstrapper bootstrapper)
+    public UAuthStateManager(IUAuthClient client, IClock clock)
     {
         _client = client;
         _clock = clock;
-        _bootstrapper = bootstrapper;
     }
 
-    public async Task EnsureAsync(CancellationToken ct = default)
-    {   
-        if (State.IsAuthenticated && !State.IsStale)
+    public async Task EnsureAsync(bool force = false, CancellationToken ct = default)
+    {
+        if (!force && State.IsAuthenticated && !State.IsStale)
             return;
 
-        await _bootstrapper.EnsureStartedAsync();
         var result = await _client.Flows.ValidateAsync();
 
         if (!result.IsValid || result.Snapshot == null)
@@ -51,4 +47,6 @@ internal sealed class UAuthStateManager : IUAuthStateManager
     {
         State.MarkStale();
     }
+
+    public bool NeedsValidation => !State.IsAuthenticated || State.IsStale;
 }

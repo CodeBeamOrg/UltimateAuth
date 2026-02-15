@@ -3,11 +3,11 @@
 @using CodeBeam.UltimateAuth.Client.Authentication
 @using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Diagnostics
+@using CodeBeam.UltimateAuth.Client.Infrastructure
 @using CodeBeam.UltimateAuth.Client.Runtime
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Runtime
 @inject IUAuthStateManager StateManager
-@inject IHttpClientFactory HttpClientFactory
 @inject IUAuthProductInfoProvider ProductInfo
 @inject ISnackbar Snackbar
 @inject IUAuthClient UAuthClient
@@ -20,14 +20,14 @@
 
 <div class="uauth-page d-flex align-center justify-center">
     <MudStack Class="uauth-stack">
-        <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password">
+        <UAuthLoginForm Identifier="@_username" Secret="@_password">
             <MudStack>
                 <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
                 <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
                 <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
             </MudStack>
-        </UALoginForm>
+        </UAuthLoginForm>
 
         <MudStack Class="mud-width-full" Row="true">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
@@ -49,7 +49,7 @@
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StateHasChanged">StateHasChanged</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAuthState">Refresh Auth State</MudButton>
             <MudText>State of Authentication:</MudText>
-            <MudText>From UltimateAuth: @(Auth?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(Auth?.UserKey)</MudText>
+            <MudText>From UltimateAuth: @(Auth?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(Auth?.Identity?.UserKey)</MudText>
             <MudText>From ASPNET Core: @(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
             <AuthorizeView>
                 <Authorized>
@@ -103,43 +103,43 @@
 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CallApi">Ping ResourceApi</MudButton>
 
 @code {
-    private string? _result;
-    private Severity _severity = Severity.Info;
+    // private string? _result;
+    // private Severity _severity = Severity.Info;
 
     private async Task CallHub()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("UAuthHub");
-            var response = await client.GetStringAsync("/health");
+        // try
+        // {
+        //     var client = HttpClientFactory.CreateClient("UAuthHub");
+        //     var response = await client.GetStringAsync("/health");
 
-            _result = $"UAuthHub response: {response}";
-            _severity = Severity.Success;
-        }
-        catch (Exception ex)
-        {
-            _result = $"UAuthHub error: {ex.Message}";
-            _severity = Severity.Error;
-        }
-        Snackbar.Add(_result, _severity);
+        //     _result = $"UAuthHub response: {response}";
+        //     _severity = Severity.Success;
+        // }
+        // catch (Exception ex)
+        // {
+        //     _result = $"UAuthHub error: {ex.Message}";
+        //     _severity = Severity.Error;
+        // }
+        // Snackbar.Add(_result, _severity);
     }
 
     private async Task CallApi()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("ResourceApi");
-            var response = await client.GetStringAsync("/health");
+        // try
+        // {
+        //     var client = HttpClientFactory.CreateClient("ResourceApi");
+        //     var response = await client.GetStringAsync("/health");
 
-            _result = $"ResourceApi response: {response}";
-            _severity = Severity.Success;
-        }
-        catch (Exception ex)
-        {
-            _result = $"ResourceApi error: {ex.Message}";
-            _severity = Severity.Error;
-        }
-        Snackbar.Add(_result, _severity);
+        //     _result = $"ResourceApi response: {response}";
+        //     _severity = Severity.Success;
+        // }
+        // catch (Exception ex)
+        // {
+        //     _result = $"ResourceApi error: {ex.Message}";
+        //     _severity = Severity.Error;
+        // }
+        // Snackbar.Add(_result, _severity);
     }
 }
 

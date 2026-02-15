@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Middlewares;
@@ -19,5 +20,5 @@ internal sealed class HttpContextCurrentUser : ICurrentUser
 
     public UserKey UserKey => Snapshot?.UserId ?? throw new InvalidOperationException("Current user is not authenticated.");
 
-    private AuthUserSnapshot<UserKey>? Snapshot => _http.HttpContext?.Items[UserMiddleware.UserContextKey] as AuthUserSnapshot<UserKey>;
+    private AuthUserSnapshot<UserKey>? Snapshot => _http.HttpContext?.Items[UAuthConstants.HttpItems.UserContextKey] as AuthUserSnapshot<UserKey>;
 }

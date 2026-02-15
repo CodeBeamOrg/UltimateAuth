@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +10,6 @@ namespace CodeBeam.UltimateAuth.Server.Middlewares;
 public sealed class TenantMiddleware
 {
     private readonly RequestDelegate _next;
-    public const string TenantContextKey = "__UAuthTenant";
 
     public TenantMiddleware(RequestDelegate next)
     {
@@ -23,7 +23,7 @@ public sealed class TenantMiddleware
 
         if (!opts.Enabled)
         {
-            context.Items[TenantContextKey] = UAuthTenantContext.SingleTenant();
+            context.Items[UAuthConstants.HttpItems.TenantContextKey] = UAuthTenantContext.SingleTenant();
             await _next(context);
             return;
         }
@@ -46,7 +46,7 @@ public sealed class TenantMiddleware
 
         var tenantContext = UAuthTenantContext.Resolved(resolution.Tenant);
 
-        context.Items[TenantContextKey] = tenantContext;
+        context.Items[UAuthConstants.HttpItems.TenantContextKey] = tenantContext;
         await _next(context);
     }
 }

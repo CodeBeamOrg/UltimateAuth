@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using Microsoft.AspNetCore.Http;
@@ -30,7 +31,7 @@ public sealed class DeviceResolver : IDeviceResolver
         if (context.Request.Headers.TryGetValue("X-UDID", out var header))
             return header.ToString();
 
-        if (context.Request.HasFormContentType && context.Request.Form.TryGetValue("__uauth_device", out var formValue) && !StringValues.IsNullOrEmpty(formValue))
+        if (context.Request.HasFormContentType && context.Request.Form.TryGetValue(UAuthConstants.Form.Device, out var formValue) && !StringValues.IsNullOrEmpty(formValue))
         {
             return formValue.ToString();
         }
@@ -53,5 +54,4 @@ public sealed class DeviceResolver : IDeviceResolver
 
         return "web";
     }
-
 }

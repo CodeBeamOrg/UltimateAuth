@@ -9,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class EndpointRouteBuilderExtensions
 {
-    public static IEndpointRouteBuilder MapUAuthEndpoints(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapUltimateAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var registrar = endpoints.ServiceProvider.GetRequiredService<IAuthEndpointRegistrar>();
         var options = endpoints.ServiceProvider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;

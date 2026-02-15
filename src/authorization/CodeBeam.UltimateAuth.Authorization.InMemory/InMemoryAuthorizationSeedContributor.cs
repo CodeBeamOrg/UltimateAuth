@@ -22,5 +22,9 @@ internal sealed class InMemoryAuthorizationSeedContributor : ISeedContributor
     {
         var adminKey = _ids.GetAdminUserId();
         await _roles.AssignAsync(tenant, adminKey, "Admin", ct);
+        await _roles.AssignAsync(tenant, adminKey, "User", ct);
+
+        var userKey = _ids.GetUserUserId();
+        await _roles.AssignAsync(tenant, userKey, "User", ct);
     }
 }

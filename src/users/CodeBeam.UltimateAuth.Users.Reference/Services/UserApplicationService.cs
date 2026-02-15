@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Users.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
 

@@ -1,0 +1,12 @@
+﻿@namespace CodeBeam.UltimateAuth.Client
+
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IUAuthStateManager StateManager
+@inject IUAuthClientBootstrapper Bootstrapper
+@inject ISessionCoordinator Coordinator
+
+<CascadingAuthenticationState>
+    <CascadingValue Value="@StateManager.State" IsFixed="false">
+        @ChildContent
+    </CascadingValue>
+</CascadingAuthenticationState>

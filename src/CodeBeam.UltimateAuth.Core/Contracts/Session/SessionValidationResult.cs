@@ -19,6 +19,8 @@ public sealed class SessionValidationResult
 
     public DeviceId? BoundDeviceId { get; init; }
 
+    public DateTimeOffset? AuthenticatedAt { get; init; }
+
     public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
 
     public bool IsValid => State == SessionState.Active;
@@ -32,6 +34,7 @@ public sealed class SessionValidationResult
         SessionChainId chainId,
         SessionRootId rootId,
         ClaimsSnapshot claims,
+        DateTimeOffset authenticatedAt,
         DeviceId? boundDeviceId = null)
         => new()
         {
@@ -42,6 +45,7 @@ public sealed class SessionValidationResult
             ChainId = chainId,
             RootId = rootId,
             Claims = claims,
+            AuthenticatedAt = authenticatedAt,
             BoundDeviceId = boundDeviceId
         };
 

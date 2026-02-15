@@ -13,17 +13,20 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
     private readonly IAuthFlowContextAccessor _authContext;
     private readonly IFlowCredentialResolver _credentialResolver;
     private readonly ISessionValidator _sessionValidator;
+    private readonly IAuthStateSnapshotFactory _snapshotFactory;
     private readonly IClock _clock;
 
     public ValidateEndpointHandler(
         IAuthFlowContextAccessor authContext,
         IFlowCredentialResolver credentialResolver,
         ISessionValidator sessionValidator,
+        IAuthStateSnapshotFactory snapshotFactory,
         IClock clock)
     {
         _authContext = authContext;
         _credentialResolver = credentialResolver;
         _sessionValidator = sessionValidator;
+        _snapshotFactory = snapshotFactory;
         _clock = clock;
     }
 
@@ -82,17 +85,13 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 );
             }
 
+            var snapshot = await _snapshotFactory.CreateAsync(result);
+
             return Results.Ok(new AuthValidationResult
             {
                 IsValid = result.IsValid,
                 State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
-                Snapshot = new AuthStateSnapshot
-                {
-                    UserKey = userKey,
-                    Tenant = result.Tenant,
-                    Claims = result.Claims,
-                    AuthenticatedAt = _clock.UtcNow,
-                }
+                Snapshot = snapshot
             });
         }
 

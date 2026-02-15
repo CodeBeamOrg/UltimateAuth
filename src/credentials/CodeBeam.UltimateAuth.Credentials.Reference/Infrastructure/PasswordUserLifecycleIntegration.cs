@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
-using CodeBeam.UltimateAuth.Users.Abstractions;
+using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;

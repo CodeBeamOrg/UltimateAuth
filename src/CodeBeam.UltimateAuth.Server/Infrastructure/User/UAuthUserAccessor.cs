@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -24,7 +25,7 @@ public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 
         if (sessionCtx.IsAnonymous || sessionCtx.SessionId is null)
         {
-            context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
+            context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
             return;
         }
 
@@ -38,11 +39,11 @@ public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 
         if (session is null || session.IsRevoked)
         {
-            context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
+            context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
             return;
         }
 
         var userId = _userIdConverter.FromString(session.UserKey.Value);
-        context.Items[UserMiddleware.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(userId);
+        context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(userId);
     }
 }

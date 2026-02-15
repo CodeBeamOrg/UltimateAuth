@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
-internal sealed class BlazorServerSessionCoordinator : ISessionCoordinator
+internal sealed class SessionCoordinator : ISessionCoordinator
 {
     private readonly IUAuthClient _client;
     private readonly NavigationManager _navigation;
@@ -20,7 +20,7 @@ internal sealed class BlazorServerSessionCoordinator : ISessionCoordinator
 
     public event Action? ReauthRequired;
 
-    public BlazorServerSessionCoordinator(IUAuthClient client, NavigationManager navigation, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
+    public SessionCoordinator(IUAuthClient client, NavigationManager navigation, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
     {
         _client = client;
         _navigation = navigation;

@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ internal sealed class RefreshResponseWriter : IRefreshResponseWriter
         if (!_diagnostics.EnableRefreshHeaders)
             return;
 
-        context.Response.Headers["X-UAuth-Refresh"] = outcome switch
+        context.Response.Headers[UAuthConstants.Headers.Refresh] = outcome switch
         {
             RefreshOutcome.NoOp => "no-op",
             RefreshOutcome.Touched => "touched",

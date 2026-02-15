@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Endpoints;
-using CodeBeam.UltimateAuth.Users.Abstractions;
+using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

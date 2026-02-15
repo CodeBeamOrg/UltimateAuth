@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Core.Extensions;
@@ -19,24 +20,18 @@ public static class ClaimsSnapshotExtensions
         return new ClaimsPrincipal(identity);
     }
 
-    public static ClaimsPrincipal ToClaimsPrincipal(this ClaimsSnapshot snapshot, UserKey? userKey, string authenticationType)
+    public static ClaimsPrincipal ToClaimsPrincipal(this AuthStateSnapshot snapshot, string authenticationType)
     {
-        if (snapshot == null)
-            return new ClaimsPrincipal(new ClaimsIdentity());
+        var claims = snapshot.Claims.ToClaims().ToList();
 
-        var claims = snapshot.Claims.SelectMany(kv => kv.Value.Select(v => new Claim(kv.Key, v))).ToList();
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, snapshot.Identity.UserKey.Value));
 
-        if (userKey is not null)
-        {
-            var value = userKey.Value.ToString();
-            claims.Add(new Claim(ClaimTypes.Name, value));
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, value));
-        }
+        if (!string.IsNullOrWhiteSpace(snapshot.Identity.PrimaryUserName))
+            claims.Add(new Claim(ClaimTypes.Name, snapshot.Identity.PrimaryUserName));
 
-        var identity = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
-        return new ClaimsPrincipal(identity);
+        var ci = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
+        return new ClaimsPrincipal(ci);
     }
-
 
     /// <summary>
     /// Converts an ASP.NET Core ClaimsPrincipal into a ClaimsSnapshot.

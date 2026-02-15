@@ -4,7 +4,8 @@
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.0.1-preview</Version>
+		<Version>0.0.1</Version>
+		<InformationalVersion>0.0.1</InformationalVersion>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
@@ -28,11 +29,27 @@
 		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.1" />
 	</ItemGroup>
 
+	<Target Name="MinifyUAuthJs" AfterTargets="Build" Condition="'$(CI)' != 'true' AND '$(TargetFramework)' == 'net10.0' AND Exists('TScripts/uauth.js')">
+		<Message Importance="high" Text="Minifying uauth.js → uauth.min.js" />
+		<Exec Command="dotnet run --project ../CodeBeam.UltimateAuth.Client.JsMinifier/CodeBeam.UltimateAuth.Client.JsMinifier.csproj --configuration $(Configuration) -- &quot;$(ProjectDir)TScripts/uauth.js&quot; &quot;$(ProjectDir)wwwroot/uauth.min.js&quot;" />
+	</Target>
+
+	<ItemGroup>
+	  <Content Include="TScripts\uauth.js">
+	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
+	</ItemGroup>
+
 	<ItemGroup>
 	  <ProjectReference Include="..\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
 	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 	  <ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />
 	  <ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="wwwroot\" />
 	</ItemGroup>
 
 </Project>

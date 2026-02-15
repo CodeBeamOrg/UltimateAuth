@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -20,7 +21,7 @@ public sealed class SessionContextAccessor : ISessionContextAccessor
             if (ctx is null)
                 return null;
 
-            if (ctx.Items.TryGetValue(SessionContextItemKeys.SessionContext, out var value))
+            if (ctx.Items.TryGetValue(UAuthConstants.HttpItems.SessionContext, out var value))
                 return value as SessionContext;
 
             return null;

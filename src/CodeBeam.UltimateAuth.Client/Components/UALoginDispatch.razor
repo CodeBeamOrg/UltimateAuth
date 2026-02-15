@@ -1,0 +1,55 @@
+﻿@page "/__uauth/login-redirect"
+
+@namespace CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Core.Constants
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Nav
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        var freshLogin = query.ContainsKey("fresh");
+
+        var returnUrl = query.TryGetValue(UAuthConstants.Query.ReturnUrl, out var value)
+            ? value.ToString()
+            : null;
+
+        var loginRoute = UAuthLoginPageDiscovery.Resolve();
+
+        string target;
+        string? safeReturnUrl = null;
+
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            returnUrl = returnUrl.Trim();
+
+            if (returnUrl.StartsWith("/") ||
+                returnUrl.StartsWith("./") ||
+                returnUrl.StartsWith("../"))
+            {
+                safeReturnUrl = returnUrl;
+            }
+            else if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs) && (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+            {
+                safeReturnUrl = returnUrl;
+            }
+        }
+
+        if (freshLogin || string.IsNullOrWhiteSpace(safeReturnUrl))
+        {
+            target = loginRoute;
+        }
+        else
+        {
+            target = $"{loginRoute}?{UAuthConstants.Query.ReturnUrl}={Uri.EscapeDataString(safeReturnUrl)}";
+        }
+
+        Nav.NavigateTo(target, true);
+    }
+}

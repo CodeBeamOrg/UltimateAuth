@@ -26,14 +26,14 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
-builder.Services.AddHttpClient("UAuthHub", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:6110");
-});
+//builder.Services.AddHttpClient("UAuthHub", client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:6110");
+//});
 
-builder.Services.AddHttpClient("ResourceApi", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:6120");
-});
+//builder.Services.AddHttpClient("ResourceApi", client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:6120");
+//});
 
 await builder.Build().RunAsync();

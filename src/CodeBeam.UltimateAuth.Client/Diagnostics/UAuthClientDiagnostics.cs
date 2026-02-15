@@ -31,6 +31,13 @@ public sealed class UAuthClientDiagnostics
     public int RefreshReauthRequiredCount { get; private set; }
     public int RefreshUnknownCount { get; private set; }
 
+    public TimeSpan? RunningDuration =>
+        StartedAt is null
+            ? null
+            : (IsStopped || IsTerminated
+                ? (StoppedAt ?? TerminatedAt) - StartedAt
+                : DateTimeOffset.UtcNow - StartedAt);
+
     internal void MarkStarted()
     {
         StartedAt = DateTimeOffset.UtcNow;
@@ -94,5 +101,4 @@ public sealed class UAuthClientDiagnostics
         Interlocked.Increment(ref _terminatedCount);
         Changed?.Invoke();
     }
-
 }

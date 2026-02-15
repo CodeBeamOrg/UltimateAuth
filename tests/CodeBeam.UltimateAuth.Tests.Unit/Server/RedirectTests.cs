@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -47,7 +48,7 @@ public class RedirectTests
     {
         var reader = new ClientProfileReader();
         var ctx = TestHttpContext.Create();
-        ctx.Request.Headers["X-UAuth-ClientProfile"] = "BlazorServer";
+        ctx.Request.Headers[UAuthConstants.Headers.ClientProfile] = "BlazorServer";
 
         var profile = reader.Read(ctx);
         profile.Should().Be(UAuthClientProfile.BlazorServer);

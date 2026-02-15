@@ -53,6 +53,6 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
 
         var claims = await _claimsProvider.GetClaimsAsync(context.Tenant, session.UserKey, ct);
-        return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, boundDeviceId: session.Device.DeviceId);
+        return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, session.CreatedAt, session.Device.DeviceId);
     }
 }

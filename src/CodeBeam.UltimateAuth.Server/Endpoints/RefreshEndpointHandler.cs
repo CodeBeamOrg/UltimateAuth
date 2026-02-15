@@ -86,5 +86,4 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
 
         _refreshWriter.Write(ctx, outcome);
     }
-
 }

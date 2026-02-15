@@ -1,8 +1,11 @@
-﻿using System.Security;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Security;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace CodeBeam.UltimateAuth.Core.MultiTenancy;
 
+[JsonConverter(typeof(TenantKeyJsonConverter))]
 public readonly record struct TenantKey : IParsable<TenantKey>
 {
     public string Value { get; }

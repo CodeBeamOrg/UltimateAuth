@@ -1,7 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
@@ -11,30 +9,36 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 internal sealed class UAuthRequestClient : IUAuthRequestClient
 {
     private readonly IJSRuntime _js;
+    IUAuthClientBootstrapper _bootstrapper;
     private UAuthClientOptions _options;
 
-    public UAuthRequestClient(IJSRuntime js, IOptions<UAuthClientOptions> options)
+    public UAuthRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options)
     {
         _js = js;
+        _bootstrapper = bootstrapper;
         _options = options.Value;
     }
 
-    public Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    public async Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        return _js.InvokeVoidAsync("uauth.post", ct, new
+        await _bootstrapper.EnsureStartedAsync();
+
+        await _js.InvokeVoidAsync("uauth.post", ct, new
         {
             url = endpoint,
             mode = "navigate",
             data = form,
             clientProfile = _options.ClientProfile.ToString()
-        }).AsTask();
+        });
     }
 
     public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        await _bootstrapper.EnsureStartedAsync();
 
         var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
         {
@@ -52,6 +56,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
+        await _bootstrapper.EnsureStartedAsync();
+
         var postData = form ?? new Dictionary<string, string>();
         return await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
             new
@@ -67,6 +73,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        await _bootstrapper.EnsureStartedAsync();
 
         return await _js.InvokeAsync<UAuthTransportResult>("uauth.postJson", ct, new
         {

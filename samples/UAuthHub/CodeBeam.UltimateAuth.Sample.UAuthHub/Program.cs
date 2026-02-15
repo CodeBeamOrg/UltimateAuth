@@ -3,8 +3,6 @@ using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Extensions;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
@@ -15,7 +13,6 @@ using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
-using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
@@ -36,17 +33,15 @@ builder.Services.AddMudExtensions();
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = UAuthCookieDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = UAuthCookieDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = UAuthCookieDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = UAuthSchemeDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = UAuthSchemeDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = UAuthSchemeDefaults.AuthenticationScheme;
     })
     .AddUAuthCookies();
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
-
-builder.Services.AddUltimateAuth();
 
 builder.Services.AddUltimateAuthServer(o => {
     o.Diagnostics.EnableRefreshHeaders = true;
@@ -110,12 +105,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("WasmSample");
 
-app.UseUltimateAuthServer();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
-app.MapUAuthEndpoints();
+app.MapUltimateAuthEndpoints();
 app.MapStaticAssets();
 
 app.MapControllers();

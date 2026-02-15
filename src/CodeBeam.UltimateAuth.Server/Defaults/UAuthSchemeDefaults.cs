@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Defaults;
 
-public static class UAuthCookieDefaults
+public static class UAuthSchemeDefaults
 {
     public const string AuthenticationScheme = "UltimateAuth";
 }

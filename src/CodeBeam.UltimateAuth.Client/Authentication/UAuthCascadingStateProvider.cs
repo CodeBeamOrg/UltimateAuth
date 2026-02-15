@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client.Authentication;
+namespace CodeBeam.UltimateAuth.Client;
 
 internal sealed class UAuthCascadingStateProvider : CascadingValueSource<UAuthState>, IDisposable
 {
     private readonly IUAuthStateManager _stateManager;
 
-    public UAuthCascadingStateProvider(IUAuthStateManager stateManager)
-        : base(() => stateManager.State, isFixed: false)
+    public UAuthCascadingStateProvider(IUAuthStateManager stateManager) : base(() => stateManager.State, isFixed: false)
     {
         _stateManager = stateManager;
         _stateManager.State.Changed += OnStateChanged;

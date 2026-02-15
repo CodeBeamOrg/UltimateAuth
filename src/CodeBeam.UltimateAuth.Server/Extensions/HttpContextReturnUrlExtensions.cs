@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CodeBeam.UltimateAuth.Core.Constants;
+using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -6,12 +7,12 @@ internal static class HttpContextReturnUrlExtensions
 {
     public static string? GetReturnUrl(this HttpContext ctx)
     {
-        if (ctx.Request.HasFormContentType && ctx.Request.Form.TryGetValue("return_url", out var form))
+        if (ctx.Request.HasFormContentType && ctx.Request.Form.TryGetValue(UAuthConstants.Form.ReturnUrl, out var form))
         {
             return form.ToString();
         }
 
-        if (ctx.Request.Query.TryGetValue("return_url", out var query))
+        if (ctx.Request.Query.TryGetValue(UAuthConstants.Query.ReturnUrl, out var query))
         {
             return query.ToString();
         }

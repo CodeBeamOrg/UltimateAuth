@@ -1,109 +1,109 @@
-﻿@page "/"
-@page "/login"
-@using CodeBeam.UltimateAuth.Client
-@using CodeBeam.UltimateAuth.Client.Authentication
-@using CodeBeam.UltimateAuth.Client.Device
-@using CodeBeam.UltimateAuth.Client.Diagnostics
-@using CodeBeam.UltimateAuth.Client.Runtime
-@using CodeBeam.UltimateAuth.Core.Abstractions
-@using CodeBeam.UltimateAuth.Core.Runtime
-@using CodeBeam.UltimateAuth.Server.Abstractions
-@using CodeBeam.UltimateAuth.Server.Infrastructure
-@using CodeBeam.UltimateAuth.Server.Services
-@inject IUAuthStateManager StateManager
-@inject IUAuthFlowService<UserKey> Flow
-@inject ISnackbar Snackbar
-@inject ISessionQueryService SessionQuery
-@inject IFlowCredentialResolver CredentialResolver
-@inject IClock Clock
-@inject IUAuthCookieManager CookieManager
-@inject IHttpContextAccessor HttpContextAccessor
-@inject IUAuthClient UAuth
-@inject NavigationManager Nav
-@inject IUAuthClientProductInfoProvider ClientProductInfo
-@inject AuthenticationStateProvider AuthStateProvider
+﻿@page "/home"
+@using System.Security.Claims
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthProvider
+@inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
-@inject IDeviceIdProvider DeviceIdProvider
 
+<MudPage Class="mud-width-full" FullScreen="FullScreen.Full" Column="1" Row="1">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudPaper Class="pa-6">
 
-<div class="uauth-page d-flex align-center justify-center">
-    <MudStack Class="uauth-stack">
-        <UALoginForm @ref="_form" Identifier="@_username" Secret="@_password">
-            <MudStack>
-                <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
-                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: admin or user" />
-                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: admin or user" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
-            </MudStack>
-        </UALoginForm>
+                <MudAvatar Size="Size.Large" Color="Color.Primary">
+                    @(AuthState?.Identity?.UserKey.Value.Substring(0, 2).ToUpper())
+                </MudAvatar>
 
-        <MudStack Class="mud-width-full" Row="true">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="LogoutAsync">Logout</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Refresh</MudButton>
-        </MudStack>
+                <MudDivider Class="my-4" />
 
-        <MudStack Class="mud-width-full">
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="HandleGetMe">GetMe</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangeUserInactive">Change User Inactive</MudButton>
-        </MudStack>
+                <MudText Typo="Typo.h6"><b>ASP.NET Core State</b></MudText>
+                <MudText>IsAuthenticated: @_aspNetCoreState?.Identity?.IsAuthenticated</MudText>
+                <MudText>User Id: @_aspNetCoreState?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value</MudText>
+                <MudText>User Name: @_aspNetCoreState?.Identity?.Name</MudText>
+                <MudText>Authentication Type: @_aspNetCoreState?.Identity?.AuthenticationType</MudText>
+                <MudText>Is Admin: @_aspNetCoreState?.IsInRole("Admin")</MudText>
 
-        <MudStack Spacing="0">
-            <MudText><b>@ClientProductInfo.Get().ProductName</b> v @ClientProductInfo.Get().Version</MudText>
-            <MudText>Client Profile: @ClientProductInfo.Get().ClientProfile.ToString()</MudText>
-        </MudStack>
+                <MudDivider Class="my-4" />
 
-        <MudStack Spacing="0">
-            <MudText>State of Authentication:</MudText>
-            <MudText>@(_authState?.User?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_authState?.User?.Identity?.Name)</MudText>
-            <MudText>UAuthState @(StateManager.State.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(StateManager.State.UserKey)</MudText>
-            <AuthorizeView>
-                <Authorized>
-                    <MudText>Authorized context is shown. @context?.User?.Identity?.IsAuthenticated</MudText>
-                </Authorized>
-                <NotAuthorized>
-                    <MudText>Not Authorized context is shown.</MudText>
-                </NotAuthorized>
-            </AuthorizeView>
-
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <MudText>This is Admin content.</MudText>
-                </Authorized>
-            </AuthorizeView>
-        </MudStack>
-
-        <MudStack>
-            <MudPaper Class="pa-4 mt-4">
-                <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
-
-                <MudDivider Class="my-2" />
-
-                <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
-                <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
-                <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
-
-                <MudDivider Class="my-2" />
-
-                <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
-                <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
-                <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
-
-                <MudText Color="Color.Success">
-                    Touched Success: @Diagnostics.RefreshTouchedCount
-                </MudText>
-                <MudText Color="Color.Success">
-                    No-Op Success: @Diagnostics.RefreshNoOpCount
-                </MudText>
-                <MudText Color="Color.Warning">
-                    ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
-                </MudText>
-                <MudText Color="Color.Warning">
-                    Unknown: @Diagnostics.RefreshUnknownCount
-                </MudText>
+                <MudText Typo="Typo.h6"><b>UAuth State</b></MudText>
+                <MudText>IsAuthenticated: @AuthState.IsAuthenticated</MudText>
+                <MudText>UserKey: @AuthState?.Identity?.UserKey.Value</MudText>
+                <MudText>User Name: @AuthState?.Identity?.PrimaryUserName</MudText>
+                <MudText>Primary Email: @AuthState?.Identity?.PrimaryEmail</MudText>
+                <MudText>Primary Phone: @AuthState?.Identity?.PrimaryPhone</MudText>
+                <MudText>Tenant: @AuthState?.Identity?.Tenant.Value</MudText>
+                <MudText>Authenticated At: @AuthState?.Identity?.AuthenticatedAt</MudText>
+                <MudText>Last Validated At: @AuthState?.LastValidatedAt</MudText>
+                <MudText>Is Admin: @AuthState.IsInRole("Admin")</MudText>
+                <MudText>Roles: @string.Join(", ", AuthState.Claims.Roles)</MudText>
             </MudPaper>
-        </MudStack>
-    </MudStack>
+        </MudItem>
 
-</div>
+        <MudItem xs="12" sm="6">
+            <MudPaper Class="pa-6">
+
+                <MudText Typo="Typo.h6">User Operations</MudText>
+                <MudDivider Class="my-4" />
+
+                <MudStack Spacing="2">
+
+                    <AuthorizeView Roles="Admin">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
+                            Add User
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
+                            Assign Role
+                        </MudButton>
+                    </AuthorizeView>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
+                        Change Password
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
+                        Manual Refresh
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
+                        Logout
+                    </MudButton>
+
+                </MudStack>
+
+            </MudPaper>
+
+            <MudStack>
+                <MudPaper Class="pa-4 mt-4">
+                    <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
+                    <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
+                    <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
+                    <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
+                    <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
+
+                    <MudText Color="Color.Success">
+                        Touched Success: @Diagnostics.RefreshTouchedCount
+                    </MudText>
+                    <MudText Color="Color.Success">
+                        No-Op Success: @Diagnostics.RefreshNoOpCount
+                    </MudText>
+                    <MudText Color="Color.Warning">
+                        ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
+                    </MudText>
+                    <MudText Color="Color.Warning">
+                        Unknown: @Diagnostics.RefreshUnknownCount
+                    </MudText>
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudPage>

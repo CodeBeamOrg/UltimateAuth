@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using System.Security.Claims;
 
-namespace CodeBeam.UltimateAuth.Client.Authentication;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents the client-side authentication snapshot for UltimateAuth.
@@ -15,55 +15,32 @@ public sealed class UAuthState
 {
     private UAuthState() { }
 
-    public bool IsAuthenticated { get; private set; }
+    public AuthIdentitySnapshot? Identity { get; private set; }
+    public ClaimsSnapshot Claims { get; private set; } = ClaimsSnapshot.Empty;
 
-    public UserKey? UserKey { get; private set; }
-
-    public TenantKey Tenant { get; private set; }
-
-    /// <summary>
-    /// When this authentication snapshot was created.
-    /// </summary>
-    public DateTimeOffset? AuthenticatedAt { get; private set; }
-
-    /// <summary>
-    /// When this snapshot was last validated or refreshed.
-    /// </summary>
     public DateTimeOffset? LastValidatedAt { get; private set; }
 
     /// <summary>
-    /// Indicates whether the snapshot may be stale
-    /// (e.g. after navigation, reload, or time-based heuristics).
+    /// Indicates whether the snapshot may be stale (e.g. after navigation, reload, or time-based heuristics).
     /// </summary>
     public bool IsStale { get; private set; }
 
-    public ClaimsSnapshot Claims { get; private set; } = ClaimsSnapshot.Empty;
-
     public event Action<UAuthStateChangeReason>? Changed;
+
+    public bool IsAuthenticated => Identity is not null;
 
     public static UAuthState Anonymous() => new();
 
     internal void ApplySnapshot(AuthStateSnapshot snapshot, DateTimeOffset validatedAt)
     {
-        if (string.IsNullOrWhiteSpace(snapshot.UserKey))
-        {
-            Clear();
-            return;
-        }
-
-        UserKey = CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(snapshot.UserKey);
-        Tenant = snapshot.Tenant;
+        Identity = snapshot.Identity;
         Claims = snapshot.Claims;
 
-        IsAuthenticated = true;
-
-        AuthenticatedAt = snapshot.AuthenticatedAt;
-        LastValidatedAt = validatedAt;
         IsStale = false;
+        LastValidatedAt = validatedAt;
 
         Changed?.Invoke(UAuthStateChangeReason.Authenticated);
     }
-
 
     internal void MarkValidated(DateTimeOffset now)
     {
@@ -87,32 +64,37 @@ public sealed class UAuthState
 
     internal void Clear()
     {
+        Identity = null;
         Claims = ClaimsSnapshot.Empty;
 
-        UserKey = null;
-        IsAuthenticated = false;
-
-        AuthenticatedAt = null;
-        LastValidatedAt = null;
         IsStale = false;
 
         Changed?.Invoke(UAuthStateChangeReason.Cleared);
     }
+
+    public bool IsInRole(string role) => IsAuthenticated && Claims.IsInRole(role);
+
+    public bool HasPermission(string permission) => IsAuthenticated && Claims.HasPermission(permission);
+
+    public bool HasClaim(string type, string value) => IsAuthenticated && Claims.HasValue(type, value);
+
+    public string? GetClaim(string type) => IsAuthenticated ? Claims.Get(type) : null;
 
     /// <summary>
     /// Creates a ClaimsPrincipal view for ASP.NET / Blazor integration.
     /// </summary>
     public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
     {
-        if (!IsAuthenticated)
+        if (!IsAuthenticated || Identity is null)
             return new ClaimsPrincipal(new ClaimsIdentity());
 
-        var identity = new ClaimsIdentity(
-            Claims.AsDictionary()
-                  .Select(kv => new Claim(kv.Key, kv.Value)),
-            authenticationType);
+        var claims = Claims.ToClaims().ToList();
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, Identity.UserKey.Value));
 
+        if (!string.IsNullOrWhiteSpace(Identity.PrimaryUserName))
+            claims.Add(new Claim(ClaimTypes.Name, Identity.PrimaryUserName));
+
+        var identity = new ClaimsIdentity(claims, authenticationType, ClaimTypes.Name, ClaimTypes.Role);
         return new ClaimsPrincipal(identity);
     }
-
 }

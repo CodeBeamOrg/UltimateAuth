@@ -1,10 +1,22 @@
-﻿@using CodeBeam.UltimateAuth.Client.Components
+﻿@inject ISnackbar Snackbar
 
-<UAuthAuthenticationState>
-    <Router AppAssembly="typeof(Program).Assembly">
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<UAuthApp OnReauthRequired="HandleReauth">
+    <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(UAuthClientMarker).Assembly }">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
     </Router>
-</UAuthAuthenticationState>
+</UAuthApp>
+
+@code {
+    private void HandleReauth()
+    {
+        Snackbar.Add("Reauthentication required. Please log in again.", Severity.Warning);
+    }
+}

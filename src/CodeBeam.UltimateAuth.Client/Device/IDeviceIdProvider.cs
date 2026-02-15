@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Client.Device;
+namespace CodeBeam.UltimateAuth.Client;
 
 public interface IDeviceIdProvider
 {
