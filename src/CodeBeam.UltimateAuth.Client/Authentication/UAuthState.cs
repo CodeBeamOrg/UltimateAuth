@@ -72,6 +72,14 @@ public sealed class UAuthState
         Changed?.Invoke(UAuthStateChangeReason.Cleared);
     }
 
+    public bool IsInRole(string role) => IsAuthenticated && Claims.IsInRole(role);
+
+    public bool HasPermission(string permission) => IsAuthenticated && Claims.HasPermission(permission);
+
+    public bool HasClaim(string type, string value) => IsAuthenticated && Claims.HasValue(type, value);
+
+    public string? GetClaim(string type) => IsAuthenticated ? Claims.Get(type) : null;
+
     /// <summary>
     /// Creates a ClaimsPrincipal view for ASP.NET / Blazor integration.
     /// </summary>

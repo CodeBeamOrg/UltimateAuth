@@ -1,5 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Text.Json.Serialization;
 
+namespace CodeBeam.UltimateAuth.Core.Domain;
+
+[JsonConverter(typeof(SessionChainIdJsonConverter))]
 public readonly record struct SessionChainId(Guid Value)
 {
     public static SessionChainId New() => new(Guid.NewGuid());

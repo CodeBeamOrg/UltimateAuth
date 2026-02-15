@@ -1,4 +1,5 @@
 ﻿@page "/home"
+@using System.Security.Claims
 @attribute [Authorize]
 
 @inject AuthenticationStateProvider AuthProvider
@@ -33,6 +34,7 @@
                 <MudText>Tenant: @AuthState?.Identity?.Tenant.Value</MudText>
                 <MudText>Authenticated At: @AuthState?.Identity?.AuthenticatedAt</MudText>
                 <MudText>Last Validated At: @AuthState?.LastValidatedAt</MudText>
+                <MudText>Is Admin: @AuthState.IsInRole("Admin")</MudText>
                 <MudText>Roles: @string.Join(", ", AuthState.Claims.Roles)</MudText>
             </MudPaper>
         </MudItem>

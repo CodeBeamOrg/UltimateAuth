@@ -20,6 +20,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     private readonly ITransportCredentialResolver _transportCredentialResolver;
     private readonly ISessionValidator _sessionValidator;
     private readonly IDeviceContextFactory _deviceContextFactory;
+    private readonly IAuthStateSnapshotFactory _snapshotFactory;
     private readonly UAuthServerOptions _serverOptions;
     private readonly IClock _clock;
 
@@ -30,6 +31,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         UrlEncoder encoder,
         ISessionValidator sessionValidator,
         IDeviceContextFactory deviceContextFactory,
+        IAuthStateSnapshotFactory snapshotFactory,
         IOptions<UAuthServerOptions> serverOptions,
         IClock uauthClock)
         : base(options, logger, encoder)
@@ -37,6 +39,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         _transportCredentialResolver = transportCredentialResolver;
         _sessionValidator = sessionValidator;
         _deviceContextFactory = deviceContextFactory;
+        _snapshotFactory = snapshotFactory;
         _serverOptions = serverOptions.Value;
         _clock = uauthClock;
     }
@@ -65,7 +68,12 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (!result.IsValid || result.UserKey is null)
             return AuthenticateResult.NoResult();
 
-        var principal = result.Claims.ToClaimsPrincipal(result.UserKey, UAuthSchemeDefaults.AuthenticationScheme);
+        var snapshot = await _snapshotFactory.CreateAsync(result);
+
+        if (snapshot is null || snapshot.Identity is null)
+            return AuthenticateResult.NoResult();
+
+        var principal = snapshot.ToClaimsPrincipal(UAuthSchemeDefaults.AuthenticationScheme);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthSchemeDefaults.AuthenticationScheme));
     }
 

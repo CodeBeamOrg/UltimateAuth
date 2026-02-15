@@ -1,6 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Text.Json.Serialization;
+
+namespace CodeBeam.UltimateAuth.Core.Domain;
 
 // AuthSessionId is a opaque token, because it's more sensitive data. SessionChainId and SessionRootId are Guid.
+[JsonConverter(typeof(AuthSessionIdJsonConverter))]
 public readonly record struct AuthSessionId
 {
     public string Value { get; }
