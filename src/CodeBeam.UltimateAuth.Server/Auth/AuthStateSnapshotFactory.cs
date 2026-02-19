@@ -28,7 +28,8 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 PrimaryEmail = identifiers?.Email,
                 PrimaryPhone = identifiers?.Phone,
                 DisplayName = identifiers?.DisplayName,
-                AuthenticatedAt = validation.AuthenticatedAt
+                AuthenticatedAt = validation.AuthenticatedAt,
+                SessionState = validation.State
             };
 
             return new AuthStateSnapshot

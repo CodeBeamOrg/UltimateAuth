@@ -25,10 +25,16 @@ public partial class Login
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthenticationStateTask;
-        _aspNetCoreState = state.User;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         Diagnostics.Changed += OnDiagnosticsChanged;
         _productInfo = ClientProductInfoProvider.Get();
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        var state = await task;
+        _aspNetCoreState = state.User;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnDiagnosticsChanged()
@@ -133,5 +139,10 @@ public partial class Login
         var uri = new Uri(Nav.Uri);
         var clean = uri.GetLeftPart(UriPartial.Path);
         Nav.NavigateTo(clean, replace: true);
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }

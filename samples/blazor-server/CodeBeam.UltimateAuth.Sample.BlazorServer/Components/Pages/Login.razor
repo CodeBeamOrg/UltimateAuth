@@ -1,6 +1,7 @@
 ﻿@page "/login"
 @attribute [UAuthLoginPage]
 
+@implements IDisposable
 @inject IUAuthClient UAuth
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
@@ -42,14 +43,14 @@
             <MudText>State of Authentication:</MudText>
             <MudText>@(_aspNetCoreState?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_aspNetCoreState?.Identity?.Name)</MudText>
             <MudText>UAuthState @(AuthState.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(AuthState.Identity?.UserKey)</MudText>
-            <AuthorizeView>
+            <UAuthStateView>
                 <Authorized>
-                    <MudText>Authorized context is shown. @context?.User?.Identity?.IsAuthenticated</MudText>
+                    <MudText>Authorized context is shown. @context?.IsAuthenticated</MudText>
                 </Authorized>
                 <NotAuthorized>
                     <MudText>Not Authorized context is shown.</MudText>
                 </NotAuthorized>
-            </AuthorizeView>
+            </UAuthStateView>
 
             <AuthorizeView Roles="Admin">
                 <Authorized>

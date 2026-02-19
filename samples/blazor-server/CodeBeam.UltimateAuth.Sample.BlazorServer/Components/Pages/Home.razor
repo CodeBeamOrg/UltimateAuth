@@ -2,7 +2,6 @@
 @using System.Security.Claims
 @attribute [Authorize]
 
-@inject AuthenticationStateProvider AuthProvider
 @inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
 
@@ -48,7 +47,7 @@
 
                 <MudStack Spacing="2">
 
-                    <AuthorizeView Roles="Admin">
+                    <UAuthStateView Roles="Admin">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
                             Add User
                         </MudButton>
@@ -56,7 +55,7 @@
                         <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
                             Assign Role
                         </MudButton>
-                    </AuthorizeView>
+                    </UAuthStateView>
 
                     <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
                         Change Password
