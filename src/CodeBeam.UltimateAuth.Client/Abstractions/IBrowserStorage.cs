@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 
-namespace CodeBeam.UltimateAuth.Client.Utilities;
+namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
 public interface IBrowserStorage
 {

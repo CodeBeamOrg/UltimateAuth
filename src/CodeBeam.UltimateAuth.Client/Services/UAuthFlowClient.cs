@@ -102,7 +102,7 @@ internal class UAuthFlowClient : IFlowClient
     public async Task ReauthAsync()
     {
         var url = Url(_options.Endpoints.Reauth);
-        await _post.NavigateAsync(_options.Endpoints.Reauth);
+        await _post.NavigateAsync(url);
     }
 
     public async Task<AuthValidationResult> ValidateAsync()

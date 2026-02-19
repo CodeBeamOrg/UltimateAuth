@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Client.Services;
-using CodeBeam.UltimateAuth.Client.Utilities;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
 using Microsoft.AspNetCore.Components.Authorization;

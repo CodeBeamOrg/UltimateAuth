@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Services;
 
-public class UAuthUserIdentifierClient : IUserIdentifierClient
+internal class UAuthUserIdentifierClient : IUserIdentifierClient
 {
     private readonly IUAuthRequestClient _request;
     private readonly UAuthClientOptions _options;
