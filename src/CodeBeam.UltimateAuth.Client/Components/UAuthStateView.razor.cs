@@ -3,11 +3,8 @@ using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client;
 
-public partial class UAuthStateView
+public partial class UAuthStateView : UAuthReactiveComponentBase
 {
-    [CascadingParameter]
-    public UAuthState UAuthState { get; set; } = default!;
-
     [Parameter]
     public RenderFragment<UAuthState>? Authorized { get; set; }
 
@@ -31,24 +28,14 @@ public partial class UAuthStateView
 
     private bool _inactive;
 
-    protected override void OnInitialized()
-    {
-        UAuthState.Changed += OnStateChanged;
-    }
-
-    private UAuthState? _previousState;
-
     protected override void OnParametersSet()
     {
-        if (!ReferenceEquals(_previousState, UAuthState))
-        {
-            if (_previousState is not null)
-                _previousState.Changed -= OnStateChanged;
+        base.OnParametersSet();
+        EvaluateSessionState();
+    }
 
-            UAuthState.Changed += OnStateChanged;
-            _previousState = UAuthState;
-        }
-
+    protected override void HandleAuthStateChanged(UAuthStateChangeReason reason)
+    {
         EvaluateSessionState();
     }
 
@@ -60,30 +47,19 @@ public partial class UAuthStateView
             return;
         }
 
-        if (!UAuthState.IsAuthenticated)
+        if (UAuth.IsAuthenticated != true)
         {
             _inactive = false;
             return;
         }
 
-        if (UAuthState.Identity?.SessionState is null)
+        if (UAuth.Identity?.SessionState is null)
         {
             _inactive = false;
         }
         else
         {
-            _inactive = UAuthState.Identity.SessionState != SessionState.Active;
+            _inactive = UAuth.Identity?.SessionState != SessionState.Active;
         }
-    }
-
-    private void OnStateChanged(UAuthStateChangeReason _)
-    {
-        EvaluateSessionState();
-        InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        UAuthState.Changed -= OnStateChanged;
     }
 }

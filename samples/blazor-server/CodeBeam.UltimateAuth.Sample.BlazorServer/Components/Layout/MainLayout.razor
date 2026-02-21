@@ -1,7 +1,62 @@
 ﻿@inherits LayoutComponentBase
+@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 
-@Body
+<MudLayout>
+    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
+        <MudText><b>UltimateAuth</b></MudText>
+        <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
+
+        <MudSpacer />
+
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <ActivatorContent>
+                <div @onclick="@(() => context.ToggleAsync())">
+                    <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
+                        <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
+                            <UAuthStateView>
+                                <Authorized Context="state">
+                                    @(state.Identity?.PrimaryUserName?.Substring(0, 1).ToUpper())
+                                </Authorized>
+                                <NotAuthorized>
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
+                                </NotAuthorized>
+                            </UAuthStateView>
+                        </MudAvatar>
+                    </MudBadge>
+                </div>
+            </ActivatorContent>
+
+            <ChildContent>
+                <UAuthStateView RequireActive="true">
+                    <Authorized Context="state">
+                        <MudText Class="px-4 py-2">
+                            <b>@state.Identity?.PrimaryUserName</b>
+                        </MudText>
+
+                        <MudDivider />
+
+                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" Label="Logout" OnClick="@Logout" />
+                    </Authorized>
+
+                    <Inactive>
+                        <MudMenuItem Label="Reauthenticate" Href="/login" />
+                    </Inactive>
+
+                    <NotAuthorized>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Login" Label="Sign In" Href="/login" />
+                    </NotAuthorized>
+                </UAuthStateView>
+            </ChildContent>
+        </MudMenu>
+    </MudAppBar>
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.

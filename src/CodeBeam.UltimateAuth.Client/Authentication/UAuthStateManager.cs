@@ -24,6 +24,12 @@ internal sealed class UAuthStateManager : IUAuthStateManager
 
         if (!result.IsValid || result.Snapshot == null)
         {
+            if (State.IsAuthenticated)
+            {
+                State.MarkStale();
+                return;
+            }
+
             State.Clear();
             return;
         }

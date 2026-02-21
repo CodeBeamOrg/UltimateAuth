@@ -51,7 +51,7 @@ h1:focus {
 }
 
 .uauth-page {
-    height: 100vh;
+    height: calc(100vh - var(--mud-appbar-height));
     width: 100vw;
 }
 

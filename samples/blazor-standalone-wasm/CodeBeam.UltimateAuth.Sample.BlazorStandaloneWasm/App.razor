@@ -1,11 +1,12 @@
 ﻿@inject ISnackbar Snackbar
 
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudSnackbarProvider />
-<MudDialogProvider />
-
 <UAuthApp OnReauthRequired="HandleReauth">
+
+    <MudThemeProvider />
+    <MudPopoverProvider />
+    <MudSnackbarProvider />
+    <MudDialogProvider />
+
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
