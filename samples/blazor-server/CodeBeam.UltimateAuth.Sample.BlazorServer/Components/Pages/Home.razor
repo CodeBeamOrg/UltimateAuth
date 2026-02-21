@@ -1,11 +1,11 @@
 ﻿@page "/home"
-@using System.Security.Claims
 @attribute [Authorize]
 
 @inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
+@using System.Security.Claims
 
-<MudPage Class="mud-width-full" FullScreen="FullScreen.Full" Column="1" Row="1">
+<MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudGrid>
         <MudItem xs="12" sm="6">
             <MudPaper Class="pa-6">

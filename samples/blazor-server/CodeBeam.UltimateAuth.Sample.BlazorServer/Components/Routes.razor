@@ -1,4 +1,5 @@
-﻿@inject ISnackbar Snackbar
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages
+@inject ISnackbar Snackbar
 
 <UAuthApp RenderMode="UAuthRenderMode.Manual" OnReauthRequired="HandleReauth">
 
@@ -9,7 +10,11 @@
 
     <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(UAuthClientMarker).Assembly }">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    <NotAuthorized />
+                </NotAuthorized>
+            </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
         </Found>
     </Router>

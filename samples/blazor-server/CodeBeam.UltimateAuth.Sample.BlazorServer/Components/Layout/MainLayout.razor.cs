@@ -38,4 +38,35 @@ public partial class MainLayout
 
         return Color.Warning;
     }
+
+    private void HandleSignInClick()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+
+        if (uri.AbsolutePath.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/login?focus=1", replace: true, forceLoad: true);
+            return;
+        }
+
+        GoToLoginWithReturn();
+    }
+
+    private void GoToLoginWithReturn()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+
+        if (uri.AbsolutePath.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        var current = Nav.ToBaseRelativePath(uri.ToString());
+        if (string.IsNullOrWhiteSpace(current))
+            current = "home";
+
+        var returnUrl = Uri.EscapeDataString("/" + current.TrimStart('/'));
+        Nav.NavigateTo($"/login?returnUrl={returnUrl}", replace: true);
+    }
 }

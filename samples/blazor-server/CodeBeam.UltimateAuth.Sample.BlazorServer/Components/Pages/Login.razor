@@ -2,7 +2,7 @@
 @attribute [UAuthLoginPage]
 
 @implements IDisposable
-@inject IUAuthClient UAuth
+@inject IUAuthClient UAuthClient
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -10,53 +10,97 @@
 @inject IDeviceIdProvider DeviceIdProvider
 @inject UAuthClientDiagnostics Diagnostics
 
-<div class="uauth-page d-flex align-center justify-center">
-    <MudStack Class="uauth-stack">
-        <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="/home">
-            <MudStack>
-                <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
-                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: admin or user" />
-                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: admin or user" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
-            </MudStack>
-        </UAuthLoginForm>
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium">
+        <MudGrid Spacing="0">
+            <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
+                <MudPaper Class="mud-theme-primary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
+                    <UAuthStateView>
+                        <Authorized Context="state">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.subtitle1">You are already signed in</MudText>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudAvatar Class="uauth-brand-glow" Color="Color.Secondary" Variant="Variant.Filled">
+                                        @(state.Identity?.PrimaryUserName?.Substring(0, 2))
+                                    </MudAvatar>
 
-        <MudStack Class="mud-width-full" Row="true">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ValidateAsync">Validate</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="LogoutAsync">Logout</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Refresh</MudButton>
-        </MudStack>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6">
+                                            <b>@state.Identity?.PrimaryUserName</b>
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">
+                                            Roles: @string.Join(", ", state.Claims.Roles)
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
 
-        <MudStack Class="mud-width-full">
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="HandleGetMe">GetMe</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangeUserInactive">Change User Inactive</MudButton>
-        </MudStack>
+                                <MudStack Class="mt-2" Row="true" Spacing="2" Justify="Justify.SpaceBetween">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Nav.NavigateTo("/home"))">
+                                        Continue
+                                    </MudButton>
 
-        <MudStack Spacing="0">
-            <MudText><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
-            <MudText>Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
-            <MudText>Framework Description: @_productInfo?.FrameworkDescription</MudText>
-        </MudStack>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@UAuthClient.Flows.LogoutAsync">
+                                        Switch account
+                                    </MudButton>
+                                </MudStack>
 
-        <MudStack Spacing="0">
-            <MudText>State of Authentication:</MudText>
-            <MudText>@(_aspNetCoreState?.Identity?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(_aspNetCoreState?.Identity?.Name)</MudText>
-            <MudText>UAuthState @(AuthState?.IsAuthenticated == true ? "Authenticated" : "Not Authenticated") - UserId:@(AuthState?.Identity?.UserKey)</MudText>
-            <UAuthStateView>
-                <Authorized>
-                    <MudText>Authorized context is shown. @context?.IsAuthenticated</MudText>
-                </Authorized>
-                <NotAuthorized>
-                    <MudText>Not Authorized context is shown.</MudText>
-                </NotAuthorized>
-            </UAuthStateView>
+                                <MudAlert Class="white-text mt-4" Dense="true" Variant="Variant.Text">
+                                    In a production application, users would typically be redirected automatically.
+                                    This screen is shown in the sample to demonstrate session handling behavior.
+                                </MudAlert>
+                            </MudStack>
+                            <MudDivider />
+                        </Authorized>
 
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <MudText>This is Admin content.</MudText>
-                </Authorized>
-            </AuthorizeView>
-        </MudStack>
-    </MudStack>
-</div>
+                        <NotAuthorized>
+                            <MudStack Class="my-4">
+                                <div class="uauth-brand-glow uauth-logo-slide d-flex justify-center">
+                                    <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-primary)" />
+                                </div>
+                                <MudText Style="font-weight: 700" Typo="Typo.h4" Align="Align.Center">UltimateAuth</MudText>
+                                <MudText Align="Align.Center">The Modern Unified Auth Framework for .NET — Reimagined.</MudText>
+                            </MudStack>
+                            <MudDivider />
+                        </NotAuthorized>
+                    </UAuthStateView>
+
+                    <MudStack Class="mt-4" Wrap="Wrap.Wrap" Spacing="0">
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center"><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@_productInfo?.FrameworkDescription</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
+                <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
+                    <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="/home">
+                        <MudStack Class="mud-width-full">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
+                                <MudText Typo="Typo.h5">
+                                    <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
+                                </MudText>
+                            </MudStack>
+                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" />
+                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
+                        </MudStack>
+                    </UAuthLoginForm>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">
+                        Default sample users:
+                        <b>admin/admin</b> (Admin),
+                        <b>user/user</b> (Standard User)
+                    </MudAlert>
+
+                    <MudDivider Class="my-8" />
+
+                    <MudStack Class="mud-width-full">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</MudPage>

@@ -16,6 +16,7 @@ public partial class Login
     private string? _password;
     private ClaimsPrincipal? _aspNetCoreState;
     private UAuthClientProductInfo? _productInfo;
+    private MudTextField<string> _usernameField;
 
     [CascadingParameter]
     public UAuthState AuthState { get; set; } = default!;
@@ -28,6 +29,25 @@ public partial class Login
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         Diagnostics.Changed += OnDiagnosticsChanged;
         _productInfo = ClientProductInfoProvider.Get();
+    }
+
+    private bool _shouldFocus;
+
+    protected override void OnParametersSet()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        _shouldFocus = query["focus"] == "1";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldFocus)
+        {
+            _shouldFocus = false;
+            await _usernameField.FocusAsync();
+        }
     }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
@@ -51,59 +71,7 @@ public partial class Login
             Secret = "admin",
             Device = DeviceContext.FromDeviceId(deviceId),
         };
-        await UAuth.Flows.LoginAsync(request, "/home");
-    }
-
-    private async Task ValidateAsync()
-    {
-        var result = await UAuth.Flows.ValidateAsync();
-
-        Snackbar.Add(
-            result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
-            result.IsValid ? Severity.Success : Severity.Error);
-    }
-
-    private async Task LogoutAsync()
-    {
-        await UAuth.Flows.LogoutAsync();
-        Snackbar.Add("Logged out", Severity.Success);
-    }
-
-    private async Task RefreshAsync()
-    {
-        await UAuth.Flows.RefreshAsync();
-    }
-
-    private async Task HandleGetMe()
-    {
-        var profileResult = await UAuth.Users.GetMeAsync();
-        if (profileResult.Ok)
-        {
-            var profile = profileResult.Value;
-            Snackbar.Add($"User Profile: {profile?.UserName} ({profile?.DisplayName})", Severity.Info);
-        }
-        else
-        {
-            Snackbar.Add($"Failed to get profile: {profileResult.Error}", Severity.Error);
-        }
-    }
-
-    private async Task ChangeUserInactive()
-    {
-        ChangeUserStatusAdminRequest request = new ChangeUserStatusAdminRequest
-        {
-            UserKey = UserKey.FromString("user"),
-            NewStatus = UserStatus.Disabled
-        };
-        var result = await UAuth.Users.ChangeStatusAdminAsync(request);
-        if (result.Ok)
-        {
-            Snackbar.Add($"User is disabled.", Severity.Info);
-        }
-        else
-        {
-            Snackbar.Add($"Failed to change user status.", Severity.Error);
-        }
+        await UAuthClient.Flows.LoginAsync(request, "/home");
     }
 
     protected override void OnAfterRender(bool firstRender)

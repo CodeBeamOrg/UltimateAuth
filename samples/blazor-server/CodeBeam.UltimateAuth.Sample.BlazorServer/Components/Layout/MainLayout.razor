@@ -1,55 +1,52 @@
 ﻿@inherits LayoutComponentBase
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <MudLayout>
-    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
-        <MudText><b>UltimateAuth</b></MudText>
+    <MudAppBar Style="backdrop-filter: blur(10px)" Color="Color.Transparent" Dense="true" Elevation="0">
+        <UAuthLogo />
+        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home"))"><b>UltimateAuth</b></MudText>
+        <MudDivider Class="ml-4 mr-2" Vertical="true" />
         <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
 
         <MudSpacer />
 
-        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-            <ActivatorContent>
-                <div @onclick="@(() => context.ToggleAsync())">
-                    <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
-                        <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
-                            <UAuthStateView>
-                                <Authorized Context="state">
-                                    @(state.Identity?.PrimaryUserName?.Substring(0, 1).ToUpper())
-                                </Authorized>
-                                <NotAuthorized>
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
-                                </NotAuthorized>
-                            </UAuthStateView>
-                        </MudAvatar>
-                    </MudBadge>
-                </div>
-            </ActivatorContent>
+        <UAuthStateView>
+            <Authorized Context="state">
+                <MudMenu PopoverClass="mud-theme-primary uauth-menu-popover" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <div @onclick="@(() => context.ToggleAsync())">
+                            <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
+                                <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
+                                    @((state.Identity?.PrimaryUserName ?? "?").Trim().ToUpperInvariant() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")
+                                </MudAvatar>
+                            </MudBadge>
+                        </div>
+                    </ActivatorContent>
 
-            <ChildContent>
-                <UAuthStateView RequireActive="true">
-                    <Authorized Context="state">
-                        <MudText Class="px-4 py-2">
-                            <b>@state.Identity?.PrimaryUserName</b>
-                        </MudText>
+                    <ChildContent>
+                        <MudText Class="px-4 py-2"><b>@state.Identity?.PrimaryUserName</b></MudText>
+                        <MudText Class="px-4" Typo="Typo.subtitle2">@string.Join(", ", state.Claims.Roles)</MudText>
 
                         <MudDivider />
 
-                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh" Label="Refresh Session" OnClick="@Refresh" />
-                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" Label="Logout" OnClick="@Logout" />
-                    </Authorized>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh" IconColor="Color.Secondary" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Secondary" Label="Logout" OnClick="@Logout" />
 
-                    <Inactive>
-                        <MudMenuItem Label="Reauthenticate" Href="/login" />
-                    </Inactive>
+                        @if (state.Identity?.SessionState is not null && state.Identity.SessionState != SessionState.Active)
+                        {
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Login" Label="Reauthenticate" OnClick="@GoToLoginWithReturn" />
+                        }
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
 
-                    <NotAuthorized>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Login" Label="Sign In" Href="/login" />
-                    </NotAuthorized>
-                </UAuthStateView>
-            </ChildContent>
-        </MudMenu>
+            <NotAuthorized>
+                <MudChip T="string" Style="width: fit-content" Text="Sign In" Color="Color.Primary" Variant="Variant.Filled" Class="cursor-pointer" OnClick="@HandleSignInClick" />
+            </NotAuthorized>
+        </UAuthStateView>
     </MudAppBar>
 
     <MudMainContent>
