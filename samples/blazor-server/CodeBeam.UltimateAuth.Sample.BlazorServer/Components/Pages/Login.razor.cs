@@ -2,7 +2,6 @@
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
@@ -16,7 +15,7 @@ public partial class Login
     private string? _password;
     private ClaimsPrincipal? _aspNetCoreState;
     private UAuthClientProductInfo? _productInfo;
-    private MudTextField<string> _usernameField;
+    private MudTextField<string> _usernameField = default!;
 
     [CascadingParameter]
     public UAuthState AuthState { get; set; } = default!;
@@ -93,9 +92,9 @@ public partial class Login
     {
         var message = code switch
         {
-            "invalid" => "Invalid username or password.",
+            "invalid_credentials" => "Invalid username or password.",
             "locked" => "Your account is locked.",
-            "mfa" => "Multi-factor authentication required.",
+            "mfa_required" => "Multi-factor authentication required.",
             _ => "Login failed."
         };
 

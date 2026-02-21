@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
@@ -27,7 +28,7 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         if (!redirect.Enabled)
             return RedirectDecision.None();
 
-        if (redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
+        if (failureReason is null && redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
         {
             if (info.IsAbsolute && (info.AbsoluteUri!.Scheme == Uri.UriSchemeHttp || info.AbsoluteUri!.Scheme == Uri.UriSchemeHttps))
             {
@@ -54,12 +55,17 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
                 var code = redirect.FailureCodes != null &&
                            redirect.FailureCodes.TryGetValue(failureReason.Value, out var mapped)
                     ? mapped
-                    : "failed";
+                    : failureReason.Value.ToDefaultCode();
 
                 query = new Dictionary<string, string?>
                 {
-                    [redirect.FailureQueryKey ?? "error"] = code
+                    [redirect.FailureQueryKey ?? "error"] = code,
                 };
+
+                if (!string.IsNullOrWhiteSpace(flow.ReturnUrlInfo?.RelativePath))
+                {
+                    query["returnUrl"] = flow.ReturnUrlInfo.RelativePath;
+                }
             }
 
             return RedirectDecision.To(UrlComposer.Combine(baseAddress, fallbackPath, query));

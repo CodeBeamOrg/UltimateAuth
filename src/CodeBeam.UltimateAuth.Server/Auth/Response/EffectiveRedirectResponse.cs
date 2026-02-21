@@ -31,14 +31,14 @@ public sealed class EffectiveRedirectResponse
     public static readonly EffectiveRedirectResponse Disabled = new(false, null, null, null, null, false);
 
     public static EffectiveRedirectResponse FromLogin(LoginRedirectOptions login)
-        => new(
-            login.RedirectEnabled,
-            login.SuccessRedirect,
-            login.FailureRedirect,
-            login.FailureQueryKey,
-            login.FailureCodes,
-            login.AllowReturnUrlOverride
-        );
+    => new(
+        login.RedirectEnabled,
+        login.SuccessRedirect,
+        login.FailureRedirect,
+        login.FailureQueryKey,
+        login.FailureCodes,
+        login.AllowReturnUrlOverride
+    );
 
     public static EffectiveRedirectResponse FromLogout(LogoutRedirectOptions logout)
         => new(

@@ -156,19 +156,18 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         }
 
         if (decision.Kind == LoginDecisionKind.Deny)
-            return LoginResult.Failed();
+            return LoginResult.Failed(decision.FailureReason);
 
         if (decision.Kind == LoginDecisionKind.Challenge)
         {
             return LoginResult.Continue(new LoginContinuation
             {
-                Type = LoginContinuationType.Mfa,
-                Hint = decision.Reason
+                Type = LoginContinuationType.Mfa
             });
         }
 
         if (validatedUserId is null || userKey is not UserKey validUserKey)
-            return LoginResult.Failed();
+            return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
 
         var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, validUserKey, ct);
 

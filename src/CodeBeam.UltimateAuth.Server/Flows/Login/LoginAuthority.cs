@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 
@@ -21,22 +22,22 @@ public sealed class LoginAuthority : ILoginAuthority
     {
         if (!context.UserExists || context.UserKey is null)
         {
-            return LoginDecision.Deny("Invalid credentials.");
+            return LoginDecision.Deny(AuthFailureReason.InvalidCredentials);
         }
 
         var state = context.SecurityState;
         if (state is not null)
         {
             if (state.IsLocked)
-                return LoginDecision.Deny("user_is_locked");
+                return LoginDecision.Deny(AuthFailureReason.LockedOut);
 
             if (state.RequiresReauthentication)
-                return LoginDecision.Challenge("reauth_required");
+                return LoginDecision.Challenge(AuthFailureReason.ReauthenticationRequired);
         }
 
         if (!context.CredentialsValid)
         {
-            return LoginDecision.Deny("Invalid credentials.");
+            return LoginDecision.Deny(AuthFailureReason.InvalidCredentials);
         }
 
         return LoginDecision.Allow();

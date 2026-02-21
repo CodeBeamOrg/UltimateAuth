@@ -9,5 +9,6 @@ public enum AuthFailureReason
     SessionRevoked,
     TenantDisabled,
     Unauthorized,
+    ReauthenticationRequired,
     Unknown
 }
