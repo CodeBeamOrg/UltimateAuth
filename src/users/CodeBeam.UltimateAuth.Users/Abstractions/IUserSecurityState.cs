@@ -6,6 +6,7 @@ public interface IUserSecurityState
     int FailedLoginAttempts { get; }
     DateTimeOffset? LockedUntil { get; }
     bool RequiresReauthentication { get; }
+    DateTimeOffset? LastFailedAt { get; }
 
     bool IsLocked => LockedUntil.HasValue && LockedUntil > DateTimeOffset.UtcNow;
 }

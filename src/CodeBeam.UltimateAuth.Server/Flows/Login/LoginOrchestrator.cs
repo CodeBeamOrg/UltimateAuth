@@ -3,7 +3,6 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -12,6 +11,8 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.Options;
+
+// TODO: Identifier-based throttling, Exponential lockout
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -100,6 +101,18 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         if (candidateUserId is not null)
         {
             securityState = await _securityStateProvider.GetAsync(request.Tenant, candidateUserId, ct);
+            if (securityState?.LastFailedAt is DateTimeOffset lastFail && _options.Login.FailureWindow is { } window && now - lastFail > window)
+            {
+                await _securityWriter.ResetFailuresAsync(request.Tenant, candidateUserId, ct);
+                securityState = null;
+            }
+
+            if (securityState?.LockedUntil is DateTimeOffset until && until <= now)
+            {
+                await _securityWriter.ResetFailuresAsync(request.Tenant, candidateUserId, ct);
+                securityState = null;
+            }
+
             var converter = _userIdConverterResolver.GetConverter<TUserId>();
             var canonicalUserId = converter.ToCanonicalString(candidateUserId);
 
@@ -127,9 +140,11 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         };
 
         var decision = _authority.Decide(decisionContext);
+        var max = _options.Login.MaxFailedAttempts;
         DateTimeOffset? lockoutUntilUtc = null;
+        int? remainingAttempts = null;
 
-        if (candidateUserId is not null)
+        if (candidateUserId is not null && userExists)
         {
             if (decision.Kind == LoginDecisionKind.Allow)
             {
@@ -142,6 +157,7 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
                 if (isCurrentlyLocked)
                 {
                     lockoutUntilUtc = securityState!.LockedUntil;
+                    remainingAttempts = 0;
                 }
 
                 if (!isCurrentlyLocked)
@@ -151,11 +167,18 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
                     var currentFailures = securityState?.FailedLoginAttempts ?? 0;
                     var nextCount = currentFailures + 1;
 
-                    if (_options.Login.MaxFailedAttempts > 0 && nextCount >= _options.Login.MaxFailedAttempts)
+                    if (max > 0)
                     {
-                        var lockedUntil = now.Add(_options.Login.LockoutDuration);
-                        await _securityWriter.LockUntilAsync(request.Tenant, candidateUserId, lockedUntil, ct);
-                        lockoutUntilUtc = lockedUntil;
+                        if (nextCount >= max)
+                        {
+                            lockoutUntilUtc = now.Add(_options.Login.LockoutDuration);
+                            await _securityWriter.LockUntilAsync(request.Tenant, candidateUserId, lockoutUntilUtc.Value, ct);
+                            remainingAttempts = 0;
+                        }
+                        else
+                        {
+                            remainingAttempts = max - nextCount;
+                        }
                     }
                 }
                 
@@ -165,12 +188,12 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         if (decision.Kind == LoginDecisionKind.Deny)
         {
             if (lockoutUntilUtc is not null)
-                return LoginResult.Failed(AuthFailureReason.LockedOut, lockoutUntilUtc);
+                return LoginResult.Failed(AuthFailureReason.LockedOut, lockoutUntilUtc, remainingAttempts);
 
             if (decision.FailureReason == AuthFailureReason.LockedOut)
-                return LoginResult.Failed(decision.FailureReason, lockoutUntilUtc);
+                return LoginResult.Failed(decision.FailureReason, lockoutUntilUtc, remainingAttempts);
 
-            return LoginResult.Failed(decision.FailureReason);
+            return LoginResult.Failed(decision.FailureReason, null, remainingAttempts);
         }
 
         if (decision.Kind == LoginDecisionKind.Challenge)

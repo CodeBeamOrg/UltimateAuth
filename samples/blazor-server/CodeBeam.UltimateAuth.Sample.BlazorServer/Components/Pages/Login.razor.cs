@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
-public partial class Login
+public partial class Login : UAuthQueryPageBase
 {
     private string? _username;
     private string? _password;
@@ -25,6 +25,8 @@ public partial class Login
     private TimeSpan _lockoutDuration;
     private double _progressPercent;
 
+    private int? _remainingAttempts = null;
+
     [CascadingParameter]
     public UAuthState AuthState { get; set; } = default!;
 
@@ -38,23 +40,53 @@ public partial class Login
         _productInfo = ClientProductInfoProvider.Get();
     }
 
-    private bool _shouldFocus;
-
-    protected override void OnParametersSet()
+    protected override Task OnUAuthPayloadAsync(AuthFlowPayload payload)
     {
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-
-        _shouldFocus = query["focus"] == "1";
+        HandleLoginPayload(payload);
+        return Task.CompletedTask;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnFocusRequestedAsync()
     {
-        if (_shouldFocus)
+        await _usernameField.FocusAsync();
+    }
+
+    private void HandleLoginPayload(AuthFlowPayload payload)
+    {
+        if (payload.Flow != AuthFlowType.Login)
+            return;
+
+        if (payload.Reason == AuthFailureReason.LockedOut && payload.LockoutUntilUtc is { } until)
         {
-            _shouldFocus = false;
-            await _usernameField.FocusAsync();
+            _lockoutUntil = until;
+            StartCountdown();
         }
+
+        _remainingAttempts = payload.RemainingAttempts;
+
+        ShowLoginError(payload.Reason, payload.RemainingAttempts);
+    }
+
+    private void ShowLoginError(AuthFailureReason? reason, int? remainingAttempts)
+    {
+        string message = reason switch
+        {
+            AuthFailureReason.InvalidCredentials when remainingAttempts is > 0
+                => $"Invalid username or password. {remainingAttempts} attempt(s) remaining.",
+
+            AuthFailureReason.InvalidCredentials
+                => "Invalid username or password.",
+
+            AuthFailureReason.RequiresMfa
+                => "Multi-factor authentication required.",
+
+            AuthFailureReason.LockedOut
+                => "Your account is locked.",
+
+            _ => "Login failed."
+        };
+
+        Snackbar.Add(message, Severity.Error);
     }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
@@ -81,66 +113,6 @@ public partial class Login
         await UAuthClient.Flows.LoginAsync(request, "/home");
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (!firstRender)
-            return;
-
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-
-        if (query.TryGetValue("error", out var error))
-        {
-            query.TryGetValue("lockedUntil", out var lockedRaw);
-            query.TryGetValue("remainingAttempts", out var remainingRaw);
-
-            HandleLoginError(error.ToString(), lockedRaw.ToString(), remainingRaw.ToString());
-
-            ClearQueryString();
-        }
-    }
-
-    private void HandleLoginError(string code, string? lockedUntilRaw, string? remainingRaw)
-    {
-        if (code == "locked" && long.TryParse(lockedUntilRaw, out var unix))
-        {
-            _lockoutUntil = DateTimeOffset.FromUnixTimeSeconds(unix);
-            StartCountdown();
-            return;
-        }
-
-        ShowLoginError(code, remainingRaw);
-    }
-
-    private void ShowLoginError(string code, string? remainingRaw)
-    {
-        string message;
-
-        switch (code)
-        {
-            case "invalid_credentials":
-                if (int.TryParse(remainingRaw, out var remaining) && remaining > 0)
-                {
-                    message = $"Invalid username or password. {remaining} attempt(s) remaining.";
-                }
-                else
-                {
-                    message = "Invalid username or password.";
-                }
-                break;
-
-            case "mfa_required":
-                message = "Multi-factor authentication required.";
-                break;
-
-            default:
-                message = "Login failed.";
-                break;
-        }
-
-        Snackbar.Add(message, Severity.Error);
-    }
-
     private void StartCountdown()
     {
         if (_lockoutUntil is null)
@@ -161,9 +133,11 @@ public partial class Login
                 if (_remaining <= TimeSpan.Zero)
                 {
                     _countdownTimer?.Dispose();
+                    _countdownTimer = null;
                     _isLocked = false;
                     _lockoutUntil = null;
                     _progressPercent = 0;
+                    _remainingAttempts = null;
                 }
 
                 StateHasChanged();
@@ -183,7 +157,6 @@ public partial class Login
         if (_remaining <= TimeSpan.Zero)
         {
             _remaining = TimeSpan.Zero;
-            _progressPercent = 0;
             return;
         }
 
@@ -194,13 +167,6 @@ public partial class Login
             var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
             _progressPercent = Math.Max(0, percent);
         }
-    }
-
-    private void ClearQueryString()
-    {
-        var uri = new Uri(Nav.Uri);
-        var clean = uri.GetLeftPart(UriPartial.Path);
-        Nav.NavigateTo(clean, replace: true);
     }
 
     public void Dispose()

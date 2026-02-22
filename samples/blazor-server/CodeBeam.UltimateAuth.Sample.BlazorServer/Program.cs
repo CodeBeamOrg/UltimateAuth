@@ -40,7 +40,7 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
     //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
     //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
-    o.Login.MaxFailedAttempts = 1;
+    o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
 })
     .AddUltimateAuthUsersInMemory()

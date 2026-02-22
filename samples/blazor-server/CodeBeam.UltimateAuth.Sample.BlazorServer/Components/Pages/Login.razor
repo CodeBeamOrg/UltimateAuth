@@ -1,11 +1,11 @@
 ﻿@page "/login"
 @attribute [UAuthLoginPage]
+@inherits UAuthQueryPageBase
 
 @implements IDisposable
 @inject IUAuthClient UAuthClient
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
-@inject NavigationManager Nav
 @inject IUAuthClientProductInfoProvider ClientProductInfoProvider
 @inject IDeviceIdProvider DeviceIdProvider
 @inject UAuthClientDiagnostics Diagnostics
@@ -82,8 +82,8 @@
                                     <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
                                 </MudText>
                             </MudStack>
-                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" />
-                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" />
+                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
+                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
                             @if (_isLocked)
                             {

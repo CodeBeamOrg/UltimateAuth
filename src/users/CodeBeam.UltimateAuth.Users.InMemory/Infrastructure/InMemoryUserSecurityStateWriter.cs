@@ -20,7 +20,8 @@ internal sealed class InMemoryUserSecurityStateWriter<TUserId> : IUserSecuritySt
             SecurityVersion = (current?.SecurityVersion ?? 0) + 1,
             FailedLoginAttempts = (current?.FailedLoginAttempts ?? 0) + 1,
             LockedUntil = current?.LockedUntil,
-            RequiresReauthentication = current?.RequiresReauthentication ?? false
+            RequiresReauthentication = current?.RequiresReauthentication ?? false,
+            LastFailedAt = at
         };
 
         _store.Set(tenant, userId, next);

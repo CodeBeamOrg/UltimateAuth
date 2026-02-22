@@ -1,7 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -11,13 +8,6 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 /// </summary>
 public sealed class LoginAuthority : ILoginAuthority
 {
-    private readonly UAuthLoginOptions _options;
-
-    public LoginAuthority(IOptions<UAuthServerOptions> options)
-    {
-        _options = options.Value.Login;
-    }
-
     public LoginDecision Decide(LoginDecisionContext context)
     {
         if (!context.UserExists || context.UserKey is null)
