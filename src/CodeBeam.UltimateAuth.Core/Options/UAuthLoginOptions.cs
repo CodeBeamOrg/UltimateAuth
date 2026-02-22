@@ -14,13 +14,13 @@ public sealed class UAuthLoginOptions
     public int MaxFailedAttempts { get; set; } = 10;
 
     /// <summary>
-    /// Duration (in minutes) for which the user is locked out after exceeding <see cref="MaxFailedAttempts" />.
+    /// Duration for which the user is locked out after exceeding <see cref="MaxFailedAttempts" />.
     /// </summary>
-    public int LockoutMinutes { get; set; } = 15;
+    public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);
 
     internal UAuthLoginOptions Clone() => new()
     {
         MaxFailedAttempts = MaxFailedAttempts,
-        LockoutMinutes = LockoutMinutes
+        LockoutDuration = LockoutDuration
     };
 }

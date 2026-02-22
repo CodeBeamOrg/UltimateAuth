@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -18,10 +19,10 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
     public RedirectDecision ResolveSuccess(AuthFlowContext flow, HttpContext ctx)
         => Resolve(flow, ctx, flow.Response.Redirect.SuccessPath, null);
 
-    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext ctx, AuthFailureReason reason)
-        => Resolve(flow, ctx, flow.Response.Redirect.FailurePath, reason);
+    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext ctx, AuthFailureReason reason, LoginResult? loginResult = null)
+        => Resolve(flow, ctx, flow.Response.Redirect.FailurePath, reason, loginResult);
 
-    private RedirectDecision Resolve(AuthFlowContext flow, HttpContext ctx, string? fallbackPath, AuthFailureReason? failureReason)
+    private RedirectDecision Resolve(AuthFlowContext flow, HttpContext ctx, string? fallbackPath, AuthFailureReason? failureReason, LoginResult? loginResult = null)
     {
         var redirect = flow.Response.Redirect;
 
@@ -65,6 +66,19 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
                 if (!string.IsNullOrWhiteSpace(flow.ReturnUrlInfo?.RelativePath))
                 {
                     query["returnUrl"] = flow.ReturnUrlInfo.RelativePath;
+                }
+
+                if (flow.FlowType == AuthFlowType.Login && loginResult is not null)
+                {
+                    if (loginResult.LockoutUntilUtc is not null && redirect.IncludeLockoutTiming)
+                    {
+                        query["lockedUntil"] = loginResult.LockoutUntilUtc.Value.ToUnixTimeSeconds().ToString();
+                    }
+
+                    if (loginResult.RemainingAttempts is int remaining && redirect.IncludeRemainingAttempts)
+                    {
+                        query["remainingAttempts"] = remaining.ToString();
+                    }
                 }
             }
 

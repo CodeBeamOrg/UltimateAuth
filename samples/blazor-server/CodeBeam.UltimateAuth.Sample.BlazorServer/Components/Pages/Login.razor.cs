@@ -17,6 +17,14 @@ public partial class Login
     private UAuthClientProductInfo? _productInfo;
     private MudTextField<string> _usernameField = default!;
 
+    private DateTimeOffset? _lockoutUntil;
+    private TimeSpan _remaining;
+    private System.Threading.Timer? _countdownTimer;
+    private bool _isLocked;
+    private DateTimeOffset? _lockoutStartedAt;
+    private TimeSpan _lockoutDuration;
+    private double _progressPercent;
+
     [CascadingParameter]
     public UAuthState AuthState { get; set; } = default!;
 
@@ -75,30 +83,117 @@ public partial class Login
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender)
-        {
-            var uri = Nav.ToAbsoluteUri(Nav.Uri);
-            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        if (!firstRender)
+            return;
 
-            if (query.TryGetValue("error", out var error))
-            {
-                ShowLoginError(error.ToString());
-                ClearQueryString();
-            }
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("error", out var error))
+        {
+            query.TryGetValue("lockedUntil", out var lockedRaw);
+            query.TryGetValue("remainingAttempts", out var remainingRaw);
+
+            HandleLoginError(error.ToString(), lockedRaw.ToString(), remainingRaw.ToString());
+
+            ClearQueryString();
         }
     }
 
-    private void ShowLoginError(string code)
+    private void HandleLoginError(string code, string? lockedUntilRaw, string? remainingRaw)
     {
-        var message = code switch
+        if (code == "locked" && long.TryParse(lockedUntilRaw, out var unix))
         {
-            "invalid_credentials" => "Invalid username or password.",
-            "locked" => "Your account is locked.",
-            "mfa_required" => "Multi-factor authentication required.",
-            _ => "Login failed."
-        };
+            _lockoutUntil = DateTimeOffset.FromUnixTimeSeconds(unix);
+            StartCountdown();
+            return;
+        }
+
+        ShowLoginError(code, remainingRaw);
+    }
+
+    private void ShowLoginError(string code, string? remainingRaw)
+    {
+        string message;
+
+        switch (code)
+        {
+            case "invalid_credentials":
+                if (int.TryParse(remainingRaw, out var remaining) && remaining > 0)
+                {
+                    message = $"Invalid username or password. {remaining} attempt(s) remaining.";
+                }
+                else
+                {
+                    message = "Invalid username or password.";
+                }
+                break;
+
+            case "mfa_required":
+                message = "Multi-factor authentication required.";
+                break;
+
+            default:
+                message = "Login failed.";
+                break;
+        }
 
         Snackbar.Add(message, Severity.Error);
+    }
+
+    private void StartCountdown()
+    {
+        if (_lockoutUntil is null)
+            return;
+
+        _isLocked = true;
+        _lockoutStartedAt = DateTimeOffset.UtcNow;
+        _lockoutDuration = _lockoutUntil.Value - DateTimeOffset.UtcNow;
+        UpdateRemaining();
+
+        _countdownTimer?.Dispose();
+        _countdownTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                UpdateRemaining();
+
+                if (_remaining <= TimeSpan.Zero)
+                {
+                    _countdownTimer?.Dispose();
+                    _isLocked = false;
+                    _lockoutUntil = null;
+                    _progressPercent = 0;
+                }
+
+                StateHasChanged();
+            });
+        }, null, 0, 1000);
+    }
+
+    private void UpdateRemaining()
+    {
+        if (_lockoutUntil is null || _lockoutStartedAt is null)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+
+        _remaining = _lockoutUntil.Value - now;
+
+        if (_remaining <= TimeSpan.Zero)
+        {
+            _remaining = TimeSpan.Zero;
+            _progressPercent = 0;
+            return;
+        }
+
+        var elapsed = now - _lockoutStartedAt.Value;
+
+        if (_lockoutDuration.TotalSeconds > 0)
+        {
+            var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
+            _progressPercent = Math.Max(0, percent);
+        }
     }
 
     private void ClearQueryString()
@@ -111,5 +206,6 @@ public partial class Login
     public void Dispose()
     {
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+        _countdownTimer?.Dispose();
     }
 }

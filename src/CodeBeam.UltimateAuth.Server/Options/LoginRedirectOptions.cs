@@ -19,6 +19,9 @@ public sealed class LoginRedirectOptions
     /// </summary>
     public bool AllowReturnUrlOverride { get; set; } = true;
 
+    public bool IncludeLockoutTiming { get; set; } = true;
+    public bool IncludeRemainingAttempts { get; set; } = false;
+
     internal LoginRedirectOptions Clone() => new()
     {
         RedirectEnabled = RedirectEnabled,
@@ -27,6 +30,8 @@ public sealed class LoginRedirectOptions
         FailureQueryKey = FailureQueryKey,
         CodeQueryKey = CodeQueryKey,
         FailureCodes = new Dictionary<AuthFailureReason, string>(FailureCodes),
-        AllowReturnUrlOverride = AllowReturnUrlOverride
+        AllowReturnUrlOverride = AllowReturnUrlOverride,
+        IncludeLockoutTiming = IncludeLockoutTiming,
+        IncludeRemainingAttempts = IncludeRemainingAttempts
     };
 }

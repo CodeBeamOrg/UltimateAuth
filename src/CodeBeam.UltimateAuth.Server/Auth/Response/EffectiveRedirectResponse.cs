@@ -11,6 +11,8 @@ public sealed class EffectiveRedirectResponse
     public string? FailureQueryKey { get; }
     public IReadOnlyDictionary<AuthFailureReason, string>? FailureCodes { get; }
     public bool AllowReturnUrlOverride { get; }
+    public bool IncludeLockoutTiming { get; }
+    public bool IncludeRemainingAttempts { get; }
 
     public EffectiveRedirectResponse(
         bool enabled,
@@ -18,7 +20,9 @@ public sealed class EffectiveRedirectResponse
         string? failurePath,
         string? failureQueryKey,
         IReadOnlyDictionary<AuthFailureReason, string>? failureCodes,
-        bool allowReturnUrlOverride)
+        bool allowReturnUrlOverride,
+        bool includeLockoutTiming,
+        bool includeRemainingAttempts)
     {
         Enabled = enabled;
         SuccessPath = successPath;
@@ -26,9 +30,11 @@ public sealed class EffectiveRedirectResponse
         FailureQueryKey = failureQueryKey;
         FailureCodes = failureCodes;
         AllowReturnUrlOverride = allowReturnUrlOverride;
+        IncludeLockoutTiming = includeLockoutTiming;
+        IncludeRemainingAttempts = includeRemainingAttempts;
     }
 
-    public static readonly EffectiveRedirectResponse Disabled = new(false, null, null, null, null, false);
+    public static readonly EffectiveRedirectResponse Disabled = new(false, null, null, null, null, false, false, false);
 
     public static EffectiveRedirectResponse FromLogin(LoginRedirectOptions login)
     => new(
@@ -37,7 +43,9 @@ public sealed class EffectiveRedirectResponse
         login.FailureRedirect,
         login.FailureQueryKey,
         login.FailureCodes,
-        login.AllowReturnUrlOverride
+        login.AllowReturnUrlOverride,
+        login.IncludeLockoutTiming,
+        login.IncludeRemainingAttempts
     );
 
     public static EffectiveRedirectResponse FromLogout(LogoutRedirectOptions logout)
@@ -47,6 +55,8 @@ public sealed class EffectiveRedirectResponse
             null,
             null,
             null,
-            logout.AllowReturnUrlOverride
+            logout.AllowReturnUrlOverride,
+            false,
+            false
         );
 }

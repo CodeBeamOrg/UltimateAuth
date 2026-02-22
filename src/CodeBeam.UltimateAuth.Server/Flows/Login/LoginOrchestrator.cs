@@ -127,6 +127,7 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         };
 
         var decision = _authority.Decide(decisionContext);
+        DateTimeOffset? lockoutUntilUtc = null;
 
         if (candidateUserId is not null)
         {
@@ -138,6 +139,11 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
             {
                 var isCurrentlyLocked = securityState?.IsLocked == true && securityState?.LockedUntil is DateTimeOffset until && until > now;
 
+                if (isCurrentlyLocked)
+                {
+                    lockoutUntilUtc = securityState!.LockedUntil;
+                }
+
                 if (!isCurrentlyLocked)
                 {
                     await _securityWriter.RecordFailedLoginAsync(request.Tenant, candidateUserId, now, ct);
@@ -147,8 +153,9 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
 
                     if (_options.Login.MaxFailedAttempts > 0 && nextCount >= _options.Login.MaxFailedAttempts)
                     {
-                        var lockedUntil = now.AddMinutes(_options.Login.LockoutMinutes);
+                        var lockedUntil = now.Add(_options.Login.LockoutDuration);
                         await _securityWriter.LockUntilAsync(request.Tenant, candidateUserId, lockedUntil, ct);
+                        lockoutUntilUtc = lockedUntil;
                     }
                 }
                 
@@ -156,7 +163,15 @@ internal sealed class LoginOrchestrator<TUserId> : ILoginOrchestrator<TUserId>
         }
 
         if (decision.Kind == LoginDecisionKind.Deny)
+        {
+            if (lockoutUntilUtc is not null)
+                return LoginResult.Failed(AuthFailureReason.LockedOut, lockoutUntilUtc);
+
+            if (decision.FailureReason == AuthFailureReason.LockedOut)
+                return LoginResult.Failed(decision.FailureReason, lockoutUntilUtc);
+
             return LoginResult.Failed(decision.FailureReason);
+        }
 
         if (decision.Kind == LoginDecisionKind.Challenge)
         {

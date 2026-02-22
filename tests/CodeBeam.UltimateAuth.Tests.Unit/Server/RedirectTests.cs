@@ -75,7 +75,9 @@ public class RedirectTests
                 failurePath: null,
                 failureQueryKey: null,
                 failureCodes: null,
-                allowReturnUrlOverride: true
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false
             )
         );
 
@@ -97,7 +99,9 @@ public class RedirectTests
                 failurePath: null,
                 failureQueryKey: null,
                 failureCodes: null,
-                allowReturnUrlOverride: false
+                allowReturnUrlOverride: false,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false
             )
         );
 
@@ -118,7 +122,9 @@ public class RedirectTests
                 failurePath: null,
                 failureQueryKey: null,
                 failureCodes: null,
-                allowReturnUrlOverride: true
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false
             )
         );
 
@@ -140,7 +146,9 @@ public class RedirectTests
                 failurePath: null,
                 failureQueryKey: null,
                 failureCodes: null,
-                allowReturnUrlOverride: true
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false
             )
         );
 
@@ -161,7 +169,9 @@ public class RedirectTests
                 failurePath: null,
                 failureQueryKey: null,
                 failureCodes: null,
-                allowReturnUrlOverride: true
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false
             )
         );
 
@@ -184,7 +194,9 @@ public class RedirectTests
             {
                 [AuthFailureReason.InvalidCredentials] = "bad_credentials"
             },
-            allowReturnUrlOverride: false
+            allowReturnUrlOverride: false,
+            includeLockoutTiming: true,
+            includeRemainingAttempts: false
         );
 
         var flow = AuthFlowTestFactory.LoginSuccess(

@@ -84,7 +84,21 @@
                             </MudStack>
                             <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" />
                             <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" />
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
+                            @if (_isLocked)
+                            {
+                                <MudAlert NoIcon="true" Severity="Severity.Error" Variant="Variant.Filled">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.subtitle2">Your account is locked.</MudText>
+                                            <MudText Typo="Typo.subtitle2">Try again in </MudText>
+                                        </MudStack>
+                                        <MudProgressCircular Class="mud-theme-error" Value="@_progressPercent" Max="100" Size="Size.Large">
+                                            @_remaining.Minutes.ToString("00"):@_remaining.Seconds.ToString("00")
+                                        </MudProgressCircular>
+                                    </MudStack>
+                                </MudAlert>
+                            }
                         </MudStack>
                     </UAuthLoginForm>
                     <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">

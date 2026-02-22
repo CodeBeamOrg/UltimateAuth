@@ -303,7 +303,7 @@ public class LoginOrchestratorTests
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
             o.Login.MaxFailedAttempts = 1;
-            o.Login.LockoutMinutes = 15;
+            o.Login.LockoutDuration = TimeSpan.FromMinutes(15);
         });
 
         var orchestrator = runtime.GetLoginOrchestrator();
