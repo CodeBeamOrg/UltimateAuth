@@ -7,7 +7,7 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
     private UAuthState? _previousState;
 
     [CascadingParameter]
-    protected UAuthState UAuth { get; set; } = default!;
+    protected UAuthState AuthState { get; set; } = default!;
 
     /// <summary>
     /// Automatically re-render when UAuthState changes.
@@ -19,17 +19,17 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
     {
         base.OnParametersSet();
 
-        if (UAuth is null)
-            throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(UAuthState)}. " +
+        if (AuthState is null)
+            throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(AuthState)}. " +
                 $"Make sure it is used inside <UAuthApp>.");
 
-        if (!ReferenceEquals(_previousState, UAuth))
+        if (!ReferenceEquals(_previousState, AuthState))
         {
             if (_previousState is not null)
                 _previousState.Changed -= OnAuthStateChanged;
 
-            UAuth.Changed += OnAuthStateChanged;
-            _previousState = UAuth;
+            AuthState.Changed += OnAuthStateChanged;
+            _previousState = AuthState;
         }
     }
 

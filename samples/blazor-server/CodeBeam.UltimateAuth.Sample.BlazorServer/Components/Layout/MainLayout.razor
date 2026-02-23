@@ -19,7 +19,7 @@
                         <div @onclick="@(() => context.ToggleAsync())">
                             <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
                                 <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
-                                    @((state.Identity?.PrimaryUserName ?? "?").Trim().ToUpperInvariant() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")
+                                    @((state.Identity?.PrimaryUserName ?? "?").Trim() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")
                                 </MudAvatar>
                             </MudBadge>
                         </div>

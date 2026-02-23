@@ -1,25 +1,38 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
-public partial class Home
+public partial class Home : UAuthFlowPageBase
 {
     private ClaimsPrincipal? _aspNetCoreState;
 
-    [CascadingParameter]
-    public UAuthState AuthState { get; set; } = default!;
-
-    [CascadingParameter]
-    Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
-
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthenticationStateTask;
-        _aspNetCoreState = state.User;
+        var initial = await AuthStateProvider.GetAuthenticationStateAsync();
+        _aspNetCoreState = initial.User;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         Diagnostics.Changed += OnDiagnosticsChanged;
+    }
+
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        _ = HandleAuthStateChangedAsync(task);
+    }
+
+    private async Task HandleAuthStateChangedAsync(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            _aspNetCoreState = state.User;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+
+        }
     }
 
     private void OnDiagnosticsChanged()
@@ -37,8 +50,10 @@ public partial class Home
     private Task AssignRole() => Task.CompletedTask;
     private Task ChangePassword() => Task.CompletedTask;
 
-    public void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
         Diagnostics.Changed -= OnDiagnosticsChanged;
     }
 }

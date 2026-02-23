@@ -8,7 +8,7 @@
 {
     if (Inactive is not null)
     {
-        @Inactive(UAuth)
+        @Inactive(AuthState)
     }
     else
     {
@@ -21,11 +21,11 @@ else
         <Authorized>
             @if (Authorized is not null)
             {
-                @Authorized(UAuth)
+                @Authorized(AuthState)
             }
             else if (ChildContent is not null)
             {
-                @ChildContent(UAuth)
+                @ChildContent(AuthState)
             }
         </Authorized>
         <NotAuthorized>

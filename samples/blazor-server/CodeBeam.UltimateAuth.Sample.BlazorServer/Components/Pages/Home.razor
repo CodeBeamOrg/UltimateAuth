@@ -1,8 +1,10 @@
 ﻿@page "/home"
 @attribute [Authorize]
+@inherits UAuthFlowPageBase
 
 @inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
+@inject AuthenticationStateProvider AuthStateProvider
 @using System.Security.Claims
 
 <MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">

@@ -47,19 +47,19 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
             return;
         }
 
-        if (UAuth.IsAuthenticated != true)
+        if (AuthState.IsAuthenticated != true)
         {
             _inactive = false;
             return;
         }
 
-        if (UAuth.Identity?.SessionState is null)
+        if (AuthState.Identity?.SessionState is null)
         {
             _inactive = false;
         }
         else
         {
-            _inactive = UAuth.Identity?.SessionState != SessionState.Active;
+            _inactive = AuthState.Identity?.SessionState != SessionState.Active;
         }
     }
 }

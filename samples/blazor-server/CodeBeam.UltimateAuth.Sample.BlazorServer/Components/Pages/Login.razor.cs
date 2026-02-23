@@ -2,10 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
@@ -13,7 +10,6 @@ public partial class Login : UAuthFlowPageBase
 {
     private string? _username;
     private string? _password;
-    private ClaimsPrincipal? _aspNetCoreState;
     private UAuthClientProductInfo? _productInfo;
     private MudTextField<string> _usernameField = default!;
 
@@ -27,16 +23,8 @@ public partial class Login : UAuthFlowPageBase
     private double _progressPercent;
     private int? _remainingAttempts = null;
 
-    [CascadingParameter]
-    public UAuthState AuthState { get; set; } = default!;
-
-    [CascadingParameter]
-    Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
-
     protected override async Task OnInitializedAsync()
     {
-        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
-        Diagnostics.Changed += OnDiagnosticsChanged;
         _productInfo = ClientProductInfoProvider.Get();
     }
 
@@ -87,30 +75,6 @@ public partial class Login : UAuthFlowPageBase
         };
 
         Snackbar.Add(message, Severity.Error);
-    }
-
-    private void OnAuthStateChanged(Task<AuthenticationState> task)
-    {
-        _ = HandleAuthStateChangedAsync(task);
-    }
-
-    private async Task HandleAuthStateChangedAsync(Task<AuthenticationState> task)
-    {
-        try
-        {
-            var state = await task;
-            _aspNetCoreState = state.User;
-            await InvokeAsync(StateHasChanged);
-        }
-        catch
-        {
-
-        }
-    }
-
-    private void OnDiagnosticsChanged()
-    {
-        InvokeAsync(StateHasChanged);
     }
 
     private async Task ProgrammaticLogin()
@@ -198,8 +162,6 @@ public partial class Login : UAuthFlowPageBase
     public override void Dispose()
     {
         base.Dispose();
-        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
-        Diagnostics.Changed -= OnDiagnosticsChanged;
         _lockoutCts?.Cancel();
         _lockoutTimer?.Dispose();
     }
