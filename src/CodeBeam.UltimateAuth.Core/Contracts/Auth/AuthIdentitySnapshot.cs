@@ -13,4 +13,5 @@ public sealed record AuthIdentitySnapshot
     public string? PrimaryPhone { get; init; }
     public DateTimeOffset? AuthenticatedAt { get; init; }
     public SessionState? SessionState { get; init; }
+    public string? TimeZone { get; init; }
 }

@@ -34,7 +34,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
     public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
     {
         await SeedUserAsync(tenant, _ids.GetAdminUserId(), "Administrator", "admin", "admin@ultimateauth.com", "1234567890", ct);
-        await SeedUserAsync(tenant, _ids.GetUserUserId(), "User", "user", "user@ultimateauth.com", "9876543210", ct);
+        await SeedUserAsync(tenant, _ids.GetUserUserId(), "Standard User", "user", "user@ultimateauth.com", "9876543210", ct);
     }
 
     private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string primaryUsername,

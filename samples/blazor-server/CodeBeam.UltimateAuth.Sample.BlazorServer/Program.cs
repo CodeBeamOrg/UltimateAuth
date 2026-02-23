@@ -16,6 +16,7 @@ using CodeBeam.UltimateAuth.Client;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +60,7 @@ builder.Services.AddUltimateAuthClient(o =>
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 
+builder.Services.AddScoped<DarkModeManager>();
 
 var app = builder.Build();
 

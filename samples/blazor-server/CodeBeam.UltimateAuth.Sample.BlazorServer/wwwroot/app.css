@@ -87,3 +87,7 @@ h1:focus {
 .uauth-login-paper:hover .uauth-logo-slide {
     transform: translateY(200px) rotateY(360deg);
 }
+
+.uauth-text-transform-none .mud-button {
+    text-transform: none;
+}

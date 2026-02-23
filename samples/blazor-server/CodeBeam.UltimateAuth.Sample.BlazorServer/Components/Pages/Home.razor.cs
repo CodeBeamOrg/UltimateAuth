@@ -6,6 +6,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
 public partial class Home : UAuthFlowPageBase
 {
+    private string _selectedAuthState = "UAuthState";
     private ClaimsPrincipal? _aspNetCoreState;
 
     protected override async Task OnInitializedAsync()

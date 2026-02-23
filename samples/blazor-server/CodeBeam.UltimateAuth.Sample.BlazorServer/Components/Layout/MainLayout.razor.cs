@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -9,6 +10,9 @@ public partial class MainLayout
 {
     [CascadingParameter]
     public UAuthState UAuth { get; set; } = default!;
+
+    [CascadingParameter]
+    public DarkModeManager DarkModeManager { get; set; } = default!;
 
     private async Task Refresh()
     {

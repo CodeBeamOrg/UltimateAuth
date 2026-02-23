@@ -12,6 +12,8 @@
 
         <MudSpacer />
 
+        <MudIconButton Icon="@(DarkModeManager.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => DarkModeManager.ToggleAsync())" />
+
         <UAuthStateView>
             <Authorized Context="state">
                 <MudMenu PopoverClass="mud-theme-primary uauth-menu-popover" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
@@ -19,14 +21,14 @@
                         <div @onclick="@(() => context.ToggleAsync())">
                             <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
                                 <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
-                                    @((state.Identity?.PrimaryUserName ?? "?").Trim() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")
+                                    <MudText Typo="Typo.subtitle2">@((state.Identity?.DisplayName ?? "?").Trim() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")</MudText>
                                 </MudAvatar>
                             </MudBadge>
                         </div>
                     </ActivatorContent>
 
                     <ChildContent>
-                        <MudText Class="px-4 py-2"><b>@state.Identity?.PrimaryUserName</b></MudText>
+                        <MudText Class="px-4 py-2"><b>@state.Identity?.DisplayName</b></MudText>
                         <MudText Class="px-4" Typo="Typo.subtitle2">@string.Join(", ", state.Claims.Roles)</MudText>
 
                         <MudDivider />
