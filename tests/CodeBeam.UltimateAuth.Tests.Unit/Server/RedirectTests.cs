@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -8,7 +9,10 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -73,7 +77,6 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureQueryKey: null,
                 failureCodes: null,
                 allowReturnUrlOverride: true,
                 includeLockoutTiming: true,
@@ -97,7 +100,6 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureQueryKey: null,
                 failureCodes: null,
                 allowReturnUrlOverride: false,
                 includeLockoutTiming: true,
@@ -120,7 +122,6 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureQueryKey: null,
                 failureCodes: null,
                 allowReturnUrlOverride: true,
                 includeLockoutTiming: true,
@@ -144,7 +145,6 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureQueryKey: null,
                 failureCodes: null,
                 allowReturnUrlOverride: true,
                 includeLockoutTiming: true,
@@ -167,7 +167,6 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureQueryKey: null,
                 failureCodes: null,
                 allowReturnUrlOverride: true,
                 includeLockoutTiming: true,
@@ -183,20 +182,19 @@ public class RedirectTests
     }
 
     [Fact]
-    public void Failure_Redirect_Contains_Mapped_Error_Code()
+    public void Failure_Redirect_Contains_Payload_With_Mapped_Error_Code()
     {
         var redirect = new EffectiveRedirectResponse(
             enabled: true,
             successPath: "/welcome",
             failurePath: "/login",
-            failureQueryKey: "error",
             failureCodes: new Dictionary<AuthFailureReason, string>
             {
                 [AuthFailureReason.InvalidCredentials] = "bad_credentials"
             },
             allowReturnUrlOverride: false,
             includeLockoutTiming: true,
-            includeRemainingAttempts: false
+            includeRemainingAttempts: true
         );
 
         var flow = AuthFlowTestFactory.LoginSuccess(
@@ -206,7 +204,26 @@ public class RedirectTests
 
         var resolver = TestRedirectResolver.Create();
         var ctx = TestHttpContext.Create();
+
         var decision = resolver.ResolveFailure(flow, ctx, AuthFailureReason.InvalidCredentials);
-        decision.TargetUrl.Should().Be("https://app.example.com/login?error=bad_credentials");
+
+        decision.Enabled.Should().BeTrue();
+        decision.TargetUrl.Should().NotBeNull();
+
+        var uri = new Uri(decision.TargetUrl!);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        query.Should().ContainKey("uauth");
+
+        var encoded = query["uauth"].ToString();
+        var bytes = WebEncoders.Base64UrlDecode(encoded);
+        var json = Encoding.UTF8.GetString(bytes);
+
+        var payload = JsonSerializer.Deserialize<AuthFlowPayload>(json);
+
+        payload.Should().NotBeNull();
+        payload!.Flow.Should().Be(AuthFlowType.Login);
+        payload.Status.Should().Be("failed");
+        payload.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
     }
 }
