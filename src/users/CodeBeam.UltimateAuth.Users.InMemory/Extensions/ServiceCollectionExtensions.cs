@@ -11,7 +11,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthUsersInMemory(this IServiceCollection services)
     {
-        services.TryAddScoped(typeof(IUserSecurityStateProvider<>), typeof(InMemoryUserSecurityStateProvider<>));
         services.TryAddSingleton<IUserLifecycleStore, InMemoryUserLifecycleStore>();
         services.TryAddSingleton<IUserIdentifierStore, InMemoryUserIdentifierStore>();
         services.TryAddSingleton<IUserProfileStore, InMemoryUserProfileStore>();

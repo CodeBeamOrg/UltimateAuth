@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Client;
 
-public abstract class UAuthQueryPageBase : ComponentBase
+public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
 {
     [Inject] protected NavigationManager Nav { get; set; } = default!;
 
@@ -23,6 +23,8 @@ public abstract class UAuthQueryPageBase : ComponentBase
 
     protected override void OnParametersSet()
     {
+        base.OnParametersSet();
+
         var currentUri = Nav.Uri;
 
         if (string.Equals(_lastParsedUri, currentUri, StringComparison.Ordinal))
@@ -59,6 +61,8 @@ public abstract class UAuthQueryPageBase : ComponentBase
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
+
         if (TryConsumePayload(out var payload))
             await OnUAuthPayloadAsync(payload!);
 

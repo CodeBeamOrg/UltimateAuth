@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
-public partial class Login : UAuthQueryPageBase
+public partial class Login : UAuthFlowPageBase
 {
     private string? _username;
     private string? _password;
@@ -17,14 +17,14 @@ public partial class Login : UAuthQueryPageBase
     private UAuthClientProductInfo? _productInfo;
     private MudTextField<string> _usernameField = default!;
 
+    private CancellationTokenSource? _lockoutCts;
+    private PeriodicTimer? _lockoutTimer;
     private DateTimeOffset? _lockoutUntil;
     private TimeSpan _remaining;
-    private System.Threading.Timer? _countdownTimer;
     private bool _isLocked;
     private DateTimeOffset? _lockoutStartedAt;
     private TimeSpan _lockoutDuration;
     private double _progressPercent;
-
     private int? _remainingAttempts = null;
 
     [CascadingParameter]
@@ -89,11 +89,23 @@ public partial class Login : UAuthQueryPageBase
         Snackbar.Add(message, Severity.Error);
     }
 
-    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
     {
-        var state = await task;
-        _aspNetCoreState = state.User;
-        await InvokeAsync(StateHasChanged);
+        _ = HandleAuthStateChangedAsync(task);
+    }
+
+    private async Task HandleAuthStateChangedAsync(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            _aspNetCoreState = state.User;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+
+        }
     }
 
     private void OnDiagnosticsChanged()
@@ -113,7 +125,7 @@ public partial class Login : UAuthQueryPageBase
         await UAuthClient.Flows.LoginAsync(request, "/home");
     }
 
-    private void StartCountdown()
+    private async void StartCountdown()
     {
         if (_lockoutUntil is null)
             return;
@@ -123,26 +135,40 @@ public partial class Login : UAuthQueryPageBase
         _lockoutDuration = _lockoutUntil.Value - DateTimeOffset.UtcNow;
         UpdateRemaining();
 
-        _countdownTimer?.Dispose();
-        _countdownTimer = new System.Threading.Timer(_ =>
+        _lockoutCts?.Cancel();
+        _lockoutCts = new CancellationTokenSource();
+
+        _lockoutTimer?.Dispose();
+        _lockoutTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
         {
-            InvokeAsync(() =>
+            while (await _lockoutTimer.WaitForNextTickAsync(_lockoutCts.Token))
             {
                 UpdateRemaining();
 
                 if (_remaining <= TimeSpan.Zero)
                 {
-                    _countdownTimer?.Dispose();
-                    _countdownTimer = null;
-                    _isLocked = false;
-                    _lockoutUntil = null;
-                    _progressPercent = 0;
-                    _remainingAttempts = null;
+                    ResetLockoutState();
+                    await InvokeAsync(StateHasChanged);
+                    break;
                 }
 
-                StateHasChanged();
-            });
-        }, null, 0, 1000);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+
+        }
+    }
+
+    private void ResetLockoutState()
+    {
+        _isLocked = false;
+        _lockoutUntil = null;
+        _progressPercent = 0;
+        _remainingAttempts = null;
     }
 
     private void UpdateRemaining()
@@ -169,9 +195,12 @@ public partial class Login : UAuthQueryPageBase
         }
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
-        _countdownTimer?.Dispose();
+        Diagnostics.Changed -= OnDiagnosticsChanged;
+        _lockoutCts?.Cancel();
+        _lockoutTimer?.Dispose();
     }
 }

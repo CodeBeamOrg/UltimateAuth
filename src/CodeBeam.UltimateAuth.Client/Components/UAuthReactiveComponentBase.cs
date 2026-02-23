@@ -17,6 +17,8 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
 
     protected override void OnParametersSet()
     {
+        base.OnParametersSet();
+
         if (UAuth is null)
             throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(UAuthState)}. " +
                 $"Make sure it is used inside <UAuthApp>.");
