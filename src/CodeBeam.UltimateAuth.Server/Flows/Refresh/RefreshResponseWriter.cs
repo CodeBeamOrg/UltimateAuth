@@ -17,7 +17,7 @@ internal sealed class RefreshResponseWriter : IRefreshResponseWriter
 
     public void Write(HttpContext context, RefreshOutcome outcome)
     {
-        if (!_diagnostics.EnableRefreshHeaders)
+        if (!_diagnostics.EnableRefreshDetails)
             return;
 
         context.Response.Headers[UAuthConstants.Headers.Refresh] = outcome switch

@@ -34,7 +34,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddUltimateAuthServer(o =>
 {
-    o.Diagnostics.EnableRefreshHeaders = true;
+    o.Diagnostics.EnableRefreshDetails = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.Lifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);

@@ -29,7 +29,7 @@ public sealed class UAuthClientDiagnostics
     public int RefreshTouchedCount { get; private set; }
     public int RefreshNoOpCount { get; private set; }
     public int RefreshReauthRequiredCount { get; private set; }
-    public int RefreshUnknownCount { get; private set; }
+    public int RefreshSuccessCount { get; private set; }
 
     public TimeSpan? RunningDuration =>
         StartedAt is null
@@ -87,9 +87,9 @@ public sealed class UAuthClientDiagnostics
         Changed?.Invoke();
     }
 
-    internal void MarkRefreshUnknown()
+    internal void MarkRefreshSuccess()
     {
-        RefreshUnknownCount++;
+        RefreshSuccessCount++;
         Changed?.Invoke();
     }
 

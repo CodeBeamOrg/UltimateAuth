@@ -124,7 +124,7 @@
                                         <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authenticated At</MudText>
                                     </MudStack>
                                     @* TODO: Add IUAuthDateTimeFormatter *@
-                                    <MudText Align="Align.Center">@AuthState?.Identity?.AuthenticatedAt?.ToLocalTime().ToString("dd MM yyyy • HH:mm:ss")</MudText>
+                                    <MudText Align="Align.Center">@FormatLocalTime(AuthState?.Identity?.AuthenticatedAt)</MudText>
                                 </MudItem>
 
                                 <MudItem xs="6">
@@ -132,7 +132,7 @@
                                         <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" Size="Size.Small" />
                                         <MudText Typo="Typo.subtitle2" Color="Color.Primary">Last Validated At</MudText>
                                     </MudStack>
-                                    <MudText Align="Align.Center">@AuthState?.LastValidatedAt?.ToLocalTime().ToString("dd MM yyyy • HH:mm:ss")</MudText>
+                                    <MudText Align="Align.Center">@FormatLocalTime(AuthState?.LastValidatedAt)</MudText>
                                 </MudItem>
                             </MudGrid>
                         }
@@ -185,40 +185,153 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudPaper Class="pa-6">
+                <MudExpansionPanels MultiExpansion="true">
+                    <MudExpansionPanel Text="Auth Operations" Expanded="true">
+                        <MudStack Spacing="2">
 
-                    <MudText Typo="Typo.h6">User Operations</MudText>
-                    <MudDivider Class="my-4" />
+                            <UAuthStateView Roles="Admin">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
+                                    Add User
+                                </MudButton>
 
-                    <MudStack Spacing="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
+                                    Assign Role
+                                </MudButton>
+                            </UAuthStateView>
 
-                        <UAuthStateView Roles="Admin">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
-                                Add User
+                            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
+                                Change Password
                             </MudButton>
 
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
-                                Assign Role
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
+                                Manual Refresh
                             </MudButton>
-                        </UAuthStateView>
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
-                            Change Password
-                        </MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
+                                Logout
+                            </MudButton>
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
-                            Manual Refresh
-                        </MudButton>
+                        </MudStack>
+                    </MudExpansionPanel>
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
-                            Logout
-                        </MudButton>
+                    <MudExpansionPanel Text="UltimateAuth Client Diagnostics" Expanded="true">
+                        <MudChip T="string" Color="@GetHealthColor()" Variant="Variant.Filled" Icon="@Icons.Material.Filled.HealthAndSafety">
+                            @GetHealthText()
+                        </MudChip>
 
-                    </MudStack>
+                        <MudText Class="mt-4 mb-2" Typo="Typo.subtitle2">Lifecycle</MudText>
 
-                </MudPaper>
+                        <MudGrid Spacing="2">
 
-                <MudStack>
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-success)" Elevation="0" >
+                                    <MudText Typo="Typo.caption">Started</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.StartCount</MudText>
+                                </MudPaper>
+                                @if (Diagnostics.StartedAt is not null)
+                                {
+                                    <MudTooltip Text="@FormatLocalTime(Diagnostics.StartedAt)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2">
+                                                @FormatRelative(Diagnostics.StartedAt)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudTooltip>
+                                }
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-warning)" Elevation="0">
+                                    <MudText Typo="Typo.caption">Stopped</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Warning">
+                                        @Diagnostics.StopCount
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-error)" Elevation="0">
+                                    <MudText Typo="Typo.caption">Terminated</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Error">@Diagnostics.TerminatedCount</MudText>
+                                </MudPaper>
+                                @if (Diagnostics.TerminatedAt is not null)
+                                {
+                                    <MudTooltip Text="@FormatLocalTime(Diagnostics.TerminatedAt)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2">
+                                                @FormatRelative(Diagnostics.TerminatedAt)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudTooltip>
+                                }
+                            </MudItem>
+
+                            <MudDivider Class="my-4" />
+
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                Refresh Metrics
+                            </MudText>
+
+                            <MudGrid Spacing="2">
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Total Attempts</MudText>
+                                        <MudText Typo="Typo.h6">@Diagnostics.RefreshAttemptCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudTooltip Text="Shows minimal success count. Set EnableRefreshDetails diagnostics option to true to view details.">
+                                            <MudText Typo="Typo.caption">Success</MudText>
+                                        </MudTooltip>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshSuccessCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Automatic</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Secondary">@Diagnostics.AutomaticRefreshCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Manual</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Secondary">@Diagnostics.ManualRefreshCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Touched</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshTouchedCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">No-Op</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshNoOpCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Reauth Required</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Warning">@Diagnostics.RefreshReauthRequiredCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
+                @* <MudStack>
                     <MudPaper Class="pa-4 mt-4">
                         <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
 
@@ -247,7 +360,7 @@
                             Unknown: @Diagnostics.RefreshUnknownCount
                         </MudText>
                     </MudPaper>
-                </MudStack>
+                </MudStack> *@
             </MudItem>
         </MudGrid>
     </MudContainer>

@@ -57,12 +57,12 @@ public class ClientDiagnosticsTests
         diagnostics.MarkRefreshTouched();
         diagnostics.MarkRefreshNoOp();
         diagnostics.MarkRefreshReauthRequired();
-        diagnostics.MarkRefreshUnknown();
+        diagnostics.MarkRefreshSuccess();
 
         Assert.Equal(1, diagnostics.RefreshTouchedCount);
         Assert.Equal(1, diagnostics.RefreshNoOpCount);
         Assert.Equal(1, diagnostics.RefreshReauthRequiredCount);
-        Assert.Equal(1, diagnostics.RefreshUnknownCount);
+        Assert.Equal(1, diagnostics.RefreshSuccessCount);
     }
 
     [Fact]

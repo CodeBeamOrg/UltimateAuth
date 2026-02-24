@@ -37,17 +37,16 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
     {
         var flow = _authContext.Current;
 
-        if (flow.Session is not SessionSecurityContext session)
+        if (flow == null)
         {
-            //_logger.LogDebug("Refresh called without active session.");
-            return Results.Ok(RefreshOutcome.None);
+            return Results.BadRequest("No AuthFlowContext is found.");
         }
 
         var request = new RefreshFlowRequest
         {
-            SessionId = session.SessionId,
+            SessionId = flow?.Session?.SessionId,
             RefreshToken = _refreshTokenResolver.Resolve(ctx),
-            Device = flow.Device,
+            Device = flow!.Device,
             Now = DateTimeOffset.UtcNow
         };
 
@@ -55,7 +54,6 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
 
         if (!result.Succeeded)
         {
-            WriteRefreshHeader(ctx, flow, RefreshOutcome.ReauthRequired);
             return Results.Unauthorized();
         }
 
@@ -75,15 +73,10 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
             _credentialWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
         }
 
-        WriteRefreshHeader(ctx, flow, result.Outcome);
+        if (flow.OriginalOptions.Diagnostics.EnableRefreshDetails)
+        {
+            _refreshWriter.Write(ctx, result.Outcome);
+        }
         return Results.NoContent();
-    }
-
-    private void WriteRefreshHeader(HttpContext ctx, AuthFlowContext flow, RefreshOutcome outcome)
-    {
-        if (!flow.OriginalOptions.Diagnostics.EnableRefreshHeaders)
-            return;
-
-        _refreshWriter.Write(ctx, outcome);
     }
 }

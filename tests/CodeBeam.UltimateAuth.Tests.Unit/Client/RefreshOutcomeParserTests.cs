@@ -27,6 +27,6 @@ public sealed class RefreshOutcomeParserTests
     {
         var result = RefreshOutcomeParser.Parse(input);
 
-        Assert.Equal(RefreshOutcome.None, result);
+        Assert.Equal(RefreshOutcome.Success, result);
     }
 }

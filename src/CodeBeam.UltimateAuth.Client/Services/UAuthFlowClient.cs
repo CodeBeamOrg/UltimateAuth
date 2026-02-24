@@ -74,6 +74,18 @@ internal class UAuthFlowClient : IFlowClient
 
         var url = Url(_options.Endpoints.Refresh);
         var result = await _post.SendFormAsync(url);
+
+        if (result.Status == 401)
+        {
+            _diagnostics.MarkRefreshReauthRequired();
+            return new RefreshResult
+            {
+                Ok = false,
+                Status = result.Status,
+                Outcome = RefreshOutcome.ReauthRequired
+            };
+        }
+
         var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
         switch (refreshOutcome)
         {
@@ -86,8 +98,8 @@ internal class UAuthFlowClient : IFlowClient
             case RefreshOutcome.ReauthRequired:
                 _diagnostics.MarkRefreshReauthRequired();
                 break;
-            case RefreshOutcome.None:
-                _diagnostics.MarkRefreshUnknown();
+            case RefreshOutcome.Success:
+                _diagnostics.MarkRefreshSuccess();
                 break;
         }
 
