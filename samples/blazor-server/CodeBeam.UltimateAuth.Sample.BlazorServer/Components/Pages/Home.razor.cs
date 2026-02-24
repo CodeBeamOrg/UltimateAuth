@@ -1,4 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
@@ -9,6 +12,8 @@ public partial class Home : UAuthFlowPageBase
 {
     private string _selectedAuthState = "UAuthState";
     private ClaimsPrincipal? _aspNetCoreState;
+
+    private bool _showAdminPreview = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -42,11 +47,55 @@ public partial class Home : UAuthFlowPageBase
         InvokeAsync(StateHasChanged);
     }
 
-    private async Task Logout()
-        => await UAuthClient.Flows.LogoutAsync();
+    private async Task Logout() => await UAuthClient.Flows.LogoutAsync();
 
-    private async Task RefreshSession()
-        => await UAuthClient.Flows.RefreshAsync(false);
+    private async Task RefreshSession() => await UAuthClient.Flows.RefreshAsync(false);
+
+    private async Task Validate()
+    {
+        try
+        {
+            var result = await UAuthClient.Flows.ValidateAsync();
+
+            if (result.IsValid)
+            {
+                Snackbar.Add($"Session active • Tenant: {result.Snapshot?.Identity?.Tenant.Value} • User: {result.Snapshot?.Identity?.PrimaryUserName}", Severity.Success);
+            }
+            else 
+            {
+                switch (result.State)
+                {
+                    case SessionState.Expired:
+                        Snackbar.Add("Session expired. Please sign in again.", Severity.Warning);
+                        break;
+
+                    case SessionState.DeviceMismatch:
+                        Snackbar.Add("Session invalid for this device.", Severity.Error);
+                        break;
+
+                    default:
+                        Snackbar.Add($"Session state: {result.State}", Severity.Error);
+                        break;
+                }
+            }
+        }
+        catch (UAuthTransportException)
+        {
+            Snackbar.Add("Network error.", Severity.Error);
+        }
+        catch (UAuthProtocolException)
+        {
+            Snackbar.Add("Invalid response.", Severity.Error);
+        }
+        catch (UAuthException ex)
+        {
+            Snackbar.Add($"UAuth error: {ex.Message}", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
+    }
 
     private Task CreateUser() => Task.CompletedTask;
     private Task AssignRole() => Task.CompletedTask;

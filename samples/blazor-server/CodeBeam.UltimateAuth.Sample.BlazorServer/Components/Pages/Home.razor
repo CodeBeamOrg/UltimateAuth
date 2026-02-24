@@ -5,6 +5,7 @@
 @inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
 @using System.Security.Claims
 
 <MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
@@ -188,28 +189,70 @@
                 <MudExpansionPanels MultiExpansion="true">
                     <MudExpansionPanel Text="Auth Operations" Expanded="true">
                         <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">Session</MudText>
 
-                            <UAuthStateView Roles="Admin">
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
-                                    Add User
-                                </MudButton>
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VerifiedUser"
+                                               OnClick="Validate">
+                                        Validate
+                                    </MudButton>
+                                </MudItem>
 
-                                <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
-                                    Assign Role
-                                </MudButton>
-                            </UAuthStateView>
+                                <MudItem xs="12" sm="6">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                                               OnClick="RefreshSession">
+                                        Manual Refresh
+                                    </MudButton>
+                                </MudItem>
 
-                            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
+                                <MudItem xs="12">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout"
+                                               OnClick="Logout">
+                                        Logout
+                                    </MudButton>
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudText Typo="Typo.subtitle2">Account</MudText>
+                            <MudButton FullWidth Variant="Variant.Filled" Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Password">
                                 Change Password
                             </MudButton>
 
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
-                                Manual Refresh
-                            </MudButton>
+                            <MudDivider Class="my-2" />
 
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
-                                Logout
-                            </MudButton>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle2">Admin</MudText>
+                                <MudSwitchM3 @bind-Value="_showAdminPreview" Color="Color.Warning" Label="Preview" />
+                            </MudStack>
+
+                            @if (AuthState.IsInRole("Admin") || _showAdminPreview)
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton FullWidth Variant="Variant.Filled" Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.PersonAdd">
+                                            Add User
+                                        </MudButton>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton FullWidth Variant="Variant.Filled" Color="Color.Warning"
+                                                   StartIcon="@Icons.Material.Filled.AdminPanelSettings">
+                                            Assign Role
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+
+                            @if (_showAdminPreview)
+                            {
+                                <MudAlert Dense Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">
+                                    Admin operations are shown for preview. Sign in as an Admin to execute them.
+                                </MudAlert>
+                            }
 
                         </MudStack>
                     </MudExpansionPanel>
@@ -224,7 +267,7 @@
                         <MudGrid Spacing="2">
 
                             <MudItem xs="4">
-                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-success)" Elevation="0" >
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-success)" Elevation="0">
                                     <MudText Typo="Typo.caption">Started</MudText>
                                     <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.StartCount</MudText>
                                 </MudPaper>
@@ -330,37 +373,6 @@
                         </MudGrid>
                     </MudExpansionPanel>
                 </MudExpansionPanels>
-
-                @* <MudStack>
-                    <MudPaper Class="pa-4 mt-4">
-                        <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
-
-                        <MudDivider Class="my-2" />
-
-                        <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
-                        <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
-                        <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
-
-                        <MudDivider Class="my-2" />
-
-                        <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
-                        <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
-                        <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
-
-                        <MudText Color="Color.Success">
-                            Touched Success: @Diagnostics.RefreshTouchedCount
-                        </MudText>
-                        <MudText Color="Color.Success">
-                            No-Op Success: @Diagnostics.RefreshNoOpCount
-                        </MudText>
-                        <MudText Color="Color.Warning">
-                            ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
-                        </MudText>
-                        <MudText Color="Color.Warning">
-                            Unknown: @Diagnostics.RefreshUnknownCount
-                        </MudText>
-                    </MudPaper>
-                </MudStack> *@
             </MudItem>
         </MudGrid>
     </MudContainer>

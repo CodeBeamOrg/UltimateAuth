@@ -23,6 +23,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         _options = options.Value;
     }
 
+    // TODO: Improve Device binding
     // Validate runs before AuthFlowContext is set, do not call _authFlow here.
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
