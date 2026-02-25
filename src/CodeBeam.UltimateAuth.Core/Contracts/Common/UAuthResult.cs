@@ -2,14 +2,27 @@
 
 public class UAuthResult
 {
-    public bool Ok { get; init; }
+    public bool IsSuccess { get; init; }
     public int Status { get; init; }
 
-    public string? Error { get; init; }
-    public string? ErrorCode { get; init; }
+    public UAuthProblem? Problem { get; init; }
 
-    public bool IsUnauthorized => Status == 401;
-    public bool IsForbidden => Status == 403;
+    public HttpStatusInfo Http => new(Status);
+
+    public sealed class HttpStatusInfo
+    {
+        private readonly int _status;
+
+        internal HttpStatusInfo(int status)
+        {
+            _status = status;
+        }
+
+        public bool IsBadRequest => _status == 400;
+        public bool IsUnauthorized => _status == 401;
+        public bool IsForbidden => _status == 403;
+        public bool IsConflict => _status == 409;
+    }
 }
 
 public sealed class UAuthResult<T> : UAuthResult

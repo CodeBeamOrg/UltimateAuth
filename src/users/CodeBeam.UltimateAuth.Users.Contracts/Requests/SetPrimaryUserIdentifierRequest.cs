@@ -2,6 +2,5 @@
 
 public sealed record SetPrimaryUserIdentifierRequest
 {
-    public UserIdentifierType Type { get; init; }
-    public string Value { get; init; } = default!;
+    public Guid IdentifierId { get; init; }
 }

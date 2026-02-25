@@ -6,6 +6,8 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public sealed record UserIdentifier
 {
+
+    public Guid Id { get; set; }
     public TenantKey Tenant { get; set; }
 
     public UserKey UserKey { get; init; }

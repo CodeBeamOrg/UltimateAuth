@@ -22,7 +22,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult<GetCredentialsResult>> GetMyAsync()
     {
-        var raw = await _request.SendFormForJsonAsync(Url("/credentials/get"));
+        var raw = await _request.SendFormAsync(Url("/credentials/get"));
         return UAuthResultMapper.FromJson<GetCredentialsResult>(raw);
     }
 
@@ -41,25 +41,25 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     public async Task<UAuthResult> RevokeMyAsync(CredentialType type, RevokeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/{type}/revoke"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> BeginResetMyAsync(CredentialType type, BeginCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/{type}/reset/begin"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> CompleteResetMyAsync(CredentialType type, CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/{type}/reset/complete"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
 
     public async Task<UAuthResult<GetCredentialsResult>> GetUserAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormForJsonAsync(Url($"/admin/users/{userKey}/credentials/get"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/get"));
         return UAuthResultMapper.FromJson<GetCredentialsResult>(raw);
     }
 
@@ -72,31 +72,31 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     public async Task<UAuthResult> RevokeUserAsync(UserKey userKey, CredentialType type, RevokeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/{type}/revoke"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> ActivateUserAsync(UserKey userKey, CredentialType type)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/{type}/activate"));
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> BeginResetUserAsync(UserKey userKey, CredentialType type, BeginCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/{type}/reset/begin"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> CompleteResetUserAsync(UserKey userKey, CredentialType type, CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/{type}/reset/complete"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteUserAsync(UserKey userKey, CredentialType type)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/{type}/delete"));
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
 }

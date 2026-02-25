@@ -1,0 +1,147 @@
+﻿@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentStyle="height: 60vh">
+    <TitleContent>
+        <MudText>Identifier Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudDataGrid T="UserIdentifierDto" Items="_identifiers" Hover="true" Bordered="true" Striped="true" Dense="true" 
+                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges">
+            <ToolBarContent>
+                <MudText>Identifiers</MudText>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+                <PropertyColumn Property="x => x.Type" Title="Type" Editable="false" />
+                <PropertyColumn Property="x => x.Value" Title="Value" />
+                <PropertyColumn Property="x => x.IsPrimary" Title="Primary" Editable="false" />
+                <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false" />
+                <TemplateColumn Title="Actions" Editable="false">
+                    <CellTemplate>
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="UserIdentifierDto" PageSizeOptions="new int[] { 5, 10, 20 }" />
+            </PagerContent>
+        </MudDataGrid>
+
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Add New Identifier" Expanded="false">
+                <MudStack Spacing="2">
+                    <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" />
+                    <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
+                    <MudButton Color="Color.Primary" OnClick="AddNewIdentifier">Add</MudButton>
+                </MudStack>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+        
+        
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private UserIdentifierType _newIdentifierType;
+    private string? _newIdentifierValue;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public UAuthState AuthState { get; set; } = default!;
+
+    private List<UserIdentifierDto> _identifiers = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            var result = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            if (result != null && result.IsSuccess && result.Value != null)
+            {
+                _identifiers = result.Value.ToList();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task<DataGridEditFormAction> CommittedItemChanges(UserIdentifierDto item)
+    {
+        UpdateUserIdentifierRequest updateRequest = new()
+        {
+            Id = item.Id,
+            NewValue = item.Value
+        };
+        var result = await UAuthClient.Identifiers.UpdateSelfAsync(updateRequest);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Identifier updated successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to update identifier", Severity.Error);
+        }
+
+        return DataGridEditFormAction.Close;
+    }
+
+    private async Task AddNewIdentifier()
+    {
+        if (string.IsNullOrEmpty(_newIdentifierValue))
+        {
+            Snackbar.Add("Value cannot be empty", Severity.Warning);
+            return;
+        }
+
+        AddUserIdentifierRequest request = new()
+        {
+            Type = _newIdentifierType,
+            Value = _newIdentifierValue
+        };
+
+        var result = await UAuthClient.Identifiers.AddSelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Identifier added successfully", Severity.Success);
+            var getResult = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to add identifier", Severity.Error);
+        }
+    }
+
+    private async Task DeleteIdentifier(Guid id)
+    {
+        DeleteUserIdentifierRequest request = new() { IdentifierId = id };
+        var result = await UAuthClient.Identifiers.DeleteSelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Identifier deleted successfully", Severity.Success);
+            var getResult = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add("Failed to delete identifier", Severity.Error);
+        }
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+}

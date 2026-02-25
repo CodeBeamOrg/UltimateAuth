@@ -64,6 +64,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         await _identifiers.CreateAsync(tenant,
             new UserIdentifier
             {
+                Id = Guid.NewGuid(),
                 Tenant = tenant,
                 UserKey = userKey,
                 Type = UserIdentifierType.Username,
@@ -76,6 +77,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         await _identifiers.CreateAsync(tenant,
             new UserIdentifier
             {
+                Id = Guid.NewGuid(),
                 Tenant = tenant,
                 UserKey = userKey,
                 Type = UserIdentifierType.Email,
@@ -88,6 +90,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         await _identifiers.CreateAsync(tenant,
             new UserIdentifier
             {
+                Id = Guid.NewGuid(),
                 Tenant = tenant,
                 UserKey = userKey,
                 Type = UserIdentifierType.Phone,

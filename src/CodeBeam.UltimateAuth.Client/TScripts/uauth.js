@@ -59,7 +59,6 @@ window.uauth.post = async function (options) {
         url,
         mode,
         data,
-        expectJson,
         clientProfile
     } = options;
 
@@ -122,12 +121,10 @@ window.uauth.post = async function (options) {
     });
 
     let responseBody = null;
-    if (expectJson) {
-        try {
-            responseBody = await response.json();
-        } catch {
-            responseBody = null;
-        }
+    try {
+        responseBody = await response.json();
+    } catch {
+        responseBody = null;
     }
 
     return {
@@ -164,7 +161,6 @@ window.uauth.postJson = async function (options) {
     });
 
     let responseBody = null;
-
     try {
         responseBody = await response.json();
     } catch {

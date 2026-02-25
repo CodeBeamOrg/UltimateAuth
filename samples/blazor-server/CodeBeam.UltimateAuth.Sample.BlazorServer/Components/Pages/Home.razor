@@ -6,6 +6,7 @@
 @inject UAuthClientDiagnostics Diagnostics
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @using System.Security.Claims
 
 <MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
@@ -217,8 +218,11 @@
                             <MudDivider Class="my-2" />
 
                             <MudText Typo="Typo.subtitle2">Account</MudText>
-                            <MudButton FullWidth Variant="Variant.Filled" Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.Password">
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Abc" OnClick="OpenIdentifierDialog">
+                                Manage Identifiers
+                            </MudButton>
+
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Password">
                                 Change Password
                             </MudButton>
 
@@ -226,20 +230,24 @@
 
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.subtitle2">Admin</MudText>
-                                <MudSwitchM3 @bind-Value="_showAdminPreview" Color="Color.Warning" Label="Preview" />
+                                <UAuthStateView Roles="Admin">
+                                    <NotAuthorized>
+                                        <MudSwitchM3 @bind-Value="_showAdminPreview" Color="Color.Primary" Label="Preview" />
+                                    </NotAuthorized>
+                                </UAuthStateView>
                             </MudStack>
 
                             @if (AuthState.IsInRole("Admin") || _showAdminPreview)
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" sm="6">
-                                        <MudButton FullWidth Variant="Variant.Filled" Color="Color.Primary"
+                                        <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.PersonAdd">
                                             Add User
                                         </MudButton>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudButton FullWidth Variant="Variant.Filled" Color="Color.Warning"
+                                        <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.AdminPanelSettings">
                                             Assign Role
                                         </MudButton>

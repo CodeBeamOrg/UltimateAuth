@@ -7,6 +7,7 @@ public static class UltimateAuthApplicationBuilderExtensions
 {
     public static IApplicationBuilder UseUltimateAuth(this IApplicationBuilder app)
     {
+        app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
         app.UseMiddleware<SessionResolutionMiddleware>();
         app.UseMiddleware<UserMiddleware>();

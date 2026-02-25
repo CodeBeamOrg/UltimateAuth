@@ -27,7 +27,9 @@ builder.Services.AddRazorComponents()
         options.DetailedErrors = true;
     });
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(o => {
+    o.SnackbarConfiguration.PreventDuplicates = false;
+});
 builder.Services.AddMudExtensions();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -35,12 +37,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddUltimateAuthServer(o =>
 {
     o.Diagnostics.EnableRefreshDetails = true;
-    o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
-    o.Session.Lifetime = TimeSpan.FromSeconds(32);
-    o.Session.TouchInterval = TimeSpan.FromSeconds(9);
-    o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
-    o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
-    o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
+    //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
+    //o.Session.Lifetime = TimeSpan.FromSeconds(32);
+    //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
+    //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+    //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
+    //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
 })
@@ -56,7 +58,7 @@ builder.Services.AddUltimateAuthServer(o =>
 
 builder.Services.AddUltimateAuthClient(o =>
 {
-    o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 

@@ -73,7 +73,7 @@ internal sealed class FakeFlowClient : IFlowClient
 
         return Task.FromResult(new RefreshResult
         {
-            Ok = true,
+            IsSuccess = true,
             Outcome = outcome
         });
     }

@@ -22,14 +22,14 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult<UserViewDto>> GetMeAsync()
     {
-        var raw = await _request.SendFormForJsonAsync(Url("/users/me/get"));
+        var raw = await _request.SendFormAsync(Url("/users/me/get"));
         return UAuthResultMapper.FromJson<UserViewDto>(raw);
     }
 
     public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/update"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<UserCreateResult>> CreateAsync(CreateUserRequest request)
@@ -58,13 +58,13 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult<UserViewDto>> GetProfileAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormForJsonAsync(Url($"/admin/users/{userKey}/profile/get"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/profile/get"));
         return UAuthResultMapper.FromJson<UserViewDto>(raw);
     }
 
     public async Task<UAuthResult> UpdateProfileAsync(UserKey userKey, UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/profile/update"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 }

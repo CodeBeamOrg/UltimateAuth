@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
@@ -148,6 +149,30 @@ public partial class Home : UAuthFlowPageBase
     private string? FormatLocalTime(DateTimeOffset? utc)
     {
         return utc?.ToLocalTime().ToString("dd MMM yyyy • HH:mm:ss");
+    }
+
+    private async Task OpenIdentifierDialog()
+    {
+
+        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), GetDialogOptions());
+    }
+
+    private DialogOptions GetDialogOptions()
+    {
+        return new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+    }
+
+    private DialogParameters GetDialogParameters()
+            {
+        return new DialogParameters
+        {
+            ["AuthState"] = AuthState
+        };
     }
 
     public override void Dispose()

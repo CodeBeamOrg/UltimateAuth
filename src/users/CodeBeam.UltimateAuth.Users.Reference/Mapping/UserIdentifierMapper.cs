@@ -7,6 +7,7 @@ public static class UserIdentifierMapper
     public static UserIdentifierDto ToDto(UserIdentifier record)
         => new()
         {
+            Id = record.Id,
             Type = record.Type,
             Value = record.Value,
             IsPrimary = record.IsPrimary,

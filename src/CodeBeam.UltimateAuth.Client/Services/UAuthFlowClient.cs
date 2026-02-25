@@ -82,7 +82,7 @@ internal class UAuthFlowClient : IFlowClient
             _diagnostics.MarkRefreshReauthRequired();
             return new RefreshResult
             {
-                Ok = false,
+                IsSuccess = false,
                 Status = result.Status,
                 Outcome = RefreshOutcome.ReauthRequired
             };
@@ -107,7 +107,7 @@ internal class UAuthFlowClient : IFlowClient
 
         return new RefreshResult
         {
-            Ok = result.Ok,
+            IsSuccess = result.Ok,
             Status = result.Status,
             Outcome = refreshOutcome
         };
@@ -122,7 +122,7 @@ internal class UAuthFlowClient : IFlowClient
     public async Task<AuthValidationResult> ValidateAsync()
     {
         var url = Url(_options.Endpoints.Validate);
-        var raw = await _post.SendFormForJsonAsync(url);
+        var raw = await _post.SendFormAsync(url);
 
         if (raw.Status == 0)
             throw new UAuthTransportException("Network error during validation.");
@@ -169,7 +169,7 @@ internal class UAuthFlowClient : IFlowClient
 
         var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
 
-        var raw = await _post.SendFormForJsonAsync(
+        var raw = await _post.SendFormAsync(
             authorizeUrl,
             new Dictionary<string, string>
             {
