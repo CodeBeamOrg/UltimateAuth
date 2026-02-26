@@ -9,15 +9,15 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
-public sealed class LogoutEndpointHandler<TUserId> : ILogoutEndpointHandler
+public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authContext;
-    private readonly IUAuthFlowService<TUserId> _flow;
+    private readonly IUAuthFlowService _flow;
     private readonly IClock _clock;
     private readonly IUAuthCookieManager _cookieManager;
     private readonly IAuthRedirectResolver _redirectResolver;
 
-    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService<TUserId> flow, IClock clock, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
+    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IClock clock, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;

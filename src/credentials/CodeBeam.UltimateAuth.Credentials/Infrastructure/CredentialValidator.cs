@@ -14,11 +14,11 @@ public sealed class CredentialValidator : ICredentialValidator
         _clock = clock;
     }
 
-    public Task<CredentialValidationResult> ValidateAsync<TUserId>(ICredential<TUserId> credential, string providedSecret, CancellationToken ct = default)
+    public Task<CredentialValidationResult> ValidateAsync(ICredential credential, string providedSecret, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (credential is ISecurableCredential securable)
+        if (credential is ICredentialDescriptor securable)
         {
             if (!securable.Security.IsUsable(_clock.UtcNow))
             {
@@ -26,7 +26,7 @@ public sealed class CredentialValidator : ICredentialValidator
             }
         }
 
-        if (credential is ISecretCredential<TUserId> secret)
+        if (credential is ISecretCredential secret)
         {
             var ok = _passwordHasher.Verify(secret.SecretHash, providedSecret);
 

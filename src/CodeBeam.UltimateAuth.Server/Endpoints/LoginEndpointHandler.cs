@@ -9,17 +9,17 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
-public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
+public sealed class LoginEndpointHandler : ILoginEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authFlow;
-    private readonly IUAuthFlowService<TUserId> _flowService;
+    private readonly IUAuthFlowService _flowService;
     private readonly IClock _clock;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
     private readonly IAuthRedirectResolver _redirectResolver;
 
     public LoginEndpointHandler(
         IAuthFlowContextAccessor authFlow,
-        IUAuthFlowService<TUserId> flowService,
+        IUAuthFlowService flowService,
         IClock clock,
         ICredentialResponseWriter credentialResponseWriter,
         IAuthRedirectResolver redirectResolver)

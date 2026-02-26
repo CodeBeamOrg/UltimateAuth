@@ -15,6 +15,7 @@ using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference;
+using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,8 +45,9 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         services.AddUltimateAuthInMemoryTokens();
         services.AddUltimateAuthAuthorizationInMemory();
         services.AddUltimateAuthAuthorizationReference();
+        services.AddUltimateAuthUsersReference();
 
-        services.AddScoped<ILoginOrchestrator<TUserId>, LoginOrchestrator<TUserId>>();
+        services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
@@ -57,8 +59,8 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         Services.GetRequiredService<SeedRunner>().RunAsync(null).GetAwaiter().GetResult();
     }
 
-    public ILoginOrchestrator<TUserId> GetLoginOrchestrator()
-        => Services.GetRequiredService<ILoginOrchestrator<TUserId>>();
+    public ILoginOrchestrator GetLoginOrchestrator()
+        => Services.GetRequiredService<ILoginOrchestrator>();
 
     public ValueTask<AuthFlowContext> CreateLoginFlowAsync(TenantKey? tenant = null)
     {

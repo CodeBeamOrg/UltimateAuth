@@ -9,18 +9,18 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
-internal sealed class UAuthFlowService<TUserId> : IUAuthFlowService<TUserId>
+internal sealed class UAuthFlowService : IUAuthFlowService
 {
     private readonly IAuthFlowContextAccessor _authFlow;
     private readonly IAuthFlowContextFactory _authFlowContextFactory;
-    private readonly ILoginOrchestrator<TUserId> _loginOrchestrator;
+    private readonly ILoginOrchestrator _loginOrchestrator;
     private readonly ISessionOrchestrator _orchestrator;
     private readonly UAuthEventDispatcher _events;
 
     public UAuthFlowService(
         IAuthFlowContextAccessor authFlow,
         IAuthFlowContextFactory authFlowContextFactory,
-        ILoginOrchestrator<TUserId> loginOrchestrator,
+        ILoginOrchestrator loginOrchestrator,
         ISessionOrchestrator orchestrator,
         UAuthEventDispatcher events)
     {

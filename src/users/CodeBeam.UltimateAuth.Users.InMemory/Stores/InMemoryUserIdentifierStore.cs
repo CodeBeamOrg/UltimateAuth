@@ -58,8 +58,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
             .Where(x => x.Tenant == tenant)
             .Where(x => x.UserKey == userKey)
             .Where(x => !x.IsDeleted)
-            .OrderByDescending(x => x.IsPrimary)
-            .ThenBy(x => x.CreatedAt)
+            .OrderBy(x => x.CreatedAt)
             .ToList()
             .AsReadOnly();
 

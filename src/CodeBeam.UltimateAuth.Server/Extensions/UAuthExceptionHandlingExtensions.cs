@@ -29,10 +29,10 @@ public static class UAuthExceptionHandlingExtensions
     {
         var problem = new ProblemDetails
         {
-            Title = ex.Message,
+            Title = ex.Title,
             Detail = ex.Code,
             Status = MapStatusCode(ex),
-            Type = $"https://docs.ultimateauth.com/errors/{ex.Code}"
+            Type = $"{ex.TypePrefix}/{ex.Code}"
         };
 
         problem.Extensions["traceId"] = context.TraceIdentifier;

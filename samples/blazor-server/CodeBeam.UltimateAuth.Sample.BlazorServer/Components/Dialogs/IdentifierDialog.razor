@@ -21,8 +21,31 @@
                 <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false" />
                 <TemplateColumn Title="Actions" Editable="false">
                     <CellTemplate>
-                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
+                        <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                            </MudTooltip>
+                            @if (context.Item.IsPrimary)
+                            {
+                                <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300">
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300">
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
+                                </MudTooltip>
+                            }
+
+                            <MudTooltip Text="Verify" Color="Color.Primary" Delay="300">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" OnClick="@(() => VerifyAsync(context.Item.Id))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300">
+                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
+                            </MudTooltip>
+                        </MudStack>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
@@ -67,7 +90,7 @@
 
         if (firstRender)
         {
-            var result = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
             if (result != null && result.IsSuccess && result.Value != null)
             {
                 _identifiers = result.Value.ToList();
@@ -114,13 +137,64 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier added successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
             _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
             StateHasChanged();
         }
         else
         {
             Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to add identifier", Severity.Error);
+        }
+    }
+
+    private async Task SetPrimaryAsync(Guid id)
+    {
+        SetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        var result = await UAuthClient.Identifiers.SetPrimarySelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Primary identifier set successfully", Severity.Success);
+            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to set primary identifier", Severity.Error);
+        }
+    }
+
+    private async Task VerifyAsync(Guid id)
+    {
+        VerifyUserIdentifierRequest request = new() { IdentifierId = id };
+        var result = await UAuthClient.Identifiers.VerifySelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Primary identifier verified successfully", Severity.Success);
+            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to verify primary identifier", Severity.Error);
+        }
+    }
+
+    private async Task UnsetPrimaryAsync(Guid id)
+    {
+        UnsetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        var result = await UAuthClient.Identifiers.UnsetPrimarySelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Primary identifier unset successfully", Severity.Success);
+            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to unset primary identifier", Severity.Error);
         }
     }
 
@@ -131,13 +205,13 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier deleted successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetUserIdentifiersAsync(AuthState.Identity!.UserKey);
+            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
             _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add("Failed to delete identifier", Severity.Error);
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to delete identifier", Severity.Error);
         }
     }
 

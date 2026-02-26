@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Server.Services;
 /// Handles authentication flows such as login,
 /// logout, session refresh and reauthentication.
 /// </summary>
-public interface IUAuthFlowService<TUserId>
+public interface IUAuthFlowService
 {
     Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default);
 

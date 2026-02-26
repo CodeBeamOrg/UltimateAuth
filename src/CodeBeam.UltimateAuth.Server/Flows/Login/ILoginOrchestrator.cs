@@ -9,7 +9,7 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 /// credential validation, user resolution, authority decision,
 /// and session creation.
 /// </summary>
-public interface ILoginOrchestrator<TUserId>
+public interface ILoginOrchestrator
 {
     Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default);
 }

@@ -10,11 +10,11 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
 internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegration
 {
-    private readonly ICredentialStore<UserKey> _credentialStore;
+    private readonly ICredentialStore _credentialStore;
     private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly IClock _clock;
 
-    public PasswordUserLifecycleIntegration(ICredentialStore<UserKey> credentialStore, IUAuthPasswordHasher passwordHasher, IClock clock)
+    public PasswordUserLifecycleIntegration(ICredentialStore credentialStore, IUAuthPasswordHasher passwordHasher, IClock clock)
     {
         _credentialStore = credentialStore;
         _passwordHasher = passwordHasher;
@@ -31,18 +31,21 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
 
         var hash = _passwordHasher.Hash(r.Password);
 
-        var credential = new PasswordCredential<UserKey>(
-            userId: userKey,
-            loginIdentifier: r.PrimaryIdentifierValue!,
+        var credential = new PasswordCredential(
+            id: null,
+            tenant: tenant,
+            userKey: userKey,
             secretHash: hash,
-            security: new CredentialSecurityState(CredentialSecurityStatus.Active, null, null, null),
-            metadata: new CredentialMetadata { CreatedAt = _clock.UtcNow, LastUsedAt = _clock.UtcNow });
+            security: CredentialSecurityState.Active(),
+            metadata: new CredentialMetadata { LastUsedAt = _clock.UtcNow },
+            _clock.UtcNow,
+            null);
 
         await _credentialStore.AddAsync(tenant, credential, ct);
     }
 
     public async Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct)
     {
-        await _credentialStore.DeleteByUserAsync(tenant, userKey, ct);
+        await _credentialStore.DeleteByUserAsync(tenant, userKey, mode, _clock.UtcNow, ct);
     }
 }

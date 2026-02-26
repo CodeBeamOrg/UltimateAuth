@@ -11,11 +11,11 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
 {
     public int Order => 10;
 
-    private readonly ICredentialStore<UserKey> _credentials;
+    private readonly ICredentialStore _credentials;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
     private readonly IUAuthPasswordHasher _hasher;
 
-    public InMemoryCredentialSeedContributor(ICredentialStore<UserKey> credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher)
+    public InMemoryCredentialSeedContributor(ICredentialStore credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher)
     {
         _credentials = credentials;
         _ids = ids;
@@ -24,22 +24,25 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
 
     public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
     {
-        await SeedCredentialAsync("admin", _ids.GetAdminUserId(), tenant, ct);
-        await SeedCredentialAsync("user", _ids.GetUserUserId(), tenant, ct);
+        await SeedCredentialAsync(_ids.GetAdminUserId(), "admin", tenant, ct);
+        await SeedCredentialAsync(_ids.GetUserUserId(), "user", tenant, ct);
     }
 
-    private async Task SeedCredentialAsync(string login, UserKey userKey, TenantKey tenant, CancellationToken ct)
+    private async Task SeedCredentialAsync(UserKey userKey, string hash, TenantKey tenant, CancellationToken ct)
     {
-        if (await _credentials.ExistsAsync(tenant, userKey, CredentialType.Password, ct))
+        if (await _credentials.ExistsAsync(tenant, userKey, CredentialType.Password, null, ct))
             return;
 
         await _credentials.AddAsync(tenant,
-            new PasswordCredential<UserKey>(
+            new PasswordCredential(
+                Guid.NewGuid(),
+                tenant,
                 userKey,
-                login,
-                _hasher.Hash(login),
-                CredentialSecurityState.Active,
-                new CredentialMetadata { CreatedAt = DateTimeOffset.Now}),
+                _hasher.Hash(hash),
+                CredentialSecurityState.Active(),
+                new CredentialMetadata(),
+                DateTimeOffset.UtcNow,
+                null),
             ct);
     }
 }

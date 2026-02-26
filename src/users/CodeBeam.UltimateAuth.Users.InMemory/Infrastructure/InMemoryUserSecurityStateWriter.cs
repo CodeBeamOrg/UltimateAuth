@@ -1,19 +1,20 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-internal sealed class InMemoryUserSecurityStateWriter<TUserId> : IUserSecurityStateWriter<TUserId> where TUserId : notnull
+internal sealed class InMemoryUserSecurityStateWriter : IUserSecurityStateWriter
 {
-    private readonly InMemoryUserSecurityStore<TUserId> _store;
+    private readonly InMemoryUserSecurityStore _store;
 
-    public InMemoryUserSecurityStateWriter(InMemoryUserSecurityStore<TUserId> store)
+    public InMemoryUserSecurityStateWriter(InMemoryUserSecurityStore store)
     {
         _store = store;
     }
 
-    public Task RecordFailedLoginAsync(TenantKey tenant, TUserId userId, DateTimeOffset at, CancellationToken ct = default)
+    public Task RecordFailedLoginAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
-        var current = _store.Get(tenant, userId);
+        var current = _store.Get(tenant, userKey);
 
         var next = new InMemoryUserSecurityState
         {
@@ -24,13 +25,13 @@ internal sealed class InMemoryUserSecurityStateWriter<TUserId> : IUserSecuritySt
             LastFailedAt = at
         };
 
-        _store.Set(tenant, userId, next);
+        _store.Set(tenant, userKey, next);
         return Task.CompletedTask;
     }
 
-    public Task LockUntilAsync(TenantKey tenant, TUserId userId, DateTimeOffset lockedUntil, CancellationToken ct = default)
+    public Task LockUntilAsync(TenantKey tenant, UserKey userKey, DateTimeOffset lockedUntil, CancellationToken ct = default)
     {
-        var current = _store.Get(tenant, userId);
+        var current = _store.Get(tenant, userKey);
 
         var next = new InMemoryUserSecurityState
         {
@@ -40,13 +41,13 @@ internal sealed class InMemoryUserSecurityStateWriter<TUserId> : IUserSecuritySt
             RequiresReauthentication = current?.RequiresReauthentication ?? false
         };
 
-        _store.Set(tenant, userId, next);
+        _store.Set(tenant, userKey, next);
         return Task.CompletedTask;
     }
 
-    public Task ResetFailuresAsync(TenantKey tenant, TUserId userId, CancellationToken ct = default)
+    public Task ResetFailuresAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        _store.Clear(tenant, userId);
+        _store.Clear(tenant, userKey);
         return Task.CompletedTask;
     }
 }

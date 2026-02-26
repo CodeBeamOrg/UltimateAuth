@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -175,6 +176,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
+    #region Identifiers
+
     public async Task<IReadOnlyList<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, CancellationToken ct = default)
     {
         var command = new GetUserIdentifiersCommand(async innerCt =>
@@ -193,9 +196,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new GetUserIdentifierCommand(async innerCt =>
         {
             var identifier = await _identifierStore.GetAsync(context.ResourceTenant, type, value, innerCt);
-            return identifier is null
-                ? null
-                : UserIdentifierMapper.ToDto(identifier);
+            return identifier is null ? null : UserIdentifierMapper.ToDto(identifier);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -251,17 +252,17 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifier = await _identifierStore.GetByIdAsync(request.Id, innerCt);
 
             if (identifier is null || identifier.IsDeleted)
-                throw new InvalidOperationException("identifier_not_found");
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             EnsureOverrideAllowed(context);
 
             if (identifier.Type == UserIdentifierType.Username && !_identifierOptions.AllowUsernameChange)
             {
-                throw new InvalidOperationException("username_change_not_allowed");
+                throw new UAuthIdentifierValidationException("username_change_not_allowed");
             }
 
             if (string.Equals(identifier.Value, request.NewValue, StringComparison.Ordinal))
-                throw new InvalidOperationException("identifier_value_unchanged");
+                throw new UAuthIdentifierValidationException("identifier_value_unchanged");
 
             await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, _clock.UtcNow, innerCt);
         });
@@ -277,7 +278,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
-                throw new InvalidOperationException("identifier_not_found");
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
 
@@ -295,10 +296,10 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
-                throw new InvalidOperationException("identifier_not_found");
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (!identifier.IsPrimary)
-                throw new InvalidOperationException("identifier_not_primary");
+                throw new UAuthIdentifierValidationException("identifier_not_primary");
 
             var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
 
@@ -309,7 +310,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 .ToList();
 
             if (otherLoginIdentifiers.Count == 0)
-                throw new InvalidOperationException("cannot_unset_last_primary_login_identifier");
+                throw new UAuthIdentifierConflictException("cannot_unset_last_primary_login_identifier");
 
             await _identifierStore.UnsetPrimaryAsync(request.IdentifierId, innerCt);
         });
@@ -336,26 +337,35 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
-                throw new InvalidOperationException("identifier_not_found");
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            var identifiers = await _identifierStore.GetByUserAsync(
-                identifier.Tenant,
-                identifier.UserKey,
-                innerCt);
-
+            var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
             var loginIdentifiers = identifiers.Where(i => !i.IsDeleted && IsLoginIdentifier(i.Type)).ToList();
 
-            if (IsLoginIdentifier(identifier.Type) && loginIdentifiers.Count == 1)
-                throw new InvalidOperationException("cannot_delete_last_login_identifier");
-
             if (identifier.IsPrimary)
-                throw new InvalidOperationException("cannot_delete_primary_identifier");
+                throw new UAuthIdentifierValidationException("cannot_delete_primary_identifier");
+
+            if (_identifierOptions.RequireUsernameIdentifier &&
+            identifier.Type == UserIdentifierType.Username)
+            {
+                var activeUsernames = identifiers
+                    .Where(i => !i.IsDeleted && i.Type == UserIdentifierType.Username)
+                    .ToList();
+
+                if (activeUsernames.Count == 1)
+                    throw new UAuthIdentifierConflictException("cannot_delete_last_username_identifier");
+            }
+
+            if (IsLoginIdentifier(identifier.Type) && loginIdentifiers.Count == 1)
+                throw new UAuthIdentifierConflictException("cannot_delete_last_login_identifier"); 
 
             await _identifierStore.DeleteAsync(request.IdentifierId, request.Mode, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
+    #endregion
 
     public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
     {
