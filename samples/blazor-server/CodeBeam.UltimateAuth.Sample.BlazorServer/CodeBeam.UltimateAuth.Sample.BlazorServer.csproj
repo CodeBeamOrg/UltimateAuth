@@ -9,9 +9,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
-		<PackageReference Include="MudBlazor" Version="9.0.0-rc.1" />
-		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-rc.1" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.12.18" />
+		<PackageReference Include="MudBlazor" Version="9.0.0" />
+		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.1" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.12.46" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -25,7 +25,7 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
-using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -136,7 +136,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
 
-        services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
+        services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
 
@@ -152,7 +152,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
 
         services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
-        services.TryAddScoped(typeof(ILoginOrchestrator<>), typeof(LoginOrchestrator<>));
+        services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
         services.TryAddScoped<ILoginAuthority, LoginAuthority>();
         services.TryAddScoped<IAuthAuthority, AuthAuthority>();
@@ -217,20 +217,20 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<AuthFlowEndpointFilter>();
         services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
-        services.TryAddScoped<LoginEndpointHandler<UserKey>>();
-        services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandlerBridge>();
+        //services.TryAddScoped<LoginEndpointHandler<UserKey>>();
+        services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandler>();
 
-        services.TryAddScoped<ValidateEndpointHandler>();
-        services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandlerBridge>();
+        //services.TryAddScoped<ValidateEndpointHandler>();
+        services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandler>();
 
-        services.TryAddScoped<LogoutEndpointHandler<UserKey>>();
-        services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandlerBridge>();
+        //services.TryAddScoped<LogoutEndpointHandler<UserKey>>();
+        services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
 
-        services.TryAddScoped<RefreshEndpointHandler>();
-        services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandlerBridge>();
+        //services.TryAddScoped<RefreshEndpointHandler>();
+        services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
 
-        services.TryAddScoped<PkceEndpointHandler<UserKey>>();
-        services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandlerBridge>();
+        //services.TryAddScoped<PkceEndpointHandler<UserKey>>();
+        services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
 
         // ------------------------------
         // ASP.NET CORE INTEGRATION
@@ -248,6 +248,19 @@ public static class ServiceCollectionExtensions
 
 
         services.AddAuthorization();
+
+
+        services.Configure<UAuthLoginIdentifierOptions>(opt =>
+        {
+            opt.AllowedBuiltIns = new HashSet<UserIdentifierType>
+            {
+                UserIdentifierType.Username,
+                UserIdentifierType.Email
+            };
+
+            opt.EnableCustomResolvers = true;
+            opt.CustomResolversFirst = true;
+        });
 
         return services;
     }
@@ -309,26 +322,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped(typeof(IUserClaimsProvider), typeof(AuthorizationClaimsProvider));
         return services;
     }
-
-
-    public static IServiceCollection AddUAuthServerInfrastructure(this IServiceCollection services)
-    {
-        // Flow orchestration
-        services.TryAddScoped(typeof(IUAuthFlowService<>), typeof(UAuthFlowService<>));
-
-        // Issuers
-        services.TryAddScoped(typeof(ISessionIssuer), typeof(UAuthSessionIssuer));
-        services.TryAddScoped(typeof(ITokenIssuer), typeof(UAuthTokenIssuer));
-
-        // Endpoints
-        services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
-
-        // Cookie management (default)
-        services.TryAddSingleton<IUAuthCookieManager, UAuthCookieManager>();
-
-        return services;
-    }
-
 }
 
 internal sealed class NullTenantResolver : ITenantIdResolver

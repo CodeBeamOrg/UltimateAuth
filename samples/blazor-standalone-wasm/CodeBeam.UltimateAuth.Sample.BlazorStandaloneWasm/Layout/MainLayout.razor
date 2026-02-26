@@ -1,4 +1,96 @@
 ﻿@inherits LayoutComponentBase
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
 
-@Body
+<MudLayout>
+    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
+        <MudText><b>UltimateAuth</b></MudText>
+        <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
 
+        <MudSpacer />
+        <MudMenu Label="Menu">
+            <MudMenuItem Label="Profile" />
+            <MudMenuItem Label="Refresh" />
+            <MudMenuItem Label="Logout" />
+        </MudMenu>
+        <MudMenu Open>
+            <ActivatorContent>
+                Text
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Label="Content" />
+            </ChildContent>
+        </MudMenu>
+
+        <MudMenu>
+
+            <ActivatorContent>
+                <MudAvatar Class="cursor-pointer">
+                    <UAuthStateView>
+                        <Authorized Context="state">
+                            @(state.Identity?.PrimaryUserName?.Substring(0, 1).ToUpper())
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudIcon Icon="@Icons.Material.Filled.Person" />
+                        </NotAuthorized>
+                    </UAuthStateView>
+                </MudAvatar>
+            </ActivatorContent>
+
+            <ChildContent>
+
+                <UAuthStateView RequireActive="true">
+                    <Authorized Context="state">
+                        <MudText Class="px-4 py-2">
+                            <b>@state.Identity?.PrimaryUserName</b>
+                        </MudText>
+
+                        <MudDivider />
+
+                        <MudMenuItem OnClick="@Refresh">
+                            <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-2" />
+                            Refresh Session
+                        </MudMenuItem>
+
+                        <MudMenuItem OnClick="@Logout">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
+                            Logout
+                        </MudMenuItem>
+                    </Authorized>
+
+                    <Inactive>
+                        <MudMenuItem Href="/login">
+                            Reauthenticate
+                        </MudMenuItem>
+                    </Inactive>
+
+                    <NotAuthorized>
+                        <MudMenuItem Href="/login">
+                            Sign In
+                        </MudMenuItem>
+                    </NotAuthorized>
+                </UAuthStateView>
+            </ChildContent>
+
+        </MudMenu>
+    </MudAppBar>
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    [CascadingParameter]
+    public UAuthState UAuth { get; set; } = default!;
+
+    private async Task Refresh()
+    {
+        await UAuthClient.Flows.RefreshAsync();
+    }
+
+    private async Task Logout()
+    {
+        await UAuthClient.Flows.LogoutAsync();
+    }
+}

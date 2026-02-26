@@ -25,6 +25,7 @@ public sealed class UAuthState
     /// </summary>
     public bool IsStale { get; private set; }
 
+
     public event Action<UAuthStateChangeReason>? Changed;
 
     public bool IsAuthenticated => Identity is not null;

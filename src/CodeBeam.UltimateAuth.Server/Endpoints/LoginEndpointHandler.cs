@@ -1,27 +1,25 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
-public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
+public sealed class LoginEndpointHandler : ILoginEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authFlow;
-    private readonly IUAuthFlowService<TUserId> _flowService;
+    private readonly IUAuthFlowService _flowService;
     private readonly IClock _clock;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
     private readonly IAuthRedirectResolver _redirectResolver;
 
     public LoginEndpointHandler(
         IAuthFlowContextAccessor authFlow,
-        IUAuthFlowService<TUserId> flowService,
+        IUAuthFlowService flowService,
         IClock clock,
         ICredentialResponseWriter credentialResponseWriter,
         IAuthRedirectResolver redirectResolver)
@@ -68,7 +66,7 @@ public sealed class LoginEndpointHandler<TUserId> : ILoginEndpointHandler
 
         if (!result.IsSuccess)
         {
-            var decisionFailure = _redirectResolver.ResolveFailure(authFlow, ctx, result.FailureReason ?? AuthFailureReason.Unknown);
+            var decisionFailure = _redirectResolver.ResolveFailure(authFlow, ctx, result.FailureReason ?? AuthFailureReason.Unknown, result);
 
             return decisionFailure.Enabled
                 ? Results.Redirect(decisionFailure.TargetUrl!)

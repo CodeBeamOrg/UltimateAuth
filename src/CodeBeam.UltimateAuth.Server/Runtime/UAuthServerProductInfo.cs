@@ -13,5 +13,5 @@ public sealed class UAuthServerProductInfo
 
     public UAuthHubDeploymentMode HubDeploymentMode { get; init; }
     public bool MultiTenancyEnabled { get; init; }
-    public string FrameworkDescription { get; set; }
+    public string? FrameworkDescription { get; set; }
 }

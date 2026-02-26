@@ -4,7 +4,6 @@ namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record DeleteUserIdentifierRequest
 {
-    public required UserIdentifierType Type { get; init; }
-    public required string Value { get; init; }
-    public DeleteMode Mode { get; init; } = DeleteMode.Soft;
+    public Guid IdentifierId { get; set; }
+    public DeleteMode Mode { get; set; } = DeleteMode.Soft;
 }

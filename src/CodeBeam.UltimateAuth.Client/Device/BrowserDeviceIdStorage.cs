@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Utilities;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Client.Device;
 

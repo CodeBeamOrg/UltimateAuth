@@ -1,0 +1,27 @@
+﻿@inject NavigationManager Nav
+
+<div class="uauth-page d-flex align-center justify-center">
+    <MudPaper Class="pa-8" Elevation="4" Style="max-width: 520px; width: 100%;">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <UAuthLogo Size="72" />
+
+            <MudText Typo="Typo.h5"><b>Access Denied</b></MudText>
+
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                You don’t have permission to view this page.
+                If you think this is a mistake, sign in with a different account or request access.
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Href="@LoginHref" Color="Color.Primary" Variant="Variant.Filled">Sign In</MudButton>
+                <MudButton OnClick="@GoBack" Color="Color.Primary" Variant="Variant.Outlined">Go Back</MudButton>
+            </MudStack>
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                UltimateAuth protects this resource based on your session and permissions.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</div>

@@ -1,0 +1,35 @@
+﻿@namespace CodeBeam.UltimateAuth.Client
+
+@inherits UAuthReactiveComponentBase
+@using CodeBeam.UltimateAuth.Core.Domain
+@using Microsoft.AspNetCore.Components.Authorization
+
+@if (_inactive)
+{
+    if (Inactive is not null)
+    {
+        @Inactive(AuthState)
+    }
+    else
+    {
+        @NotAuthorized
+    }
+}
+else
+{
+    <AuthorizeView Roles="@Roles" Policy="@Policy">
+        <Authorized>
+            @if (Authorized is not null)
+            {
+                @Authorized(AuthState)
+            }
+            else if (ChildContent is not null)
+            {
+                @ChildContent(AuthState)
+            }
+        </Authorized>
+        <NotAuthorized>
+            @NotAuthorized
+        </NotAuthorized>
+    </AuthorizeView>
+}

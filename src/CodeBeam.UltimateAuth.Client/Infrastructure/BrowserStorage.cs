@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using Microsoft.JSInterop;
 
-namespace CodeBeam.UltimateAuth.Client.Utilities;
+namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
 public sealed class BrowserStorage : IBrowserStorage
 {

@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Client.Contracts;
 
 public sealed record RefreshResult
 {
-    public bool Ok { get; init; }
+    public bool IsSuccess { get; init; }
     public int Status { get; init; }
     public RefreshOutcome Outcome { get; init; }
 }

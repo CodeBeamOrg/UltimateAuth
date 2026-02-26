@@ -1,109 +1,387 @@
 ﻿@page "/home"
-@using System.Security.Claims
 @attribute [Authorize]
+@inherits UAuthFlowPageBase
 
-@inject AuthenticationStateProvider AuthProvider
 @inject IUAuthClient UAuthClient
 @inject UAuthClientDiagnostics Diagnostics
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using System.Security.Claims
 
-<MudPage Class="mud-width-full" FullScreen="FullScreen.Full" Column="1" Row="1">
-    <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudPaper Class="pa-6">
+<MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="pb-4" MaxWidth="MaxWidth.Medium">
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudCard>
+                    <MudCardHeader Class="d-flex flex-column align-center justify-center" Style="background: var(--mud-palette-background-gray)">
+                        <MudAvatar Style="width: 120px; height: 120px" Color="Color.Primary">
+                            <MudText Typo="Typo.h4">@(AuthState?.Identity?.DisplayName?.Substring(0, 2))</MudText>
+                        </MudAvatar>
+                        <MudDivider Class="my-4" />
+                        <MudText Style="font-weight: 300; letter-spacing: 0.5rem" Typo="Typo.h5">@AuthState?.Identity?.DisplayName</MudText>
+                        <MudChipSet T="string" Class="mt-2" Size="Size.Small" Variant="Variant.Outlined">
+                            @foreach (var role in AuthState.Claims.Roles)
+                            {
+                                <MudChip Color="Color.Primary">
+                                    @role
+                                </MudChip>
+                            }
+                        </MudChipSet>
+                    </MudCardHeader>
 
-                <MudAvatar Size="Size.Large" Color="Color.Primary">
-                    @(AuthState?.Identity?.UserKey.Value.Substring(0, 2).ToUpper())
-                </MudAvatar>
+                    <MudCardContent>
+                        <MudToggleGroup @bind-Value="@_selectedAuthState" Class="uauth-text-transform-none my-2">
+                            <MudToggleItem Value="@("UAuthState")" Text="UAuth State" />
+                            <MudToggleItem Value="@("AspNetCoreState")" Text="ASP.NET Core State" />
+                        </MudToggleGroup>
 
-                <MudDivider Class="my-4" />
+                        @if (_selectedAuthState == "UAuthState")
+                        {
+                            <MudGrid Class="mt-2" Spacing="4">
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Domain" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Tenant</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@AuthState?.Identity?.Tenant.Value</MudText>
+                                    </div>
 
-                <MudText Typo="Typo.h6"><b>ASP.NET Core State</b></MudText>
-                <MudText>IsAuthenticated: @_aspNetCoreState?.Identity?.IsAuthenticated</MudText>
-                <MudText>User Id: @_aspNetCoreState?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value</MudText>
-                <MudText>User Name: @_aspNetCoreState?.Identity?.Name</MudText>
-                <MudText>Authentication Type: @_aspNetCoreState?.Identity?.AuthenticationType</MudText>
-                <MudText>Is Admin: @_aspNetCoreState?.IsInRole("Admin")</MudText>
+                                </MudItem>
 
-                <MudDivider Class="my-4" />
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Face" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">User Id</MudText>
+                                        </MudStack>
+                                        <MudText Style="overflow: hidden; text-overflow: ellipsis" Align="Align.Center">@AuthState?.Identity?.UserKey.Value</MudText>
+                                    </div>
+                                </MudItem>
 
-                <MudText Typo="Typo.h6"><b>UAuth State</b></MudText>
-                <MudText>IsAuthenticated: @AuthState.IsAuthenticated</MudText>
-                <MudText>UserKey: @AuthState?.Identity?.UserKey.Value</MudText>
-                <MudText>User Name: @AuthState?.Identity?.PrimaryUserName</MudText>
-                <MudText>Primary Email: @AuthState?.Identity?.PrimaryEmail</MudText>
-                <MudText>Primary Phone: @AuthState?.Identity?.PrimaryPhone</MudText>
-                <MudText>Tenant: @AuthState?.Identity?.Tenant.Value</MudText>
-                <MudText>Authenticated At: @AuthState?.Identity?.AuthenticatedAt</MudText>
-                <MudText>Last Validated At: @AuthState?.LastValidatedAt</MudText>
-                <MudText>Is Admin: @AuthState.IsInRole("Admin")</MudText>
-                <MudText>Roles: @string.Join(", ", AuthState.Claims.Roles)</MudText>
-            </MudPaper>
-        </MudItem>
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authenticated</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@(AuthState.IsAuthenticated ? "Yes" : "No")</MudText>
+                                    </div>
+                                </MudItem>
 
-        <MudItem xs="12" sm="6">
-            <MudPaper Class="pa-6">
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Token" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Session State</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@AuthState?.Identity?.SessionState?.ToDescriptionString()</MudText>
+                                    </div>
+                                </MudItem>
 
-                <MudText Typo="Typo.h6">User Operations</MudText>
-                <MudDivider Class="my-4" />
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.PersonPin" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Username</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@AuthState?.Identity?.PrimaryUserName</MudText>
+                                    </div>
+                                </MudItem>
 
-                <MudStack Spacing="2">
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.ShortText" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Display Name</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@AuthState?.Identity?.DisplayName</MudText>
+                                    </div>
+                                </MudItem>
 
-                    <AuthorizeView Roles="Admin">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser">
-                            Add User
-                        </MudButton>
+                                <MudDivider Class="mt-4" />
 
-                        <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="AssignRole">
-                            Assign Role
-                        </MudButton>
-                    </AuthorizeView>
+                                <MudItem xs="12">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Email</MudText>
+                                    </MudStack>
+                                    <MudText Align="Align.Center">@AuthState?.Identity?.PrimaryEmail</MudText>
+                                </MudItem>
 
-                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ChangePassword">
-                        Change Password
-                    </MudButton>
+                                <MudItem xs="12">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Phone" Color="Color.Primary" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Phone</MudText>
+                                    </MudStack>
+                                    <MudText Align="Align.Center">@AuthState?.Identity?.PrimaryPhone</MudText>
+                                </MudItem>
 
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RefreshSession">
-                        Manual Refresh
-                    </MudButton>
+                                <MudDivider Class="mt-4" />
 
-                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Logout">
-                        Logout
-                    </MudButton>
+                                <MudItem xs="6">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Login" Color="Color.Primary" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authenticated At</MudText>
+                                    </MudStack>
+                                    @* TODO: Add IUAuthDateTimeFormatter *@
+                                    <MudText Align="Align.Center">@FormatLocalTime(AuthState?.Identity?.AuthenticatedAt)</MudText>
+                                </MudItem>
 
-                </MudStack>
+                                <MudItem xs="6">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Last Validated At</MudText>
+                                    </MudStack>
+                                    <MudText Align="Align.Center">@FormatLocalTime(AuthState?.LastValidatedAt)</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        }
+                        else if (_selectedAuthState == "AspNetCoreState")
+                        {
+                            <MudGrid Class="mt-2" Spacing="4">
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authenticated</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@(_aspNetCoreState?.Identity?.IsAuthenticated == true ? "Yes" : "No")</MudText>
+                                    </div>
+                                </MudItem>
 
-            </MudPaper>
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Face" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">User Id</MudText>
+                                        </MudStack>
+                                        <MudText Style="overflow: hidden; text-overflow: ellipsis" Align="Align.Center">@_aspNetCoreState?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value</MudText>
+                                    </div>
+                                </MudItem>
 
-            <MudStack>
-                <MudPaper Class="pa-4 mt-4">
-                    <MudText Typo="Typo.h6">UltimateAuth Client Diagnostics</MudText>
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.PersonPin" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Username</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@_aspNetCoreState?.Identity?.Name</MudText>
+                                    </div>
+                                </MudItem>
 
-                    <MudDivider Class="my-2" />
+                                <MudItem xs="6">
+                                    <div class="pa-2" style="background: var(--mud-palette-background-gray); border-radius: var(--mud-default-borderradius)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authentication Type</MudText>
+                                        </MudStack>
+                                        <MudText Align="Align.Center">@_aspNetCoreState?.Identity?.AuthenticationType</MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-                    <MudText>Started: @Diagnostics.StartCount - @Diagnostics.StartedAt</MudText>
-                    <MudText>Stopped: @Diagnostics.StopCount - @Diagnostics.StoppedAt</MudText>
-                    <MudText>Terminated: @Diagnostics.TerminatedCount - @Diagnostics.TerminatedAt (@Diagnostics.TerminationReason.ToString())</MudText>
+            <MudItem xs="12" sm="6">
+                <MudExpansionPanels MultiExpansion="true">
+                    <MudExpansionPanel Text="Auth Operations" Expanded="true">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">Session</MudText>
 
-                    <MudDivider Class="my-2" />
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VerifiedUser"
+                                               OnClick="Validate">
+                                        Validate
+                                    </MudButton>
+                                </MudItem>
 
-                    <MudText>Refresh Attempts: @Diagnostics.RefreshAttemptCount</MudText>
-                    <MudText>Auto: @Diagnostics.AutomaticRefreshCount</MudText>
-                    <MudText>Manual: @Diagnostics.ManualRefreshCount</MudText>
+                                <MudItem xs="12" sm="6">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                                               OnClick="RefreshSession">
+                                        Manual Refresh
+                                    </MudButton>
+                                </MudItem>
 
-                    <MudText Color="Color.Success">
-                        Touched Success: @Diagnostics.RefreshTouchedCount
-                    </MudText>
-                    <MudText Color="Color.Success">
-                        No-Op Success: @Diagnostics.RefreshNoOpCount
-                    </MudText>
-                    <MudText Color="Color.Warning">
-                        ReauthRequired: @Diagnostics.RefreshReauthRequiredCount
-                    </MudText>
-                    <MudText Color="Color.Warning">
-                        Unknown: @Diagnostics.RefreshUnknownCount
-                    </MudText>
-                </MudPaper>
-            </MudStack>
-        </MudItem>
-    </MudGrid>
+                                <MudItem xs="12">
+                                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout"
+                                               OnClick="Logout">
+                                        Logout
+                                    </MudButton>
+                                </MudItem>
+                            </MudGrid>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudText Typo="Typo.subtitle2">Account</MudText>
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Abc" OnClick="OpenIdentifierDialog">
+                                Manage Identifiers
+                            </MudButton>
+
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Password">
+                                Change Password
+                            </MudButton>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle2">Admin</MudText>
+                                <UAuthStateView Roles="Admin">
+                                    <NotAuthorized>
+                                        <MudSwitchM3 @bind-Value="_showAdminPreview" Color="Color.Primary" Label="Preview" />
+                                    </NotAuthorized>
+                                </UAuthStateView>
+                            </MudStack>
+
+                            @if (AuthState.IsInRole("Admin") || _showAdminPreview)
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.PersonAdd">
+                                            Add User
+                                        </MudButton>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="6">
+                                        <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.AdminPanelSettings">
+                                            Assign Role
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+
+                            @if (_showAdminPreview)
+                            {
+                                <MudAlert Dense Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">
+                                    Admin operations are shown for preview. Sign in as an Admin to execute them.
+                                </MudAlert>
+                            }
+
+                        </MudStack>
+                    </MudExpansionPanel>
+
+                    <MudExpansionPanel Text="UltimateAuth Client Diagnostics" Expanded="true">
+                        <MudChip T="string" Color="@GetHealthColor()" Variant="Variant.Filled" Icon="@Icons.Material.Filled.HealthAndSafety">
+                            @GetHealthText()
+                        </MudChip>
+
+                        <MudText Class="mt-4 mb-2" Typo="Typo.subtitle2">Lifecycle</MudText>
+
+                        <MudGrid Spacing="2">
+
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-success)" Elevation="0">
+                                    <MudText Typo="Typo.caption">Started</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.StartCount</MudText>
+                                </MudPaper>
+                                @if (Diagnostics.StartedAt is not null)
+                                {
+                                    <MudTooltip Text="@FormatLocalTime(Diagnostics.StartedAt)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2">
+                                                @FormatRelative(Diagnostics.StartedAt)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudTooltip>
+                                }
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-warning)" Elevation="0">
+                                    <MudText Typo="Typo.caption">Stopped</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Warning">
+                                        @Diagnostics.StopCount
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray); border-left: 2px solid var(--mud-palette-error)" Elevation="0">
+                                    <MudText Typo="Typo.caption">Terminated</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Error">@Diagnostics.TerminatedCount</MudText>
+                                </MudPaper>
+                                @if (Diagnostics.TerminatedAt is not null)
+                                {
+                                    <MudTooltip Text="@FormatLocalTime(Diagnostics.TerminatedAt)">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2">
+                                                @FormatRelative(Diagnostics.TerminatedAt)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudTooltip>
+                                }
+                            </MudItem>
+
+                            <MudDivider Class="my-4" />
+
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                Refresh Metrics
+                            </MudText>
+
+                            <MudGrid Spacing="2">
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Total Attempts</MudText>
+                                        <MudText Typo="Typo.h6">@Diagnostics.RefreshAttemptCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudTooltip Text="Shows minimal success count. Set EnableRefreshDetails diagnostics option to true to view details.">
+                                            <MudText Typo="Typo.caption">Success</MudText>
+                                        </MudTooltip>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshSuccessCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Automatic</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Secondary">@Diagnostics.AutomaticRefreshCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Manual</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Secondary">@Diagnostics.ManualRefreshCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Touched</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshTouchedCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">No-Op</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Success">@Diagnostics.RefreshNoOpCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <MudItem xs="6">
+                                    <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0">
+                                        <MudText Typo="Typo.caption">Reauth Required</MudText>
+                                        <MudText Typo="Typo.h6" Color="Color.Warning">@Diagnostics.RefreshReauthRequiredCount</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
 </MudPage>

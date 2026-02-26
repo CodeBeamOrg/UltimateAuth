@@ -2,44 +2,103 @@
 
 public sealed class CredentialSecurityState
 {
-    public CredentialSecurityStatus Status { get; }
-    public DateTimeOffset? RestrictedUntil { get; }
+    public DateTimeOffset? RevokedAt { get; }
+    public DateTimeOffset? LockedUntil { get; }
     public DateTimeOffset? ExpiresAt { get; }
-    public string? Reason { get; }
+    public DateTimeOffset? ResetRequestedAt { get; init; }
+    public Guid SecurityStamp { get; }
 
-    public CredentialSecurityState(
-        CredentialSecurityStatus status,
-        DateTimeOffset? restrictedUntil = null,
-        DateTimeOffset? expiresAt = null,
-        string? reason = null)
+    public CredentialSecurityStatus Status(DateTimeOffset now)
     {
-        Status = status;
-        RestrictedUntil = restrictedUntil;
-        ExpiresAt = expiresAt;
-        Reason = reason;
+        if (RevokedAt is not null)
+            return CredentialSecurityStatus.Revoked;
+
+        if (LockedUntil is not null && LockedUntil > now)
+            return CredentialSecurityStatus.Locked;
+
+        if (ExpiresAt is not null && ExpiresAt <= now)
+            return CredentialSecurityStatus.Expired;
+
+        if (ResetRequestedAt is not null)
+            return CredentialSecurityStatus.ResetRequested;
+
+        return CredentialSecurityStatus.Active;
     }
 
-    public static CredentialSecurityState Active { get; } = new(CredentialSecurityStatus.Active);
+    public CredentialSecurityState(
+        DateTimeOffset? revokedAt = null,
+        DateTimeOffset? lockedUntil = null,
+        DateTimeOffset? expiresAt = null,
+        DateTimeOffset? resetRequestedAt = null,
+        Guid securityStamp = default)
+    {
+        RevokedAt = revokedAt;
+        LockedUntil = lockedUntil;
+        ExpiresAt = expiresAt;
+        ResetRequestedAt = resetRequestedAt;
+        SecurityStamp = securityStamp;
+    }
 
     /// <summary>
     /// Determines whether the credential can be used at the given time.
     /// </summary>
-    public bool IsUsable(DateTimeOffset now)
+    public bool IsUsable(DateTimeOffset now) => Status(now) == CredentialSecurityStatus.Active;
+
+    public static CredentialSecurityState Active(Guid? securityStamp = null)
     {
-        if (Status == CredentialSecurityStatus.Expired)
-            return false;
+        return new CredentialSecurityState(
+            revokedAt: null,
+            lockedUntil: null,
+            expiresAt: null,
+            resetRequestedAt: null,
+            securityStamp: securityStamp ?? Guid.NewGuid());
+    }
 
-        if (ExpiresAt is not null && ExpiresAt <= now)
-            return false;
+    public CredentialSecurityState Revoke(DateTimeOffset now)
+    {
+        return new CredentialSecurityState(
+            revokedAt: now,
+            lockedUntil: LockedUntil,
+            expiresAt: ExpiresAt,
+            resetRequestedAt: ResetRequestedAt,
+            securityStamp: Guid.NewGuid());
+    }
 
-        if ((Status == CredentialSecurityStatus.Locked || Status == CredentialSecurityStatus.Revoked) && RestrictedUntil is not null)
-        {
-            return RestrictedUntil <= now;
-        }
+    public CredentialSecurityState SetExpiry(DateTimeOffset? expiresAt)
+    {
+        return new CredentialSecurityState(
+            revokedAt: RevokedAt,
+            lockedUntil: LockedUntil,
+            expiresAt: expiresAt,
+            resetRequestedAt: ResetRequestedAt,
+            securityStamp: SecurityStamp);
+    }
 
-        if (Status == CredentialSecurityStatus.Locked || Status == CredentialSecurityStatus.Revoked)
-            return false;
+    public CredentialSecurityState BeginReset(DateTimeOffset now, bool rotateStamp = true)
+    => new(
+        revokedAt: RevokedAt,
+        lockedUntil: LockedUntil,
+        expiresAt: ExpiresAt,
+        resetRequestedAt: now,
+        securityStamp: rotateStamp ? Guid.NewGuid() : SecurityStamp
+    );
 
-        return true;
+    public CredentialSecurityState CompleteReset(bool rotateStamp = true)
+        => new(
+            revokedAt: RevokedAt,
+            lockedUntil: LockedUntil,
+            expiresAt: ExpiresAt,
+            resetRequestedAt: null,
+            securityStamp: rotateStamp ? Guid.NewGuid() : SecurityStamp
+        );
+
+    public CredentialSecurityState RotateStamp()
+    {
+        return new CredentialSecurityState(
+            revokedAt: RevokedAt,
+            lockedUntil: LockedUntil,
+            expiresAt: ExpiresAt,
+            resetRequestedAt: ResetRequestedAt,
+            securityStamp: Guid.NewGuid());
     }
 }

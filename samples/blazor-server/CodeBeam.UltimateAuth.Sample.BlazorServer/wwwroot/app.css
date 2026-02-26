@@ -51,12 +51,43 @@ h1:focus {
 }
 
 .uauth-page {
-    height: 100vh;
+    height: calc(100vh - var(--mud-appbar-height));
     width: 100vw;
+    margin-top: 64px;
 }
 
 .uauth-stack {
-    height: 60vh;
+    min-height: 60vh;
+    max-height: calc(100vh - var(--mud-appbar-height));
     width: 30vw;
     min-width: 300px;
+}
+
+.uauth-menu-popover {
+    width: 300px;
+}
+
+.uauth-login-paper {
+    min-height: 60vh;
+}
+
+.uauth-login-paper.mud-theme-primary {
+    background: linear-gradient(145deg, var(--mud-palette-primary), rgba(0, 0, 0, 0.85) );
+    color: white;
+}
+
+.uauth-brand-glow {
+    filter: drop-shadow(0 0 25px rgba(255,255,255,0.15));
+}
+
+.uauth-logo-slide {
+    transition: transform 1s cubic-bezier(.4, 0, .2, 1);
+}
+
+.uauth-login-paper:hover .uauth-logo-slide {
+    transform: translateY(200px) rotateY(360deg);
+}
+
+.uauth-text-transform-none .mud-button {
+    text-transform: none;
 }

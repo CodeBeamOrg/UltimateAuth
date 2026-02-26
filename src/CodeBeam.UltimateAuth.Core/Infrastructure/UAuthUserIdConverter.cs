@@ -58,9 +58,6 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
     /// </summary>
     /// <param name="value">The string representation of the user id.</param>
     /// <returns>The reconstructed user id.</returns>
-    /// <exception cref="UAuthInternalException">
-    /// Thrown when deserialization of complex types fails.
-    /// </exception>
     public TUserId FromString(string value)
     {
         return typeof(TUserId) switch
@@ -72,7 +69,7 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
             Type t when t == typeof(long) => (TUserId)(object)long.Parse(value, CultureInfo.InvariantCulture),
 
             _ => JsonSerializer.Deserialize<TUserId>(value)
-                 ?? throw new UAuthInternalException("Cannot deserialize TUserId")
+                 ?? throw new InvalidCastException("Cannot deserialize TUserId")
         };
     }
 

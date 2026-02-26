@@ -40,8 +40,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             return Results.Json(
                 new AuthValidationResult
                 {
-                    IsValid = false,
-                    State = "missing"
+                    State = SessionState.NotFound
                 },
                 statusCode: StatusCodes.Status401Unauthorized
             );
@@ -54,8 +53,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 return Results.Json(
                     new AuthValidationResult
                     {
-                        IsValid = false,
-                        State = "invalid"
+                        State = SessionState.Invalid
                     },
                     statusCode: StatusCodes.Status401Unauthorized
                 );
@@ -78,8 +76,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 return Results.Json(
                     new AuthValidationResult
                     {
-                        IsValid = false,
-                        State = "invalid"
+                        State = SessionState.Invalid
                     },
                     statusCode: StatusCodes.Status401Unauthorized
                 );
@@ -89,8 +86,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
 
             return Results.Ok(new AuthValidationResult
             {
-                IsValid = result.IsValid,
-                State = result.IsValid ? "active" : result.State.ToString().ToLowerInvariant(),
+                State = result.IsValid ? SessionState.Active : result.State,
                 Snapshot = snapshot
             });
         }
@@ -99,8 +95,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
         return Results.Json(
             new AuthValidationResult
             {
-                IsValid = false,
-                State = "unsupported"
+                State = SessionState.Unsupported
             },
             statusCode: StatusCodes.Status401Unauthorized
         );

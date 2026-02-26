@@ -2,7 +2,7 @@
 
 public enum RefreshOutcome
 {
-    None,
+    Success,        // minimal transport
     NoOp,
     Touched,
     Rotated,

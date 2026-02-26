@@ -2,38 +2,79 @@
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Users.Contracts;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 
-public partial class Login
+public partial class Login : UAuthFlowPageBase
 {
     private string? _username;
     private string? _password;
-    private ClaimsPrincipal? _aspNetCoreState;
     private UAuthClientProductInfo? _productInfo;
+    private MudTextField<string> _usernameField = default!;
 
-    [CascadingParameter]
-    public UAuthState AuthState { get; set; } = default!;
-
-    [CascadingParameter]
-    Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+    private CancellationTokenSource? _lockoutCts;
+    private PeriodicTimer? _lockoutTimer;
+    private DateTimeOffset? _lockoutUntil;
+    private TimeSpan _remaining;
+    private bool _isLocked;
+    private DateTimeOffset? _lockoutStartedAt;
+    private TimeSpan _lockoutDuration;
+    private double _progressPercent;
+    private int? _remainingAttempts = null;
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthenticationStateTask;
-        _aspNetCoreState = state.User;
-        Diagnostics.Changed += OnDiagnosticsChanged;
         _productInfo = ClientProductInfoProvider.Get();
     }
 
-    private void OnDiagnosticsChanged()
+    protected override Task OnUAuthPayloadAsync(AuthFlowPayload payload)
     {
-        InvokeAsync(StateHasChanged);
+        HandleLoginPayload(payload);
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnFocusRequestedAsync()
+    {
+        await _usernameField.FocusAsync();
+    }
+
+    private void HandleLoginPayload(AuthFlowPayload payload)
+    {
+        if (payload.Flow != AuthFlowType.Login)
+            return;
+
+        if (payload.Reason == AuthFailureReason.LockedOut && payload.LockoutUntilUtc is { } until)
+        {
+            _lockoutUntil = until;
+            StartCountdown();
+        }
+
+        _remainingAttempts = payload.RemainingAttempts;
+
+        ShowLoginError(payload.Reason, payload.RemainingAttempts);
+    }
+
+    private void ShowLoginError(AuthFailureReason? reason, int? remainingAttempts)
+    {
+        string message = reason switch
+        {
+            AuthFailureReason.InvalidCredentials when remainingAttempts is > 0
+                => $"Invalid username or password. {remainingAttempts} attempt(s) remaining.",
+
+            AuthFailureReason.InvalidCredentials
+                => "Invalid username or password.",
+
+            AuthFailureReason.RequiresMfa
+                => "Multi-factor authentication required.",
+
+            AuthFailureReason.LockedOut
+                => "Your account is locked.",
+
+            _ => "Login failed."
+        };
+
+        Snackbar.Add(message, Severity.Error);
     }
 
     private async Task ProgrammaticLogin()
@@ -45,93 +86,83 @@ public partial class Login
             Secret = "admin",
             Device = DeviceContext.FromDeviceId(deviceId),
         };
-        await UAuth.Flows.LoginAsync(request, "/home");
+        await UAuthClient.Flows.LoginAsync(request, "/home");
     }
 
-    private async Task ValidateAsync()
+    private async void StartCountdown()
     {
-        var result = await UAuth.Flows.ValidateAsync();
+        if (_lockoutUntil is null)
+            return;
 
-        Snackbar.Add(
-            result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
-            result.IsValid ? Severity.Success : Severity.Error);
-    }
+        _isLocked = true;
+        _lockoutStartedAt = DateTimeOffset.UtcNow;
+        _lockoutDuration = _lockoutUntil.Value - DateTimeOffset.UtcNow;
+        UpdateRemaining();
 
-    private async Task LogoutAsync()
-    {
-        await UAuth.Flows.LogoutAsync();
-        Snackbar.Add("Logged out", Severity.Success);
-    }
+        _lockoutCts?.Cancel();
+        _lockoutCts = new CancellationTokenSource();
 
-    private async Task RefreshAsync()
-    {
-        await UAuth.Flows.RefreshAsync();
-    }
+        _lockoutTimer?.Dispose();
+        _lockoutTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
-    private async Task HandleGetMe()
-    {
-        var profileResult = await UAuth.Users.GetMeAsync();
-        if (profileResult.Ok)
+        try
         {
-            var profile = profileResult.Value;
-            Snackbar.Add($"User Profile: {profile?.UserName} ({profile?.DisplayName})", Severity.Info);
-        }
-        else
-        {
-            Snackbar.Add($"Failed to get profile: {profileResult.Error}", Severity.Error);
-        }
-    }
-
-    private async Task ChangeUserInactive()
-    {
-        ChangeUserStatusAdminRequest request = new ChangeUserStatusAdminRequest
-        {
-            UserKey = UserKey.FromString("user"),
-            NewStatus = UserStatus.Disabled
-        };
-        var result = await UAuth.Users.ChangeStatusAdminAsync(request);
-        if (result.Ok)
-        {
-            Snackbar.Add($"User is disabled.", Severity.Info);
-        }
-        else
-        {
-            Snackbar.Add($"Failed to change user status.", Severity.Error);
-        }
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var uri = Nav.ToAbsoluteUri(Nav.Uri);
-            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-
-            if (query.TryGetValue("error", out var error))
+            while (await _lockoutTimer.WaitForNextTickAsync(_lockoutCts.Token))
             {
-                ShowLoginError(error.ToString());
-                ClearQueryString();
+                UpdateRemaining();
+
+                if (_remaining <= TimeSpan.Zero)
+                {
+                    ResetLockoutState();
+                    await InvokeAsync(StateHasChanged);
+                    break;
+                }
+
+                await InvokeAsync(StateHasChanged);
             }
         }
-    }
-
-    private void ShowLoginError(string code)
-    {
-        var message = code switch
+        catch (OperationCanceledException)
         {
-            "invalid" => "Invalid username or password.",
-            "locked" => "Your account is locked.",
-            "mfa" => "Multi-factor authentication required.",
-            _ => "Login failed."
-        };
 
-        Snackbar.Add(message, Severity.Error);
+        }
     }
 
-    private void ClearQueryString()
+    private void ResetLockoutState()
     {
-        var uri = new Uri(Nav.Uri);
-        var clean = uri.GetLeftPart(UriPartial.Path);
-        Nav.NavigateTo(clean, replace: true);
+        _isLocked = false;
+        _lockoutUntil = null;
+        _progressPercent = 0;
+        _remainingAttempts = null;
+    }
+
+    private void UpdateRemaining()
+    {
+        if (_lockoutUntil is null || _lockoutStartedAt is null)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+
+        _remaining = _lockoutUntil.Value - now;
+
+        if (_remaining <= TimeSpan.Zero)
+        {
+            _remaining = TimeSpan.Zero;
+            return;
+        }
+
+        var elapsed = now - _lockoutStartedAt.Value;
+
+        if (_lockoutDuration.TotalSeconds > 0)
+        {
+            var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
+            _progressPercent = Math.Max(0, percent);
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _lockoutCts?.Cancel();
+        _lockoutTimer?.Dispose();
     }
 }

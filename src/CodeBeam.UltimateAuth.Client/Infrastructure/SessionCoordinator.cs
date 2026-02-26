@@ -61,7 +61,7 @@ internal sealed class SessionCoordinator : ISessionCoordinator
                     case RefreshOutcome.NoOp:
                         break;
 
-                    case RefreshOutcome.None:
+                    case RefreshOutcome.Success:
                         break;
 
                     case RefreshOutcome.ReauthRequired:

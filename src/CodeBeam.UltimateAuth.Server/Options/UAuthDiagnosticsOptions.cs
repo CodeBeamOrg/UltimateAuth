@@ -3,13 +3,13 @@
 public sealed class UAuthDiagnosticsOptions
 {
     /// <summary>
-    /// Enables debug / sample-only response headers such as X-UAuth-Refresh.
-    /// Should be disabled in production.
+    /// Enables debug / sample-only response headers such as X-UAuth-Refresh. If true, gives succesful refresh details.
+    /// Better to be disabled in production.
     /// </summary>
-    public bool EnableRefreshHeaders { get; set; } = false;
+    public bool EnableRefreshDetails { get; set; } = false;
 
     internal UAuthDiagnosticsOptions Clone() => new()
     {
-        EnableRefreshHeaders = EnableRefreshHeaders
+        EnableRefreshDetails = EnableRefreshDetails
     };
 }

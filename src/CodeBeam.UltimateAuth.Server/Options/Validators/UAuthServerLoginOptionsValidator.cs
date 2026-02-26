@@ -12,7 +12,7 @@ internal sealed class UAuthServerLoginOptionsValidator : IValidateOptions<UAuthS
         if (login.MaxFailedAttempts < 0)
             errors.Add("Login.MaxFailedAttempts cannot be negative.");
 
-        if (login.LockoutMinutes < 0)
+        if (login.LockoutDuration < TimeSpan.Zero)
             errors.Add("Login.LockoutMinutes cannot be negative.");
 
         return errors.Count == 0

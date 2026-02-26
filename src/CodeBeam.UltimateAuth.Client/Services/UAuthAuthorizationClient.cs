@@ -28,13 +28,13 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync()
     {
-        var raw = await _request.SendFormForJsonAsync(Url("/authorization/users/me/roles/get"));
+        var raw = await _request.SendFormAsync(Url("/authorization/users/me/roles/get"));
         return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
     }
 
     public async Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormForJsonAsync(Url($"/admin/authorization/users/{userKey}/roles/get"));
+        var raw = await _request.SendFormAsync(Url($"/admin/authorization/users/{userKey}/roles/get"));
         return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
     }
 
@@ -45,7 +45,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
             Role = role
         });
 
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> RemoveRoleAsync(UserKey userKey, string role)
@@ -55,6 +55,6 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
             Role = role
         });
 
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 }

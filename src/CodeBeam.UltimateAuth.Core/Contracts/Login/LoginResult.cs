@@ -10,17 +10,21 @@ public sealed record LoginResult
     public RefreshToken? RefreshToken { get; init; }
     public LoginContinuation? Continuation { get; init; }
     public AuthFailureReason? FailureReason { get; init; }
+    public DateTimeOffset? LockoutUntilUtc { get; init; }
+    public int? RemainingAttempts { get; init; }
 
     public bool IsSuccess => Status == LoginStatus.Success;
     public bool RequiresContinuation => Continuation is not null;
     public bool RequiresMfa => Continuation?.Type == LoginContinuationType.Mfa;
     public bool RequiresPkce => Continuation?.Type == LoginContinuationType.Pkce;
 
-    public static LoginResult Failed(AuthFailureReason? reason = null)
+    public static LoginResult Failed(AuthFailureReason? reason = null, DateTimeOffset? lockoutUntilUtc = null, int? remainingAttempts = null)
         => new()
         {
             Status = LoginStatus.Failed,
-            FailureReason = reason
+            FailureReason = reason,
+            LockoutUntilUtc = lockoutUntilUtc,
+            RemainingAttempts = remainingAttempts
         };
 
     public static LoginResult Success(AuthSessionId sessionId, AuthTokens? tokens = null)

@@ -69,11 +69,11 @@ internal sealed class FakeFlowClient : IFlowClient
     {
         var outcome = _outcomes.Count > 0
             ? _outcomes.Dequeue()
-            : RefreshOutcome.None;
+            : RefreshOutcome.Success;
 
         return Task.FromResult(new RefreshResult
         {
-            Ok = true,
+            IsSuccess = true,
             Outcome = outcome
         });
     }

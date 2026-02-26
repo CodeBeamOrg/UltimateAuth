@@ -2,8 +2,8 @@
 
 public sealed class UAuthChallengeRequiredException : UAuthException
 {
-    public UAuthChallengeRequiredException(string? reason = null)
-        : base(reason ?? "Additional authentication is required to perform this operation.")
+    public UAuthChallengeRequiredException(string? reason = null) 
+        : base(code: "challenge_required", message: reason ?? "Additional authentication is required.")
     {
     }
 }

@@ -27,8 +27,7 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
 
     public Task<PagedResult<UserProfile>> QueryAsync(TenantKey tenant, UserProfileQuery query, CancellationToken ct = default)
     {
-        var baseQuery = _store.Values
-            .Where(x => x.Tenant == tenant);
+        var baseQuery = _store.Values.Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);

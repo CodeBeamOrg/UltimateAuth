@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Services;
 
-public class UAuthUserIdentifierClient : IUserIdentifierClient
+internal class UAuthUserIdentifierClient : IUserIdentifierClient
 {
     private readonly IUAuthRequestClient _request;
     private readonly UAuthClientOptions _options;
@@ -22,85 +22,85 @@ public class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetMyIdentifiersAsync()
     {
-        var raw = await _request.SendFormForJsonAsync(Url("/users/me/identifiers/get"));
+        var raw = await _request.SendFormAsync(Url("/users/me/identifiers/get"));
         return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
     }
 
     public async Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/add"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UpdateSelfAsync(UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/update"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> SetPrimarySelfAsync(SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/set-primary"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UnsetPrimarySelfAsync(UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/unset-primary"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> VerifySelfAsync(VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/verify"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteSelfAsync(DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/delete"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetUserIdentifiersAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormForJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"));
         return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
     }
 
     public async Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/add"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UpdateAdminAsync(UserKey userKey, UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/update"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> SetPrimaryAdminAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/set-primary"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UnsetPrimaryAdminAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/unset-primary"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> VerifyAdminAsync(UserKey userKey, VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/verify"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteAdminAsync(UserKey userKey, DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/delete"), request);
-        return UAuthResultMapper.FromStatus(raw);
+        return UAuthResultMapper.From(raw);
     }
 }

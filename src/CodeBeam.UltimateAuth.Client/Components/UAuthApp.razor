@@ -1,12 +1,22 @@
 ﻿@namespace CodeBeam.UltimateAuth.Client
 
+@using CodeBeam.UltimateAuth.Client.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IUAuthStateManager StateManager
 @inject IUAuthClientBootstrapper Bootstrapper
 @inject ISessionCoordinator Coordinator
 
 <CascadingAuthenticationState>
-    <CascadingValue Value="@StateManager.State" IsFixed="false">
-        @ChildContent
+    <CascadingValue Value="@StateManager.State" IsFixed="true">
+        @if (RenderMode == UAuthRenderMode.Reactive)
+        {
+            <UAuthScope>
+                @ChildContent
+            </UAuthScope>
+        }
+        else
+        {
+            @ChildContent
+        }
     </CascadingValue>
 </CascadingAuthenticationState>

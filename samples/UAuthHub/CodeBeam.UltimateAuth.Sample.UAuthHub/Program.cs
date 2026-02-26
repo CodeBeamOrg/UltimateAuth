@@ -30,21 +30,21 @@ builder.Services.AddControllers();
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = UAuthSchemeDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = UAuthSchemeDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = UAuthSchemeDefaults.AuthenticationScheme;
-    })
-    .AddUAuthCookies();
+//builder.Services
+//    .AddAuthentication(options =>
+//    {
+//        options.DefaultAuthenticateScheme = UAuthSchemeDefaults.AuthenticationScheme;
+//        options.DefaultSignInScheme = UAuthSchemeDefaults.AuthenticationScheme;
+//        options.DefaultChallengeScheme = UAuthSchemeDefaults.AuthenticationScheme;
+//    })
+//    .AddUAuthCookies();
 
-builder.Services.AddAuthorization();
+//builder.Services.AddAuthorization();
 
-builder.Services.AddHttpContextAccessor();
+//builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddUltimateAuthServer(o => {
-    o.Diagnostics.EnableRefreshHeaders = true;
+    o.Diagnostics.EnableRefreshDetails = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);

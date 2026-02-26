@@ -12,5 +12,6 @@ public enum SessionState
     NotFound,
     Invalid,
     SecurityMismatch,
-    DeviceMismatch
+    DeviceMismatch,
+    Unsupported
 }

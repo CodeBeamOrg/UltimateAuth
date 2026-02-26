@@ -1,7 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
@@ -14,20 +20,26 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         _baseAddressResolver = baseAddressResolver;
     }
 
+    private static readonly JsonSerializerOptions PayloadJsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public RedirectDecision ResolveSuccess(AuthFlowContext flow, HttpContext ctx)
         => Resolve(flow, ctx, flow.Response.Redirect.SuccessPath, null);
 
-    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext ctx, AuthFailureReason reason)
-        => Resolve(flow, ctx, flow.Response.Redirect.FailurePath, reason);
+    public RedirectDecision ResolveFailure(AuthFlowContext flow, HttpContext ctx, AuthFailureReason reason, LoginResult? loginResult = null)
+        => Resolve(flow, ctx, flow.Response.Redirect.FailurePath, reason, loginResult);
 
-    private RedirectDecision Resolve(AuthFlowContext flow, HttpContext ctx, string? fallbackPath, AuthFailureReason? failureReason)
+    private RedirectDecision Resolve(AuthFlowContext flow, HttpContext ctx, string? fallbackPath, AuthFailureReason? failureReason, LoginResult? loginResult = null)
     {
         var redirect = flow.Response.Redirect;
 
         if (!redirect.Enabled)
             return RedirectDecision.None();
 
-        if (redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
+        if (failureReason is null && redirect.AllowReturnUrlOverride && flow.ReturnUrlInfo is { } info)
         {
             if (info.IsAbsolute && (info.AbsoluteUri!.Scheme == Uri.UriSchemeHttp || info.AbsoluteUri!.Scheme == Uri.UriSchemeHttps))
             {
@@ -43,29 +55,44 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(fallbackPath))
+        if (string.IsNullOrWhiteSpace(fallbackPath))
+            return RedirectDecision.None();
+
+        var baseUrl = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
+
+        var query = new Dictionary<string, string?>();
+
+        if (!string.IsNullOrWhiteSpace(flow.ReturnUrlInfo?.RelativePath))
+            query["returnUrl"] = flow.ReturnUrlInfo.RelativePath;
+
+        // Failure payload
+        if (failureReason is not null)
         {
-            var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
-
-            IDictionary<string, string?>? query = null;
-
-            if (failureReason is not null)
+            var payload = new AuthFlowPayload
             {
-                var code = redirect.FailureCodes != null &&
-                           redirect.FailureCodes.TryGetValue(failureReason.Value, out var mapped)
-                    ? mapped
-                    : "failed";
+                V = 1,
+                Flow = flow.FlowType,
+                Status = "failed",
+                Reason = failureReason
+            };
 
-                query = new Dictionary<string, string?>
+            if (flow.FlowType == AuthFlowType.Login && loginResult is not null && flow.OriginalOptions.Login.IncludeFailureDetails)
+            {
+                payload = payload with
                 {
-                    [redirect.FailureQueryKey ?? "error"] = code
+                    LockoutUntil = loginResult.LockoutUntilUtc?.ToUnixTimeSeconds(),
+                    RemainingAttempts = loginResult.RemainingAttempts
                 };
             }
 
-            return RedirectDecision.To(UrlComposer.Combine(baseAddress, fallbackPath, query));
+            var json = JsonSerializer.Serialize(payload, PayloadJsonOptions);
+
+            var encoded = Base64UrlTextEncoder.Encode(Encoding.UTF8.GetBytes(json));
+
+            query["uauth"] = encoded;
         }
 
-        return RedirectDecision.None();
+        return RedirectDecision.To(UrlComposer.Combine(baseUrl, fallbackPath, query));
     }
 
     private static void ValidateAllowed(string baseAddress, UAuthServerOptions options)

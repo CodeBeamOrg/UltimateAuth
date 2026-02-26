@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Flows;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Server.Flows;
 
 /// <summary>
 /// Represents the outcome of a login decision.
@@ -6,20 +8,21 @@
 public sealed class LoginDecision
 {
     public LoginDecisionKind Kind { get; }
-    public string? Reason { get; }
+    public AuthFailureReason? FailureReason { get; }
 
-    private LoginDecision(LoginDecisionKind kind, string? reason = null)
+
+    private LoginDecision(LoginDecisionKind kind, AuthFailureReason? reason = null)
     {
         Kind = kind;
-        Reason = reason;
+        FailureReason = reason;
     }
 
     public static LoginDecision Allow()
         => new(LoginDecisionKind.Allow);
 
-    public static LoginDecision Deny(string reason)
+    public static LoginDecision Deny(AuthFailureReason reason)
         => new(LoginDecisionKind.Deny, reason);
 
-    public static LoginDecision Challenge(string reason)
+    public static LoginDecision Challenge(AuthFailureReason reason)
         => new(LoginDecisionKind.Challenge, reason);
 }

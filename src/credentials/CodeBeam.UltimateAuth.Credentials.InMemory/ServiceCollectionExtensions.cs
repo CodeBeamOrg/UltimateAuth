@@ -8,9 +8,8 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory.Extensions
     {
         public static IServiceCollection AddUltimateAuthCredentialsInMemory(this IServiceCollection services)
         {
-            services.TryAddScoped(typeof(InMemoryCredentialStore<>));
-            services.TryAddSingleton(typeof(ICredentialStore<>), typeof(InMemoryCredentialStore<>));
-            services.TryAddSingleton(typeof(ICredentialSecretStore<>), typeof(InMemoryCredentialStore<>));
+            services.TryAddScoped<InMemoryCredentialStore>();
+            services.TryAddSingleton<ICredentialStore, InMemoryCredentialStore>();
 
             // Never try add seed
             services.AddSingleton<ISeedContributor, InMemoryCredentialSeedContributor>();

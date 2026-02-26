@@ -7,6 +7,7 @@ public sealed class UAuthUserIdentifierOptions
     public bool AllowMultipleEmail { get; set; } = true;
     public bool AllowMultiplePhone { get; set; } = true;
 
+    public bool RequireUsernameIdentifier { get; set; } = false;
     public bool RequireEmailVerification { get; set; } = false;
     public bool RequirePhoneVerification { get; set; } = false;
 
@@ -19,6 +20,7 @@ public sealed class UAuthUserIdentifierOptions
         AllowMultipleUsernames = AllowMultipleUsernames,
         AllowMultipleEmail = AllowMultipleEmail,
         AllowMultiplePhone = AllowMultiplePhone,
+        RequireUsernameIdentifier = RequireUsernameIdentifier,
         RequireEmailVerification = RequireEmailVerification,
         RequirePhoneVerification = RequirePhoneVerification,
         AllowAdminOverride = AllowAdminOverride,

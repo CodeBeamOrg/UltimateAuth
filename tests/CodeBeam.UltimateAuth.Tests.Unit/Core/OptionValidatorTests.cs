@@ -41,7 +41,7 @@ public class OptionValidatorTests
         var options = new UAuthLoginOptions
         {
             MaxFailedAttempts = 3,
-            LockoutMinutes = 0
+            LockoutDuration = TimeSpan.Zero
         };
 
         var validator = new UAuthLoginOptionsValidator();
@@ -57,7 +57,7 @@ public class OptionValidatorTests
         var options = new UAuthLoginOptions
         {
             MaxFailedAttempts = 0,
-            LockoutMinutes = 0
+            LockoutDuration = TimeSpan.Zero
         };
 
         var validator = new UAuthLoginOptionsValidator();

@@ -30,7 +30,7 @@ public class UAuthStateManagerTests
             .Setup(x => x.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult
             {
-                IsValid = true,
+                State = SessionState.Active,
                 Snapshot = snapshot
             });
 
@@ -57,7 +57,7 @@ public class UAuthStateManagerTests
         client.Setup(x => x.Flows.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult
             {
-                IsValid = false
+                State = SessionState.Invalid
             });
 
         var manager = new UAuthStateManager(client.Object, clock.Object);
@@ -77,7 +77,7 @@ public class UAuthStateManagerTests
         client.Setup(x => x.Flows.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult
             {
-                IsValid = false
+                State = SessionState.Invalid
             });
 
         var manager = new UAuthStateManager(client.Object, clock.Object);

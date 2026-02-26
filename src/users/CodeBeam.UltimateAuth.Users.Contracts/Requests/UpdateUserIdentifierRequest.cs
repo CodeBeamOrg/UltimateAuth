@@ -2,7 +2,6 @@
 
 public sealed record UpdateUserIdentifierRequest
 {
-    public UserIdentifierType Type { get; init; }
-    public string OldValue { get; init; } = default!;
-    public string NewValue { get; init; } = default!;
+    public Guid Id { get; init; }
+    public required string NewValue { get; init; }
 }

@@ -8,7 +8,5 @@ public interface IUAuthRequestClient
 
     Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default);
 
-    Task<UAuthTransportResult> SendFormForJsonAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default);
-
     Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default);
 }

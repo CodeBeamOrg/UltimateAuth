@@ -11,6 +11,9 @@ public partial class UAuthApp
     public RenderFragment ChildContent { get; set; } = default!;
 
     [Parameter]
+    public UAuthRenderMode RenderMode { get; set; } = UAuthRenderMode.Manual;
+
+    [Parameter]
     public EventCallback OnReauthRequired { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -20,7 +23,10 @@ public partial class UAuthApp
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _initialized)
+        if (!firstRender)
+            return;
+
+        if (_initialized)
             return;
 
         _initialized = true;
@@ -43,10 +49,11 @@ public partial class UAuthApp
     {
         if (reason == UAuthStateChangeReason.MarkedStale)
         {
-            _ = InvokeAsync(async () =>
-            {
-                await StateManager.EnsureAsync();
-            });
+            // Causes infinite loop
+            //_ = InvokeAsync(async () =>
+            //{
+            //    await StateManager.EnsureAsync();
+            //});
         }
 
         if (reason == UAuthStateChangeReason.Authenticated)
@@ -65,11 +72,15 @@ public partial class UAuthApp
             });
         }
 
-        InvokeAsync(StateHasChanged);
+        if (RenderMode == UAuthRenderMode.Reactive)
+        {
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private async void HandleReauthRequired()
     {
+        StateManager.MarkStale();
         if (OnReauthRequired.HasDelegate)
             await OnReauthRequired.InvokeAsync();
     }

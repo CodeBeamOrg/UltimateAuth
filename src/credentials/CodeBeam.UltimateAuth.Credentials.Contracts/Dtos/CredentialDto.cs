@@ -10,9 +10,12 @@ public sealed record CredentialDto
 
     public DateTimeOffset? LastUsedAt { get; init; }
 
-    public DateTimeOffset? RestrictedUntil { get; init; }
+    public DateTimeOffset? LockedUntil { get; init; }
 
     public DateTimeOffset? ExpiresAt { get; init; }
+
+    public DateTimeOffset? RevokedAt { get; init; }
+    public DateTimeOffset? ResetRequestedAt { get; init; }
 
     public string? Source { get; init; }
 }

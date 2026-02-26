@@ -13,10 +13,10 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
-internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
+internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authContext;
-    private readonly IUAuthFlowService<TUserId> _flow;
+    private readonly IUAuthFlowService _flow;
     private readonly IAuthStore _authStore;
     private readonly IPkceAuthorizationValidator _validator;
     private readonly IClock _clock;
@@ -26,7 +26,7 @@ internal sealed class PkceEndpointHandler<TUserId> : IPkceEndpointHandler
 
     public PkceEndpointHandler(
         IAuthFlowContextAccessor authContext,
-        IUAuthFlowService<TUserId> flow,
+        IUAuthFlowService flow,
         IAuthStore authStore,
         IPkceAuthorizationValidator validator,
         IClock clock,

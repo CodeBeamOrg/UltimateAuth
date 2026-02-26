@@ -1,9 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials;
 
-public interface ICredential<TUserId>
+public interface ICredential
 {
-    TUserId UserId { get; }
+    UserKey UserKey { get; init; }
     CredentialType Type { get; }
 }

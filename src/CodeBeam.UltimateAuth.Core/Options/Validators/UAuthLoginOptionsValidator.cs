@@ -14,7 +14,7 @@ internal sealed class UAuthLoginOptionsValidator : IValidateOptions<UAuthLoginOp
         if (options.MaxFailedAttempts > 100)
             errors.Add("Login.MaxFailedAttempts cannot exceed 100. Use 0 to disable lockout.");
 
-        if (options.MaxFailedAttempts > 0 && options.LockoutMinutes <= 0)
+        if (options.MaxFailedAttempts > 0 && options.LockoutDuration <= TimeSpan.Zero)
             errors.Add("Login.LockoutMinutes must be greater than zero when lockout is enabled.");
 
         return errors.Count == 0

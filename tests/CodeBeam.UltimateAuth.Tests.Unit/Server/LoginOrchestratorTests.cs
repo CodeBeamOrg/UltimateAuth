@@ -71,7 +71,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
 
         var state = store.GetState(TenantKey.Single, TestUsers.User);
 
@@ -107,7 +107,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
 
         var state = store.GetState(TenantKey.Single, TestUsers.User);
         state.Should().BeNull();
@@ -171,7 +171,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
         var state = store.GetState(TenantKey.Single, TestUsers.User);
 
         state!.IsLocked.Should().BeTrue();
@@ -231,7 +231,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
         var state1 = store.GetState(TenantKey.Single, TestUsers.User);
 
         await orchestrator.LoginAsync(flow,
@@ -271,7 +271,7 @@ public class LoginOrchestratorTests
                 });
         }
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
         var state = store.GetState(TenantKey.Single, TestUsers.User);
 
         state!.IsLocked.Should().BeFalse();
@@ -303,7 +303,7 @@ public class LoginOrchestratorTests
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
             o.Login.MaxFailedAttempts = 1;
-            o.Login.LockoutMinutes = 15;
+            o.Login.LockoutDuration = TimeSpan.FromMinutes(15);
         });
 
         var orchestrator = runtime.GetLoginOrchestrator();
@@ -318,7 +318,7 @@ public class LoginOrchestratorTests
                 Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore<UserKey>>();
+        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
         var state1 = store.GetState(TenantKey.Single, TestUsers.User);
 
         var lockedUntil = state1!.LockedUntil;

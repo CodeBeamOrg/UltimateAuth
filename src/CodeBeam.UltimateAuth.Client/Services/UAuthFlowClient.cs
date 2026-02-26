@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
+using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -8,6 +9,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -74,6 +76,18 @@ internal class UAuthFlowClient : IFlowClient
 
         var url = Url(_options.Endpoints.Refresh);
         var result = await _post.SendFormAsync(url);
+
+        if (result.Status == 401)
+        {
+            _diagnostics.MarkRefreshReauthRequired();
+            return new RefreshResult
+            {
+                IsSuccess = false,
+                Status = result.Status,
+                Outcome = RefreshOutcome.ReauthRequired
+            };
+        }
+
         var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
         switch (refreshOutcome)
         {
@@ -86,50 +100,61 @@ internal class UAuthFlowClient : IFlowClient
             case RefreshOutcome.ReauthRequired:
                 _diagnostics.MarkRefreshReauthRequired();
                 break;
-            case RefreshOutcome.None:
-                _diagnostics.MarkRefreshUnknown();
+            case RefreshOutcome.Success:
+                _diagnostics.MarkRefreshSuccess();
                 break;
         }
 
         return new RefreshResult
         {
-            Ok = result.Ok,
+            IsSuccess = result.Ok,
             Status = result.Status,
             Outcome = refreshOutcome
         };
     }
 
-    public async Task ReauthAsync()
-    {
-        var url = Url(_options.Endpoints.Reauth);
-        await _post.NavigateAsync(_options.Endpoints.Reauth);
-    }
+    //public async Task ReauthAsync()
+    //{
+    //    var url = Url(_options.Endpoints.Reauth);
+    //    await _post.NavigateAsync(url);
+    //}
 
     public async Task<AuthValidationResult> ValidateAsync()
     {
         var url = Url(_options.Endpoints.Validate);
-        var raw = await _post.SendFormForJsonAsync(url);
+        var raw = await _post.SendFormAsync(url);
 
-        if (!raw.Ok || raw.Body is null)
+        if (raw.Status == 0)
+            throw new UAuthTransportException("Network error during validation.");
+
+        if (raw.Status >= 500)
+            throw new UAuthTransportException("Server error during validation.", (HttpStatusCode)raw.Status);
+
+        if (raw.Body is null)
+            throw new UAuthProtocolException("Validation response body was empty.");
+
+        AuthValidationResult? body;
+
+        try
         {
-            return new AuthValidationResult
-            {
-                IsValid = false,
-                State = "transport"
-            };
+            body = raw.Body.Value.Deserialize<AuthValidationResult>(
+                new JsonSerializerOptions{ PropertyNameCaseInsensitive = true });
+        }
+        catch (Exception ex)
+        {
+            throw new UAuthProtocolException("Invalid validation response format.", ex);
         }
 
-        var body = raw.Body.Value.Deserialize<AuthValidationResult>(
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+        if (body is null)
+            throw new UAuthProtocolException("Malformed validation response.");
 
-        return body ?? new AuthValidationResult
-        {
-            IsValid = false,
-            State = "deserialize"
-        };
+        if (raw.Status == 401 || (raw.Status >= 200 && raw.Status < 300))
+            return body;
+
+        if (raw.Status >= 400 && raw.Status < 500)
+            throw new UAuthProtocolException($"Unexpected client error during validation: {raw.Status}");
+
+        throw new UAuthTransportException($"Unexpected status code: {raw.Status}", (HttpStatusCode)raw.Status);
     }
 
     public async Task BeginPkceAsync(string? returnUrl = null)
@@ -144,7 +169,7 @@ internal class UAuthFlowClient : IFlowClient
 
         var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
 
-        var raw = await _post.SendFormForJsonAsync(
+        var raw = await _post.SendFormAsync(
             authorizeUrl,
             new Dictionary<string, string>
             {

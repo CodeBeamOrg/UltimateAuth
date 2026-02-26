@@ -8,5 +8,4 @@ public enum CredentialSecurityStatus
     Locked = 20,
     Expired = 30,
     ResetRequested = 40,
-    ResetRequired = 50
 }

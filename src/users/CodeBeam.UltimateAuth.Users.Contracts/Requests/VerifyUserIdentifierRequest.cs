@@ -2,6 +2,5 @@
 
 public sealed record VerifyUserIdentifierRequest
 {
-    public required UserIdentifierType Type { get; init; }
-    public required string Value { get; init; }
+    public Guid IdentifierId { get; init; }
 }

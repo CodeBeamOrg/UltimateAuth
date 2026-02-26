@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.0-rc.1" />
-    <PackageReference Include="MudBlazor" Version="9.0.0-rc.1" />
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.1" />
+    <PackageReference Include="MudBlazor" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

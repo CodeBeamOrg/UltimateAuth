@@ -14,13 +14,28 @@ public sealed class UAuthLoginOptions
     public int MaxFailedAttempts { get; set; } = 10;
 
     /// <summary>
-    /// Duration (in minutes) for which the user is locked out after exceeding <see cref="MaxFailedAttempts" />.
+    /// Duration for which the user is locked out after exceeding <see cref="MaxFailedAttempts" />.
     /// </summary>
-    public int LockoutMinutes { get; set; } = 15;
+    public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether detailed information about authentication failures (like locked until or
+    /// remaining attempts) is included in responses.
+    /// </summary>
+    public bool IncludeFailureDetails { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the time interval during which failed login attempts are counted for lockout purposes.
+    /// </summary>
+    /// <remarks>This property defines the window of time used to evaluate consecutive failed login attempts.
+    /// If the number of failures within this window exceeds the configured threshold, the account may be locked out.
+    /// Adjusting this value affects how quickly lockout conditions are triggered.</remarks>
+    public TimeSpan FailureWindow { get; set; } = TimeSpan.FromMinutes(15);
 
     internal UAuthLoginOptions Clone() => new()
     {
         MaxFailedAttempts = MaxFailedAttempts,
-        LockoutMinutes = LockoutMinutes
+        LockoutDuration = LockoutDuration,
+        IncludeFailureDetails = IncludeFailureDetails
     };
 }
