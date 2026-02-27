@@ -211,14 +211,25 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region Identifiers
 
-    public async Task<IReadOnlyList<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<PagedResult<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default)
     {
         var command = new GetUserIdentifiersCommand(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
-            var identifiers = await _identifierStore.GetByUserAsync(context.ResourceTenant, targetUserKey, innerCt);
 
-            return identifiers.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
+            query ??= new UserIdentifierQuery();
+            query.UserKey = targetUserKey;
+
+            var result = await _identifierStore.QueryAsync(context.ResourceTenant, query, innerCt);
+            var dtoItems = result.Items.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
+
+            return new PagedResult<UserIdentifierDto>(
+                dtoItems,
+                result.TotalCount,
+                result.PageNumber,
+                result.PageSize,
+                result.SortBy,
+                result.Descending);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);

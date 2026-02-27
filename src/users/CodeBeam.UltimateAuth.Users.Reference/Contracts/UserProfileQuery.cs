@@ -1,9 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Reference;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed class UserProfileQuery
+namespace CodeBeam.UltimateAuth.Users.Reference;
+
+public sealed class UserProfileQuery : PageRequest
 {
     public bool IncludeDeleted { get; init; }
-
-    public int Skip { get; init; }
-    public int Take { get; init; } = 50;
 }

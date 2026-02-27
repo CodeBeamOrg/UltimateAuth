@@ -29,11 +29,11 @@ public class UserIdentifierApplicationServiceTests
                 IsPrimary = true
             });
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context);
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
 
-        identifiers.Where(x => x.Type == UserIdentifierType.Email).Should().ContainSingle(x => x.IsPrimary);
+        identifiers.Items.Where(x => x.Type == UserIdentifierType.Email).Should().ContainSingle(x => x.IsPrimary);
 
-        identifiers.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary).Value.Should().Be("new@example.com");
+        identifiers.Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary).Value.Should().Be("new@example.com");
     }
 
     [Fact]
@@ -83,8 +83,8 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.AddSelf);
 
-        var before = await service.GetIdentifiersByUserAsync(context);
-        var existingPrimaryEmail = before.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
+        var before = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var existingPrimaryEmail = before.Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
 
         await service.AddUserIdentifierAsync(context,
             new AddUserIdentifierRequest
@@ -94,9 +94,9 @@ public class UserIdentifierApplicationServiceTests
                 IsPrimary = false
             });
 
-        var after = await service.GetIdentifiersByUserAsync(context);
+        var after = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
 
-        after.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary)
+        after.Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary)
              .Id.Should().Be(existingPrimaryEmail.Id);
     }
 
@@ -108,8 +108,7 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.UpdateSelf);
 
-        var email = (await service.GetIdentifiersByUserAsync(context))
-            .Single(x => x.Type == UserIdentifierType.Email);
+        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items.Single(x => x.Type == UserIdentifierType.Email);
 
         await service.UpdateUserIdentifierAsync(context,
             new UpdateUserIdentifierRequest
@@ -118,7 +117,7 @@ public class UserIdentifierApplicationServiceTests
                 NewValue = "updated@example.com"
             });
 
-        var updated = (await service.GetIdentifiersByUserAsync(context))
+        var updated = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items
             .Single(x => x.Id == email.Id);
 
         updated.IsVerified.Should().BeFalse();
@@ -200,8 +199,7 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.UnsetPrimarySelf);
 
-        var email = (await service.GetIdentifiersByUserAsync(context))
-            .Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
+        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
 
         Func<Task> act = async () =>
             await service.UnsetPrimaryUserIdentifierAsync(context,
@@ -258,9 +256,9 @@ public class UserIdentifierApplicationServiceTests
                 Value = "UserName"
             });
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context);
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
 
-        identifiers.Should().Contain(x => x.Value == "UserName");
+        identifiers.Items.Should().Contain(x => x.Value == "UserName");
     }
 
     [Fact]
@@ -308,9 +306,9 @@ public class UserIdentifierApplicationServiceTests
                 Value = "+90 (555) 123-45-67"
             });
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context);
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
 
-        identifiers.Should().Contain(x =>
+        identifiers.Items.Should().Contain(x =>
             x.Type == UserIdentifierType.Phone &&
             x.Value == "+90 (555) 123-45-67");
     }
@@ -337,8 +335,8 @@ public class UserIdentifierApplicationServiceTests
                 Value = "two@example.com"
             });
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context);
-        var second = identifiers.Single(x => x.Value == "two@example.com");
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var second = identifiers.Items.Single(x => x.Value == "two@example.com");
 
         Func<Task> act = async () =>
             await service.UpdateUserIdentifierAsync(context,

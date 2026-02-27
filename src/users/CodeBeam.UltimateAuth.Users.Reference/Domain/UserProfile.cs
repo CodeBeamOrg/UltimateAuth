@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
 // TODO: Multi profile (e.g., public profiles, private profiles, profiles per application, etc. with ProfileKey)
+// TODO: Add concurrency property
 public sealed record class UserProfile
 {
     public TenantKey Tenant { get; set; }

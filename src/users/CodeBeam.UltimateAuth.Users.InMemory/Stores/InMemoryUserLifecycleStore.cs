@@ -28,6 +28,10 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
 
     public Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        var normalized = query.Normalize();
+
         var baseQuery = _store.Values
             .Where(x => x?.UserKey != null)
             .Where(x => x.Tenant == tenant);
@@ -38,16 +42,25 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         if (query.Status != null)
             baseQuery = baseQuery.Where(x => x.Status == query.Status);
 
+        baseQuery = query.SortBy switch
+        {
+            nameof(UserLifecycle.CreatedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                    : baseQuery.OrderBy(x => x.CreatedAt),
+
+            nameof(UserLifecycle.Status) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Status)
+                    : baseQuery.OrderBy(x => x.Status),
+
+            _ => baseQuery.OrderBy(x => x.CreatedAt)
+        };
+
         var totalCount = baseQuery.Count();
+        var items = baseQuery.Skip((normalized.PageNumber - 1) * normalized.PageSize).Take(normalized.PageSize).ToList().AsReadOnly();
 
-        var items = baseQuery
-            .OrderBy(x => x.CreatedAt)
-            .Skip(query.Skip)
-            .Take(query.Take)
-            .ToList()
-            .AsReadOnly();
-
-        return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount));
+        return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount, normalized.PageNumber, normalized.PageSize, query.SortBy, query.Descending));
     }
 
     public Task CreateAsync(TenantKey tenant, UserLifecycle lifecycle, CancellationToken ct = default)

@@ -14,7 +14,7 @@ public interface IUserApplicationService
 
     Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default);
 
-    Task<IReadOnlyList<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, CancellationToken ct = default);
+    Task<PagedResult<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default);
 
     Task<UserIdentifierDto?> GetIdentifierAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default);
 

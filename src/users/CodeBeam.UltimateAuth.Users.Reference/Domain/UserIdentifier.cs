@@ -4,9 +4,9 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
+// TODO: Add concurrency property
 public sealed record UserIdentifier
 {
-
     public Guid Id { get; set; }
     public TenantKey Tenant { get; set; }
 

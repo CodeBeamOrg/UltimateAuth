@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
+// TODO: Add concurrency property
 public sealed record class UserLifecycle
 {
     public TenantKey Tenant { get; set; }

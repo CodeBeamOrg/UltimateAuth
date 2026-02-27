@@ -1,6 +1,8 @@
-﻿@using CodeBeam.UltimateAuth.Users.Contracts
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Users.Contracts
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudDialog Class="mud-width-full" ContentStyle="height: 60vh">
     <TitleContent>
@@ -8,10 +10,14 @@
         <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
     </TitleContent>
     <DialogContent>
-        <MudDataGrid T="UserIdentifierDto" Items="_identifiers" Hover="true" Bordered="true" Striped="true" Dense="true" 
-                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges">
+        <MudDataGrid @ref="@_grid" T="UserIdentifierDto" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
+                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges" Loading="@_loading">
             <ToolBarContent>
-                <MudText>Identifiers</MudText>
+                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                    <MudText>Identifiers</MudText>
+                    <MudSpacer />
+                    <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
+                </MudStack>
             </ToolBarContent>
             <Columns>
                 <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
@@ -22,27 +28,27 @@
                 <TemplateColumn Title="Actions" Editable="false">
                     <CellTemplate>
                         <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300">
+                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
                                 <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
                             </MudTooltip>
                             @if (context.Item.IsPrimary)
                             {
-                                <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300">
+                                <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
                                     <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
                                 </MudTooltip>
                             }
                             else
                             {
-                                <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300">
+                                <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
                                     <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
                                 </MudTooltip>
                             }
 
-                            <MudTooltip Text="Verify" Color="Color.Primary" Delay="300">
+                            <MudTooltip Text="Verify" Color="Color.Primary" Delay="300" ShowOnFocus="false">
                                 <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" OnClick="@(() => VerifyAsync(context.Item.Id))" />
                             </MudTooltip>
 
-                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300">
+                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
                                 <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
                             </MudTooltip>
                         </MudStack>
@@ -54,18 +60,29 @@
             </PagerContent>
         </MudDataGrid>
 
-        <MudExpansionPanels Class="mt-2">
-            <MudExpansionPanel Text="Add New Identifier" Expanded="false">
-                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
-                    <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" />
-                    <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
-                    <MudSwitchM3 @bind-Value="_newIdentifierPrimary" Label="Primary" Color="Color.Primary" />
-                    <MudButton Color="Color.Primary" OnClick="AddNewIdentifier">Add</MudButton>
-                </MudStack>
+        <MudExpansionPanels Class="mt-4" Elevation="0">
+            <MudExpansionPanel Style="background: var(--mud-palette-background-gray)" Text="Add New Identifier" Expanded="false">
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" Dense="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4" Class="d-flex align-center justify-start">
+                        <MudSwitchM3 @bind-Value="_newIdentifierPrimary" Label="Primary" Color="Color.Primary" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton Style="width: fit-content" Color="Color.Primary" Variant="Variant.Outlined" OnClick="AddNewIdentifier">Add</MudButton>
+                    </MudItem>
+                </MudGrid>
             </MudExpansionPanel>
         </MudExpansionPanels>
-        
-        
+
+
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -74,17 +91,18 @@
 </MudDialog>
 
 @code {
+    private MudDataGrid<UserIdentifierDto>? _grid;
     private UserIdentifierType _newIdentifierType;
     private string? _newIdentifierValue;
     private bool _newIdentifierPrimary;
+    private bool _loading = false;
+    private bool _reloadQueued;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
-
-    private List<UserIdentifierDto> _identifiers = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -95,9 +113,74 @@
             var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
             if (result != null && result.IsSuccess && result.Value != null)
             {
-                _identifiers = result.Value.ToList();
+                await ReloadAsync();
                 StateHasChanged();
             }
+        }
+    }
+
+    private async Task<GridData<UserIdentifierDto>> LoadServerData(GridState<UserIdentifierDto> state, CancellationToken ct)
+    {
+        var sort = state.SortDefinitions?.FirstOrDefault();
+
+        var req = new PageRequest
+        {
+            PageNumber = state.Page + 1,
+            PageSize = state.PageSize,
+            SortBy = sort?.SortBy,
+            Descending = sort?.Descending ?? false
+        };
+
+        var res = await UAuthClient.Identifiers.GetMyIdentifiersAsync(req);
+
+        if (!res.IsSuccess || res.Value is null)
+        {
+            Snackbar.Add(res.Problem?.Title ?? "Failed", Severity.Error);
+
+            return new GridData<UserIdentifierDto>
+            {
+                Items = Array.Empty<UserIdentifierDto>(),
+                TotalItems = 0
+            };
+        }
+
+        return new GridData<UserIdentifierDto>
+        {
+            Items = res.Value.Items,
+            TotalItems = res.Value.TotalCount
+        };
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_loading)
+        {
+            _reloadQueued = true;
+            return;
+        }
+
+        if (_grid is null)
+            return;
+
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(300);
+
+        try
+        {
+            await _grid.ReloadServerData();
+        }
+        finally
+        {
+            _loading = false;
+
+            if (_reloadQueued)
+            {
+                _reloadQueued = false;
+                await ReloadAsync();
+            }
+
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -118,8 +201,7 @@
             Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to update identifier", Severity.Error);
         }
 
-        var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-        _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+        await ReloadAsync();
         return DataGridEditFormAction.Close;
     }
 
@@ -142,13 +224,44 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier added successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            await ReloadAsync();
             StateHasChanged();
         }
         else
         {
             Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to add identifier", Severity.Error);
+        }
+    }
+
+    private async Task VerifyAsync(Guid id)
+    {
+        var demoInfo = await DialogService.ShowMessageBoxAsync(
+            title: "Demo verification",
+            markupMessage: (MarkupString)
+                """
+                This is a <b>demo</b> action.<br/><br/>
+                In a real app, you should verify identifiers via <b>Email</b>, <b>SMS</b>, or an <b>Authenticator</b> flow.
+                This will only mark the identifier as verified in UltimateAuth.
+                """,
+            yesText: "Verify");
+
+        if (demoInfo != true)
+        {
+            Snackbar.Add("Verification cancelled", Severity.Info);
+            return;
+        }
+
+        VerifyUserIdentifierRequest request = new() { IdentifierId = id };
+        var result = await UAuthClient.Identifiers.VerifySelfAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Identifier verified successfully", Severity.Success);
+            await ReloadAsync();
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to verify primary identifier", Severity.Error);
         }
     }
 
@@ -159,30 +272,12 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Primary identifier set successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            await ReloadAsync();
             StateHasChanged();
         }
         else
         {
             Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to set primary identifier", Severity.Error);
-        }
-    }
-
-    private async Task VerifyAsync(Guid id)
-    {
-        VerifyUserIdentifierRequest request = new() { IdentifierId = id };
-        var result = await UAuthClient.Identifiers.VerifySelfAsync(request);
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Primary identifier verified successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
-            StateHasChanged();
-        }
-        else
-        {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to verify primary identifier", Severity.Error);
         }
     }
 
@@ -193,8 +288,7 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Primary identifier unset successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            await ReloadAsync();
             StateHasChanged();
         }
         else
@@ -210,8 +304,7 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier deleted successfully", Severity.Success);
-            var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-            _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
+            await ReloadAsync();
             StateHasChanged();
         }
         else

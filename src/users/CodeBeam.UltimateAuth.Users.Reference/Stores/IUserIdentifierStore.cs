@@ -11,8 +11,9 @@ public interface IUserIdentifierStore
 
     Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
     Task<UserIdentifier?> GetByIdAsync(Guid id, CancellationToken ct = default);
-
     Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string value, CancellationToken ct = default);
+
+    Task<PagedResult<UserIdentifier>> QueryAsync(TenantKey tenant, UserIdentifierQuery query, CancellationToken ct = default);
 
     Task CreateAsync(TenantKey tenant, UserIdentifier identifier, CancellationToken ct = default);
 

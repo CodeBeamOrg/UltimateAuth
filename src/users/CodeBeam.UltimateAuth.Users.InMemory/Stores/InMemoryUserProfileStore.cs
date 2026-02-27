@@ -27,21 +27,35 @@ public sealed class InMemoryUserProfileStore : IUserProfileStore
 
     public Task<PagedResult<UserProfile>> QueryAsync(TenantKey tenant, UserProfileQuery query, CancellationToken ct = default)
     {
-        var baseQuery = _store.Values.Where(x => x.Tenant == tenant);
+        ct.ThrowIfCancellationRequested();
+
+        var normalized = query.Normalize();
+
+        var baseQuery = _store.Values
+            .Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);
 
+        baseQuery = query.SortBy switch
+        {
+            nameof(UserProfile.CreatedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                    : baseQuery.OrderBy(x => x.CreatedAt),
+
+            nameof(UserProfile.DisplayName) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.DisplayName)
+                    : baseQuery.OrderBy(x => x.DisplayName),
+
+            _ => baseQuery.OrderBy(x => x.CreatedAt)
+        };
+
         var totalCount = baseQuery.Count();
+        var items = baseQuery.Skip((normalized.PageNumber - 1) * normalized.PageSize).Take(normalized.PageSize).ToList().AsReadOnly();
 
-        var items = baseQuery
-            .OrderBy(x => x.CreatedAt)
-            .Skip(query.Skip)
-            .Take(query.Take)
-            .ToList()
-            .AsReadOnly();
-
-        return Task.FromResult(new PagedResult<UserProfile>(items, totalCount));
+        return Task.FromResult(new PagedResult<UserProfile>(items, totalCount, normalized.PageNumber, normalized.PageSize, query.SortBy, query.Descending));
     }
 
     public Task CreateAsync(TenantKey tenant, UserProfile profile, CancellationToken ct = default)

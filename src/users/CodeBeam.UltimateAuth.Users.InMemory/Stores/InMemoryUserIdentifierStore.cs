@@ -82,6 +82,53 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
     }
 
+    public Task<PagedResult<UserIdentifier>> QueryAsync(TenantKey tenant, UserIdentifierQuery query, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (query.UserKey is null)
+            throw new UAuthIdentifierValidationException("userKey_required");
+
+        var normalized = query.Normalize();
+
+        var baseQuery = _store.Values
+            .Where(x => x.Tenant == tenant)
+            .Where(x => x.UserKey == query.UserKey.Value);
+
+        if (!query.IncludeDeleted)
+            baseQuery = baseQuery.Where(x => !x.IsDeleted);
+
+        baseQuery = query.SortBy switch
+        {
+            nameof(UserIdentifier.Type) =>
+                query.Descending ? baseQuery.OrderByDescending(x => x.Type)
+                                 : baseQuery.OrderBy(x => x.Type),
+
+            nameof(UserIdentifier.CreatedAt) =>
+                query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                                 : baseQuery.OrderBy(x => x.CreatedAt),
+
+            _ => baseQuery.OrderBy(x => x.CreatedAt)
+        };
+
+        var totalCount = baseQuery.Count();
+
+        var items = baseQuery
+            .Skip((normalized.PageNumber - 1) * normalized.PageSize)
+            .Take(normalized.PageSize)
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult(
+            new PagedResult<UserIdentifier>(
+                items,
+                totalCount,
+                normalized.PageNumber,
+                normalized.PageSize,
+                query.SortBy,
+                query.Descending));
+    }
+
     public Task CreateAsync(TenantKey tenant, UserIdentifier identifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -138,7 +185,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
             throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         if (identifier.IsVerified)
-            return Task.CompletedTask;
+            throw new UAuthIdentifierConflictException("identifier_already_verified");
 
         identifier.IsVerified = true;
         identifier.VerifiedAt = verifiedAt;
@@ -152,7 +199,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         ct.ThrowIfCancellationRequested();
 
         if (!_store.TryGetValue(id, out var target) || target.IsDeleted)
-            throw new InvalidOperationException("identifier_not_found");
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         foreach (var idf in _store.Values.Where(x =>
                      x.Tenant == target.Tenant &&
@@ -196,7 +243,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         ct.ThrowIfCancellationRequested();
 
         if (!_store.TryGetValue(id, out var identifier))
-            return Task.CompletedTask;
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         if (mode == DeleteMode.Hard)
         {
@@ -205,7 +252,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         }
 
         if (identifier.IsDeleted)
-            return Task.CompletedTask;
+            throw new UAuthIdentifierConflictException("identifier_already_deleted");
 
         identifier.IsDeleted = true;
         identifier.DeletedAt = deletedAt;

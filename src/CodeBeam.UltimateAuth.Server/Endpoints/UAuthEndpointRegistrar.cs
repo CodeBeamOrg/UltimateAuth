@@ -143,6 +143,9 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             users.MapPost("/me/identifiers/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
 
+            users.MapPost("/me/identifiers/exists", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                => await h.IdentifierExistsSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+
             users.MapPost("/me/identifiers/add", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.AddUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
 
@@ -164,6 +167,9 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             adminUsers.MapPost("/{userKey}/identifiers/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.GetUserIdentifiersAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+
+            adminUsers.MapPost("/{userKey}/identifiers/exists", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.IdentifierExistsAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
 
             adminUsers.MapPost("/{userKey}/identifiers/add", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.AddUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));

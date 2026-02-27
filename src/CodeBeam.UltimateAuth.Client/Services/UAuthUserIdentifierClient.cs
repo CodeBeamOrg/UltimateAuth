@@ -20,10 +20,11 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetMyIdentifiersAsync()
+    public async Task<UAuthResult<PagedResult<UserIdentifierDto>>> GetMyIdentifiersAsync(PageRequest? request = null)
     {
-        var raw = await _request.SendFormAsync(Url("/users/me/identifiers/get"));
-        return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
+        request ??= new PageRequest();
+        var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/get"), request);
+        return UAuthResultMapper.FromJson<PagedResult<UserIdentifierDto>>(raw);
     }
 
     public async Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request)
@@ -62,10 +63,11 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult<IReadOnlyList<UserIdentifierDto>>> GetUserIdentifiersAsync(UserKey userKey)
+    public async Task<UAuthResult<PagedResult<UserIdentifierDto>>> GetUserIdentifiersAsync(UserKey userKey, PageRequest? request = null)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"));
-        return UAuthResultMapper.FromJson<IReadOnlyList<UserIdentifierDto>>(raw);
+        request ??= new PageRequest();
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request);
+        return UAuthResultMapper.FromJson<PagedResult<UserIdentifierDto>>(raw);
     }
 
     public async Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request)

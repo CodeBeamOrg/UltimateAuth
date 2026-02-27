@@ -4,6 +4,8 @@ public class UAuthResult
 {
     public bool IsSuccess { get; init; }
     public int Status { get; init; }
+    public string? CorrelationId { get; init; }
+    public string? TraceId { get; init; }
 
     public UAuthProblem? Problem { get; init; }
 
