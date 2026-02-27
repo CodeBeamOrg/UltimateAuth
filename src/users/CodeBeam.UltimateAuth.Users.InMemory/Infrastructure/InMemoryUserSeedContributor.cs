@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
@@ -15,6 +16,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
     private readonly IUserProfileStore _profiles;
     private readonly IUserIdentifierStore _identifiers;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
+    private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IClock _clock;
 
     public InMemoryUserSeedContributor(
@@ -22,12 +24,14 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         IUserProfileStore profiles,
         IUserIdentifierStore identifiers,
         IInMemoryUserIdProvider<UserKey> ids,
+        IIdentifierNormalizer identifierNormalizer,
         IClock clock)
     {
         _lifecycle = lifecycle;
         _profiles = profiles;
         _ids = ids;
         _identifiers = identifiers;
+        _identifierNormalizer = identifierNormalizer;
         _clock = clock;
     }
 
@@ -69,6 +73,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 UserKey = userKey,
                 Type = UserIdentifierType.Username,
                 Value = primaryUsername,
+                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryUsername).Normalized,
                 IsPrimary = true,
                 IsVerified = true,
                 CreatedAt = _clock.UtcNow
@@ -82,6 +87,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 UserKey = userKey,
                 Type = UserIdentifierType.Email,
                 Value = primaryEmail,
+                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryEmail).Normalized,
                 IsPrimary = true,
                 IsVerified = true,
                 CreatedAt = _clock.UtcNow
@@ -95,6 +101,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 UserKey = userKey,
                 Type = UserIdentifierType.Phone,
                 Value = primaryPhone,
+                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryPhone).Normalized,
                 IsPrimary = true,
                 IsVerified = true,
                 CreatedAt = _clock.UtcNow

@@ -17,6 +17,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserProfileStore _profileStore;
     private readonly IUserIdentifierStore _identifierStore;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
+    private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -26,6 +27,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserProfileStore profileStore,
         IUserIdentifierStore identifierStore,
         IEnumerable<IUserLifecycleIntegration> integrations,
+        IIdentifierNormalizer identifierNormalizer,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -34,36 +36,12 @@ internal sealed class UserApplicationService : IUserApplicationService
         _profileStore = profileStore;
         _identifierStore = identifierStore;
         _integrations = integrations;
+        _identifierNormalizer = identifierNormalizer;
         _options = options.Value;
         _clock = clock;
     }
 
-    public async Task<UserViewDto> GetMeAsync(AccessContext context, CancellationToken ct = default)
-    {
-        var command = new GetMeCommand(async innerCt =>
-        {
-            if (context.ActorUserKey is null)
-                throw new UnauthorizedAccessException();
-
-            return await BuildUserViewAsync(context.ResourceTenant, context.ActorUserKey.Value, innerCt);
-        });
-
-        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
-    }
-
-    public async Task<UserViewDto> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
-    {
-        var command = new GetUserProfileCommand(async innerCt =>
-        {
-            // Target user MUST exist in context
-            var targetUserKey = context.GetTargetUserKey();
-
-            return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, innerCt);
-
-        });
-
-        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
-    }
+    #region User Lifecycle
 
     public async Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
     {
@@ -163,6 +141,58 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
+    public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
+    {
+        var command = new DeleteUserCommand(async innerCt =>
+        {
+            var targetUserKey = context.GetTargetUserKey();
+            var now = _clock.UtcNow;
+
+            await _lifecycleStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+            await _identifierStore.DeleteByUserAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+            await _profileStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+
+            foreach (var integration in _integrations)
+            {
+                await integration.OnUserDeletedAsync(context.ResourceTenant, targetUserKey, request.Mode, innerCt);
+            }
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    #endregion
+
+
+    #region User Profile
+
+    public async Task<UserViewDto> GetMeAsync(AccessContext context, CancellationToken ct = default)
+    {
+        var command = new GetMeCommand(async innerCt =>
+        {
+            if (context.ActorUserKey is null)
+                throw new UnauthorizedAccessException();
+
+            return await BuildUserViewAsync(context.ResourceTenant, context.ActorUserKey.Value, innerCt);
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<UserViewDto> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
+    {
+        var command = new GetUserProfileCommand(async innerCt =>
+        {
+            // Target user MUST exist in context
+            var targetUserKey = context.GetTargetUserKey();
+
+            return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, innerCt);
+
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
     public async Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default)
     {
         var command = new UpdateUserProfileCommand(async innerCt =>
@@ -175,6 +205,9 @@ internal sealed class UserApplicationService : IUserApplicationService
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
+    #endregion
+
 
     #region Identifiers
 
@@ -202,11 +235,16 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<bool> UserIdentifierExistsAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
+    public async Task<bool> UserIdentifierExistsAsync(AccessContext context, UserIdentifierType type, string value, IdentifierExistenceScope scope = IdentifierExistenceScope.TenantPrimaryOnly, CancellationToken ct = default)
     {
         var command = new UserIdentifierExistsCommand(async innerCt =>
         {
-            return await _identifierStore.ExistsAsync(context.ResourceTenant, type, value, innerCt);
+            var normalized = _identifierNormalizer.Normalize(type, value);
+            if (!normalized.IsValid)
+                return false;
+
+            var result = await _identifierStore.ExistsAsync(new IdentifierExistenceQuery(context.ResourceTenant, type, normalized.Normalized, scope), innerCt);
+            return result.Exists;
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -216,28 +254,48 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new AddUserIdentifierCommand(async innerCt =>
         {
+            EnsureOverrideAllowed(context);
             var userKey = context.GetTargetUserKey();
 
+            var normalized = _identifierNormalizer.Normalize(request.Type, request.Value);
+            if (!normalized.IsValid)
+                throw new UAuthIdentifierValidationException(normalized.ErrorCode ?? "identifier_invalid");
+
             var existing = await _identifierStore.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
-            EnsureOverrideAllowed(context);
             EnsureMultipleIdentifierAllowed(request.Type, existing);
 
-            if (request.IsPrimary)
-            {
-                // new identifiers are not verified by default, so we check against the requirement even if the request doesn't explicitly set it to true.
-                // This prevents adding a primary identifier that doesn't meet verification requirements.
-                EnsureVerificationRequirements(request.Type, isVerified: false );
-            }
+            var userScopeResult = await _identifierStore.ExistsAsync(
+                new IdentifierExistenceQuery(context.ResourceTenant, request.Type, normalized.Normalized, IdentifierExistenceScope.WithinUser, UserKey: userKey), innerCt);
+
+            if (userScopeResult.Exists)
+                throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
 
             var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
                 (request.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(request.Type));
 
             if (mustBeUnique)
             {
-                var exists = await _identifierStore.ExistsAsync(context.ResourceTenant, request.Type, request.Value, innerCt);
+                var scope = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers
+                    ? IdentifierExistenceScope.TenantAny
+                    : IdentifierExistenceScope.TenantPrimaryOnly;
 
-                if (exists)
+                var globalResult = await _identifierStore.ExistsAsync(
+                    new IdentifierExistenceQuery(
+                        context.ResourceTenant,
+                        request.Type,
+                        normalized.Normalized,
+                        scope),
+                    innerCt);
+
+                if (globalResult.Exists)
                     throw new UAuthIdentifierConflictException("identifier_already_exists");
+            }
+
+            if (request.IsPrimary)
+            {
+                // new identifiers are not verified by default, so we check against the requirement even if the request doesn't explicitly set it to true.
+                // This prevents adding a primary identifier that doesn't meet verification requirements.
+                EnsureVerificationRequirements(request.Type, isVerified: false);
             }
 
             await _identifierStore.CreateAsync(context.ResourceTenant,
@@ -246,6 +304,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     UserKey = userKey,
                     Type = request.Type,
                     Value = request.Value,
+                    NormalizedValue = normalized.Normalized,
                     IsPrimary = request.IsPrimary,
                     IsVerified = false,
                     CreatedAt = _clock.UtcNow
@@ -260,19 +319,23 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new UpdateUserIdentifierCommand(async innerCt =>
         {
+            EnsureOverrideAllowed(context);
+
             var identifier = await _identifierStore.GetByIdAsync(request.Id, innerCt);
 
             if (identifier is null || identifier.IsDeleted)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
-
-            EnsureOverrideAllowed(context);
 
             if (identifier.Type == UserIdentifierType.Username && !_options.UserIdentifiers.AllowUsernameChange)
             {
                 throw new UAuthIdentifierValidationException("username_change_not_allowed");
             }
 
-            if (string.Equals(identifier.Value, request.NewValue, StringComparison.Ordinal))
+            var normalized = _identifierNormalizer.Normalize(identifier.Type, request.NewValue);
+            if (!normalized.IsValid)
+                throw new UAuthIdentifierValidationException(normalized.ErrorCode ?? "identifier_invalid");
+
+            if (string.Equals(identifier.NormalizedValue, normalized.Normalized, StringComparison.Ordinal))
                 throw new UAuthIdentifierValidationException("identifier_value_unchanged");
 
             var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
@@ -280,13 +343,24 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (mustBeUnique)
             {
-                var existing = await _identifierStore.GetAsync(identifier.Tenant, identifier.Type, request.NewValue, innerCt);
+                var scope = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers
+                    ? IdentifierExistenceScope.TenantAny
+                    : IdentifierExistenceScope.TenantPrimaryOnly;
 
-                if (existing is not null && existing.Id != identifier.Id && !existing.IsDeleted)
+                var result = await _identifierStore.ExistsAsync(
+                    new IdentifierExistenceQuery(
+                        identifier.Tenant,
+                        identifier.Type,
+                        normalized.Normalized,
+                        scope,
+                        ExcludeIdentifierId: identifier.Id),
+                    innerCt);
+
+                if (result.Exists)
                     throw new UAuthIdentifierConflictException("identifier_already_exists");
             }
 
-            await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, _clock.UtcNow, innerCt);
+            await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, normalized.Normalized, resetVerification: true, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -302,21 +376,33 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
-
-            var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
-            var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
-
             if (identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("identifier_already_primary");
 
-            if (_options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers)
-            {
-                var exists = await _identifierStore.ExistsAsync(identifier.Tenant, identifier.Type, identifier.Value, innerCt);
+            EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
 
-                if (exists)
-                    throw new UAuthIdentifierConflictException("identifier_already_exists");
-            }
+            //var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+            //var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
+
+            var result = await _identifierStore.ExistsAsync(
+                new IdentifierExistenceQuery(identifier.Tenant, identifier.Type, identifier.NormalizedValue, IdentifierExistenceScope.TenantPrimaryOnly, ExcludeIdentifierId: identifier.Id), innerCt);
+
+            if (result.Exists)
+                throw new UAuthIdentifierConflictException("identifier_already_exists");
+
+            //var userIdentifiers =
+            //await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+
+            //var existingPrimaryOfSameType = userIdentifiers
+            //    .FirstOrDefault(i =>
+            //        !i.IsDeleted &&
+            //        i.Type == identifier.Type &&
+            //        i.IsPrimary);
+
+            //if (existingPrimaryOfSameType is not null)
+            //{
+            //    await _identifierStore.UnsetPrimaryAsync(existingPrimaryOfSameType.Id, innerCt);
+            //}
 
             await _identifierStore.SetPrimaryAsync(request.IdentifierId, innerCt);
         });
@@ -337,17 +423,18 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (!identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("identifier_not_primary");
 
-            var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+            var userIdentifiers =
+            await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
 
-            var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
+            var activeLoginPrimaries = userIdentifiers
+                .Where(i =>
+                    !i.IsDeleted &&
+                    i.IsPrimary &&
+                    _options.LoginIdentifiers.AllowedTypes.Contains(i.Type))
+                .ToList();
 
-            var primaryLoginIdentifiers = activeIdentifiers
-            .Where(i =>
-                i.IsPrimary &&
-                _options.LoginIdentifiers.AllowedTypes.Contains(i.Type))
-            .ToList();
-
-            if (primaryLoginIdentifiers.Count == 1 && primaryLoginIdentifiers[0].Id == identifier.Id)
+            if (activeLoginPrimaries.Count == 1 &&
+            activeLoginPrimaries[0].Id == identifier.Id)
             {
                 throw new UAuthIdentifierConflictException("cannot_unset_last_login_identifier");
             }
@@ -406,25 +493,8 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #endregion
 
-    public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
-    {
-        var command = new DeleteUserCommand(async innerCt =>
-        {
-            var targetUserKey = context.GetTargetUserKey();
-            var now = _clock.UtcNow;
 
-            await _lifecycleStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
-            await _identifierStore.DeleteByUserAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
-            await _profileStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
-
-            foreach (var integration in _integrations)
-            {
-                await integration.OnUserDeletedAsync(context.ResourceTenant, targetUserKey, request.Mode, innerCt);
-            }
-        });
-
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
-    }
+    #region Helpers
 
     private async Task<UserViewDto> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
     {
@@ -505,4 +575,5 @@ internal sealed class UserApplicationService : IUserApplicationService
             UserIdentifierType.Email or
             UserIdentifierType.Phone;
 
+    #endregion
 }

@@ -10,6 +10,7 @@ public static class UserIdentifierMapper
             Id = record.Id,
             Type = record.Type,
             Value = record.Value,
+            NormalizedValue = record.NormalizedValue,
             IsPrimary = record.IsPrimary,
             IsVerified = record.IsVerified,
             CreatedAt = record.CreatedAt,

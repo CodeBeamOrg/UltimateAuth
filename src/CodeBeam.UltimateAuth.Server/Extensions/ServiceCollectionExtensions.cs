@@ -208,6 +208,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
         services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.TryAddScoped<IIdentifierNormalizer, IdentifierNormalizer>();
 
         services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 

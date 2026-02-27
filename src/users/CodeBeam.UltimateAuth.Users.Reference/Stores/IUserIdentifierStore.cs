@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public interface IUserIdentifierStore
 {
-    Task<bool> ExistsAsync(TenantKey tenant, UserIdentifierType type, string value, CancellationToken ct = default);
+    Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default);
 
     Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
     Task<UserIdentifier?> GetByIdAsync(Guid id, CancellationToken ct = default);
@@ -16,13 +16,13 @@ public interface IUserIdentifierStore
 
     Task CreateAsync(TenantKey tenant, UserIdentifier identifier, CancellationToken ct = default);
 
-    Task UpdateValueAsync(Guid id, string newValue, DateTimeOffset updatedAt, CancellationToken ct = default);
+    Task UpdateValueAsync(Guid id, string newRawValue, string newNormalizedValue, DateTimeOffset updatedAt, CancellationToken ct = default);
 
     Task MarkVerifiedAsync(Guid id, DateTimeOffset verifiedAt, CancellationToken ct = default);
 
-    Task SetPrimaryAsync(Guid id, CancellationToken ct = default);
+    Task SetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default);
 
-    Task UnsetPrimaryAsync(Guid id, CancellationToken ct = default);
+    Task UnsetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default);
 
     Task DeleteAsync(Guid id, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default);
 

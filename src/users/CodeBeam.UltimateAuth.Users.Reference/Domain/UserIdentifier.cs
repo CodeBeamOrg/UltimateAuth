@@ -14,6 +14,7 @@ public sealed record UserIdentifier
 
     public UserIdentifierType Type { get; init; } // Email, Phone, Username
     public string Value { get; set; } = default!;
+    public string NormalizedValue { get; set; } = default!;
 
     public bool IsPrimary { get; set; }
     public bool IsVerified { get; set; }

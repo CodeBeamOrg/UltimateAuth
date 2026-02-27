@@ -11,27 +11,44 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
 {
     private readonly Dictionary<Guid, UserIdentifier> _store = new();
 
-    public Task<bool> ExistsAsync(TenantKey tenant, UserIdentifierType type, string value, CancellationToken ct = default)
+    public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var exists = _store.Values.Any(x =>
-            x.Tenant == tenant &&
-            x.Type == type &&
-            x.Value == value &&
-            !x.IsDeleted);
+        var candidates = _store.Values
+            .Where(x =>
+                x.Tenant == query.Tenant &&
+                x.Type == query.Type &&
+                x.NormalizedValue == query.NormalizedValue &&
+                !x.IsDeleted);
 
-        return Task.FromResult(exists);
+        if (query.ExcludeIdentifierId.HasValue)
+            candidates = candidates.Where(x => x.Id != query.ExcludeIdentifierId.Value);
+
+        candidates = query.Scope switch
+        {
+            IdentifierExistenceScope.WithinUser => candidates.Where(x => x.UserKey == query.UserKey),
+            IdentifierExistenceScope.TenantPrimaryOnly => candidates.Where(x => x.IsPrimary),
+            IdentifierExistenceScope.TenantAny => candidates,
+            _ => candidates
+        };
+
+        var match = candidates.FirstOrDefault();
+
+        if (match is null)
+            return Task.FromResult(new IdentifierExistenceResult(false));
+
+        return Task.FromResult(new IdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
     }
 
-    public Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string value, CancellationToken ct = default)
+    public Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var identifier = _store.Values.FirstOrDefault(x =>
             x.Tenant == tenant &&
             x.Type == type &&
-            x.Value == value &&
+            x.NormalizedValue == normalizedValue &&
             !x.IsDeleted);
 
         return Task.FromResult(identifier);
@@ -72,15 +89,6 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         if (identifier.Id == Guid.Empty)
             identifier.Id = Guid.NewGuid();
 
-        var duplicate = _store.Values.Any(x =>
-            x.Tenant == tenant &&
-            x.Type == identifier.Type &&
-            x.Value == identifier.Value &&
-            !x.IsDeleted);
-
-        if (duplicate)
-            throw new UAuthConflictException("identifier_already_exists");
-
         identifier.Tenant = tenant;
 
         _store[identifier.Id] = identifier;
@@ -88,27 +96,19 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         return Task.CompletedTask;
     }
 
-    public Task UpdateValueAsync(Guid id, string newValue, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public Task UpdateValueAsync(Guid id, string newRawValue, string newNormalizedValue, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new InvalidOperationException("identifier_not_found");
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-        if (identifier.Value == newValue)
-            throw new InvalidOperationException("identifier_value_unchanged");
+        if (identifier.NormalizedValue == newNormalizedValue)
+            throw new UAuthIdentifierConflictException("identifier_value_unchanged");
 
-        var duplicate = _store.Values.Any(x =>
-            x.Id != id &&
-            x.Tenant == identifier.Tenant &&
-            x.Type == identifier.Type &&
-            x.Value == newValue &&
-            !x.IsDeleted);
+        identifier.Value = newRawValue;
+        identifier.NormalizedValue = newNormalizedValue;
 
-        if (duplicate)
-            throw new InvalidOperationException("identifier_value_already_exists");
-
-        identifier.Value = newValue;
         identifier.IsVerified = false;
         identifier.VerifiedAt = null;
         identifier.UpdatedAt = updatedAt;
@@ -121,7 +121,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         ct.ThrowIfCancellationRequested();
 
         if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new InvalidOperationException("identifier_not_found");
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         if (identifier.IsVerified)
             return Task.CompletedTask;
@@ -133,7 +133,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
         return Task.CompletedTask;
     }
 
-    public Task SetPrimaryAsync(Guid id, CancellationToken ct = default)
+    public Task SetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -144,25 +144,35 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
                      x.Tenant == target.Tenant &&
                      x.UserKey == target.UserKey &&
                      x.Type == target.Type &&
-                     x.IsPrimary))
+                     x.IsPrimary &&
+                     !x.IsDeleted))
         {
+            if (idf.Id == target.Id)
+                continue;
             idf.IsPrimary = false;
+            idf.UpdatedAt = updatedAt;
         }
 
         target.IsPrimary = true;
+        target.UpdatedAt = updatedAt;
 
         return Task.CompletedTask;
     }
 
-    public Task UnsetPrimaryAsync(Guid id, CancellationToken ct = default)
+    public Task UnsetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new InvalidOperationException("identifier_not_found");
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+        if (!identifier.IsPrimary)
+        {
+            throw new UAuthIdentifierConflictException("identifier_is_not_primary_already");
+        }
 
         identifier.IsPrimary = false;
-        identifier.UpdatedAt = DateTimeOffset.UtcNow;
+        identifier.UpdatedAt = updatedAt;
 
         return Task.CompletedTask;
     }
@@ -211,6 +221,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
                 identifier.IsDeleted = true;
                 identifier.DeletedAt = deletedAt;
                 identifier.IsPrimary = false;
+                identifier.UpdatedAt = deletedAt;
             }
         }
 
