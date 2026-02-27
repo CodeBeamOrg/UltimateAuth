@@ -54,11 +54,12 @@
             </PagerContent>
         </MudDataGrid>
 
-        <MudExpansionPanels>
+        <MudExpansionPanels Class="mt-2">
             <MudExpansionPanel Text="Add New Identifier" Expanded="false">
-                <MudStack Spacing="2">
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
                     <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" />
                     <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
+                    <MudSwitchM3 @bind-Value="_newIdentifierPrimary" Label="Primary" Color="Color.Primary" />
                     <MudButton Color="Color.Primary" OnClick="AddNewIdentifier">Add</MudButton>
                 </MudStack>
             </MudExpansionPanel>
@@ -75,6 +76,7 @@
 @code {
     private UserIdentifierType _newIdentifierType;
     private string? _newIdentifierValue;
+    private bool _newIdentifierPrimary;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -113,9 +115,11 @@
         }
         else
         {
-            Snackbar.Add("Failed to update identifier", Severity.Error);
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to update identifier", Severity.Error);
         }
 
+        var getResult = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+        _identifiers = getResult.Value?.ToList() ?? new List<UserIdentifierDto>();
         return DataGridEditFormAction.Close;
     }
 
@@ -130,7 +134,8 @@
         AddUserIdentifierRequest request = new()
         {
             Type = _newIdentifierType,
-            Value = _newIdentifierValue
+            Value = _newIdentifierValue,
+            IsPrimary = _newIdentifierPrimary
         };
 
         var result = await UAuthClient.Identifiers.AddSelfAsync(request);

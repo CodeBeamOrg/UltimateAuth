@@ -67,4 +67,10 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         var httpContext = TestHttpContext.Create(tenant);
         return Services.GetRequiredService<IAuthFlowContextFactory>().CreateAsync(httpContext, AuthFlowType.Login);
     }
+
+    public IUserApplicationService GetUserApplicationService()
+    {
+        var scope = Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<IUserApplicationService>();
+    }
 }

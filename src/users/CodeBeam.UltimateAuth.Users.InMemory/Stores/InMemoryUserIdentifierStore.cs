@@ -91,6 +91,20 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
 
         identifier.Tenant = tenant;
 
+        if (identifier.IsPrimary)
+        {
+            foreach (var existing in _store.Values.Where(x =>
+                         x.Tenant == tenant &&
+                         x.UserKey == identifier.UserKey &&
+                         x.Type == identifier.Type &&
+                         x.IsPrimary &&
+                         !x.IsDeleted))
+            {
+                existing.IsPrimary = false;
+                existing.UpdatedAt = identifier.CreatedAt;
+            }
+        }
+
         _store[identifier.Id] = identifier;
 
         return Task.CompletedTask;

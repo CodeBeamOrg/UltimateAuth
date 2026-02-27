@@ -41,8 +41,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         await SeedUserAsync(tenant, _ids.GetUserUserId(), "Standard User", "user", "user@ultimateauth.com", "9876543210", ct);
     }
 
-    private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string primaryUsername,
-        string primaryEmail, string primaryPhone, CancellationToken ct)
+    private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string username, string email, string phone, CancellationToken ct)
     {
         if (await _lifecycle.ExistsAsync(tenant, userKey, ct))
             return;
@@ -65,19 +64,23 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 CreatedAt = _clock.UtcNow
             }, ct);
 
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Username,
-                Value = primaryUsername,
-                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryUsername).Normalized,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        var usernameIdentifier = new UserIdentifier
+        {
+            Id = Guid.NewGuid(),
+            Tenant = tenant,
+            UserKey = userKey,
+            Type = UserIdentifierType.Username,
+            Value = username,
+            NormalizedValue = _identifierNormalizer
+                .Normalize(UserIdentifierType.Username, username)
+                .Normalized,
+            IsPrimary = true,
+            IsVerified = true,
+            CreatedAt = _clock.UtcNow
+        };
+
+        await _identifiers.CreateAsync(tenant, usernameIdentifier, ct);
+        await _identifiers.SetPrimaryAsync(usernameIdentifier.Id, _clock.UtcNow, ct);
 
         await _identifiers.CreateAsync(tenant,
             new UserIdentifier
@@ -86,8 +89,10 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 Tenant = tenant,
                 UserKey = userKey,
                 Type = UserIdentifierType.Email,
-                Value = primaryEmail,
-                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryEmail).Normalized,
+                Value = email,
+                NormalizedValue = _identifierNormalizer
+                    .Normalize(UserIdentifierType.Email, email)
+                    .Normalized,
                 IsPrimary = true,
                 IsVerified = true,
                 CreatedAt = _clock.UtcNow
@@ -100,8 +105,10 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 Tenant = tenant,
                 UserKey = userKey,
                 Type = UserIdentifierType.Phone,
-                Value = primaryPhone,
-                NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, primaryPhone).Normalized,
+                Value = phone,
+                NormalizedValue = _identifierNormalizer
+                    .Normalize(UserIdentifierType.Phone, phone)
+                    .Normalized,
                 IsPrimary = true,
                 IsVerified = true,
                 CreatedAt = _clock.UtcNow

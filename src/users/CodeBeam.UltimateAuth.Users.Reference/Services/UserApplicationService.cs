@@ -228,7 +228,11 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new GetUserIdentifierCommand(async innerCt =>
         {
-            var identifier = await _identifierStore.GetAsync(context.ResourceTenant, type, value, innerCt);
+            var normalized = _identifierNormalizer.Normalize(type, value);
+            if (!normalized.IsValid)
+                return null;
+
+            var identifier = await _identifierStore.GetAsync(context.ResourceTenant, type, normalized.Normalized, innerCt);
             return identifier is null ? null : UserIdentifierMapper.ToDto(identifier);
         });
 
@@ -243,7 +247,9 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (!normalized.IsValid)
                 return false;
 
-            var result = await _identifierStore.ExistsAsync(new IdentifierExistenceQuery(context.ResourceTenant, type, normalized.Normalized, scope), innerCt);
+            UserKey? userKey = scope == IdentifierExistenceScope.WithinUser ? context.GetTargetUserKey() : null;
+
+            var result = await _identifierStore.ExistsAsync(new IdentifierExistenceQuery(context.ResourceTenant, type, normalized.Normalized, scope, userKey), innerCt);
             return result.Exists;
         });
 
@@ -338,6 +344,19 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (string.Equals(identifier.NormalizedValue, normalized.Normalized, StringComparison.Ordinal))
                 throw new UAuthIdentifierValidationException("identifier_value_unchanged");
 
+            var withinUserResult = await _identifierStore.ExistsAsync(
+                new IdentifierExistenceQuery(
+                    identifier.Tenant,
+                    identifier.Type,
+                    normalized.Normalized,
+                    IdentifierExistenceScope.WithinUser,
+                    UserKey: identifier.UserKey,
+                    ExcludeIdentifierId: identifier.Id),
+                innerCt);
+
+            if (withinUserResult.Exists)
+                throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
+
             var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
                 (identifier.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(identifier.Type));
 
@@ -360,7 +379,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     throw new UAuthIdentifierConflictException("identifier_already_exists");
             }
 
-            await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, normalized.Normalized, resetVerification: true, _clock.UtcNow, innerCt);
+            await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, normalized.Normalized, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -381,30 +400,13 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
 
-            //var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
-            //var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
-
             var result = await _identifierStore.ExistsAsync(
                 new IdentifierExistenceQuery(identifier.Tenant, identifier.Type, identifier.NormalizedValue, IdentifierExistenceScope.TenantPrimaryOnly, ExcludeIdentifierId: identifier.Id), innerCt);
 
             if (result.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists");
 
-            //var userIdentifiers =
-            //await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
-
-            //var existingPrimaryOfSameType = userIdentifiers
-            //    .FirstOrDefault(i =>
-            //        !i.IsDeleted &&
-            //        i.Type == identifier.Type &&
-            //        i.IsPrimary);
-
-            //if (existingPrimaryOfSameType is not null)
-            //{
-            //    await _identifierStore.UnsetPrimaryAsync(existingPrimaryOfSameType.Id, innerCt);
-            //}
-
-            await _identifierStore.SetPrimaryAsync(request.IdentifierId, innerCt);
+            await _identifierStore.SetPrimaryAsync(request.IdentifierId, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -439,7 +441,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierConflictException("cannot_unset_last_login_identifier");
             }
 
-            await _identifierStore.UnsetPrimaryAsync(request.IdentifierId, innerCt);
+            await _identifierStore.UnsetPrimaryAsync(request.IdentifierId, _clock.UtcNow, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
