@@ -17,6 +17,7 @@ using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,7 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
     o.UserIdentifiers.AllowMultipleUsernames = true;
+    o.LoginIdentifiers.AllowedTypes = new HashSet<UserIdentifierType>() { UserIdentifierType.Username, UserIdentifierType.Email };
 })
     .AddUltimateAuthUsersInMemory()
     .AddUltimateAuthUsersReference()

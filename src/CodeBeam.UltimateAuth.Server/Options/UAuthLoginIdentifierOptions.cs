@@ -3,7 +3,7 @@
 namespace CodeBeam.UltimateAuth.Server.Options;
 public sealed class UAuthLoginIdentifierOptions
 {
-    public ISet<UserIdentifierType> AllowedBuiltIns { get; set; } =
+    public ISet<UserIdentifierType> AllowedTypes { get; set; } =
         new HashSet<UserIdentifierType>
         {
             UserIdentifierType.Username,
@@ -17,12 +17,15 @@ public sealed class UAuthLoginIdentifierOptions
     public bool EnableCustomResolvers { get; set; } = true;
     public bool CustomResolversFirst { get; set; } = true;
 
+    public bool EnforceGlobalUniquenessForAllIdentifiers { get; set; } = false;
+
     internal UAuthLoginIdentifierOptions Clone() => new()
     {
-        AllowedBuiltIns = new HashSet<UserIdentifierType>(AllowedBuiltIns),
+        AllowedTypes = new HashSet<UserIdentifierType>(AllowedTypes),
         RequireVerificationForEmail = RequireVerificationForEmail,
         RequireVerificationForPhone = RequireVerificationForPhone,
         EnableCustomResolvers = EnableCustomResolvers,
         CustomResolversFirst = CustomResolversFirst,
+        EnforceGlobalUniquenessForAllIdentifiers = EnforceGlobalUniquenessForAllIdentifiers
     };
 }

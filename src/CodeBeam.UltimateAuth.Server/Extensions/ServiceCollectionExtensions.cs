@@ -252,7 +252,7 @@ public static class ServiceCollectionExtensions
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
-            opt.AllowedBuiltIns = new HashSet<UserIdentifierType>
+            opt.AllowedTypes = new HashSet<UserIdentifierType>
             {
                 UserIdentifierType.Username,
                 UserIdentifierType.Email

@@ -39,7 +39,7 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
 
         var builtInType = DetectBuiltInType(normalized);
 
-        if (!_options.AllowedBuiltIns.Contains(builtInType))
+        if (!_options.AllowedTypes.Contains(builtInType))
         {
             if (_options.EnableCustomResolvers && !_options.CustomResolversFirst)
                 return await TryCustomAsync(tenant, normalized, ct);
@@ -112,8 +112,7 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
         return null;
     }
 
-    private static string Normalize(string identifier)
-        => identifier.Trim();
+    private static string Normalize(string identifier) => identifier.Trim();
 
     private static UserIdentifierType DetectBuiltInType(string normalized)
     {

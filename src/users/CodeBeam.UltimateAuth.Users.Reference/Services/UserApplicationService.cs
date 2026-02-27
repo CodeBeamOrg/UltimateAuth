@@ -17,7 +17,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserProfileStore _profileStore;
     private readonly IUserIdentifierStore _identifierStore;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
-    private readonly UAuthUserIdentifierOptions _identifierOptions;
+    private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
     public UserApplicationService(
@@ -34,7 +34,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _profileStore = profileStore;
         _identifierStore = identifierStore;
         _integrations = integrations;
-        _identifierOptions = options.Value.UserIdentifiers;
+        _options = options.Value;
         _clock = clock;
     }
 
@@ -229,6 +229,17 @@ internal sealed class UserApplicationService : IUserApplicationService
                 EnsureVerificationRequirements(request.Type, isVerified: false );
             }
 
+            var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
+                (request.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(request.Type));
+
+            if (mustBeUnique)
+            {
+                var exists = await _identifierStore.ExistsAsync(context.ResourceTenant, request.Type, request.Value, innerCt);
+
+                if (exists)
+                    throw new UAuthIdentifierConflictException("identifier_already_exists");
+            }
+
             await _identifierStore.CreateAsync(context.ResourceTenant,
                 new UserIdentifier
                 {
@@ -256,13 +267,24 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             EnsureOverrideAllowed(context);
 
-            if (identifier.Type == UserIdentifierType.Username && !_identifierOptions.AllowUsernameChange)
+            if (identifier.Type == UserIdentifierType.Username && !_options.UserIdentifiers.AllowUsernameChange)
             {
                 throw new UAuthIdentifierValidationException("username_change_not_allowed");
             }
 
             if (string.Equals(identifier.Value, request.NewValue, StringComparison.Ordinal))
                 throw new UAuthIdentifierValidationException("identifier_value_unchanged");
+
+            var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
+                (identifier.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(identifier.Type));
+
+            if (mustBeUnique)
+            {
+                var existing = await _identifierStore.GetAsync(identifier.Tenant, identifier.Type, request.NewValue, innerCt);
+
+                if (existing is not null && existing.Id != identifier.Id && !existing.IsDeleted)
+                    throw new UAuthIdentifierConflictException("identifier_already_exists");
+            }
 
             await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, _clock.UtcNow, innerCt);
         });
@@ -281,6 +303,20 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
+
+            var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+            var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
+
+            if (identifier.IsPrimary)
+                throw new UAuthIdentifierValidationException("identifier_already_primary");
+
+            if (_options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers)
+            {
+                var exists = await _identifierStore.ExistsAsync(identifier.Tenant, identifier.Type, identifier.Value, innerCt);
+
+                if (exists)
+                    throw new UAuthIdentifierConflictException("identifier_already_exists");
+            }
 
             await _identifierStore.SetPrimaryAsync(request.IdentifierId, innerCt);
         });
@@ -303,14 +339,18 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
 
-            var otherLoginIdentifiers = identifiers
-                .Where(i => !i.IsDeleted &&
-                            IsLoginIdentifier(i.Type) &&
-                            i.Id != identifier.Id)
-                .ToList();
+            var activeIdentifiers = identifiers.Where(i => !i.IsDeleted).ToList();
 
-            if (otherLoginIdentifiers.Count == 0)
-                throw new UAuthIdentifierConflictException("cannot_unset_last_primary_login_identifier");
+            var primaryLoginIdentifiers = activeIdentifiers
+            .Where(i =>
+                i.IsPrimary &&
+                _options.LoginIdentifiers.AllowedTypes.Contains(i.Type))
+            .ToList();
+
+            if (primaryLoginIdentifiers.Count == 1 && primaryLoginIdentifiers[0].Id == identifier.Id)
+            {
+                throw new UAuthIdentifierConflictException("cannot_unset_last_login_identifier");
+            }
 
             await _identifierStore.UnsetPrimaryAsync(request.IdentifierId, innerCt);
         });
@@ -345,8 +385,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("cannot_delete_primary_identifier");
 
-            if (_identifierOptions.RequireUsernameIdentifier &&
-            identifier.Type == UserIdentifierType.Username)
+            if (_options.UserIdentifiers.RequireUsernameIdentifier && identifier.Type == UserIdentifierType.Username)
             {
                 var activeUsernames = identifiers
                     .Where(i => !i.IsDeleted && i.Type == UserIdentifierType.Username)
@@ -419,24 +458,24 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (!hasSameType)
             return;
 
-        if (type == UserIdentifierType.Username && !_identifierOptions.AllowMultipleUsernames)
+        if (type == UserIdentifierType.Username && !_options.UserIdentifiers.AllowMultipleUsernames)
             throw new InvalidOperationException("multiple_usernames_not_allowed");
 
-        if (type == UserIdentifierType.Email && !_identifierOptions.AllowMultipleEmail)
+        if (type == UserIdentifierType.Email && !_options.UserIdentifiers.AllowMultipleEmail)
             throw new InvalidOperationException("multiple_emails_not_allowed");
 
-        if (type == UserIdentifierType.Phone && !_identifierOptions.AllowMultiplePhone)
+        if (type == UserIdentifierType.Phone && !_options.UserIdentifiers.AllowMultiplePhone)
             throw new InvalidOperationException("multiple_phones_not_allowed");
     }
 
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
     {
-        if (type == UserIdentifierType.Email && _identifierOptions.RequireEmailVerification && !isVerified)
+        if (type == UserIdentifierType.Email && _options.UserIdentifiers.RequireEmailVerification && !isVerified)
         {
             throw new InvalidOperationException("email_verification_required");
         }
 
-        if (type == UserIdentifierType.Phone && _identifierOptions.RequirePhoneVerification && !isVerified)
+        if (type == UserIdentifierType.Phone && _options.UserIdentifiers.RequirePhoneVerification && !isVerified)
         {
             throw new InvalidOperationException("phone_verification_required");
         }
@@ -444,10 +483,10 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     private void EnsureOverrideAllowed(AccessContext context)
     {
-        if (context.IsSelfAction && !_identifierOptions.AllowUserOverride)
+        if (context.IsSelfAction && !_options.UserIdentifiers.AllowUserOverride)
             throw new InvalidOperationException("user_override_not_allowed");
 
-        if (!context.IsSelfAction && !_identifierOptions.AllowAdminOverride)
+        if (!context.IsSelfAction && !_options.UserIdentifiers.AllowAdminOverride)
             throw new InvalidOperationException("admin_override_not_allowed");
     }
 
