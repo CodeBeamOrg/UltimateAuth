@@ -168,7 +168,7 @@ public class IdentifierConcurrencyTests
     }
 
     [Fact]
-    public async Task Parallel_updates_should_result_in_single_success()
+    public async Task Parallel_updates_should_result_in_single_success_deterministic()
     {
         var store = new InMemoryUserIdentifierStore();
         var now = DateTimeOffset.UtcNow;
@@ -191,42 +191,46 @@ public class IdentifierConcurrencyTests
         int success = 0;
         int conflicts = 0;
 
-        var task1 = Task.Run(async () =>
-        {
-            try
-            {
-                var copy = await store.GetByIdAsync(id);
-                var expected = copy!.Version;
-                copy.ChangeValue("x@test.com", "x@test.com", now);
-                await store.SaveAsync(copy, expected);
-                Interlocked.Increment(ref success);
-            }
-            catch (UAuthConcurrencyException)
-            {
-                Interlocked.Increment(ref conflicts);
-            }
-        });
+        var barrier = new Barrier(2);
 
-        var task2 = Task.Run(async () =>
-        {
-            try
+        var tasks = Enumerable.Range(0, 2)
+            .Select(i => Task.Run(async () =>
             {
-                var copy = await store.GetByIdAsync(id);
-                var expected = copy!.Version;
-                copy.ChangeValue("y@test.com", "y@test.com", now);
-                await store.SaveAsync(copy, expected);
-                Interlocked.Increment(ref success);
-            }
-            catch (UAuthConcurrencyException)
-            {
-                Interlocked.Increment(ref conflicts);
-            }
-        });
+                try
+                {
+                    var copy = await store.GetByIdAsync(id);
 
-        await Task.WhenAll(task1, task2);
+                    // İki thread de burada bekler
+                    barrier.SignalAndWait();
+
+                    var expected = copy!.Version;
+
+                    var newValue = i == 0
+                        ? "x@test.com"
+                        : "y@test.com";
+
+                    copy.ChangeValue(newValue, newValue, now);
+
+                    await store.SaveAsync(copy, expected);
+
+                    Interlocked.Increment(ref success);
+                }
+                catch (UAuthConcurrencyException)
+                {
+                    Interlocked.Increment(ref conflicts);
+                }
+            }))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
 
         Assert.Equal(1, success);
         Assert.Equal(1, conflicts);
+
+        var final = await store.GetByIdAsync(id);
+
+        Assert.NotNull(final);
+        Assert.Equal(1, final!.Version);
     }
 
     [Fact]
@@ -342,5 +346,104 @@ public class IdentifierConcurrencyTests
 
         Assert.True(final!.IsPrimary);
         Assert.Equal(1, final.Version);
+    }
+
+    [Fact]
+    public async Task Two_identifiers_racing_for_primary_should_allow()
+    {
+        var store = new InMemoryUserIdentifierStore();
+        var now = DateTimeOffset.UtcNow;
+        var tenant = TenantKey.Single;
+        var user = TestUsers.Admin;
+
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        var identifier1 = new UserIdentifier
+        {
+            Id = id1,
+            Tenant = tenant,
+            UserKey = user,
+            Type = UserIdentifierType.Email,
+            Value = "a@test.com",
+            NormalizedValue = "a@test.com",
+            CreatedAt = now
+        };
+
+        var identifier2 = new UserIdentifier
+        {
+            Id = id2,
+            Tenant = tenant,
+            UserKey = user,
+            Type = UserIdentifierType.Email,
+            Value = "b@test.com",
+            NormalizedValue = "b@test.com",
+            CreatedAt = now
+        };
+
+        await store.CreateAsync(tenant, identifier1);
+        await store.CreateAsync(tenant, identifier2);
+
+        int success = 0;
+        int conflicts = 0;
+
+        var barrier = new Barrier(2);
+
+        var tasks = new[]
+        {
+        Task.Run(async () =>
+        {
+            try
+            {
+                var copy = await store.GetByIdAsync(id1);
+
+                barrier.SignalAndWait();
+
+                var expected = copy!.Version;
+                copy.SetPrimary(now);
+
+                await store.SaveAsync(copy, expected);
+
+                Interlocked.Increment(ref success);
+            }
+            catch (UAuthConcurrencyException)
+            {
+                Interlocked.Increment(ref conflicts);
+            }
+        }),
+        Task.Run(async () =>
+        {
+            try
+            {
+                var copy = await store.GetByIdAsync(id2);
+
+                barrier.SignalAndWait();
+
+                var expected = copy!.Version;
+                copy.SetPrimary(now);
+
+                await store.SaveAsync(copy, expected);
+
+                Interlocked.Increment(ref success);
+            }
+            catch (UAuthConcurrencyException)
+            {
+                Interlocked.Increment(ref conflicts);
+            }
+        })
+    };
+
+        await Task.WhenAll(tasks);
+
+        Assert.Equal(2, success);
+        Assert.Equal(0, conflicts);
+
+        var all = await store.GetByUserAsync(tenant, user);
+
+        var primaries = all
+            .Where(x => x.Type == UserIdentifierType.Email && x.IsPrimary)
+            .ToList();
+
+        Assert.Single(primaries);
     }
 }
