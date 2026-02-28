@@ -2,6 +2,21 @@
 
 public static class UAuthActions
 {
+    public static class Sessions
+    {
+        public const string GetChainSelf = "sessions.getchain.self";
+        public const string GetChainAdmin = "sessions.getchain.admin";
+        public const string ListChainsSelf = "sessions.listchains.self";
+        public const string ListChainsAdmin = "sessions.listchains.admin";
+        public const string RevokeChainSelf = "sessions.revokechain.self";
+        public const string RevokeChainAdmin = "sessions.revokechain.admin";
+        public const string RevokeAllChainsSelf = "sessions.revokeallchains.self";
+        public const string RevokeAllChainsAdmin = "sessions.revokeallchains.admin";
+        public const string RevokeOtherChainsSelf = "sessions.revokeotherchains.self";
+        public const string RevokeSessionAdmin = "sessions.revoke.admin";
+        public const string RevokeRootAdmin = "sessions.revokeroot.admin";
+    }
+
     public static class Users
     {
         public const string Create = "users.create";

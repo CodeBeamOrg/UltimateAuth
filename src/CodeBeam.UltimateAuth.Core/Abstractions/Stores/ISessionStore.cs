@@ -16,14 +16,14 @@ public interface ISessionStore
     Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion);
     Task CreateChainAsync(UAuthSessionChain chain);
     Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at);
-    //Task<AuthSessionId?> GetActiveSessionIdAsync(SessionChainId chainId);
-    //Task SetActiveSessionIdAsync(SessionChainId chainId, AuthSessionId sessionId);
+    Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at);
 
     Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey);
     Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId);
     Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion);
     Task CreateRootAsync(UAuthSessionRoot root);
     Task RevokeRootAsync(UserKey userKey, DateTimeOffset at);
+    Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at);
 
     Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey);

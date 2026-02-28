@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
 [JsonConverter(typeof(SessionRootIdJsonConverter))]
-public readonly record struct SessionRootId(Guid Value)
+public readonly record struct SessionRootId(Guid Value) : IParsable<SessionRootId>
 {
     public static SessionRootId New() => new(Guid.NewGuid());
 
@@ -22,6 +22,28 @@ public readonly record struct SessionRootId(Guid Value)
         }
 
         id = default;
+        return false;
+    }
+
+    public static SessionRootId Parse(string s, IFormatProvider? provider)
+    {
+        if (TryParse(s, provider, out var id))
+            return id;
+
+        throw new FormatException("Invalid SessionRootId.");
+    }
+
+    public static bool TryParse(string? s, IFormatProvider? provider, out SessionRootId result)
+    {
+        if (!string.IsNullOrWhiteSpace(s) &&
+            Guid.TryParse(s, out var guid) &&
+            guid != Guid.Empty)
+        {
+            result = new SessionRootId(guid);
+            return true;
+        }
+
+        result = default;
         return false;
     }
 

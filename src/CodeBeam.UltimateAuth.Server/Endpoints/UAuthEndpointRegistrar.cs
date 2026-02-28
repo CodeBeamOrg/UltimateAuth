@@ -74,26 +74,48 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeToken));
         }
 
+        //var user = group.MapGroup("");
+        var users = group.MapGroup("/users");
+        var adminUsers = group.MapGroup("/admin/users");
+
         if (options.Endpoints.Session != false)
         {
             var session = group.MapGroup("/session");
 
-            session.MapPost("/current", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                => await h.GetCurrentSessionAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+            session.MapPost("/me/chains", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
+                => await h.GetMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
 
-            session.MapPost("/list", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                => await h.GetAllSessionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+            session.MapPost("/me/chains/{chainId}", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
+                => await h.GetMyChainDetailAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
 
-            session.MapPost("/revoke/{sessionId}", async ([FromServices] ISessionManagementHandler h, string sessionId, HttpContext ctx)
-                => await h.RevokeSessionAsync(sessionId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+            session.MapPost("/me/chains/{chainId}/revoke", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
+                => await h.RevokeMyChainAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
 
-            session.MapPost("/revoke-all", async ([FromServices] ISessionManagementHandler h, HttpContext ctx)
-                => await h.RevokeAllAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+            session.MapPost("/me/revoke-others",async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
+                => await h.RevokeOtherChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+
+            session.MapPost("/me/revoke-all", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
+                => await h.RevokeAllMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+
+
+            adminUsers.MapPost("/{userKey}/sessions/chains", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.GetUserChainsAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+
+            adminUsers.MapPost("/{userKey}/sessions/chains/{chainId}", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, SessionChainId chainId, HttpContext ctx)
+                => await h.GetUserChainDetailAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+
+            adminUsers.MapPost("/{userKey}/sessions/{sessionId}/revoke", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, AuthSessionId sessionId, HttpContext ctx)
+                => await h.RevokeUserSessionAsync(userKey, sessionId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+
+            adminUsers.MapPost("/{userKey}/sessions/chains/{chainId}/revoke", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, SessionChainId chainId, HttpContext ctx)
+                => await h.RevokeUserChainAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+
+            adminUsers.MapPost("/{userKey}/sessions/revoke-root", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.RevokeRootAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+
+            adminUsers.MapPost("/{userKey}/sessions/revoke-all", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.RevokeAllChainsAsync(userKey, null, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
         }
-
-        //var user = group.MapGroup("");
-        var users = group.MapGroup("/users");
-        var adminUsers = group.MapGroup("/admin/users");
 
         //if (options.EnableUserInfoEndpoints != false)
         //{

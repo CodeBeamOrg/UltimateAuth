@@ -13,7 +13,6 @@ internal sealed class InMemorySessionStore : ISessionStore
     private readonly ConcurrentDictionary<AuthSessionId, UAuthSession> _sessions = new();
     private readonly ConcurrentDictionary<SessionChainId, UAuthSessionChain> _chains = new();
     private readonly ConcurrentDictionary<UserKey, UAuthSessionRoot> _roots = new();
-    //private readonly ConcurrentDictionary<SessionChainId, AuthSessionId> _activeSessions = new();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -216,6 +215,79 @@ internal sealed class InMemorySessionStore : ISessionStore
                 //{
                 //    _activeSessions.TryRemove(revoked.ChainId, out _);
                 //}
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at)
+    {
+        lock (_lock)
+        {
+            if (!_chains.TryGetValue(chainId, out var chain))
+                return Task.CompletedTask;
+
+            if (!chain.IsRevoked)
+            {
+                var revokedChain = chain.Revoke(at);
+                _chains[chainId] = revokedChain;
+            }
+
+            var sessions = _sessions.Values
+                .Where(s => s.ChainId == chainId)
+                .ToList();
+
+            foreach (var session in sessions)
+            {
+                if (!session.IsRevoked)
+                {
+                    var revokedSession = session.Revoke(at);
+                    _sessions[session.SessionId] = revokedSession;
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at)
+    {
+        lock (_lock)
+        {
+            if (!_roots.TryGetValue(userKey, out var root))
+                return Task.CompletedTask;
+
+            var chains = _chains.Values
+                .Where(c => c.UserKey == userKey && c.Tenant == root.Tenant)
+                .ToList();
+
+            foreach (var chain in chains)
+            {
+                if (!chain.IsRevoked)
+                {
+                    var revokedChain = chain.Revoke(at);
+                    _chains[chain.ChainId] = revokedChain;
+                }
+
+                var sessions = _sessions.Values
+                    .Where(s => s.ChainId == chain.ChainId)
+                    .ToList();
+
+                foreach (var session in sessions)
+                {
+                    if (!session.IsRevoked)
+                    {
+                        var revokedSession = session.Revoke(at);
+                        _sessions[session.SessionId] = revokedSession;
+                    }
+                }
+            }
+
+            if (!root.IsRevoked)
+            {
+                var revokedRoot = root.Revoke(at);
+                _roots[userKey] = revokedRoot;
             }
         }
 

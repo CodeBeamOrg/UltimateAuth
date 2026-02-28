@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 
-// TODO: Add wrapper service in client project. Validate method also may add.
 namespace CodeBeam.UltimateAuth.Server.Services;
 
 internal sealed class UAuthSessionManager : IUAuthSessionManager

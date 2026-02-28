@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Core.Domain;
 
 // AuthSessionId is a opaque token, because it's more sensitive data. SessionChainId and SessionRootId are Guid.
 [JsonConverter(typeof(AuthSessionIdJsonConverter))]
-public readonly record struct AuthSessionId
+public readonly record struct AuthSessionId : IParsable<AuthSessionId>
 {
     public string Value { get; }
 
@@ -16,19 +16,44 @@ public readonly record struct AuthSessionId
 
     public static bool TryCreate(string? raw, out AuthSessionId id)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        if (IsValid(raw))
         {
-            id = default;
-            return false;
+            id = new AuthSessionId(raw!);
+            return true;
         }
 
-        if (raw.Length < 32)
+        id = default;
+        return false;
+    }
+
+    public static AuthSessionId Parse(string s, IFormatProvider? provider)
+    {
+        if (TryParse(s, provider, out var id))
+            return id;
+
+        throw new FormatException("Invalid AuthSessionId.");
+    }
+
+    public static bool TryParse(string? s, IFormatProvider? provider, out AuthSessionId result)
+    {
+        if (IsValid(s))
         {
-            id = default;
-            return false;
+            result = new AuthSessionId(s!);
+            return true;
         }
 
-        id = new AuthSessionId(raw);
+        result = default;
+        return false;
+    }
+
+    private static bool IsValid(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        if (value.Length < 32)
+            return false;
+
         return true;
     }
 

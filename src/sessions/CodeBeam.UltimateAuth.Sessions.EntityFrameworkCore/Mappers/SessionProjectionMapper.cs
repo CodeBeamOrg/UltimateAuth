@@ -13,11 +13,9 @@ internal static class SessionProjectionMapper
             p.ChainId,
             p.CreatedAt,
             p.ExpiresAt,
-            p.LastSeenAt,
             p.IsRevoked,
             p.RevokedAt,
             p.SecurityVersionAtCreation,
-            p.Device,
             p.Claims,
             p.Metadata,
             p.Version
@@ -35,13 +33,11 @@ internal static class SessionProjectionMapper
 
             CreatedAt = s.CreatedAt,
             ExpiresAt = s.ExpiresAt,
-            LastSeenAt = s.LastSeenAt,
 
             IsRevoked = s.IsRevoked,
             RevokedAt = s.RevokedAt,
 
             SecurityVersionAtCreation = s.SecurityVersionAtCreation,
-            Device = s.Device,
             Claims = s.Claims,
             Metadata = s.Metadata,
             Version = s.Version

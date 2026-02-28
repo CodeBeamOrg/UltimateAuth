@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -33,27 +34,54 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (session is null)
             return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
 
-        var state = session.GetState(context.Now, _options.Session.IdleTimeout);
+        var state = session.GetState(context.Now);
         if (state != SessionState.Active)
-            return SessionValidationResult.Invalid(state, sessionId: session.SessionId, chainId: session.ChainId);
+            return SessionValidationResult.Invalid(state, session.UserKey, session.SessionId, session.ChainId);
 
         var chain = await kernel.GetChainAsync(session.ChainId);
         if (chain is null || chain.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId);
 
+        var chainState = chain.GetState(context.Now, _options.Session.IdleTimeout);
+        if (chainState != SessionState.Active)
+            return SessionValidationResult.Invalid(chainState, chain.UserKey, session.SessionId, chain.ChainId);
+
+        //if (chain.ActiveSessionId != session.SessionId)
+        //    return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId);
+
+        if (chain.ChainId != session.ChainId)
+            return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId);
+
+        if (chain.Tenant != context.Tenant)
+            return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId);
+
         var root = await kernel.GetRootByUserAsync(session.UserKey);
         if (root is null || root.IsRevoked)
-            return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId, root?.RootId);
+            return SessionValidationResult.Invalid(SessionState.Revoked, chain.UserKey, session.SessionId, chain.ChainId, root?.RootId);
+
+        if (chain.RootId != root.RootId)
+            return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
 
         if (session.SecurityVersionAtCreation != root.SecurityVersion)
             return SessionValidationResult.Invalid(SessionState.SecurityMismatch, session.UserKey, session.SessionId, session.ChainId, root.RootId);
 
-        // TODO: Implement device id, AllowAndRebind behavior and check device mathing in blazor server circuit and external http calls.
-        // Currently this line has error on refresh flow.
-        //if (!session.Device.Matches(context.Device) && _options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
-        //    return SessionValidationResult<TUserId>.Invalid(SessionState.DeviceMismatch);
+        if (chain.Device.HasDeviceId && context.Device.HasDeviceId)
+        {
+            if (!Equals(chain.Device.DeviceId, context.Device.DeviceId))
+            {
+                if (_options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
+                    return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
+
+                //if (_options.Session.DeviceMismatchBehavior == AllowAndRebind)
+            }
+        }
+        //else
+        //{
+        //    // Add SessionValidatorOrigin to seperate UserRequest or background task
+        //    return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
+        //}
 
         var claims = await _claimsProvider.GetClaimsAsync(context.Tenant, session.UserKey, ct);
-        return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, session.CreatedAt, session.Device.DeviceId);
+        return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, session.CreatedAt, chain.Device.DeviceId);
     }
 }

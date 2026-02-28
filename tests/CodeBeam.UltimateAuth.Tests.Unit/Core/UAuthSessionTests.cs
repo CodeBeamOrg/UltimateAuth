@@ -22,7 +22,6 @@ public class UAuthSessionTests
             now,
             now.AddMinutes(10),
             0,
-            DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);
 
@@ -47,7 +46,6 @@ public class UAuthSessionTests
             now,
             now.AddMinutes(10),
             0,
-            DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);
 

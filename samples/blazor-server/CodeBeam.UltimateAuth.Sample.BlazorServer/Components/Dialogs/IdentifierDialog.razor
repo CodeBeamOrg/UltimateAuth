@@ -4,7 +4,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudDialog Class="mud-width-full" ContentStyle="height: 60vh">
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
     <TitleContent>
         <MudText>Identifier Management</MudText>
         <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>

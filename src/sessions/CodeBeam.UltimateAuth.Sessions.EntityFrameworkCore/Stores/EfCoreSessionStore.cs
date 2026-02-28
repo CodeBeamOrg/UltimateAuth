@@ -316,7 +316,6 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return rootProjection.ToDomain(chains.Select(c => c.ToDomain()).ToList());
     }
 
-
     public async Task DeleteExpiredSessionsAsync(DateTimeOffset at)
     {
         var projections = await _db.Sessions
@@ -330,4 +329,71 @@ internal sealed class EfCoreSessionStore : ISessionStore
         }
     }
 
+    public async Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at)
+    {
+        var chainProjection = await _db.Chains
+            .SingleOrDefaultAsync(x => x.ChainId == chainId);
+
+        if (chainProjection is null)
+            return;
+
+        var sessionProjections = await _db.Sessions.Where(x => x.ChainId == chainId && !x.IsRevoked).ToListAsync();
+
+        foreach (var sessionProjection in sessionProjections)
+        {
+            var session = sessionProjection.ToDomain();
+            var revoked = session.Revoke(at);
+
+            _db.Sessions.Update(revoked.ToProjection());
+        }
+
+        if (!chainProjection.IsRevoked)
+        {
+            var chain = chainProjection.ToDomain();
+            var revokedChain = chain.Revoke(at);
+
+            _db.Chains.Update(revokedChain.ToProjection());
+        }
+    }
+
+    public async Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at)
+    {
+        var rootProjection = await _db.Roots.SingleOrDefaultAsync(x => x.UserKey == userKey);
+
+        if (rootProjection is null)
+            return;
+
+        var chainProjections = await _db.Chains.Where(x => x.UserKey == userKey).ToListAsync();
+
+        foreach (var chainProjection in chainProjections)
+        {
+            var chainId = chainProjection.ChainId;
+
+            var sessionProjections = await _db.Sessions.Where(x => x.ChainId == chainId && !x.IsRevoked).ToListAsync();
+
+            foreach (var sessionProjection in sessionProjections)
+            {
+                var session = sessionProjection.ToDomain();
+                var revokedSession = session.Revoke(at);
+
+                _db.Sessions.Update(revokedSession.ToProjection());
+            }
+
+            if (!chainProjection.IsRevoked)
+            {
+                var chain = chainProjection.ToDomain();
+                var revokedChain = chain.Revoke(at);
+
+                _db.Chains.Update(revokedChain.ToProjection());
+            }
+        }
+
+        if (!rootProjection.IsRevoked)
+        {
+            var root = rootProjection.ToDomain();
+            var revokedRoot = root.Revoke(at);
+
+            _db.Roots.Update(revokedRoot.ToProjection());
+        }
+    }
 }

@@ -136,6 +136,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
 
+        services.TryAddScoped<ISessionApplicationService, SessionApplicationService>();
         services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
@@ -218,19 +219,11 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<AuthFlowEndpointFilter>();
         services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
-        //services.TryAddScoped<LoginEndpointHandler<UserKey>>();
+        services.TryAddScoped<ISessionEndpointHandler, SessionEndpointHandler>();
         services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandler>();
-
-        //services.TryAddScoped<ValidateEndpointHandler>();
         services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandler>();
-
-        //services.TryAddScoped<LogoutEndpointHandler<UserKey>>();
         services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
-
-        //services.TryAddScoped<RefreshEndpointHandler>();
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
-
-        //services.TryAddScoped<PkceEndpointHandler<UserKey>>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
 
         // ------------------------------

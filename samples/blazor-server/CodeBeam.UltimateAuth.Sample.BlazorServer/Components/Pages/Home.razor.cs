@@ -153,8 +153,12 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task OpenIdentifierDialog()
     {
-
         await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), GetDialogOptions());
+    }
+
+    private async Task OpenSessionDialog()
+    {
+        await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), GetDialogOptions());
     }
 
     private DialogOptions GetDialogOptions()

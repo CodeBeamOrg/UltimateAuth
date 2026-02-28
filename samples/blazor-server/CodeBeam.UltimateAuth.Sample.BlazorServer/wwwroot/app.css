@@ -91,3 +91,7 @@ h1:focus {
 .uauth-text-transform-none .mud-button {
     text-transform: none;
 }
+
+.uauth-dialog {
+    min-height: 62vh;
+}

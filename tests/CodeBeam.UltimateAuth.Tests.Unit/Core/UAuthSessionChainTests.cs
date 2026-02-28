@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -20,8 +21,12 @@ public sealed class UAuthSessionChainTests
             SessionRootId.New(),
             tenant: TenantKey.Single,
             userKey: UserKey.FromString("user-1"),
-            securityVersion: 0,
-            ClaimsSnapshot.Empty);
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
         Assert.Equal(0, chain.RotationCount);
         Assert.Null(chain.ActiveSessionId);
@@ -34,13 +39,17 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            TenantKey.Single,
-            UserKey.FromString("user-1"),
-            0,
-            ClaimsSnapshot.Empty);
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
         var sessionId = CreateSessionId("s1");
-        var rotated = chain.RotateSession(sessionId);
+        var rotated = chain.RotateSession(sessionId, DateTimeOffset.UtcNow);
 
         Assert.Equal(1, rotated.RotationCount);
         Assert.Equal(sessionId, rotated.ActiveSessionId);
@@ -53,13 +62,17 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            TenantKey.Single,
-            UserKey.FromString("user-1"),
-            0,
-            ClaimsSnapshot.Empty);
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
-        var first = chain.RotateSession(CreateSessionId("s1"));
-        var second = first.RotateSession(CreateSessionId("s2"));
+        var first = chain.RotateSession(CreateSessionId("s1"), DateTimeOffset.UtcNow);
+        var second = first.RotateSession(CreateSessionId("s2"), DateTimeOffset.UtcNow);
 
         Assert.Equal(2, second.RotationCount);
         Assert.Equal(CreateSessionId("s2"), second.ActiveSessionId);
@@ -73,13 +86,17 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            TenantKey.Single,
-            UserKey.FromString("user-1"),
-            0,
-            ClaimsSnapshot.Empty);
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
         var revoked = chain.Revoke(now);
-        var rotated = revoked.RotateSession(CreateSessionId("s2"));
+        var rotated = revoked.RotateSession(CreateSessionId("s2"), DateTimeOffset.UtcNow);
 
         Assert.Same(revoked, rotated);
         Assert.True(rotated.IsRevoked);
@@ -93,10 +110,14 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            TenantKey.Single,
-            UserKey.FromString("user-1"),
-            0,
-            ClaimsSnapshot.Empty);
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
         var revoked = chain.Revoke(now);
 
@@ -112,10 +133,14 @@ public sealed class UAuthSessionChainTests
         var chain = UAuthSessionChain.Create(
             SessionChainId.New(),
             SessionRootId.New(),
-            TenantKey.Single,
-            UserKey.FromString("user-1"),
-            0,
-            ClaimsSnapshot.Empty);
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            DateTimeOffset.UtcNow,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
 
         var revoked1 = chain.Revoke(now);
         var revoked2 = revoked1.Revoke(now.AddMinutes(1));

@@ -75,6 +75,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
         services.TryAddScoped<IUAuthClient, UAuthClient>();
         services.TryAddScoped<IFlowClient, UAuthFlowClient>();
+        services.TryAddScoped<ISessionClient, UAuthSessionClient>();
         services.TryAddScoped<IUserClient, UAuthUserClient>();
         services.TryAddScoped<IUserIdentifierClient, UAuthUserIdentifierClient>();
         services.TryAddScoped<ICredentialClient, UAuthCredentialClient>();

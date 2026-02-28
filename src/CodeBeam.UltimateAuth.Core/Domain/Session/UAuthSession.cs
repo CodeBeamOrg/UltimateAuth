@@ -11,11 +11,9 @@ public sealed class UAuthSession : IVersionedEntity
     public SessionChainId ChainId { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset ExpiresAt { get; }
-    public DateTimeOffset? LastSeenAt { get; }
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long SecurityVersionAtCreation { get; }
-    public DeviceContext Device { get; }
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
     public long Version { get; }
@@ -27,11 +25,9 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        DateTimeOffset? lastSeenAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
-        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -42,11 +38,9 @@ public sealed class UAuthSession : IVersionedEntity
         ChainId = chainId;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
-        LastSeenAt = lastSeenAt;
         IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersionAtCreation = securityVersionAtCreation;
-        Device = device;
         Claims = claims;
         Metadata = metadata;
         Version = version;
@@ -60,7 +54,6 @@ public sealed class UAuthSession : IVersionedEntity
         DateTimeOffset now,
         DateTimeOffset expiresAt,
         long securityVersion,
-        DeviceContext device,
         ClaimsSnapshot? claims,
         SessionMetadata metadata)
     {
@@ -71,34 +64,12 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt: now,
             expiresAt: expiresAt,
-            lastSeenAt: now,
             isRevoked: false,
             revokedAt: null,
             securityVersionAtCreation: securityVersion,
-            device: device,
             claims: claims ?? ClaimsSnapshot.Empty,
             metadata: metadata,
             version: 0
-        );
-    }
-
-    public UAuthSession Touch(DateTimeOffset at)
-    {
-        return new UAuthSession(
-            SessionId,
-            Tenant,
-            UserKey,
-            ChainId,
-            CreatedAt,
-            ExpiresAt,
-            at,
-            IsRevoked,
-            RevokedAt,
-            SecurityVersionAtCreation,
-            Device,
-            Claims,
-            Metadata,
-            Version + 1
         );
     }
 
@@ -113,11 +84,9 @@ public sealed class UAuthSession : IVersionedEntity
             ChainId,
             CreatedAt,
             ExpiresAt,
-            LastSeenAt,
             true,
             at,
             SecurityVersionAtCreation,
-            Device,
             Claims,
             Metadata,
             Version + 1
@@ -131,11 +100,9 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        DateTimeOffset? lastSeenAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
-        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -147,26 +114,21 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt,
             expiresAt,
-            lastSeenAt,
             isRevoked,
             revokedAt,
             securityVersionAtCreation,
-            device,
             claims,
             metadata,
             version
         );
     }
 
-    public SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout)
+    public SessionState GetState(DateTimeOffset at)
     {
         if (IsRevoked) 
             return SessionState.Revoked;
 
         if (at >= ExpiresAt)
-            return SessionState.Expired;
-
-        if (idleTimeout.HasValue && at - LastSeenAt >= idleTimeout.Value)
             return SessionState.Expired;
 
         return SessionState.Active;
@@ -184,15 +146,12 @@ public sealed class UAuthSession : IVersionedEntity
             chainId: chainId,
             createdAt: CreatedAt,
             expiresAt: ExpiresAt,
-            lastSeenAt: LastSeenAt,
             isRevoked: IsRevoked,
             revokedAt: RevokedAt,
             securityVersionAtCreation: SecurityVersionAtCreation,
-            device: Device,
             claims: Claims,
             metadata: Metadata,
             version: Version + 1
         );
     }
-
 }

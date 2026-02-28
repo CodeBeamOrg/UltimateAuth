@@ -11,6 +11,7 @@ public sealed class AccessContext
     public TenantKey ActorTenant { get; init; }
     public bool IsAuthenticated { get; init; }
     public bool IsSystemActor { get; init; }
+    public SessionChainId? ActorChainId { get; }
 
     // Target
     public string? Resource { get; init; }
@@ -38,6 +39,7 @@ public sealed class AccessContext
         TenantKey actorTenant,
         bool isAuthenticated,
         bool isSystemActor,
+        SessionChainId? actorChainId,
         string resource,
         UserKey? targetUserKey,
         TenantKey resourceTenant,
@@ -48,6 +50,7 @@ public sealed class AccessContext
         ActorTenant = actorTenant;
         IsAuthenticated = isAuthenticated;
         IsSystemActor = isSystemActor;
+        ActorChainId = actorChainId;
 
         Resource = resource;
         TargetUserKey = targetUserKey;

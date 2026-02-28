@@ -69,7 +69,6 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             }
 
             UAuthSessionChain chain;
-            bool isNewChain = false;
 
             if (context.ChainId is not null)
             {
@@ -86,15 +85,18 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             }
             else
             {
-                isNewChain = true;
 
                 chain = UAuthSessionChain.Create(
                     SessionChainId.New(),
                     root.RootId,
                     context.Tenant,
                     context.UserKey,
-                    root.SecurityVersion,
-                    ClaimsSnapshot.Empty);
+                    now,
+                    null,
+                    context.Device,
+                    ClaimsSnapshot.Empty,
+                    root.SecurityVersion
+                );
 
                 await kernel.CreateChainAsync(chain);
 
@@ -120,7 +122,6 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 now: now,
                 expiresAt: expiresAt,
                 securityVersion: root.SecurityVersion,
-                device: context.Device,
                 claims: context.Claims,
                 metadata: context.Metadata
             );
@@ -128,7 +129,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             await kernel.CreateSessionAsync(session);
             var bound = session.WithChain(chain.ChainId);
             await kernel.SaveSessionAsync(bound, 0);
-            var updatedChain = chain.AttachSession(bound.SessionId);
+            var updatedChain = chain.AttachSession(bound.SessionId, now);
             await kernel.SaveChainAsync(updatedChain, chain.Version);
 
             issued = new IssuedSession
@@ -198,7 +199,6 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 now: now,
                 expiresAt: expiresAt,
                 securityVersion: root.SecurityVersion,
-                device: context.Device,
                 claims: context.Claims,
                 metadata: context.Metadata
             );
@@ -214,10 +214,8 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
             await kernel.CreateSessionAsync(newSession);
             var chainExpected = chain.Version;
-            var updatedChain = chain.RotateSession(newSession.SessionId);
+            var updatedChain = chain.RotateSession(newSession.SessionId, now, context.Claims);
             await kernel.SaveChainAsync(updatedChain, chainExpected);
-
-            //await kernel.SetActiveSessionIdAsync(chain.ChainId, newSession.SessionId);
 
             var expected = oldSession.Version;
             var revokedOld = oldSession.Revoke(now);
@@ -238,7 +236,14 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     public async Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _kernelFactory.Create(tenant);
-        await kernel.ExecuteAsync(_ => kernel.RevokeChainAsync(chainId, at), ct);
+        await kernel.ExecuteAsync(async _ =>
+        {
+            var chain = await kernel.GetChainAsync(chainId);
+            if (chain is null)
+                return;
+
+            await kernel.RevokeChainCascadeAsync(chainId, at);
+        }, ct);
     }
 
     public async Task RevokeAllChainsAsync(TenantKey tenant, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
@@ -253,31 +258,21 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 if (exceptChainId.HasValue && chain.ChainId == exceptChainId.Value)
                     continue;
 
-                if (!chain.IsRevoked)
-                {
-                    var expectedChainVersion = chain.Version;
-                    var revokedChain = chain.Revoke(at);
-                    await kernel.SaveChainAsync(revokedChain, expectedChainVersion);
-                }
-
-                if (chain.ActiveSessionId is not null)
-                {
-                    var session = await kernel.GetSessionAsync(chain.ActiveSessionId.Value);
-                    if (session is not null && !session.IsRevoked)
-                    {
-                        var expectedSessionVersion = session.Version;
-                        var revokedSession = session.Revoke(at);
-                        await kernel.SaveSessionAsync(revokedSession, expectedSessionVersion);
-                    }
-                }
+                await kernel.RevokeChainCascadeAsync(chain.ChainId, at);
             }
         }, ct);
     }
 
-    // TODO: Discuss revoking chains/sessions when root is revoked
     public async Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _kernelFactory.Create(tenant);
-        await kernel.ExecuteAsync(_ => kernel.RevokeRootAsync(userKey, at), ct);
+        await kernel.ExecuteAsync(async _ =>
+        {
+            var root = await kernel.GetRootByUserAsync(userKey);
+            if (root is null)
+                return;
+
+            await kernel.RevokeRootCascadeAsync(userKey, at);
+        }, ct);
     }
 }

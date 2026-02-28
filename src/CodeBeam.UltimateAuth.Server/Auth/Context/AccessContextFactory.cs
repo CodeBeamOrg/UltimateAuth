@@ -67,6 +67,7 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             actorTenant: authFlow.Tenant,
             isAuthenticated: authFlow.IsAuthenticated,
             isSystemActor: authFlow.Tenant.IsSystem,
+            actorChainId: authFlow.Session?.ChainId,
             resource: resource,
             targetUserKey: targetUserKey,
             resourceTenant: resourceTenant,
