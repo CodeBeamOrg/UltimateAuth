@@ -1,11 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-// TODO: Add concurrency property
-public sealed record class UserLifecycle
+public sealed record class UserLifecycle : IVersionedEntity
 {
     public TenantKey Tenant { get; set; }
 
@@ -19,4 +19,6 @@ public sealed record class UserLifecycle
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public long Version { get; set; }
 }

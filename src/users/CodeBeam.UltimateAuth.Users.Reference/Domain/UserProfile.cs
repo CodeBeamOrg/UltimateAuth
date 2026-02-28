@@ -1,11 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
 // TODO: Multi profile (e.g., public profiles, private profiles, profiles per application, etc. with ProfileKey)
-// TODO: Add concurrency property
-public sealed record class UserProfile
+public sealed record class UserProfile : IVersionedEntity
 {
     public TenantKey Tenant { get; set; }
 
@@ -30,4 +30,6 @@ public sealed record class UserProfile
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public long Version { get; set; }
 }

@@ -390,7 +390,10 @@ internal sealed class UserApplicationService : IUserApplicationService
                     throw new UAuthIdentifierConflictException("identifier_already_exists");
             }
 
-            await _identifierStore.UpdateValueAsync(identifier.Id, request.NewValue, normalized.Normalized, _clock.UtcNow, innerCt);
+            var expectedVersion = identifier.Version;
+            identifier.ChangeValue(request.NewValue, normalized.Normalized, _clock.UtcNow);
+
+            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -417,7 +420,9 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (result.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists");
 
-            await _identifierStore.SetPrimaryAsync(request.IdentifierId, _clock.UtcNow, innerCt);
+            var expectedVersion = identifier.Version;
+            identifier.SetPrimary(_clock.UtcNow);
+            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -434,7 +439,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (!identifier.IsPrimary)
-                throw new UAuthIdentifierValidationException("identifier_not_primary");
+                throw new UAuthIdentifierValidationException("identifier_already_not_primary");
 
             var userIdentifiers =
             await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
@@ -452,7 +457,9 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierConflictException("cannot_unset_last_login_identifier");
             }
 
-            await _identifierStore.UnsetPrimaryAsync(request.IdentifierId, _clock.UtcNow, innerCt);
+            var expectedVersion = identifier.Version;
+            identifier.UnsetPrimary(_clock.UtcNow);
+            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -463,7 +470,14 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new VerifyUserIdentifierCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
-            await _identifierStore.MarkVerifiedAsync(request.IdentifierId, _clock.UtcNow, innerCt);
+
+            var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            if (identifier is null)
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+            var expectedVersion = identifier.Version;
+            identifier.MarkVerified(_clock.UtcNow);
+            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -496,9 +510,19 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             if (IsLoginIdentifier(identifier.Type) && loginIdentifiers.Count == 1)
-                throw new UAuthIdentifierConflictException("cannot_delete_last_login_identifier"); 
+                throw new UAuthIdentifierConflictException("cannot_delete_last_login_identifier");
 
-            await _identifierStore.DeleteAsync(request.IdentifierId, request.Mode, _clock.UtcNow, innerCt);
+            var expectedVersion = identifier.Version;
+
+            if (request.Mode == DeleteMode.Hard)
+            {
+                await _identifierStore.DeleteAsync(identifier, expectedVersion, DeleteMode.Hard, _clock.UtcNow, innerCt);
+            }
+            else
+            {
+                identifier.SoftDelete(_clock.UtcNow);
+                await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+            }
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);

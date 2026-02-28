@@ -33,8 +33,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.UserKey)
                 .IsRequired();
@@ -62,8 +61,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.UserKey)
                 .IsRequired();
@@ -90,7 +88,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         b.Entity<SessionProjection>(e =>
         {
             e.HasKey(x => x.Id);
-            e.Property(x => x.RowVersion).IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.HasIndex(x => new { x.Tenant, x.SessionId }).IsUnique();
             e.HasIndex(x => new { x.Tenant, x.ChainId, x.RevokedAt });

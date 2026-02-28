@@ -10,282 +10,260 @@ namespace CodeBeam.UltimateAuth.Users.InMemory;
 public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
 {
     private readonly Dictionary<Guid, UserIdentifier> _store = new();
+    private readonly object _lock = new();
 
     public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
-
-        var candidates = _store.Values
-            .Where(x =>
-                x.Tenant == query.Tenant &&
-                x.Type == query.Type &&
-                x.NormalizedValue == query.NormalizedValue &&
-                !x.IsDeleted);
-
-        if (query.ExcludeIdentifierId.HasValue)
-            candidates = candidates.Where(x => x.Id != query.ExcludeIdentifierId.Value);
-
-        candidates = query.Scope switch
+        lock (_lock)
         {
-            IdentifierExistenceScope.WithinUser => candidates.Where(x => x.UserKey == query.UserKey),
-            IdentifierExistenceScope.TenantPrimaryOnly => candidates.Where(x => x.IsPrimary),
-            IdentifierExistenceScope.TenantAny => candidates,
-            _ => candidates
-        };
+            ct.ThrowIfCancellationRequested();
 
-        var match = candidates.FirstOrDefault();
+            var candidates = _store.Values
+                .Where(x =>
+                    x.Tenant == query.Tenant &&
+                    x.Type == query.Type &&
+                    x.NormalizedValue == query.NormalizedValue &&
+                    !x.IsDeleted);
 
-        if (match is null)
-            return Task.FromResult(new IdentifierExistenceResult(false));
+            if (query.ExcludeIdentifierId.HasValue)
+                candidates = candidates.Where(x => x.Id != query.ExcludeIdentifierId.Value);
 
-        return Task.FromResult(new IdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
+            candidates = query.Scope switch
+            {
+                IdentifierExistenceScope.WithinUser => candidates.Where(x => x.UserKey == query.UserKey),
+                IdentifierExistenceScope.TenantPrimaryOnly => candidates.Where(x => x.IsPrimary),
+                IdentifierExistenceScope.TenantAny => candidates,
+                _ => candidates
+            };
+
+            var match = candidates.FirstOrDefault();
+
+            if (match is null)
+                return Task.FromResult(new IdentifierExistenceResult(false));
+
+            return Task.FromResult(new IdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
+        }
     }
 
     public Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var identifier = _store.Values.FirstOrDefault(x =>
+        lock (_lock)
+        {
+            var identifier = _store.Values.FirstOrDefault(x =>
             x.Tenant == tenant &&
             x.Type == type &&
             x.NormalizedValue == normalizedValue &&
             !x.IsDeleted);
 
-        return Task.FromResult(identifier);
+            return Task.FromResult(identifier?.Cloned());
+        }
     }
 
     public Task<UserIdentifier?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_store.TryGetValue(id, out var identifier))
-            return Task.FromResult<UserIdentifier?>(null);
+        lock (_lock)
+        {
+            if (!_store.TryGetValue(id, out var identifier))
+                return Task.FromResult<UserIdentifier?>(null);
 
-        if (identifier.IsDeleted)
-            return Task.FromResult<UserIdentifier?>(null);
+            if (identifier.IsDeleted)
+                return Task.FromResult<UserIdentifier?>(null);
 
-        return Task.FromResult<UserIdentifier?>(identifier);
+            return Task.FromResult<UserIdentifier?>(identifier.Cloned());
+        }
     }
 
     public Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var result = _store.Values
-            .Where(x => x.Tenant == tenant)
-            .Where(x => x.UserKey == userKey)
-            .Where(x => !x.IsDeleted)
-            .OrderBy(x => x.CreatedAt)
-            .ToList()
-            .AsReadOnly();
+        lock (_lock)
+        {
+            var result = _store.Values
+                .Where(x => x.Tenant == tenant)
+                .Where(x => x.UserKey == userKey)
+                .Where(x => !x.IsDeleted)
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => x.Cloned())
+                .ToList()
+                .AsReadOnly();
 
-        return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
+            return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
+        }
     }
 
     public Task<PagedResult<UserIdentifier>> QueryAsync(TenantKey tenant, UserIdentifierQuery query, CancellationToken ct = default)
     {
+        lock (_lock)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (query.UserKey is null)
+                throw new UAuthIdentifierValidationException("userKey_required");
+
+            var normalized = query.Normalize();
+
+            var baseQuery = _store.Values
+                .Where(x => x.Tenant == tenant)
+                .Where(x => x.UserKey == query.UserKey.Value);
+
+            if (!query.IncludeDeleted)
+                baseQuery = baseQuery.Where(x => !x.IsDeleted);
+
+            baseQuery = query.SortBy switch
+            {
+                nameof(UserIdentifier.Type) =>
+                    query.Descending ? baseQuery.OrderByDescending(x => x.Type)
+                                     : baseQuery.OrderBy(x => x.Type),
+
+                nameof(UserIdentifier.CreatedAt) =>
+                    query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                                     : baseQuery.OrderBy(x => x.CreatedAt),
+
+                _ => baseQuery.OrderBy(x => x.CreatedAt)
+            };
+
+            var totalCount = baseQuery.Count();
+
+            var items = baseQuery
+                .Skip((normalized.PageNumber - 1) * normalized.PageSize)
+                .Take(normalized.PageSize)
+                .Select(x => x.Cloned())
+                .ToList()
+                .AsReadOnly();
+
+            return Task.FromResult(
+                new PagedResult<UserIdentifier>(
+                    items,
+                    totalCount,
+                    normalized.PageNumber,
+                    normalized.PageSize,
+                    query.SortBy,
+                    query.Descending));
+        }
+    }
+
+    public Task SaveAsync(UserIdentifier entity, long expectedVersion, CancellationToken ct = default)
+    {
         ct.ThrowIfCancellationRequested();
 
-        if (query.UserKey is null)
-            throw new UAuthIdentifierValidationException("userKey_required");
-
-        var normalized = query.Normalize();
-
-        var baseQuery = _store.Values
-            .Where(x => x.Tenant == tenant)
-            .Where(x => x.UserKey == query.UserKey.Value);
-
-        if (!query.IncludeDeleted)
-            baseQuery = baseQuery.Where(x => !x.IsDeleted);
-
-        baseQuery = query.SortBy switch
+        lock (_lock)
         {
-            nameof(UserIdentifier.Type) =>
-                query.Descending ? baseQuery.OrderByDescending(x => x.Type)
-                                 : baseQuery.OrderBy(x => x.Type),
+            if (!_store.TryGetValue(entity.Id, out var existing))
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            nameof(UserIdentifier.CreatedAt) =>
-                query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt)
-                                 : baseQuery.OrderBy(x => x.CreatedAt),
+            if (existing.Version != expectedVersion)
+                throw new UAuthConcurrencyException("identifier_concurrency_conflict");
 
-            _ => baseQuery.OrderBy(x => x.CreatedAt)
-        };
+            if (entity.IsPrimary)
+            {
+                foreach (var other in _store.Values.Where(x =>
+                             x.Tenant == entity.Tenant &&
+                             x.UserKey == entity.UserKey &&
+                             x.Type == entity.Type &&
+                             x.Id != entity.Id &&
+                             x.IsPrimary &&
+                             !x.IsDeleted))
+                {
+                    other.UnsetPrimary(entity.UpdatedAt ?? entity.CreatedAt);
+                }
+            }
 
-        var totalCount = baseQuery.Count();
+            _store[entity.Id] = entity.Cloned();
+        }
 
-        var items = baseQuery
-            .Skip((normalized.PageNumber - 1) * normalized.PageSize)
-            .Take(normalized.PageSize)
-            .ToList()
-            .AsReadOnly();
-
-        return Task.FromResult(
-            new PagedResult<UserIdentifier>(
-                items,
-                totalCount,
-                normalized.PageNumber,
-                normalized.PageSize,
-                query.SortBy,
-                query.Descending));
+        return Task.CompletedTask;
     }
 
     public Task CreateAsync(TenantKey tenant, UserIdentifier identifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (identifier.Id == Guid.Empty)
-            identifier.Id = Guid.NewGuid();
-
-        identifier.Tenant = tenant;
-
-        if (identifier.IsPrimary)
+        lock (_lock)
         {
-            foreach (var existing in _store.Values.Where(x =>
-                         x.Tenant == tenant &&
-                         x.UserKey == identifier.UserKey &&
-                         x.Type == identifier.Type &&
-                         x.IsPrimary &&
-                         !x.IsDeleted))
+            if (identifier.Id == Guid.Empty)
+                identifier.Id = Guid.NewGuid();
+
+            identifier.Tenant = tenant;
+
+
+            if (identifier.IsPrimary)
             {
-                existing.IsPrimary = false;
-                existing.UpdatedAt = identifier.CreatedAt;
+                foreach (var existing in _store.Values.Where(x =>
+                             x.Tenant == tenant &&
+                             x.UserKey == identifier.UserKey &&
+                             x.Type == identifier.Type &&
+                             x.IsPrimary &&
+                             !x.IsDeleted))
+                {
+                    existing.IsPrimary = false;
+                    existing.UpdatedAt = identifier.CreatedAt;
+                }
             }
+
+            identifier.Version = 0;
+            _store[identifier.Id] = identifier;
         }
 
-        _store[identifier.Id] = identifier;
-
         return Task.CompletedTask;
     }
 
-    public Task UpdateValueAsync(Guid id, string newRawValue, string newNormalizedValue, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public Task DeleteAsync(UserIdentifier entity, long expectedVersion, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new UAuthIdentifierNotFoundException("identifier_not_found");
-
-        if (identifier.NormalizedValue == newNormalizedValue)
-            throw new UAuthIdentifierConflictException("identifier_value_unchanged");
-
-        identifier.Value = newRawValue;
-        identifier.NormalizedValue = newNormalizedValue;
-
-        identifier.IsVerified = false;
-        identifier.VerifiedAt = null;
-        identifier.UpdatedAt = updatedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task MarkVerifiedAsync(Guid id, DateTimeOffset verifiedAt, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new UAuthIdentifierNotFoundException("identifier_not_found");
-
-        if (identifier.IsVerified)
-            throw new UAuthIdentifierConflictException("identifier_already_verified");
-
-        identifier.IsVerified = true;
-        identifier.VerifiedAt = verifiedAt;
-        identifier.UpdatedAt = verifiedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task SetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_store.TryGetValue(id, out var target) || target.IsDeleted)
-            throw new UAuthIdentifierNotFoundException("identifier_not_found");
-
-        foreach (var idf in _store.Values.Where(x =>
-                     x.Tenant == target.Tenant &&
-                     x.UserKey == target.UserKey &&
-                     x.Type == target.Type &&
-                     x.IsPrimary &&
-                     !x.IsDeleted))
+        lock (_lock)
         {
-            if (idf.Id == target.Id)
-                continue;
-            idf.IsPrimary = false;
-            idf.UpdatedAt = updatedAt;
+            if (!_store.TryGetValue(entity.Id, out var identifier))
+                throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+            if (identifier.Version != expectedVersion)
+                throw new UAuthConcurrencyException("identifier_concurrency_conflict");
+
+            if (mode == DeleteMode.Hard)
+            {
+                _store.Remove(entity.Id);
+                return Task.CompletedTask;
+            }
+
+            _store[entity.Id] = entity.Cloned();
         }
-
-        target.IsPrimary = true;
-        target.UpdatedAt = updatedAt;
-
         return Task.CompletedTask;
     }
 
-    public Task UnsetPrimaryAsync(Guid id, DateTimeOffset updatedAt, CancellationToken ct = default)
+    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_store.TryGetValue(id, out var identifier) || identifier.IsDeleted)
-            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+        List<UserIdentifier> snapshot;
 
-        if (!identifier.IsPrimary)
+        lock (_lock)
         {
-            throw new UAuthIdentifierConflictException("identifier_is_not_primary_already");
+            snapshot = _store.Values
+                .Where(x => x.Tenant == tenant && x.UserKey == userKey)
+                .Select(x => x.Cloned())
+                .ToList();
         }
 
-        identifier.IsPrimary = false;
-        identifier.UpdatedAt = updatedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(Guid id, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_store.TryGetValue(id, out var identifier))
-            throw new UAuthIdentifierNotFoundException("identifier_not_found");
-
-        if (mode == DeleteMode.Hard)
-        {
-            _store.Remove(id);
-            return Task.CompletedTask;
-        }
-
-        if (identifier.IsDeleted)
-            throw new UAuthIdentifierConflictException("identifier_already_deleted");
-
-        identifier.IsDeleted = true;
-        identifier.DeletedAt = deletedAt;
-        identifier.IsPrimary = false;
-        identifier.UpdatedAt = deletedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        var identifiers = _store.Values.Where(x => x.Tenant == tenant && x.UserKey == userKey).ToList();
-
-        foreach (var identifier in identifiers)
+        foreach (var identifier in snapshot)
         {
             if (mode == DeleteMode.Hard)
             {
-                _store.Remove(identifier.Id);
+                lock (_lock)
+                {
+                    _store.Remove(identifier.Id);
+                }
             }
             else
             {
-                if (identifier.IsDeleted)
-                    continue;
-
-                identifier.IsDeleted = true;
-                identifier.DeletedAt = deletedAt;
-                identifier.IsPrimary = false;
-                identifier.UpdatedAt = deletedAt;
+                var expected = identifier.Version;
+                identifier.SoftDelete(deletedAt);
+                await SaveAsync(identifier, expected, ct);
             }
         }
-
-        return Task.CompletedTask;
     }
 }

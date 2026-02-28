@@ -64,23 +64,21 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 CreatedAt = _clock.UtcNow
             }, ct);
 
-        var usernameIdentifier = new UserIdentifier
-        {
-            Id = Guid.NewGuid(),
-            Tenant = tenant,
-            UserKey = userKey,
-            Type = UserIdentifierType.Username,
-            Value = username,
-            NormalizedValue = _identifierNormalizer
-                .Normalize(UserIdentifierType.Username, username)
-                .Normalized,
-            IsPrimary = true,
-            IsVerified = true,
-            CreatedAt = _clock.UtcNow
-        };
-
-        await _identifiers.CreateAsync(tenant, usernameIdentifier, ct);
-        await _identifiers.SetPrimaryAsync(usernameIdentifier.Id, _clock.UtcNow, ct);
+        await _identifiers.CreateAsync(tenant,
+            new UserIdentifier
+            {
+                Id = Guid.NewGuid(),
+                Tenant = tenant,
+                UserKey = userKey,
+                Type = UserIdentifierType.Username,
+                Value = username,
+                NormalizedValue = _identifierNormalizer
+                    .Normalize(UserIdentifierType.Username, username)
+                    .Normalized,
+                IsPrimary = true,
+                IsVerified = true,
+                CreatedAt = _clock.UtcNow
+            }, ct);
 
         await _identifiers.CreateAsync(tenant,
             new UserIdentifier

@@ -14,7 +14,8 @@ internal static class SessionRootProjectionMapper
             root.RevokedAt,
             root.SecurityVersion,
             chains ?? Array.Empty<UAuthSessionChain>(),
-            root.LastUpdatedAt
+            root.LastUpdatedAt,
+            root.Version
         );
     }
 
@@ -30,7 +31,8 @@ internal static class SessionRootProjectionMapper
             RevokedAt = root.RevokedAt,
 
             SecurityVersion = root.SecurityVersion,
-            LastUpdatedAt = root.LastUpdatedAt
+            LastUpdatedAt = root.LastUpdatedAt,
+            Version = root.Version
         };
     }
 }

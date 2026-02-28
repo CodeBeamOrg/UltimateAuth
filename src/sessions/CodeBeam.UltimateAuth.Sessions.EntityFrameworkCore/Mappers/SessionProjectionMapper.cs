@@ -19,7 +19,8 @@ internal static class SessionProjectionMapper
             p.SecurityVersionAtCreation,
             p.Device,
             p.Claims,
-            p.Metadata
+            p.Metadata,
+            p.Version
         );
     }
 
@@ -42,7 +43,8 @@ internal static class SessionProjectionMapper
             SecurityVersionAtCreation = s.SecurityVersionAtCreation,
             Device = s.Device,
             Claims = s.Claims,
-            Metadata = s.Metadata
+            Metadata = s.Metadata,
+            Version = s.Version
         };
     }
 

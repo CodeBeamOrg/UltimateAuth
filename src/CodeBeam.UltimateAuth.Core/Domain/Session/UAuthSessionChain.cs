@@ -1,8 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed class UAuthSessionChain
+public sealed class UAuthSessionChain : IVersionedEntity
 {
     public SessionChainId ChainId { get; }
     public SessionRootId RootId { get; }
@@ -14,6 +15,7 @@ public sealed class UAuthSessionChain
     public AuthSessionId? ActiveSessionId { get; }
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
+    public long Version { get; }
 
     private UAuthSessionChain(
         SessionChainId chainId,
@@ -25,7 +27,8 @@ public sealed class UAuthSessionChain
         ClaimsSnapshot claimsSnapshot,
         AuthSessionId? activeSessionId,
         bool isRevoked,
-        DateTimeOffset? revokedAt)
+        DateTimeOffset? revokedAt,
+        long version)
     {
         ChainId = chainId;
         RootId = rootId;
@@ -37,6 +40,7 @@ public sealed class UAuthSessionChain
         ActiveSessionId = activeSessionId;
         IsRevoked = isRevoked;
         RevokedAt = revokedAt;
+        Version = version;
     }
 
     public static UAuthSessionChain Create(
@@ -57,7 +61,8 @@ public sealed class UAuthSessionChain
             claimsSnapshot: claimsSnapshot,
             activeSessionId: null,
             isRevoked: false,
-            revokedAt: null
+            revokedAt: null,
+            version: 0
         );
     }
 
@@ -76,7 +81,8 @@ public sealed class UAuthSessionChain
             ClaimsSnapshot,
             activeSessionId: sessionId,
             isRevoked: false,
-            revokedAt: null
+            revokedAt: null,
+            version: Version + 1
         );
     }
 
@@ -95,7 +101,8 @@ public sealed class UAuthSessionChain
             ClaimsSnapshot,
             activeSessionId: sessionId,
             isRevoked: false,
-            revokedAt: null
+            revokedAt: null,
+            version: Version + 1
         );
     }
 
@@ -114,7 +121,8 @@ public sealed class UAuthSessionChain
             ClaimsSnapshot,
             ActiveSessionId,
             isRevoked: true,
-            revokedAt: at
+            revokedAt: at,
+            version: Version + 1
         );
     }
 
@@ -128,7 +136,8 @@ public sealed class UAuthSessionChain
         ClaimsSnapshot claimsSnapshot,
         AuthSessionId? activeSessionId,
         bool isRevoked,
-        DateTimeOffset? revokedAt)
+        DateTimeOffset? revokedAt,
+        long version)
     {
         return new UAuthSessionChain(
             chainId,
@@ -140,7 +149,8 @@ public sealed class UAuthSessionChain
             claimsSnapshot,
             activeSessionId,
             isRevoked,
-            revokedAt
+            revokedAt,
+            version
         );
     }
 

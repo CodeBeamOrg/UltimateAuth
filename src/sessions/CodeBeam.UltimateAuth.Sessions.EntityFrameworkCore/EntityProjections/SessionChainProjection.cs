@@ -23,5 +23,5 @@ internal sealed class SessionChainProjection
     public bool IsRevoked { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
-    public byte[] RowVersion { get; set; } = default!;
+    public long Version { get; set; }
 }

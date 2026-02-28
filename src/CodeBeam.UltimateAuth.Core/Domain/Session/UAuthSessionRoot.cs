@@ -1,8 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed class UAuthSessionRoot
+public sealed class UAuthSessionRoot : IVersionedEntity
 {
     public SessionRootId RootId { get; }
     public UserKey UserKey { get; }
@@ -12,6 +13,7 @@ public sealed class UAuthSessionRoot
     public long SecurityVersion { get; }
     public IReadOnlyList<UAuthSessionChain> Chains { get; }
     public DateTimeOffset LastUpdatedAt { get; }
+    public long Version { get; }
 
     private UAuthSessionRoot(
         SessionRootId rootId,
@@ -21,7 +23,8 @@ public sealed class UAuthSessionRoot
         DateTimeOffset? revokedAt,
         long securityVersion,
         IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt)
+        DateTimeOffset lastUpdatedAt,
+        long version)
     {
         RootId = rootId;
         Tenant = tenant;
@@ -31,6 +34,7 @@ public sealed class UAuthSessionRoot
         SecurityVersion = securityVersion;
         Chains = chains;
         LastUpdatedAt = lastUpdatedAt;
+        Version = version;
     }
 
     public static UAuthSessionRoot Create(
@@ -46,7 +50,8 @@ public sealed class UAuthSessionRoot
             revokedAt: null,
             securityVersion: 0,
             chains: Array.Empty<UAuthSessionChain>(),
-            lastUpdatedAt: issuedAt
+            lastUpdatedAt: issuedAt,
+            version: 0
         );
     }
 
@@ -63,7 +68,8 @@ public sealed class UAuthSessionRoot
             revokedAt: at,
             securityVersion: SecurityVersion,
             chains: Chains,
-            lastUpdatedAt: at
+            lastUpdatedAt: at,
+            version: Version + 1
         );
     }
 
@@ -80,7 +86,8 @@ public sealed class UAuthSessionRoot
             RevokedAt,
             SecurityVersion,
             Chains.Concat(new[] { chain }).ToArray(),
-            at
+            at,
+            Version + 1
         );
     }
 
@@ -92,7 +99,8 @@ public sealed class UAuthSessionRoot
         DateTimeOffset? revokedAt,
         long securityVersion,
         IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt)
+        DateTimeOffset lastUpdatedAt,
+        long version)
     {
         return new UAuthSessionRoot(
             rootId,
@@ -102,9 +110,8 @@ public sealed class UAuthSessionRoot
             revokedAt,
             securityVersion,
             chains,
-            lastUpdatedAt
+            lastUpdatedAt,
+            version
         );
     }
-
-
 }

@@ -1,11 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
-
-// TODO: Add concurrency property
-public sealed record UserIdentifier
+public sealed record UserIdentifier : IVersionedEntity
 {
     public Guid Id { get; set; }
     public TenantKey Tenant { get; set; }
@@ -25,4 +25,102 @@ public sealed record UserIdentifier
     public DateTimeOffset? VerifiedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public long Version { get; set; }
+
+
+    public UserIdentifier Cloned()
+    {
+        return new UserIdentifier
+        {
+            Id = Id,
+            Tenant = Tenant,
+            UserKey = UserKey,
+            Type = Type,
+            Value = Value,
+            NormalizedValue = NormalizedValue,
+            IsPrimary = IsPrimary,
+            IsVerified = IsVerified,
+            IsDeleted = IsDeleted,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            VerifiedAt = VerifiedAt,
+            DeletedAt = DeletedAt,
+            Version = Version
+        };
+    }
+
+    public void ChangeValue(string newRawValue, string newNormalizedValue, DateTimeOffset now)
+    {
+        if (IsDeleted)
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+        if (NormalizedValue == newNormalizedValue)
+            throw new UAuthIdentifierConflictException("identifier_value_unchanged");
+
+        Value = newRawValue;
+        NormalizedValue = newNormalizedValue;
+
+        IsVerified = false;
+        VerifiedAt = null;
+        UpdatedAt = now;
+
+        Version++;
+    }
+
+    public void MarkVerified(DateTimeOffset at)
+    {
+        if (IsDeleted)
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+        if (IsVerified)
+            throw new UAuthIdentifierConflictException("identifier_already_verified");
+
+        IsVerified = true;
+        VerifiedAt = at;
+        UpdatedAt = at;
+
+        Version++;
+    }
+
+    public void SetPrimary(DateTimeOffset at)
+    {
+        if (IsDeleted)
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+        if (IsPrimary)
+            return;
+
+        IsPrimary = true;
+        UpdatedAt = at;
+
+        Version++;
+    }
+
+    public void UnsetPrimary(DateTimeOffset at)
+    {
+        if (IsDeleted)
+            throw new UAuthIdentifierNotFoundException("identifier_not_found");
+
+        if (!IsPrimary)
+            throw new UAuthIdentifierConflictException("identifier_is_not_primary_already");
+
+        IsPrimary = false;
+        UpdatedAt = at;
+
+        Version++;
+    }
+
+    public void SoftDelete(DateTimeOffset at)
+    {
+        if (IsDeleted)
+            throw new UAuthIdentifierConflictException("identifier_already_deleted");
+
+        IsDeleted = true;
+        DeletedAt = at;
+        IsPrimary = false;
+        UpdatedAt = at;
+
+        Version++;
+    }
 }

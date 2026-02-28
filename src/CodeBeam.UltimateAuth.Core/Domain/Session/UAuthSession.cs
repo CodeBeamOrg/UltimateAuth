@@ -1,8 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed class UAuthSession
+public sealed class UAuthSession : IVersionedEntity
 {
     public AuthSessionId SessionId { get; }
     public TenantKey Tenant { get; }
@@ -17,21 +18,23 @@ public sealed class UAuthSession
     public DeviceContext Device { get; }
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
+    public long Version { get; }
 
     private UAuthSession(
-    AuthSessionId sessionId,
-    TenantKey tenant,
-    UserKey userKey,
-    SessionChainId chainId,
-    DateTimeOffset createdAt,
-    DateTimeOffset expiresAt,
-    DateTimeOffset? lastSeenAt,
-    bool isRevoked,
-    DateTimeOffset? revokedAt,
-    long securityVersionAtCreation,
-    DeviceContext device,
-    ClaimsSnapshot claims,
-    SessionMetadata metadata)
+        AuthSessionId sessionId,
+        TenantKey tenant,
+        UserKey userKey,
+        SessionChainId chainId,
+        DateTimeOffset createdAt,
+        DateTimeOffset expiresAt,
+        DateTimeOffset? lastSeenAt,
+        bool isRevoked,
+        DateTimeOffset? revokedAt,
+        long securityVersionAtCreation,
+        DeviceContext device,
+        ClaimsSnapshot claims,
+        SessionMetadata metadata,
+        long version)
     {
         SessionId = sessionId;
         Tenant = tenant;
@@ -46,6 +49,7 @@ public sealed class UAuthSession
         Device = device;
         Claims = claims;
         Metadata = metadata;
+        Version = version;
     }
 
     public static UAuthSession Create(
@@ -72,13 +76,14 @@ public sealed class UAuthSession
             securityVersionAtCreation: 0,
             device: device,
             claims: claims ?? ClaimsSnapshot.Empty,
-            metadata: metadata
+            metadata: metadata,
+            version: 0
         );
     }
 
-    public UAuthSession WithSecurityVersion(long version)
+    public UAuthSession WithSecurityVersion(long securityVersion)
     {
-        if (SecurityVersionAtCreation == version)
+        if (SecurityVersionAtCreation == securityVersion)
             return this;
 
         return new UAuthSession(
@@ -91,10 +96,11 @@ public sealed class UAuthSession
             LastSeenAt,
             IsRevoked,
             RevokedAt,
-            version,
+            securityVersion,
             Device,
             Claims,
-            Metadata
+            Metadata,
+            Version + 1
         );
     }
 
@@ -113,7 +119,8 @@ public sealed class UAuthSession
             SecurityVersionAtCreation,
             Device,
             Claims,
-            Metadata
+            Metadata,
+            Version + 1
         );
     }
 
@@ -134,7 +141,8 @@ public sealed class UAuthSession
             SecurityVersionAtCreation,
             Device,
             Claims,
-            Metadata
+            Metadata,
+            Version + 1
         );
     }
 
@@ -151,7 +159,8 @@ public sealed class UAuthSession
         long securityVersionAtCreation,
         DeviceContext device,
         ClaimsSnapshot claims,
-        SessionMetadata metadata)
+        SessionMetadata metadata,
+        long version)
     {
         return new UAuthSession(
             sessionId,
@@ -166,7 +175,8 @@ public sealed class UAuthSession
             securityVersionAtCreation,
             device,
             claims,
-            metadata
+            metadata,
+            version
         );
     }
 
@@ -202,7 +212,8 @@ public sealed class UAuthSession
             securityVersionAtCreation: SecurityVersionAtCreation,
             device: Device,
             claims: Claims,
-            metadata: Metadata
+            metadata: Metadata,
+            version: Version + 1
         );
     }
 

@@ -16,5 +16,5 @@ internal sealed class SessionRootProjection
     public long SecurityVersion { get; set; }
     public DateTimeOffset LastUpdatedAt { get; set; }
 
-    public byte[] RowVersion { get; set; } = default!;
+    public long Version { get; set; }
 }

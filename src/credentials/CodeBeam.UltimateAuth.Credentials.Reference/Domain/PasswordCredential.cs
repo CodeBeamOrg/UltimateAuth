@@ -1,10 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class PasswordCredential : ISecretCredential, ICredentialDescriptor
+public sealed class PasswordCredential : ISecretCredential, ICredentialDescriptor, IVersionedEntity
 {
     public Guid Id { get; init; }
     public TenantKey Tenant { get; init; }
@@ -19,8 +20,10 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
 
+    public long Version { get; private set; }
 
     public bool IsRevoked => Security.RevokedAt is not null;
+
     public bool IsExpired(DateTimeOffset now) => Security.ExpiresAt is not null && Security.ExpiresAt <= now;
 
     public PasswordCredential(
@@ -41,6 +44,28 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
         Metadata = metadata;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
+        Version = 0;
+    }
+
+    public static PasswordCredential Create(
+        Guid? id,
+        TenantKey tenant,
+        UserKey userKey,
+        string secretHash,
+        CredentialSecurityState security,
+        CredentialMetadata metadata,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new(
+            id ?? Guid.NewGuid(),
+            tenant,
+            userKey,
+            secretHash,
+            security,
+            metadata,
+            createdAt,
+            updatedAt);
     }
 
     public void ChangeSecret(string newSecretHash, DateTimeOffset now)
@@ -54,18 +79,21 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
         SecretHash = newSecretHash;
         UpdatedAt = now;
         Security = Security.RotateStamp();
+        Version++;
     }
 
     public void SetExpiry(DateTimeOffset? expiresAt, DateTimeOffset now)
     {
         Security = Security.SetExpiry(expiresAt);
         UpdatedAt = now;
+        Version++;
     }
 
     public void UpdateSecurity(CredentialSecurityState security, DateTimeOffset now)
     {
         Security = security;
         UpdatedAt = now;
+        Version++;
     }
 
     public void Revoke(DateTimeOffset now)
@@ -74,5 +102,6 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
             return;
         Security = Security.Revoke(now);
         UpdatedAt = now;
+        Version++;
     }
 }

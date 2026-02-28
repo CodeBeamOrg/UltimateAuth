@@ -14,6 +14,7 @@ public static class UserIdentifierMapper
             IsPrimary = record.IsPrimary,
             IsVerified = record.IsVerified,
             CreatedAt = record.CreatedAt,
-            VerifiedAt = record.VerifiedAt
+            VerifiedAt = record.VerifiedAt,
+            Version = record.Version
         };
 }

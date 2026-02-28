@@ -16,7 +16,8 @@ internal static class SessionChainProjectionMapper
             p.ClaimsSnapshot,
             p.ActiveSessionId,
             p.IsRevoked,
-            p.RevokedAt
+            p.RevokedAt,
+            p.Version
         );
     }
 
@@ -35,7 +36,8 @@ internal static class SessionChainProjectionMapper
             ActiveSessionId = chain.ActiveSessionId,
 
             IsRevoked = chain.IsRevoked,
-            RevokedAt = chain.RevokedAt
+            RevokedAt = chain.RevokedAt,
+            Version = chain.Version
         };
     }
 
