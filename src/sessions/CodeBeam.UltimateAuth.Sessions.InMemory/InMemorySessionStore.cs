@@ -1,17 +1,19 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Sessions.InMemory;
 
-internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
+internal sealed class InMemorySessionStore : ISessionStore
 {
     private readonly SemaphoreSlim _tx = new(1, 1);
+    private readonly object _lock = new();
 
     private readonly ConcurrentDictionary<AuthSessionId, UAuthSession> _sessions = new();
     private readonly ConcurrentDictionary<SessionChainId, UAuthSessionChain> _chains = new();
     private readonly ConcurrentDictionary<UserKey, UAuthSessionRoot> _roots = new();
-    private readonly ConcurrentDictionary<SessionChainId, AuthSessionId> _activeSessions = new();
+    //private readonly ConcurrentDictionary<SessionChainId, AuthSessionId> _activeSessions = new();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -39,11 +41,34 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
         }
     }
 
-    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId) => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
+    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId)
+        => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
 
-    public Task SaveSessionAsync(UAuthSession session)
+    public Task SaveSessionAsync(UAuthSession session, long expectedVersion)
     {
+        if (!_sessions.TryGetValue(session.SessionId, out var current))
+            throw new UAuthNotFoundException("session_not_found");
+
+        if (current.Version != expectedVersion)
+            throw new UAuthConcurrencyException("session_concurrency_conflict");
+
         _sessions[session.SessionId] = session;
+        return Task.CompletedTask;
+    }
+
+    public Task CreateSessionAsync(UAuthSession session)
+    {
+        lock (_lock)
+        {
+            if (_sessions.ContainsKey(session.SessionId))
+                throw new UAuthConcurrencyException("session_already_exists");
+
+            if (session.Version != 0)
+                throw new InvalidOperationException("New session must have version 0.");
+
+            _sessions[session.SessionId] = session;
+        }
+
         return Task.CompletedTask;
     }
 
@@ -62,9 +87,31 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
     public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)
         => Task.FromResult(_chains.TryGetValue(chainId, out var c) ? c : null);
 
-    public Task SaveChainAsync(UAuthSessionChain chain)
+    public Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion)
     {
+        if (!_chains.TryGetValue(chain.ChainId, out var current))
+            throw new UAuthNotFoundException("chain_not_found");
+
+        if (current.Version != expectedVersion)
+            throw new UAuthConcurrencyException("chain_concurrency_conflict");
+
         _chains[chain.ChainId] = chain;
+        return Task.CompletedTask;
+    }
+
+    public Task CreateChainAsync(UAuthSessionChain chain)
+    {
+        lock (_lock)
+        {
+            if (_chains.ContainsKey(chain.ChainId))
+                throw new UAuthConcurrencyException("chain_already_exists");
+
+            if (chain.Version != 0)
+                throw new InvalidOperationException("New chain must have version 0.");
+
+            _chains[chain.ChainId] = chain;
+        }
+
         return Task.CompletedTask;
     }
 
@@ -77,28 +124,50 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
         return Task.CompletedTask;
     }
 
-    public Task<AuthSessionId?> GetActiveSessionIdAsync(SessionChainId chainId)
-        => Task.FromResult<AuthSessionId?>(_activeSessions.TryGetValue(chainId, out var id) ? id : null);
+    //public Task<AuthSessionId?> GetActiveSessionIdAsync(SessionChainId chainId)
+    //    => Task.FromResult<AuthSessionId?>(_activeSessions.TryGetValue(chainId, out var id) ? id : null);
 
-    public Task SetActiveSessionIdAsync(SessionChainId chainId, AuthSessionId sessionId)
-    {
-        _activeSessions[chainId] = sessionId;
-        return Task.CompletedTask;
-    }
+    //public Task SetActiveSessionIdAsync(SessionChainId chainId, AuthSessionId sessionId)
+    //{
+    //    _activeSessions[chainId] = sessionId;
+    //    return Task.CompletedTask;
+    //}
 
-    public Task<UAuthSessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
+    public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey)
         => Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
 
-    public Task<UAuthSessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
+    public Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId)
         => Task.FromResult(_roots.Values.FirstOrDefault(r => r.RootId == rootId));
 
-    public Task SaveSessionRootAsync(UAuthSessionRoot root)
+    public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion)
     {
+        if (!_roots.TryGetValue(root.UserKey, out var current))
+            throw new UAuthNotFoundException("root_not_found");
+
+        if (current.Version != expectedVersion)
+            throw new UAuthConcurrencyException("root_concurrency_conflict");
+
         _roots[root.UserKey] = root;
         return Task.CompletedTask;
     }
 
-    public Task RevokeSessionRootAsync(UserKey userKey, DateTimeOffset at)
+    public Task CreateRootAsync(UAuthSessionRoot root)
+    {
+        lock (_lock)
+        {
+            if (_roots.ContainsKey(root.UserKey))
+                throw new UAuthConcurrencyException("root_already_exists");
+
+            if (root.Version != 0)
+                throw new InvalidOperationException("New root must have version 0.");
+
+            _roots[root.UserKey] = root;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeRootAsync(UserKey userKey, DateTimeOffset at)
     {
         if (_roots.TryGetValue(userKey, out var root))
         {
@@ -143,10 +212,10 @@ internal sealed class InMemorySessionStoreKernel : ISessionStoreKernel
                 var revoked = session.Revoke(at);
                 _sessions[kvp.Key] = revoked;
 
-                if (_activeSessions.TryGetValue(revoked.ChainId, out var activeId) && activeId == revoked.SessionId)
-                {
-                    _activeSessions.TryRemove(revoked.ChainId, out _);
-                }
+                //if (_activeSessions.TryGetValue(revoked.ChainId, out var activeId) && activeId == revoked.SessionId)
+                //{
+                //    _activeSessions.TryRemove(revoked.ChainId, out _);
+                //}
             }
         }
 

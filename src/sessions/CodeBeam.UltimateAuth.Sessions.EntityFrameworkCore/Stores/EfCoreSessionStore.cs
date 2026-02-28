@@ -1,17 +1,18 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
+internal sealed class EfCoreSessionStore : ISessionStore
 {
     private readonly UltimateAuthSessionDbContext _db;
     private readonly TenantContext _tenant;
 
-    public EfCoreSessionStoreKernel(UltimateAuthSessionDbContext db, TenantContext tenant)
+    public EfCoreSessionStore(UltimateAuthSessionDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant;
@@ -35,6 +36,11 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
                 await action(ct);
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await tx.RollbackAsync(ct);
+                throw new UAuthConcurrencyException("concurrency_conflict");
             }
             catch
             {
@@ -89,17 +95,32 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         return projection?.ToDomain();
     }
 
-    public async Task SaveSessionAsync(UAuthSession session)
+    public async Task SaveSessionAsync(UAuthSession session, long expectedVersion)
+    {
+        var projection = session.ToProjection();
+        projection.Version = expectedVersion;
+
+        _db.Entry(projection).State = EntityState.Modified;
+        _db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
+
+        try
+        {
+            await Task.CompletedTask;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new UAuthConcurrencyException("session_concurrency_conflict");
+        }
+    }
+
+    public async Task CreateSessionAsync(UAuthSession session)
     {
         var projection = session.ToProjection();
 
-        var exists = await _db.Sessions
-            .AnyAsync(x => x.SessionId == session.SessionId);
+        if (session.Version != 0)
+            throw new InvalidOperationException("New session must have version 0.");
 
-        if (exists)
-            _db.Sessions.Update(projection);
-        else
-            _db.Sessions.Add(projection);
+        _db.Sessions.Add(projection);
     }
 
     public async Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
@@ -128,17 +149,33 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         return projection?.ToDomain();
     }
 
-    public async Task SaveChainAsync(UAuthSessionChain chain)
+    public Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion)
     {
         var projection = chain.ToProjection();
 
-        var exists = await _db.Chains
-            .AnyAsync(x => x.ChainId == chain.ChainId);
+        if (chain.Version != expectedVersion + 1)
+            throw new InvalidOperationException("Chain version must be incremented by domain.");
 
-        if (exists)
-            _db.Chains.Update(projection);
-        else
-            _db.Chains.Add(projection);
+        // Concurrency için EF’e expectedVersion’ı original value olarak bildiriyoruz
+        _db.Entry(projection).State = EntityState.Modified;
+
+        _db.Entry(projection)
+            .Property(x => x.Version)
+            .OriginalValue = expectedVersion;
+
+        return Task.CompletedTask;
+    }
+
+    public Task CreateChainAsync(UAuthSessionChain chain)
+    {
+        if (chain.Version != 0)
+            throw new InvalidOperationException("New chain must have version 0.");
+
+        var projection = chain.ToProjection();
+
+        _db.Chains.Add(projection);
+
+        return Task.CompletedTask;
     }
 
     public async Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at)
@@ -177,7 +214,7 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         _db.Chains.Update(projection);
     }
 
-    public async Task<UAuthSessionRoot?> GetSessionRootByUserAsync(UserKey userKey)
+    public async Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey)
     {
         var rootProjection = await _db.Roots
             .AsNoTracking()
@@ -194,20 +231,35 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         return rootProjection.ToDomain(chains.Select(c => c.ToDomain()).ToList());
     }
 
-    public async Task SaveSessionRootAsync(UAuthSessionRoot root)
+    public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion)
     {
         var projection = root.ToProjection();
 
-        var exists = await _db.Roots
-            .AnyAsync(x => x.RootId == root.RootId);
+        if (root.Version != expectedVersion + 1)
+            throw new InvalidOperationException("Root version must be incremented by domain.");
 
-        if (exists)
-            _db.Roots.Update(projection);
-        else
-            _db.Roots.Add(projection);
+        _db.Entry(projection).State = EntityState.Modified;
+
+        _db.Entry(projection)
+            .Property(x => x.Version)
+            .OriginalValue = expectedVersion;
+
+        return Task.CompletedTask;
     }
 
-    public async Task RevokeSessionRootAsync(UserKey userKey, DateTimeOffset at)
+    public Task CreateRootAsync(UAuthSessionRoot root)
+    {
+        if (root.Version != 0)
+            throw new InvalidOperationException("New root must have version 0.");
+
+        var projection = root.ToProjection();
+
+        _db.Roots.Add(projection);
+
+        return Task.CompletedTask;
+    }
+
+    public async Task RevokeRootAsync(UserKey userKey, DateTimeOffset at)
     {
         var projection = await _db.Roots.SingleOrDefaultAsync(x => x.UserKey == userKey);
 
@@ -247,7 +299,7 @@ internal sealed class EfCoreSessionStoreKernel : ISessionStoreKernel
         return projections.Select(x => x.ToDomain()).ToList();
     }
 
-    public async Task<UAuthSessionRoot?> GetSessionRootByIdAsync(SessionRootId rootId)
+    public async Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId)
     {
         var rootProjection = await _db.Roots
             .AsNoTracking()

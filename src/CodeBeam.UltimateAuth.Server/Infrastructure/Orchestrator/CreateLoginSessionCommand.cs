@@ -7,6 +7,6 @@ internal sealed record CreateLoginSessionCommand(AuthenticatedSessionContext Log
 {
     public Task<IssuedSession> ExecuteAsync(AuthContext _, ISessionIssuer issuer, CancellationToken ct)
     {
-        return issuer.IssueLoginSessionAsync(LoginContext, ct);
+        return issuer.IssueSessionAsync(LoginContext, ct);
     }
 }

@@ -9,12 +9,12 @@ namespace CodeBeam.UltimateAuth.Server.Services;
 
 internal sealed class UAuthSessionValidator : ISessionValidator
 {
-    private readonly ISessionStoreKernelFactory _storeFactory;
+    private readonly ISessionStoreFactory _storeFactory;
     private readonly IUserClaimsProvider _claimsProvider;
     private readonly UAuthServerOptions _options;
 
     public UAuthSessionValidator(
-        ISessionStoreKernelFactory storeFactory,
+        ISessionStoreFactory storeFactory,
         IUserClaimsProvider claimsProvider,
         IOptions<UAuthServerOptions> options)
     {
@@ -41,7 +41,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (chain is null || chain.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId);
 
-        var root = await kernel.GetSessionRootByUserAsync(session.UserKey);
+        var root = await kernel.GetRootByUserAsync(session.UserKey);
         if (root is null || root.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId, root?.RootId);
 

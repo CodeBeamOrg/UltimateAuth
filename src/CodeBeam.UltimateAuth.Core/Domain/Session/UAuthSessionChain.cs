@@ -80,8 +80,8 @@ public sealed class UAuthSessionChain : IVersionedEntity
             SecurityVersionAtCreation,
             ClaimsSnapshot,
             activeSessionId: sessionId,
-            isRevoked: false,
-            revokedAt: null,
+            isRevoked: IsRevoked,
+            revokedAt: RevokedAt,
             version: Version + 1
         );
     }

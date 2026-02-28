@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 
 public sealed class SessionTouchService : ISessionTouchService
 {
-    private readonly ISessionStoreKernelFactory _kernelFactory;
+    private readonly ISessionStoreFactory _kernelFactory;
 
-    public SessionTouchService(ISessionStoreKernelFactory kernelFactory)
+    public SessionTouchService(ISessionStoreFactory kernelFactory)
     {
         _kernelFactory = kernelFactory;
     }
@@ -29,14 +29,17 @@ public sealed class SessionTouchService : ISessionTouchService
         await kernel.ExecuteAsync(async _ =>
         {
             var session = await kernel.GetSessionAsync(validation.SessionId.Value);
+
             if (session is null || session.IsRevoked)
                 return;
 
             if (sessionTouchMode == SessionTouchMode.IfNeeded && now - session.LastSeenAt < policy.TouchInterval.Value)
                 return;
 
+            var expectedVersion = session.Version;
             var touched = session.Touch(now);
-            await kernel.SaveSessionAsync(touched);
+
+            await kernel.SaveSessionAsync(touched, expectedVersion);
             didTouch = true;
         }, ct);
 

@@ -59,6 +59,7 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset now,
         DateTimeOffset expiresAt,
+        long securityVersion,
         DeviceContext device,
         ClaimsSnapshot? claims,
         SessionMetadata metadata)
@@ -73,34 +74,11 @@ public sealed class UAuthSession : IVersionedEntity
             lastSeenAt: now,
             isRevoked: false,
             revokedAt: null,
-            securityVersionAtCreation: 0,
+            securityVersionAtCreation: securityVersion,
             device: device,
             claims: claims ?? ClaimsSnapshot.Empty,
             metadata: metadata,
             version: 0
-        );
-    }
-
-    public UAuthSession WithSecurityVersion(long securityVersion)
-    {
-        if (SecurityVersionAtCreation == securityVersion)
-            return this;
-
-        return new UAuthSession(
-            SessionId,
-            Tenant,
-            UserKey,
-            ChainId,
-            CreatedAt,
-            ExpiresAt,
-            LastSeenAt,
-            IsRevoked,
-            RevokedAt,
-            securityVersion,
-            Device,
-            Claims,
-            Metadata,
-            Version + 1
         );
     }
 

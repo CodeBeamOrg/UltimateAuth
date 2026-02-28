@@ -11,18 +11,18 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UAuthSessionIssuer : ISessionIssuer
 {
-    private readonly ISessionStoreKernelFactory _kernelFactory;
+    private readonly ISessionStoreFactory _kernelFactory;
     private readonly IOpaqueTokenGenerator _opaqueGenerator;
     private readonly UAuthServerOptions _options;
 
-    public UAuthSessionIssuer(ISessionStoreKernelFactory kernelFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
+    public UAuthSessionIssuer(ISessionStoreFactory kernelFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
     {
         _kernelFactory = kernelFactory;
         _opaqueGenerator = opaqueGenerator;
         _options = options.Value;
     }
 
-    public async Task<IssuedSession> IssueLoginSessionAsync(AuthenticatedSessionContext context, CancellationToken ct = default)
+    public async Task<IssuedSession> IssueSessionAsync(AuthenticatedSessionContext context, CancellationToken ct = default)
     {
         // Defensive guard — enforcement belongs to Authority
         if (context.Mode == UAuthMode.PureJwt)
@@ -44,41 +44,50 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 expiresAt = absoluteExpiry;
         }
 
-        var session = UAuthSession.Create(
-            sessionId: sessionId,
-            tenant: context.Tenant,
-            userKey: context.UserKey,
-            chainId: SessionChainId.Unassigned,
-            now: now,
-            expiresAt: expiresAt,
-            claims: context.Claims,
-            device: context.Device,
-            metadata: context.Metadata
-        );
-
-        var issued = new IssuedSession
-        {
-            Session = session,
-            OpaqueSessionId = opaqueSessionId,
-            IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
-        };
-
         var kernel = _kernelFactory.Create(context.Tenant);
+
+        IssuedSession? issued = null;
 
         await kernel.ExecuteAsync(async _ =>
         {
-            var root = await kernel.GetSessionRootByUserAsync(context.UserKey)
-                ?? UAuthSessionRoot.Create(context.Tenant, context.UserKey, now);
+            var root = await kernel.GetRootByUserAsync(context.UserKey);
 
-            UAuthSessionChain chain;
+            bool isNewRoot = root is null;
+            long rootExpectedVersion = 0;
 
-            if (context.ChainId is not null)
+            if (isNewRoot)
             {
-                chain = await kernel.GetChainAsync(context.ChainId.Value)
-                    ?? throw new SecurityException("Chain not found.");
+                root = UAuthSessionRoot.Create(context.Tenant, context.UserKey, now);
+                await kernel.CreateRootAsync(root);
             }
             else
             {
+                if (root!.IsRevoked)
+                    throw new SecurityException("Session root is revoked.");
+
+                rootExpectedVersion = root.Version;
+            }
+
+            UAuthSessionChain chain;
+            bool isNewChain = false;
+
+            if (context.ChainId is not null)
+            {
+                if (isNewRoot)
+                    throw new SecurityException("ChainId provided but session root does not exist.");
+
+                chain = await kernel.GetChainAsync(context.ChainId.Value) ?? throw new SecurityException("Chain not found.");
+
+                if (chain.IsRevoked)
+                    throw new SecurityException("Chain is revoked.");
+
+                if (chain.Tenant != context.Tenant || chain.UserKey != context.UserKey)
+                    throw new SecurityException("Chain does not belong to the current user/tenant.");
+            }
+            else
+            {
+                isNewChain = true;
+
                 chain = UAuthSessionChain.Create(
                     SessionChainId.New(),
                     root.RootId,
@@ -87,17 +96,51 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     root.SecurityVersion,
                     ClaimsSnapshot.Empty);
 
-                await kernel.SaveChainAsync(chain);
-                root = root.AttachChain(chain, now);
+                await kernel.CreateChainAsync(chain);
+
+                var updatedRoot = root.AttachChain(chain, now);
+
+                if (isNewRoot)
+                {
+                    await kernel.SaveRootAsync(updatedRoot, 0);
+                }
+                else
+                {
+                    await kernel.SaveRootAsync(updatedRoot, rootExpectedVersion);
+                }
+
+                root = updatedRoot;
             }
 
-            var boundSession = session.WithChain(chain.ChainId);
+            var session = UAuthSession.Create(
+                sessionId: sessionId,
+                tenant: context.Tenant,
+                userKey: context.UserKey,
+                chainId: SessionChainId.Unassigned,
+                now: now,
+                expiresAt: expiresAt,
+                securityVersion: root.SecurityVersion,
+                device: context.Device,
+                claims: context.Claims,
+                metadata: context.Metadata
+            );
 
-            await kernel.SaveSessionAsync(boundSession);
-            await kernel.SetActiveSessionIdAsync(chain.ChainId, boundSession.SessionId);
-            await kernel.SaveSessionRootAsync(root);
+            await kernel.CreateSessionAsync(session);
+            var bound = session.WithChain(chain.ChainId);
+            await kernel.SaveSessionAsync(bound, 0);
+            var updatedChain = chain.AttachSession(bound.SessionId);
+            await kernel.SaveChainAsync(updatedChain, chain.Version);
+
+            issued = new IssuedSession
+            {
+                Session = session,
+                OpaqueSessionId = opaqueSessionId,
+                IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
+            };
         }, ct);
 
+        if (issued == null)
+            throw new InvalidCastException("Can't issued session.");
         return issued;
     }
 
@@ -118,41 +161,71 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 expiresAt = absoluteExpiry;
         }
 
-        var issued = new IssuedSession
-        {
-            Session = UAuthSession.Create(
-                sessionId: newSessionId,
-                tenant: context.Tenant,
-                userKey: context.UserKey,
-                chainId: SessionChainId.Unassigned,
-                now: now,
-                expiresAt: expiresAt,
-                device: context.Device,
-                claims: context.Claims,
-                metadata: context.Metadata
-            ),
-            OpaqueSessionId = opaqueSessionId,
-            IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
-        };
+        IssuedSession? issued = null;
 
         await kernel.ExecuteAsync(async _ =>
         {
+            var root = await kernel.GetRootByUserAsync(context.UserKey);
+            if (root == null)
+                throw new SecurityException("Session root not found");
+
+            if (root.IsRevoked)
+                throw new SecurityException("Session root is revoked");
+
             var oldSession = await kernel.GetSessionAsync(context.CurrentSessionId)
                 ?? throw new SecurityException("Session not found");
 
             if (oldSession.IsRevoked || oldSession.ExpiresAt <= now)
                 throw new SecurityException("Session is not valid");
 
+            if (oldSession.SecurityVersionAtCreation != root.SecurityVersion)
+                throw new SecurityException("Security version mismatch");
+
             var chain = await kernel.GetChainAsync(oldSession.ChainId)
                 ?? throw new SecurityException("Chain not found");
 
-            var bound = issued.Session.WithChain(chain.ChainId);
+            if (chain.IsRevoked)
+                throw new SecurityException("Chain is revoked");
 
-            await kernel.SaveSessionAsync(bound);
-            await kernel.SetActiveSessionIdAsync(chain.ChainId, bound.SessionId);
-            await kernel.RevokeSessionAsync(oldSession.SessionId, now);
+            if (chain.Tenant != context.Tenant || chain.UserKey != context.UserKey)
+                throw new SecurityException("Chain does not belong to the current user/tenant.");
+
+            var newSessionUnbound = UAuthSession.Create(
+                sessionId: newSessionId,
+                tenant: context.Tenant,
+                userKey: context.UserKey,
+                chainId: SessionChainId.Unassigned,
+                now: now,
+                expiresAt: expiresAt,
+                securityVersion: root.SecurityVersion,
+                device: context.Device,
+                claims: context.Claims,
+                metadata: context.Metadata
+            );
+
+            issued = new IssuedSession
+            {
+                Session = newSessionUnbound,
+                OpaqueSessionId = opaqueSessionId,
+                IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
+            };
+
+            var newSession = issued.Session.WithChain(chain.ChainId);
+
+            await kernel.CreateSessionAsync(newSession);
+            var chainExpected = chain.Version;
+            var updatedChain = chain.RotateSession(newSession.SessionId);
+            await kernel.SaveChainAsync(updatedChain, chainExpected);
+
+            //await kernel.SetActiveSessionIdAsync(chain.ChainId, newSession.SessionId);
+
+            var expected = oldSession.Version;
+            var revokedOld = oldSession.Revoke(now);
+            await kernel.SaveSessionAsync(revokedOld, expected);
         }, ct);
 
+        if (issued == null)
+            throw new InvalidCastException("Can't issued session.");
         return issued;
     }
 
@@ -181,11 +254,22 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     continue;
 
                 if (!chain.IsRevoked)
-                    await kernel.RevokeChainAsync(chain.ChainId, at);
+                {
+                    var expectedChainVersion = chain.Version;
+                    var revokedChain = chain.Revoke(at);
+                    await kernel.SaveChainAsync(revokedChain, expectedChainVersion);
+                }
 
-                var activeSessionId = await kernel.GetActiveSessionIdAsync(chain.ChainId);
-                if (activeSessionId is not null)
-                    await kernel.RevokeSessionAsync(activeSessionId.Value, at);
+                if (chain.ActiveSessionId is not null)
+                {
+                    var session = await kernel.GetSessionAsync(chain.ActiveSessionId.Value);
+                    if (session is not null && !session.IsRevoked)
+                    {
+                        var expectedSessionVersion = session.Version;
+                        var revokedSession = session.Revoke(at);
+                        await kernel.SaveSessionAsync(revokedSession, expectedSessionVersion);
+                    }
+                }
             }
         }, ct);
     }
@@ -194,7 +278,6 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     public async Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _kernelFactory.Create(tenant);
-        await kernel.ExecuteAsync(_ => kernel.RevokeSessionRootAsync(userKey, at), ct);
+        await kernel.ExecuteAsync(_ => kernel.RevokeRootAsync(userKey, at), ct);
     }
-
 }

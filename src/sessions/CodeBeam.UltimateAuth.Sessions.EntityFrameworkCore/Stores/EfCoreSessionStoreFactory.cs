@@ -4,18 +4,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-public sealed class EfCoreSessionStoreKernelFactory : ISessionStoreKernelFactory
+public sealed class EfCoreSessionStoreFactory : ISessionStoreFactory
 {
     private readonly IServiceProvider _sp;
 
-    public EfCoreSessionStoreKernelFactory(IServiceProvider sp)
+    public EfCoreSessionStoreFactory(IServiceProvider sp)
     {
         _sp = sp;
     }
 
-    public ISessionStoreKernel Create(TenantKey tenant)
+    public ISessionStore Create(TenantKey tenant)
     {
-        return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(tenant));
+        return ActivatorUtilities.CreateInstance<EfCoreSessionStore>(_sp, new TenantContext(tenant));
     }
 
     // TODO: Implement global here

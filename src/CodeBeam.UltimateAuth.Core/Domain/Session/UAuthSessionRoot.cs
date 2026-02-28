@@ -46,12 +46,27 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             SessionRootId.New(),
             tenant,
             userKey,
-            isRevoked: false,
-            revokedAt: null,
-            securityVersion: 0,
+            false,
+            null,
+            0,
             chains: Array.Empty<UAuthSessionChain>(),
-            lastUpdatedAt: issuedAt,
-            version: 0
+            issuedAt,
+            0
+        );
+    }
+
+    public UAuthSessionRoot IncreaseSecurityVersion(DateTimeOffset at)
+    {
+        return new UAuthSessionRoot(
+            RootId,
+            Tenant,
+            UserKey,
+            IsRevoked,
+            RevokedAt,
+            SecurityVersion + 1,
+            Chains,
+            at,
+            Version + 1
         );
     }
 
@@ -64,12 +79,12 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             RootId,
             Tenant,
             UserKey,
-            isRevoked: true,
-            revokedAt: at,
-            securityVersion: SecurityVersion,
-            chains: Chains,
-            lastUpdatedAt: at,
-            version: Version + 1
+            true,
+            at,
+            SecurityVersion + 1,
+            Chains,
+            at,
+            Version + 1
         );
     }
 

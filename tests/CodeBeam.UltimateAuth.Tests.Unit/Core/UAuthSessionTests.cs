@@ -21,6 +21,7 @@ public class UAuthSessionTests
             chainId: SessionChainId.New(),
             now,
             now.AddMinutes(10),
+            0,
             DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);
@@ -45,6 +46,7 @@ public class UAuthSessionTests
             SessionChainId.New(),
             now,
             now.AddMinutes(10),
+            0,
             DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
             ClaimsSnapshot.Empty,
             SessionMetadata.Empty);

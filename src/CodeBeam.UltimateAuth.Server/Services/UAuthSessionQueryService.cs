@@ -6,11 +6,11 @@ namespace CodeBeam.UltimateAuth.Server.Services;
 
 public sealed class UAuthSessionQueryService : ISessionQueryService
 {
-    private readonly ISessionStoreKernelFactory _storeFactory;
+    private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthFlowContextAccessor _authFlow;
 
     public UAuthSessionQueryService(
-        ISessionStoreKernelFactory storeFactory,
+        ISessionStoreFactory storeFactory,
         IAuthFlowContextAccessor authFlow)
     {
         _storeFactory = storeFactory;
@@ -37,7 +37,7 @@ public sealed class UAuthSessionQueryService : ISessionQueryService
         return CreateKernel().GetChainIdBySessionAsync(sessionId);
     }
 
-    private ISessionStoreKernel CreateKernel()
+    private ISessionStore CreateKernel()
     {
         var tenantId = _authFlow.Current.Tenant;
         return _storeFactory.Create(tenantId);

@@ -10,10 +10,10 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 {
-    private readonly ISessionStoreKernelFactory _kernelFactory;
+    private readonly ISessionStoreFactory _kernelFactory;
     private readonly IUserIdConverter<TUserId> _userIdConverter;
 
-    public UAuthUserAccessor(ISessionStoreKernelFactory kernelFactory, IUserIdConverterResolver converterResolver)
+    public UAuthUserAccessor(ISessionStoreFactory kernelFactory, IUserIdConverterResolver converterResolver)
     {
         _kernelFactory = kernelFactory;
         _userIdConverter = converterResolver.GetConverter<TUserId>();
