@@ -84,7 +84,7 @@ public partial class Login : UAuthFlowPageBase
         {
             Identifier = "admin",
             Secret = "admin",
-            Device = DeviceContext.FromDeviceId(deviceId),
+            //Device = DeviceContext.Create(deviceId, null, null, null, null, null),
         };
         await UAuthClient.Flows.LoginAsync(request, "/home");
     }

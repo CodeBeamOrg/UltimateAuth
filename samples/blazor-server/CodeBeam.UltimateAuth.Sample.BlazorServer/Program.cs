@@ -1,23 +1,24 @@
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
+using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
-using CodeBeam.UltimateAuth.Client;
+using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
-using CodeBeam.UltimateAuth.Users.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,13 @@ builder.Services.AddUltimateAuthClient(o =>
 
 builder.Services.AddScoped<DarkModeManager>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -82,6 +90,8 @@ else
     var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
     await seedRunner.RunAsync(null);
 }
+
+app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

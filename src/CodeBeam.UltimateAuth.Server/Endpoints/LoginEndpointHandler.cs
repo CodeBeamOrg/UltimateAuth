@@ -58,7 +58,6 @@ public sealed class LoginEndpointHandler : ILoginEndpointHandler
             Secret = secret,
             Tenant = authFlow.Tenant,
             At = _clock.UtcNow,
-            Device = authFlow.Device,
             RequestTokens = authFlow.AllowsTokenIssuance
         };
 

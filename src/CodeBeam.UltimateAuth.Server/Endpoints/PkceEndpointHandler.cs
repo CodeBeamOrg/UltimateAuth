@@ -129,7 +129,6 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             Secret = request.Secret,
             Tenant = authContext.Tenant,
             At = _clock.UtcNow,
-            Device = authContext.Device,
             RequestTokens = authContext.AllowsTokenIssuance
         };
 

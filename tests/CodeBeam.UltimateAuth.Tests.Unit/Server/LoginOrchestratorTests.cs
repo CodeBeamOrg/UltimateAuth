@@ -26,7 +26,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeTrue();
@@ -45,7 +45,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         result.SessionId.Should().NotBeNull();
@@ -68,7 +68,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
@@ -95,7 +95,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         await orchestrator.LoginAsync(flow,
@@ -104,7 +104,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user", // valid password
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
@@ -126,7 +126,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -145,7 +145,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "ghost",
                 Secret = "whatever",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -168,7 +168,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
@@ -195,7 +195,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         // try again with correct password
@@ -205,7 +205,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -228,7 +228,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
@@ -240,7 +240,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var state2 = store.GetState(TenantKey.Single, TestUsers.User);
@@ -267,7 +267,7 @@ public class LoginOrchestratorTests
                     Tenant = TenantKey.Single,
                     Identifier = "user",
                     Secret = "wrong",
-                    Device = TestDevice.Default(),
+                    //Device = TestDevice.Default(),
                 });
         }
 
@@ -276,25 +276,6 @@ public class LoginOrchestratorTests
 
         state!.IsLocked.Should().BeFalse();
         state.FailedLoginAttempts.Should().Be(5);
-    }
-
-    [Fact]
-    public async Task Invalid_device_id_should_throw_security_exception()
-    {
-        var runtime = new TestAuthRuntime<UserKey>();
-        var orchestrator = runtime.GetLoginOrchestrator();
-        var flow = await runtime.CreateLoginFlowAsync();
-
-        Func<Task> act = () => orchestrator.LoginAsync(flow,
-            new LoginRequest
-            {
-                Tenant = TenantKey.Single,
-                Identifier = "user",
-                Secret = "user",
-                Device = DeviceContext.FromDeviceId(DeviceId.Create("x")), // too short
-            });
-
-        await act.Should().ThrowAsync<SecurityException>();
     }
 
     [Fact]
@@ -315,7 +296,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
@@ -329,7 +310,7 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                Device = TestDevice.Default(),
+                //Device = TestDevice.Default(),
             });
 
         var state2 = store.GetState(TenantKey.Single, TestUsers.User);
@@ -358,7 +339,7 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            Device = TestDevice.Default()
+            //Device = TestDevice.Default()
         });
 
         captured.Should().NotBeNull();
@@ -387,7 +368,7 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            Device = TestDevice.Default()
+            //Device = TestDevice.Default()
         });
 
         count.Should().BeGreaterThan(0);
@@ -409,7 +390,7 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            Device = TestDevice.Default()
+            //Device = TestDevice.Default()
         });
 
         result.IsSuccess.Should().BeTrue();

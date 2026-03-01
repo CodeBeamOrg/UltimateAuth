@@ -6,9 +6,9 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface ISessionClient
 {
     Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetMyChainsAsync(PageRequest? request = null);
-    Task<UAuthResult<SessionChainDetailDto>> GetMyChainAsync(SessionChainId chainId);
+    Task<UAuthResult<SessionChainDetailDto>> GetMyChainDetailAsync(SessionChainId chainId);
     Task<UAuthResult> RevokeMyChainAsync(SessionChainId chainId);
-    Task<UAuthResult> RevokeOtherChainsAsync();
+    Task<UAuthResult> RevokeMyOtherChainsAsync();
     Task<UAuthResult> RevokeAllMyChainsAsync();
 
 

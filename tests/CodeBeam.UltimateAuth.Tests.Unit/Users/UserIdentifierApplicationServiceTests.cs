@@ -69,7 +69,7 @@ public class UserIdentifierApplicationServiceTests
                 Tenant = TenantKey.Single,
                 Identifier = "+905551111111",
                 Secret = "user",
-                Device = TestDevice.Default()
+                //Device = TestDevice.Default()
             });
 
         result.IsSuccess.Should().BeFalse();

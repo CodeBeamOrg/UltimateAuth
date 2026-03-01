@@ -6,51 +6,54 @@ namespace CodeBeam.UltimateAuth.Core.Domain;
 public sealed class UAuthSessionRoot : IVersionedEntity
 {
     public SessionRootId RootId { get; }
-    public UserKey UserKey { get; }
     public TenantKey Tenant { get; }
+    public UserKey UserKey { get; }
+
+    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset? UpdatedAt { get; }
+
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
+
     public long SecurityVersion { get; }
-    public IReadOnlyList<UAuthSessionChain> Chains { get; }
-    public DateTimeOffset LastUpdatedAt { get; }
     public long Version { get; }
 
     private UAuthSessionRoot(
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
-        IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt,
         long version)
     {
         RootId = rootId;
         Tenant = tenant;
         UserKey = userKey;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
         IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersion = securityVersion;
-        Chains = chains;
-        LastUpdatedAt = lastUpdatedAt;
         Version = version;
     }
 
     public static UAuthSessionRoot Create(
         TenantKey tenant,
         UserKey userKey,
-        DateTimeOffset issuedAt)
+        DateTimeOffset at)
     {
         return new UAuthSessionRoot(
             SessionRootId.New(),
             tenant,
             userKey,
+            at,
+            null,
             false,
             null,
             0,
-            chains: Array.Empty<UAuthSessionChain>(),
-            issuedAt,
             0
         );
     }
@@ -61,11 +64,11 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             RootId,
             Tenant,
             UserKey,
+            CreatedAt,
+            at,
             IsRevoked,
             RevokedAt,
             SecurityVersion + 1,
-            Chains,
-            at,
             Version + 1
         );
     }
@@ -79,29 +82,11 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             RootId,
             Tenant,
             UserKey,
+            CreatedAt,
+            at,
             true,
             at,
             SecurityVersion + 1,
-            Chains,
-            at,
-            Version + 1
-        );
-    }
-
-    public UAuthSessionRoot AttachChain(UAuthSessionChain chain, DateTimeOffset at)
-    {
-        if (IsRevoked)
-            return this;
-
-        return new UAuthSessionRoot(
-            RootId,
-            Tenant,
-            UserKey,
-            IsRevoked,
-            RevokedAt,
-            SecurityVersion,
-            Chains.Concat(new[] { chain }).ToArray(),
-            at,
             Version + 1
         );
     }
@@ -110,22 +95,22 @@ public sealed class UAuthSessionRoot : IVersionedEntity
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
-        IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt,
         long version)
     {
         return new UAuthSessionRoot(
             rootId,
             tenant,
             userKey,
+            createdAt,
+            updatedAt,
             isRevoked,
             revokedAt,
             securityVersion,
-            chains,
-            lastUpdatedAt,
             version
         );
     }

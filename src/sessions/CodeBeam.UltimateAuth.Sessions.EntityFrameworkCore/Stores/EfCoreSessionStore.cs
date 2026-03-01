@@ -228,7 +228,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
             .Where(x => x.UserKey == userKey)
             .ToListAsync();
 
-        return rootProjection.ToDomain(chains.Select(c => c.ToDomain()).ToList());
+        return rootProjection.ToDomain();
     }
 
     public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion)
@@ -279,11 +279,29 @@ internal sealed class EfCoreSessionStore : ISessionStore
             .SingleOrDefaultAsync();
     }
 
-    public async Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey)
+    public async Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, bool includeHistoricalRoots = false)
+    {
+        var rootsQuery = _db.Roots.AsNoTracking().Where(r => r.UserKey == userKey);
+
+        if (!includeHistoricalRoots)
+        {
+            rootsQuery = rootsQuery.Where(r => !r.IsRevoked);
+        }
+
+        var rootIds = await rootsQuery.Select(r => r.RootId).ToListAsync();
+
+        if (rootIds.Count == 0)
+            return Array.Empty<UAuthSessionChain>();
+
+        var projections = await _db.Chains.AsNoTracking().Where(c => rootIds.Contains(c.RootId)).ToListAsync();
+        return projections.Select(c => c.ToDomain()).ToList();
+    }
+
+    public async Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId)
     {
         var projections = await _db.Chains
             .AsNoTracking()
-            .Where(x => x.UserKey == userKey)
+            .Where(x => x.RootId == rootId)
             .ToListAsync();
 
         return projections.Select(x => x.ToDomain()).ToList();
@@ -313,7 +331,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
             .Where(x => x.RootId == rootId)
             .ToListAsync();
 
-        return rootProjection.ToDomain(chains.Select(c => c.ToDomain()).ToList());
+        return rootProjection.ToDomain();
     }
 
     public async Task DeleteExpiredSessionsAsync(DateTimeOffset at)

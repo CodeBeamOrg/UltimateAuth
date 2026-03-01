@@ -7,9 +7,16 @@ internal sealed class DeviceContextFactory : IDeviceContextFactory
 {
     public DeviceContext Create(DeviceInfo device)
     {
-        if (string.IsNullOrWhiteSpace(device.DeviceId.Value))
+        if (device is null || string.IsNullOrWhiteSpace(device.DeviceId.Value))
             return DeviceContext.Anonymous();
 
-        return DeviceContext.FromDeviceId(device.DeviceId);
+        return DeviceContext.Create(
+            deviceId: device.DeviceId,
+            deviceType: device.DeviceType,
+            platform: device.Platform,
+            operatingSystem: device.OperatingSystem,
+            browser: device.Browser,
+            ipAddress: device.IpAddress
+        );
     }
 }

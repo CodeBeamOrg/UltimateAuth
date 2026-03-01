@@ -10,11 +10,12 @@ internal sealed class SessionRootProjection
     public TenantKey Tenant { get; set; }
     public UserKey UserKey { get; set; }
 
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
     public bool IsRevoked { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
     public long SecurityVersion { get; set; }
-    public DateTimeOffset LastUpdatedAt { get; set; }
-
     public long Version { get; set; }
 }

@@ -28,7 +28,7 @@ internal sealed class UAuthSessionClient : ISessionClient
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummaryDto>>(raw);
     }
 
-    public async Task<UAuthResult<SessionChainDetailDto>> GetMyChainAsync(SessionChainId chainId)
+    public async Task<UAuthResult<SessionChainDetailDto>> GetMyChainDetailAsync(SessionChainId chainId)
     {
         var raw = await _request.SendFormAsync(Url($"/session/me/chains/{chainId}"));
         return UAuthResultMapper.FromJson<SessionChainDetailDto>(raw);
@@ -40,7 +40,7 @@ internal sealed class UAuthSessionClient : ISessionClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> RevokeOtherChainsAsync()
+    public async Task<UAuthResult> RevokeMyOtherChainsAsync()
     {
         var raw = await _request.SendFormAsync(Url("/session/me/revoke-others"));
         return UAuthResultMapper.From(raw);

@@ -26,7 +26,8 @@ public interface ISessionStore
     Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at);
 
     Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId);
-    Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey);
+    Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, bool includeHistoricalRoots = false);
+    Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId);
     Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId);
     Task DeleteExpiredSessionsAsync(DateTimeOffset at);
 }

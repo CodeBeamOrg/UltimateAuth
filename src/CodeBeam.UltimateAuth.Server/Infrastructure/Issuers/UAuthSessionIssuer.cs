@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
@@ -52,73 +53,51 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         {
             var root = await kernel.GetRootByUserAsync(context.UserKey);
 
-            bool isNewRoot = root is null;
-            long rootExpectedVersion = 0;
-
-            if (isNewRoot)
+            if (root is null)
             {
                 root = UAuthSessionRoot.Create(context.Tenant, context.UserKey, now);
                 await kernel.CreateRootAsync(root);
             }
-            else
+            else if (root.IsRevoked)
             {
-                if (root!.IsRevoked)
-                    throw new SecurityException("Session root is revoked.");
-
-                rootExpectedVersion = root.Version;
+                throw new UAuthValidationException("Session root revoked.");
             }
 
             UAuthSessionChain chain;
 
             if (context.ChainId is not null)
             {
-                if (isNewRoot)
-                    throw new SecurityException("ChainId provided but session root does not exist.");
-
-                chain = await kernel.GetChainAsync(context.ChainId.Value) ?? throw new SecurityException("Chain not found.");
+                chain = await kernel.GetChainAsync(context.ChainId.Value)
+                    ?? throw new UAuthNotFoundException("Chain not found.");
 
                 if (chain.IsRevoked)
-                    throw new SecurityException("Chain is revoked.");
+                    throw new UAuthValidationException("Chain revoked.");
 
-                if (chain.Tenant != context.Tenant || chain.UserKey != context.UserKey)
-                    throw new SecurityException("Chain does not belong to the current user/tenant.");
+                if (chain.UserKey != context.UserKey || chain.Tenant != context.Tenant)
+                    throw new UAuthValidationException("Invalid chain ownership.");
             }
             else
             {
-
                 chain = UAuthSessionChain.Create(
                     SessionChainId.New(),
                     root.RootId,
                     context.Tenant,
                     context.UserKey,
                     now,
-                    null,
+                    expiresAt,
                     context.Device,
                     ClaimsSnapshot.Empty,
                     root.SecurityVersion
                 );
 
                 await kernel.CreateChainAsync(chain);
-
-                var updatedRoot = root.AttachChain(chain, now);
-
-                if (isNewRoot)
-                {
-                    await kernel.SaveRootAsync(updatedRoot, 0);
-                }
-                else
-                {
-                    await kernel.SaveRootAsync(updatedRoot, rootExpectedVersion);
-                }
-
-                root = updatedRoot;
             }
 
             var session = UAuthSession.Create(
                 sessionId: sessionId,
                 tenant: context.Tenant,
                 userKey: context.UserKey,
-                chainId: SessionChainId.Unassigned,
+                chainId: chain.ChainId,
                 now: now,
                 expiresAt: expiresAt,
                 securityVersion: root.SecurityVersion,
@@ -127,9 +106,8 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             );
 
             await kernel.CreateSessionAsync(session);
-            var bound = session.WithChain(chain.ChainId);
-            await kernel.SaveSessionAsync(bound, 0);
-            var updatedChain = chain.AttachSession(bound.SessionId, now);
+
+            var updatedChain = chain.AttachSession(session.SessionId, now);
             await kernel.SaveChainAsync(updatedChain, chain.Version);
 
             issued = new IssuedSession
@@ -141,7 +119,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         }, ct);
 
         if (issued == null)
-            throw new InvalidCastException("Can't issued session.");
+            throw new InvalidCastException("Issue failed.");
         return issued;
     }
 

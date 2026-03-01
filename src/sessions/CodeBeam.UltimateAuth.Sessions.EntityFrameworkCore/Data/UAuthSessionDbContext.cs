@@ -38,13 +38,10 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
             e.Property(x => x.UserKey)
                 .IsRequired();
 
-            e.HasIndex(x => new { x.Tenant, x.UserKey })
-                .IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.UserKey }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.RootId }).IsUnique();
 
             e.Property(x => x.SecurityVersion)
-                .IsRequired();
-
-            e.Property(x => x.LastUpdatedAt)
                 .IsRequired();
 
             e.Property(x => x.RootId)
@@ -52,9 +49,6 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
                     v => v.Value,
                     v => SessionRootId.From(v))
                 .IsRequired();
-
-            e.HasIndex(x => new { x.Tenant, x.RootId });
-
         });
 
         b.Entity<SessionChainProjection>(e =>

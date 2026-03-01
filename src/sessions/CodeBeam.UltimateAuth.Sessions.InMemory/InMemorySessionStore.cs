@@ -123,15 +123,6 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    //public Task<AuthSessionId?> GetActiveSessionIdAsync(SessionChainId chainId)
-    //    => Task.FromResult<AuthSessionId?>(_activeSessions.TryGetValue(chainId, out var id) ? id : null);
-
-    //public Task SetActiveSessionIdAsync(SessionChainId chainId, AuthSessionId sessionId)
-    //{
-    //    _activeSessions[chainId] = sessionId;
-    //    return Task.CompletedTask;
-    //}
-
     public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey)
         => Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
 
@@ -183,12 +174,25 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<SessionChainId?>(null);
     }
 
-    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey)
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey,bool includeHistoricalRoots = false)
     {
-        if (!_roots.TryGetValue(userKey, out var root))
-            return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(Array.Empty<UAuthSessionChain>());
+        var roots = _roots.Values.Where(r => r.UserKey == userKey);
 
-        return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(root.Chains.ToList());
+        if (!includeHistoricalRoots)
+        {
+            roots = roots.Where(r => !r.IsRevoked);
+        }
+
+        var rootIds = roots.Select(r => r.RootId).ToHashSet();
+
+        var result = _chains.Values.Where(c => rootIds.Contains(c.RootId)).ToList().AsReadOnly();
+        return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
+    }
+
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId)
+    {
+        var result = _chains.Values.Where(c => c.RootId == rootId).ToList().AsReadOnly();
+        return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
     }
 
     public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId)
@@ -234,9 +238,7 @@ internal sealed class InMemorySessionStore : ISessionStore
                 _chains[chainId] = revokedChain;
             }
 
-            var sessions = _sessions.Values
-                .Where(s => s.ChainId == chainId)
-                .ToList();
+            var sessions = _sessions.Values.Where(s => s.ChainId == chainId).ToList();
 
             foreach (var session in sessions)
             {

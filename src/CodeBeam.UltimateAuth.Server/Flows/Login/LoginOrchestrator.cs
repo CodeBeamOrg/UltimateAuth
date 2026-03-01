@@ -199,7 +199,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             Tenant = request.Tenant,
             UserKey = userKey.Value,
             Now = now,
-            Device = request.Device,
+            Device = flow.Device,
             Claims = claims,
             ChainId = request.ChainId,
             Metadata = SessionMetadata.Empty,
@@ -230,7 +230,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         }
 
         await _events.DispatchAsync(
-            new UserLoggedInContext(request.Tenant, userKey.Value, now, request.Device, issuedSession.Session.SessionId));
+            new UserLoggedInContext(request.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
     }

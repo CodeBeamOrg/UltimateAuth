@@ -3,6 +3,7 @@
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject NavigationManager Nav
 
 <MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
     <TitleContent>
@@ -10,28 +11,32 @@
         <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
     </TitleContent>
     <DialogContent>
+        <MudStack Class="mud-width-full mb-4" Row="true">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Logout" OnClick="LogoutAllAsync">Logout All Devices</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Logout" OnClick="LogoutAllExceptThisAsync">Logout Other Devices</MudButton>
+        </MudStack>
         <MudDataGrid @ref="@_grid" T="SessionChainSummaryDto" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
                      EditMode="DataGridEditMode.Form" ReadOnly="false" Loading="@_loading">
             <ToolBarContent>
-                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
-                    <MudText>Identifiers</MudText>
-                    <MudSpacer />
-                    <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
-                </MudStack>
+                <MudText>Identifiers</MudText>
+                <MudSpacer />
+                <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
             </ToolBarContent>
             <Columns>
                 <PropertyColumn Property="x => x.ChainId" Title="Chain Id" Editable="false" />
                 <PropertyColumn Property="x => x.CreatedAt" Title="Created At" Editable="false" />
-                <PropertyColumn Property="x => x.DeviceName" Title="Device Name" Editable="false" />
                 <PropertyColumn Property="x => x.DeviceType" Title="Device Type" Editable="false" />
+                <PropertyColumn Property="x => x.OperatingSystem" Title="Operating System" Editable="false" />
+                <PropertyColumn Property="x => x.Platform" Title="Platform" Editable="false" />
+                <PropertyColumn Property="x => x.Browser" Title="Browser" Editable="false" />
                 <PropertyColumn Property="x => x.RotationCount" Title="Rotation Count" Editable="false" />
                 <PropertyColumn Property="x => x.IsRevoked" Title="Revoked" Editable="false" />
                 <PropertyColumn Property="x => x.IsCurrentDevice" Title="Current Device" Editable="false" />
                 <TemplateColumn Title="Actions" Editable="false">
                     <CellTemplate>
                         <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                @* <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" /> *@
+                            <MudTooltip Text="Revoke Device" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Logout" OnClick="@(() => LogoutChainAsync(context.Item.ChainId))" />
                             </MudTooltip>
                         </MudStack>
                     </CellTemplate>
@@ -140,27 +145,47 @@
         }
     }
 
-    // private async Task<DataGridEditFormAction> CommittedItemChanges(SessionChainSummaryDto item)
-    // {
-    //     UpdateUserIdentifierRequest updateRequest = new()
-    //     {
-    //         Id = item.Id,
-    //         NewValue = item.Value
-    //     };
-    //     var result = await UAuthClient.Identifiers.UpdateSelfAsync(updateRequest);
-    //     if (result.IsSuccess)
-    //     {
-    //         Snackbar.Add("Identifier updated successfully", Severity.Success);
-    //     }
-    //     else
-    //     {
-    //         Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to update identifier", Severity.Error);
-    //     }
+    private async Task LogoutAllAsync()
+    {
+        var result = await UAuthClient.Sessions.RevokeAllMyChainsAsync();
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Logged out of all devices", Severity.Success);
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+        }
+    }
 
-    //     await ReloadAsync();
-    //     return DataGridEditFormAction.Close;
-    // }
+    private async Task LogoutAllExceptThisAsync()
+    {
+        var result = await UAuthClient.Sessions.RevokeMyOtherChainsAsync();
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Logged out of all other devices", Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+        }
+    }
 
+    private async Task LogoutChainAsync(SessionChainId chainId)
+    {
+        var result = await UAuthClient.Sessions.RevokeMyChainAsync(chainId);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Logged out of device", Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+        }
+    }
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 

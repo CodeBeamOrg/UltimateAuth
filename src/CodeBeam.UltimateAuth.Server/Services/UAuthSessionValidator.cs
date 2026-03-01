@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -14,10 +13,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
     private readonly IUserClaimsProvider _claimsProvider;
     private readonly UAuthServerOptions _options;
 
-    public UAuthSessionValidator(
-        ISessionStoreFactory storeFactory,
-        IUserClaimsProvider claimsProvider,
-        IOptions<UAuthServerOptions> options)
+    public UAuthSessionValidator(ISessionStoreFactory storeFactory, IUserClaimsProvider claimsProvider, IOptions<UAuthServerOptions> options)
     {
         _storeFactory = storeFactory;
         _claimsProvider = claimsProvider;

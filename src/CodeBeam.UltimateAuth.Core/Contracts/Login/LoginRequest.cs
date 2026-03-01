@@ -9,7 +9,6 @@ public sealed record LoginRequest
     public string Identifier { get; init; } = default!;
     public string Secret { get; init; } = default!;
     public DateTimeOffset? At { get; init; }
-    public required DeviceContext Device { get; init; }
     public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
     /// <summary>

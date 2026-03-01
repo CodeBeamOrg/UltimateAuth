@@ -31,9 +31,24 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             {
                 chains = request.SortBy switch
                 {
+                    nameof(SessionChainSummaryDto.ChainId) =>
+                        request.Descending
+                            ? chains.OrderByDescending(x => x.ChainId).ToList()
+                            : chains.OrderBy(x => x.Version).ToList(),
+
                     nameof(SessionChainSummaryDto.CreatedAt) =>
                         request.Descending
-                            ? chains.OrderByDescending(x => x.Version).ToList()
+                            ? chains.OrderByDescending(x => x.CreatedAt).ToList()
+                            : chains.OrderBy(x => x.Version).ToList(),
+
+                    nameof(SessionChainSummaryDto.DeviceType) =>
+                        request.Descending
+                            ? chains.OrderByDescending(x => x.Device.DeviceType).ToList()
+                            : chains.OrderBy(x => x.Version).ToList(),
+
+                    nameof(SessionChainSummaryDto.Platform) =>
+                        request.Descending
+                            ? chains.OrderByDescending(x => x.Device.Platform).ToList()
                             : chains.OrderBy(x => x.Version).ToList(),
 
                     nameof(SessionChainSummaryDto.RotationCount) =>
@@ -53,12 +68,16 @@ internal sealed class SessionApplicationService : ISessionApplicationService
                 .Select(c => new SessionChainSummaryDto
                 {
                     ChainId = c.ChainId,
-                    DeviceName = null,
-                    DeviceType = null,
-                    CreatedAt = DateTimeOffset.MinValue,
-                    LastSeenAt = null,
+                    DeviceType = c.Device.DeviceType,
+                    OperatingSystem = c.Device.OperatingSystem,
+                    Platform = c.Device.Platform,
+                    Browser = c.Device.Browser,
+                    CreatedAt = c.CreatedAt,
+                    LastSeenAt = c.LastSeenAt,
                     RotationCount = c.RotationCount,
+                    TouchCount = c.TouchCount,
                     IsRevoked = c.IsRevoked,
+                    RevokedAt = c.RevokedAt,
                     ActiveSessionId = c.ActiveSessionId,
                     IsCurrentDevice = actorChainId.HasValue && c.ChainId == actorChainId.Value
                 })
