@@ -7,7 +7,7 @@ public interface ISessionClient
 {
     Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetMyChainsAsync(PageRequest? request = null);
     Task<UAuthResult<SessionChainDetailDto>> GetMyChainDetailAsync(SessionChainId chainId);
-    Task<UAuthResult> RevokeMyChainAsync(SessionChainId chainId);
+    Task<UAuthResult<RevokeResult>> RevokeMyChainAsync(SessionChainId chainId);
     Task<UAuthResult> RevokeMyOtherChainsAsync();
     Task<UAuthResult> RevokeAllMyChainsAsync();
 

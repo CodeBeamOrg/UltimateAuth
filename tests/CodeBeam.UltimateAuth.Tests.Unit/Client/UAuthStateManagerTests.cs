@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
@@ -37,10 +38,11 @@ public class UAuthStateManagerTests
         var client = new Mock<IUAuthClient>();
         client.Setup(x => x.Flows).Returns(flowClient.Object);
 
+        var sessionEvents = new Mock<ISessionEvents>();
         var clock = new Mock<IClock>();
         clock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
-        var manager = new UAuthStateManager(client.Object, clock.Object);
+        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
 
         await manager.EnsureAsync();
         await manager.EnsureAsync();
@@ -52,6 +54,7 @@ public class UAuthStateManagerTests
     public async Task EnsureAsync_force_should_always_validate()
     {
         var client = new Mock<IUAuthClient>();
+        var sessionEvents = new Mock<ISessionEvents>();
         var clock = new Mock<IClock>();
 
         client.Setup(x => x.Flows.ValidateAsync())
@@ -60,7 +63,7 @@ public class UAuthStateManagerTests
                 State = SessionState.Invalid
             });
 
-        var manager = new UAuthStateManager(client.Object, clock.Object);
+        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
 
         await manager.EnsureAsync(force: true);
         await manager.EnsureAsync(force: true);
@@ -72,6 +75,7 @@ public class UAuthStateManagerTests
     public async Task EnsureAsync_invalid_should_clear_state()
     {
         var client = new Mock<IUAuthClient>();
+        var sessionEvents = new Mock<ISessionEvents>();
         var clock = new Mock<IClock>();
 
         client.Setup(x => x.Flows.ValidateAsync())
@@ -80,7 +84,7 @@ public class UAuthStateManagerTests
                 State = SessionState.Invalid
             });
 
-        var manager = new UAuthStateManager(client.Object, clock.Object);
+        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
 
         await manager.EnsureAsync();
 

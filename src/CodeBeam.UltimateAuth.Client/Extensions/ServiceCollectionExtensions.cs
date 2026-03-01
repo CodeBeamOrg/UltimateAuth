@@ -66,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
+        services.AddSingleton<ISessionEvents, SessionEvents>();
 
         services.PostConfigure<UAuthClientOptions>(o =>
         {

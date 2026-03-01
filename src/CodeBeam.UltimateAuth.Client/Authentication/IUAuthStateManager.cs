@@ -32,4 +32,9 @@ public interface IUAuthStateManager
     /// Forces state to be cleared and re-validation required.
     /// </summary>
     void MarkStale();
+
+    /// <summary>
+    /// Removes all authentication state information managed by the implementation.
+    /// </summary>
+    void Clear();
 }

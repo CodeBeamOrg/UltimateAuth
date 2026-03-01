@@ -67,8 +67,8 @@ internal sealed class SessionEndpointHandler : ISessionEndpointHandler
             resource: "sessions",
             resourceId: flow.UserKey?.Value);
 
-        await _sessions.RevokeUserChainAsync(access, flow.UserKey!.Value, chainId, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _sessions.RevokeUserChainAsync(access, flow.UserKey!.Value, chainId, ctx.RequestAborted);
+        return Results.Ok(result);
     }
 
     public async Task<IResult> RevokeOtherChainsAsync(HttpContext ctx)
@@ -166,8 +166,8 @@ internal sealed class SessionEndpointHandler : ISessionEndpointHandler
             resource: "sessions",
             resourceId: userKey.Value);
 
-        await _sessions.RevokeUserChainAsync(access, userKey, chainId, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _sessions.RevokeUserChainAsync(access, userKey, chainId, ctx.RequestAborted);
+        return Results.Ok(result);
     }
 
     public async Task<IResult> RevokeAllChainsAsync(UserKey userKey, SessionChainId? exceptChainId, HttpContext ctx)

@@ -3,6 +3,7 @@
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IUAuthStateManager StateManager
 @inject NavigationManager Nav
 
 <MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
@@ -179,6 +180,12 @@
         if (result.IsSuccess)
         {
             Snackbar.Add("Logged out of device", Severity.Success);
+
+            if (result?.Value?.CurrentSessionRevoked == true)
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
             await ReloadAsync();
         }
         else

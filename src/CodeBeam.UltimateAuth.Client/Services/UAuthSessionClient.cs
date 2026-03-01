@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -10,11 +11,13 @@ internal sealed class UAuthSessionClient : ISessionClient
 {
     private readonly IUAuthRequestClient _request;
     private readonly UAuthClientOptions _options;
+    private readonly ISessionEvents _events;
 
-    public UAuthSessionClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
+    public UAuthSessionClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options, ISessionEvents events)
     {
         _request = request;
         _options = options.Value;
+        _events = events;
     }
 
     private string Url(string path)
@@ -34,10 +37,17 @@ internal sealed class UAuthSessionClient : ISessionClient
         return UAuthResultMapper.FromJson<SessionChainDetailDto>(raw);
     }
 
-    public async Task<UAuthResult> RevokeMyChainAsync(SessionChainId chainId)
+    public async Task<UAuthResult<RevokeResult>> RevokeMyChainAsync(SessionChainId chainId)
     {
-        var raw = await _request.SendFormAsync(Url($"/session/me/chains/{chainId}/revoke"));
-        return UAuthResultMapper.From(raw);
+        var raw = await _request.SendJsonAsync(Url($"/session/me/chains/{chainId}/revoke"));
+        var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
+
+        if (result.Value?.CurrentSessionRevoked == true)
+        {
+            _events.RaiseCurrentSessionRevoked();
+        }
+
+        return result;
     }
 
     public async Task<UAuthResult> RevokeMyOtherChainsAsync()
@@ -49,7 +59,14 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult> RevokeAllMyChainsAsync()
     {
         var raw = await _request.SendFormAsync(Url("/session/me/revoke-all"));
-        return UAuthResultMapper.From(raw);
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
+        {
+            _events.RaiseCurrentSessionRevoked();
+        }
+
+        return result;
     }
 
 

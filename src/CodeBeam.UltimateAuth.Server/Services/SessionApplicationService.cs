@@ -139,15 +139,22 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task RevokeUserChainAsync(AccessContext context, UserKey userKey, SessionChainId chainId, CancellationToken ct = default)
+    public async Task<RevokeResult> RevokeUserChainAsync(AccessContext context, UserKey userKey, SessionChainId chainId, CancellationToken ct = default)
     {
-        var command = new AccessCommand(async innerCt =>
+        var command = new AccessCommand<RevokeResult>(async innerCt =>
         {
+            var isCurrent = context.ActorChainId == chainId;
             var store = _storeFactory.Create(context.ResourceTenant);
             await store.RevokeChainCascadeAsync(chainId, _clock.UtcNow);
+
+            return new RevokeResult
+            {
+                CurrentSessionRevoked = isCurrent,
+                RootRevoked = false
+            };
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
     public async Task RevokeOtherChainsAsync(AccessContext context, UserKey userKey, SessionChainId? currentChainId, CancellationToken ct = default)
