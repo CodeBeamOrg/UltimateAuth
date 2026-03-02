@@ -2,6 +2,7 @@
 
 public sealed record CredentialDto
 {
+    public Guid Id { get; set; }
     public CredentialType Type { get; init; }
 
     public CredentialSecurityStatus Status { get; init; }

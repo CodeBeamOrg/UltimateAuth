@@ -2,6 +2,8 @@
 
 public sealed record RevokeCredentialRequest
 {
+    public Guid Id { get; init; }
+
     /// <summary>
     /// If specified, credential is revoked until this time.
     /// Null means permanent revocation.

@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 
@@ -13,7 +14,6 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public CredentialType Type => CredentialType.Password;
 
     public string SecretHash { get; private set; }
-
     public CredentialSecurityState Security { get; private set; }
     public CredentialMetadata Metadata { get; private set; }
 
@@ -23,7 +23,6 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public long Version { get; private set; }
 
     public bool IsRevoked => Security.RevokedAt is not null;
-
     public bool IsExpired(DateTimeOffset now) => Security.ExpiresAt is not null && Security.ExpiresAt <= now;
 
     public PasswordCredential(
@@ -71,14 +70,20 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public void ChangeSecret(string newSecretHash, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(newSecretHash))
-            throw new ArgumentException("Secret hash cannot be empty.", nameof(newSecretHash));
+            throw new UAuthValidationException("credential_secret_required");
 
         if (IsRevoked)
-            throw new InvalidOperationException("Cannot change secret of a revoked credential.");
+            throw new UAuthConflictException("credential_revoked");
+
+        if (IsExpired(now))
+            throw new UAuthConflictException("credential_expired");
+
+        if (SecretHash == newSecretHash)
+            throw new UAuthValidationException("credential_secret_same");
 
         SecretHash = newSecretHash;
-        UpdatedAt = now;
         Security = Security.RotateStamp();
+        UpdatedAt = now;
         Version++;
     }
 
@@ -89,18 +94,41 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
         Version++;
     }
 
-    public void UpdateSecurity(CredentialSecurityState security, DateTimeOffset now)
-    {
-        Security = security;
-        UpdatedAt = now;
-        Version++;
-    }
-
     public void Revoke(DateTimeOffset now)
     {
         if (IsRevoked)
             return;
+
         Security = Security.Revoke(now);
+        UpdatedAt = now;
+        Version++;
+    }
+
+    public void RegisterFailedAttempt(DateTimeOffset now, int threshold, TimeSpan duration)
+    {
+        Security = Security.RegisterFailedAttempt(now, threshold, duration);
+        UpdatedAt = now;
+        Version++;
+    }
+
+    public void RegisterSuccessfulAuthentication(DateTimeOffset now)
+    {
+        Security = Security.RegisterSuccessfulAuthentication();
+        UpdatedAt = now;
+        Version++;
+    }
+
+    public void BeginReset(DateTimeOffset now, TimeSpan validity)
+    {
+        Security = Security.BeginReset(now, validity);
+        UpdatedAt = now;
+        Version++;
+    }
+
+    public void CompleteReset(DateTimeOffset now)
+    {
+        Security = Security.CompleteReset(now);
+
         UpdatedAt = now;
         Version++;
     }

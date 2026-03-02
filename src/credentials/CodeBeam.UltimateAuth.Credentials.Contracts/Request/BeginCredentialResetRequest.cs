@@ -2,5 +2,6 @@
 
 public sealed record BeginCredentialResetRequest
 {
-    public string? Reason { get; init; }
+    public Guid Id { get; init; }
+    public string? Channel { get; init; }
 }

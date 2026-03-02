@@ -2,8 +2,7 @@
 
 public sealed record ChangeCredentialRequest
 {
-    public CredentialType Type { get; init; }
-
-    public string CurrentSecret { get; init; } = default!;
-    public string NewSecret { get; init; } = default!;
+    public Guid Id { get; init; }
+    public required string CurrentSecret { get; init; }
+    public required string NewSecret { get; init; }
 }

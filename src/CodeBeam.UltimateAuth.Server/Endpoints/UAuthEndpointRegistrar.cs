@@ -223,17 +223,17 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             credentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
                 => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            credentials.MapPost("/{type}/change", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                => await h.ChangeAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            credentials.MapPost("/change", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
+                => await h.ChangeSecretAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            credentials.MapPost("/{type}/revoke", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                => await h.RevokeAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            credentials.MapPost("/revoke", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
+                => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            credentials.MapPost("/{type}/reset/begin", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                => await h.BeginResetAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            credentials.MapPost("/reset/begin", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
+                => await h.BeginResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            credentials.MapPost("/{type}/reset/complete", async ([FromServices] ICredentialEndpointHandler h, string type, HttpContext ctx)
-                => await h.CompleteResetAsync(type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            credentials.MapPost("/reset/complete", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
+                => await h.CompleteResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
 
             adminCredentials.MapPost("/get", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
@@ -242,20 +242,17 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             adminCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.AddAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            adminCredentials.MapPost("/{type}/revoke", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
-                => await h.RevokeAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            adminCredentials.MapPost("/revoke", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.RevokeAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            adminCredentials.MapPost("/{type}/activate", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
-                => await h.ActivateAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            adminCredentials.MapPost("/reset/begin", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.BeginResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            adminCredentials.MapPost("/{type}/reset/begin", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
-                => await h.BeginResetAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            adminCredentials.MapPost("/reset/complete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.CompleteResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
 
-            adminCredentials.MapPost("/{type}/reset/complete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
-                => await h.CompleteResetAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
-
-            adminCredentials.MapPost("/{type}/delete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, string type, HttpContext ctx)
-                => await h.DeleteAdminAsync(userKey, type, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+            adminCredentials.MapPost("/delete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.DeleteAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
         }
 
         if (options.Endpoints.Authorization != false)

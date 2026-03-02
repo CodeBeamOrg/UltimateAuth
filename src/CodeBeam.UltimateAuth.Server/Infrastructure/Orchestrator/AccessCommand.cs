@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-internal sealed class AccessCommand : IAccessCommand
+public sealed class AccessCommand : IAccessCommand
 {
     private readonly Func<CancellationToken, Task> _execute;
 
@@ -12,7 +12,7 @@ internal sealed class AccessCommand : IAccessCommand
     public Task ExecuteAsync(CancellationToken ct = default) => _execute(ct);
 }
 
-internal sealed class AccessCommand<TResult> : IAccessCommand<TResult>
+public sealed class AccessCommand<TResult> : IAccessCommand<TResult>
 {
     private readonly Func<CancellationToken, Task<TResult>> _execute;
 

@@ -62,7 +62,6 @@ public static class UAuthActions
         public const string RevokeSelf = "credentials.revoke.self";
         public const string RevokeAdmin = "credentials.revoke.admin";
         public const string ActivateSelf = "credentials.activate.self";
-        public const string ActivateAdmin = "credentials.activate.admin";
         public const string BeginResetSelf = "credentials.beginreset.self";
         public const string BeginResetAdmin = "credentials.beginreset.admin";
         public const string CompleteResetSelf = "credentials.completereset.self";

@@ -6,19 +6,24 @@ public sealed record AddCredentialResult
 
     public string? Error { get; init; }
 
+    public Guid? Id { get; set; }
     public CredentialType? Type { get; init; }
 
-    public static AddCredentialResult Success(CredentialType type)
+    public static AddCredentialResult Success(Guid id, CredentialType type)
         => new()
         {
             Succeeded = true,
-            Type = type
+            Id = id,
+            Type = type,
+            Error = null
         };
 
     public static AddCredentialResult Fail(string error)
         => new()
         {
             Succeeded = false,
-            Error = error
+            Error = error,
+            Id = null,
+            Type = null
         };
 }

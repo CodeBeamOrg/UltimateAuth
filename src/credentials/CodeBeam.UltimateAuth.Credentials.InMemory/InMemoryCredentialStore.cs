@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using System.Collections.Concurrent;
 
@@ -10,67 +10,26 @@ namespace CodeBeam.UltimateAuth.Credentials.InMemory;
 
 internal sealed class InMemoryCredentialStore : ICredentialStore
 {
-    private readonly ConcurrentDictionary<(TenantKey Tenant, Guid Id), PasswordCredential> _byId = new();
-    private readonly ConcurrentDictionary<(TenantKey Tenant, UserKey UserKey), ConcurrentDictionary<Guid, byte>> _byUser = new();
-
-    private readonly IUAuthPasswordHasher _hasher;
-
-    public InMemoryCredentialStore(IUAuthPasswordHasher hasher)
-    {
-        _hasher = hasher;
-    }
+    private readonly ConcurrentDictionary<(TenantKey, Guid), PasswordCredential> _store = new();
 
     public Task<IReadOnlyCollection<ICredential>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_byUser.TryGetValue((tenant, userKey), out var ids) || ids.Count == 0)
-            return Task.FromResult<IReadOnlyCollection<ICredential>>(Array.Empty<ICredential>());
+        var result = _store.Values
+            .Where(c => c.Tenant == tenant && c.UserKey == userKey)
+            .Cast<ICredential>()
+            .ToArray();
 
-        var list = new List<ICredential>(ids.Count);
-
-        foreach (var id in ids.Keys)
-        {
-            if (_byId.TryGetValue((tenant, id), out var cred))
-            {
-                list.Add(cred);
-            }
-        }
-
-        return Task.FromResult<IReadOnlyCollection<ICredential>>(list);
+        return Task.FromResult<IReadOnlyCollection<ICredential>>(result);
     }
 
     public Task<ICredential?> GetByIdAsync(TenantKey tenant, Guid credentialId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        _byId.TryGetValue((tenant, credentialId), out var cred);
-        return Task.FromResult<ICredential?>(cred);
-    }
-
-    public Task<bool> ExistsAsync(TenantKey tenant, UserKey userKey, CredentialType type, string? secretHash, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        if (!_byUser.TryGetValue((tenant, userKey), out var ids) || ids.Count == 0)
-            return Task.FromResult(false);
-
-        foreach (var id in ids.Keys)
-        {
-            if (!_byId.TryGetValue((tenant, id), out var cred))
-                continue;
-
-            if (cred.Type != type)
-                continue;
-
-            if (secretHash is null)
-                return Task.FromResult(true);
-
-            if (string.Equals(cred.SecretHash, secretHash, StringComparison.Ordinal))
-                return Task.FromResult(true);
-        }
-
-        return Task.FromResult(false);
+        _store.TryGetValue((tenant, credentialId), out var credential);
+        return Task.FromResult<ICredential?>(credential);
     }
 
     public Task AddAsync(TenantKey tenant, ICredential credential, CancellationToken ct = default)
@@ -81,25 +40,15 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
         if (credential is not PasswordCredential pwd)
             throw new NotSupportedException("Only password credentials are supported in-memory.");
 
-        var id = pwd.Id == Guid.Empty ? Guid.NewGuid() : pwd.Id;
+        var key = (tenant, pwd.Id);
 
-        var key = (tenant, id);
-        if (_byId.ContainsKey(key))
-            throw new InvalidOperationException("credential_already_exists");
-
-        if (pwd.Id == Guid.Empty)
-            throw new InvalidOperationException("credential_id_required");
-
-        if (!_byId.TryAdd(key, pwd))
-            throw new InvalidOperationException("credential_already_exists");
-
-        var userIndex = _byUser.GetOrAdd((tenant, pwd.UserKey), _ => new ConcurrentDictionary<Guid, byte>());
-        userIndex.TryAdd(pwd.Id, 0);
+        if (!_store.TryAdd(key, pwd))
+            throw new UAuthConflictException("credential_already_exists");
 
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(TenantKey tenant, ICredential credential, CancellationToken ct = default)
+    public Task UpdateAsync(TenantKey tenant, ICredential credential, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -108,70 +57,78 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
 
         var key = (tenant, pwd.Id);
 
-        if (!_byId.ContainsKey(key))
-            throw new InvalidOperationException("credential_not_found");
+        if (!_store.ContainsKey(key))
+            throw new UAuthNotFoundException("credential_not_found");
 
-        _byId[key] = pwd;
+        if (pwd.Version != expectedVersion)
+            throw new UAuthConflictException("credential_version_conflict");
+
+        _store[key] = pwd;
 
         return Task.CompletedTask;
     }
 
-    public Task RevokeAsync(TenantKey tenant, Guid credentialId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeAsync(TenantKey tenant, Guid credentialId, DateTimeOffset revokedAt, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var key = (tenant, credentialId);
 
-        if (!_byId.TryGetValue(key, out var cred))
-            throw new InvalidOperationException("credential_not_found");
+        if (!_store.TryGetValue(key, out var credential))
+            throw new UAuthNotFoundException("credential_not_found");
 
-        if (cred.IsRevoked)
+        if (credential.Version != expectedVersion)
+            throw new UAuthConflictException("credential_version_conflict");
+
+        if (credential.IsRevoked)
             return Task.CompletedTask;
 
-        cred.Revoke(revokedAt);
+        credential.Revoke(revokedAt);
 
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(TenantKey tenant, Guid credentialId, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
+    public Task DeleteAsync(TenantKey tenant, Guid credentialId, DeleteMode mode, DateTimeOffset now, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var key = (tenant, credentialId);
 
-        if (!_byId.TryGetValue(key, out var cred))
-            return Task.CompletedTask;
+        if (!_store.TryGetValue(key, out var credential))
+            throw new UAuthNotFoundException("credential_not_found");
+
+        if (credential.Version != expectedVersion)
+            throw new UAuthConflictException("credential_version_conflict");
 
         if (mode == DeleteMode.Hard)
         {
-            _byId.TryRemove(key, out _);
-
-            if (_byUser.TryGetValue((tenant, cred.UserKey), out var set))
-            {
-                set.TryRemove(credentialId, out _);
-            }
-
+            _store.TryRemove(key, out _);
             return Task.CompletedTask;
         }
 
-        if (!cred.IsRevoked)
-            cred.Revoke(now);
+        if (!credential.IsRevoked)
+            credential.Revoke(now);
 
         return Task.CompletedTask;
     }
 
-    public Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
+    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_byUser.TryGetValue((tenant, userKey), out var ids))
-            return Task.CompletedTask;
+        var credentials = _store.Values.Where(c => c.Tenant == tenant && c.UserKey == userKey).ToList();
 
-        foreach (var id in ids.Keys.ToList())
+        foreach (var credential in credentials)
         {
-            DeleteAsync(tenant, id, mode, now, ct);
-        }
+            ct.ThrowIfCancellationRequested();
 
-        return Task.CompletedTask;
+            await DeleteAsync(
+                tenant,
+                credential.Id,
+                mode,
+                now,
+                credential.Version,
+                ct);
+        }
     }
 }
