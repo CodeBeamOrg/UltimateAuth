@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
 {
-    public CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, CredentialKind kind)
+    public CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, GrantKind kind)
     {
         if (response.Cookie is null)
             throw new InvalidOperationException("Cookie policy requested but Cookie options are null.");
@@ -43,7 +43,7 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
         };
     }
 
-    private static void ApplyLifetime(CookieOptions target, UAuthCookieOptions src, AuthFlowContext context, CredentialKind kind)
+    private static void ApplyLifetime(CookieOptions target, UAuthCookieOptions src, AuthFlowContext context, GrantKind kind)
     {
         var buffer = src.Lifetime.IdleBuffer ?? TimeSpan.Zero;
         var baseLifetime = ResolveBaseLifetime(context, kind, src);
@@ -54,7 +54,7 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
         }
     }
 
-    private static TimeSpan? ResolveBaseLifetime(AuthFlowContext context, CredentialKind kind, UAuthCookieOptions src)
+    private static TimeSpan? ResolveBaseLifetime(AuthFlowContext context, GrantKind kind, UAuthCookieOptions src)
     {
         if (src.MaxAge is not null)
             return src.MaxAge;
@@ -64,9 +64,9 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
 
         return kind switch
         {
-            CredentialKind.Session => ResolveSessionLifetime(context),
-            CredentialKind.RefreshToken => context.EffectiveOptions.Options.Token.RefreshTokenLifetime,
-            CredentialKind.AccessToken => context.EffectiveOptions.Options.Token.AccessTokenLifetime,
+            GrantKind.Session => ResolveSessionLifetime(context),
+            GrantKind.RefreshToken => context.EffectiveOptions.Options.Token.RefreshTokenLifetime,
+            GrantKind.AccessToken => context.EffectiveOptions.Options.Token.AccessTokenLifetime,
             _ => null
         };
     }

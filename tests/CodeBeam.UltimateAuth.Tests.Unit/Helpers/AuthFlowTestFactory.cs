@@ -25,9 +25,9 @@ internal static class AuthFlowTestFactory
             originalOptions: TestServerOptions.Default(),
             effectiveOptions: TestServerOptions.Effective(),
             response: new EffectiveAuthResponse(
-                sessionIdDelivery: CredentialResponseOptions.Disabled(CredentialKind.Session),
-                accessTokenDelivery: CredentialResponseOptions.Disabled(CredentialKind.AccessToken),
-                refreshTokenDelivery: CredentialResponseOptions.Disabled(CredentialKind.RefreshToken),
+                sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
+                accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
+                refreshTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
                 redirect: redirect ?? EffectiveRedirectResponse.Disabled
             ),
             primaryTokenKind: PrimaryTokenKind.Session,

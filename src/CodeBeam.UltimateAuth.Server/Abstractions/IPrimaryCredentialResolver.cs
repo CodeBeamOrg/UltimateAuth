@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Abstractions;
 
 public interface IPrimaryCredentialResolver
 {
-    PrimaryCredentialKind Resolve(HttpContext context);
+    PrimaryGrantKind Resolve(HttpContext context);
 }

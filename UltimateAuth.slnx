@@ -12,6 +12,7 @@
   <Folder Name="/Tests/">
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Unit/CodeBeam.UltimateAuth.Tests.Unit.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />
   </Folder>
+  <Project Path="src/authentication/CodeBeam.UltimateAuth.Authentication.InMemory/CodeBeam.UltimateAuth.Authentication.InMemory.csproj" Id="bd87e254-0565-4fc5-950d-ee5bbb416079" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Contracts/CodeBeam.UltimateAuth.Authorization.Contracts.csproj" Id="40a23002-f885-42a8-bdd9-fd962ab28742" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.InMemory/CodeBeam.UltimateAuth.Authorization.InMemory.csproj" Id="a1e6d007-bdc0-4574-b549-ec863757edd3" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Reference/CodeBeam.UltimateAuth.Authorization.Reference.csproj" Id="84b784d0-bb48-406a-a0d1-c600da667597" />

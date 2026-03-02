@@ -8,6 +8,7 @@ public sealed record LoginRequest
     public TenantKey Tenant { get; init; }
     public string Identifier { get; init; } = default!;
     public string Secret { get; init; } = default!;
+    public CredentialType Factor { get; init; } = CredentialType.Password;
     public DateTimeOffset? At { get; init; }
     public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 

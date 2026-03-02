@@ -74,17 +74,17 @@ public sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         if (result.SessionId is AuthSessionId sessionId)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.Session, sessionId);
+            _credentialResponseWriter.Write(ctx, GrantKind.Session, sessionId);
         }
 
         if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
+            _credentialResponseWriter.Write(ctx, GrantKind.AccessToken, result.AccessToken);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
+            _credentialResponseWriter.Write(ctx, GrantKind.RefreshToken, result.RefreshToken);
         }
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);

@@ -144,17 +144,17 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         if (result.SessionId is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
+            _credentialResponseWriter.Write(ctx, GrantKind.Session, result.SessionId.Value);
         }
 
         if (result.AccessToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
+            _credentialResponseWriter.Write(ctx, GrantKind.AccessToken, result.AccessToken);
         }
 
         if (result.RefreshToken is not null)
         {
-            _credentialResponseWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
+            _credentialResponseWriter.Write(ctx, GrantKind.RefreshToken, result.RefreshToken);
         }
 
         var decision = _redirectResolver.ResolveSuccess(authContext, ctx);

@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public enum CredentialKind
+public enum GrantKind
 {
     Session,
     AccessToken,

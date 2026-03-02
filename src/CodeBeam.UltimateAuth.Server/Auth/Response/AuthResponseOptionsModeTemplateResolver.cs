@@ -26,21 +26,21 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             SessionIdDelivery = new()
             {
                 Name = "uas",
-                Kind = CredentialKind.Session,
+                Kind = GrantKind.Session,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Cookie,
             },
             AccessTokenDelivery = new()
             {
                 Name = "uat",
-                Kind = CredentialKind.AccessToken,
+                Kind = GrantKind.AccessToken,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.None
             },
             RefreshTokenDelivery = new()
             {
                 Name = "uar",
-                Kind = CredentialKind.RefreshToken,
+                Kind = GrantKind.RefreshToken,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.None
             },
@@ -62,21 +62,21 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             SessionIdDelivery = new()
             {
                 Name = "uas",
-                Kind = CredentialKind.Session,
+                Kind = GrantKind.Session,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Cookie
             },
             AccessTokenDelivery = new()
             {
                 Name = "uat",
-                Kind = CredentialKind.AccessToken,
+                Kind = GrantKind.AccessToken,
                 TokenFormat = TokenFormat.Jwt,
                 Mode = TokenResponseMode.Header
             },
             RefreshTokenDelivery = new()
             {
                 Name = "uar",
-                Kind = CredentialKind.RefreshToken,
+                Kind = GrantKind.RefreshToken,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Cookie
             },
@@ -98,21 +98,21 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             SessionIdDelivery = new()
             {
                 Name = "uas",
-                Kind = CredentialKind.Session,
+                Kind = GrantKind.Session,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.None
             },
             AccessTokenDelivery = new()
             {
                 Name = "uat",
-                Kind = CredentialKind.AccessToken,
+                Kind = GrantKind.AccessToken,
                 TokenFormat = TokenFormat.Jwt,
                 Mode = TokenResponseMode.Header
             },
             RefreshTokenDelivery = new()
             {
                 Name = "uar",
-                Kind = CredentialKind.RefreshToken,
+                Kind = GrantKind.RefreshToken,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Header
             },
@@ -134,21 +134,21 @@ internal sealed class AuthResponseOptionsModeTemplateResolver
             SessionIdDelivery = new()
             {
                 Name = "uas",
-                Kind = CredentialKind.Session,
+                Kind = GrantKind.Session,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.None
             },
             AccessTokenDelivery = new()
             {
                 Name = "uat",
-                Kind = CredentialKind.AccessToken,
+                Kind = GrantKind.AccessToken,
                 TokenFormat = TokenFormat.Jwt,
                 Mode = TokenResponseMode.Header
             },
             RefreshTokenDelivery = new()
             {
                 Name = "uar",
-                Kind = CredentialKind.RefreshToken,
+                Kind = GrantKind.RefreshToken,
                 TokenFormat = TokenFormat.Opaque,
                 Mode = TokenResponseMode.Header
             },

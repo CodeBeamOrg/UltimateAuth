@@ -1,8 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Users;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-public interface IUserSecurityEvents<TUserId>
+namespace CodeBeam.UltimateAuth.Users;
+
+public interface IUserSecurityEvents
 {
-    Task OnUserActivatedAsync(TUserId userId);
-    Task OnUserDeactivatedAsync(TUserId userId);
-    Task OnSecurityInvalidatedAsync(TUserId userId);
+    Task OnUserActivatedAsync(UserKey userKey);
+    Task OnUserDeactivatedAsync(UserKey userKey);
+    Task OnSecurityInvalidatedAsync(UserKey userKey);
 }

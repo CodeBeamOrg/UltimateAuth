@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Server.Contracts;
 
 public sealed record ResolvedCredential
 {
-    public PrimaryCredentialKind Kind { get; init; }
+    public PrimaryGrantKind Kind { get; init; }
 
     /// <summary>
     /// Raw credential value (session id / jwt / opaque)

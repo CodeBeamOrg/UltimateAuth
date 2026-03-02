@@ -1,13 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Authentication.InMemory;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using CodeBeam.UltimateAuth.Users.InMemory;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -26,7 +25,6 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeTrue();
@@ -45,7 +43,6 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                //Device = TestDevice.Default(),
             });
 
         result.SessionId.Should().NotBeNull();
@@ -68,14 +65,11 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-
-        var state = store.GetState(TenantKey.Single, TestUsers.User);
-
-        state!.FailedLoginAttempts.Should().Be(1);
+        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
+        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        state?.FailedAttempts.Should().Be(1);
     }
 
     [Fact]
@@ -95,7 +89,6 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
         await orchestrator.LoginAsync(flow,
@@ -104,13 +97,11 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user", // valid password
-                //Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-
-        var state = store.GetState(TenantKey.Single, TestUsers.User);
-        state.Should().BeNull();
+        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
+        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        state?.FailedAttempts.Should().Be(0);
     }
 
     [Fact]
@@ -126,7 +117,6 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -145,7 +135,6 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "ghost",
                 Secret = "whatever",
-                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -168,13 +157,12 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-        var state = store.GetState(TenantKey.Single, TestUsers.User);
+        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
+        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
-        state!.IsLocked.Should().BeTrue();
+        state!.IsLocked(DateTimeOffset.UtcNow).Should().BeTrue();
     }
 
     [Fact]
@@ -188,24 +176,20 @@ public class LoginOrchestratorTests
         var orchestrator = runtime.GetLoginOrchestrator();
         var flow = await runtime.CreateLoginFlowAsync();
 
-        // lock
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        // try again with correct password
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
-                //Device = TestDevice.Default(),
             });
 
         result.IsSuccess.Should().BeFalse();
@@ -228,24 +212,20 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-        var state1 = store.GetState(TenantKey.Single, TestUsers.User);
+        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
+        var state1 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Tenant = TenantKey.Single,
                 Identifier = "user",
-                Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var state2 = store.GetState(TenantKey.Single, TestUsers.User);
-
-        state2!.FailedLoginAttempts.Should().Be(state1!.FailedLoginAttempts);
+        var state2 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        state2?.FailedAttempts.Should().Be(state1!.FailedAttempts);
     }
 
     [Fact]
@@ -267,15 +247,14 @@ public class LoginOrchestratorTests
                     Tenant = TenantKey.Single,
                     Identifier = "user",
                     Secret = "wrong",
-                    //Device = TestDevice.Default(),
                 });
         }
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-        var state = store.GetState(TenantKey.Single, TestUsers.User);
+        var store = runtime.Services.GetRequiredService<InMemoryAuthenticationSecurityStateStore>();
+        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
-        state!.IsLocked.Should().BeFalse();
-        state.FailedLoginAttempts.Should().Be(5);
+        state?.IsLocked(DateTimeOffset.UtcNow).Should().BeFalse();
+        state?.FailedAttempts.Should().Be(5);
     }
 
     [Fact]
@@ -296,11 +275,10 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var store = runtime.Services.GetRequiredService<InMemoryUserSecurityStore>();
-        var state1 = store.GetState(TenantKey.Single, TestUsers.User);
+        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
+        var state1 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         var lockedUntil = state1!.LockedUntil;
 
@@ -310,11 +288,10 @@ public class LoginOrchestratorTests
                 Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
-                //Device = TestDevice.Default(),
             });
 
-        var state2 = store.GetState(TenantKey.Single, TestUsers.User);
-        state2!.LockedUntil.Should().Be(lockedUntil);
+        var state2 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        state2?.LockedUntil.Should().Be(lockedUntil);
     }
 
     [Fact]
@@ -339,7 +316,6 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            //Device = TestDevice.Default()
         });
 
         captured.Should().NotBeNull();
@@ -368,7 +344,6 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            //Device = TestDevice.Default()
         });
 
         count.Should().BeGreaterThan(0);
@@ -390,7 +365,6 @@ public class LoginOrchestratorTests
             Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
-            //Device = TestDevice.Default()
         });
 
         result.IsSuccess.Should().BeTrue();

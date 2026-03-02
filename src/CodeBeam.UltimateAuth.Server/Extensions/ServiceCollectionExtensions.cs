@@ -23,6 +23,7 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
+using CodeBeam.UltimateAuth.Server.Security;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -203,6 +204,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
         services.TryAddSingleton<IUAuthBodyPolicyBuilder, UAuthBodyPolicyBuilder>();
         services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
+        services.TryAddScoped<IAuthenticationSecurityManager, AuthenticationSecurityManager>();
         services.TryAddScoped<IUAuthCookieManager, UAuthCookieManager>();
 
         services.TryAddScoped<IAuthFlow, AuthFlow>();

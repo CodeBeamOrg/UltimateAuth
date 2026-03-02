@@ -23,8 +23,8 @@ internal sealed class FlowCredentialResolver : IFlowCredentialResolver
 
         return kind switch
         {
-            PrimaryCredentialKind.Stateful => ResolveSession(context, response),
-            PrimaryCredentialKind.Stateless => ResolveAccessToken(context, response),
+            PrimaryGrantKind.Stateful => ResolveSession(context, response),
+            PrimaryGrantKind.Stateless => ResolveAccessToken(context, response),
 
             _ => null
         };
@@ -49,7 +49,7 @@ internal sealed class FlowCredentialResolver : IFlowCredentialResolver
 
         return new ResolvedCredential
         {
-            Kind = PrimaryCredentialKind.Stateful,
+            Kind = PrimaryGrantKind.Stateful,
             Value = raw.Trim(),
             Tenant = context.GetTenant(),
             Device = context.GetDevice()
@@ -81,7 +81,7 @@ internal sealed class FlowCredentialResolver : IFlowCredentialResolver
 
         return new ResolvedCredential
         {
-            Kind = PrimaryCredentialKind.Stateless,
+            Kind = PrimaryGrantKind.Stateless,
             Value = value,
             Tenant = context.GetTenant(),
             Device = context.GetDevice()

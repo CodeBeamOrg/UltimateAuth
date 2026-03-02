@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Server.Options;
 
 public sealed class CredentialResponseOptions
 {
-    public CredentialKind Kind { get; init; }
+    public GrantKind Kind { get; init; }
     public TokenResponseMode Mode { get; set; } = TokenResponseMode.None;
 
     /// <summary>
@@ -48,7 +48,7 @@ public sealed class CredentialResponseOptions
         };
     }
 
-    public static CredentialResponseOptions Disabled(CredentialKind kind)
+    public static CredentialResponseOptions Disabled(GrantKind kind)
         => new()
         {
             Kind = kind,

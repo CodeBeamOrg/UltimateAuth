@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record AddCredentialResult
 {

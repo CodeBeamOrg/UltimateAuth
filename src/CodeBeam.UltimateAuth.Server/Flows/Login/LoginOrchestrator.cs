@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
+using CodeBeam.UltimateAuth.Core.Security;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -26,8 +27,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
     private readonly ISessionOrchestrator _sessionOrchestrator;
     private readonly ITokenIssuer _tokens;
     private readonly IUserClaimsProvider _claimsProvider;
-    private readonly IUserSecurityStateWriter _securityWriter;
-    private readonly IUserSecurityStateProvider _securityStateProvider; // runtime risk
+    private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
     private readonly UAuthServerOptions _options;
 
@@ -40,8 +40,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         ISessionOrchestrator sessionOrchestrator,
         ITokenIssuer tokens,
         IUserClaimsProvider claimsProvider,
-        IUserSecurityStateWriter securityWriter,
-        IUserSecurityStateProvider securityStateProvider,
+        IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
         IOptions<UAuthServerOptions> options)
     {
@@ -53,8 +52,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         _sessionOrchestrator = sessionOrchestrator;
         _tokens = tokens;
         _claimsProvider = claimsProvider;
-        _securityWriter = securityWriter;
-        _securityStateProvider = securityStateProvider;
+        _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
         _options = options.Value;
     }
@@ -64,18 +62,14 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         ct.ThrowIfCancellationRequested();
 
         var now = request.At ?? DateTimeOffset.UtcNow;
-
         var resolution = await _identifierResolver.ResolveAsync(request.Tenant, request.Identifier, ct);
-
         var userKey = resolution?.UserKey;
 
         bool userExists = false;
         bool credentialsValid = false;
 
-        IUserSecurityState? securityState = null;
-
-        DateTimeOffset? lockoutUntilUtc = null;
-        int? remainingAttempts = null;
+        AuthenticationSecurityState? accountState = null;
+        AuthenticationSecurityState? factorState = null;
 
         if (userKey is not null)
         {
@@ -84,27 +78,23 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             {
                 userExists = true;
 
-                securityState = await _securityStateProvider.GetAsync(request.Tenant, userKey.Value, ct);
+                accountState = await _authenticationSecurityManager.GetOrCreateAccountAsync(request.Tenant, userKey.Value, ct);
 
-                if (securityState?.LastFailedAt is DateTimeOffset lastFail && _options.Login.FailureWindow is { } window && now - lastFail > window)
+                if (accountState.IsLocked(now))
                 {
-                    await _securityWriter.ResetFailuresAsync(request.Tenant, userKey.Value, ct);
-                    securityState = null;
+                    return LoginResult.Failed(AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
-                if (securityState?.LockedUntil is DateTimeOffset until && until <= now)
-                {
-                    await _securityWriter.ResetFailuresAsync(request.Tenant, userKey.Value, ct);
-                    securityState = null;
-                }
+                factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(request.Tenant, userKey.Value, request.Factor, ct);
 
-                if (securityState?.LockedUntil is DateTimeOffset stillLocked && stillLocked > now)
+                if (factorState.IsLocked(now))
                 {
-                    return LoginResult.Failed(AuthFailureReason.LockedOut, stillLocked, 0);
+                    return LoginResult.Failed(AuthFailureReason.LockedOut, factorState.LockedUntil, 0);
                 }
 
                 var credentials = await _credentialStore.GetByUserAsync(request.Tenant, userKey.Value, ct);
 
+                // TODO: Add .Where(c => c.Type == request.Factor) when we support multiple factors per user
                 foreach (var credential in credentials.OfType<ICredentialDescriptor>())
                 {
                     if (!credential.Security.IsUsable(now))
@@ -121,6 +111,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             }
         }
 
+        // TODO: Add accountState here, currently it only checks factor state
         var decisionContext = new LoginDecisionContext
         {
             Tenant = request.Tenant,
@@ -128,7 +119,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             CredentialsValid = credentialsValid,
             UserExists = userExists,
             UserKey = userKey,
-            SecurityState = securityState,
+            SecurityState = factorState,
             IsChained = request.ChainId is not null
         };
 
@@ -138,45 +129,37 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
 
         if (decision.Kind == LoginDecisionKind.Deny)
         {
-            if (userKey is not null && userExists)
+            if (userKey is not null && userExists && factorState is not null)
             {
-                var isCurrentlyLocked =
-                    securityState?.IsLocked == true &&
-                    securityState?.LockedUntil is DateTimeOffset until &&
-                    until > now;
+                factorState = await _authenticationSecurityManager.RegisterFailureAsync(factorState, now, ct);
 
-                if (!isCurrentlyLocked)
+                DateTimeOffset? lockedUntil = null;
+                int? remainingAttempts = null;
+
+                if (_options.Login.IncludeFailureDetails)
                 {
-                    await _securityWriter.RecordFailedLoginAsync(request.Tenant, userKey.Value, now, ct);
-
-                    var currentFailures = securityState?.FailedLoginAttempts ?? 0;
-                    var nextCount = currentFailures + 1;
-
-                    if (max > 0)
+                    if (factorState.IsLocked(now))
                     {
-                        if (nextCount >= max)
-                        {
-                            lockoutUntilUtc = now.Add(_options.Login.LockoutDuration);
-                            await _securityWriter.LockUntilAsync(request.Tenant, userKey.Value, lockoutUntilUtc.Value, ct);
-                            remainingAttempts = 0;
-
-                            return LoginResult.Failed(AuthFailureReason.LockedOut, lockoutUntilUtc, remainingAttempts);
-                        }
-                        else
-                        {
-                            remainingAttempts = max - nextCount;
-                        }
+                        lockedUntil = factorState.LockedUntil;
+                        remainingAttempts = 0;
+                    }
+                    else if (_options.Login.MaxFailedAttempts > 0)
+                    {
+                        remainingAttempts = _options.Login.MaxFailedAttempts - factorState.FailedAttempts;
                     }
                 }
-                else
-                {
-                    lockoutUntilUtc = securityState!.LockedUntil;
-                    remainingAttempts = 0;
-                }
+
+                return LoginResult.Failed(
+                    factorState.IsLocked(now)
+                        ? AuthFailureReason.LockedOut
+                        : decision.FailureReason,
+                    lockedUntil,
+                    remainingAttempts);
             }
 
-            return LoginResult.Failed(decision.FailureReason, lockoutUntilUtc, remainingAttempts);
+            return LoginResult.Failed(decision.FailureReason);
         }
+
 
         if (decision.Kind == LoginDecisionKind.Challenge)
         {
@@ -190,7 +173,10 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
 
         // After this point, the login is successful. We can reset any failure counts and proceed to create a session.
-        await _securityWriter.ResetFailuresAsync(request.Tenant, userKey.Value, ct);
+        if (factorState is not null)
+        {
+            await _authenticationSecurityManager.RegisterSuccessAsync(factorState, ct);
+        }
 
         var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, userKey.Value, ct);
 

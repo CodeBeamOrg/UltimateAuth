@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
+﻿using CodeBeam.UltimateAuth.Authentication.InMemory;
+using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -43,12 +44,16 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         services.AddUltimateAuthCredentialsInMemory();
         services.AddUltimateAuthInMemorySessions();
         services.AddUltimateAuthInMemoryTokens();
+        services.AddUltimateAuthInMemoryAuthenticationSecurity();
         services.AddUltimateAuthAuthorizationInMemory();
         services.AddUltimateAuthAuthorizationReference();
         services.AddUltimateAuthUsersReference();
 
         services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
+        services.AddSingleton<InMemoryAuthenticationSecurityStateStore>();
+        services.AddSingleton<IAuthenticationSecurityStateStore>(sp =>
+            sp.GetRequiredService<InMemoryAuthenticationSecurityStateStore>());
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 

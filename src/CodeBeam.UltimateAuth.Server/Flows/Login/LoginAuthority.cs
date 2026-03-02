@@ -18,7 +18,7 @@ public sealed class LoginAuthority : ILoginAuthority
         var state = context.SecurityState;
         if (state is not null)
         {
-            if (state.IsLocked)
+            if (state.IsLocked(DateTimeOffset.UtcNow))
                 return LoginDecision.Deny(AuthFailureReason.LockedOut);
 
             if (state.RequiresReauthentication)

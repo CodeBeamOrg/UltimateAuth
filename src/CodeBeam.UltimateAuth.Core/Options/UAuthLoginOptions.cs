@@ -29,13 +29,24 @@ public sealed class UAuthLoginOptions
     /// </summary>
     /// <remarks>This property defines the window of time used to evaluate consecutive failed login attempts.
     /// If the number of failures within this window exceeds the configured threshold, the account may be locked out.
-    /// Adjusting this value affects how quickly lockout conditions are triggered.</remarks>
+    /// Adjusting this value affects how quickly lockout conditions are triggered.
+    /// </remarks>
     public TimeSpan FailureWindow { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the lock should be extended when a login attempt fails during lockout.
+    /// </summary>
+    /// <remarks>Set this property to <see langword="true"/> to automatically extend the lock duration after
+    /// each failed login attempt. This can help prevent repeated unauthorized access attempts by increasing the lockout period.
+    /// </remarks>
+    public bool ExtendLockOnFailure { get; set; } = false;
 
     internal UAuthLoginOptions Clone() => new()
     {
         MaxFailedAttempts = MaxFailedAttempts,
         LockoutDuration = LockoutDuration,
-        IncludeFailureDetails = IncludeFailureDetails
+        IncludeFailureDetails = IncludeFailureDetails,
+        FailureWindow = FailureWindow,
+        ExtendLockOnFailure = ExtendLockOnFailure
     };
 }

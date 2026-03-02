@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Core.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -33,7 +33,8 @@ public sealed class LoginDecisionContext
     /// <summary>
     /// Gets the user security state if the user could be resolved.
     /// </summary>
-    public IUserSecurityState? SecurityState { get; init; }
+    //public IUserSecurityState? SecurityState { get; init; }
+    public AuthenticationSecurityState? SecurityState { get; init; }
 
     /// <summary>
     /// Indicates whether the user exists.

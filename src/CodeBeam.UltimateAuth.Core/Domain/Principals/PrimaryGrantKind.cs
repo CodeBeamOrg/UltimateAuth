@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public enum PrimaryCredentialKind
+public enum PrimaryGrantKind
 {
     Stateful,
     Stateless

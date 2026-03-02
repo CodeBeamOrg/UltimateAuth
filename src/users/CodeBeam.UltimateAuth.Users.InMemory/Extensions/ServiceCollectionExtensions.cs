@@ -14,9 +14,6 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IUserLifecycleStore, InMemoryUserLifecycleStore>();
         services.TryAddSingleton<IUserIdentifierStore, InMemoryUserIdentifierStore>();
         services.TryAddSingleton<IUserProfileStore, InMemoryUserProfileStore>();
-        services.TryAddSingleton<InMemoryUserSecurityStore>();
-        services.TryAddScoped<IUserSecurityStateProvider, InMemoryUserSecurityStateProvider>();
-        services.TryAddScoped<IUserSecurityStateWriter, InMemoryUserSecurityStateWriter>();
         services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
 
         // Seed never try add

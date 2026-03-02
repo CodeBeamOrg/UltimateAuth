@@ -27,16 +27,16 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
         _headerPolicy = headerPolicy;
     }
 
-    public void Write(HttpContext context, CredentialKind kind, AuthSessionId sessionId)
+    public void Write(HttpContext context, GrantKind kind, AuthSessionId sessionId)
         => WriteInternal(context, kind, sessionId.ToString());
 
-    public void Write(HttpContext context, CredentialKind kind, AccessToken token)
+    public void Write(HttpContext context, GrantKind kind, AccessToken token)
         => WriteInternal(context, kind, token.Token);
 
-    public void Write(HttpContext context, CredentialKind kind, RefreshToken token)
+    public void Write(HttpContext context, GrantKind kind, RefreshToken token)
         => WriteInternal(context, kind, token.Token);
 
-    public void WriteInternal(HttpContext context, CredentialKind kind, string value)
+    public void WriteInternal(HttpContext context, GrantKind kind, string value)
     {
         var auth = _authContext.Current;
         var delivery = ResolveDelivery(auth.Response, kind);
@@ -61,7 +61,7 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
         }
     }
 
-    private void WriteCookie(HttpContext context, CredentialKind kind, string value, CredentialResponseOptions options, AuthFlowContext auth)
+    private void WriteCookie(HttpContext context, GrantKind kind, string value, CredentialResponseOptions options, AuthFlowContext auth)
     {
         if (options.Cookie is null)
             throw new InvalidOperationException($"Cookie options missing for credential '{kind}'.");
@@ -78,12 +78,12 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
         context.Response.Headers[headerName] = formatted;
     }
 
-    private static CredentialResponseOptions ResolveDelivery(EffectiveAuthResponse response, CredentialKind kind)
+    private static CredentialResponseOptions ResolveDelivery(EffectiveAuthResponse response, GrantKind kind)
         => kind switch
         {
-            CredentialKind.Session => response.SessionIdDelivery,
-            CredentialKind.AccessToken => response.AccessTokenDelivery,
-            CredentialKind.RefreshToken => response.RefreshTokenDelivery,
+            GrantKind.Session => response.SessionIdDelivery,
+            GrantKind.AccessToken => response.AccessTokenDelivery,
+            GrantKind.RefreshToken => response.RefreshTokenDelivery,
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
 }

@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
 public enum CredentialType
 {
