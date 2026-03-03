@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
@@ -27,9 +28,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _clock = clock;
     }
 
-    public async Task<GetCredentialsResult> GetAllAsync(
-    AccessContext context,
-    CancellationToken ct = default)
+    public async Task<GetCredentialsResult> GetAllAsync(AccessContext context, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -52,7 +51,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     RevokedAt = c.Security.RevokedAt,
                     ResetRequestedAt = c.Security.ResetRequestedAt,
                     LastUsedAt = c.Metadata.LastUsedAt,
-                    Source = c.Metadata.Source
+                    Source = c.Metadata.Source,
+                    Version = c.Version,
                 })
                 .ToArray();
 
@@ -73,11 +73,13 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var hash = _hasher.Hash(request.Secret);
 
-            var credential = PasswordCredentialFactory.Create(
+            var credential = PasswordCredential.Create(
+                id: null,
                 tenant: context.ResourceTenant,
                 userKey: subjectUser,
                 secretHash: hash,
-                source: request.Source,
+                security: CredentialSecurityState.Active(),
+                metadata: new CredentialMetadata(),
                 now: now);
 
             await _credentials.AddAsync(context.ResourceTenant, credential, innerCt);
@@ -88,6 +90,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
+    // TODO: Invalidate sessions or tokens associated with the credential when changing secret or revoking
     public async Task<ChangeCredentialResult> ChangeSecretAsync(AccessContext context, ChangeCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -97,24 +100,33 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetByIdAsync(context.ResourceTenant, request.Id, innerCt);
+            var credentials = await _credentials.GetByUserAsync(context.ResourceTenant, subjectUser, innerCt);
+            var pwd = credentials.OfType<PasswordCredential>().Where(c => c.Security.IsUsable(now)).SingleOrDefault();
 
-            if (credential is not PasswordCredential pwd)
-                return ChangeCredentialResult.Fail("credential_not_found");
+            if (pwd is null)
+                throw new UAuthNotFoundException("credential_not_found");
 
             if (pwd.UserKey != subjectUser)
-                return ChangeCredentialResult.Fail("credential_not_found");
+                throw new UAuthNotFoundException("credential_not_found");
 
-            var verified = _hasher.Verify(pwd.SecretHash, request.CurrentSecret);
-            if (!verified)
-                return ChangeCredentialResult.Fail("invalid_credentials");
+            if (context.IsSelfAction)
+            {
+                if (string.IsNullOrWhiteSpace(request.CurrentSecret))
+                    throw new UAuthNotFoundException("current_secret_required");
+
+                if (!_hasher.Verify(pwd.SecretHash, request.CurrentSecret))
+                    throw new UAuthConflictException("invalid_credentials");
+            }
+
+            if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
+                throw new UAuthValidationException("credential_secret_same");
 
             var oldVersion = pwd.Version;
             var newHash = _hasher.Hash(request.NewSecret);
-            pwd.ChangeSecret(newHash, now);
-            await _credentials.UpdateAsync(context.ResourceTenant, pwd, oldVersion, innerCt);
+            var updated = pwd.ChangeSecret(newHash, now);
+            await _credentials.UpdateAsync(context.ResourceTenant, updated, oldVersion, innerCt);
 
-            return ChangeCredentialResult.Success(credential.Type);
+            return ChangeCredentialResult.Success(pwd.Type);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);

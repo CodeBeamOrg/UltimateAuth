@@ -21,4 +21,6 @@ public sealed record CredentialDto
     public DateTimeOffset? ResetRequestedAt { get; init; }
 
     public string? Source { get; init; }
+
+    public long Version { get; init; }
 }

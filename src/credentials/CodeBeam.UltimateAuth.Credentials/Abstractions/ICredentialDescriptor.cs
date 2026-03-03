@@ -9,4 +9,5 @@ public interface ICredentialDescriptor
     CredentialType Type { get; }
     CredentialSecurityState Security { get; }
     CredentialMetadata Metadata { get; }
+    long Version { get; }
 }

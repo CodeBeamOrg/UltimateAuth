@@ -31,15 +31,14 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
 
         var hash = _passwordHasher.Hash(r.Password);
 
-        var credential = new PasswordCredential(
+        var credential = PasswordCredential.Create(
             id: null,
             tenant: tenant,
             userKey: userKey,
             secretHash: hash,
             security: CredentialSecurityState.Active(),
             metadata: new CredentialMetadata { LastUsedAt = _clock.UtcNow },
-            _clock.UtcNow,
-            null);
+            _clock.UtcNow);
 
         await _credentialStore.AddAsync(tenant, credential, ct);
     }

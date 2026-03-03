@@ -38,15 +38,14 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
         {
             await _credentials.AddAsync(
                 tenant,
-                new PasswordCredential(
+                PasswordCredential.Create(
                     credentialId,
                     tenant,
                     userKey,
                     _hasher.Hash(secretHash),
                     CredentialSecurityState.Active(),
                     new CredentialMetadata(),
-                    DateTimeOffset.UtcNow,
-                    null),
+                    DateTimeOffset.UtcNow),
                 ct);
         }
         catch (UAuthConflictException)

@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
@@ -46,8 +47,9 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         services.AddUltimateAuthInMemoryTokens();
         services.AddUltimateAuthInMemoryAuthenticationSecurity();
         services.AddUltimateAuthAuthorizationInMemory();
-        services.AddUltimateAuthAuthorizationReference();
         services.AddUltimateAuthUsersReference();
+        services.AddUltimateAuthAuthorizationReference();
+        services.AddUltimateAuthCredentialsReference();
 
         services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
@@ -77,5 +79,11 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
     {
         var scope = Services.CreateScope();
         return scope.ServiceProvider.GetRequiredService<IUserApplicationService>();
+    }
+
+    public ICredentialManagementService GetCredentialManagementService()
+    {
+        var scope = Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<ICredentialManagementService>();
     }
 }

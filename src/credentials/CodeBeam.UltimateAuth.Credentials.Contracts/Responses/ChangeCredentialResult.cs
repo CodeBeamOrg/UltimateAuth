@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record ChangeCredentialResult
 {
-    public bool Succeeded { get; init; }
+    public bool IsSuccess { get; init; }
 
     public string? Error { get; init; }
 
@@ -13,14 +13,14 @@ public sealed record ChangeCredentialResult
     public static ChangeCredentialResult Success(CredentialType type)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             Type = type
         };
 
     public static ChangeCredentialResult Fail(string error)
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             Error = error
         };
 }

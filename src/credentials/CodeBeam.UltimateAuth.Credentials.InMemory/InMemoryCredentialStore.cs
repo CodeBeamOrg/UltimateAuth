@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory;
 
@@ -57,10 +58,10 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
 
         var key = (tenant, pwd.Id);
 
-        if (!_store.ContainsKey(key))
+        if (!_store.TryGetValue(key, out var current))
             throw new UAuthNotFoundException("credential_not_found");
 
-        if (pwd.Version != expectedVersion)
+        if (current.Version != expectedVersion)
             throw new UAuthConflictException("credential_version_conflict");
 
         _store[key] = pwd;

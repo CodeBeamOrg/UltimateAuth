@@ -161,6 +161,11 @@ public partial class Home : UAuthFlowPageBase
         await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), GetDialogOptions());
     }
 
+    private async Task OpenCredentialDialog()
+    {
+        await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), GetDialogOptions());
+    }
+
     private DialogOptions GetDialogOptions()
     {
         return new DialogOptions

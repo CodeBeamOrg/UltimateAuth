@@ -13,37 +13,45 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public UserKey UserKey { get; init; }
     public CredentialType Type => CredentialType.Password;
 
-    public string SecretHash { get; private set; }
-    public CredentialSecurityState Security { get; private set; }
-    public CredentialMetadata Metadata { get; private set; }
+    public string SecretHash { get; init; } = default!;
+    public CredentialSecurityState Security { get; init; } = CredentialSecurityState.Active();
+    public CredentialMetadata Metadata { get; init; } = new CredentialMetadata();
 
     public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? UpdatedAt { get; private set; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     public long Version { get; private set; }
 
     public bool IsRevoked => Security.RevokedAt is not null;
     public bool IsExpired(DateTimeOffset now) => Security.ExpiresAt is not null && Security.ExpiresAt <= now;
 
-    public PasswordCredential(
-        Guid? id,
+    public PasswordCredential() { }
+
+    private PasswordCredential(
+        Guid id,
         TenantKey tenant,
         UserKey userKey,
         string secretHash,
         CredentialSecurityState security,
         CredentialMetadata metadata,
         DateTimeOffset createdAt,
-        DateTimeOffset? updatedAt)
+        DateTimeOffset? updatedAt,
+        long version)
     {
-        Id = id ?? Guid.NewGuid();
+        if (id == Guid.Empty) throw new UAuthValidationException("credential_id_required");
+        if (string.IsNullOrWhiteSpace(secretHash)) throw new UAuthValidationException("credential_secret_required");
+
+        Id = id;
         Tenant = tenant;
         UserKey = userKey;
-        SecretHash = secretHash;
+        SecretHash = !string.IsNullOrWhiteSpace(secretHash)
+            ? secretHash
+            : throw new UAuthValidationException("credential_secret_required");
         Security = security;
-        Metadata = metadata;
+        Metadata = metadata ?? new CredentialMetadata();
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
-        Version = 0;
+        Version = version;
     }
 
     public static PasswordCredential Create(
@@ -53,21 +61,35 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
         string secretHash,
         CredentialSecurityState security,
         CredentialMetadata metadata,
-        DateTimeOffset createdAt,
-        DateTimeOffset? updatedAt)
-    {
-        return new(
-            id ?? Guid.NewGuid(),
-            tenant,
-            userKey,
-            secretHash,
-            security,
-            metadata,
-            createdAt,
-            updatedAt);
-    }
+        DateTimeOffset now)
+        => new(
+            id: id ?? Guid.NewGuid(),
+            tenant: tenant,
+            userKey: userKey,
+            secretHash: secretHash,
+            security: security,
+            metadata: metadata,
+            createdAt: now,
+            updatedAt: null,
+            version: 0);
 
-    public void ChangeSecret(string newSecretHash, DateTimeOffset now)
+    private PasswordCredential Next(
+        string? secretHash = null,
+        CredentialSecurityState? security = null,
+        CredentialMetadata? metadata = null,
+        DateTimeOffset? updatedAt = null)
+        => new(
+            id: Id,
+            tenant: Tenant,
+            userKey: UserKey,
+            secretHash: secretHash ?? SecretHash,
+            security: security ?? Security,
+            metadata: metadata ?? Metadata,
+            createdAt: CreatedAt,
+            updatedAt: updatedAt ?? UpdatedAt,
+            version: Version + 1);
+
+    public PasswordCredential ChangeSecret(string newSecretHash, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(newSecretHash))
             throw new UAuthValidationException("credential_secret_required");
@@ -78,58 +100,32 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
         if (IsExpired(now))
             throw new UAuthConflictException("credential_expired");
 
-        if (SecretHash == newSecretHash)
+        if (string.Equals(SecretHash, newSecretHash, StringComparison.Ordinal))
             throw new UAuthValidationException("credential_secret_same");
 
-        SecretHash = newSecretHash;
-        Security = Security.RotateStamp();
-        UpdatedAt = now;
-        Version++;
+        return Next(newSecretHash, Security.RotateStamp(), updatedAt: now);
     }
 
-    public void SetExpiry(DateTimeOffset? expiresAt, DateTimeOffset now)
-    {
-        Security = Security.SetExpiry(expiresAt);
-        UpdatedAt = now;
-        Version++;
-    }
+    public PasswordCredential SetExpiry(DateTimeOffset? expiresAt, DateTimeOffset now)
+        => Next(security: Security.SetExpiry(expiresAt), updatedAt: now);
 
-    public void Revoke(DateTimeOffset now)
+    public PasswordCredential Revoke(DateTimeOffset now)
     {
         if (IsRevoked)
-            return;
+            return this;
 
-        Security = Security.Revoke(now);
-        UpdatedAt = now;
-        Version++;
+        return Next(security: Security.Revoke(now), updatedAt: now);
     }
 
-    public void RegisterFailedAttempt(DateTimeOffset now, int threshold, TimeSpan duration)
-    {
-        Security = Security.RegisterFailedAttempt(now, threshold, duration);
-        UpdatedAt = now;
-        Version++;
-    }
+    public PasswordCredential RegisterFailedAttempt(DateTimeOffset now, int threshold, TimeSpan duration)
+        => Next(security: Security.RegisterFailedAttempt(now, threshold, duration), updatedAt: now);
 
-    public void RegisterSuccessfulAuthentication(DateTimeOffset now)
-    {
-        Security = Security.RegisterSuccessfulAuthentication();
-        UpdatedAt = now;
-        Version++;
-    }
+    public PasswordCredential RegisterSuccessfulAuthentication(DateTimeOffset now)
+        => Next(security: Security.RegisterSuccessfulAuthentication(), updatedAt: now);
 
-    public void BeginReset(DateTimeOffset now, TimeSpan validity)
-    {
-        Security = Security.BeginReset(now, validity);
-        UpdatedAt = now;
-        Version++;
-    }
+    public PasswordCredential BeginReset(DateTimeOffset now, TimeSpan validity)
+        => Next(security: Security.BeginReset(now, validity), updatedAt: now);
 
-    public void CompleteReset(DateTimeOffset now)
-    {
-        Security = Security.CompleteReset(now);
-
-        UpdatedAt = now;
-        Version++;
-    }
+    public PasswordCredential CompleteReset(DateTimeOffset now)
+        => Next(security: Security.CompleteReset(now), updatedAt: now);
 }
