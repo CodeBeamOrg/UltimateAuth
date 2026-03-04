@@ -131,7 +131,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         {
             if (userKey is not null && userExists && factorState is not null)
             {
-                factorState = await _authenticationSecurityManager.RegisterFailureAsync(factorState, now, ct);
+                var securityVersion = factorState.SecurityVersion;
+                factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.ExtendLockOnFailure);
+                await _authenticationSecurityManager.UpdateAsync(factorState, securityVersion, ct);
 
                 DateTimeOffset? lockedUntil = null;
                 int? remainingAttempts = null;
@@ -175,7 +177,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         // After this point, the login is successful. We can reset any failure counts and proceed to create a session.
         if (factorState is not null)
         {
-            await _authenticationSecurityManager.RegisterSuccessAsync(factorState, ct);
+            var version = factorState.SecurityVersion;
+            factorState = factorState.RegisterSuccess();
+            await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
         }
 
         var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, userKey.Value, ct);

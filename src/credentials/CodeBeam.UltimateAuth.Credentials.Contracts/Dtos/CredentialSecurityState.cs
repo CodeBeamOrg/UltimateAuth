@@ -5,34 +5,16 @@ namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 public sealed class CredentialSecurityState
 {
     public DateTimeOffset? RevokedAt { get; }
-    public DateTimeOffset? LockedUntil { get; }
     public DateTimeOffset? ExpiresAt { get; }
-    public DateTimeOffset? ResetRequestedAt { get; }
-    public DateTimeOffset? ResetExpiresAt { get; }
-    public DateTimeOffset? ResetConsumedAt { get; }
-    public int FailedAttemptCount { get; }
-    public DateTimeOffset? LastFailedAt { get; }
     public Guid SecurityStamp { get; }
 
     public CredentialSecurityState(
         DateTimeOffset? revokedAt = null,
-        DateTimeOffset? lockedUntil = null,
         DateTimeOffset? expiresAt = null,
-        DateTimeOffset? resetRequestedAt = null,
-        DateTimeOffset? resetExpiresAt = null,
-        DateTimeOffset? resetConsumedAt = null,
-        int failedAttemptCount = 0,
-        DateTimeOffset? lastFailedAt = null,
         Guid securityStamp = default)
     {
         RevokedAt = revokedAt;
-        LockedUntil = lockedUntil;
         ExpiresAt = expiresAt;
-        ResetRequestedAt = resetRequestedAt;
-        ResetExpiresAt = resetExpiresAt;
-        ResetConsumedAt = resetConsumedAt;
-        FailedAttemptCount = failedAttemptCount;
-        LastFailedAt = lastFailedAt;
         SecurityStamp = securityStamp;
     }
 
@@ -41,22 +23,8 @@ public sealed class CredentialSecurityState
         if (RevokedAt is not null)
             return CredentialSecurityStatus.Revoked;
 
-        if (LockedUntil is not null && LockedUntil > now)
-            return CredentialSecurityStatus.Locked;
-
         if (ExpiresAt is not null && ExpiresAt <= now)
             return CredentialSecurityStatus.Expired;
-
-        if (ResetRequestedAt is not null)
-        {
-            if (ResetConsumedAt is not null)
-                return CredentialSecurityStatus.Active;
-
-            if (ResetExpiresAt is not null && ResetExpiresAt <= now)
-                return CredentialSecurityStatus.Active;
-
-            return CredentialSecurityStatus.ResetRequested;
-        }
 
         return CredentialSecurityStatus.Active;
     }
@@ -70,13 +38,7 @@ public sealed class CredentialSecurityState
     {
         return new CredentialSecurityState(
             revokedAt: null,
-            lockedUntil: null,
             expiresAt: null,
-            resetRequestedAt: null,
-            resetExpiresAt: null,
-            resetConsumedAt: null,
-            failedAttemptCount: 0,
-            lastFailedAt: null,
             securityStamp: securityStamp ?? Guid.NewGuid()
         );
     }
@@ -91,13 +53,7 @@ public sealed class CredentialSecurityState
 
         return new CredentialSecurityState(
             revokedAt: now,
-            lockedUntil: LockedUntil,
             expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            resetExpiresAt: ResetExpiresAt,
-            resetConsumedAt: ResetConsumedAt,
-            failedAttemptCount: FailedAttemptCount,
-            lastFailedAt: LastFailedAt,
             securityStamp: Guid.NewGuid()
         );
     }
@@ -113,13 +69,7 @@ public sealed class CredentialSecurityState
 
         return new CredentialSecurityState(
             revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
             expiresAt: expiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            resetExpiresAt: ResetExpiresAt,
-            resetConsumedAt: ResetConsumedAt,
-            failedAttemptCount: FailedAttemptCount,
-            lastFailedAt: LastFailedAt,
             securityStamp: EnsureStamp(SecurityStamp)
         );
     }
@@ -130,101 +80,8 @@ public sealed class CredentialSecurityState
     {
         return new CredentialSecurityState(
             revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
             expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            resetExpiresAt: ResetExpiresAt,
-            resetConsumedAt: ResetConsumedAt,
-            failedAttemptCount: FailedAttemptCount,
-            lastFailedAt: LastFailedAt,
             securityStamp: Guid.NewGuid()
-        );
-    }
-
-    public CredentialSecurityState RegisterSuccessfulAuthentication()
-    {
-        return new CredentialSecurityState(
-            revokedAt: RevokedAt,
-            lockedUntil: null,
-            expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            resetExpiresAt: ResetExpiresAt,
-            resetConsumedAt: ResetConsumedAt,
-            failedAttemptCount: 0,
-            lastFailedAt: null,
-            securityStamp: EnsureStamp(SecurityStamp)
-        );
-    }
-
-    public CredentialSecurityState RegisterFailedAttempt(DateTimeOffset now, int threshold, TimeSpan lockoutDuration)
-    {
-        if (threshold <= 0)
-            throw new UAuthValidationException(nameof(threshold));
-
-        var failed = FailedAttemptCount + 1;
-
-        var newLockedUntil = LockedUntil;
-
-        if (failed >= threshold)
-        {
-            var candidate = now.Add(lockoutDuration);
-
-            if (LockedUntil is null || candidate > LockedUntil)
-                newLockedUntil = candidate;
-        }
-
-        return new CredentialSecurityState(
-            revokedAt: RevokedAt,
-            lockedUntil: newLockedUntil,
-            expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            resetExpiresAt: ResetExpiresAt,
-            resetConsumedAt: ResetConsumedAt,
-            failedAttemptCount: failed,
-            lastFailedAt: now,
-            securityStamp: EnsureStamp(SecurityStamp)
-        );
-    }
-
-    public CredentialSecurityState BeginReset(DateTimeOffset now, TimeSpan validity)
-    {
-        if (validity <= TimeSpan.Zero)
-            throw new UAuthValidationException("credential_lockout_threshold_invalid");
-
-        return new CredentialSecurityState(
-            revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
-            expiresAt: ExpiresAt,
-            resetRequestedAt: now,
-            resetExpiresAt: now.Add(validity),
-            resetConsumedAt: null,
-            failedAttemptCount: FailedAttemptCount,
-            lastFailedAt: LastFailedAt,
-            securityStamp: Guid.NewGuid()
-        );
-    }
-
-    public CredentialSecurityState CompleteReset(DateTimeOffset now, bool rotateStamp = true)
-    {
-        if (ResetRequestedAt is null)
-            throw new UAuthValidationException("reset_not_requested");
-
-        if (ResetConsumedAt is not null)
-            throw new UAuthValidationException("reset_already_consumed");
-
-        if (ResetExpiresAt is not null && ResetExpiresAt <= now)
-            throw new UAuthValidationException("reset_expired");
-
-        return new CredentialSecurityState(
-            revokedAt: RevokedAt,
-            lockedUntil: null,
-            expiresAt: ExpiresAt,
-            resetRequestedAt: null,
-            resetExpiresAt: null,
-            resetConsumedAt: now,
-            failedAttemptCount: 0,
-            lastFailedAt: null,
-            securityStamp: rotateStamp ? Guid.NewGuid() : EnsureStamp(SecurityStamp)
         );
     }
 }

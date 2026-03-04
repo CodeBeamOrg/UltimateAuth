@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
@@ -17,5 +18,5 @@ internal sealed class OpaqueTokenGenerator : IOpaqueTokenGenerator
 
     public string Generate() => GenerateBytes(_options.OpaqueIdBytes);
     public string GenerateJwtId() => GenerateBytes(16);
-    private static string GenerateBytes(int bytes) => Convert.ToBase64String(RandomNumberGenerator.GetBytes(bytes));
+    private static string GenerateBytes(int bytes) => WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(bytes));
 }

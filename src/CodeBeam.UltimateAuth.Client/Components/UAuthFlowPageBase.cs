@@ -13,6 +13,7 @@ public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
     protected AuthFlowPayload? UAuthPayload { get; private set; }
     protected string? ReturnUrl { get; private set; }
     protected bool ShouldFocus { get; private set; }
+    protected string? Identifier { get; private set; }
 
 
     protected virtual bool ClearQueryAfterParse => true;
@@ -39,6 +40,7 @@ public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
 
         ShouldFocus = query.TryGetValue("focus", out var focus) && focus == "1";
         ReturnUrl = query.TryGetValue("returnUrl", out var ru) ? ru.ToString() : null;
+        Identifier = query.TryGetValue("identifier", out var id) ? id.ToString() : null;
 
         UAuthPayload = null;
 

@@ -8,7 +8,6 @@ public interface IAuthenticationSecurityManager
 {
     Task<AuthenticationSecurityState> GetOrCreateAccountAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
     Task<AuthenticationSecurityState> GetOrCreateFactorAsync(TenantKey tenant, UserKey userKey, CredentialType type, CancellationToken ct = default);
-    Task<AuthenticationSecurityState> RegisterFailureAsync(AuthenticationSecurityState state, DateTimeOffset now, CancellationToken ct = default);
-    Task<AuthenticationSecurityState> RegisterSuccessAsync(AuthenticationSecurityState state, CancellationToken ct = default);
-    Task<AuthenticationSecurityState> UnlockAsync(AuthenticationSecurityState state, CancellationToken ct = default);
+    Task UpdateAsync(AuthenticationSecurityState updated, long expectedVersion, CancellationToken ct = default);
+    Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default);
 }

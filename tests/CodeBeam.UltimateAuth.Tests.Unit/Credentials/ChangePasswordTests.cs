@@ -2,11 +2,10 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

@@ -24,12 +24,12 @@ public sealed class HmacSha256TokenHasher : ITokenHasher
         return Convert.ToBase64String(hash);
     }
 
-    public bool Verify(string plaintext, string hash)
+    public bool Verify(string hash, string plaintext)
     {
         var computed = Hash(plaintext);
 
         return CryptographicOperations.FixedTimeEquals(
-            Convert.FromBase64String(computed),
-            Convert.FromBase64String(hash));
+            Convert.FromBase64String(hash),
+            Convert.FromBase64String(computed));
     }
 }

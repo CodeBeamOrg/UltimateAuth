@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 
 namespace CodeBeam.UltimateAuth.Policies;
 
@@ -32,13 +33,15 @@ internal sealed class RequireActiveUserPolicy : IAccessPolicy
         if (!context.IsAuthenticated || context.IsSystemActor)
             return false;
 
+        if (context.Action.EndsWith(".anonymous"))
+            return false;
+
         return !AllowedForInactive.Any(prefix => context.Action.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private static readonly string[] AllowedForInactive =
     {
-        "users.status.change.",
-        "credentials.password.reset.",
+        UAuthActions.Users.ChangeStatusSelf,
         "login.",
         "reauth."
     };

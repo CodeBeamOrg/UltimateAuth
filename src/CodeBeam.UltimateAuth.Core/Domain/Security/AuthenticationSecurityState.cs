@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Security;
 
+// TODO: Do not store reset token hash in db.
 public sealed class AuthenticationSecurityState
 {
     public Guid Id { get; }
@@ -17,9 +18,16 @@ public sealed class AuthenticationSecurityState
     public DateTimeOffset? LockedUntil { get; }
     public bool RequiresReauthentication { get; }
 
+    public DateTimeOffset? ResetRequestedAt { get; }
+    public DateTimeOffset? ResetExpiresAt { get; }
+    public DateTimeOffset? ResetConsumedAt { get; }
+    public string? ResetTokenHash { get; }
+    public int ResetAttempts { get; }
+
     public long SecurityVersion { get; }
 
     public bool IsLocked(DateTimeOffset now) => LockedUntil.HasValue && LockedUntil > now;
+    public bool HasResetRequest => ResetRequestedAt is not null;
 
     private AuthenticationSecurityState(
         Guid id,
@@ -31,6 +39,11 @@ public sealed class AuthenticationSecurityState
         DateTimeOffset? lastFailedAt,
         DateTimeOffset? lockedUntil,
         bool requiresReauthentication,
+        DateTimeOffset? resetRequestedAt,
+        DateTimeOffset? resetExpiresAt,
+        DateTimeOffset? resetConsumedAt,
+        string? resetTokenHash,
+        int resetAttempts,
         long securityVersion)
     {
         if (id == Guid.Empty)
@@ -51,6 +64,11 @@ public sealed class AuthenticationSecurityState
         LastFailedAt = lastFailedAt;
         LockedUntil = lockedUntil;
         RequiresReauthentication = requiresReauthentication;
+        ResetRequestedAt = resetRequestedAt;
+        ResetExpiresAt = resetExpiresAt;
+        ResetConsumedAt = resetConsumedAt;
+        ResetTokenHash = resetTokenHash;
+        ResetAttempts = resetAttempts;
         SecurityVersion = securityVersion < 0 ? 0 : securityVersion;
     }
 
@@ -65,6 +83,11 @@ public sealed class AuthenticationSecurityState
             lastFailedAt: null,
             lockedUntil: null,
             requiresReauthentication: false,
+            resetRequestedAt: null,
+            resetExpiresAt: null,
+            resetConsumedAt: null,
+            resetTokenHash: null,
+            resetAttempts: 0,
             securityVersion: 0);
 
     public static AuthenticationSecurityState CreateFactor(TenantKey tenant, UserKey userKey, CredentialType type, Guid? id = null)
@@ -78,6 +101,11 @@ public sealed class AuthenticationSecurityState
             lastFailedAt: null,
             lockedUntil: null,
             requiresReauthentication: false,
+            resetRequestedAt: null,
+            resetExpiresAt: null,
+            resetConsumedAt: null,
+            resetTokenHash: null,
+            resetAttempts: 0,
             securityVersion: 0);
 
     /// <summary>
@@ -105,6 +133,11 @@ public sealed class AuthenticationSecurityState
             lastFailedAt: null,
             lockedUntil: LockedUntil,
             requiresReauthentication: RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             securityVersion: SecurityVersion + 1);
     }
 
@@ -140,7 +173,12 @@ public sealed class AuthenticationSecurityState
             failedAttempts: nextCount,
             lastFailedAt: now,
             lockedUntil: nextLockedUntil,
-            requiresReauthentication: RequiresReauthentication,
+            RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             securityVersion: SecurityVersion + 1);
     }
 
@@ -157,7 +195,12 @@ public sealed class AuthenticationSecurityState
             failedAttempts: 0,
             lastFailedAt: null,
             lockedUntil: null,
-            requiresReauthentication: RequiresReauthentication,
+            RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             securityVersion: SecurityVersion + 1);
 
     /// <summary>
@@ -173,7 +216,12 @@ public sealed class AuthenticationSecurityState
             failedAttempts: 0,
             lastFailedAt: null,
             lockedUntil: null,
-            requiresReauthentication: RequiresReauthentication,
+            RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             securityVersion: SecurityVersion + 1);
 
     public AuthenticationSecurityState LockUntil(DateTimeOffset until, bool overwriteIfShorter = false)
@@ -198,6 +246,11 @@ public sealed class AuthenticationSecurityState
             LastFailedAt,
             lockedUntil: next,
             RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             SecurityVersion + 1);
     }
 
@@ -216,6 +269,11 @@ public sealed class AuthenticationSecurityState
             LastFailedAt,
             LockedUntil,
             requiresReauthentication: true,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
             securityVersion: SecurityVersion + 1);
     }
 
@@ -234,6 +292,137 @@ public sealed class AuthenticationSecurityState
             LastFailedAt,
             LockedUntil,
             requiresReauthentication: false,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            ResetAttempts,
+            securityVersion: SecurityVersion + 1);
+    }
+
+    public bool HasActiveReset(DateTimeOffset now)
+    {
+        if (ResetRequestedAt is null)
+            return false;
+
+        if (ResetConsumedAt is not null)
+            return false;
+
+        if (ResetExpiresAt is not null && ResetExpiresAt <= now)
+            return false;
+
+        return true;
+    }
+
+    public bool IsResetExpired(DateTimeOffset now)
+    {
+        return ResetExpiresAt is not null && ResetExpiresAt <= now;
+    }
+
+    public AuthenticationSecurityState BeginReset(string tokenHash, DateTimeOffset now, TimeSpan validity)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash))
+            throw new UAuthValidationException("reset_token_required");
+
+        if (HasActiveReset(now))
+            throw new UAuthConflictException("reset_already_active");
+
+        var expires = now.Add(validity);
+
+        return new AuthenticationSecurityState(
+            Id,
+            Tenant,
+            UserKey,
+            Scope,
+            CredentialType,
+            FailedAttempts,
+            LastFailedAt,
+            LockedUntil,
+            RequiresReauthentication,
+            resetRequestedAt: now,
+            resetExpiresAt: expires,
+            resetConsumedAt: null,
+            resetTokenHash: tokenHash,
+            resetAttempts: 0,
+            securityVersion: SecurityVersion + 1);
+    }
+
+    public AuthenticationSecurityState RegisterResetFailure(DateTimeOffset now, int maxAttempts)
+    {
+        if (IsResetExpired(now))
+            return ClearReset();
+
+        var next = ResetAttempts + 1;
+
+        if (next >= maxAttempts)
+        {
+            return ClearReset();
+        }
+
+        return new AuthenticationSecurityState(
+            Id,
+            Tenant,
+            UserKey,
+            Scope,
+            CredentialType,
+            FailedAttempts,
+            LastFailedAt,
+            LockedUntil,
+            RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            ResetConsumedAt,
+            ResetTokenHash,
+            next,
+            securityVersion: SecurityVersion + 1);
+    }
+
+    public AuthenticationSecurityState ConsumeReset(DateTimeOffset now)
+    {
+        if (ResetRequestedAt is null)
+            throw new UAuthConflictException("reset_not_requested");
+
+        if (ResetConsumedAt is not null)
+            throw new UAuthConflictException("reset_already_used");
+
+        if (IsResetExpired(now))
+            throw new UAuthConflictException("reset_expired");
+
+        return new AuthenticationSecurityState(
+            Id,
+            Tenant,
+            UserKey,
+            Scope,
+            CredentialType,
+            FailedAttempts,
+            LastFailedAt,
+            LockedUntil,
+            RequiresReauthentication,
+            ResetRequestedAt,
+            ResetExpiresAt,
+            now,
+            null,
+            ResetAttempts,
+            securityVersion: SecurityVersion + 1);
+    }
+
+    public AuthenticationSecurityState ClearReset()
+    {
+        return new AuthenticationSecurityState(
+            Id,
+            Tenant,
+            UserKey,
+            Scope,
+            CredentialType,
+            FailedAttempts,
+            LastFailedAt,
+            LockedUntil,
+            RequiresReauthentication,
+            null,
+            null,
+            null,
+            null,
+            0,
             securityVersion: SecurityVersion + 1);
     }
 }

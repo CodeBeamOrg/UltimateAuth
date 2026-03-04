@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Security;
 using System.Collections.Concurrent;
@@ -30,12 +31,12 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
         var key = (state.Tenant, state.UserKey, state.Scope, state.CredentialType);
 
         if (!_index.TryAdd(key, state.Id))
-            throw new InvalidOperationException("security_state_already_exists");
+            throw new UAuthConflictException("security_state_already_exists");
 
         if (!_byId.TryAdd(state.Id, state))
         {
             _index.TryRemove(key, out _);
-            throw new InvalidOperationException("security_state_add_failed");
+            throw new UAuthConflictException("security_state_add_failed");
         }
 
         return Task.CompletedTask;
@@ -45,13 +46,33 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
     {
         ct.ThrowIfCancellationRequested();
 
+        var key = (state.Tenant, state.UserKey, state.Scope, state.CredentialType);
+
+        if (!_index.TryGetValue(key, out var id) || id != state.Id)
+            throw new UAuthConflictException("security_state_index_corrupted");
+
         if (!_byId.TryGetValue(state.Id, out var current))
-            throw new InvalidOperationException("security_state_not_found");
+            throw new UAuthNotFoundException("security_state_not_found");
 
         if (current.SecurityVersion != expectedVersion)
-            throw new InvalidOperationException("security_state_version_conflict");
+            throw new UAuthConflictException("security_state_version_conflict");
 
-        _byId[state.Id] = state;
+        if (!_byId.TryUpdate(state.Id, state, current))
+            throw new UAuthConflictException("security_state_update_conflict");
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var key = (tenant, userKey, scope, credentialType);
+
+        if (!_index.TryRemove(key, out var id))
+            return Task.CompletedTask;
+
+        _byId.TryRemove(id, out _);
 
         return Task.CompletedTask;
     }

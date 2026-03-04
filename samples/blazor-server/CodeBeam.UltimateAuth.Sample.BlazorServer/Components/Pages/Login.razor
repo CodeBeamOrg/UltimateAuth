@@ -7,6 +7,7 @@
 @inject ISnackbar Snackbar
 @inject IUAuthClientProductInfoProvider ClientProductInfoProvider
 @inject IDeviceIdProvider DeviceIdProvider
+@inject IDialogService DialogService
 
 <MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium">
@@ -110,6 +111,12 @@
                     <MudStack Class="mud-width-full">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
                         <MudText Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                    </MudStack>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudStack>
+                        <MudText Align="Align.Center"><MudLink Class="cursor-pointer" OnClick="OpenResetDialog">Forgot Password</MudLink></MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>

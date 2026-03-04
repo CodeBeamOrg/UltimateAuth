@@ -6,7 +6,7 @@
 <MudLayout>
     <MudAppBar Style="backdrop-filter: blur(10px)" Color="Color.Transparent" Dense="true" Elevation="0">
         <UAuthLogo />
-        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home"))"><b>UltimateAuth</b></MudText>
+        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home", true))"><b>UltimateAuth</b></MudText>
         <MudDivider Class="ml-4 mr-2" Vertical="true" />
         <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
 

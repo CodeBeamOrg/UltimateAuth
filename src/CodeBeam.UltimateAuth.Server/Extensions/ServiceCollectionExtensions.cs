@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
@@ -16,7 +17,6 @@ using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -71,6 +71,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
+        services.TryAddSingleton<INumericCodeGenerator, NumericCodeGenerator>();
         services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
 
         services.TryAddScoped<ITokenHasher>(sp =>

@@ -116,16 +116,4 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
 
         return Next(security: Security.Revoke(now), updatedAt: now);
     }
-
-    public PasswordCredential RegisterFailedAttempt(DateTimeOffset now, int threshold, TimeSpan duration)
-        => Next(security: Security.RegisterFailedAttempt(now, threshold, duration), updatedAt: now);
-
-    public PasswordCredential RegisterSuccessfulAuthentication(DateTimeOffset now)
-        => Next(security: Security.RegisterSuccessfulAuthentication(), updatedAt: now);
-
-    public PasswordCredential BeginReset(DateTimeOffset now, TimeSpan validity)
-        => Next(security: Security.BeginReset(now, validity), updatedAt: now);
-
-    public PasswordCredential CompleteReset(DateTimeOffset now)
-        => Next(security: Security.CompleteReset(now), updatedAt: now);
 }

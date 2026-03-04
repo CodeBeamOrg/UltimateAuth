@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Defaults;
+﻿namespace CodeBeam.UltimateAuth.Core.Defaults;
 
 public static class UAuthSchemeDefaults
 {

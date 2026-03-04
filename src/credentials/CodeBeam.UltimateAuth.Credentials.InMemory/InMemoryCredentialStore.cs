@@ -64,7 +64,7 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
         if (current.Version != expectedVersion)
             throw new UAuthConflictException("credential_version_conflict");
 
-        _store[key] = pwd;
+        _store.TryUpdate(key, pwd, current);
 
         return Task.CompletedTask;
     }
@@ -84,7 +84,8 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
         if (credential.IsRevoked)
             return Task.CompletedTask;
 
-        credential.Revoke(revokedAt);
+        var updated = credential.Revoke(revokedAt);
+        _store[key] = updated;
 
         return Task.CompletedTask;
     }
@@ -108,7 +109,10 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
         }
 
         if (!credential.IsRevoked)
-            credential.Revoke(now);
+        {
+            var updated = credential.Revoke(now);
+            _store[key] = updated;
+        }
 
         return Task.CompletedTask;
     }
@@ -123,13 +127,7 @@ internal sealed class InMemoryCredentialStore : ICredentialStore
         {
             ct.ThrowIfCancellationRequested();
 
-            await DeleteAsync(
-                tenant,
-                credential.Id,
-                mode,
-                now,
-                credential.Version,
-                ct);
+            await DeleteAsync(tenant, credential.Id, mode, now, credential.Version, ct);
         }
     }
 }

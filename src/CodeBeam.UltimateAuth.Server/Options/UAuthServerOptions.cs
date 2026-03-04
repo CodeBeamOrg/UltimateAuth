@@ -74,6 +74,8 @@ public sealed class UAuthServerOptions
 
     public UAuthResponseOptions AuthResponse { get; init; } = new();
 
+    public UAuthResetOptions ResetCredential { get; init; } = new();
+
     public UAuthHubServerOptions Hub { get; set; } = new();
 
     /// <summary>
@@ -138,6 +140,7 @@ public sealed class UAuthServerOptions
 
             PrimaryCredential = PrimaryCredential.Clone(),
             AuthResponse = AuthResponse.Clone(),
+            ResetCredential = ResetCredential.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             UserIdentifiers = UserIdentifiers.Clone(),

@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Defaults;
+﻿namespace CodeBeam.UltimateAuth.Core.Defaults;
 
 public static class UAuthActions
 {
@@ -62,9 +62,9 @@ public static class UAuthActions
         public const string RevokeSelf = "credentials.revoke.self";
         public const string RevokeAdmin = "credentials.revoke.admin";
         public const string ActivateSelf = "credentials.activate.self";
-        public const string BeginResetSelf = "credentials.beginreset.self";
+        public const string BeginResetAnonymous = "credentials.beginreset.anonymous";
         public const string BeginResetAdmin = "credentials.beginreset.admin";
-        public const string CompleteResetSelf = "credentials.completereset.self";
+        public const string CompleteResetAnonymous = "credentials.completereset.anonymous";
         public const string CompleteResetAdmin = "credentials.completereset.admin";
         public const string DeleteAdmin = "credentials.delete.admin";
     }

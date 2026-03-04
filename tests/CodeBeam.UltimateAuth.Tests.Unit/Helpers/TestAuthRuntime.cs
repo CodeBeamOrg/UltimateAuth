@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
@@ -26,9 +27,11 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 {
     public IServiceProvider Services { get; }
+    public TestClock Clock { get; }
 
     public TestAuthRuntime(Action<UAuthServerOptions>? configureServer = null, Action<UAuthOptions>? configureCore = null)
     {
+        Clock = new TestClock();
         var services = new ServiceCollection();
 
         services.AddLogging();
@@ -60,7 +63,7 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
         services.AddSingleton<IConfiguration>(configuration);
-
+        services.AddSingleton<IClock>(Clock);
 
         Services = services.BuildServiceProvider();
         Services.GetRequiredService<SeedRunner>().RunAsync(null).GetAwaiter().GetResult();

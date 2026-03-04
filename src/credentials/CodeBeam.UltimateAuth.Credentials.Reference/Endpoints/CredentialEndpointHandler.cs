@@ -1,7 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.Http;
@@ -89,36 +89,36 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
 
     public async Task<IResult> BeginResetAsync(HttpContext ctx)
     {
-        if (!TryGetSelf(out var flow, out var error))
-            return error!;
+        // Don't call TryGetSelf here, as the user might be locked out and thus not authenticated.
+        var flow = _authFlow.Current;
 
         var request = await ctx.ReadJsonAsync<BeginCredentialResetRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
-            action: UAuthActions.Credentials.BeginResetSelf,
+            action: UAuthActions.Credentials.BeginResetAnonymous,
             resource: "credentials",
-            resourceId: flow.UserKey!.Value);
+            resourceId: request.Identifier);
 
-        await _credentials.BeginResetAsync(accessContext, request, ctx.RequestAborted);
-        return Results.NoContent();
+        var result = await _credentials.BeginResetAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok(result);
     }
 
     public async Task<IResult> CompleteResetAsync(HttpContext ctx)
     {
-        if (!TryGetSelf(out var flow, out var error))
-            return error!;
+        // Don't call TryGetSelf here, as the user might be locked out and thus not authenticated.
+        var flow = _authFlow.Current;
 
         var request = await ctx.ReadJsonAsync<CompleteCredentialResetRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
-            action: UAuthActions.Credentials.CompleteResetSelf,
+            action: UAuthActions.Credentials.CompleteResetAnonymous,
             resource: "credentials",
-            resourceId: flow.UserKey!.Value);
+            resourceId: request.Identifier);
 
-        await _credentials.CompleteResetAsync(accessContext, request, ctx.RequestAborted);
-        return Results.NoContent();
+        var result = await _credentials.CompleteResetAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok(result);
     }
 
     public async Task<IResult> GetAllAdminAsync(UserKey userKey, HttpContext ctx)

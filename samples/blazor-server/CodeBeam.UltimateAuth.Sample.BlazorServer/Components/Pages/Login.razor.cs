@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
@@ -157,6 +158,29 @@ public partial class Login : UAuthFlowPageBase
             var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
             _progressPercent = Math.Max(0, percent);
         }
+    }
+
+    private async Task OpenResetDialog()
+    {
+        await DialogService.ShowAsync<ResetDialog>("Reset Credentials", GetDialogParameters(), GetDialogOptions());
+    }
+
+    private DialogOptions GetDialogOptions()
+    {
+        return new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+    }
+
+    private DialogParameters GetDialogParameters()
+    {
+        return new DialogParameters
+        {
+            ["AuthState"] = AuthState
+        };
     }
 
     public override void Dispose()

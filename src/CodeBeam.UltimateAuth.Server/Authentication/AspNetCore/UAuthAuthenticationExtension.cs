@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Server.Defaults;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
 using Microsoft.AspNetCore.Authentication;
 
 namespace CodeBeam.UltimateAuth.Server.Authentication;

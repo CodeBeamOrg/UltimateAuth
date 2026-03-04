@@ -11,4 +11,6 @@ public interface IAuthenticationSecurityStateStore
     Task AddAsync(AuthenticationSecurityState state, CancellationToken ct = default);
 
     Task UpdateAsync(AuthenticationSecurityState state, long expectedVersion, CancellationToken ct = default);
+
+    Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default);
 }

@@ -44,16 +44,16 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> BeginResetMyAsync(BeginCredentialResetRequest request)
+    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/reset/begin"), request);
-        return UAuthResultMapper.From(raw);
+        return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
     }
 
-    public async Task<UAuthResult> CompleteResetMyAsync(CompleteCredentialResetRequest request)
+    public async Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/reset/complete"), request);
-        return UAuthResultMapper.From(raw);
+        return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
     }
 
 
@@ -81,16 +81,16 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> BeginResetUserAsync(UserKey userKey, BeginCredentialResetRequest request)
+    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/reset/begin"), request);
-        return UAuthResultMapper.From(raw);
+        return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
     }
 
-    public async Task<UAuthResult> CompleteResetUserAsync(UserKey userKey, CompleteCredentialResetRequest request)
+    public async Task<UAuthResult<CredentialActionResult>> CompleteResetUserAsync(UserKey userKey, CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/reset/complete"), request);
-        return UAuthResultMapper.From(raw);
+        return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
     }
 
     public async Task<UAuthResult> DeleteUserAsync(UserKey userKey)

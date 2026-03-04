@@ -7,7 +7,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using static CodeBeam.UltimateAuth.Server.Defaults.UAuthActions;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

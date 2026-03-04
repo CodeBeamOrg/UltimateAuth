@@ -1,7 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Users.Contracts;
