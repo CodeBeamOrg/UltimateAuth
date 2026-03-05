@@ -55,18 +55,12 @@ internal sealed class UserApplicationService : IUserApplicationService
                 return UserCreateResult.Failed("primary_identifier_type_required");
             }
 
-            await _lifecycleStore.CreateAsync(context.ResourceTenant,
-                new UserLifecycle
-                {
-                    UserKey = userKey,
-                    Status = UserStatus.Active,
-                    CreatedAt = now
-                },
-                innerCt);
+            await _lifecycleStore.CreateAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
 
             await _profileStore.CreateAsync(context.ResourceTenant,
                 new UserProfile
                 {
+                    Tenant = context.ResourceTenant,
                     UserKey = userKey,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
@@ -87,6 +81,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 await _identifierStore.CreateAsync(context.ResourceTenant,
                     new UserIdentifier
                     {
+                        Tenant = context.ResourceTenant,
                         UserKey = userKey,
                         Type = request.PrimaryIdentifierType.Value,
                         Value = request.PrimaryIdentifierValue,
@@ -121,7 +116,9 @@ internal sealed class UserApplicationService : IUserApplicationService
             };
 
             var targetUserKey = context.GetTargetUserKey();
-            var current = await _lifecycleStore.GetAsync(context.ResourceTenant, targetUserKey, innerCt);
+            var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
+            var current = await _lifecycleStore.GetAsync(userLifecycleKey, innerCt);
+            var now = DateTimeOffset.UtcNow;
 
             if (current is null)
                 throw new InvalidOperationException("user_not_found");
@@ -134,8 +131,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                 if (newStatus is UserStatus.SelfSuspended or UserStatus.Deactivated)
                     throw new InvalidOperationException("admin_cannot_set_self_status");
             }
-            
-            await _lifecycleStore.ChangeStatusAsync(context.ResourceTenant, targetUserKey, newStatus, _clock.UtcNow, innerCt);
+            var newEntity = current.ChangeStatus(now, newStatus);
+            await _lifecycleStore.UpdateAsync(newEntity, current.Version, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -147,8 +144,9 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             var targetUserKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
+            var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
 
-            await _lifecycleStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+            await _lifecycleStore.DeleteAsync(userLifecycleKey, request.Mode, now, innerCt);
             await _identifierStore.DeleteByUserAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
             await _profileStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
 
@@ -520,7 +518,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
             else
             {
-                identifier.SoftDelete(_clock.UtcNow);
+                identifier.MarkDeleted(_clock.UtcNow);
                 await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
             }
         });

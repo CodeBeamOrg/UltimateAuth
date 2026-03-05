@@ -134,6 +134,7 @@
                                         <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" Size="Size.Small" />
                                         <MudText Typo="Typo.subtitle2" Color="Color.Primary">Last Validated At</MudText>
                                     </MudStack>
+                                    @* TODO: Validation call should update last validated at *@
                                     <MudText Align="Align.Center">@FormatLocalTime(AuthState?.LastValidatedAt)</MudText>
                                 </MudItem>
                             </MudGrid>

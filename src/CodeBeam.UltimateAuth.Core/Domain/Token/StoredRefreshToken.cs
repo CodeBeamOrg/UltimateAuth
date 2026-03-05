@@ -25,7 +25,7 @@ public sealed record StoredRefreshToken : IVersionedEntity
 
     public string? ReplacedByTokenHash { get; init; }
 
-    public long Version { get; }
+    public long Version { get; set; }
 
     [NotMapped]
     public bool IsRevoked => RevokedAt.HasValue;

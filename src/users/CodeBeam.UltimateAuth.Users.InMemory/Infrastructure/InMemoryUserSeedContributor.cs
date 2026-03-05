@@ -43,17 +43,12 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
 
     private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string username, string email, string phone, CancellationToken ct)
     {
-        if (await _lifecycle.ExistsAsync(tenant, userKey, ct))
+        var userLifecycleKey = new UserLifecycleKey(tenant, userKey);
+        if (await _lifecycle.ExistsAsync(userLifecycleKey, ct))
             return;
 
-        await _lifecycle.CreateAsync(tenant,
-            new UserLifecycle
-            {
-                Tenant = tenant,
-                UserKey = userKey,
-                Status = UserStatus.Active,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _lifecycle.CreateAsync(
+            UserLifecycle.Create(tenant, userKey, _clock.UtcNow), ct);
 
         await _profiles.CreateAsync(tenant,
             new UserProfile

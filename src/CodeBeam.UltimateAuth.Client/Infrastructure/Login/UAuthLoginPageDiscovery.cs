@@ -26,7 +26,7 @@ public static class UAuthLoginPageDiscovery
             return _cached = "/login";
 
         if (candidates.Count > 1)
-            throw new InvalidOperationException("Multiple [UAuthLoginPage] found. Define Navigation.LoginResolver explicitly.");
+            throw new InvalidOperationException("Multiple [UAuthLoginPage] found. Make sure you only have one login page that attribute defined or define Navigation.LoginResolver explicitly.");
 
         var routeAttr = candidates[0].GetCustomAttributes(typeof(RouteAttribute), true).FirstOrDefault() as RouteAttribute;
 

@@ -261,7 +261,7 @@ public sealed class InMemoryUserIdentifierStore : IUserIdentifierStore
             else
             {
                 var expected = identifier.Version;
-                identifier.SoftDelete(deletedAt);
+                identifier.MarkDeleted(deletedAt);
                 await SaveAsync(identifier, expected, ct);
             }
         }

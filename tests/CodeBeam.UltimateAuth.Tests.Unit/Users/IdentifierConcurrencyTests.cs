@@ -65,7 +65,7 @@ public class IdentifierConcurrencyTests
         var copy2 = await store.GetByIdAsync(id);
 
         var expected1 = copy1!.Version;
-        copy1.SoftDelete(now);
+        copy1.MarkDeleted(now);
         await store.SaveAsync(copy1, expected1);
 
         await Assert.ThrowsAsync<UAuthConcurrencyException>(async () =>

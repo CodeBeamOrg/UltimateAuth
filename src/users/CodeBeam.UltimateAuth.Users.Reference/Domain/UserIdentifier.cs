@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
-public sealed record UserIdentifier : IVersionedEntity
+public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
 {
     public Guid Id { get; set; }
     public TenantKey Tenant { get; set; }
@@ -19,8 +19,6 @@ public sealed record UserIdentifier : IVersionedEntity
     public bool IsPrimary { get; set; }
     public bool IsVerified { get; set; }
 
-    public bool IsDeleted { get; set; }
-
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? VerifiedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -28,6 +26,8 @@ public sealed record UserIdentifier : IVersionedEntity
 
     public long Version { get; set; }
 
+
+    public bool IsDeleted => DeletedAt is not null;
 
     public UserIdentifier Cloned()
     {
@@ -41,7 +41,6 @@ public sealed record UserIdentifier : IVersionedEntity
             NormalizedValue = NormalizedValue,
             IsPrimary = IsPrimary,
             IsVerified = IsVerified,
-            IsDeleted = IsDeleted,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             VerifiedAt = VerifiedAt,
@@ -111,12 +110,11 @@ public sealed record UserIdentifier : IVersionedEntity
         Version++;
     }
 
-    public void SoftDelete(DateTimeOffset at)
+    public void MarkDeleted(DateTimeOffset at)
     {
         if (IsDeleted)
             throw new UAuthIdentifierConflictException("identifier_already_deleted");
 
-        IsDeleted = true;
         DeletedAt = at;
         IsPrimary = false;
         UpdatedAt = at;

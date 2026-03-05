@@ -22,7 +22,7 @@ public sealed class UAuthSessionChain : IVersionedEntity
     
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
-    public long Version { get; }
+    public long Version { get; set; }
 
     private UAuthSessionChain(
         SessionChainId chainId,

@@ -2,5 +2,5 @@
 
 public interface IVersionedEntity
 {
-    long Version { get; }
+    long Version { get; set; }
 }

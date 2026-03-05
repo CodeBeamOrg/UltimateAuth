@@ -20,7 +20,7 @@ public sealed class PasswordCredential : ISecretCredential, ICredentialDescripto
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
 
-    public long Version { get; private set; }
+    public long Version { get; set; }
 
     public bool IsRevoked => Security.RevokedAt is not null;
     public bool IsExpired(DateTimeOffset now) => Security.ExpiresAt is not null && Security.ExpiresAt <= now;

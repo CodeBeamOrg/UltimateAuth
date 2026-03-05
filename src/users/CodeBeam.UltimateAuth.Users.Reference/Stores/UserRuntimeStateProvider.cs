@@ -16,7 +16,8 @@ internal sealed class UserRuntimeStateProvider : IUserRuntimeStateProvider
 
     public async Task<UserRuntimeRecord?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var lifecycle = await _lifecycleStore.GetAsync(tenant, userKey, ct);
+        var userLifecycleKey = new UserLifecycleKey(tenant, userKey);
+        var lifecycle = await _lifecycleStore.GetAsync(userLifecycleKey, ct);
 
         if (lifecycle is null)
             return null;

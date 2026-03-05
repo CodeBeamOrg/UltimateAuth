@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
+// TODO: Add ISoftDeleteable
 public sealed class UAuthSession : IVersionedEntity
 {
     public AuthSessionId SessionId { get; }
@@ -16,7 +17,7 @@ public sealed class UAuthSession : IVersionedEntity
     public long SecurityVersionAtCreation { get; }
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
-    public long Version { get; }
+    public long Version { get; set; }
 
     private UAuthSession(
         AuthSessionId sessionId,

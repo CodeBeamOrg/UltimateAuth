@@ -6,5 +6,5 @@ public sealed class Role : IVersionedEntity
     public required string Name { get; init; }
     public IReadOnlyCollection<Permission> Permissions { get; init; } = Array.Empty<Permission>();
 
-    public long Version { get; init; }
+    public long Version { get; set; }
 }

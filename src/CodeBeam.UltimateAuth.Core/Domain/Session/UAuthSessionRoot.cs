@@ -16,7 +16,7 @@ public sealed class UAuthSessionRoot : IVersionedEntity
     public DateTimeOffset? RevokedAt { get; }
 
     public long SecurityVersion { get; }
-    public long Version { get; }
+    public long Version { get; set; }
 
     private UAuthSessionRoot(
         SessionRootId rootId,
