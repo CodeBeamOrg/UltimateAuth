@@ -243,8 +243,8 @@ public class ServerOptionsValidatorTests
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
             {
-                o.UserIdentifiers.AllowAdminOverride = false;
-                o.UserIdentifiers.AllowUserOverride = false;
+                o.Identifiers.AllowAdminOverride = false;
+                o.Identifiers.AllowUserOverride = false;
             });
 
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
@@ -268,14 +268,14 @@ public class ServerOptionsValidatorTests
         services.AddOptions<UAuthServerOptions>()
             .Configure(o =>
             {
-                o.UserIdentifiers.AllowAdminOverride = true;
-                o.UserIdentifiers.AllowUserOverride = false;
+                o.Identifiers.AllowAdminOverride = true;
+                o.Identifiers.AllowUserOverride = false;
             });
 
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
-        options.UserIdentifiers.AllowAdminOverride.Should().BeTrue();
+        options.Identifiers.AllowAdminOverride.Should().BeTrue();
     }
 
     [Fact]

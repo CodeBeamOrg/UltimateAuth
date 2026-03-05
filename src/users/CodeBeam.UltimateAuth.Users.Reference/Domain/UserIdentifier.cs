@@ -121,4 +121,20 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
 
         Version++;
     }
+
+    public UserIdentifierDto ToDto()
+    {
+        return new UserIdentifierDto()
+        {
+            Id = Id,
+            Type = Type,
+            Value = Value,
+            NormalizedValue = NormalizedValue,
+            CreatedAt = CreatedAt,
+            IsPrimary = IsPrimary,
+            IsVerified = IsVerified,
+            VerifiedAt = VerifiedAt,
+            Version = Version
+        };
+    }
 }

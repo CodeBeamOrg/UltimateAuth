@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class UAuthUserIdentifierOptions
+public sealed class UAuthIdentifierOptions
 {
     public bool AllowUsernameChange { get; set; } = true;
     public bool AllowMultipleUsernames { get; set; } = false;
@@ -14,7 +14,7 @@ public sealed class UAuthUserIdentifierOptions
     public bool AllowAdminOverride { get; set; } = true;
     public bool AllowUserOverride { get; set; } = true;
 
-    internal UAuthUserIdentifierOptions Clone() => new()
+    internal UAuthIdentifierOptions Clone() => new()
     {
         AllowUsernameChange = AllowUsernameChange,
         AllowMultipleUsernames = AllowMultipleUsernames,

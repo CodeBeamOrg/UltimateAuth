@@ -27,8 +27,19 @@ public partial class Register
         
         var request = new CreateUserRequest
         {
-            
+            UserName = _username,
+            Password = _password,
+            Email = _email,
         };
-    }
 
+        var result = await UAuthClient.Users.CreateAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("User created succesfully.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result.Problem?.Detail ?? result.Problem?.Title ?? "Failed to create user.", Severity.Error);
+        }
+    }
 }

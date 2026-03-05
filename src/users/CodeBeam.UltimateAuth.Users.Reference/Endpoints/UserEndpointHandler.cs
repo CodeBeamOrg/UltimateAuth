@@ -24,14 +24,12 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
     public async Task<IResult> CreateAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
-        if (!flow.IsAuthenticated)
-            return Results.Unauthorized();
 
         var request = await ctx.ReadJsonAsync<CreateUserRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
-            action: UAuthActions.Users.Create,
+            action: UAuthActions.Users.CreateAnonymous,
             resource: "users");
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);

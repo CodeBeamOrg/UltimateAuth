@@ -242,7 +242,7 @@ public class UserIdentifierApplicationServiceTests
     {
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
-            o.UserIdentifiers.AllowMultipleUsernames = true;
+            o.Identifiers.AllowMultipleUsernames = true;
         });
 
         var service = runtime.GetUserApplicationService();
@@ -267,7 +267,7 @@ public class UserIdentifierApplicationServiceTests
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
             o.LoginIdentifiers.Normalization.UsernameCase = CaseHandling.ToLower;
-            o.UserIdentifiers.AllowMultipleUsernames = true;
+            o.Identifiers.AllowMultipleUsernames = true;
         });
 
         var service = runtime.GetUserApplicationService();

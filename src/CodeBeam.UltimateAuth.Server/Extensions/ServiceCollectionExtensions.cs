@@ -32,6 +32,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -193,6 +194,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
         services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
+        services.TryAddScoped<IIdentifierValidator, IdentifierValidator>();
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
@@ -299,6 +301,7 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<IUserCreateValidator, UserCreateValidator>();
         return services;
     }
 

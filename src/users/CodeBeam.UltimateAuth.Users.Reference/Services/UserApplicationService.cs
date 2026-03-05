@@ -3,6 +3,9 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -16,8 +19,12 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserLifecycleStore _lifecycleStore;
     private readonly IUserProfileStore _profileStore;
     private readonly IUserIdentifierStore _identifierStore;
+    private readonly ICredentialStore _credentialStore;
+    private readonly IUserCreateValidator _userCreateValidator;
+    private readonly IIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
     private readonly IIdentifierNormalizer _identifierNormalizer;
+    private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -26,8 +33,12 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserLifecycleStore lifecycleStore,
         IUserProfileStore profileStore,
         IUserIdentifierStore identifierStore,
+        ICredentialStore credentialStore,
+        IUserCreateValidator userCreateValidator,
+        IIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
         IIdentifierNormalizer identifierNormalizer,
+        IUAuthPasswordHasher passwordHasher,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -35,8 +46,12 @@ internal sealed class UserApplicationService : IUserApplicationService
         _lifecycleStore = lifecycleStore;
         _profileStore = profileStore;
         _identifierStore = identifierStore;
+        _credentialStore = credentialStore;
+        _userCreateValidator = userCreateValidator;
+        _identifierValidator = identifierValidator;
         _integrations = integrations;
         _identifierNormalizer = identifierNormalizer;
+        _passwordHasher = passwordHasher;
         _options = options.Value;
         _clock = clock;
     }
@@ -47,15 +62,31 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new CreateUserCommand(async innerCt =>
         {
+            var validationResult = await _userCreateValidator.ValidateAsync(context, request, ct);
+            if (validationResult.IsValid != true)
+            {
+                throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
+            }
+
             var now = _clock.UtcNow;
             var userKey = UserKey.New();
 
-            if (!string.IsNullOrWhiteSpace(request.PrimaryIdentifierValue) && request.PrimaryIdentifierType is null)
+            if (string.IsNullOrWhiteSpace(request.UserName) && string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
             {
-                return UserCreateResult.Failed("primary_identifier_type_required");
+                throw new UAuthValidationException("identifier_required");
             }
 
             await _lifecycleStore.CreateAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                var hash = _passwordHasher.Hash(request.Password);
+
+                await _credentialStore.AddAsync(
+                    context.ResourceTenant,
+                    PasswordCredential.Create(null, context.ResourceTenant, userKey, hash, CredentialSecurityState.Active(), new CredentialMetadata(), now),
+                    innerCt);            
+            }
 
             await _profileStore.CreateAsync(context.ResourceTenant,
                 new UserProfile
@@ -64,7 +95,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     UserKey = userKey,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    DisplayName = request.DisplayName,
+                    DisplayName = request.DisplayName ?? request.UserName ?? request.Email,
                     BirthDate = request.BirthDate,
                     Gender = request.Gender,
                     Bio = request.Bio,
@@ -76,19 +107,56 @@ internal sealed class UserApplicationService : IUserApplicationService
                 },
                 innerCt);
 
-            if (!string.IsNullOrWhiteSpace(request.PrimaryIdentifierValue) && request.PrimaryIdentifierType is not null)
+            if (!string.IsNullOrWhiteSpace(request.UserName))
             {
                 await _identifierStore.CreateAsync(context.ResourceTenant,
                     new UserIdentifier
                     {
                         Tenant = context.ResourceTenant,
                         UserKey = userKey,
-                        Type = request.PrimaryIdentifierType.Value,
-                        Value = request.PrimaryIdentifierValue,
+                        Type = UserIdentifierType.Username,
+                        Value = request.UserName,
+                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
                         IsPrimary = true,
-                        IsVerified = request.PrimaryIdentifierVerified,
+                        IsVerified = request.UserNameVerified,
                         CreatedAt = now,
-                        VerifiedAt = request.PrimaryIdentifierVerified ? now : null
+                        VerifiedAt = request.UserNameVerified ? now : null
+                    },
+                    innerCt);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                await _identifierStore.CreateAsync(context.ResourceTenant,
+                    new UserIdentifier
+                    {
+                        Tenant = context.ResourceTenant,
+                        UserKey = userKey,
+                        Type = UserIdentifierType.Email,
+                        Value = request.Email,
+                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
+                        IsPrimary = true,
+                        IsVerified = request.EmailVerified,
+                        CreatedAt = now,
+                        VerifiedAt = request.EmailVerified ? now : null
+                    },
+                    innerCt);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                await _identifierStore.CreateAsync(context.ResourceTenant,
+                    new UserIdentifier
+                    {
+                        Tenant = context.ResourceTenant,
+                        UserKey = userKey,
+                        Type = UserIdentifierType.Phone,
+                        Value = request.Phone,
+                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
+                        IsPrimary = true,
+                        IsVerified = request.PhoneVerified,
+                        CreatedAt = now,
+                        VerifiedAt = request.PhoneVerified ? now : null
                     },
                     innerCt);
             }
@@ -269,6 +337,13 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new AddUserIdentifierCommand(async innerCt =>
         {
+            var validationDto = new UserIdentifierDto() { Type = request.Type, Value = request.Value };
+            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, ct);
+            if (validationResult.IsValid != true)
+            {
+                throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
+            }
+
             EnsureOverrideAllowed(context);
             var userKey = context.GetTargetUserKey();
 
@@ -341,9 +416,16 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier is null || identifier.IsDeleted)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            if (identifier.Type == UserIdentifierType.Username && !_options.UserIdentifiers.AllowUsernameChange)
+            if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.AllowUsernameChange)
             {
                 throw new UAuthIdentifierValidationException("username_change_not_allowed");
+            }
+
+            var validationDto = identifier.ToDto();
+            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, ct);
+            if (validationResult.IsValid != true)
+            {
+                throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
             }
 
             var normalized = _identifierNormalizer.Normalize(identifier.Type, request.NewValue);
@@ -497,7 +579,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("cannot_delete_primary_identifier");
 
-            if (_options.UserIdentifiers.RequireUsernameIdentifier && identifier.Type == UserIdentifierType.Username)
+            if (_options.Identifiers.RequireUsernameIdentifier && identifier.Type == UserIdentifierType.Username)
             {
                 var activeUsernames = identifiers
                     .Where(i => !i.IsDeleted && i.Type == UserIdentifierType.Username)
@@ -563,24 +645,24 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (!hasSameType)
             return;
 
-        if (type == UserIdentifierType.Username && !_options.UserIdentifiers.AllowMultipleUsernames)
+        if (type == UserIdentifierType.Username && !_options.Identifiers.AllowMultipleUsernames)
             throw new InvalidOperationException("multiple_usernames_not_allowed");
 
-        if (type == UserIdentifierType.Email && !_options.UserIdentifiers.AllowMultipleEmail)
+        if (type == UserIdentifierType.Email && !_options.Identifiers.AllowMultipleEmail)
             throw new InvalidOperationException("multiple_emails_not_allowed");
 
-        if (type == UserIdentifierType.Phone && !_options.UserIdentifiers.AllowMultiplePhone)
+        if (type == UserIdentifierType.Phone && !_options.Identifiers.AllowMultiplePhone)
             throw new InvalidOperationException("multiple_phones_not_allowed");
     }
 
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
     {
-        if (type == UserIdentifierType.Email && _options.UserIdentifiers.RequireEmailVerification && !isVerified)
+        if (type == UserIdentifierType.Email && _options.Identifiers.RequireEmailVerification && !isVerified)
         {
             throw new InvalidOperationException("email_verification_required");
         }
 
-        if (type == UserIdentifierType.Phone && _options.UserIdentifiers.RequirePhoneVerification && !isVerified)
+        if (type == UserIdentifierType.Phone && _options.Identifiers.RequirePhoneVerification && !isVerified)
         {
             throw new InvalidOperationException("phone_verification_required");
         }
@@ -588,10 +670,10 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     private void EnsureOverrideAllowed(AccessContext context)
     {
-        if (context.IsSelfAction && !_options.UserIdentifiers.AllowUserOverride)
+        if (context.IsSelfAction && !_options.Identifiers.AllowUserOverride)
             throw new InvalidOperationException("user_override_not_allowed");
 
-        if (!context.IsSelfAction && !_options.UserIdentifiers.AllowAdminOverride)
+        if (!context.IsSelfAction && !_options.Identifiers.AllowAdminOverride)
             throw new InvalidOperationException("admin_override_not_allowed");
     }
 
