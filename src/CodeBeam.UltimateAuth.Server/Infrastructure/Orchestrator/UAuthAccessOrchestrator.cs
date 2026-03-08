@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
@@ -61,6 +63,7 @@ public sealed class UAuthAccessOrchestrator : IAccessOrchestrator
             return context;
 
         var perms = await _permissions.GetPermissionsAsync(context.ResourceTenant, context.ActorUserKey.Value, ct);
-        return context.WithAttribute("permissions", perms);
+        var compiled = new CompiledPermissionSet(perms);
+        return context.WithAttribute(UAuthConstants.Access.Permissions, compiled);
     }
 }

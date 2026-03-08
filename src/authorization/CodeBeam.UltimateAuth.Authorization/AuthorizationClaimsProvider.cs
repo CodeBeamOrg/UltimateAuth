@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
@@ -26,13 +27,13 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 
         var builder = ClaimsSnapshot.Create();
 
-        builder.Add("uauth:tenant", tenant.Value);
+        builder.Add(UAuthConstants.Claims.Tenant, tenant.Value);
 
         foreach (var role in roles)
             builder.Add(ClaimTypes.Role, role.Name);
 
         foreach (var perm in perms)
-            builder.Add("uauth:permission", perm.Value);
+            builder.Add(UAuthConstants.Claims.Permission, perm.Value);
 
         return builder.Build();
     }

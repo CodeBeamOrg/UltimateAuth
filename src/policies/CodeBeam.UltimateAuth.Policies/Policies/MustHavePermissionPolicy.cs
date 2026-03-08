@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Authorization.Policies;
@@ -8,15 +9,10 @@ public sealed class MustHavePermissionPolicy : IAccessPolicy
 {
     public AccessDecision Decide(AccessContext context)
     {
-        if (context.Attributes.TryGetValue("permissions", out var value) && value is IReadOnlyCollection<Permission> permissions)
+        if (context.Attributes.TryGetValue(UAuthConstants.Access.Permissions, out var value) && value is CompiledPermissionSet permissions)
         {
-            var actionPermission = Permission.From(context.Action);
-
-            if (permissions.Contains(actionPermission) ||
-                permissions.Contains(Permission.Wildcard))
-            {
+            if (permissions.IsAllowed(context.Action))
                 return AccessDecision.Allow();
-            }
         }
 
         return AccessDecision.Deny("missing_permission");
@@ -24,6 +20,6 @@ public sealed class MustHavePermissionPolicy : IAccessPolicy
 
     public bool AppliesTo(AccessContext context)
     {
-        return context.Action.EndsWith(".admin");
+        return context.Action.EndsWith(".admin", StringComparison.OrdinalIgnoreCase);
     }
 }

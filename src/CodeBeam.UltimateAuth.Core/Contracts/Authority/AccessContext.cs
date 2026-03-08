@@ -40,7 +40,7 @@ public sealed class AccessContext
         bool isAuthenticated,
         bool isSystemActor,
         SessionChainId? actorChainId,
-        string resource,
+        string? resource,
         UserKey? targetUserKey,
         TenantKey resourceTenant,
         string action,

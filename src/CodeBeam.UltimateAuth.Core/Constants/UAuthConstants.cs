@@ -2,6 +2,17 @@
 
 public static class UAuthConstants
 {
+    public static class Access
+    {
+        public const string Permissions = "permissions";
+    }
+
+    public static class Claims
+    {
+        public const string Tenant = "uauth:tenant";
+        public const string Permission = "uauth:permission";
+    }
+
     public static class HttpItems
     {
         public const string SessionContext = "__UAuth.SessionContext";

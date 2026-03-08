@@ -1,45 +1,36 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Policies.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference;
 
 internal sealed class AuthorizationService : IAuthorizationService
 {
-    private readonly IUserPermissionStore _permissions;
-    private readonly IAccessPolicyProvider _policyProvider;
-    private readonly IAccessAuthority _accessAuthority;
+    private readonly IAccessOrchestrator _accessOrchestrator;
 
-    public AuthorizationService(IUserPermissionStore permissions, IAccessPolicyProvider policyProvider, IAccessAuthority accessAuthority)
+    public AuthorizationService(IAccessOrchestrator accessOrchestrator)
     {
-        _permissions = permissions;
-        _policyProvider = policyProvider;
-        _accessAuthority = accessAuthority;
+        _accessOrchestrator = accessOrchestrator;
     }
 
     public async Task<AuthorizationResult> AuthorizeAsync(AccessContext context, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        IReadOnlyCollection<Permission> permissions = Array.Empty<Permission>();
-
-        if (context.ActorUserKey is not null)
+        var cmd = new AccessCommand<AuthorizationResult>(innerCt =>
         {
-            permissions = await _permissions.GetPermissionsAsync(context.ResourceTenant, context.ActorUserKey.Value, ct);
+            return Task.FromResult(AuthorizationResult.Allow());
+        });
+
+        try
+        {
+            await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+            return AuthorizationResult.Allow();
         }
-
-        var enrichedContext = context.WithAttribute("permissions", permissions);
-
-        var policies = _policyProvider.GetPolicies(enrichedContext);
-        var decision = _accessAuthority.Decide(enrichedContext, policies);
-
-        if (decision.RequiresReauthentication)
-            return AuthorizationResult.ReauthRequired();
-
-        return decision.IsAllowed
-            ? AuthorizationResult.Allow()
-            : AuthorizationResult.Deny(decision.DenyReason);
+        catch (UAuthAuthorizationException ex)
+        {
+            return AuthorizationResult.Deny(ex.Message);
+        }
     }
 }

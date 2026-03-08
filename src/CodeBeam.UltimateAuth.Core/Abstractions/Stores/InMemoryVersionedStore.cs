@@ -105,7 +105,16 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Returns a read-only list containing the current snapshot of all entities stored in memory.
+    /// </summary>
     protected IReadOnlyList<TEntity> Values() => _store.Values.Select(Snapshot).ToList().AsReadOnly();
+
+    /// <summary>
+    /// Returns an enumerable collection of all entities currently stored in memory.
+    /// Useful in hooks when change entity value directly.
+    /// </summary>
+    protected IEnumerable<TEntity> InternalValues() => _store.Values;
 
     protected bool TryGet(TKey key, out TEntity? entity) => _store.TryGetValue(key, out entity);
 }

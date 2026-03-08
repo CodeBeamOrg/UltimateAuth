@@ -1,7 +1,24 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Defaults;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Core.Defaults;
 
 public static class UAuthActions
 {
+    public static string Create(string resource, string operation, ActionScope scope, string? subResource = null)
+    {
+        if (string.IsNullOrWhiteSpace(resource))
+            throw new ArgumentException("resource required");
+
+        if (string.IsNullOrWhiteSpace(operation))
+            throw new ArgumentException("operation required");
+
+        var scopePart = scope.ToString().ToLowerInvariant();
+
+        return subResource is null
+            ? $"{resource}.{operation}.{scopePart}"
+            : $"{resource}.{subResource}.{operation}.{scopePart}";
+    }
+
     public static class Sessions
     {
         public const string GetChainSelf = "sessions.getchain.self";

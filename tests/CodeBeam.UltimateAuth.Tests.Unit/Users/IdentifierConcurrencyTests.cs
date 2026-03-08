@@ -17,18 +17,8 @@ public class IdentifierConcurrencyTests
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = TenantKey.Single,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(TenantKey.Single, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        await store.AddAsync(identifier);
 
         var copy = await store.GetByIdAsync(id);
         var expected = copy!.Version;
@@ -48,18 +38,8 @@ public class IdentifierConcurrencyTests
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = TenantKey.Single,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(TenantKey.Single, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        await store.AddAsync(identifier);
 
         var copy1 = await store.GetByIdAsync(id);
         var copy2 = await store.GetByIdAsync(id);
@@ -70,7 +50,7 @@ public class IdentifierConcurrencyTests
 
         await Assert.ThrowsAsync<UAuthConcurrencyException>(async () =>
         {
-            await store.DeleteAsync(copy2!, copy2!.Version, DeleteMode.Soft, now);
+            await store.DeleteAsync(copy2!.Id, copy2!.Version, DeleteMode.Soft, now);
         });
     }
 
@@ -81,18 +61,8 @@ public class IdentifierConcurrencyTests
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = TenantKey.Single,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(TenantKey.Single, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        await store.AddAsync(identifier);
 
         int success = 0;
         int conflicts = 0;
@@ -138,18 +108,8 @@ public class IdentifierConcurrencyTests
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = tenant,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(tenant, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        await store.AddAsync(identifier);
 
         var copy1 = await store.GetByIdAsync(id);
         var copy2 = await store.GetByIdAsync(id);
@@ -175,18 +135,8 @@ public class IdentifierConcurrencyTests
         var tenant = TenantKey.Single;
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = tenant,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(tenant, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        await store.AddAsync(identifier);
 
         int success = 0;
         int conflicts = 0;
@@ -199,10 +149,7 @@ public class IdentifierConcurrencyTests
                 try
                 {
                     var copy = await store.GetByIdAsync(id);
-
-                    // İki thread de burada bekler
                     barrier.SignalAndWait();
-
                     var expected = copy!.Version;
 
                     var newValue = i == 0
@@ -210,9 +157,7 @@ public class IdentifierConcurrencyTests
                         : "y@test.com";
 
                     copy.ChangeValue(newValue, newValue, now);
-
                     await store.SaveAsync(copy, expected);
-
                     Interlocked.Increment(ref success);
                 }
                 catch (UAuthConcurrencyException)
@@ -241,18 +186,8 @@ public class IdentifierConcurrencyTests
         var tenant = TenantKey.Single;
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = tenant,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "initial@test.com",
-            NormalizedValue = "initial@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(tenant, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "initial@test.com", "initial@test.com", now);
+        await store.AddAsync(identifier);
 
         int success = 0;
         int conflicts = 0;
@@ -298,18 +233,8 @@ public class IdentifierConcurrencyTests
 
         var id = Guid.NewGuid();
 
-        var identifier = new UserIdentifier
-        {
-            Id = id,
-            Tenant = tenant,
-            UserKey = TestUsers.Admin,
-            Type = UserIdentifierType.Email,
-            Value = "primary@test.com",
-            NormalizedValue = "primary@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(tenant, identifier);
+        var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "primary@test.com", "primary@test.com", now);
+        await store.AddAsync(identifier);
 
         int success = 0;
         int conflicts = 0;
@@ -359,30 +284,11 @@ public class IdentifierConcurrencyTests
         var id1 = Guid.NewGuid();
         var id2 = Guid.NewGuid();
 
-        var identifier1 = new UserIdentifier
-        {
-            Id = id1,
-            Tenant = tenant,
-            UserKey = user,
-            Type = UserIdentifierType.Email,
-            Value = "a@test.com",
-            NormalizedValue = "a@test.com",
-            CreatedAt = now
-        };
+        var identifier1 = UserIdentifier.Create(id1, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
+        var identifier2 = UserIdentifier.Create(id2, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "b@test.com", "b@test.com", now);
 
-        var identifier2 = new UserIdentifier
-        {
-            Id = id2,
-            Tenant = tenant,
-            UserKey = user,
-            Type = UserIdentifierType.Email,
-            Value = "b@test.com",
-            NormalizedValue = "b@test.com",
-            CreatedAt = now
-        };
-
-        await store.CreateAsync(tenant, identifier1);
-        await store.CreateAsync(tenant, identifier2);
+        await store.AddAsync(identifier1);
+        await store.AddAsync(identifier2);
 
         int success = 0;
         int conflicts = 0;

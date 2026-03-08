@@ -83,12 +83,29 @@ public sealed class InMemoryUserIdentifierStore : InMemoryVersionedStore<UserIde
         return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
     }
 
+    protected override void BeforeAdd(UserIdentifier entity)
+    {
+        if (!entity.IsPrimary)
+            return;
+
+        foreach (var other in InternalValues().Where(x =>
+                 x.Tenant == entity.Tenant &&
+                 x.UserKey == entity.UserKey &&
+                 x.Type == entity.Type &&
+                 x.Id != entity.Id &&
+                 x.IsPrimary &&
+                 !x.IsDeleted))
+        {
+            other.UnsetPrimary(entity.UpdatedAt ?? entity.CreatedAt);
+        }
+    }
+
     protected override void BeforeSave(UserIdentifier entity, UserIdentifier current, long expectedVersion)
     {
         if (!entity.IsPrimary)
             return;
 
-        foreach (var other in Values().Where(x =>
+        foreach (var other in InternalValues().Where(x =>
                  x.Tenant == entity.Tenant &&
                  x.UserKey == entity.UserKey &&
                  x.Type == entity.Type &&
