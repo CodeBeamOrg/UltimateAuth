@@ -11,6 +11,7 @@ namespace CodeBeam.UltimateAuth.Users.InMemory;
 public sealed class InMemoryUserIdentifierStore : InMemoryVersionedStore<UserIdentifier, Guid>, IUserIdentifierStore
 {
     protected override Guid GetKey(UserIdentifier entity) => entity.Id;
+    private readonly object _primaryLock = new();
 
     public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
@@ -100,6 +101,14 @@ public sealed class InMemoryUserIdentifierStore : InMemoryVersionedStore<UserIde
         }
     }
 
+    public override Task AddAsync(UserIdentifier entity, CancellationToken ct = default)
+    {
+        lock (_primaryLock)
+        {
+            return base.AddAsync(entity, ct);
+        }
+    }
+
     protected override void BeforeSave(UserIdentifier entity, UserIdentifier current, long expectedVersion)
     {
         if (!entity.IsPrimary)
@@ -114,6 +123,14 @@ public sealed class InMemoryUserIdentifierStore : InMemoryVersionedStore<UserIde
                  !x.IsDeleted))
         {
             other.UnsetPrimary(entity.UpdatedAt ?? entity.CreatedAt);
+        }
+    }
+
+    public override Task SaveAsync(UserIdentifier entity, long expectedVersion, CancellationToken ct = default)
+    {
+        lock (_primaryLock)
+        {
+            return base.SaveAsync(entity, expectedVersion, ct);
         }
     }
 

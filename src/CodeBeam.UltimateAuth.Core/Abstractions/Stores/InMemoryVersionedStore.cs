@@ -33,7 +33,7 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
         return Task.FromResult(_store.ContainsKey(key));
     }
 
-    public Task AddAsync(TEntity entity, CancellationToken ct = default)
+    public virtual Task AddAsync(TEntity entity, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -48,7 +48,7 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
         return Task.CompletedTask;
     }
 
-    public Task SaveAsync(TEntity entity, long expectedVersion, CancellationToken ct = default)
+    public virtual Task SaveAsync(TEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
