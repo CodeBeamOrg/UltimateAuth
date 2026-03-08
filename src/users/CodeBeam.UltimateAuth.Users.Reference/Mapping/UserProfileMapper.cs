@@ -15,6 +15,9 @@ internal static class UserProfileMapper
             BirthDate = profile.BirthDate,
             CreatedAt = profile.CreatedAt,
             Gender = profile.Gender,
+            Culture = profile.Culture,
+            Language = profile.Language,
+            TimeZone = profile.TimeZone,
             Metadata = profile.Metadata
         };
 }

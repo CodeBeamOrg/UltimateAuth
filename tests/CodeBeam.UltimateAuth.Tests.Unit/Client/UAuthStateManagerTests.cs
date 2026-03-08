@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -38,11 +38,11 @@ public class UAuthStateManagerTests
         var client = new Mock<IUAuthClient>();
         client.Setup(x => x.Flows).Returns(flowClient.Object);
 
-        var sessionEvents = new Mock<ISessionEvents>();
+        var events = new Mock<IUAuthClientEvents>();
         var clock = new Mock<IClock>();
         clock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
-        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
+        var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
 
         await manager.EnsureAsync();
         await manager.EnsureAsync();
@@ -51,31 +51,39 @@ public class UAuthStateManagerTests
     }
 
     [Fact]
-    public async Task EnsureAsync_force_should_always_validate()
+    public async Task EnsureAsync_should_deduplicate_concurrent_calls()
     {
-        var client = new Mock<IUAuthClient>();
-        var sessionEvents = new Mock<ISessionEvents>();
-        var clock = new Mock<IClock>();
+        var flows = new Mock<IFlowClient>();
 
-        client.Setup(x => x.Flows.ValidateAsync())
-            .ReturnsAsync(new AuthValidationResult
+        flows.Setup(x => x.ValidateAsync())
+            .Returns(async () =>
             {
-                State = SessionState.Invalid
+                await Task.Delay(50);
+                return new AuthValidationResult { State = SessionState.Invalid };
             });
 
-        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
+        var client = new Mock<IUAuthClient>();
+        client.SetupGet(x => x.Flows).Returns(flows.Object);
 
-        await manager.EnsureAsync(force: true);
-        await manager.EnsureAsync(force: true);
+        var events = new Mock<IUAuthClientEvents>();
+        var clock = new Mock<IClock>();
 
-        client.Verify(x => x.Flows.ValidateAsync(), Times.Exactly(2));
+        var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
+
+        await Task.WhenAll(
+            manager.EnsureAsync(true),
+            manager.EnsureAsync(true),
+            manager.EnsureAsync(true)
+        );
+
+        flows.Verify(x => x.ValidateAsync(), Times.Once);
     }
 
     [Fact]
     public async Task EnsureAsync_invalid_should_clear_state()
     {
         var client = new Mock<IUAuthClient>();
-        var sessionEvents = new Mock<ISessionEvents>();
+        var events = new Mock<IUAuthClientEvents>();
         var clock = new Mock<IClock>();
 
         client.Setup(x => x.Flows.ValidateAsync())
@@ -84,10 +92,8 @@ public class UAuthStateManagerTests
                 State = SessionState.Invalid
             });
 
-        var manager = new UAuthStateManager(client.Object, sessionEvents.Object, clock.Object);
-
+        var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
         await manager.EnsureAsync();
-
         manager.State.IsAuthenticated.Should().BeFalse();
     }
 }

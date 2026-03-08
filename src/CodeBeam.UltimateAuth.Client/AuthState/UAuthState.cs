@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Client;
@@ -41,6 +42,20 @@ public sealed class UAuthState
         LastValidatedAt = validatedAt;
 
         Changed?.Invoke(UAuthStateChangeReason.Authenticated);
+    }
+
+    // TODO: Improve patch semantics with identifier, profile add, update or delete.
+    internal void UpdateProfile(UpdateProfileRequest req)
+    {
+        if (Identity is null)
+            return;
+
+        Identity = Identity with
+        {
+            DisplayName = req.DisplayName ?? Identity.DisplayName
+        };
+
+        Changed?.Invoke(UAuthStateChangeReason.Patched);
     }
 
     internal void MarkValidated(DateTimeOffset now)

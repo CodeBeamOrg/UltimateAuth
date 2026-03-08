@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections.Concurrent;
 
 namespace CodeBeam.UltimateAuth.Sessions.InMemory;
@@ -40,11 +41,16 @@ internal sealed class InMemorySessionStore : ISessionStore
         }
     }
 
-    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId)
-        => Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
-
-    public Task SaveSessionAsync(UAuthSession session, long expectedVersion)
+    public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(_sessions.TryGetValue(sessionId, out var s) ? s : null);
+    }
+
+    public Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
         if (!_sessions.TryGetValue(session.SessionId, out var current))
             throw new UAuthNotFoundException("session_not_found");
 
@@ -55,8 +61,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task CreateSessionAsync(UAuthSession session)
+    public Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
             if (_sessions.ContainsKey(session.SessionId))
@@ -71,8 +79,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at)
+    public Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (!_sessions.TryGetValue(sessionId, out var session))
             return Task.FromResult(false);
 
@@ -83,11 +93,16 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult(true);
     }
 
-    public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId)
-        => Task.FromResult(_chains.TryGetValue(chainId, out var c) ? c : null);
-
-    public Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion)
+    public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(_chains.TryGetValue(chainId, out var c) ? c : null);
+    }
+
+    public Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
         if (!_chains.TryGetValue(chain.ChainId, out var current))
             throw new UAuthNotFoundException("chain_not_found");
 
@@ -98,8 +113,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task CreateChainAsync(UAuthSessionChain chain)
+    public Task CreateChainAsync(UAuthSessionChain chain, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
             if (_chains.ContainsKey(chain.ChainId))
@@ -114,8 +131,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at)
+    public Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (_chains.TryGetValue(chainId, out var chain))
         {
             _chains[chainId] = chain.Revoke(at);
@@ -123,14 +142,63 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey)
-        => Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
-
-    public Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId)
-        => Task.FromResult(_roots.Values.FirstOrDefault(r => r.RootId == rootId));
-
-    public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion)
+    public Task RevokeOtherChainsAsync(TenantKey tenant, UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var (id, chain) in _chains)
+        {
+            if (chain.Tenant != tenant)
+                continue;
+
+            if (chain.UserKey != user)
+                continue;
+
+            if (id == keepChain)
+                continue;
+
+            if (!chain.IsRevoked)
+                _chains[id] = chain.Revoke(at);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeAllChainsAsync(TenantKey tenant, UserKey user, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var (id, chain) in _chains)
+        {
+            if (chain.Tenant != tenant)
+                continue;
+
+            if (chain.UserKey != user)
+                continue;
+
+            if (!chain.IsRevoked)
+                _chains[id] = chain.Revoke(at);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
+    }
+
+    public Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(_roots.Values.FirstOrDefault(r => r.RootId == rootId));
+    }
+
+    public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
         if (!_roots.TryGetValue(root.UserKey, out var current))
             throw new UAuthNotFoundException("root_not_found");
 
@@ -141,8 +209,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task CreateRootAsync(UAuthSessionRoot root)
+    public Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
             if (_roots.ContainsKey(root.UserKey))
@@ -157,8 +227,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeRootAsync(UserKey userKey, DateTimeOffset at)
+    public Task RevokeRootAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (_roots.TryGetValue(userKey, out var root))
         {
             _roots[userKey] = root.Revoke(at);
@@ -166,16 +238,20 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId)
+    public Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (_sessions.TryGetValue(sessionId, out var session))
             return Task.FromResult<SessionChainId?>(session.ChainId);
 
         return Task.FromResult<SessionChainId?>(null);
     }
 
-    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey,bool includeHistoricalRoots = false)
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey,bool includeHistoricalRoots = false, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var roots = _roots.Values.Where(r => r.UserKey == userKey);
 
         if (!includeHistoricalRoots)
@@ -189,23 +265,26 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
     }
 
-    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId)
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var result = _chains.Values.Where(c => c.RootId == rootId).ToList().AsReadOnly();
         return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
     }
 
-    public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId)
+    public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default)
     {
-        var result = _sessions.Values
-            .Where(s => s.ChainId == chainId)
-            .ToList();
+        ct.ThrowIfCancellationRequested();
 
+        var result = _sessions.Values.Where(s => s.ChainId == chainId).ToList();
         return Task.FromResult<IReadOnlyList<UAuthSession>>(result);
     }
 
-    public Task DeleteExpiredSessionsAsync(DateTimeOffset at)
+    public Task DeleteExpiredSessionsAsync(DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         foreach (var kvp in _sessions)
         {
             var session = kvp.Value;
@@ -225,8 +304,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at)
+    public Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
             if (!_chains.TryGetValue(chainId, out var chain))
@@ -253,8 +334,10 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at)
+    public Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
             if (!_roots.TryGetValue(userKey, out var root))

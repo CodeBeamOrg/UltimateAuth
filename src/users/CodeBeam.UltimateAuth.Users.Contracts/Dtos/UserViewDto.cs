@@ -14,6 +14,9 @@ public sealed record UserViewDto
     public string? Bio { get; init; }
     public DateOnly? BirthDate { get; init; }
     public string? Gender { get; init; }
+    public string? Language { get; init; }
+    public string? TimeZone { get; init; }
+    public string? Culture { get; init; }
 
     public bool EmailVerified { get; init; }
     public bool PhoneVerified { get; init; }

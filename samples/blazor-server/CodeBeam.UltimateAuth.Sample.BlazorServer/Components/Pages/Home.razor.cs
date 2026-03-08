@@ -151,6 +151,11 @@ public partial class Home : UAuthFlowPageBase
         return utc?.ToLocalTime().ToString("dd MMM yyyy • HH:mm:ss");
     }
 
+    private async Task OpenProfileDialog()
+    {
+        await DialogService.ShowAsync<ProfileDialog>("Manage Profile", GetDialogParameters(), GetDialogOptions());
+    }
+
     private async Task OpenIdentifierDialog()
     {
         await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), GetDialogOptions());

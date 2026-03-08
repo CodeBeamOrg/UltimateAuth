@@ -16,7 +16,9 @@
                 <MudCard>
                     <MudCardHeader Class="d-flex flex-column align-center justify-center" Style="background: var(--mud-palette-background-gray)">
                         <MudAvatar Style="width: 120px; height: 120px" Color="Color.Primary">
-                            <MudText Typo="Typo.h4">@(AuthState?.Identity?.DisplayName?.Substring(0, 2))</MudText>
+                            <MudText Typo="Typo.h4">
+                                @((AuthState?.Identity?.DisplayName ?? "?").Substring(0, Math.Min(2, (AuthState?.Identity?.DisplayName ?? "?").Length)))
+                            </MudText>
                         </MudAvatar>
                         <MudDivider Class="my-4" />
                         <MudText Style="font-weight: 300; letter-spacing: 0.5rem" Typo="Typo.h5">@AuthState?.Identity?.DisplayName</MudText>
@@ -221,6 +223,10 @@
                             <MudText Typo="Typo.subtitle2">Account</MudText>
                             <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SpaceDashboard" OnClick="OpenSessionDialog">
                                 Manage Sessions
+                            </MudButton>
+
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Person" OnClick="OpenProfileDialog">
+                                Manage Profile
                             </MudButton>
 
                             <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Abc" OnClick="OpenIdentifierDialog">

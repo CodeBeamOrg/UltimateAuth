@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -10,11 +11,13 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 internal sealed class UAuthUserClient : IUserClient
 {
     private readonly IUAuthRequestClient _request;
+    private readonly IUAuthClientEvents _events;
     private readonly UAuthClientOptions _options;
 
-    public UAuthUserClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
+    public UAuthUserClient(IUAuthRequestClient request, IUAuthClientEvents events, IOptions<UAuthClientOptions> options)
     {
         _request = request;
+        _events = events;
         _options = options.Value;
     }
 
@@ -29,6 +32,10 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/update"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.UAuthStateRefreshMode, request));
+        }
         return UAuthResultMapper.From(raw);
     }
 
@@ -41,6 +48,10 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusSelfAsync(ChangeUserStatusSelfRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/status"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(UAuthStateEvent.ProfileChanged, _options.UAuthStateRefreshMode, request));
+        }
         return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
     }
 

@@ -1,8 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Services;
@@ -10,11 +12,13 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 internal sealed class UAuthCredentialClient : ICredentialClient
 {
     private readonly IUAuthRequestClient _request;
+    private readonly IUAuthClientEvents _events;
     private readonly UAuthClientOptions _options;
 
-    public UAuthCredentialClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
+    public UAuthCredentialClient(IUAuthRequestClient request, IUAuthClientEvents events, IOptions<UAuthClientOptions> options)
     {
         _request = request;
+        _events = events;
         _options = options.Value;
     }
 
@@ -35,12 +39,20 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     public async Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/change"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
     }
 
     public async Task<UAuthResult> RevokeMyAsync(RevokeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/revoke"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.From(raw);
     }
 
@@ -53,6 +65,10 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     public async Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/credentials/reset/complete"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
     }
 

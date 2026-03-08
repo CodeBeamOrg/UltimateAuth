@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+﻿using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -11,9 +11,9 @@ internal sealed class UAuthSessionClient : ISessionClient
 {
     private readonly IUAuthRequestClient _request;
     private readonly UAuthClientOptions _options;
-    private readonly ISessionEvents _events;
+    private readonly IUAuthClientEvents _events;
 
-    public UAuthSessionClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options, ISessionEvents events)
+    public UAuthSessionClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options, IUAuthClientEvents events)
     {
         _request = request;
         _options = options.Value;
@@ -44,7 +44,7 @@ internal sealed class UAuthSessionClient : ISessionClient
 
         if (result.Value?.CurrentSessionRevoked == true)
         {
-            _events.RaiseCurrentSessionRevoked();
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.UAuthStateRefreshMode));
         }
 
         return result;
@@ -63,7 +63,7 @@ internal sealed class UAuthSessionClient : ISessionClient
 
         if (result.IsSuccess)
         {
-            _events.RaiseCurrentSessionRevoked();
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.UAuthStateRefreshMode));
         }
 
         return result;

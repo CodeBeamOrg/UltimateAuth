@@ -65,6 +65,7 @@ builder.Services.AddUltimateAuthClient(o =>
 {
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+    //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
 builder.Services.AddScoped<DarkModeManager>();

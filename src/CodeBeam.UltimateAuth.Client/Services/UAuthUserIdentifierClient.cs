@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -10,11 +11,13 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 internal class UAuthUserIdentifierClient : IUserIdentifierClient
 {
     private readonly IUAuthRequestClient _request;
+    private readonly IUAuthClientEvents _events;
     private readonly UAuthClientOptions _options;
 
-    public UAuthUserIdentifierClient(IUAuthRequestClient request, IOptions<UAuthClientOptions> options)
+    public UAuthUserIdentifierClient(IUAuthRequestClient request, IUAuthClientEvents events, IOptions<UAuthClientOptions> options)
     {
         _request = request;
+        _events = events;
         _options = options.Value;
     }
 
@@ -30,36 +33,60 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/add"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgs<AddUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode, request));
+        }
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UpdateSelfAsync(UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/update"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgs<UpdateUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode, request));
+        }
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> SetPrimarySelfAsync(SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/set-primary"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UnsetPrimarySelfAsync(UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/unset-primary"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> VerifySelfAsync(VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/verify"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteSelfAsync(DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/delete"), request);
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+        }
         return UAuthResultMapper.From(raw);
     }
 

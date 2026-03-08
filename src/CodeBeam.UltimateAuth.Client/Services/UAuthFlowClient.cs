@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -19,13 +20,15 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
+    private readonly IUAuthClientEvents _events;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
     {
         _post = post;
+        _events = events;
         _options = options.Value;
         _diagnostics = diagnostics;
         _nav = nav;
@@ -149,7 +152,11 @@ internal class UAuthFlowClient : IFlowClient
             throw new UAuthProtocolException("Malformed validation response.");
 
         if (raw.Status == 401 || (raw.Status >= 200 && raw.Status < 300))
+        {
+            // Don't set refresh mode to validate here, it's already validated.
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateRefreshMode.Patch));
             return body;
+        }
 
         if (raw.Status >= 400 && raw.Status < 500)
             throw new UAuthProtocolException($"Unexpected client error during validation: {raw.Status}");

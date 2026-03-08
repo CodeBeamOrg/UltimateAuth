@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
+using Microsoft.AspNetCore.Session;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
@@ -23,6 +24,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly IUAuthPasswordHasher _hasher;
     private readonly ITokenHasher _tokenHasher;
     private readonly ILoginIdentifierResolver _identifierResolver;
+    private readonly ISessionStoreFactory _sessionFactory;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -35,6 +37,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         IUAuthPasswordHasher hasher,
         ITokenHasher tokenHasher,
         ILoginIdentifierResolver identifierResolver,
+        ISessionStoreFactory sessionFactory,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -46,6 +49,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _hasher = hasher;
         _tokenHasher = tokenHasher;
         _identifierResolver = identifierResolver;
+        _sessionFactory = sessionFactory;
         _options = options.Value;
         _clock = clock;
     }
@@ -110,7 +114,6 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    // TODO: Invalidate sessions or tokens associated with the credential when changing secret or revoking
     public async Task<ChangeCredentialResult> ChangeSecretAsync(AccessContext context, ChangeCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -145,6 +148,16 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var newHash = _hasher.Hash(request.NewSecret);
             var updated = pwd.ChangeSecret(newHash, now);
             await _credentials.SaveAsync(updated, oldVersion, innerCt);
+
+            var sessionStore = _sessionFactory.Create(context.ResourceTenant);
+            if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
+            {
+                await sessionStore.RevokeOtherChainsAsync(context.ResourceTenant, subjectUser, chainId, now, innerCt);
+            }
+            else
+            {
+                await sessionStore.RevokeAllChainsAsync(context.ResourceTenant, subjectUser, now, innerCt);
+            }
 
             return ChangeCredentialResult.Success(pwd.Type);
         });

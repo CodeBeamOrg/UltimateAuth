@@ -4,8 +4,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials;
-using CodeBeam.UltimateAuth.Credentials.Contracts;
-using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -19,12 +17,10 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserLifecycleStore _lifecycleStore;
     private readonly IUserProfileStore _profileStore;
     private readonly IUserIdentifierStore _identifierStore;
-    private readonly ICredentialStore _credentialStore;
     private readonly IUserCreateValidator _userCreateValidator;
     private readonly IIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
     private readonly IIdentifierNormalizer _identifierNormalizer;
-    private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -33,12 +29,10 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserLifecycleStore lifecycleStore,
         IUserProfileStore profileStore,
         IUserIdentifierStore identifierStore,
-        ICredentialStore credentialStore,
         IUserCreateValidator userCreateValidator,
         IIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
         IIdentifierNormalizer identifierNormalizer,
-        IUAuthPasswordHasher passwordHasher,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -46,12 +40,10 @@ internal sealed class UserApplicationService : IUserApplicationService
         _lifecycleStore = lifecycleStore;
         _profileStore = profileStore;
         _identifierStore = identifierStore;
-        _credentialStore = credentialStore;
         _userCreateValidator = userCreateValidator;
         _identifierValidator = identifierValidator;
         _integrations = integrations;
         _identifierNormalizer = identifierNormalizer;
-        _passwordHasher = passwordHasher;
         _options = options.Value;
         _clock = clock;
     }

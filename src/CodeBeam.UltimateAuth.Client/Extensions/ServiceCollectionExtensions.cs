@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Devices;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Runtime;
@@ -66,7 +67,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
-        services.AddSingleton<ISessionEvents, SessionEvents>();
+        services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();
 
         services.PostConfigure<UAuthClientOptions>(o =>
         {
