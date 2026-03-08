@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Authorization.Domain;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections.Concurrent;
 
@@ -6,37 +7,37 @@ namespace CodeBeam.UltimateAuth.Authorization.InMemory;
 
 internal sealed class InMemoryUserRoleStore : IUserRoleStore
 {
-    private readonly ConcurrentDictionary<(TenantKey Tenant, UserKey UserKey), HashSet<string>> _roles = new();
+    private readonly ConcurrentDictionary<(TenantKey, UserKey), HashSet<RoleId>> _roles = new();
 
-    public Task<IReadOnlyCollection<string>> GetRolesAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public Task<IReadOnlyCollection<RoleId>> GetRolesAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (_roles.TryGetValue((tenant, userKey), out var set))
         {
             lock (set)
-            {
-                return Task.FromResult<IReadOnlyCollection<string>>(set.ToArray());
-            }
+                return Task.FromResult<IReadOnlyCollection<RoleId>>(set.ToArray());
         }
 
-        return Task.FromResult<IReadOnlyCollection<string>>(Array.Empty<string>());
+        return Task.FromResult<IReadOnlyCollection<RoleId>>(Array.Empty<RoleId>());
     }
 
-    public Task AssignAsync(TenantKey tenant, UserKey userKey, string role, CancellationToken ct = default)
+    public Task AssignAsync(TenantKey tenant, UserKey userKey, RoleId roleId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var set = _roles.GetOrAdd((tenant, userKey), _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        var set = _roles.GetOrAdd((tenant, userKey),
+            _ => new HashSet<RoleId>());
+
         lock (set)
         {
-            set.Add(role);
+            set.Add(roleId);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RemoveAsync(TenantKey tenant, UserKey userKey, string role, CancellationToken ct = default)
+    public Task RemoveAsync(TenantKey tenant, UserKey userKey, RoleId roleId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -44,7 +45,7 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
         {
             lock (set)
             {
-                set.Remove(role);
+                set.Remove(roleId);
             }
         }
 

@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-public sealed class UserLifecycle : IVersionedEntity
+public sealed class UserLifecycle : IVersionedEntity, ISoftDeletable<UserLifecycle>, IEntitySnapshot<UserLifecycle>
 {
     private UserLifecycle() { }
 
@@ -25,6 +25,22 @@ public sealed class UserLifecycle : IVersionedEntity
 
     public bool IsDeleted => DeletedAt != null;
     public bool IsActive => !IsDeleted && Status == UserStatus.Active;
+
+    public UserLifecycle Snapshot()
+    {
+        return new UserLifecycle
+        {
+            Id = Id,
+            Tenant = Tenant,
+            UserKey = UserKey,
+            Status = Status,
+            SecurityVersion = SecurityVersion,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            DeletedAt = DeletedAt,
+            Version = Version
+        };
+    }
 
     public static UserLifecycle Create(TenantKey tenant, UserKey userKey, DateTimeOffset now, Guid? id = null)
     {

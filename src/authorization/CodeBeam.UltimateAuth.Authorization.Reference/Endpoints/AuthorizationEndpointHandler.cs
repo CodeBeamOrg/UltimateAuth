@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -12,14 +12,14 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authFlow;
     private readonly IAuthorizationService _authorization;
-    private readonly IUserRoleService _roles;
+    private readonly IUserRoleService _userRoles;
     private readonly IAccessContextFactory _accessContextFactory;
 
-    public AuthorizationEndpointHandler(IAuthFlowContextAccessor authFlow, IAuthorizationService authorization, IUserRoleService roles, IAccessContextFactory accessContextFactory)
+    public AuthorizationEndpointHandler(IAuthFlowContextAccessor authFlow, IAuthorizationService authorization, IUserRoleService userRoles, IAccessContextFactory accessContextFactory)
     {
         _authFlow = authFlow;
         _authorization = authorization;
-        _roles = roles;
+        _userRoles = userRoles;
         _accessContextFactory = accessContextFactory;
     }
 
@@ -57,8 +57,10 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
     public async Task<IResult> GetMyRolesAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
+
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
+
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
             action: UAuthActions.Authorization.Roles.ReadSelf,
@@ -66,7 +68,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: flow.UserKey!.Value
         );
 
-        var roles = await _roles.GetRolesAsync(accessContext, flow.UserKey!.Value, ctx.RequestAborted);
+        var roles = await _userRoles.GetRolesAsync(accessContext, flow.UserKey!.Value, ctx.RequestAborted);
         return Results.Ok(new UserRolesResponse
         {
             UserKey = flow.UserKey!.Value,
@@ -88,7 +90,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: userKey.Value
         );
 
-        var roles = await _roles.GetRolesAsync(accessContext, userKey, ctx.RequestAborted);
+        var roles = await _userRoles.GetRolesAsync(accessContext, userKey, ctx.RequestAborted);
 
         return Results.Ok(new UserRolesResponse
         {
@@ -112,7 +114,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: userKey.Value
         );
 
-        await _roles.AssignAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
+        await _userRoles.AssignAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
         return Results.Ok();
     }
 
@@ -131,7 +133,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: userKey.Value
         );
 
-        await _roles.RemoveAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
+        await _userRoles.RemoveAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
         return Results.Ok();
     }
 }

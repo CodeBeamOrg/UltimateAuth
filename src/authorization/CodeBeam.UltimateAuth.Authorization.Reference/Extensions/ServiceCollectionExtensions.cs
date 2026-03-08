@@ -9,9 +9,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUltimateAuthAuthorizationReference(this IServiceCollection services)
     {
         services.TryAddScoped<IAuthorizationService, AuthorizationService>();
-        services.TryAddScoped<IRolePermissionResolver, RolePermissionResolver>();
+        services.TryAddScoped<IRoleService, RoleService>();
         services.TryAddScoped<IUserRoleService, UserRoleService>();
         services.TryAddScoped<IUserPermissionStore, UserPermissionStore>();
+        services.TryAddScoped<IRolePermissionResolver, RolePermissionResolver>();
         services.TryAddScoped<IAuthorizationEndpointHandler, AuthorizationEndpointHandler>();
 
         return services;

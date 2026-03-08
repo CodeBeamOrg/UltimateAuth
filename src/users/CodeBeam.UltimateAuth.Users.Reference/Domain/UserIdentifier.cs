@@ -5,31 +5,30 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
-public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
+public sealed class UserIdentifier : IVersionedEntity, ISoftDeletable<UserIdentifier>, IEntitySnapshot<UserIdentifier>
 {
-    public Guid Id { get; set; }
-    public TenantKey Tenant { get; set; }
-
+    public Guid Id { get; private set; }
+    public TenantKey Tenant { get; private set; }
     public UserKey UserKey { get; init; }
 
     public UserIdentifierType Type { get; init; } // Email, Phone, Username
-    public string Value { get; set; } = default!;
-    public string NormalizedValue { get; set; } = default!;
+    public string Value { get; private set; } = default!;
+    public string NormalizedValue { get; private set; } = default!;
 
-    public bool IsPrimary { get; set; }
-    public bool IsVerified { get; set; }
+    public bool IsPrimary { get; private set; }
 
     public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? VerifiedAt { get; set; }
-    public DateTimeOffset? UpdatedAt { get; set; }
-    public DateTimeOffset? DeletedAt { get; set; }
+    public DateTimeOffset? VerifiedAt { get; private set; }
+    public DateTimeOffset? UpdatedAt { get; private set; }
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     public long Version { get; set; }
 
 
     public bool IsDeleted => DeletedAt is not null;
+    public bool IsVerified => VerifiedAt is not null;
 
-    public UserIdentifier Cloned()
+    public UserIdentifier Snapshot()
     {
         return new UserIdentifier
         {
@@ -40,7 +39,6 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
             Value = Value,
             NormalizedValue = NormalizedValue,
             IsPrimary = IsPrimary,
-            IsVerified = IsVerified,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             VerifiedAt = VerifiedAt,
@@ -49,7 +47,33 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
         };
     }
 
-    public void ChangeValue(string newRawValue, string newNormalizedValue, DateTimeOffset now)
+    public static UserIdentifier Create(
+        Guid? id,
+        TenantKey tenant,
+        UserKey userKey,
+        UserIdentifierType type,
+        string value,
+        string normalizedValue,
+        DateTimeOffset now,
+        bool isPrimary = false,
+        DateTimeOffset? verifiedAt = null)
+    {
+        return new UserIdentifier
+        {
+            Id = id ?? Guid.NewGuid(),
+            Tenant = tenant,
+            UserKey = userKey,
+            Type = type,
+            Value = value,
+            NormalizedValue = normalizedValue,
+            IsPrimary = isPrimary,
+            VerifiedAt = verifiedAt,
+            CreatedAt = now,
+            Version = 0
+        };
+    }
+
+    public UserIdentifier ChangeValue(string newRawValue, string newNormalizedValue, DateTimeOffset now)
     {
         if (IsDeleted)
             throw new UAuthIdentifierNotFoundException("identifier_not_found");
@@ -60,14 +84,13 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
         Value = newRawValue;
         NormalizedValue = newNormalizedValue;
 
-        IsVerified = false;
         VerifiedAt = null;
         UpdatedAt = now;
 
-        Version++;
+        return this;
     }
 
-    public void MarkVerified(DateTimeOffset at)
+    public UserIdentifier MarkVerified(DateTimeOffset at)
     {
         if (IsDeleted)
             throw new UAuthIdentifierNotFoundException("identifier_not_found");
@@ -75,42 +98,41 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
         if (IsVerified)
             throw new UAuthIdentifierConflictException("identifier_already_verified");
 
-        IsVerified = true;
         VerifiedAt = at;
         UpdatedAt = at;
 
-        Version++;
+        return this;
     }
 
-    public void SetPrimary(DateTimeOffset at)
+    public UserIdentifier SetPrimary(DateTimeOffset at)
     {
         if (IsDeleted)
             throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         if (IsPrimary)
-            return;
+            return this;
 
         IsPrimary = true;
         UpdatedAt = at;
 
-        Version++;
+        return this;
     }
 
-    public void UnsetPrimary(DateTimeOffset at)
+    public UserIdentifier UnsetPrimary(DateTimeOffset at)
     {
         if (IsDeleted)
             throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
         if (!IsPrimary)
-            throw new UAuthIdentifierConflictException("identifier_is_not_primary_already");
+            throw new UAuthIdentifierConflictException("identifier_is_not_primary");
 
         IsPrimary = false;
         UpdatedAt = at;
 
-        Version++;
+        return this;
     }
 
-    public void MarkDeleted(DateTimeOffset at)
+    public UserIdentifier MarkDeleted(DateTimeOffset at)
     {
         if (IsDeleted)
             throw new UAuthIdentifierConflictException("identifier_already_deleted");
@@ -119,7 +141,7 @@ public sealed record UserIdentifier : IVersionedEntity, ISoftDeletable
         IsPrimary = false;
         UpdatedAt = at;
 
-        Version++;
+        return this;
     }
 
     public UserIdentifierDto ToDto()

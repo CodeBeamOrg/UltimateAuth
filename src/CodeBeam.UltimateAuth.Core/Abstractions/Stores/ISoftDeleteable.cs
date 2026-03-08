@@ -1,8 +1,9 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
-public interface ISoftDeletable
+public interface ISoftDeletable<T>
 {
     bool IsDeleted { get; }
+    DateTimeOffset? DeletedAt { get; }
 
-    void MarkDeleted(DateTimeOffset now);
+    T MarkDeleted(DateTimeOffset now);
 }

@@ -5,7 +5,6 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
-using Microsoft.AspNetCore.DataProtection;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory;
 
@@ -18,12 +17,14 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
     private readonly ICredentialStore _credentials;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
     private readonly IUAuthPasswordHasher _hasher;
+    private readonly IClock _clock;
 
-    public InMemoryCredentialSeedContributor(ICredentialStore credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher)
+    public InMemoryCredentialSeedContributor(ICredentialStore credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher, IClock clock)
     {
         _credentials = credentials;
         _ids = ids;
         _hasher = hasher;
+        _clock = clock;
     }
 
     public async Task SeedAsync(TenantKey tenant, CancellationToken ct = default)
@@ -37,7 +38,6 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
         try
         {
             await _credentials.AddAsync(
-                tenant,
                 PasswordCredential.Create(
                     credentialId,
                     tenant,
@@ -45,7 +45,7 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
                     _hasher.Hash(secretHash),
                     CredentialSecurityState.Active(),
                     new CredentialMetadata(),
-                    DateTimeOffset.UtcNow),
+                    _clock.UtcNow),
                 ct);
         }
         catch (UAuthConflictException)

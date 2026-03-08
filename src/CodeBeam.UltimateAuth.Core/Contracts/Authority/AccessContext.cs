@@ -59,6 +59,27 @@ public sealed class AccessContext
         Action = action;
         Attributes = attributes;
     }
+
+    public AccessContext WithAttribute(string key, object value)
+    {
+        var merged = new Dictionary<string, object>(Attributes)
+        {
+            [key] = value
+        };
+
+        return new AccessContext(
+            ActorUserKey,
+            ActorTenant,
+            IsAuthenticated,
+            IsSystemActor,
+            ActorChainId,
+            Resource,
+            TargetUserKey,
+            ResourceTenant,
+            Action,
+            merged
+        );
+    }
 }
 
 internal sealed class EmptyAttributes : IReadOnlyDictionary<string, object>

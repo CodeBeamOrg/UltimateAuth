@@ -8,17 +8,20 @@ namespace CodeBeam.UltimateAuth.Authorization;
 public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 {
     private readonly IUserRoleStore _roles;
+    private readonly IRoleStore _roleStore;
     private readonly IUserPermissionStore _permissions;
 
-    public AuthorizationClaimsProvider(IUserRoleStore roles, IUserPermissionStore permissions)
+    public AuthorizationClaimsProvider(IUserRoleStore roles, IRoleStore roleStore, IUserPermissionStore permissions)
     {
         _roles = roles;
+        _roleStore = roleStore;
         _permissions = permissions;
     }
 
     public async Task<ClaimsSnapshot> GetClaimsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var roles = await _roles.GetRolesAsync(tenant, userKey, ct);
+        var roleIds = await _roles.GetRolesAsync(tenant, userKey, ct);
+        var roles = await _roleStore.GetByIdsAsync(tenant, roleIds, ct);
         var perms = await _permissions.GetPermissionsAsync(tenant, userKey, ct);
 
         var builder = ClaimsSnapshot.Create();
@@ -26,7 +29,7 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
         builder.Add("uauth:tenant", tenant.Value);
 
         foreach (var role in roles)
-            builder.Add(ClaimTypes.Role, role);
+            builder.Add(ClaimTypes.Role, role.Name);
 
         foreach (var perm in perms)
             builder.Add("uauth:permission", perm.Value);

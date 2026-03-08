@@ -16,8 +16,7 @@ public sealed class InMemoryUserLifecycleStore : InMemoryVersionedStore<UserLife
 
         var normalized = query.Normalize();
 
-        var baseQuery = Values
-            .Where(x => x?.UserKey != null)
+        var baseQuery = Values()
             .Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)

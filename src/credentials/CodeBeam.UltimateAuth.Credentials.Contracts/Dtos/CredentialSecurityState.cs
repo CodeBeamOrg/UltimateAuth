@@ -8,6 +8,9 @@ public sealed class CredentialSecurityState
     public DateTimeOffset? ExpiresAt { get; }
     public Guid SecurityStamp { get; }
 
+    public bool IsRevoked => RevokedAt != null;
+    public bool IsExpired => ExpiresAt != null;
+
     public CredentialSecurityState(
         DateTimeOffset? revokedAt = null,
         DateTimeOffset? expiresAt = null,

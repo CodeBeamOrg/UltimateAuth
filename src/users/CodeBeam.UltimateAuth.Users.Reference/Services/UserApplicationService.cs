@@ -62,7 +62,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new CreateUserCommand(async innerCt =>
         {
-            var validationResult = await _userCreateValidator.ValidateAsync(context, request, ct);
+            var validationResult = await _userCreateValidator.ValidateAsync(context, request, innerCt);
             if (validationResult.IsValid != true)
             {
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
@@ -71,98 +71,71 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
             var userKey = UserKey.New();
 
-            if (string.IsNullOrWhiteSpace(request.UserName) && string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
-            {
-                throw new UAuthValidationException("identifier_required");
-            }
+            await _lifecycleStore.AddAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
 
-            await _lifecycleStore.CreateAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
-
-            if (!string.IsNullOrWhiteSpace(request.Password))
-            {
-                var hash = _passwordHasher.Hash(request.Password);
-
-                await _credentialStore.AddAsync(
+            await _profileStore.AddAsync(
+                UserProfile.Create(
+                    now,
                     context.ResourceTenant,
-                    PasswordCredential.Create(null, context.ResourceTenant, userKey, hash, CredentialSecurityState.Active(), new CredentialMetadata(), now),
-                    innerCt);            
-            }
-
-            await _profileStore.CreateAsync(context.ResourceTenant,
-                new UserProfile
-                {
-                    Tenant = context.ResourceTenant,
-                    UserKey = userKey,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    DisplayName = request.DisplayName ?? request.UserName ?? request.Email,
-                    BirthDate = request.BirthDate,
-                    Gender = request.Gender,
-                    Bio = request.Bio,
-                    Language = request.Language,
-                    TimeZone = request.TimeZone,
-                    Culture = request.Culture,
-                    Metadata = request.Metadata,
-                    CreatedAt = now
-                },
-                innerCt);
+                    userKey,
+                    firstName: request.FirstName,
+                    lastName: request.LastName,
+                    displayName: request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
+                    birthDate: request.BirthDate,
+                    gender: request.Gender,
+                    bio: request.Bio,
+                    language: request.Language,
+                    timezone: request.TimeZone,
+                    culture: request.Culture), innerCt);
 
             if (!string.IsNullOrWhiteSpace(request.UserName))
             {
-                await _identifierStore.CreateAsync(context.ResourceTenant,
-                    new UserIdentifier
-                    {
-                        Tenant = context.ResourceTenant,
-                        UserKey = userKey,
-                        Type = UserIdentifierType.Username,
-                        Value = request.UserName,
-                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
-                        IsPrimary = true,
-                        IsVerified = request.UserNameVerified,
-                        CreatedAt = now,
-                        VerifiedAt = request.UserNameVerified ? now : null
-                    },
-                    innerCt);
+                await _identifierStore.AddAsync(
+                    UserIdentifier.Create(
+                        Guid.NewGuid(),
+                        context.ResourceTenant,
+                        userKey,
+                        UserIdentifierType.Username,
+                        request.UserName,
+                        _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
+                        now,
+                        true,
+                        request.UserNameVerified ? now : null), innerCt);
             }
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
-                await _identifierStore.CreateAsync(context.ResourceTenant,
-                    new UserIdentifier
-                    {
-                        Tenant = context.ResourceTenant,
-                        UserKey = userKey,
-                        Type = UserIdentifierType.Email,
-                        Value = request.Email,
-                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
-                        IsPrimary = true,
-                        IsVerified = request.EmailVerified,
-                        CreatedAt = now,
-                        VerifiedAt = request.EmailVerified ? now : null
-                    },
-                    innerCt);
+                await _identifierStore.AddAsync(
+                    UserIdentifier.Create(
+                        Guid.NewGuid(),
+                        context.ResourceTenant,
+                        userKey,
+                        UserIdentifierType.Email,
+                        request.Email,
+                        _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
+                        now,
+                        true,
+                        request.EmailVerified ? now : null), innerCt);
             }
 
             if (!string.IsNullOrWhiteSpace(request.Phone))
             {
-                await _identifierStore.CreateAsync(context.ResourceTenant,
-                    new UserIdentifier
-                    {
-                        Tenant = context.ResourceTenant,
-                        UserKey = userKey,
-                        Type = UserIdentifierType.Phone,
-                        Value = request.Phone,
-                        NormalizedValue = _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
-                        IsPrimary = true,
-                        IsVerified = request.PhoneVerified,
-                        CreatedAt = now,
-                        VerifiedAt = request.PhoneVerified ? now : null
-                    },
-                    innerCt);
+                await _identifierStore.AddAsync(
+                    UserIdentifier.Create(
+                        Guid.NewGuid(),
+                        context.ResourceTenant,
+                        userKey,
+                        UserIdentifierType.Phone,
+                        request.Phone,
+                        _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
+                        now,
+                        true,
+                        request.PhoneVerified ? now : null), innerCt);
             }
 
             foreach (var integration in _integrations)
             {
+                // Credential creation handle on here
                 await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, innerCt);
             }
 
@@ -186,7 +159,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var targetUserKey = context.GetTargetUserKey();
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
             var current = await _lifecycleStore.GetAsync(userLifecycleKey, innerCt);
-            var now = DateTimeOffset.UtcNow;
+            var now = _clock.UtcNow;
 
             if (current is null)
                 throw new InvalidOperationException("user_not_found");
@@ -200,7 +173,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     throw new InvalidOperationException("admin_cannot_set_self_status");
             }
             var newEntity = current.ChangeStatus(now, newStatus);
-            await _lifecycleStore.UpdateAsync(newEntity, current.Version, innerCt);
+            await _lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -214,9 +187,20 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
 
-            await _lifecycleStore.DeleteAsync(userLifecycleKey, request.Mode, now, innerCt);
+            var lifecycle = await _lifecycleStore.GetAsync(userLifecycleKey, innerCt);
+
+            if (lifecycle is null)
+                throw new UAuthNotFoundException();
+
+            var profileKey = new UserProfileKey(context.ResourceTenant, targetUserKey);
+            var profile = await _profileStore.GetAsync(profileKey, innerCt);
+            await _lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
             await _identifierStore.DeleteByUserAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
-            await _profileStore.DeleteAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+
+            if (profile is not null)
+            {
+                await _profileStore.DeleteAsync(profileKey, profile.Version, request.Mode, now, innerCt);
+            }
 
             foreach (var integration in _integrations)
             {
@@ -263,10 +247,26 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new UpdateUserProfileCommand(async innerCt =>
         {
-            var targetUserKey = context.GetTargetUserKey();
-            var update = UserProfileMapper.ToUpdate(request);
+            var tenant = context.ResourceTenant;
+            var userKey = context.GetTargetUserKey();
+            var now = _clock.UtcNow;
 
-            await _profileStore.UpdateAsync(context.ResourceTenant, targetUserKey, update, _clock.UtcNow, innerCt);
+            var key = new UserProfileKey(tenant, userKey);
+
+            var profile = await _profileStore.GetAsync(key, innerCt);
+
+            if (profile is null)
+                throw new UAuthNotFoundException();
+
+            var expectedVersion = profile.Version;
+
+            profile
+                .UpdateName(request.FirstName, request.LastName, request.DisplayName, now)
+                .UpdatePersonalInfo(request.BirthDate, request.Gender, request.Bio, now)
+                .UpdateLocalization(request.Language, request.TimeZone, request.Culture, now)
+                .UpdateMetadata(request.Metadata, now);
+
+            await _profileStore.SaveAsync(profile, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -338,7 +338,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new AddUserIdentifierCommand(async innerCt =>
         {
             var validationDto = new UserIdentifierDto() { Type = request.Type, Value = request.Value };
-            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, ct);
+            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
             if (validationResult.IsValid != true)
             {
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
@@ -388,18 +388,16 @@ internal sealed class UserApplicationService : IUserApplicationService
                 EnsureVerificationRequirements(request.Type, isVerified: false);
             }
 
-            await _identifierStore.CreateAsync(context.ResourceTenant,
-                new UserIdentifier
-                {
-                    UserKey = userKey,
-                    Type = request.Type,
-                    Value = request.Value,
-                    NormalizedValue = normalized.Normalized,
-                    IsPrimary = request.IsPrimary,
-                    IsVerified = false,
-                    CreatedAt = _clock.UtcNow
-                },
-                innerCt);
+            await _identifierStore.AddAsync(
+                    UserIdentifier.Create(
+                        Guid.NewGuid(),
+                        context.ResourceTenant,
+                        userKey,
+                        request.Type,
+                        request.Value,
+                        normalized.Normalized,
+                        _clock.UtcNow,
+                        request.IsPrimary), innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -422,7 +420,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             var validationDto = identifier.ToDto();
-            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, ct);
+            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
             if (validationResult.IsValid != true)
             {
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
@@ -596,7 +594,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (request.Mode == DeleteMode.Hard)
             {
-                await _identifierStore.DeleteAsync(identifier, expectedVersion, DeleteMode.Hard, _clock.UtcNow, innerCt);
+                await _identifierStore.DeleteAsync(identifier.Id, expectedVersion, DeleteMode.Hard, _clock.UtcNow, innerCt);
             }
             else
             {
@@ -615,7 +613,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     private async Task<UserViewDto> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
     {
-        var profile = await _profileStore.GetAsync(tenant, userKey, ct);
+        var profile = await _profileStore.GetAsync(new UserProfileKey(tenant, userKey), ct);
 
         if (profile is null || profile.IsDeleted)
             throw new InvalidOperationException("user_profile_not_found");

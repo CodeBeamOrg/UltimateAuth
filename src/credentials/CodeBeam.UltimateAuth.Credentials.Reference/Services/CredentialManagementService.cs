@@ -102,7 +102,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 metadata: new CredentialMetadata(),
                 now: now);
 
-            await _credentials.AddAsync(context.ResourceTenant, credential, innerCt);
+            await _credentials.AddAsync(credential, innerCt);
 
             return AddCredentialResult.Success(credential.Id, credential.Type);
         });
@@ -144,7 +144,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var oldVersion = pwd.Version;
             var newHash = _hasher.Hash(request.NewSecret);
             var updated = pwd.ChangeSecret(newHash, now);
-            await _credentials.UpdateAsync(context.ResourceTenant, updated, oldVersion, innerCt);
+            await _credentials.SaveAsync(updated, oldVersion, innerCt);
 
             return ChangeCredentialResult.Success(pwd.Type);
         });
@@ -161,7 +161,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetByIdAsync(context.ResourceTenant, request.Id, innerCt);
+            var credential = await _credentials.GetByIdAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -171,7 +171,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var oldVersion = pwd.Version;
             var updated = pwd.Revoke(now);
-            await _credentials.UpdateAsync(context.ResourceTenant, updated, oldVersion, innerCt);
+            await _credentials.SaveAsync(updated, oldVersion, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -299,7 +299,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var newHash = _hasher.Hash(request.NewSecret);
             var updated = pwd.ChangeSecret(newHash, now);
 
-            await _credentials.UpdateAsync(context.ResourceTenant, updated, oldVersion, innerCt);
+            await _credentials.SaveAsync(updated, oldVersion, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -339,7 +339,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetByIdAsync(context.ResourceTenant, request.Id, innerCt);
+            var credential = await _credentials.GetByIdAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -348,7 +348,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 return CredentialActionResult.Fail("credential_not_found");
 
             var oldVersion = pwd.Version;
-            await _credentials.DeleteAsync(context.ResourceTenant, pwd.Id, request.Mode, now, oldVersion, innerCt);
+            await _credentials.DeleteAsync(new CredentialKey(context.ResourceTenant, pwd.Id), request.Mode, now, oldVersion, innerCt);
 
             return CredentialActionResult.Success();
         });

@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Authorization.Policies;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Registry;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,5 +19,8 @@ internal static class DefaultPolicySet
         registry.Add("", _ => new RequireAdminPolicy());
         registry.Add("", _ => new RequireSelfOrAdminPolicy());
         registry.Add("", _ => new RequireSystemPolicy());
+
+        // Permission
+        registry.Add("", _ => new MustHavePermissionPolicy());
     }
 }

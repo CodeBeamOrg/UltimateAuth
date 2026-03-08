@@ -17,19 +17,4 @@ internal static class UserProfileMapper
             Gender = profile.Gender,
             Metadata = profile.Metadata
         };
-
-    public static UserProfileUpdate ToUpdate(UpdateProfileRequest request)
-        => new()
-        {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            DisplayName = request.DisplayName,
-            BirthDate = request.BirthDate,
-            Gender = request.Gender,
-            Bio = request.Bio,
-            Language = request.Language,
-            TimeZone = request.TimeZone,
-            Culture = request.Culture,
-            Metadata = request.Metadata
-        };
 }

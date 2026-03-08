@@ -47,64 +47,43 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         if (await _lifecycle.ExistsAsync(userLifecycleKey, ct))
             return;
 
-        await _lifecycle.CreateAsync(
-            UserLifecycle.Create(tenant, userKey, _clock.UtcNow), ct);
+        await _lifecycle.AddAsync(UserLifecycle.Create(tenant, userKey, _clock.UtcNow), ct);
+        await _profiles.AddAsync(UserProfile.Create(_clock.UtcNow, tenant, userKey, displayName: displayName), ct);
 
-        await _profiles.CreateAsync(tenant,
-            new UserProfile
-            {
-                Tenant = tenant,
-                UserKey = userKey,
-                DisplayName = displayName,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Username,
+                username,
+                _identifierNormalizer.Normalize(UserIdentifierType.Username, username).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
 
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Username,
-                Value = username,
-                NormalizedValue = _identifierNormalizer
-                    .Normalize(UserIdentifierType.Username, username)
-                    .Normalized,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Email,
+                email,
+                _identifierNormalizer.Normalize(UserIdentifierType.Email, email).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
 
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Email,
-                Value = email,
-                NormalizedValue = _identifierNormalizer
-                    .Normalize(UserIdentifierType.Email, email)
-                    .Normalized,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
-
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Phone,
-                Value = phone,
-                NormalizedValue = _identifierNormalizer
-                    .Normalize(UserIdentifierType.Phone, phone)
-                    .Normalized,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Phone,
+                phone,
+                _identifierNormalizer.Normalize(UserIdentifierType.Phone, phone).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
     }
 }

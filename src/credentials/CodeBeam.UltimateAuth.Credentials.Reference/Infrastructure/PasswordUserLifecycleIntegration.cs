@@ -37,10 +37,10 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
             userKey: userKey,
             secretHash: hash,
             security: CredentialSecurityState.Active(),
-            metadata: new CredentialMetadata { LastUsedAt = _clock.UtcNow },
+            metadata: new CredentialMetadata { },
             _clock.UtcNow);
 
-        await _credentialStore.AddAsync(tenant, credential, ct);
+        await _credentialStore.AddAsync(credential, ct);
     }
 
     public async Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct)

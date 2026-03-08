@@ -9,9 +9,9 @@ public interface IVersionedStore<TEntity, TKey>
 
     Task<bool> ExistsAsync(TKey key, CancellationToken ct = default);
 
-    Task CreateAsync(TEntity entity, CancellationToken ct = default);
+    Task AddAsync(TEntity entity, CancellationToken ct = default);
 
-    Task UpdateAsync(TEntity entity, long expectedVersion, CancellationToken ct = default);
+    Task SaveAsync(TEntity entity, long expectedVersion, CancellationToken ct = default);
 
-    Task DeleteAsync(TKey key, DeleteMode deleteMode, DateTimeOffset now, CancellationToken ct = default);
+    Task DeleteAsync(TKey key, long expectedVersion, DeleteMode deleteMode, DateTimeOffset now, CancellationToken ct = default);
 }
