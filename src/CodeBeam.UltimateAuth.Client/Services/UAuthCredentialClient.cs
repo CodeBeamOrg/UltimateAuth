@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Services;
@@ -41,7 +40,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         var raw = await _request.SendJsonAsync(Url($"/credentials/change"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.UAuthStateRefreshMode));
         }
         return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
     }

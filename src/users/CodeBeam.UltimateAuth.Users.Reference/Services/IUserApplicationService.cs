@@ -32,5 +32,6 @@ public interface IUserApplicationService
 
     Task DeleteUserIdentifierAsync(AccessContext context, DeleteUserIdentifierRequest request, CancellationToken ct = default);
 
+    Task DeleteMeAsync(AccessContext context, CancellationToken ct = default);
     Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default);
 }

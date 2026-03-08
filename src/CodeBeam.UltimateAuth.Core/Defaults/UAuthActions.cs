@@ -38,6 +38,7 @@ public static class UAuthActions
     {
         public const string CreateAnonymous = "users.create.anonymous";
         public const string CreateAdmin = "users.create.admin";
+        public const string DeleteSelf = "users.delete.self";
         public const string DeleteAdmin = "users.delete.admin";
         public const string ChangeStatusSelf = "users.status.change.self";
         public const string ChangeStatusAdmin = "users.status.change.admin";

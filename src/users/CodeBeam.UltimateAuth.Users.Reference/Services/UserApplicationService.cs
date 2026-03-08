@@ -3,7 +3,6 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -21,6 +20,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
     private readonly IIdentifierNormalizer _identifierNormalizer;
+    private readonly ISessionStoreFactory _sessionStoreFactory;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -33,6 +33,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
         IIdentifierNormalizer identifierNormalizer,
+        ISessionStoreFactory sessionStoreFactory,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -44,6 +45,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _identifierValidator = identifierValidator;
         _integrations = integrations;
         _identifierNormalizer = identifierNormalizer;
+        _sessionStoreFactory = sessionStoreFactory;
         _options = options.Value;
         _clock = clock;
     }
@@ -52,7 +54,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
     {
-        var command = new CreateUserCommand(async innerCt =>
+        var command = new AccessCommand<UserCreateResult>(async innerCt =>
         {
             var validationResult = await _userCreateValidator.ValidateAsync(context, request, innerCt);
             if (validationResult.IsValid != true)
@@ -139,7 +141,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
     {
-        var command = new ChangeUserStatusCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             var newStatus = request switch
             {
@@ -171,9 +173,45 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
+    public async Task DeleteMeAsync(AccessContext context, CancellationToken ct = default)
+    {
+        var command = new AccessCommand(async innerCt =>
+        {
+            var userKey = context.GetTargetUserKey();
+            var now = _clock.UtcNow;
+
+            var lifecycleKey = new UserLifecycleKey(context.ResourceTenant, userKey);
+            var lifecycle = await _lifecycleStore.GetAsync(lifecycleKey, innerCt);
+
+            if (lifecycle is null)
+                throw new UAuthNotFoundException();
+
+            var profileKey = new UserProfileKey(context.ResourceTenant, userKey);
+            var profile = await _profileStore.GetAsync(profileKey, innerCt);
+
+            await _lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, innerCt);
+            await _identifierStore.DeleteByUserAsync(context.ResourceTenant, userKey, DeleteMode.Soft, now, innerCt);
+
+            if (profile is not null)
+            {
+                await _profileStore.DeleteAsync(profileKey, profile.Version, DeleteMode.Soft, now, innerCt);
+            }
+
+            foreach (var integration in _integrations)
+            {
+                await integration.OnUserDeletedAsync(context.ResourceTenant, userKey, DeleteMode.Soft, innerCt);
+            }
+
+            var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
+            await sessionStore.RevokeAllChainsAsync(context.ResourceTenant, userKey, now, innerCt);
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
     public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
     {
-        var command = new DeleteUserCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -210,7 +248,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<UserViewDto> GetMeAsync(AccessContext context, CancellationToken ct = default)
     {
-        var command = new GetMeCommand(async innerCt =>
+        var command = new AccessCommand<UserViewDto>(async innerCt =>
         {
             if (context.ActorUserKey is null)
                 throw new UnauthorizedAccessException();
@@ -223,11 +261,9 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<UserViewDto> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
     {
-        var command = new GetUserProfileCommand(async innerCt =>
+        var command = new AccessCommand<UserViewDto>(async innerCt =>
         {
-            // Target user MUST exist in context
             var targetUserKey = context.GetTargetUserKey();
-
             return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, innerCt);
 
         });
@@ -237,7 +273,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default)
     {
-        var command = new UpdateUserProfileCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             var tenant = context.ResourceTenant;
             var userKey = context.GetTargetUserKey();
@@ -271,7 +307,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<PagedResult<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default)
     {
-        var command = new GetUserIdentifiersCommand(async innerCt =>
+        var command = new AccessCommand<PagedResult<UserIdentifierDto>>(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
 
@@ -295,7 +331,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<UserIdentifierDto?> GetIdentifierAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
     {
-        var command = new GetUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand<UserIdentifierDto?>(async innerCt =>
         {
             var normalized = _identifierNormalizer.Normalize(type, value);
             if (!normalized.IsValid)
@@ -310,7 +346,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<bool> UserIdentifierExistsAsync(AccessContext context, UserIdentifierType type, string value, IdentifierExistenceScope scope = IdentifierExistenceScope.TenantPrimaryOnly, CancellationToken ct = default)
     {
-        var command = new UserIdentifierExistsCommand(async innerCt =>
+        var command = new AccessCommand<bool>(async innerCt =>
         {
             var normalized = _identifierNormalizer.Normalize(type, value);
             if (!normalized.IsValid)
@@ -327,7 +363,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task AddUserIdentifierAsync(AccessContext context, AddUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new AddUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             var validationDto = new UserIdentifierDto() { Type = request.Type, Value = request.Value };
             var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
@@ -397,7 +433,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task UpdateUserIdentifierAsync(AccessContext context, UpdateUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new UpdateUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
 
@@ -471,7 +507,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task SetPrimaryUserIdentifierAsync(AccessContext context, SetPrimaryUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new SetPrimaryUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
 
@@ -500,7 +536,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task UnsetPrimaryUserIdentifierAsync(AccessContext context, UnsetPrimaryUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new UnsetPrimaryUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
 
@@ -537,7 +573,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task VerifyUserIdentifierAsync(AccessContext context, VerifyUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new VerifyUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
 
@@ -555,7 +591,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task DeleteUserIdentifierAsync(AccessContext context, DeleteUserIdentifierRequest request, CancellationToken ct = default)
     {
-        var command = new DeleteUserIdentifierCommand(async innerCt =>
+        var command = new AccessCommand(async innerCt =>
         {
             EnsureOverrideAllowed(context);
 

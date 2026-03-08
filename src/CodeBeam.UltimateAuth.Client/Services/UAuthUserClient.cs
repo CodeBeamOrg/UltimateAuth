@@ -39,6 +39,16 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.From(raw);
     }
 
+    public async Task<UAuthResult> DeleteMeAsync()
+    {
+        var raw = await _request.SendJsonAsync(Url("/users/me/delete"));
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateRefreshMode.Patch));
+        }
+        return UAuthResultMapper.From(raw);
+    }
+
     public async Task<UAuthResult<UserCreateResult>> CreateAsync(CreateUserRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/create"), request);

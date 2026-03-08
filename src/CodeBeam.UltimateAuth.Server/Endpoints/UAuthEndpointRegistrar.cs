@@ -137,6 +137,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             users.MapPost("/me/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
+            users.MapPost("/me/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                => await h.DeleteMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+
+
             adminUsers.MapPost("/{userKey}/status", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.ChangeStatusAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 

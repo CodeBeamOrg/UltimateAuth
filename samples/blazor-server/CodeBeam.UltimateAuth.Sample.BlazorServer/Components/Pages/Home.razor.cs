@@ -3,6 +3,8 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
@@ -98,9 +100,30 @@ public partial class Home : UAuthFlowPageBase
         }
     }
 
-    private Task CreateUser() => Task.CompletedTask;
-    private Task AssignRole() => Task.CompletedTask;
-    private Task ChangePassword() => Task.CompletedTask;
+    private async Task DeleteAccountAsync()
+    {
+        var info = await DialogService.ShowMessageBoxAsync(
+            title: "Are You Sure",
+            markupMessage: (MarkupString)
+                """
+                You are going to delete your account.<br/><br/>
+                This action can't be undone.<br/><br/>
+                (Actually it is, admin can handle soft deleted accounts.)
+                """,
+            yesText: "Delete");
+
+        if (info != true)
+        {
+            Snackbar.Add("Deletion cancelled", Severity.Info);
+            return;
+        }
+
+        var result = await UAuthClient.Users.DeleteMeAsync();
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Your account deleted successfully.", Severity.Success);
+        }
+    }
 
     private Color GetHealthColor()
     {

@@ -8,6 +8,7 @@ public interface IUserEndpointHandler
     Task<IResult> CreateAsync(HttpContext ctx);
     Task<IResult> ChangeStatusSelfAsync(HttpContext ctx);
     Task<IResult> ChangeStatusAdminAsync(UserKey userKey, HttpContext ctx);
+    Task<IResult> DeleteMeAsync(HttpContext ctx);
     Task<IResult> DeleteAsync(UserKey userKey, HttpContext ctx);
 
     Task<IResult> GetMeAsync(HttpContext ctx);

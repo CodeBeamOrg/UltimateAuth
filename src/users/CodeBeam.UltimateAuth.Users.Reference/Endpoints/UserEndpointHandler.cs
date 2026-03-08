@@ -143,6 +143,22 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         return Results.Ok();
     }
 
+    public async Task<IResult> DeleteMeAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.DeleteSelf,
+            resource: "users",
+            resourceId: flow?.UserKey?.Value);
+
+        await _users.DeleteMeAsync(accessContext, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
     public async Task<IResult> DeleteAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;
