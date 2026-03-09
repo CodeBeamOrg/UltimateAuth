@@ -6,13 +6,15 @@ namespace CodeBeam.UltimateAuth.Server.Auth
 {
     internal sealed class AuthStateSnapshotFactory : IAuthStateSnapshotFactory
     {
-        private readonly IPrimaryUserIdentifierProvider _identifierProvider;
-        private readonly IUserProfileSnapshotProvider _profileSnapshotProvider;
+        private readonly IPrimaryUserIdentifierProvider _identifier;
+        private readonly IUserProfileSnapshotProvider _profile;
+        private readonly IUserLifecycleSnapshotProvider _lifecycle;
 
-        public AuthStateSnapshotFactory(IPrimaryUserIdentifierProvider identifierProvider, IUserProfileSnapshotProvider profileSnapshotProvider)
+        public AuthStateSnapshotFactory(IPrimaryUserIdentifierProvider identifier, IUserProfileSnapshotProvider profile, IUserLifecycleSnapshotProvider lifecycle)
         {
-            _identifierProvider = identifierProvider;
-            _profileSnapshotProvider = profileSnapshotProvider;
+            _identifier = identifier;
+            _profile = profile;
+            _lifecycle = lifecycle;
         }
 
         public async Task<AuthStateSnapshot?> CreateAsync(SessionValidationResult validation, CancellationToken ct = default)
@@ -20,8 +22,9 @@ namespace CodeBeam.UltimateAuth.Server.Auth
             if (!validation.IsValid || validation.UserKey is null)
                 return null;
 
-            var identifiers = await _identifierProvider.GetAsync(validation.Tenant, validation.UserKey.Value, ct);
-            var profile = await _profileSnapshotProvider.GetAsync(validation.Tenant, validation.UserKey.Value, ct);
+            var identifiers = await _identifier.GetAsync(validation.Tenant, validation.UserKey.Value, ct);
+            var profile = await _profile.GetAsync(validation.Tenant, validation.UserKey.Value, ct);
+            var lifecycle = await _lifecycle.GetAsync(validation.Tenant, validation.UserKey.Value, ct);
 
             var identity = new AuthIdentitySnapshot
             {
@@ -33,7 +36,8 @@ namespace CodeBeam.UltimateAuth.Server.Auth
                 DisplayName = profile?.DisplayName,
                 TimeZone = profile?.TimeZone,
                 AuthenticatedAt = validation.AuthenticatedAt,
-                SessionState = validation.State
+                SessionState = validation.State,
+                UserStatus = lifecycle?.Status ?? UserStatus.Unknown
             };
 
             return new AuthStateSnapshot

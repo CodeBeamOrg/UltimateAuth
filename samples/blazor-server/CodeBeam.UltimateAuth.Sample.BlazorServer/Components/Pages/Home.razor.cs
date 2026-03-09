@@ -1,10 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
@@ -62,6 +62,11 @@ public partial class Home : UAuthFlowPageBase
 
             if (result.IsValid)
             {
+                if (result.Snapshot?.Identity.UserStatus == UserStatus.SelfSuspended)
+                {
+                    Snackbar.Add("Your account is suspended by you.", Severity.Warning);
+                    return;
+                }
                 Snackbar.Add($"Session active • Tenant: {result.Snapshot?.Identity?.Tenant.Value} • User: {result.Snapshot?.Identity?.PrimaryUserName}", Severity.Success);
             }
             else 
@@ -97,31 +102,6 @@ public partial class Home : UAuthFlowPageBase
         catch (Exception ex)
         {
             Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task DeleteAccountAsync()
-    {
-        var info = await DialogService.ShowMessageBoxAsync(
-            title: "Are You Sure",
-            markupMessage: (MarkupString)
-                """
-                You are going to delete your account.<br/><br/>
-                This action can't be undone.<br/><br/>
-                (Actually it is, admin can handle soft deleted accounts.)
-                """,
-            yesText: "Delete");
-
-        if (info != true)
-        {
-            Snackbar.Add("Deletion cancelled", Severity.Info);
-            return;
-        }
-
-        var result = await UAuthClient.Users.DeleteMeAsync();
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Your account deleted successfully.", Severity.Success);
         }
     }
 
@@ -194,6 +174,11 @@ public partial class Home : UAuthFlowPageBase
         await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), GetDialogOptions());
     }
 
+    private async Task OpenAccountStatusDialog()
+    {
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), GetDialogOptions());
+    }
+
     private DialogOptions GetDialogOptions()
     {
         return new DialogOptions
@@ -205,11 +190,26 @@ public partial class Home : UAuthFlowPageBase
     }
 
     private DialogParameters GetDialogParameters()
-            {
+    {
         return new DialogParameters
         {
             ["AuthState"] = AuthState
         };
+    }
+
+    private async Task SetAccountActiveAsync()
+    {
+        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfUserStatus.Active };
+        var result = await UAuthClient.Users.ChangeStatusSelfAsync(request);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Account activated successfully.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Activation failed.", Severity.Error);
+        }
     }
 
     public override void Dispose()

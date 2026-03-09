@@ -145,7 +145,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             var newStatus = request switch
             {
-                ChangeUserStatusSelfRequest r => r.NewStatus,
+                ChangeUserStatusSelfRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
                 ChangeUserStatusAdminRequest r => r.NewStatus,
                 _ => throw new InvalidOperationException("invalid_request")
             };
@@ -156,15 +156,15 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
 
             if (current is null)
-                throw new InvalidOperationException("user_not_found");
+                throw new UAuthNotFoundException("user_not_found");
 
             if (context.IsSelfAction && !IsSelfTransitionAllowed(current.Status, newStatus))
-                throw new InvalidOperationException("self_transition_not_allowed");
+                throw new UAuthConflictException("self_transition_not_allowed");
 
             if (!context.IsSelfAction)
             {
-                if (newStatus is UserStatus.SelfSuspended or UserStatus.Deactivated)
-                    throw new InvalidOperationException("admin_cannot_set_self_status");
+                if (newStatus is UserStatus.SelfSuspended)
+                    throw new UAuthConflictException("admin_cannot_set_self_status");
             }
             var newEntity = current.ChangeStatus(now, newStatus);
             await _lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
@@ -672,35 +672,35 @@ internal sealed class UserApplicationService : IUserApplicationService
             return;
 
         if (type == UserIdentifierType.Username && !_options.Identifiers.AllowMultipleUsernames)
-            throw new InvalidOperationException("multiple_usernames_not_allowed");
+            throw new UAuthValidationException("multiple_usernames_not_allowed");
 
         if (type == UserIdentifierType.Email && !_options.Identifiers.AllowMultipleEmail)
-            throw new InvalidOperationException("multiple_emails_not_allowed");
+            throw new UAuthValidationException("multiple_emails_not_allowed");
 
         if (type == UserIdentifierType.Phone && !_options.Identifiers.AllowMultiplePhone)
-            throw new InvalidOperationException("multiple_phones_not_allowed");
+            throw new UAuthValidationException("multiple_phones_not_allowed");
     }
 
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
     {
         if (type == UserIdentifierType.Email && _options.Identifiers.RequireEmailVerification && !isVerified)
         {
-            throw new InvalidOperationException("email_verification_required");
+            throw new UAuthValidationException("email_verification_required");
         }
 
         if (type == UserIdentifierType.Phone && _options.Identifiers.RequirePhoneVerification && !isVerified)
         {
-            throw new InvalidOperationException("phone_verification_required");
+            throw new UAuthValidationException("phone_verification_required");
         }
     }
 
     private void EnsureOverrideAllowed(AccessContext context)
     {
         if (context.IsSelfAction && !_options.Identifiers.AllowUserOverride)
-            throw new InvalidOperationException("user_override_not_allowed");
+            throw new UAuthConflictException("user_override_not_allowed");
 
         if (!context.IsSelfAction && !_options.Identifiers.AllowAdminOverride)
-            throw new InvalidOperationException("admin_override_not_allowed");
+            throw new UAuthConflictException("admin_override_not_allowed");
     }
 
     private static bool IsSelfTransitionAllowed(UserStatus from, UserStatus to)
@@ -708,7 +708,6 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             (UserStatus.Active, UserStatus.SelfSuspended) => true,
             (UserStatus.SelfSuspended, UserStatus.Active) => true,
-            (UserStatus.Active or UserStatus.SelfSuspended, UserStatus.Deactivated) => true,
             _ => false
         };
 

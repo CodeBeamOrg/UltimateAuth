@@ -91,6 +91,10 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
             case UAuthStateEventArgs<UpdateProfileRequest> profile:
                 State.UpdateProfile(profile.Payload);
                 break;
+
+            case UAuthStateEventArgs<ChangeUserStatusSelfRequest> profile:
+                State.UpdateUserStatus(profile.Payload);
+                break;
         }
 
         switch (args.RefreshMode)
@@ -104,7 +108,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
                 {
                     State.MarkValidated(_clock.UtcNow);
                 }
-                if (args.Type == UAuthStateEvent.IdentifiersChanged)
+                if (args.Type == UAuthStateEvent.UserStatusChanged)
                 {
 
                 }

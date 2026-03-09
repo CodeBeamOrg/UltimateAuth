@@ -34,6 +34,7 @@
                         <MudDivider />
 
                         <MudMenuItem Icon="@Icons.Material.Filled.Refresh" IconColor="Color.Secondary" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.VerifiedUser" IconColor="Color.Secondary" Label="Validate Session" OnClick="@Validate" />
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Secondary" Label="Logout" OnClick="@Logout" />
 
                         @if (state.Identity?.SessionState is not null && state.Identity.SessionState != SessionState.Active)

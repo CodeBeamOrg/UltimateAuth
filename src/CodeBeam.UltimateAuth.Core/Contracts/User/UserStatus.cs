@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public enum UserStatus
 {
@@ -16,5 +16,5 @@ public enum UserStatus
     PendingActivation = 60,
     PendingVerification = 70,
 
-    Deactivated = 80,
+    Unknown = 99
 }

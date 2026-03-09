@@ -8,6 +8,25 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @using System.Security.Claims
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Custom
+
+@if (AuthState?.Identity?.UserStatus == UserStatus.SelfSuspended)
+{
+    <UAuthPageComponent>
+        <MudStack>
+            <MudAlert Severity="Severity.Warning">
+                Your account is suspended. Please active it before continue.
+            </MudAlert>
+
+            <MudStack Class="mud-width-full" Row="true" Justify="Justify.Center">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SetAccountActiveAsync">Set Active</MudButton>
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="Logout">Logout</MudButton>
+            </MudStack>
+        </MudStack>
+    </UAuthPageComponent>
+    return;
+}
 
 <MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudContainer Class="pb-4" MaxWidth="MaxWidth.Medium">
@@ -23,7 +42,7 @@
                         <MudDivider Class="my-4" />
                         <MudText Style="font-weight: 300; letter-spacing: 0.5rem" Typo="Typo.h5">@AuthState?.Identity?.DisplayName</MudText>
                         <MudChipSet T="string" Class="mt-2" Size="Size.Small" Variant="Variant.Outlined">
-                            @foreach (var role in AuthState.Claims.Roles)
+                            @foreach (var role in AuthState?.Claims?.Roles ?? Enumerable.Empty<string>())
                             {
                                 <MudChip Color="Color.Primary">
                                     @role
@@ -68,7 +87,7 @@
                                             <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Small" />
                                             <MudText Typo="Typo.subtitle2" Color="Color.Primary">Authenticated</MudText>
                                         </MudStack>
-                                        <MudText Align="Align.Center">@(AuthState.IsAuthenticated ? "Yes" : "No")</MudText>
+                                        <MudText Align="Align.Center">@(AuthState?.IsAuthenticated == true ? "Yes" : "No")</MudText>
                                     </div>
                                 </MudItem>
 
@@ -237,8 +256,8 @@
                                 Manage Credentials
                             </MudButton>
 
-                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAccountAsync">
-                                Delete Account
+                            <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Delete" OnClick="OpenAccountStatusDialog">
+                                Suspend | Delete Account
                             </MudButton>
 
                             <MudDivider Class="my-2" />
@@ -252,7 +271,7 @@
                                 </UAuthStateView>
                             </MudStack>
 
-                            @if (AuthState.IsInRole("Admin") || _showAdminPreview)
+                            @if (AuthState?.IsInRole("Admin") == true || _showAdminPreview)
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" sm="6">

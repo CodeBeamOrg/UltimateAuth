@@ -2,5 +2,5 @@
 
 public class ChangeUserStatusSelfRequest
 {
-    public required UserStatus NewStatus { get; init; }
+    public required SelfUserStatus NewStatus { get; init; }
 }

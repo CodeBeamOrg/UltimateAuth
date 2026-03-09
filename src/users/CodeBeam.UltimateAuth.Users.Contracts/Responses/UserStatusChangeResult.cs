@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record UserStatusChangeResult
 {

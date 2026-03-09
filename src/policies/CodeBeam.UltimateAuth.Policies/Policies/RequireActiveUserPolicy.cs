@@ -36,13 +36,11 @@ internal sealed class RequireActiveUserPolicy : IAccessPolicy
         if (context.Action.EndsWith(".anonymous"))
             return false;
 
-        return !AllowedForInactive.Any(prefix => context.Action.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        return !AllowedForInactive.Contains(context.Action);
     }
 
     private static readonly string[] AllowedForInactive =
     {
         UAuthActions.Users.ChangeStatusSelf,
-        "login.",
-        "reauth."
     };
 }

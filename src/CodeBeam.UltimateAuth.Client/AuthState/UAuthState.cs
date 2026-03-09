@@ -58,6 +58,19 @@ public sealed class UAuthState
         Changed?.Invoke(UAuthStateChangeReason.Patched);
     }
 
+    internal void UpdateUserStatus(ChangeUserStatusSelfRequest req)
+    {
+        if (Identity is null)
+            return;
+
+        Identity = Identity with
+        {
+            UserStatus = UserStatusMapper.ToUserStatus(req.NewStatus)
+        };
+
+        Changed?.Invoke(UAuthStateChangeReason.Patched);
+    }
+
     internal void MarkValidated(DateTimeOffset now)
     {
         if (!IsAuthenticated)

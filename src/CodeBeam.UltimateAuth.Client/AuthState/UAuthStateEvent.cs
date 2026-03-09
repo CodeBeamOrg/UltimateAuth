@@ -4,6 +4,7 @@ public enum UAuthStateEvent
 {
     ValidationCalled,
     IdentifiersChanged,
+    UserStatusChanged,
     ProfileChanged,
     CredentialsChanged,
     CredentialsChangedSelf,

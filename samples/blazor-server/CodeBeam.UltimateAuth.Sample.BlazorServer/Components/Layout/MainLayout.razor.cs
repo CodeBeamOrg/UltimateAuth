@@ -1,5 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -54,6 +57,57 @@ public partial class MainLayout
         }
 
         GoToLoginWithReturn();
+    }
+
+    private async Task Validate()
+    {
+        try
+        {
+            var result = await UAuthClient.Flows.ValidateAsync();
+
+            if (result.IsValid)
+            {
+                if (result.Snapshot?.Identity.UserStatus == UserStatus.SelfSuspended)
+                {
+                    Snackbar.Add("Your account is suspended by you.", Severity.Warning);
+                    return;
+                }
+                Snackbar.Add($"Session active • Tenant: {result.Snapshot?.Identity?.Tenant.Value} • User: {result.Snapshot?.Identity?.PrimaryUserName}", Severity.Success);
+            }
+            else
+            {
+                switch (result.State)
+                {
+                    case SessionState.Expired:
+                        Snackbar.Add("Session expired. Please sign in again.", Severity.Warning);
+                        break;
+
+                    case SessionState.DeviceMismatch:
+                        Snackbar.Add("Session invalid for this device.", Severity.Error);
+                        break;
+
+                    default:
+                        Snackbar.Add($"Session state: {result.State}", Severity.Error);
+                        break;
+                }
+            }
+        }
+        catch (UAuthTransportException)
+        {
+            Snackbar.Add("Network error.", Severity.Error);
+        }
+        catch (UAuthProtocolException)
+        {
+            Snackbar.Add("Invalid response.", Severity.Error);
+        }
+        catch (UAuthException ex)
+        {
+            Snackbar.Add($"UAuth error: {ex.Message}", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
     }
 
     private void GoToLoginWithReturn()

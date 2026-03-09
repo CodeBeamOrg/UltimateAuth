@@ -74,7 +74,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         if (userKey is not null)
         {
             var user = await _users.GetAsync(request.Tenant, userKey.Value, ct);
-            if (user is not null && user.IsActive && !user.IsDeleted)
+            if (user is not null && user.CanAuthenticate && !user.IsDeleted)
             {
                 userExists = true;
 

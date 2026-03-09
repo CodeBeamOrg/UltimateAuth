@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -26,6 +26,7 @@ internal sealed class UserRuntimeStateProvider : IUserRuntimeStateProvider
         {
             UserKey = lifecycle.UserKey,
             IsActive = lifecycle.Status == UserStatus.Active,
+            CanAuthenticate = lifecycle.Status == UserStatus.Active || lifecycle.Status == UserStatus.SelfSuspended || lifecycle.Status == UserStatus.Suspended,
             IsDeleted = lifecycle.IsDeleted,
             Exists = true
         };
