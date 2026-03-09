@@ -28,6 +28,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
         group.AddEndpointFilter<AuthFlowEndpointFilter>();
 
+        //var user = group.MapGroup("");
+        var users = group.MapGroup("/users");
+        var adminUsers = group.MapGroup("/admin/users");
+
         if (options.Endpoints.Login != false)
         {
             group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
@@ -39,11 +43,30 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             group.MapPost("/logout", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                 => await h.LogoutAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
+            group.MapPost("/logout-device", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                => await h.LogoutDeviceSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+
+            group.MapPost("/logout-others", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                => await h.LogoutOthersSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+
+            group.MapPost("/logout-all", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                => await h.LogoutAllSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+
             group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
                 => await h.RefreshAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshSession));
 
             group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
                 => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
+
+
+            adminUsers.MapPost("/logout-device/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.LogoutDeviceAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+
+            adminUsers.MapPost("/logout-others/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.LogoutOthersAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+
+            adminUsers.MapPost("/logout-all/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.LogoutAllAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
         }
 
         if (options.Endpoints.Pkce != false)
@@ -73,10 +96,6 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             token.MapPost("/revoke", async ([FromServices] ITokenEndpointHandler h, HttpContext ctx)
                 => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeToken));
         }
-
-        //var user = group.MapGroup("");
-        var users = group.MapGroup("/users");
-        var adminUsers = group.MapGroup("/admin/users");
 
         if (options.Endpoints.Session != false)
         {

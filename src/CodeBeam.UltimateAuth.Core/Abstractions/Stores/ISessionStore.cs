@@ -12,6 +12,9 @@ public interface ISessionStore
     Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default);
     Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default);
     Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default);
+    public Task RevokeOtherSessionsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default);
+    public Task RevokeAllSessionsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default);
+    Task RemoveSessionAsync(AuthSessionId sessionId, CancellationToken ct = default);
 
     Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId, CancellationToken ct = default);
     Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion, CancellationToken ct = default);
@@ -20,6 +23,7 @@ public interface ISessionStore
     Task RevokeOtherChainsAsync(TenantKey tenant, UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default);
     Task RevokeAllChainsAsync(TenantKey tenant, UserKey user, DateTimeOffset at, CancellationToken ct = default);
     Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
+    Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
 
     Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default);
     Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId, CancellationToken ct = default);
@@ -30,7 +34,7 @@ public interface ISessionStore
 
     Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, bool includeHistoricalRoots = false, CancellationToken ct = default);
+    Task<UAuthSessionChain?> GetChainByDeviceAsync(TenantKey tenant, UserKey userKey, DeviceId deviceId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default);
-    Task DeleteExpiredSessionsAsync(DateTimeOffset at, CancellationToken ct = default);
 }

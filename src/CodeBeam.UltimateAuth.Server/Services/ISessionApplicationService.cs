@@ -16,6 +16,9 @@ public interface ISessionApplicationService
     Task RevokeOtherChainsAsync(AccessContext context, UserKey userKey, SessionChainId? currentChainId, CancellationToken ct = default);
 
     Task RevokeAllChainsAsync(AccessContext context, UserKey userKey, SessionChainId? exceptChainId, CancellationToken ct = default);
+    Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId currentChainId, CancellationToken ct = default);
+    Task LogoutOtherDevicesAsync(AccessContext context, UserKey userKey, SessionChainId currentChainId, CancellationToken ct = default);
+    Task LogoutAllDevicesAsync(AccessContext context, UserKey userKey, CancellationToken ct = default);
 
     Task RevokeRootAsync(AccessContext context, UserKey userKey, CancellationToken ct = default);
 }

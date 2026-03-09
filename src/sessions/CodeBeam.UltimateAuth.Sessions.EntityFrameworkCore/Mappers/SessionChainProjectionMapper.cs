@@ -20,7 +20,6 @@ internal static class SessionChainProjectionMapper
             p.RotationCount,
             p.TouchCount,
             p.SecurityVersionAtCreation,
-            p.IsRevoked,
             p.RevokedAt,
             p.Version
         );
@@ -43,7 +42,6 @@ internal static class SessionChainProjectionMapper
             RotationCount = chain.RotationCount,
             TouchCount = chain.TouchCount,
             SecurityVersionAtCreation = chain.SecurityVersionAtCreation,
-            IsRevoked = chain.IsRevoked,
             RevokedAt = chain.RevokedAt,
             Version = chain.Version
         };

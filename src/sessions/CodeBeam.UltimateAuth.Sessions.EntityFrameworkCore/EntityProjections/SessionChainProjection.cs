@@ -22,7 +22,9 @@ internal sealed class SessionChainProjection
     public int TouchCount { get; set; }
     public long SecurityVersionAtCreation { get; set; }
 
-    public bool IsRevoked { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt is not null;
+    public SessionChainState State => IsRevoked ? SessionChainState.Revoked : ActiveSessionId is null ? SessionChainState.Passive : SessionChainState.Active;
 }

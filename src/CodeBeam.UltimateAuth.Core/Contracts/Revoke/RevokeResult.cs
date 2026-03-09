@@ -2,7 +2,7 @@
 {
     public sealed record RevokeResult
     {
-        public bool CurrentSessionRevoked { get; init; }
+        public bool CurrentChain { get; init; }
         public bool RootRevoked { get; init; }
     }
 }

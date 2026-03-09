@@ -11,5 +11,6 @@ public enum UAuthStateEvent
     RolesChanged,
     PermissionsChanged,
     SessionRevoked,
-    UserDeleted
+    UserDeleted,
+    LogoutVariant
 }

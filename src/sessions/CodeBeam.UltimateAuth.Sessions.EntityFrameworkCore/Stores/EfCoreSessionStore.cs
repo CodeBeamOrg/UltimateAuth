@@ -148,6 +148,68 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return true;
     }
 
+    public async Task RevokeAllSessionsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var chains = await _db.Chains.Where(x => x.UserKey == user).ToListAsync(ct);
+
+        foreach (var chainProjection in chains)
+        {
+            var chain = chainProjection.ToDomain();
+
+            var sessions = await _db.Sessions.Where(x => x.ChainId == chain.ChainId).ToListAsync(ct);
+
+            foreach (var sessionProjection in sessions)
+            {
+                var session = sessionProjection.ToDomain();
+
+                if (session.IsRevoked)
+                    continue;
+
+                var revoked = session.Revoke(at);
+                _db.Sessions.Update(revoked.ToProjection());
+            }
+
+            if (chain.ActiveSessionId is not null)
+            {
+                var updatedChain = chain.DetachSession(at);
+                _db.Chains.Update(updatedChain.ToProjection());
+            }
+        }
+    }
+
+    public async Task RevokeOtherSessionsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var chains = await _db.Chains.Where(x => x.UserKey == user && x.ChainId != keepChain).ToListAsync(ct);
+
+        foreach (var chainProjection in chains)
+        {
+            var chain = chainProjection.ToDomain();
+
+            var sessions = await _db.Sessions.Where(x => x.ChainId == chain.ChainId).ToListAsync(ct);
+
+            foreach (var sessionProjection in sessions)
+            {
+                var session = sessionProjection.ToDomain();
+
+                if (session.IsRevoked)
+                    continue;
+
+                var revoked = session.Revoke(at);
+                _db.Sessions.Update(revoked.ToProjection());
+            }
+
+            if (chain.ActiveSessionId is not null)
+            {
+                var updatedChain = chain.DetachSession(at);
+                _db.Chains.Update(updatedChain.ToProjection());
+            }
+        }
+    }
+
     public async Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -155,6 +217,22 @@ internal sealed class EfCoreSessionStore : ISessionStore
         var projection = await _db.Chains
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.ChainId == chainId);
+
+        return projection?.ToDomain();
+    }
+
+    public async Task<UAuthSessionChain?> GetChainByDeviceAsync(TenantKey tenant, UserKey userKey, DeviceId deviceId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = await _db.Chains
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null &&
+                x.Device.DeviceId == deviceId)
+            .SingleOrDefaultAsync(ct);
 
         return projection?.ToDomain();
     }
@@ -205,6 +283,40 @@ internal sealed class EfCoreSessionStore : ISessionStore
             return;
 
         _db.Chains.Update(chain.Revoke(at).ToProjection());
+    }
+
+    public async Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var chainProjection = await _db.Chains.SingleOrDefaultAsync(x => x.ChainId == chainId, ct);
+
+        if (chainProjection is null)
+            return;
+
+        var chain = chainProjection.ToDomain();
+
+        if (chain.IsRevoked)
+            return;
+
+        var sessions = await _db.Sessions.Where(x => x.ChainId == chainId).ToListAsync(ct);
+
+        foreach (var sessionProjection in sessions)
+        {
+            var session = sessionProjection.ToDomain();
+
+            if (session.IsRevoked)
+                continue;
+
+            var revoked = session.Revoke(at);
+            _db.Sessions.Update(revoked.ToProjection());
+        }
+
+        if (chain.ActiveSessionId is not null)
+        {
+            var updatedChain = chain.DetachSession(at);
+            _db.Chains.Update(updatedChain.ToProjection());
+        }
     }
 
     public async Task RevokeOtherChainsAsync(TenantKey tenant, UserKey userKey, SessionChainId currentChainId, DateTimeOffset at, CancellationToken ct = default)
@@ -414,19 +526,16 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return rootProjection.ToDomain();
     }
 
-    public async Task DeleteExpiredSessionsAsync(DateTimeOffset at, CancellationToken ct = default)
+    public async Task RemoveSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Sessions
-            .Where(x => x.ExpiresAt <= at && !x.IsRevoked)
-            .ToListAsync();
+        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId, ct);
 
-        foreach (var p in projections)
-        {
-            var revoked = p.ToDomain().Revoke(at);
-            _db.Sessions.Update(revoked.ToProjection());
-        }
+        if (projection is null)
+            return;
+
+        _db.Sessions.Remove(projection);
     }
 
     public async Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)

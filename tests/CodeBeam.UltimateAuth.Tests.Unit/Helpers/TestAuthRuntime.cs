@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
@@ -88,5 +89,20 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
     {
         var scope = Services.CreateScope();
         return scope.ServiceProvider.GetRequiredService<ICredentialManagementService>();
+    }
+
+    public async Task<LoginResult> LoginAsync(AuthFlowContext flow)
+    {
+        using var scope = Services.CreateScope();
+
+        var orchestrator = scope.ServiceProvider
+            .GetRequiredService<ILoginOrchestrator>();
+
+        return await orchestrator.LoginAsync(flow, new LoginRequest
+        {
+            Tenant = TenantKey.Single,
+            Identifier = "user",
+            Secret = "user"
+        });
     }
 }

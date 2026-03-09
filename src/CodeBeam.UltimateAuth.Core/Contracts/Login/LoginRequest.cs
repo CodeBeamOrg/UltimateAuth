@@ -17,7 +17,4 @@ public sealed record LoginRequest
     /// Server policy may still ignore this.
     /// </summary>
     public bool RequestTokens { get; init; } = true;
-
-    // Optional
-    public SessionChainId? ChainId { get; init; }
 }

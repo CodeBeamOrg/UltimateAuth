@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
@@ -31,30 +32,45 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             {
                 chains = request.SortBy switch
                 {
-                    nameof(SessionChainSummaryDto.ChainId) =>
-                        request.Descending
-                            ? chains.OrderByDescending(x => x.ChainId).ToList()
-                            : chains.OrderBy(x => x.Version).ToList(),
+                    nameof(SessionChainSummaryDto.ChainId) => request.Descending
+                        ? chains.OrderByDescending(x => x.ChainId).ToList()
+                        : chains.OrderBy(x => x.Version).ToList(),
 
-                    nameof(SessionChainSummaryDto.CreatedAt) =>
-                        request.Descending
-                            ? chains.OrderByDescending(x => x.CreatedAt).ToList()
-                            : chains.OrderBy(x => x.Version).ToList(),
+                    nameof(SessionChainSummaryDto.CreatedAt) => request.Descending
+                        ? chains.OrderByDescending(x => x.CreatedAt).ToList()
+                        : chains.OrderBy(x => x.Version).ToList(),
 
-                    nameof(SessionChainSummaryDto.DeviceType) =>
-                        request.Descending
-                            ? chains.OrderByDescending(x => x.Device.DeviceType).ToList()
-                            : chains.OrderBy(x => x.Version).ToList(),
+                    nameof(SessionChainSummaryDto.LastSeenAt) => request.Descending
+                        ? chains.OrderByDescending(x => x.LastSeenAt).ToList()
+                        : chains.OrderBy(x => x.LastSeenAt).ToList(),
 
-                    nameof(SessionChainSummaryDto.Platform) =>
-                        request.Descending
-                            ? chains.OrderByDescending(x => x.Device.Platform).ToList()
-                            : chains.OrderBy(x => x.Version).ToList(),
+                    nameof(SessionChainSummaryDto.RevokedAt) => request.Descending
+                        ? chains.OrderByDescending(x => x.RevokedAt).ToList()
+                        : chains.OrderBy(x => x.RevokedAt).ToList(),
 
-                    nameof(SessionChainSummaryDto.RotationCount) =>
-                        request.Descending
-                            ? chains.OrderByDescending(x => x.RotationCount).ToList()
-                            : chains.OrderBy(x => x.RotationCount).ToList(),
+                    nameof(SessionChainSummaryDto.DeviceType) => request.Descending
+                        ? chains.OrderByDescending(x => x.Device.DeviceType).ToList()
+                        : chains.OrderBy(x => x.Device.DeviceType).ToList(),
+
+                    nameof(SessionChainSummaryDto.OperatingSystem) => request.Descending
+                        ? chains.OrderByDescending(x => x.Device.OperatingSystem).ToList()
+                        : chains.OrderBy(x => x.Device.OperatingSystem).ToList(),
+
+                    nameof(SessionChainSummaryDto.Platform) => request.Descending
+                        ? chains.OrderByDescending(x => x.Device.Platform).ToList()
+                        : chains.OrderBy(x => x.Device.Platform).ToList(),
+
+                    nameof(SessionChainSummaryDto.Browser) => request.Descending
+                        ? chains.OrderByDescending(x => x.Device.Browser).ToList()
+                        : chains.OrderBy(x => x.Device.Browser).ToList(),
+
+                    nameof(SessionChainSummaryDto.RotationCount) => request.Descending
+                        ? chains.OrderByDescending(x => x.RotationCount).ToList()
+                        : chains.OrderBy(x => x.RotationCount).ToList(),
+
+                    nameof(SessionChainSummaryDto.TouchCount) => request.Descending
+                        ? chains.OrderByDescending(x => x.TouchCount).ToList()
+                        : chains.OrderBy(x => x.TouchCount).ToList(),
 
                     _ => chains
                 };
@@ -79,7 +95,8 @@ internal sealed class SessionApplicationService : ISessionApplicationService
                     IsRevoked = c.IsRevoked,
                     RevokedAt = c.RevokedAt,
                     ActiveSessionId = c.ActiveSessionId,
-                    IsCurrentDevice = actorChainId.HasValue && c.ChainId == actorChainId.Value
+                    IsCurrentDevice = actorChainId.HasValue && c.ChainId == actorChainId.Value,
+                    State = c.State,
                 })
                 .ToList();
 
@@ -94,24 +111,38 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         var command = new AccessCommand<SessionChainDetailDto>(async innerCt =>
         {
             var store = _storeFactory.Create(context.ResourceTenant);
-
-            var chain = await store.GetChainAsync(chainId) ?? throw new InvalidOperationException("chain_not_found");
+            var chain = await store.GetChainAsync(chainId) ?? throw new UAuthNotFoundException("chain_not_found");
 
             if (chain.UserKey != userKey)
-                throw new UnauthorizedAccessException();
+                throw new UAuthValidationException("User conflict.");
 
             var sessions = await store.GetSessionsByChainAsync(chainId);
 
-            return new SessionChainDetailDto(
-                chain.ChainId,
-                null,
-                null,
-                DateTimeOffset.MinValue,
-                null,
-                chain.RotationCount,
-                chain.IsRevoked,
-                chain.ActiveSessionId,
-                sessions.Select(s => new SessionInfoDto(s.SessionId, s.CreatedAt, s.ExpiresAt, s.IsRevoked)).ToList());
+            return new SessionChainDetailDto
+            {
+                ChainId = chain.ChainId,
+                DeviceType = chain.Device.DeviceType,
+                OperatingSystem = chain.Device.OperatingSystem,
+                Platform = chain.Device.Platform,
+                Browser = chain.Device.Browser,
+                CreatedAt = chain.CreatedAt,
+                LastSeenAt = chain.LastSeenAt,
+                State = chain.State,
+                RotationCount = chain.RotationCount,
+                TouchCount = chain.TouchCount,
+                IsRevoked = chain.IsRevoked,
+                RevokedAt = chain.RevokedAt,
+                ActiveSessionId = chain.ActiveSessionId,
+
+                Sessions = sessions
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(s => new SessionInfoDto(
+                    s.SessionId,
+                    s.CreatedAt,
+                    s.ExpiresAt,
+                    s.IsRevoked))
+                .ToList()
+            };
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -149,7 +180,7 @@ internal sealed class SessionApplicationService : ISessionApplicationService
 
             return new RevokeResult
             {
-                CurrentSessionRevoked = isCurrent,
+                CurrentChain = isCurrent,
                 RootRevoked = false
             };
         });
@@ -176,6 +207,52 @@ internal sealed class SessionApplicationService : ISessionApplicationService
 
                 await store.RevokeChainCascadeAsync(chain.ChainId, _clock.UtcNow);
             }
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId currentChainId, CancellationToken ct = default)
+    {
+        var command = new AccessCommand<RevokeResult>(async innerCt =>
+        {
+            var isCurrent = context.ActorChainId == currentChainId;
+            var store = _storeFactory.Create(context.ResourceTenant);
+            var now = _clock.UtcNow;
+
+            await store.LogoutChainAsync(currentChainId, now, innerCt);
+
+            return new RevokeResult
+            {
+                CurrentChain = isCurrent,
+                RootRevoked = false
+            };
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task LogoutOtherDevicesAsync(AccessContext context, UserKey userKey, SessionChainId currentChainId, CancellationToken ct = default)
+    {
+        var command = new AccessCommand(async innerCt =>
+        {
+            var store = _storeFactory.Create(context.ResourceTenant);
+            var now = _clock.UtcNow;
+
+            await store.RevokeOtherSessionsAsync(userKey, currentChainId, now, innerCt);
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task LogoutAllDevicesAsync(AccessContext context, UserKey userKey, CancellationToken ct = default)
+    {
+        var command = new AccessCommand(async innerCt =>
+        {
+            var store = _storeFactory.Create(context.ResourceTenant);
+            var now = _clock.UtcNow;
+
+            await store.RevokeAllSessionsAsync(userKey, now, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);

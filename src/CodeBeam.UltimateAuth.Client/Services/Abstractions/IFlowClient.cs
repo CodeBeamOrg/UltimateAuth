@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 // TODO: Add ReauthAsync
 namespace CodeBeam.UltimateAuth.Client.Services;
@@ -14,4 +16,11 @@ public interface IFlowClient
 
     Task BeginPkceAsync(string? returnUrl = null);
     Task CompletePkceLoginAsync(PkceLoginRequest request);
+
+    Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceSelfRequest request);
+    Task<UAuthResult> LogoutOtherDevicesSelfAsync();
+    Task<UAuthResult> LogoutAllDevicesSelfAsync();
+    Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, SessionChainId chainId);
+    Task<UAuthResult> LogoutOtherDevicesAdminAsync(LogoutOtherDevicesAdminRequest request);
+    Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey);
 }

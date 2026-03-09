@@ -23,21 +23,6 @@
 </MudDialog>
 
 @code {
-
-    private MudForm? _form;
-
-    private string? _firstName;
-    private string? _lastName;
-    private string? _displayName;
-
-    private DateTime? _birthDate;
-    private string? _gender;
-    private string? _bio;
-
-    private string? _language;
-    private string? _timeZone;
-    private string? _culture;
-
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 

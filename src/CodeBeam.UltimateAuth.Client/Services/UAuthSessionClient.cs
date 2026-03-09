@@ -42,7 +42,7 @@ internal sealed class UAuthSessionClient : ISessionClient
         var raw = await _request.SendJsonAsync(Url($"/session/me/chains/{chainId}/revoke"));
         var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
 
-        if (result.Value?.CurrentSessionRevoked == true)
+        if (result.Value?.CurrentChain == true)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.UAuthStateRefreshMode));
         }
@@ -76,7 +76,7 @@ internal sealed class UAuthSessionClient : ISessionClient
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummaryDto>>(raw);
     }
 
-    public async Task<UAuthResult<SessionChainDetailDto>> GetUserChainAsync(UserKey userKey, SessionChainId chainId)
+    public async Task<UAuthResult<SessionChainDetailDto>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/chains/{chainId}"));
         return UAuthResultMapper.FromJson<SessionChainDetailDto>(raw);

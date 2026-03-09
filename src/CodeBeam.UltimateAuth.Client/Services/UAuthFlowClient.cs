@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -234,6 +235,65 @@ internal class UAuthFlowClient : IFlowClient
         await _post.NavigateAsync(url, payload);
     }
 
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceSelfRequest request)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/logout-device"), request);
+
+        if (raw.Ok)
+        {
+            var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
+
+            if (result.Value?.CurrentChain == true)
+            {
+                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+            }
+
+            return result;
+        }
+
+        return UAuthResultMapper.FromJson<RevokeResult>(raw);
+    }
+
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, SessionChainId chainId)
+    {
+        LogoutDeviceAdminRequest request = new() { UserKey = userKey, ChainId = chainId };
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-device/{userKey.Value}"), request);
+        return UAuthResultMapper.FromJson<RevokeResult>(raw);
+    }
+
+    public async Task<UAuthResult> LogoutOtherDevicesSelfAsync()
+    {
+        var raw = await _post.SendJsonAsync(Url("/logout-others"));
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutOtherDevicesAdminAsync(LogoutOtherDevicesAdminRequest request)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-others/{request.UserKey.Value}"), request);
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutAllDevicesSelfAsync()
+    {
+        var raw = await _post.SendJsonAsync(Url("/logout-all"));
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+        }
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-all/{userKey.Value}"));
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+        }
+        return UAuthResultMapper.From(raw);
+    }
+
+
     private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl)
     {
         var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
@@ -248,9 +308,6 @@ internal class UAuthFlowClient : IFlowClient
 
         return _post.NavigateAsync(hubLoginUrl, data);
     }
-
-
-    // ---------------- PKCE CRYPTO ----------------
 
     private static string CreateVerifier()
     {

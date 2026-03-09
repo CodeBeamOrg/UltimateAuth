@@ -80,7 +80,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
             return;
         }
 
-        if (args.Type == UAuthStateEvent.CredentialsChanged || args.Type == UAuthStateEvent.UserDeleted)
+        if (args.Type == UAuthStateEvent.CredentialsChanged || args.Type == UAuthStateEvent.UserDeleted || args.Type == UAuthStateEvent.LogoutVariant)
         {
             State.Clear();
             return;

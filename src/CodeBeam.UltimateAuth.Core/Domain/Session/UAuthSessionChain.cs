@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
@@ -20,9 +21,12 @@ public sealed class UAuthSessionChain : IVersionedEntity
     public int TouchCount { get; }
     public long SecurityVersionAtCreation { get; }
     
-    public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long Version { get; set; }
+
+
+    public bool IsRevoked => RevokedAt is not null;
+    public SessionChainState State => IsRevoked ? SessionChainState.Revoked : ActiveSessionId is null ? SessionChainState.Passive : SessionChainState.Active;
 
     private UAuthSessionChain(
         SessionChainId chainId,
@@ -38,7 +42,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
         int rotationCount,
         int touchCount,
         long securityVersionAtCreation,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long version)
     {
@@ -55,7 +58,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
         RotationCount = rotationCount;
         TouchCount = touchCount;
         SecurityVersionAtCreation = securityVersionAtCreation;
-        IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         Version = version;
     }
@@ -85,7 +87,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
             rotationCount: 0,
             touchCount: 0,
             securityVersionAtCreation: securityVersion,
-            isRevoked: false,
             revokedAt: null,
             version: 0
         );
@@ -113,7 +114,30 @@ public sealed class UAuthSessionChain : IVersionedEntity
             RotationCount, // Unchanged on first attach
             TouchCount,
             SecurityVersionAtCreation,
-            IsRevoked,
+            RevokedAt,
+            Version + 1
+        );
+    }
+
+    public UAuthSessionChain DetachSession(DateTimeOffset now)
+    {
+        if (ActiveSessionId is null)
+            return this;
+
+        return new UAuthSessionChain(
+            ChainId,
+            RootId,
+            Tenant,
+            UserKey,
+            CreatedAt,
+            lastSeenAt: now,
+            AbsoluteExpiresAt,
+            Device,
+            ClaimsSnapshot,
+            activeSessionId: null,
+            RotationCount, // Unchanged on first attach
+            TouchCount,
+            SecurityVersionAtCreation,
             RevokedAt,
             Version + 1
         );
@@ -141,7 +165,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
             RotationCount + 1,
             TouchCount,
             SecurityVersionAtCreation,
-            IsRevoked,
             RevokedAt,
             Version + 1
         );
@@ -166,7 +189,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
             RotationCount,
             TouchCount + 1,
             SecurityVersionAtCreation,
-            IsRevoked,
             RevokedAt,
             Version + 1
         );
@@ -191,7 +213,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
             RotationCount,
             TouchCount,
             SecurityVersionAtCreation,
-            isRevoked: true,
             revokedAt: now,
             Version + 1
         );
@@ -211,7 +232,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
         int rotationCount,
         int touchCount,
         long securityVersionAtCreation,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long version)
     {
@@ -229,7 +249,6 @@ public sealed class UAuthSessionChain : IVersionedEntity
              rotationCount,
              touchCount,
              securityVersionAtCreation,
-             isRevoked,
              revokedAt,
              version
          );

@@ -39,5 +39,4 @@ public sealed class UAuthSessionOrchestrator : ISessionOrchestrator
 
         return await command.ExecuteAsync(authContext, _issuer, ct);
     }
-
 }

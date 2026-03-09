@@ -17,4 +17,5 @@ public sealed record SessionChainSummaryDto
     public DateTimeOffset? RevokedAt { get; init; }
     public AuthSessionId? ActiveSessionId { get; init; }
     public bool IsCurrentDevice { get; init; }
+    public SessionChainState State { get; set; }
 }

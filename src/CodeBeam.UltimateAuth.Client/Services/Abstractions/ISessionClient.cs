@@ -13,7 +13,7 @@ public interface ISessionClient
 
 
     Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetUserChainsAsync(UserKey userKey);
-    Task<UAuthResult<SessionChainDetailDto>> GetUserChainAsync(UserKey userKey, SessionChainId chainId);
+    Task<UAuthResult<SessionChainDetailDto>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId);
     Task<UAuthResult> RevokeUserSessionAsync(UserKey userKey, AuthSessionId sessionId);
     Task<UAuthResult> RevokeUserChainAsync(UserKey userKey, SessionChainId chainId);
     Task<UAuthResult> RevokeUserRootAsync(UserKey userKey);

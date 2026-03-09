@@ -89,8 +89,88 @@ internal sealed class InMemorySessionStore : ISessionStore
         if (session.IsRevoked)
             return Task.FromResult(false);
 
-        _sessions[sessionId] = session.Revoke(at);
+        var revoked = session.Revoke(at);
+        _sessions[sessionId] = revoked;
+
+        if (_chains.TryGetValue(session.ChainId, out var chain))
+        {
+            if (chain.ActiveSessionId == sessionId)
+            {
+                var updatedChain = chain.DetachSession(at);
+                _chains[chain.ChainId] = updatedChain;
+            }
+        }
+
         return Task.FromResult(true);
+    }
+
+    public Task RevokeAllSessionsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        lock (_lock)
+        {
+            foreach (var (id, chain) in _chains)
+            {
+                if (chain.UserKey != user)
+                    continue;
+
+                var sessions = _sessions.Values.Where(s => s.ChainId == id).ToList();
+
+                foreach (var session in sessions)
+                {
+                    if (!session.IsRevoked)
+                    {
+                        var revoked = session.Revoke(at);
+                        _sessions[session.SessionId] = revoked;
+                    }
+                }
+
+                if (chain.ActiveSessionId is not null)
+                {
+                    var updatedChain = chain.DetachSession(at);
+                    _chains[id] = updatedChain;
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeOtherSessionsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        lock (_lock)
+        {
+            foreach (var (id, chain) in _chains)
+            {
+                if (chain.UserKey != user)
+                    continue;
+
+                if (id == keepChain)
+                    continue;
+
+                var sessions = _sessions.Values.Where(s => s.ChainId == id).ToList();
+
+                foreach (var session in sessions)
+                {
+                    if (!session.IsRevoked)
+                    {
+                        var revoked = session.Revoke(at);
+                        _sessions[session.SessionId] = revoked;
+                    }
+                }
+
+                if (chain.ActiveSessionId is not null)
+                {
+                    var updatedChain = chain.DetachSession(at);
+                    _chains[id] = updatedChain;
+                }
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     public Task<UAuthSessionChain?> GetChainAsync(SessionChainId chainId, CancellationToken ct = default)
@@ -273,6 +353,20 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
     }
 
+    public Task<UAuthSessionChain?> GetChainByDeviceAsync(TenantKey tenant, UserKey userKey, DeviceId deviceId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var chain = _chains.Values
+            .FirstOrDefault(c =>
+                c.Tenant == tenant &&
+                c.UserKey == userKey &&
+                !c.IsRevoked &&
+                c.Device.DeviceId == deviceId);
+
+        return Task.FromResult(chain);
+    }
+
     public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -281,23 +375,24 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<IReadOnlyList<UAuthSession>>(result);
     }
 
-    public Task DeleteExpiredSessionsAsync(DateTimeOffset at, CancellationToken ct = default)
+    public Task RemoveSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        foreach (var kvp in _sessions)
+        lock (_lock)
         {
-            var session = kvp.Value;
+            if (!_sessions.TryGetValue(sessionId, out var session))
+                return Task.CompletedTask;
 
-            if (session.ExpiresAt <= at)
+            _sessions.TryRemove(sessionId, out _);
+
+            if (_chains.TryGetValue(session.ChainId, out var chain))
             {
-                var revoked = session.Revoke(at);
-                _sessions[kvp.Key] = revoked;
-
-                //if (_activeSessions.TryGetValue(revoked.ChainId, out var activeId) && activeId == revoked.SessionId)
-                //{
-                //    _activeSessions.TryRemove(revoked.ChainId, out _);
-                //}
+                if (chain.ActiveSessionId == sessionId)
+                {
+                    var updatedChain = chain.DetachSession(DateTimeOffset.UtcNow);
+                    _chains[chain.ChainId] = updatedChain;
+                }
             }
         }
 
@@ -328,6 +423,39 @@ internal sealed class InMemorySessionStore : ISessionStore
                     var revokedSession = session.Revoke(at);
                     _sessions[session.SessionId] = revokedSession;
                 }
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        lock (_lock)
+        {
+            if (!_chains.TryGetValue(chainId, out var chain))
+                return Task.CompletedTask;
+
+            if (chain.IsRevoked)
+                return Task.CompletedTask;
+
+            var sessions = _sessions.Values.Where(s => s.ChainId == chainId).ToList();
+
+            foreach (var session in sessions)
+            {
+                if (!session.IsRevoked)
+                {
+                    var revokedSession = session.Revoke(at);
+                    _sessions[session.SessionId] = revokedSession;
+                }
+            }
+
+            if (chain.ActiveSessionId is not null)
+            {
+                var updatedChain = chain.DetachSession(at);
+                _chains[chainId] = updatedChain;
             }
         }
 

@@ -12,13 +12,13 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UAuthSessionIssuer : ISessionIssuer
 {
-    private readonly ISessionStoreFactory _kernelFactory;
+    private readonly ISessionStoreFactory _storeFactory;
     private readonly IOpaqueTokenGenerator _opaqueGenerator;
     private readonly UAuthServerOptions _options;
 
-    public UAuthSessionIssuer(ISessionStoreFactory kernelFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
+    public UAuthSessionIssuer(ISessionStoreFactory storeFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
     {
-        _kernelFactory = kernelFactory;
+        _storeFactory = storeFactory;
         _opaqueGenerator = opaqueGenerator;
         _options = options.Value;
     }
@@ -45,7 +45,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 expiresAt = absoluteExpiry;
         }
 
-        var kernel = _kernelFactory.Create(context.Tenant);
+        var kernel = _storeFactory.Create(context.Tenant);
 
         IssuedSession? issued = null;
 
@@ -93,6 +93,22 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 await kernel.CreateChainAsync(chain);
             }
 
+            var sessions = await kernel.GetSessionsByChainAsync(chain.ChainId);
+
+            if (sessions.Count >= _options.Session.MaxSessionsPerChain)
+            {
+                var toDelete = sessions
+                    .Where(s => s.SessionId != chain.ActiveSessionId)
+                    .OrderBy(x => x.CreatedAt)
+                    .Take(sessions.Count - _options.Session.MaxSessionsPerChain + 1)
+                    .ToList();
+
+                foreach (var old in toDelete)
+                {
+                    await kernel.RemoveSessionAsync(old.SessionId);
+                }
+            }
+
             var session = UAuthSession.Create(
                 sessionId: sessionId,
                 tenant: context.Tenant,
@@ -125,7 +141,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
     public async Task<IssuedSession> RotateSessionAsync(SessionRotationContext context, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(context.Tenant);
+        var kernel = _storeFactory.Create(context.Tenant);
         var now = context.Now;
 
         var opaqueSessionId = _opaqueGenerator.Generate();
@@ -207,13 +223,13 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
     public async Task<bool> RevokeSessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenant);
+        var kernel = _storeFactory.Create(tenant);
         return await kernel.ExecuteAsync(_ => kernel.RevokeSessionAsync(sessionId, at), ct);
     }
 
     public async Task RevokeChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenant);
+        var kernel = _storeFactory.Create(tenant);
         await kernel.ExecuteAsync(async _ =>
         {
             var chain = await kernel.GetChainAsync(chainId);
@@ -226,7 +242,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
     public async Task RevokeAllChainsAsync(TenantKey tenant, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenant);
+        var kernel = _storeFactory.Create(tenant);
         await kernel.ExecuteAsync(async _ =>
         {
             var chains = await kernel.GetChainsByUserAsync(userKey);
@@ -243,7 +259,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
     public async Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
-        var kernel = _kernelFactory.Create(tenant);
+        var kernel = _storeFactory.Create(tenant);
         await kernel.ExecuteAsync(async _ =>
         {
             var root = await kernel.GetRootByUserAsync(userKey);

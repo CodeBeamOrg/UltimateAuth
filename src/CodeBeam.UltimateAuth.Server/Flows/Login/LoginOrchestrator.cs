@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Security;
 using CodeBeam.UltimateAuth.Credentials;
@@ -27,6 +28,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
     private readonly ISessionOrchestrator _sessionOrchestrator;
     private readonly ITokenIssuer _tokens;
     private readonly IUserClaimsProvider _claimsProvider;
+    private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
     private readonly UAuthServerOptions _options;
@@ -40,6 +42,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         ISessionOrchestrator sessionOrchestrator,
         ITokenIssuer tokens,
         IUserClaimsProvider claimsProvider,
+        ISessionStoreFactory storeFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
         IOptions<UAuthServerOptions> options)
@@ -52,6 +55,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         _sessionOrchestrator = sessionOrchestrator;
         _tokens = tokens;
         _claimsProvider = claimsProvider;
+        _storeFactory = storeFactory;
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
         _options = options.Value;
@@ -60,6 +64,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
     public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (flow.Device.DeviceId is not DeviceId deviceId)
+            throw new UAuthConflictException("Device id could not resolved.");
 
         var now = request.At ?? DateTimeOffset.UtcNow;
         var resolution = await _identifierResolver.ResolveAsync(request.Tenant, request.Identifier, ct);
@@ -111,6 +118,18 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             }
         }
 
+        // TODO: Add create-time uniqueness guard for chain id for concurrency
+        var kernel = _storeFactory.Create(request.Tenant);
+        SessionChainId? chainId = null;
+
+        if (userKey is not null)
+        {
+            var chain = await kernel.GetChainByDeviceAsync(request.Tenant, userKey.Value, deviceId, ct);
+
+            if (chain is not null && !chain.IsRevoked)
+                chainId = chain.ChainId;
+        }
+
         // TODO: Add accountState here, currently it only checks factor state
         var decisionContext = new LoginDecisionContext
         {
@@ -120,7 +139,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             UserExists = userExists,
             UserKey = userKey,
             SecurityState = factorState,
-            IsChained = request.ChainId is not null
+            IsChained = chainId is not null
         };
 
         var decision = _authority.Decide(decisionContext);
@@ -191,7 +210,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             Now = now,
             Device = flow.Device,
             Claims = claims,
-            ChainId = request.ChainId,
+            ChainId = chainId,
             Metadata = SessionMetadata.Empty,
             Mode = flow.EffectiveMode
         };
@@ -208,7 +227,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
                 Tenant = request.Tenant,
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
-                ChainId = request.ChainId,
+                ChainId = issuedSession.Session.ChainId,
                 Claims = claims.AsDictionary()
             };
 

@@ -19,6 +19,16 @@ public static class UAuthActions
             : $"{resource}.{subResource}.{operation}.{scopePart}";
     }
 
+    public static class Flows
+    {
+        public const string LogoutDeviceSelf = "flows.logoutdevice.self";
+        public const string LogoutDeviceAdmin = "flows.logoutdevice.admin";
+        public const string LogoutOthersSelf = "flows.logoutothers.self";
+        public const string LogoutOthersAdmin = "flows.logoutothers.admin";
+        public const string LogoutAllSelf = "flows.logoutall.self";
+        public const string LogoutAllAdmin = "flows.logoutall.admin";
+    }
+
     public static class Sessions
     {
         public const string GetChainSelf = "sessions.getchain.self";
