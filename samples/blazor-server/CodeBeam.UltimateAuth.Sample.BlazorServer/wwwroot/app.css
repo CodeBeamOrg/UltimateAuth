@@ -92,6 +92,10 @@ h1:focus {
     min-height: 62vh;
 }
 
+.text-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+
 @keyframes uauth-logo-float {
     0% {
         transform: translateY(0) rotateY(0);
