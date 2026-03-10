@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed record PermissionDto
+public sealed record PermissionInfo
 {
     public required string Value { get; init; }
 }

@@ -40,7 +40,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         var raw = await _request.SendJsonAsync(Url($"/credentials/change"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
     }
@@ -50,7 +50,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         var raw = await _request.SendJsonAsync(Url($"/credentials/revoke"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -66,7 +66,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         var raw = await _request.SendJsonAsync(Url($"/credentials/reset/complete"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
     }

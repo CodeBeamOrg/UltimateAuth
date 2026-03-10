@@ -11,12 +11,18 @@ internal sealed class RoleService : IRoleService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly IRoleStore _roles;
+    private readonly IUserRoleStore _userRoles;
     private readonly IClock _clock;
 
-    public RoleService(IAccessOrchestrator accessOrchestrator, IRoleStore roles, IClock clock)
+    public RoleService(
+        IAccessOrchestrator accessOrchestrator,
+        IRoleStore roles,
+        IUserRoleStore userRoles,
+        IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
         _roles = roles;
+        _userRoles = userRoles;
         _clock = clock;
     }
 
@@ -56,22 +62,33 @@ internal sealed class RoleService : IRoleService
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default)
+    public async Task<DeleteRoleResult> DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand(async innerCt =>
+        var cmd = new AccessCommand<DeleteRoleResult>(async innerCt =>
         {
             var key = new RoleKey(context.ResourceTenant, roleId);
+
             var role = await _roles.GetAsync(key, innerCt);
 
             if (role is null)
                 throw new UAuthNotFoundException("role_not_found");
 
+            var removed = await _userRoles.CountAssignmentsAsync(context.ResourceTenant, roleId, innerCt);
+            await _userRoles.RemoveAssignmentsByRoleAsync(context.ResourceTenant, roleId, innerCt);
             await _roles.DeleteAsync(key, role.Version, mode, _clock.UtcNow, innerCt);
+
+            return new DeleteRoleResult
+            {
+                RoleId = roleId,
+                RemovedAssignments = removed,
+                Mode = mode,
+                DeletedAt = _clock.UtcNow
+            };
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
     public async Task SetPermissionsAsync(AccessContext context, RoleId roleId, IEnumerable<Permission> permissions, CancellationToken ct = default)

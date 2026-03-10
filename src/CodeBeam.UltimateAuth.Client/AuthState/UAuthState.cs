@@ -28,8 +28,10 @@ public sealed class UAuthState
 
 
     public event Action<UAuthStateChangeReason>? Changed;
+    internal Action? RequestRender;
 
     public bool IsAuthenticated => Identity is not null;
+    public bool NeedsValidation => IsAuthenticated && IsStale;
 
     public static UAuthState Anonymous() => new();
 
@@ -89,6 +91,16 @@ public sealed class UAuthState
 
         IsStale = true;
         Changed?.Invoke(UAuthStateChangeReason.MarkedStale);
+    }
+
+    public void Touch(bool updateState = true)
+    {
+        if (updateState)
+        {
+            IsStale = true;
+        }
+        
+        RequestRender?.Invoke();
     }
 
     internal void Clear()

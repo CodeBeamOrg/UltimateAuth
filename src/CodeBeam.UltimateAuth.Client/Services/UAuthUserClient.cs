@@ -34,7 +34,7 @@ internal sealed class UAuthUserClient : IUserClient
         var raw = await _request.SendJsonAsync(Url("/users/me/update"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.UAuthStateRefreshMode, request));
+            await _events.PublishAsync(new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -44,7 +44,7 @@ internal sealed class UAuthUserClient : IUserClient
         var raw = await _request.SendJsonAsync(Url("/users/me/delete"));
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateRefreshMode.Patch));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateEventHandlingMode.Patch));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -60,7 +60,7 @@ internal sealed class UAuthUserClient : IUserClient
         var raw = await _request.SendJsonAsync(Url("/users/me/status"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(UAuthStateEvent.ProfileChanged, _options.UAuthStateRefreshMode, request));
+            await _events.PublishAsync(new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
         }
         return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
     }

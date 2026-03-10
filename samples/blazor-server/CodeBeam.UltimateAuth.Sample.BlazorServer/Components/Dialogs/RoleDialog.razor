@@ -1,0 +1,222 @@
+﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
+@using CodeBeam.UltimateAuth.Core.Contracts
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+
+    <TitleContent>
+        <MudText>Role Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            Manage system roles
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudDataGrid @ref="_grid" T="RoleInfo" ServerData="LoadServerData" Hover="true" Dense="true" Bordered="true" Striped="true"
+                     EditMode="DataGridEditMode.Form" CommittedItemChanges="CommittedItemChanges" Loading="_loading">
+
+            <ToolBarContent>
+                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                    <MudText>Roles</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Variant="Variant.Filled" Color="Color.Primary" OnClick="ReloadAsync" />
+                </MudStack>
+            </ToolBarContent>
+
+            <Columns>
+                <PropertyColumn Property="x => x.Id" Title="Role Id" Editable="false" />
+                <PropertyColumn Property="x => x.Name" Title="Name" />
+                <TemplateColumn Title="Actions" Editable="false">
+                    <CellTemplate>
+                        <MudStack Row="true" Spacing="2">
+                            <MudTooltip Text="Edit" Delay="300" Color="Color.Primary">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Variant="Variant.Filled" OnClick="@context.Actions.StartEditingItemAsync" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Permissions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => EditPermissions(context.Item))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Delete">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="@(()=>DeleteRole(context.Item.Id))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+
+            <PagerContent>
+                <MudDataGridPager T="RoleInfo" PageSizeOptions="new int[] {5,10,20}" />
+            </PagerContent>
+        </MudDataGrid>
+
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Create Role">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_newRoleName" Label="Role name" Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateRole">Create</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudDataGrid<RoleInfo>? _grid;
+    private bool _loading;
+    private bool _reloadQueued;
+    private string? _newRoleName;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public UAuthState AuthState { get; set; } = default!;
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     await base.OnAfterRenderAsync(firstRender);
+
+    //     if (firstRender)
+    //     {
+    //         var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+    //         if (result != null && result.IsSuccess && result.Value != null)
+    //         {
+    //             await ReloadAsync();
+    //             StateHasChanged();
+    //         }
+    //     }
+    // }
+
+    private async Task<GridData<RoleInfo>> LoadServerData(GridState<RoleInfo> state, CancellationToken ct)
+    {
+        var sort = state.SortDefinitions?.FirstOrDefault();
+
+        var req = new RoleQuery
+        {
+            PageNumber = state.Page + 1,
+            PageSize = state.PageSize,
+            SortBy = sort?.SortBy,
+            Descending = sort?.Descending ?? false
+        };
+
+        var res = await UAuthClient.Authorization.QueryRolesAsync(req);
+
+        if (!res.IsSuccess || res.Value == null)
+        {
+            Snackbar.Add(res.Problem?.Title ?? "Failed", Severity.Error);
+
+            return new GridData<RoleInfo>
+            {
+                Items = Array.Empty<RoleInfo>(),
+                TotalItems = 0
+            };
+        }
+
+        return new GridData<RoleInfo>
+        {
+            Items = res.Value.Items,
+            TotalItems = res.Value.TotalCount
+        };
+    }
+
+    private async Task<DataGridEditFormAction> CommittedItemChanges(RoleInfo role)
+    {
+        var req = new RenameRoleRequest
+        {
+            Name = role.Name
+        };
+
+        var result = await UAuthClient.Authorization.RenameRoleAsync(role.Id, req);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Role renamed", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result.Problem?.Title ?? "Rename failed", Severity.Error);
+        }
+
+        await ReloadAsync();
+        return DataGridEditFormAction.Close;
+    }
+
+    private async Task CreateRole()
+    {
+        if (string.IsNullOrWhiteSpace(_newRoleName))
+        {
+            Snackbar.Add("Role name required", Severity.Warning);
+            return;
+        }
+
+        var req = new CreateRoleRequest
+        {
+            Name = _newRoleName
+        };
+
+        var res = await UAuthClient.Authorization.CreateRoleAsync(req);
+
+        if (res.IsSuccess)
+        {
+            Snackbar.Add("Role created", Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(res.Problem?.Title ?? "Create failed", Severity.Error);
+        }
+    }
+
+    private async Task DeleteRole(RoleId roleId)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Delete role",
+            "Are you sure?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirm != true)
+            return;
+
+        var req = new DeleteRoleRequest();
+        var result = await UAuthClient.Authorization.DeleteRoleAsync(roleId, req);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add($"Role deleted, assignments removed from {result.Value?.RemovedAssignments.ToString() ?? "unknown"} users.", Severity.Success);
+            await ReloadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Problem?.Detail ?? result.Problem?.Title ?? "Delete failed", Severity.Error);
+        }
+    }
+
+    private async Task EditPermissions(RoleInfo role)
+    {
+        // next dialog
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_grid is null)
+            return;
+
+        await _grid.ReloadServerData();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+}

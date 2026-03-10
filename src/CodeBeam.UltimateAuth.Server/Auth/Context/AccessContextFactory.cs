@@ -45,8 +45,10 @@ internal sealed class AccessContextFactory : IAccessContextFactory
 
         if (authFlow.IsAuthenticated && authFlow.UserKey is not null)
         {
-            var roles = await _roleStore.GetRolesAsync(authFlow.Tenant, authFlow.UserKey.Value, ct);
-            attrs["roles"] = roles;
+            var assignments = await _roleStore.GetAssignmentsAsync(authFlow.Tenant, authFlow.UserKey.Value, ct);
+            var roleIds = assignments.Select(x => x.RoleId).ToArray();
+
+            attrs["roles"] = roleIds;
         }
 
         UserKey? targetUserKey = null;

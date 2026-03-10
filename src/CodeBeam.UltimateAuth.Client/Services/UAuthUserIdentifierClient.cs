@@ -35,7 +35,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/add"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<AddUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode, request));
+            await _events.PublishAsync(new UAuthStateEventArgs<AddUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode, request));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -45,7 +45,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/update"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<UpdateUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode, request));
+            await _events.PublishAsync(new UAuthStateEventArgs<UpdateUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode, request));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -55,7 +55,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/set-primary"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -65,7 +65,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/unset-primary"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -75,7 +75,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/verify"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -85,7 +85,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url("/users/me/identifiers/delete"), request);
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }

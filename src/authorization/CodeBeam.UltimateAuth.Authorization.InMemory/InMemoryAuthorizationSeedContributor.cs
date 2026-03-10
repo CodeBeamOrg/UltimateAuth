@@ -28,14 +28,15 @@ internal sealed class InMemoryAuthorizationSeedContributor : ISeedContributor
     {
         var adminRoleId = RoleId.From(Guid.NewGuid());
         var userRoleId = RoleId.From(Guid.NewGuid());
+        var now = _clock.UtcNow;
         await _roleStore.AddAsync(Role.Create(adminRoleId, tenant, "Admin", new HashSet<Permission>() { Permission.Wildcard }, _clock.UtcNow));
         await _roleStore.AddAsync(Role.Create(userRoleId, tenant, "User", null, _clock.UtcNow));
 
         var adminKey = _ids.GetAdminUserId();
-        await _roles.AssignAsync(tenant, adminKey, adminRoleId, ct);
-        await _roles.AssignAsync(tenant, adminKey, userRoleId, ct);
+        await _roles.AssignAsync(tenant, adminKey, adminRoleId, now, ct);
+        await _roles.AssignAsync(tenant, adminKey, userRoleId, now, ct);
 
         var userKey = _ids.GetUserUserId();
-        await _roles.AssignAsync(tenant, userKey, userRoleId, ct);
+        await _roles.AssignAsync(tenant, userKey, userRoleId, now, ct);
     }
 }

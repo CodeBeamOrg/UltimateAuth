@@ -21,6 +21,7 @@ public static class UAuthActions
 
     public static class Flows
     {
+        public const string LogoutSelf = "flows.logout.self";
         public const string LogoutDeviceSelf = "flows.logoutdevice.self";
         public const string LogoutDeviceAdmin = "flows.logoutdevice.admin";
         public const string LogoutOthersSelf = "flows.logoutothers.self";
@@ -106,6 +107,11 @@ public static class UAuthActions
             public const string ReadAdmin = "authorization.roles.read.admin";
             public const string AssignAdmin = "authorization.roles.assign.admin";
             public const string RemoveAdmin = "authorization.roles.remove.admin";
+            public const string CreateAdmin = "authorization.roles.create.admin";
+            public const string RenameAdmin = "authorization.roles.rename.admin";
+            public const string DeleteAdmin = "authorization.roles.delete.admin";
+            public const string SetPermissionsAdmin = "authorization.roles.permissions.admin";
+            public const string QueryAdmin = "authorization.roles.query.admin";
         }
     }
 }

@@ -17,7 +17,8 @@ internal sealed class UserPermissionStore : IUserPermissionStore
 
     public async Task<IReadOnlyCollection<Permission>> GetPermissionsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var roles = await _userRoles.GetRolesAsync(tenant, userKey, ct);
-        return await _resolver.ResolveAsync(tenant, roles, ct);
+        var assignments = await _userRoles.GetAssignmentsAsync(tenant, userKey, ct);
+        var roleIds = assignments.Select(x => x.RoleId).ToArray();
+        return await _resolver.ResolveAsync(tenant, roleIds, ct);
     }
 }

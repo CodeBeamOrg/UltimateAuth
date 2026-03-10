@@ -21,7 +21,8 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 
     public async Task<ClaimsSnapshot> GetClaimsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var roleIds = await _roles.GetRolesAsync(tenant, userKey, ct);
+        var assignments = await _roles.GetAssignmentsAsync(tenant, userKey, ct);
+        var roleIds = assignments.Select(x => x.RoleId).Distinct().ToArray();
         var roles = await _roleStore.GetByIdsAsync(tenant, roleIds, ct);
         var perms = await _permissions.GetPermissionsAsync(tenant, userKey, ct);
 

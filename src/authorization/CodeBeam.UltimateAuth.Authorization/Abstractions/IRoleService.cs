@@ -10,7 +10,7 @@ public interface IRoleService
 
     Task RenameAsync(AccessContext context, RoleId roleId, string newName, CancellationToken ct = default);
 
-    Task DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default);
+    Task<DeleteRoleResult> DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default);
 
     Task SetPermissionsAsync(AccessContext context, RoleId roleId, IEnumerable<Permission> permissions, CancellationToken ct = default);
 

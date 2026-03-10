@@ -10,7 +10,7 @@ public sealed class UAuthServerEndpointOptions
 
     public bool Login { get; set; } = true;
     public bool Pkce { get; set; } = true;
-    public bool Token { get; set; } = true;
+    //public bool Token { get; set; } = true;
     public bool Session { get; set; } = true;
 
     //public bool UserInfo { get; set; } = true;
@@ -21,17 +21,22 @@ public sealed class UAuthServerEndpointOptions
 
     public bool Authorization { get; set; } = true;
 
+    public HashSet<string> DisabledActions { get; set; } = new();
+
+    public bool IsDisabled(string action) => DisabledActions.Contains(action);
+
     internal UAuthServerEndpointOptions Clone() => new()
     {
         Login = Login,
         Pkce = Pkce,
-        Token = Token,
+        //Token = Token,
         Session = Session,
         //UserInfo = UserInfo,
         UserLifecycle = UserLifecycle,
         UserProfile = UserProfile,
         UserIdentifier = UserIdentifier,
         Credentials = Credentials,
-        Authorization = Authorization
+        Authorization = Authorization,
+        DisabledActions = new HashSet<string>(DisabledActions)
     };
 }

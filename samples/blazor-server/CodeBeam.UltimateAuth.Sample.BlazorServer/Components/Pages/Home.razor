@@ -108,8 +108,11 @@
                         {
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
-                                    <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd">
-                                        Add User
+                                    <MudButton FullWidth Variant="Variant.Outlined" OnClick="OpenRoleDialog">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
+                                            <MudText>Role Management</MudText>
+                                        </MudStack>
                                     </MudButton>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">

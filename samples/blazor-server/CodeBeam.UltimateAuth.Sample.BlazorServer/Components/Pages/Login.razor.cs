@@ -86,7 +86,7 @@ public partial class Login : UAuthFlowPageBase
             Identifier = "admin",
             Secret = "admin",
         };
-        await UAuthClient.Flows.LoginAsync(request, "/home");
+        await UAuthClient.Flows.LoginAsync(request, ReturnUrl ?? "/home");
     }
 
     private async void StartCountdown()

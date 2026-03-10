@@ -44,7 +44,7 @@ internal sealed class UAuthSessionClient : ISessionClient
 
         if (result.Value?.CurrentChain == true)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.StateEvents.HandlingMode));
         }
 
         return result;
@@ -63,7 +63,7 @@ internal sealed class UAuthSessionClient : ISessionClient
 
         if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.StateEvents.HandlingMode));
         }
 
         return result;

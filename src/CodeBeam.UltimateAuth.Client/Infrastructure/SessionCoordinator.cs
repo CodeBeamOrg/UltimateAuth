@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
+// TODO: Add multi tab single refresh support
 internal sealed class SessionCoordinator : ISessionCoordinator
 {
     private readonly IUAuthClient _client;
@@ -17,7 +18,6 @@ internal sealed class SessionCoordinator : ISessionCoordinator
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly IClock _clock;
 
-    private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
 
     public event Action? ReauthRequired;
@@ -41,103 +41,23 @@ internal sealed class SessionCoordinator : ISessionCoordinator
 
         _diagnostics.MarkStarted();
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var interval = _options.AutoRefresh.Interval ?? TimeSpan.FromMinutes(5);
-        _timer = new PeriodicTimer(interval);
 
         _ = RunAsync(_cts.Token);
     }
 
-    //private async Task RunAsync(CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        while (await _timer!.WaitForNextTickAsync(ct))
-    //        {
-    //            _diagnostics.MarkAutomaticRefresh();
-    //            var result = await _client.Flows.RefreshAsync(isAuto: true);
-
-    //            switch (result.Outcome)
-    //            {
-    //                case RefreshOutcome.Touched:
-    //                    break;
-
-    //                case RefreshOutcome.NoOp:
-    //                    break;
-
-    //                case RefreshOutcome.Success:
-    //                    break;
-
-    //                case RefreshOutcome.ReauthRequired:
-    //                    switch (_options.Reauth.Behavior)
-    //                    {
-    //                        case ReauthBehavior.Redirect:
-    //                            _navigation.NavigateTo(_options.Reauth.RedirectPath ?? _options.Endpoints.Login, forceLoad: true);
-    //                            break;
-
-    //                        case ReauthBehavior.RaiseEvent:
-    //                            ReauthRequired?.Invoke();
-    //                            break;
-
-    //                        case ReauthBehavior.None:
-    //                            break;
-    //                    }
-    //                    _diagnostics.MarkTerminated(CoordinatorTerminationReason.ReauthRequired);
-    //                    return;
-    //            }
-    //        }
-    //    }
-    //    catch (OperationCanceledException)
-    //    {
-    //        // expected
-    //    }
-    //}
-
     private async Task RunAsync(CancellationToken ct)
     {
         var interval = _options.AutoRefresh.Interval ?? TimeSpan.FromMinutes(5);
-        var next = _clock.UtcNow + interval;
 
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                if (_clock.UtcNow < next)
-                {
-                    await Task.Delay(10, ct);
-                    continue;
-                }
+                await Task.Delay(interval, ct);
+                await TickAsync();
 
-                next = _clock.UtcNow + interval;
-
-                _diagnostics.MarkAutomaticRefresh();
-
-                var result = await _client.Flows.RefreshAsync(isAuto: true);
-
-                switch (result.Outcome)
-                {
-                    case RefreshOutcome.Touched:
-                    case RefreshOutcome.NoOp:
-                    case RefreshOutcome.Success:
-                        break;
-
-                    case RefreshOutcome.ReauthRequired:
-
-                        switch (_options.Reauth.Behavior)
-                        {
-                            case ReauthBehavior.Redirect:
-                                _navigation.NavigateTo(
-                                    _options.Reauth.RedirectPath ?? _options.Endpoints.Login,
-                                    forceLoad: true);
-                                break;
-
-                            case ReauthBehavior.RaiseEvent:
-                                ReauthRequired?.Invoke();
-                                break;
-                        }
-
-                        _diagnostics.MarkTerminated(CoordinatorTerminationReason.ReauthRequired);
-                        return;
-                }
+                if (_diagnostics.IsTerminated)
+                    return;
             }
         }
         catch (OperationCanceledException)
@@ -149,8 +69,6 @@ internal sealed class SessionCoordinator : ISessionCoordinator
     {
         _diagnostics.MarkStopped();
         _cts?.Cancel();
-        _timer?.Dispose();
-        _timer = null;
         return Task.CompletedTask;
     }
 
@@ -164,6 +82,9 @@ internal sealed class SessionCoordinator : ISessionCoordinator
         _diagnostics.MarkAutomaticRefresh();
 
         var result = await _client.Flows.RefreshAsync(true);
+
+        if (result.Outcome != RefreshOutcome.ReauthRequired)
+            return;
 
         if (result.Outcome == RefreshOutcome.ReauthRequired)
         {

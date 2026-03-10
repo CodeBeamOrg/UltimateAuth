@@ -155,7 +155,7 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status == 401 || (raw.Status >= 200 && raw.Status < 300))
         {
             // Don't set refresh mode to validate here, it's already validated.
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateRefreshMode.Patch));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch));
             return body;
         }
 
@@ -245,7 +245,7 @@ internal class UAuthFlowClient : IFlowClient
 
             if (result.Value?.CurrentChain == true)
             {
-                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
             }
 
             return result;
@@ -278,7 +278,7 @@ internal class UAuthFlowClient : IFlowClient
         var raw = await _post.SendJsonAsync(Url("/logout-all"));
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }
@@ -288,7 +288,7 @@ internal class UAuthFlowClient : IFlowClient
         var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-all/{userKey.Value}"));
         if (raw.Ok)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.UAuthStateRefreshMode));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
         }
         return UAuthResultMapper.From(raw);
     }

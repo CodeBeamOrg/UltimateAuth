@@ -68,57 +68,50 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     private async Task HandleStateEvent(UAuthStateEventArgs args)
     {
-        if (args.Type == UAuthStateEvent.SessionRevoked)
+        if (args.RefreshMode == UAuthStateEventHandlingMode.None)
         {
-            if (State.IsAuthenticated)
-            {
-                State.Clear();
-                return;
-            }
-
-            State.MarkStale();
             return;
         }
 
-        if (args.Type == UAuthStateEvent.CredentialsChanged || args.Type == UAuthStateEvent.UserDeleted || args.Type == UAuthStateEvent.LogoutVariant)
+        switch (args.Type)
         {
-            State.Clear();
-            return;
+            case UAuthStateEvent.SessionRevoked:
+            case UAuthStateEvent.CredentialsChanged:
+            case UAuthStateEvent.UserDeleted:
+            case UAuthStateEvent.LogoutVariant:
+                State.Clear();
+                return;
         }
 
         switch (args)
         {
             case UAuthStateEventArgs<UpdateProfileRequest> profile:
                 State.UpdateProfile(profile.Payload);
-                break;
+                return;
 
             case UAuthStateEventArgs<ChangeUserStatusSelfRequest> profile:
                 State.UpdateUserStatus(profile.Payload);
-                break;
+                return;
         }
 
         switch (args.RefreshMode)
         {
-            case UAuthStateRefreshMode.Validate:
+            case UAuthStateEventHandlingMode.Validate:
                 await EnsureAsync(true);
-                break;
+                return;
 
-            case UAuthStateRefreshMode.Patch:
+            case UAuthStateEventHandlingMode.Patch:
                 if (args.Type == UAuthStateEvent.ValidationCalled)
                 {
                     State.MarkValidated(_clock.UtcNow);
+                    return;
                 }
-                if (args.Type == UAuthStateEvent.UserStatusChanged)
-                {
-
-                }
-                // optional patch logic
                 break;
-
-            case UAuthStateRefreshMode.None:
             default:
                 break;
         }
+
+        State.Touch(true);
     }
 
     public Task OnLoginAsync()

@@ -179,6 +179,11 @@ public partial class Home : UAuthFlowPageBase
         await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), GetDialogOptions());
     }
 
+    private async Task OpenRoleDialog()
+    {
+        await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), GetDialogOptions());
+    }
+
     private DialogOptions GetDialogOptions()
     {
         return new DialogOptions

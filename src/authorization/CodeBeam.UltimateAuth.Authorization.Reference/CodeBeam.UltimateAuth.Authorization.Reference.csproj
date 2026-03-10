@@ -16,8 +16,4 @@
 	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Stores\" />
-	</ItemGroup>
-
 </Project>

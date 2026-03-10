@@ -8,8 +8,7 @@ public enum UAuthStateEvent
     ProfileChanged,
     CredentialsChanged,
     CredentialsChangedSelf,
-    RolesChanged,
-    PermissionsChanged,
+    AuthorizationChanged,
     SessionRevoked,
     UserDeleted,
     LogoutVariant

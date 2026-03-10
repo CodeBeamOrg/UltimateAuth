@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Authorization;
+namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
 public sealed class RoleQuery : PageRequest
 {

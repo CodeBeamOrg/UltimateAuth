@@ -6,7 +6,6 @@ public sealed class UAuthClientOptions
 {
     public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
     public bool AutoDetectClientProfile { get; set; } = true;
-    public UAuthStateRefreshMode UAuthStateRefreshMode { get; set; } = UAuthStateRefreshMode.Patch;
 
     /// <summary>
     /// Global fallback return URL used by interactive authentication flows
@@ -14,6 +13,7 @@ public sealed class UAuthClientOptions
     /// </summary>
     public string? DefaultReturnUrl { get; set; }
 
+    public UAuthStateEventOptions StateEvents { get; set; } = new();
     public UAuthClientEndpointOptions Endpoints { get; set; } = new();
     public UAuthClientLoginFlowOptions Login { get; set; } = new();
 

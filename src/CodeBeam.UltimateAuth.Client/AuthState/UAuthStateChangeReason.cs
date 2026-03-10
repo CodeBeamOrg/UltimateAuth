@@ -6,5 +6,6 @@ public enum UAuthStateChangeReason
     Validated,
     MarkedStale,
     Cleared,
+    Touched,
     Patched
 }
