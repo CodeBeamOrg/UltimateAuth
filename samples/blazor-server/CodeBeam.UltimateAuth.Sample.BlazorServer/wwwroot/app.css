@@ -50,12 +50,6 @@ h1:focus {
     border-color: #929292;
 }
 
-.uauth-page {
-    height: calc(100vh - var(--mud-appbar-height));
-    width: 100vw;
-    margin-top: 64px;
-}
-
 .uauth-stack {
     min-height: 60vh;
     max-height: calc(100vh - var(--mud-appbar-height));
@@ -89,11 +83,21 @@ h1:focus {
 }
 
 .uauth-dialog {
-    min-height: 62vh;
+    height: 68vh;
+    max-height: 68vh;
+    overflow: auto;
 }
 
 .text-secondary {
     color: var(--mud-palette-text-secondary);
+}
+
+.uauth-blur {
+    backdrop-filter: blur(10px);
+}
+
+.uauth-blur-slight {
+    backdrop-filter: blur(4px);
 }
 
 @keyframes uauth-logo-float {

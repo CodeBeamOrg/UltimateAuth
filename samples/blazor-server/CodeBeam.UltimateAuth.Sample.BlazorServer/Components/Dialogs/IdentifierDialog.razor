@@ -243,7 +243,8 @@
                 In a real app, you should verify identifiers via <b>Email</b>, <b>SMS</b>, or an <b>Authenticator</b> flow.
                 This will only mark the identifier as verified in UltimateAuth.
                 """,
-            yesText: "Verify");
+            yesText: "Verify", noText: "Cancel",
+            options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass = "uauth-blur-slight" });
 
         if (demoInfo != true)
         {

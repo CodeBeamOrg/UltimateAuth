@@ -4,7 +4,7 @@
 @inject NavigationManager Nav
 
 <MudLayout>
-    <MudAppBar Style="backdrop-filter: blur(10px)" Color="Color.Transparent" Dense="true" Elevation="0">
+    <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
         <UAuthLogo />
         <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home", true))"><b>UltimateAuth</b></MudText>
         <MudDivider Class="ml-3 mr-1" Vertical="true" />

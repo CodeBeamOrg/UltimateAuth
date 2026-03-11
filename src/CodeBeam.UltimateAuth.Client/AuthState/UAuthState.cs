@@ -46,7 +46,6 @@ public sealed class UAuthState
         Changed?.Invoke(UAuthStateChangeReason.Authenticated);
     }
 
-    // TODO: Improve patch semantics with identifier, profile add, update or delete.
     internal void UpdateProfile(UpdateProfileRequest req)
     {
         if (Identity is null)

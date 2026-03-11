@@ -12,5 +12,8 @@ public readonly record struct Permission(string Value)
 
     public static readonly Permission Wildcard = new("*");
 
+    public bool IsWildcard => Value == "*";
+    public bool IsPrefix => Value.EndsWith(".*");
+
     public override string ToString() => Value;
 }

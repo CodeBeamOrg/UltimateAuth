@@ -15,7 +15,7 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
     public string Name { get; private set; } = default!;
     public string NormalizedName { get; private set; } = default!;
 
-    public IReadOnlyCollection<Permission> Permissions => _permissions.ToArray();
+    public IReadOnlyCollection<Permission> Permissions => _permissions;
 
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; private set; }
@@ -90,8 +90,9 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
     public Role SetPermissions(IEnumerable<Permission> permissions, DateTimeOffset now)
     {
         _permissions.Clear();
+        var normalized = PermissionNormalizer.Normalize(permissions, UAuthPermissionCatalog.GetAdminPermissions());
 
-        foreach (var p in permissions)
+        foreach (var p in normalized)
             _permissions.Add(p);
 
         UpdatedAt = now;

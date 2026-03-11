@@ -8,9 +8,7 @@
 
     <TitleContent>
         <MudText>Role Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
-            Manage system roles
-        </MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Manage system roles</MudText>
     </TitleContent>
 
     <DialogContent>
@@ -28,6 +26,16 @@
             <Columns>
                 <PropertyColumn Property="x => x.Id" Title="Role Id" Editable="false" />
                 <PropertyColumn Property="x => x.Name" Title="Name" />
+                <PropertyColumn Property="x => x.Permissions" Title="Permissions" Editable="false">
+                    <CellTemplate>
+                        <MudChip Color="Color.Primary" Variant="Variant.Outlined">@GetPermissionCount(context.Item)</MudChip>
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn Title="Is Wildcard" Editable="false">
+                    <CellTemplate>
+                        <MudCheckBox Value="@(context.Item.Permissions.Any(x => x.IsWildcard))" Color="Color.Primary" ReadOnly="true" />
+                    </CellTemplate>
+                </TemplateColumn>
                 <TemplateColumn Title="Actions" Editable="false">
                     <CellTemplate>
                         <MudStack Row="true" Spacing="2">
@@ -83,21 +91,6 @@
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
-
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     await base.OnAfterRenderAsync(firstRender);
-
-    //     if (firstRender)
-    //     {
-    //         var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
-    //         if (result != null && result.IsSuccess && result.Value != null)
-    //         {
-    //             await ReloadAsync();
-    //             StateHasChanged();
-    //         }
-    //     }
-    // }
 
     private async Task<GridData<RoleInfo>> LoadServerData(GridState<RoleInfo> state, CancellationToken ct)
     {
@@ -185,7 +178,8 @@
             "Delete role",
             "Are you sure?",
             yesText: "Delete",
-            cancelText: "Cancel");
+            cancelText: "Cancel",
+            options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass="uauth-blur-slight" });
 
         if (confirm != true)
             return;
@@ -200,13 +194,27 @@
         }
         else
         {
-            Snackbar.Add(result.Problem?.Detail ?? result.Problem?.Title ?? "Delete failed", Severity.Error);
+            Snackbar.Add(result.Problem?.Detail ?? result.Problem?.Title ?? "Deletion failed.", Severity.Error);
         }
     }
 
     private async Task EditPermissions(RoleInfo role)
     {
-        // next dialog
+        var dialog = await DialogService.ShowAsync<PermissionDialog>(
+            "Edit Permissions",
+            new DialogParameters
+            {
+                { nameof(PermissionDialog.Role), role }
+            },
+            new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true
+            });
+
+        var result = await dialog.Result;
+        await ReloadAsync();
     }
 
     private async Task ReloadAsync()
@@ -215,6 +223,12 @@
             return;
 
         await _grid.ReloadServerData();
+    }
+
+    private int GetPermissionCount(RoleInfo role)
+    {
+        var expanded = PermissionExpander.Expand(role.Permissions, UAuthPermissionCatalog.GetAdminPermissions());
+        return expanded.Count;
     }
 
     private void Cancel() => MudDialog.Cancel();
