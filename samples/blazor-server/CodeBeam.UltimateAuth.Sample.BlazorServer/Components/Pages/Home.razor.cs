@@ -184,6 +184,13 @@ public partial class Home : UAuthFlowPageBase
         await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), GetDialogOptions());
     }
 
+    private async Task OpenUserRoleDialog()
+    {
+        var parameters = GetDialogParameters();
+        parameters.Add("UserKey", AuthState.Identity.UserKey);
+        await DialogService.ShowAsync<UserRoleDialog>("Role Management", parameters, GetDialogOptions());
+    }
+
     private DialogOptions GetDialogOptions()
     {
         return new DialogOptions

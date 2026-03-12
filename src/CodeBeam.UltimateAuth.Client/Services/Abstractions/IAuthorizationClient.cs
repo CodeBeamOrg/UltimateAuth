@@ -8,8 +8,8 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IAuthorizationClient
 {
     Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request);
-    Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync();
-    Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey);
+    Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync(PageRequest? request = null);
+    Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null);
     Task<UAuthResult> AssignRoleToUserAsync(UserKey userKey, string role);
     Task<UAuthResult> RemoveRoleFromUserAsync(UserKey userKey, string role);
 

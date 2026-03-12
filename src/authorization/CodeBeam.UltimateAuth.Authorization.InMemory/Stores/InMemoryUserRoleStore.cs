@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections.Concurrent;
 
@@ -31,7 +32,7 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
         lock (list)
         {
             if (list.Any(x => x.RoleId == roleId))
-                return Task.CompletedTask;
+                throw new UAuthConflictException("Role is already assigned to the user.");
 
             list.Add(new UserRole
             {
