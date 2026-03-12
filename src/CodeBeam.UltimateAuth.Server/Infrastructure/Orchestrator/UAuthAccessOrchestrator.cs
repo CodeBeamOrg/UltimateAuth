@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 

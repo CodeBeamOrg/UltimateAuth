@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Constants;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;

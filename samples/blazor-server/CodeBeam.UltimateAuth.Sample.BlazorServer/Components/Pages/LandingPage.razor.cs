@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Constants;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Pages;
 

@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 
 namespace CodeBeam.UltimateAuth.Authorization.Policies;
 

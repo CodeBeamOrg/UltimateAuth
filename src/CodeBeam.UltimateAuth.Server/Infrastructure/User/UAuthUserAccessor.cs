@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Middlewares;

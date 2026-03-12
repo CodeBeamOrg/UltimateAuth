@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -39,6 +41,8 @@ public sealed class UAuthState
     {
         Identity = snapshot.Identity;
         Claims = snapshot.Claims;
+
+        _compiledPermissions = new CompiledPermissionSet(Claims.Permissions.Select(Permission.From));
 
         IsStale = false;
         LastValidatedAt = validatedAt;
@@ -114,7 +118,28 @@ public sealed class UAuthState
 
     public bool IsInRole(string role) => IsAuthenticated && Claims.IsInRole(role);
 
-    public bool HasPermission(string permission) => IsAuthenticated && Claims.HasPermission(permission);
+    private CompiledPermissionSet? _compiledPermissions;
+    public bool HasPermission(string permission)
+    {
+        if (!IsAuthenticated)
+            return false;
+
+        if (Claims.HasPermission(permission))
+            return true;
+
+        return _compiledPermissions?.IsAllowed(permission) == true;
+    }
+
+    public bool HasAnyPermission(params string[] permissions)
+    {
+        foreach (var perm in permissions)
+        {
+            if (HasPermission(perm))
+                return true;
+        }
+
+        return false;
+    }
 
     public bool HasClaim(string type, string value) => IsAuthenticated && Claims.HasValue(type, value);
 
@@ -123,7 +148,7 @@ public sealed class UAuthState
     /// <summary>
     /// Creates a ClaimsPrincipal view for ASP.NET / Blazor integration.
     /// </summary>
-    public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = "UltimateAuth")
+    public ClaimsPrincipal ToClaimsPrincipal(string authenticationType = UAuthConstants.SchemeDefaults.GlobalScheme)
     {
         if (!IsAuthenticated || Identity is null)
             return new ClaimsPrincipal(new ClaimsIdentity());

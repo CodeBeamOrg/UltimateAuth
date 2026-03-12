@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Middlewares;
 using Microsoft.AspNetCore.Http;

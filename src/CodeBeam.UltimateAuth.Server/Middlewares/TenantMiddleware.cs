@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Constants;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;

@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
@@ -73,8 +72,8 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (snapshot is null || snapshot.Identity is null)
             return AuthenticateResult.NoResult();
 
-        var principal = snapshot.ToClaimsPrincipal(UAuthSchemeDefaults.AuthenticationScheme);
-        return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthSchemeDefaults.AuthenticationScheme));
+        var principal = snapshot.ToClaimsPrincipal(UAuthConstants.SchemeDefaults.GlobalScheme);
+        return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthConstants.SchemeDefaults.GlobalScheme));
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)

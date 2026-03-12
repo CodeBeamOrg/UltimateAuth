@@ -84,7 +84,14 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
     public async Task<UAuthResult> RenameRoleAsync(RoleId roleId, RenameRoleRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{roleId}/rename"), request);
-        return UAuthResultMapper.From(raw);
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.AuthorizationChanged, _options.StateEvents.HandlingMode));
+        }
+
+        return result;
     }
 
     public async Task<UAuthResult> SetPermissionsAsync(RoleId roleId, SetPermissionsRequest request)

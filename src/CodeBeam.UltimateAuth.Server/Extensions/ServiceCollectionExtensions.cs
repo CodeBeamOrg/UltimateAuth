@@ -237,9 +237,9 @@ public static class ServiceCollectionExtensions
 
         services.PostConfigureAll<AuthenticationOptions>(options =>
         {
-            options.DefaultAuthenticateScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultSignInScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultChallengeScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
         });
 
         services.AddAuthentication().AddUAuthCookies();

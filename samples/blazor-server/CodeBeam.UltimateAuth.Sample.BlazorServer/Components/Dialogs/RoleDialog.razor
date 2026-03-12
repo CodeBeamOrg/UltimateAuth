@@ -13,7 +13,7 @@
 
     <DialogContent>
         <MudDataGrid @ref="_grid" T="RoleInfo" ServerData="LoadServerData" Hover="true" Dense="true" Bordered="true" Striped="true"
-                     EditMode="DataGridEditMode.Form" CommittedItemChanges="CommittedItemChanges" Loading="_loading">
+                     EditMode="DataGridEditMode.Form" CommittedItemChanges="CommittedItemChanges" Loading="_loading" ReadOnly="false">
 
             <ToolBarContent>
                 <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
@@ -83,7 +83,6 @@
 @code {
     private MudDataGrid<RoleInfo>? _grid;
     private bool _loading;
-    private bool _reloadQueued;
     private string? _newRoleName;
 
     [CascadingParameter]
@@ -219,10 +218,13 @@
 
     private async Task ReloadAsync()
     {
+        _loading = true;
+        await Task.Delay(300);
         if (_grid is null)
             return;
 
         await _grid.ReloadServerData();
+        _loading = false;
     }
 
     private int GetPermissionCount(RoleInfo role)

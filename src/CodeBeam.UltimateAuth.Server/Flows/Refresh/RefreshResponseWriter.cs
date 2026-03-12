@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Constants;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;

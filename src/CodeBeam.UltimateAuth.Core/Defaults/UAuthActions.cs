@@ -21,6 +21,8 @@ public static class UAuthActions
 
     public static class Flows
     {
+        public const string Wildcard = "flows.*";
+
         public const string LogoutSelf = "flows.logout.self";
         public const string LogoutDeviceSelf = "flows.logoutdevice.self";
         public const string LogoutDeviceAdmin = "flows.logoutdevice.admin";
@@ -32,6 +34,8 @@ public static class UAuthActions
 
     public static class Sessions
     {
+        public const string Wildcard = "sessions.*";
+
         public const string GetChainSelf = "sessions.getchain.self";
         public const string GetChainAdmin = "sessions.getchain.admin";
         public const string ListChainsSelf = "sessions.listchains.self";
@@ -47,6 +51,8 @@ public static class UAuthActions
 
     public static class Users
     {
+        public const string Wildcard = "users.*";
+
         public const string CreateAnonymous = "users.create.anonymous";
         public const string CreateAdmin = "users.create.admin";
         public const string DeleteSelf = "users.delete.self";
@@ -57,6 +63,8 @@ public static class UAuthActions
 
     public static class UserProfiles
     {
+        public const string Wildcard = "users.profile.*";
+
         public const string GetSelf = "users.profile.get.self";
         public const string UpdateSelf = "users.profile.update.self";
         public const string GetAdmin = "users.profile.get.admin";
@@ -65,6 +73,8 @@ public static class UAuthActions
 
     public static class UserIdentifiers
     {
+        public const string Wildcard = "users.identifiers.*";
+
         public const string GetSelf = "users.identifiers.get.self";
         public const string GetAdmin = "users.identifiers.get.admin";
         public const string AddSelf = "users.identifiers.add.self";
@@ -83,6 +93,8 @@ public static class UAuthActions
 
     public static class Credentials
     {
+        public const string Wildcard = "credentials.*";
+
         public const string ListSelf = "credentials.list.self";
         public const string ListAdmin = "credentials.list.admin";
         public const string AddSelf = "credentials.add.self";
@@ -101,6 +113,8 @@ public static class UAuthActions
 
     public static class Authorization
     {
+        public const string Wildcard = "authorization.*";
+
         public static class Roles
         {
             public const string ReadSelf = "authorization.roles.read.self";

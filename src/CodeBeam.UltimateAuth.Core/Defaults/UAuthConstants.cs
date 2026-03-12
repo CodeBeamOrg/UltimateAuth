@@ -1,7 +1,12 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Constants;
+﻿namespace CodeBeam.UltimateAuth.Core.Defaults;
 
 public static class UAuthConstants
 {
+    public static class SchemeDefaults
+    {
+        public const string GlobalScheme = "UltimateAuth";
+    }
+
     public static class Access
     {
         public const string Permissions = "permissions";
