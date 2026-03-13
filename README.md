@@ -1,6 +1,13 @@
 ![UltimateAuth Banner](https://github.com/user-attachments/assets/4204666e-b57a-4cb5-8846-dc7e4f16bfe9)
 
-⚠️ UltimateAuth is under active development. Core architecture and public APIs are now in place. The first release (v 0.0.1) is expected within days.
+⚠️ **UltimateAuth is under active development.**
+
+The core architecture and public APIs are now implemented and validated through the sample application.
+
+We are currently polishing the developer experience, reviewing the public client API surface, and preparing the EF Core integration packages.
+
+The first preview release (**v 0.1.0-preview**) is planned within the next week.
+
 
 ![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
