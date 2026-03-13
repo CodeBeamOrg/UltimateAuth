@@ -11,6 +11,7 @@ public sealed class AccessContext
     public TenantKey ActorTenant { get; init; }
     public bool IsAuthenticated { get; init; }
     public bool IsSystemActor { get; init; }
+    public SessionChainId? ActorChainId { get; }
 
     // Target
     public string? Resource { get; init; }
@@ -38,7 +39,8 @@ public sealed class AccessContext
         TenantKey actorTenant,
         bool isAuthenticated,
         bool isSystemActor,
-        string resource,
+        SessionChainId? actorChainId,
+        string? resource,
         UserKey? targetUserKey,
         TenantKey resourceTenant,
         string action,
@@ -48,6 +50,7 @@ public sealed class AccessContext
         ActorTenant = actorTenant;
         IsAuthenticated = isAuthenticated;
         IsSystemActor = isSystemActor;
+        ActorChainId = actorChainId;
 
         Resource = resource;
         TargetUserKey = targetUserKey;
@@ -55,6 +58,27 @@ public sealed class AccessContext
 
         Action = action;
         Attributes = attributes;
+    }
+
+    public AccessContext WithAttribute(string key, object value)
+    {
+        var merged = new Dictionary<string, object>(Attributes)
+        {
+            [key] = value
+        };
+
+        return new AccessContext(
+            ActorUserKey,
+            ActorTenant,
+            IsAuthenticated,
+            IsSystemActor,
+            ActorChainId,
+            Resource,
+            TargetUserKey,
+            ResourceTenant,
+            Action,
+            merged
+        );
     }
 }
 

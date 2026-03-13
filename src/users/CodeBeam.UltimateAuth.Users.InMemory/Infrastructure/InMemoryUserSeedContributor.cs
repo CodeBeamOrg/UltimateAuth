@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
@@ -15,6 +16,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
     private readonly IUserProfileStore _profiles;
     private readonly IUserIdentifierStore _identifiers;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
+    private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IClock _clock;
 
     public InMemoryUserSeedContributor(
@@ -22,12 +24,14 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         IUserProfileStore profiles,
         IUserIdentifierStore identifiers,
         IInMemoryUserIdProvider<UserKey> ids,
+        IIdentifierNormalizer identifierNormalizer,
         IClock clock)
     {
         _lifecycle = lifecycle;
         _profiles = profiles;
         _ids = ids;
         _identifiers = identifiers;
+        _identifierNormalizer = identifierNormalizer;
         _clock = clock;
     }
 
@@ -37,67 +41,49 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         await SeedUserAsync(tenant, _ids.GetUserUserId(), "Standard User", "user", "user@ultimateauth.com", "9876543210", ct);
     }
 
-    private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string primaryUsername,
-        string primaryEmail, string primaryPhone, CancellationToken ct)
+    private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string username, string email, string phone, CancellationToken ct)
     {
-        if (await _lifecycle.ExistsAsync(tenant, userKey, ct))
+        var userLifecycleKey = new UserLifecycleKey(tenant, userKey);
+        if (await _lifecycle.ExistsAsync(userLifecycleKey, ct))
             return;
 
-        await _lifecycle.CreateAsync(tenant,
-            new UserLifecycle
-            {
-                Tenant = tenant,
-                UserKey = userKey,
-                Status = UserStatus.Active,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _lifecycle.AddAsync(UserLifecycle.Create(tenant, userKey, _clock.UtcNow), ct);
+        await _profiles.AddAsync(UserProfile.Create(_clock.UtcNow, tenant, userKey, displayName: displayName), ct);
 
-        await _profiles.CreateAsync(tenant,
-            new UserProfile
-            {
-                Tenant = tenant,
-                UserKey = userKey,
-                DisplayName = displayName,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Username,
+                username,
+                _identifierNormalizer.Normalize(UserIdentifierType.Username, username).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
 
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Username,
-                Value = primaryUsername,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Email,
+                email,
+                _identifierNormalizer.Normalize(UserIdentifierType.Email, email).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
 
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Email,
-                Value = primaryEmail,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
-
-        await _identifiers.CreateAsync(tenant,
-            new UserIdentifier
-            {
-                Id = Guid.NewGuid(),
-                Tenant = tenant,
-                UserKey = userKey,
-                Type = UserIdentifierType.Phone,
-                Value = primaryPhone,
-                IsPrimary = true,
-                IsVerified = true,
-                CreatedAt = _clock.UtcNow
-            }, ct);
+        await _identifiers.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Phone,
+                phone,
+                _identifierNormalizer.Normalize(UserIdentifierType.Phone, phone).Normalized,
+                _clock.UtcNow,
+                true,
+                _clock.UtcNow), ct);
     }
 }

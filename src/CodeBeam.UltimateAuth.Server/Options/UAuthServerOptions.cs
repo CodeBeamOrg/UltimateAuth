@@ -74,6 +74,8 @@ public sealed class UAuthServerOptions
 
     public UAuthResponseOptions AuthResponse { get; init; } = new();
 
+    public UAuthResetOptions ResetCredential { get; init; } = new();
+
     public UAuthHubServerOptions Hub { get; set; } = new();
 
     /// <summary>
@@ -87,7 +89,9 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthServerEndpointOptions Endpoints { get; set; } = new();
 
-    public UAuthUserIdentifierOptions UserIdentifiers { get; set; } = new();
+    public UAuthIdentifierOptions Identifiers { get; set; } = new();
+
+    public UAuthIdentifierValidationOptions IdentifierValidation { get; set; } = new();
 
     public UAuthLoginIdentifierOptions LoginIdentifiers { get; set; } = new();
 
@@ -138,9 +142,11 @@ public sealed class UAuthServerOptions
 
             PrimaryCredential = PrimaryCredential.Clone(),
             AuthResponse = AuthResponse.Clone(),
+            ResetCredential = ResetCredential.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
-            UserIdentifiers = UserIdentifiers.Clone(),
+            Identifiers = Identifiers.Clone(),
+            IdentifierValidation = IdentifierValidation.Clone(),
             LoginIdentifiers = LoginIdentifiers.Clone(),
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),

@@ -1,34 +1,33 @@
-﻿using CodeBeam.UltimateAuth.Authorization.Domain;
+﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference;
 
-public sealed class RolePermissionResolver : IRolePermissionResolver
+internal sealed class RolePermissionResolver : IRolePermissionResolver
 {
-    private static readonly IReadOnlyDictionary<string, Permission[]> _map
-        = new Dictionary<string, Permission[]>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["admin"] = new[]
-            {
-            new Permission("*")
-            },
-            ["user"] = new[]
-            {
-            new Permission("profile.read"),
-            new Permission("profile.update")
-            }
-        };
+    private readonly IRoleStore _roles;
 
-    public Task<IReadOnlyCollection<Permission>> ResolveAsync(TenantKey tenant, IEnumerable<string> roles, CancellationToken ct = default)
+    public RolePermissionResolver(IRoleStore roles)
     {
-        var result = new List<Permission>();
+        _roles = roles;
+    }
+
+    public async Task<IReadOnlyCollection<Permission>> ResolveAsync(TenantKey tenant, IReadOnlyCollection<RoleId> roleIds, CancellationToken ct = default)
+    {
+        if (roleIds.Count == 0)
+            return Array.Empty<Permission>();
+
+        var roles = await _roles.GetByIdsAsync(tenant, roleIds, ct);
+
+        var permissions = new HashSet<Permission>();
 
         foreach (var role in roles)
         {
-            if (_map.TryGetValue(role, out var perms))
-                result.AddRange(perms);
+            foreach (var perm in role.Permissions)
+                permissions.Add(perm);
         }
 
-        return Task.FromResult<IReadOnlyCollection<Permission>>(result);
+        return permissions.ToArray();
     }
 }

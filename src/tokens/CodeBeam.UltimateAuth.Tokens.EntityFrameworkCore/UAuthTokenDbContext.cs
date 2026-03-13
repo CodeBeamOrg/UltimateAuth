@@ -18,8 +18,7 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.TokenHash)
                 .IsRequired();
@@ -40,8 +39,7 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.Jti)
                 .IsRequired();

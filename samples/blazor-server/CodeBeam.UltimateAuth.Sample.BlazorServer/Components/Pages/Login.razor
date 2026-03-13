@@ -7,9 +7,10 @@
 @inject ISnackbar Snackbar
 @inject IUAuthClientProductInfoProvider ClientProductInfoProvider
 @inject IDeviceIdProvider DeviceIdProvider
+@inject IDialogService DialogService
 
 <MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
-    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium">
+    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium" Gutters="false">
         <MudGrid Spacing="0">
             <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
                 <MudPaper Class="mud-theme-primary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
@@ -72,7 +73,7 @@
 
             <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
                 <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
-                    <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="/home">
+                    <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="@(ReturnUrl ?? "/home")">
                         <MudStack Class="mud-width-full">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
@@ -109,7 +110,14 @@
 
                     <MudStack Class="mud-width-full">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
-                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                        <MudText Style="color: var(--mud-palette-text-secondary)" Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                    </MudStack>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudStack>
+                        <MudText Align="Align.Center" Typo="Typo.subtitle2"><MudLink Class="cursor-pointer" OnClick="OpenResetDialog">Forgot Password</MudLink></MudText>
+                        <MudText Align="Align.Center" Typo="Typo.subtitle2">Don't have an account? <MudLink Class="cursor-pointer" Href="/register">SignUp</MudLink></MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>

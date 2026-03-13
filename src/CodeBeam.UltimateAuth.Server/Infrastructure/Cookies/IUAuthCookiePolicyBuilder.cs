@@ -7,5 +7,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IUAuthCookiePolicyBuilder
 {
-    CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, CredentialKind kind);
+    CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, GrantKind kind);
 }

@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Constants;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Middlewares;
@@ -10,10 +10,10 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 {
-    private readonly ISessionStoreKernelFactory _kernelFactory;
+    private readonly ISessionStoreFactory _kernelFactory;
     private readonly IUserIdConverter<TUserId> _userIdConverter;
 
-    public UAuthUserAccessor(ISessionStoreKernelFactory kernelFactory, IUserIdConverterResolver converterResolver)
+    public UAuthUserAccessor(ISessionStoreFactory kernelFactory, IUserIdConverterResolver converterResolver)
     {
         _kernelFactory = kernelFactory;
         _userIdConverter = converterResolver.GetConverter<TUserId>();

@@ -1,42 +1,35 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Errors;
+
+namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed class CredentialSecurityState
 {
     public DateTimeOffset? RevokedAt { get; }
-    public DateTimeOffset? LockedUntil { get; }
     public DateTimeOffset? ExpiresAt { get; }
-    public DateTimeOffset? ResetRequestedAt { get; init; }
     public Guid SecurityStamp { get; }
+
+    public bool IsRevoked => RevokedAt != null;
+    public bool IsExpired => ExpiresAt != null;
+
+    public CredentialSecurityState(
+        DateTimeOffset? revokedAt = null,
+        DateTimeOffset? expiresAt = null,
+        Guid securityStamp = default)
+    {
+        RevokedAt = revokedAt;
+        ExpiresAt = expiresAt;
+        SecurityStamp = securityStamp;
+    }
 
     public CredentialSecurityStatus Status(DateTimeOffset now)
     {
         if (RevokedAt is not null)
             return CredentialSecurityStatus.Revoked;
 
-        if (LockedUntil is not null && LockedUntil > now)
-            return CredentialSecurityStatus.Locked;
-
         if (ExpiresAt is not null && ExpiresAt <= now)
             return CredentialSecurityStatus.Expired;
 
-        if (ResetRequestedAt is not null)
-            return CredentialSecurityStatus.ResetRequested;
-
         return CredentialSecurityStatus.Active;
-    }
-
-    public CredentialSecurityState(
-        DateTimeOffset? revokedAt = null,
-        DateTimeOffset? lockedUntil = null,
-        DateTimeOffset? expiresAt = null,
-        DateTimeOffset? resetRequestedAt = null,
-        Guid securityStamp = default)
-    {
-        RevokedAt = revokedAt;
-        LockedUntil = lockedUntil;
-        ExpiresAt = expiresAt;
-        ResetRequestedAt = resetRequestedAt;
-        SecurityStamp = securityStamp;
     }
 
     /// <summary>
@@ -48,57 +41,50 @@ public sealed class CredentialSecurityState
     {
         return new CredentialSecurityState(
             revokedAt: null,
-            lockedUntil: null,
             expiresAt: null,
-            resetRequestedAt: null,
-            securityStamp: securityStamp ?? Guid.NewGuid());
+            securityStamp: securityStamp ?? Guid.NewGuid()
+        );
     }
 
+    /// <summary>
+    /// Revokes the credential permanently.
+    /// </summary>
     public CredentialSecurityState Revoke(DateTimeOffset now)
     {
+        if (RevokedAt is not null)
+            return this;
+
         return new CredentialSecurityState(
             revokedAt: now,
-            lockedUntil: LockedUntil,
             expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            securityStamp: Guid.NewGuid());
+            securityStamp: Guid.NewGuid()
+        );
     }
 
+    /// <summary>
+    /// Sets or clears expiry while preserving the rest of the state.
+    /// </summary>
     public CredentialSecurityState SetExpiry(DateTimeOffset? expiresAt)
     {
+        // optional: normalize already-expired value? keep as-is; domain policy can decide.
+        if (ExpiresAt == expiresAt)
+            return this;
+
         return new CredentialSecurityState(
             revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
             expiresAt: expiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            securityStamp: SecurityStamp);
+            securityStamp: EnsureStamp(SecurityStamp)
+        );
     }
 
-    public CredentialSecurityState BeginReset(DateTimeOffset now, bool rotateStamp = true)
-    => new(
-        revokedAt: RevokedAt,
-        lockedUntil: LockedUntil,
-        expiresAt: ExpiresAt,
-        resetRequestedAt: now,
-        securityStamp: rotateStamp ? Guid.NewGuid() : SecurityStamp
-    );
-
-    public CredentialSecurityState CompleteReset(bool rotateStamp = true)
-        => new(
-            revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
-            expiresAt: ExpiresAt,
-            resetRequestedAt: null,
-            securityStamp: rotateStamp ? Guid.NewGuid() : SecurityStamp
-        );
+    private static Guid EnsureStamp(Guid stamp) => stamp == Guid.Empty ? Guid.NewGuid() : stamp;
 
     public CredentialSecurityState RotateStamp()
     {
         return new CredentialSecurityState(
             revokedAt: RevokedAt,
-            lockedUntil: LockedUntil,
             expiresAt: ExpiresAt,
-            resetRequestedAt: ResetRequestedAt,
-            securityStamp: Guid.NewGuid());
+            securityStamp: Guid.NewGuid()
+        );
     }
 }

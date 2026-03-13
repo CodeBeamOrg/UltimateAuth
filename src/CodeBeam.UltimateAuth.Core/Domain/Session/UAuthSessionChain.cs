@@ -1,42 +1,65 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed class UAuthSessionChain
+public sealed class UAuthSessionChain : IVersionedEntity
 {
     public SessionChainId ChainId { get; }
     public SessionRootId RootId { get; }
     public TenantKey Tenant { get; }
     public UserKey UserKey { get; }
-    public int RotationCount { get; }
-    public long SecurityVersionAtCreation { get; }
+
+    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset LastSeenAt { get; }
+    public DateTimeOffset? AbsoluteExpiresAt { get; }
+    public DeviceContext Device { get; }
     public ClaimsSnapshot ClaimsSnapshot { get; }
     public AuthSessionId? ActiveSessionId { get; }
-    public bool IsRevoked { get; }
+    public int RotationCount { get; }
+    public int TouchCount { get; }
+    public long SecurityVersionAtCreation { get; }
+    
     public DateTimeOffset? RevokedAt { get; }
+    public long Version { get; set; }
+
+
+    public bool IsRevoked => RevokedAt is not null;
+    public SessionChainState State => IsRevoked ? SessionChainState.Revoked : ActiveSessionId is null ? SessionChainState.Passive : SessionChainState.Active;
 
     private UAuthSessionChain(
         SessionChainId chainId,
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
-        int rotationCount,
-        long securityVersionAtCreation,
+        DateTimeOffset createdAt,
+        DateTimeOffset lastSeenAt,
+        DateTimeOffset? absoluteExpiresAt,
+        DeviceContext device,
         ClaimsSnapshot claimsSnapshot,
         AuthSessionId? activeSessionId,
-        bool isRevoked,
-        DateTimeOffset? revokedAt)
+        int rotationCount,
+        int touchCount,
+        long securityVersionAtCreation,
+        DateTimeOffset? revokedAt,
+        long version)
     {
         ChainId = chainId;
         RootId = rootId;
         Tenant = tenant;
         UserKey = userKey;
-        RotationCount = rotationCount;
-        SecurityVersionAtCreation = securityVersionAtCreation;
+        CreatedAt = createdAt;
+        LastSeenAt = lastSeenAt;
+        AbsoluteExpiresAt = absoluteExpiresAt;
+        Device = device;
         ClaimsSnapshot = claimsSnapshot;
         ActiveSessionId = activeSessionId;
-        IsRevoked = isRevoked;
+        RotationCount = rotationCount;
+        TouchCount = touchCount;
+        SecurityVersionAtCreation = securityVersionAtCreation;
         RevokedAt = revokedAt;
+        Version = version;
     }
 
     public static UAuthSessionChain Create(
@@ -44,26 +67,37 @@ public sealed class UAuthSessionChain
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
-        long securityVersion,
-        ClaimsSnapshot claimsSnapshot)
+        DateTimeOffset createdAt,
+        DateTimeOffset? expiresAt,
+        DeviceContext device,
+        ClaimsSnapshot claimsSnapshot,
+        long securityVersion)
     {
         return new UAuthSessionChain(
             chainId,
             rootId,
             tenant,
             userKey,
+            createdAt,
+            createdAt,
+            expiresAt,
+            device,
+            claimsSnapshot,
+            null,
             rotationCount: 0,
+            touchCount: 0,
             securityVersionAtCreation: securityVersion,
-            claimsSnapshot: claimsSnapshot,
-            activeSessionId: null,
-            isRevoked: false,
-            revokedAt: null
+            revokedAt: null,
+            version: 0
         );
     }
 
-    public UAuthSessionChain AttachSession(AuthSessionId sessionId)
+    public UAuthSessionChain AttachSession(AuthSessionId sessionId, DateTimeOffset now)
     {
-        if (IsRevoked)
+        if (IsRevoked || IsExpired(now))
+            return this;
+
+        if (ActiveSessionId.HasValue && ActiveSessionId.Value.Equals(sessionId))
             return this;
 
         return new UAuthSessionChain(
@@ -71,18 +105,23 @@ public sealed class UAuthSessionChain
             RootId,
             Tenant,
             UserKey,
+            CreatedAt,
+            lastSeenAt: now,
+            AbsoluteExpiresAt,
+            Device,
+            ClaimsSnapshot,
+            activeSessionId: sessionId,
             RotationCount, // Unchanged on first attach
+            TouchCount,
             SecurityVersionAtCreation,
-            ClaimsSnapshot,
-            activeSessionId: sessionId,
-            isRevoked: false,
-            revokedAt: null
+            RevokedAt,
+            Version + 1
         );
     }
 
-    public UAuthSessionChain RotateSession(AuthSessionId sessionId)
+    public UAuthSessionChain DetachSession(DateTimeOffset now)
     {
-        if (IsRevoked)
+        if (ActiveSessionId is null)
             return this;
 
         return new UAuthSessionChain(
@@ -90,16 +129,72 @@ public sealed class UAuthSessionChain
             RootId,
             Tenant,
             UserKey,
+            CreatedAt,
+            lastSeenAt: now,
+            AbsoluteExpiresAt,
+            Device,
+            ClaimsSnapshot,
+            activeSessionId: null,
+            RotationCount, // Unchanged on first attach
+            TouchCount,
+            SecurityVersionAtCreation,
+            RevokedAt,
+            Version + 1
+        );
+    }
+
+    public UAuthSessionChain RotateSession(AuthSessionId sessionId, DateTimeOffset now, ClaimsSnapshot? claimsSnapshot = null)
+    {
+        if (IsRevoked || IsExpired(now))
+            return this;
+
+        if (ActiveSessionId.HasValue && ActiveSessionId.Value.Equals(sessionId))
+            return this;
+
+        return new UAuthSessionChain(
+            ChainId,
+            RootId,
+            Tenant,
+            UserKey,
+            CreatedAt,
+            lastSeenAt: now,
+            AbsoluteExpiresAt,
+            Device,
+            claimsSnapshot ?? ClaimsSnapshot,
+            activeSessionId: sessionId,
             RotationCount + 1,
+            TouchCount,
             SecurityVersionAtCreation,
-            ClaimsSnapshot,
-            activeSessionId: sessionId,
-            isRevoked: false,
-            revokedAt: null
+            RevokedAt,
+            Version + 1
         );
     }
 
-    public UAuthSessionChain Revoke(DateTimeOffset at)
+    public UAuthSessionChain Touch(DateTimeOffset now, ClaimsSnapshot? claimsSnapshot = null)
+    {
+        if (IsRevoked || IsExpired(now))
+            return this;
+
+        return new UAuthSessionChain(
+            ChainId,
+            RootId,
+            Tenant,
+            UserKey,
+            CreatedAt,
+            lastSeenAt: now,
+            AbsoluteExpiresAt,
+            Device,
+            claimsSnapshot ?? ClaimsSnapshot,
+            ActiveSessionId,
+            RotationCount,
+            TouchCount + 1,
+            SecurityVersionAtCreation,
+            RevokedAt,
+            Version + 1
+        );
+    }
+
+    public UAuthSessionChain Revoke(DateTimeOffset now)
     {
         if (IsRevoked)
             return this;
@@ -109,12 +204,17 @@ public sealed class UAuthSessionChain
             RootId,
             Tenant,
             UserKey,
-            RotationCount,
-            SecurityVersionAtCreation,
+            CreatedAt,
+            now,
+            AbsoluteExpiresAt,
+            Device,
             ClaimsSnapshot,
             ActiveSessionId,
-            isRevoked: true,
-            revokedAt: at
+            RotationCount,
+            TouchCount,
+            SecurityVersionAtCreation,
+            revokedAt: now,
+            Version + 1
         );
     }
 
@@ -123,25 +223,50 @@ public sealed class UAuthSessionChain
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
-        int rotationCount,
-        long securityVersionAtCreation,
+        DateTimeOffset createdAt,
+        DateTimeOffset lastSeenAt,
+        DateTimeOffset? expiresAt,
+        DeviceContext device,
         ClaimsSnapshot claimsSnapshot,
         AuthSessionId? activeSessionId,
-        bool isRevoked,
-        DateTimeOffset? revokedAt)
+        int rotationCount,
+        int touchCount,
+        long securityVersionAtCreation,
+        DateTimeOffset? revokedAt,
+        long version)
     {
         return new UAuthSessionChain(
-            chainId,
-            rootId,
-            tenant,
-            userKey,
-            rotationCount,
-            securityVersionAtCreation,
-            claimsSnapshot,
-            activeSessionId,
-            isRevoked,
-            revokedAt
-        );
+             chainId,
+             rootId,
+             tenant,
+             userKey,
+             createdAt,
+             lastSeenAt,
+             expiresAt,
+             device,
+             claimsSnapshot,
+             activeSessionId,
+             rotationCount,
+             touchCount,
+             securityVersionAtCreation,
+             revokedAt,
+             version
+         );
     }
 
+    private bool IsExpired(DateTimeOffset at) => AbsoluteExpiresAt.HasValue && at >= AbsoluteExpiresAt.Value;
+
+    public SessionState GetState(DateTimeOffset at, TimeSpan? idleTimeout)
+    {
+        if (IsRevoked)
+            return SessionState.Revoked;
+
+        if (IsExpired(at))
+            return SessionState.Expired;
+
+        if (idleTimeout.HasValue && at - LastSeenAt >= idleTimeout.Value)
+            return SessionState.Expired;
+
+        return SessionState.Active;
+    }
 }

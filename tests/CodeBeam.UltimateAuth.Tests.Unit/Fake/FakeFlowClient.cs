@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -50,7 +51,47 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
+    public Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult> LogoutAllDevicesSelfAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task LogoutAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, SessionChainId chainId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, LogoutDeviceRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult> LogoutOtherDevicesAdminAsync(LogoutOtherDevicesAdminRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult> LogoutOtherDevicesAdminAsync(UserKey userKey, LogoutOtherDevicesAdminRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult> LogoutOtherDevicesSelfAsync()
     {
         throw new NotImplementedException();
     }

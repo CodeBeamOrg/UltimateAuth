@@ -16,6 +16,7 @@ public class AuthStateSnapshotFactoryTests
     {
         var provider = new Mock<IPrimaryUserIdentifierProvider>();
         var pprovider = new Mock<IUserProfileSnapshotProvider>();
+        var lprovider = new Mock<IUserLifecycleSnapshotProvider>();
 
         provider.Setup(x => x.GetAsync(It.IsAny<TenantKey>(), It.IsAny<UserKey>(), default))
             .ReturnsAsync(new PrimaryUserIdentifiers
@@ -23,7 +24,7 @@ public class AuthStateSnapshotFactoryTests
                 UserName = "admin"
             });
 
-        var factory = new AuthStateSnapshotFactory(provider.Object, pprovider.Object);
+        var factory = new AuthStateSnapshotFactory(provider.Object, pprovider.Object, lprovider.Object);
 
         var validation = SessionValidationResult.Active(
             TenantKey.FromInternal("__single__"),
@@ -46,8 +47,9 @@ public class AuthStateSnapshotFactoryTests
     {
         var provider = new Mock<IPrimaryUserIdentifierProvider>();
         var pprovider = new Mock<IUserProfileSnapshotProvider>();
+        var lprovider = new Mock<IUserLifecycleSnapshotProvider>();
 
-        var factory = new AuthStateSnapshotFactory(provider.Object, pprovider.Object);
+        var factory = new AuthStateSnapshotFactory(provider.Object, pprovider.Object, lprovider.Object);
         var validation = SessionValidationResult.Invalid(SessionState.NotFound);
 
         var snapshot = await factory.CreateAsync(validation);

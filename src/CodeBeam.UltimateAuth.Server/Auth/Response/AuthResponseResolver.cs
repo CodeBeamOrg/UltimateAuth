@@ -54,9 +54,9 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
 
         var cookie = delivery.Kind switch
         {
-            CredentialKind.Session => server.Cookie.Session,
-            CredentialKind.AccessToken => server.Cookie.AccessToken,
-            CredentialKind.RefreshToken => server.Cookie.RefreshToken,
+            GrantKind.Session => server.Cookie.Session,
+            GrantKind.AccessToken => server.Cookie.AccessToken,
+            GrantKind.RefreshToken => server.Cookie.RefreshToken,
             _ => throw new InvalidOperationException($"Unsupported credential kind: {delivery.Kind}")
         };
 

@@ -1,0 +1,76 @@
+﻿@using CodeBeam.UltimateAuth.Credentials.Contracts
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Create User</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_username" Label="Username" Variant="Variant.Outlined" Required="true" />
+                <MudTextField @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Required="true" />
+                <MudPasswordField @bind-Value="_password" Label="Password" Variant="Variant.Outlined" Required="true" />
+                <MudPasswordField @bind-Value="_passwordCheck" Label="Password (Again)" Variant="Variant.Outlined" Required="true" Validation="@(() => PasswordMatch(_password))" />
+                <MudTextField @bind-Value="_displayName" Label="Display Name" Variant="Variant.Outlined" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateUserAsync">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm _form = null!;
+    private string? _username;
+    private string? _email;
+    private string? _password;
+    private string? _passwordCheck;
+    private string? _displayName;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private async Task CreateUserAsync()
+    {
+        await _form.Validate();
+
+        if (!_form.IsValid)
+            return;
+
+        if (_password != _passwordCheck)
+        {
+            Snackbar.Add("Passwords do not match", Severity.Error);
+            return;
+        }
+
+        var request = new CreateUserRequest
+        {
+            UserName = _username,
+            Email = _email,
+            DisplayName = _displayName,
+            Password = _password
+        };
+
+        var result = await UAuthClient.Users.CreateAdminAsync(request);
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.GetErrorText ?? "User creation failed", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("User created successfully", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private string PasswordMatch(string? arg) => _password != arg ? "Passwords don't match" : string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+}

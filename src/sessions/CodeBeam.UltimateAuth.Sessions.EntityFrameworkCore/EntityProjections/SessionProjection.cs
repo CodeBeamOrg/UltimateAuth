@@ -26,5 +26,5 @@ internal sealed class SessionProjection
     public ClaimsSnapshot Claims { get; set; } = ClaimsSnapshot.Empty;
     public SessionMetadata Metadata { get; set; } = SessionMetadata.Empty;
 
-    public byte[] RowVersion { get; set; } = default!;
+    public long Version { get; set; }
 }

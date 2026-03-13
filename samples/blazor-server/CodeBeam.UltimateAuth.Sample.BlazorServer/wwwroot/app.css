@@ -50,12 +50,6 @@ h1:focus {
     border-color: #929292;
 }
 
-.uauth-page {
-    height: calc(100vh - var(--mud-appbar-height));
-    width: 100vw;
-    margin-top: 64px;
-}
-
 .uauth-stack {
     min-height: 60vh;
     max-height: calc(100vh - var(--mud-appbar-height));
@@ -68,7 +62,7 @@ h1:focus {
 }
 
 .uauth-login-paper {
-    min-height: 60vh;
+    min-height: 70vh;
 }
 
 .uauth-login-paper.mud-theme-primary {
@@ -81,13 +75,69 @@ h1:focus {
 }
 
 .uauth-logo-slide {
-    transition: transform 1s cubic-bezier(.4, 0, .2, 1);
-}
-
-.uauth-login-paper:hover .uauth-logo-slide {
-    transform: translateY(200px) rotateY(360deg);
+    animation: uauth-logo-float 30s ease-in-out infinite;
 }
 
 .uauth-text-transform-none .mud-button {
     text-transform: none;
+}
+
+.uauth-dialog {
+    height: 68vh;
+    max-height: 68vh;
+    overflow: auto;
+}
+
+.text-secondary {
+    color: var(--mud-palette-text-secondary);
+}
+
+.uauth-blur {
+    backdrop-filter: blur(10px);
+}
+
+.uauth-blur-slight {
+    backdrop-filter: blur(4px);
+}
+
+@keyframes uauth-logo-float {
+    0% {
+        transform: translateY(0) rotateY(0);
+    }
+
+    10% {
+        transform: translateY(0) rotateY(0);
+    }
+
+    15% {
+        transform: translateY(200px) rotateY(360deg);
+    }
+
+    35% {
+        transform: translateY(200px) rotateY(360deg);
+    }
+
+    40% {
+        transform: translateY(200px) rotateY(720deg);
+    }
+
+    60% {
+        transform: translateY(200px) rotateY(720deg);
+    }
+
+    65% {
+        transform: translateY(0) rotateY(360deg);
+    }
+
+    85% {
+        transform: translateY(0) rotateY(360deg);
+    }
+
+    90% {
+        transform: translateY(0) rotateY(0);
+    }
+
+    100% {
+        transform: translateY(0) rotateY(0);
+    }
 }

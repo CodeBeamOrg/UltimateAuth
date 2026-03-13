@@ -14,9 +14,9 @@ internal sealed class ClientProfileAuthResponseAdapter
 
         return new UAuthResponseOptions
         {
-            SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, CredentialKind.Session, clientProfile),
-            AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, CredentialKind.AccessToken, clientProfile),
-            RefreshTokenDelivery = AdaptCredential(template.RefreshTokenDelivery, CredentialKind.RefreshToken, clientProfile),
+            SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, GrantKind.Session, clientProfile),
+            AccessTokenDelivery = AdaptCredential(template.AccessTokenDelivery, GrantKind.AccessToken, clientProfile),
+            RefreshTokenDelivery = AdaptCredential(template.RefreshTokenDelivery, GrantKind.RefreshToken, clientProfile),
 
             Login = MergeLogin(template.Login, configured.Login),
             Logout = MergeLogout(template.Logout, configured.Logout)
@@ -27,7 +27,7 @@ internal sealed class ClientProfileAuthResponseAdapter
     // effectiveMode and effectiveOptions are intentionally passed
     // to keep this adapter policy-extensible.
     // They will be used for future mode/option based response enforcement.
-    private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, CredentialKind kind, UAuthClientProfile clientProfile)
+    private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, GrantKind kind, UAuthClientProfile clientProfile)
     {
         if (clientProfile == UAuthClientProfile.Maui && original.Mode == TokenResponseMode.Cookie)
         {

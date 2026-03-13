@@ -1,8 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Common;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
@@ -60,6 +63,11 @@ public partial class Home : UAuthFlowPageBase
 
             if (result.IsValid)
             {
+                if (result.Snapshot?.Identity.UserStatus == UserStatus.SelfSuspended)
+                {
+                    Snackbar.Add("Your account is suspended by you.", Severity.Warning);
+                    return;
+                }
                 Snackbar.Add($"Session active • Tenant: {result.Snapshot?.Identity?.Tenant.Value} • User: {result.Snapshot?.Identity?.PrimaryUserName}", Severity.Success);
             }
             else 
@@ -97,10 +105,6 @@ public partial class Home : UAuthFlowPageBase
             Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
         }
     }
-
-    private Task CreateUser() => Task.CompletedTask;
-    private Task AssignRole() => Task.CompletedTask;
-    private Task ChangePassword() => Task.CompletedTask;
 
     private Color GetHealthColor()
     {
@@ -151,28 +155,74 @@ public partial class Home : UAuthFlowPageBase
         return utc?.ToLocalTime().ToString("dd MMM yyyy • HH:mm:ss");
     }
 
-    private async Task OpenIdentifierDialog()
+    private async Task OpenProfileDialog()
     {
-
-        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<ProfileDialog>("Manage Profile", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
-    private DialogOptions GetDialogOptions()
+    private async Task OpenIdentifierDialog()
     {
-        return new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenSessionDialog()
+    {
+        await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenCredentialDialog()
+    {
+        await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenAccountStatusDialog()
+    {
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenUserDialog()
+    {
+        await DialogService.ShowAsync<UsersDialog>("User Management", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.Large));
+    }
+
+    private async Task OpenRoleDialog()
+    {
+        await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private DialogParameters GetDialogParameters()
-            {
+    {
         return new DialogParameters
         {
             ["AuthState"] = AuthState
         };
+    }
+
+    private async Task SetAccountActiveAsync()
+    {
+        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfUserStatus.Active };
+        var result = await UAuthClient.Users.ChangeStatusSelfAsync(request);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Account activated successfully.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Activation failed.", Severity.Error);
+        }
+    }
+
+    private string? _roles = "Admin";
+    private void RefreshHiddenState()
+    {
+        if (_roles == "Admin")
+        {
+            _roles = "User";
+            return;
+        }
+
+        _roles = "Admin";
     }
 
     public override void Dispose()

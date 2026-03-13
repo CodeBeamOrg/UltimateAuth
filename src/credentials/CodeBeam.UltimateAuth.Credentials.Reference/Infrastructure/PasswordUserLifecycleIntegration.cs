@@ -31,17 +31,16 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
 
         var hash = _passwordHasher.Hash(r.Password);
 
-        var credential = new PasswordCredential(
+        var credential = PasswordCredential.Create(
             id: null,
             tenant: tenant,
             userKey: userKey,
             secretHash: hash,
             security: CredentialSecurityState.Active(),
-            metadata: new CredentialMetadata { LastUsedAt = _clock.UtcNow },
-            _clock.UtcNow,
-            null);
+            metadata: new CredentialMetadata { },
+            _clock.UtcNow);
 
-        await _credentialStore.AddAsync(tenant, credential, ct);
+        await _credentialStore.AddAsync(credential, ct);
     }
 
     public async Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct)

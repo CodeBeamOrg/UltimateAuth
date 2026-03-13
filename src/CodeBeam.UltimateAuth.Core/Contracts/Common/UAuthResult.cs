@@ -4,10 +4,14 @@ public class UAuthResult
 {
     public bool IsSuccess { get; init; }
     public int Status { get; init; }
+    public string? CorrelationId { get; init; }
+    public string? TraceId { get; init; }
 
     public UAuthProblem? Problem { get; init; }
 
     public HttpStatusInfo Http => new(Status);
+
+    public string? GetErrorText => Problem?.Detail ?? Problem?.Title;
 
     public sealed class HttpStatusInfo
     {

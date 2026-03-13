@@ -15,10 +15,17 @@ public sealed class BrowserDeviceIdStorage : IDeviceIdStorage
 
     public async ValueTask<string?> LoadAsync(CancellationToken ct = default)
     {
-        if (!await _storage.ExistsAsync(StorageScope.Local, Key))
-            return null;
+        try
+        {
+            if (!await _storage.ExistsAsync(StorageScope.Local, Key))
+                return null;
 
-        return await _storage.GetAsync(StorageScope.Local, Key);
+            return await _storage.GetAsync(StorageScope.Local, Key);
+        }
+        catch (TaskCanceledException)
+        {
+            return null;
+        }
     }
 
     public ValueTask SaveAsync(string deviceId, CancellationToken ct = default)

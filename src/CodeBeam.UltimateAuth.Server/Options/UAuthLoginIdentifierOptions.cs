@@ -1,9 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 public sealed class UAuthLoginIdentifierOptions
 {
-    public ISet<UserIdentifierType> AllowedBuiltIns { get; set; } =
+    public ISet<UserIdentifierType> AllowedTypes { get; set; } =
         new HashSet<UserIdentifierType>
         {
             UserIdentifierType.Username,
@@ -17,12 +18,32 @@ public sealed class UAuthLoginIdentifierOptions
     public bool EnableCustomResolvers { get; set; } = true;
     public bool CustomResolversFirst { get; set; } = true;
 
+    public UAuthIdentifierNormalizationOptions Normalization { get; set; } = new();
+
+    public bool EnforceGlobalUniquenessForAllIdentifiers { get; set; } = false;
+
     internal UAuthLoginIdentifierOptions Clone() => new()
     {
-        AllowedBuiltIns = new HashSet<UserIdentifierType>(AllowedBuiltIns),
+        AllowedTypes = new HashSet<UserIdentifierType>(AllowedTypes),
         RequireVerificationForEmail = RequireVerificationForEmail,
         RequireVerificationForPhone = RequireVerificationForPhone,
         EnableCustomResolvers = EnableCustomResolvers,
         CustomResolversFirst = CustomResolversFirst,
+        EnforceGlobalUniquenessForAllIdentifiers = EnforceGlobalUniquenessForAllIdentifiers,
+        Normalization = Normalization.Clone()
+    };
+}
+
+public sealed class UAuthIdentifierNormalizationOptions
+{
+    public CaseHandling UsernameCase { get; set; } = CaseHandling.ToLower;
+    public CaseHandling EmailCase { get; set; } = CaseHandling.ToLower;
+    public CaseHandling CustomCase { get; set; } = CaseHandling.Preserve;
+
+    internal UAuthIdentifierNormalizationOptions Clone() => new()
+    {
+        UsernameCase = UsernameCase,
+        EmailCase = EmailCase,
+        CustomCase = CustomCase
     };
 }

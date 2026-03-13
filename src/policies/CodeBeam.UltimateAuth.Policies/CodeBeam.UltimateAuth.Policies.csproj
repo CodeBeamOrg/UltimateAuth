@@ -11,6 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 	</ItemGroup>
 

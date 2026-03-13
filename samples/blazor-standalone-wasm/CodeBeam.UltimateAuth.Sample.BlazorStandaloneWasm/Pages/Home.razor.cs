@@ -41,12 +41,11 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
 
         private async Task ProgrammaticLogin()
         {
-            var device = await DeviceIdProvider.GetOrCreateAsync();
+            var deviceId = await DeviceIdProvider.GetOrCreateAsync();
             var request = new LoginRequest
             {
                 Identifier = "admin",
                 Secret = "admin",
-                Device = DeviceContext.FromDeviceId(device),
             };
             await UAuthClient.Flows.LoginAsync(request);
         }

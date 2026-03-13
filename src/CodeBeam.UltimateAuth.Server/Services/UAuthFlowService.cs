@@ -31,21 +31,6 @@ internal sealed class UAuthFlowService : IUAuthFlowService
         _events = events;
     }
 
-    public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<LoginResult> CompleteMfaAsync(CompleteMfaRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
     {
         return _loginOrchestrator.LoginAsync(flow, request, ct);
@@ -103,6 +88,21 @@ internal sealed class UAuthFlowService : IUAuthFlowService
     }
 
     public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<LoginResult> CompleteMfaAsync(CompleteMfaRequest request, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }

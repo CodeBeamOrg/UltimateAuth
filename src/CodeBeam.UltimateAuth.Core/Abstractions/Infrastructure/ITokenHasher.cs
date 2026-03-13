@@ -7,5 +7,5 @@
 public interface ITokenHasher
 {
     string Hash(string plaintext);
-    bool Verify(string plaintext, string hash);
+    bool Verify(string hash, string plaintext);
 }

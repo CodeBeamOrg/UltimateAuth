@@ -11,12 +11,17 @@ internal static class SessionChainProjectionMapper
             p.RootId,
             p.Tenant,
             p.UserKey,
-            p.RotationCount,
-            p.SecurityVersionAtCreation,
+            p.CreatedAt,
+            p.LastSeenAt,
+            p.AbsoluteExpiresAt,
+            p.Device,
             p.ClaimsSnapshot,
             p.ActiveSessionId,
-            p.IsRevoked,
-            p.RevokedAt
+            p.RotationCount,
+            p.TouchCount,
+            p.SecurityVersionAtCreation,
+            p.RevokedAt,
+            p.Version
         );
     }
 
@@ -25,17 +30,20 @@ internal static class SessionChainProjectionMapper
         return new SessionChainProjection
         {
             ChainId = chain.ChainId,
+            RootId = chain.RootId,
             Tenant = chain.Tenant,
             UserKey = chain.UserKey,
-
-            RotationCount = chain.RotationCount,
-            SecurityVersionAtCreation = chain.SecurityVersionAtCreation,
+            CreatedAt = chain.CreatedAt,
+            LastSeenAt = chain.LastSeenAt,
+            AbsoluteExpiresAt = chain.AbsoluteExpiresAt,
+            Device = chain.Device,
             ClaimsSnapshot = chain.ClaimsSnapshot,
-
             ActiveSessionId = chain.ActiveSessionId,
-
-            IsRevoked = chain.IsRevoked,
-            RevokedAt = chain.RevokedAt
+            RotationCount = chain.RotationCount,
+            TouchCount = chain.TouchCount,
+            SecurityVersionAtCreation = chain.SecurityVersionAtCreation,
+            RevokedAt = chain.RevokedAt,
+            Version = chain.Version
         };
     }
 

@@ -15,7 +15,7 @@ internal sealed class UserProfileSnapshotProvider : IUserProfileSnapshotProvider
 
     public async Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var profile = await _store.GetAsync(tenant, userKey, ct);
+        var profile = await _store.GetAsync(new UserProfileKey(tenant, userKey), ct);
 
         if (profile is null || profile.IsDeleted)
             return null;

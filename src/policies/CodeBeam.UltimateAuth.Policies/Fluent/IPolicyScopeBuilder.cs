@@ -4,7 +4,6 @@ public interface IPolicyScopeBuilder
 {
     IPolicyScopeBuilder RequireAuthenticated();
     IPolicyScopeBuilder RequireSelf();
-    IPolicyScopeBuilder RequireAdmin();
-    IPolicyScopeBuilder RequireSelfOrAdmin();
+    IPolicyScopeBuilder RequirePermission();
     IPolicyScopeBuilder DenyCrossTenant();
 }

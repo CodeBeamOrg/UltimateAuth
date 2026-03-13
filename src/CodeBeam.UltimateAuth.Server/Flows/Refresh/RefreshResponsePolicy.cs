@@ -8,28 +8,28 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 
 internal class RefreshResponsePolicy : IRefreshResponsePolicy
 {
-    public CredentialKind SelectPrimary(AuthFlowContext flow, RefreshFlowRequest request, RefreshFlowResult result)
+    public GrantKind SelectPrimary(AuthFlowContext flow, RefreshFlowRequest request, RefreshFlowResult result)
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque)
-            return CredentialKind.Session;
+            return GrantKind.Session;
 
         if (flow.EffectiveMode == UAuthMode.PureJwt)
-            return CredentialKind.AccessToken;
+            return GrantKind.AccessToken;
 
         if (!string.IsNullOrWhiteSpace(request.RefreshToken) && request.SessionId == null)
         {
-            return CredentialKind.AccessToken;
+            return GrantKind.AccessToken;
         }
 
         if (request.SessionId != null)
         {
-            return CredentialKind.Session;
+            return GrantKind.Session;
         }
 
         if (flow.ClientProfile == UAuthClientProfile.Api)
-            return CredentialKind.AccessToken;
+            return GrantKind.AccessToken;
 
-        return CredentialKind.Session;
+        return GrantKind.Session;
     }
 
 

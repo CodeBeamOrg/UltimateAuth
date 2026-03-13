@@ -6,6 +6,6 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 
 public interface IRefreshResponsePolicy
 {
-    CredentialKind SelectPrimary(AuthFlowContext flow, RefreshFlowRequest request, RefreshFlowResult result);
+    GrantKind SelectPrimary(AuthFlowContext flow, RefreshFlowRequest request, RefreshFlowResult result);
     bool WriteRefreshToken(AuthFlowContext flow);
 }

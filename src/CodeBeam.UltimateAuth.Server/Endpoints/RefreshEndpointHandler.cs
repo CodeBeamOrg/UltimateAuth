@@ -59,18 +59,18 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
 
         var primary = _refreshPolicy.SelectPrimary(flow, request, result);
 
-        if (primary == CredentialKind.Session && result.SessionId is not null)
+        if (primary == GrantKind.Session && result.SessionId is not null)
         {
-            _credentialWriter.Write(ctx, CredentialKind.Session, result.SessionId.Value);
+            _credentialWriter.Write(ctx, GrantKind.Session, result.SessionId.Value);
         }
-        else if (primary == CredentialKind.AccessToken && result.AccessToken is not null)
+        else if (primary == GrantKind.AccessToken && result.AccessToken is not null)
         {
-            _credentialWriter.Write(ctx, CredentialKind.AccessToken, result.AccessToken);
+            _credentialWriter.Write(ctx, GrantKind.AccessToken, result.AccessToken);
         }
 
         if (_refreshPolicy.WriteRefreshToken(flow) && result.RefreshToken is not null)
         {
-            _credentialWriter.Write(ctx, CredentialKind.RefreshToken, result.RefreshToken);
+            _credentialWriter.Write(ctx, GrantKind.RefreshToken, result.RefreshToken);
         }
 
         if (flow.OriginalOptions.Diagnostics.EnableRefreshDetails)

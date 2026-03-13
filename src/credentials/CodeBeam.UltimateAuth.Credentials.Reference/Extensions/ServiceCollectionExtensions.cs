@@ -10,8 +10,8 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
     {
         public static IServiceCollection AddUltimateAuthCredentialsReference(this IServiceCollection services)
         {
-            services.TryAddScoped<IUserCredentialsService, UserCredentialsService>();
-            services.TryAddScoped<IUserCredentialsInternalService, UserCredentialsService>();
+            services.TryAddScoped<ICredentialManagementService, CredentialManagementService>();
+            services.TryAddScoped<IUserCredentialsInternalService, CredentialManagementService>();
             services.TryAddScoped<ICredentialEndpointHandler, CredentialEndpointHandler>();
             services.TryAddScoped<IUserLifecycleIntegration, PasswordUserLifecycleIntegration>();
 

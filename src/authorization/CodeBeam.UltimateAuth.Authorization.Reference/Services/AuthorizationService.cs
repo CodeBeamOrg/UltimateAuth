@@ -1,36 +1,36 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Policies.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference;
 
 internal sealed class AuthorizationService : IAuthorizationService
 {
-    private readonly IAccessPolicyProvider _policyProvider;
-    private readonly IAccessAuthority _accessAuthority;
+    private readonly IAccessOrchestrator _accessOrchestrator;
 
-    public AuthorizationService(IAccessPolicyProvider policyProvider, IAccessAuthority accessAuthority)
+    public AuthorizationService(IAccessOrchestrator accessOrchestrator)
     {
-        _policyProvider = policyProvider;
-        _accessAuthority = accessAuthority;
+        _accessOrchestrator = accessOrchestrator;
     }
 
-    public Task<AuthorizationResult> AuthorizeAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<AuthorizationResult> AuthorizeAsync(AccessContext context, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var policies = _policyProvider.GetPolicies(context);
-        var decision = _accessAuthority.Decide(context, policies);
+        var cmd = new AccessCommand<AuthorizationResult>(innerCt =>
+        {
+            return Task.FromResult(AuthorizationResult.Allow());
+        });
 
-        if (decision.RequiresReauthentication)
-            return Task.FromResult(AuthorizationResult.ReauthRequired());
-
-        return Task.FromResult(
-            decision.IsAllowed
-                ? AuthorizationResult.Allow()
-                : AuthorizationResult.Deny(decision.DenyReason)
-        );
+        try
+        {
+            await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+            return AuthorizationResult.Allow();
+        }
+        catch (UAuthAuthorizationException ex)
+        {
+            return AuthorizationResult.Deny(ex.Message);
+        }
     }
-
 }

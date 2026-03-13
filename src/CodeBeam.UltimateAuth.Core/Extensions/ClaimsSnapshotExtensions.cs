@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using System.Security.Claims;
 
@@ -9,7 +10,7 @@ public static class ClaimsSnapshotExtensions
     /// <summary>
     /// Converts a ClaimsSnapshot into an ASP.NET Core ClaimsPrincipal.
     /// </summary>
-    public static ClaimsPrincipal ToClaimsPrincipal(this ClaimsSnapshot snapshot, string authenticationType = "UltimateAuth")
+    public static ClaimsPrincipal ToClaimsPrincipal(this ClaimsSnapshot snapshot, string authenticationType = UAuthConstants.SchemeDefaults.GlobalScheme)
     {
         if (snapshot == null)
             return new ClaimsPrincipal(new ClaimsIdentity());

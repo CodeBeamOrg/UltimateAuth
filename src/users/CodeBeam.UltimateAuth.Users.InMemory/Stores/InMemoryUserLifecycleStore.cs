@@ -1,35 +1,22 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
+public sealed class InMemoryUserLifecycleStore : InMemoryVersionedStore<UserLifecycle, UserLifecycleKey>, IUserLifecycleStore
 {
-    private readonly Dictionary<(TenantKey, UserKey), UserLifecycle> _store = new();
-
-    public Task<bool> ExistsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
-    {
-        return Task.FromResult(_store.TryGetValue((tenant, userKey), out var entity) && !entity.IsDeleted);
-    }
-
-    public Task<UserLifecycle?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
-    {
-        if (!_store.TryGetValue((tenant, userKey), out var entity))
-            return Task.FromResult<UserLifecycle?>(null);
-
-        if (entity.IsDeleted)
-            return Task.FromResult<UserLifecycle?>(null);
-
-        return Task.FromResult<UserLifecycle?>(entity);
-    }
+    protected override UserLifecycleKey GetKey(UserLifecycle entity)
+        => new(entity.Tenant, entity.UserKey);
 
     public Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
     {
-        var baseQuery = _store.Values
-            .Where(x => x?.UserKey != null)
+        ct.ThrowIfCancellationRequested();
+
+        var normalized = query.Normalize();
+
+        var baseQuery = Values()
             .Where(x => x.Tenant == tenant);
 
         if (!query.IncludeDeleted)
@@ -38,74 +25,44 @@ public sealed class InMemoryUserLifecycleStore : IUserLifecycleStore
         if (query.Status != null)
             baseQuery = baseQuery.Where(x => x.Status == query.Status);
 
-        var totalCount = baseQuery.Count();
-
-        var items = baseQuery
-            .OrderBy(x => x.CreatedAt)
-            .Skip(query.Skip)
-            .Take(query.Take)
-            .ToList()
-            .AsReadOnly();
-
-        return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount));
-    }
-
-    public Task CreateAsync(TenantKey tenant, UserLifecycle lifecycle, CancellationToken ct = default)
-    {
-        var key = (tenant, lifecycle.UserKey);
-
-        if (_store.ContainsKey(key))
-            throw new InvalidOperationException("UserLifecycle already exists.");
-
-        _store[key] = lifecycle;
-        return Task.CompletedTask;
-    }
-
-    public Task ChangeStatusAsync(TenantKey tenant, UserKey userKey, UserStatus newStatus, DateTimeOffset updatedAt, CancellationToken ct = default)
-    {
-        if (!_store.TryGetValue((tenant, userKey), out var entity) || entity.IsDeleted)
-            throw new InvalidOperationException("UserLifecycle not found.");
-
-        entity.Status = newStatus;
-        entity.UpdatedAt = updatedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task ChangeSecurityStampAsync(TenantKey tenant, UserKey userKey, Guid newSecurityStamp, DateTimeOffset updatedAt, CancellationToken ct = default)
-    {
-        if (!_store.TryGetValue((tenant, userKey), out var entity) || entity.IsDeleted)
-            throw new InvalidOperationException("UserLifecycle not found.");
-
-        if (entity.SecurityStamp == newSecurityStamp)
-            return Task.CompletedTask;
-
-        entity.SecurityStamp = newSecurityStamp;
-        entity.UpdatedAt = updatedAt;
-
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
-    {
-        var key = (tenant, userKey);
-
-        if (!_store.TryGetValue(key, out var entity))
-            return Task.CompletedTask;
-
-        if (mode == DeleteMode.Hard)
+        baseQuery = query.SortBy switch
         {
-            _store.Remove(key);
-            return Task.CompletedTask;
-        }
+            nameof(UserLifecycle.Id) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Id)
+                    : baseQuery.OrderBy(x => x.Id),
 
-        // Soft delete (idempotent)
-        if (entity.IsDeleted)
-            return Task.CompletedTask;
+            nameof(UserLifecycle.CreatedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                    : baseQuery.OrderBy(x => x.CreatedAt),
 
-        entity.IsDeleted = true;
-        entity.DeletedAt = deletedAt;
+            nameof(UserLifecycle.Status) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Status)
+                    : baseQuery.OrderBy(x => x.Status),
 
-        return Task.CompletedTask;
+            nameof(UserLifecycle.Tenant) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Tenant.Value)
+                    : baseQuery.OrderBy(x => x.Tenant.Value),
+
+            nameof(UserLifecycle.UserKey) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.UserKey.Value)
+                    : baseQuery.OrderBy(x => x.UserKey.Value),
+
+            nameof(UserLifecycle.DeletedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.DeletedAt)
+                    : baseQuery.OrderBy(x => x.DeletedAt),
+
+            _ => baseQuery.OrderBy(x => x.CreatedAt)
+        };
+
+        var totalCount = baseQuery.Count();
+        var items = baseQuery.Skip((normalized.PageNumber - 1) * normalized.PageSize).Take(normalized.PageSize).ToList().AsReadOnly();
+
+        return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount, normalized.PageNumber, normalized.PageSize, query.SortBy, query.Descending));
     }
 }

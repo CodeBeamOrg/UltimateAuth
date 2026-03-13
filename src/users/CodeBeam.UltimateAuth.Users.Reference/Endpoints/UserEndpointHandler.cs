@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -21,7 +21,44 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         _users = users;
     }
 
+    public async Task<IResult> QueryUsersAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var query = await ctx.ReadJsonAsync<UserQuery>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.QueryAdmin,
+            resource: "users");
+
+        var result = await _users.QueryUsersAsync(accessContext, query, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> CreateAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        var request = await ctx.ReadJsonAsync<CreateUserRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.CreateAnonymous,
+            resource: "users");
+
+        var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
+
+        return result.Succeeded
+            ? Results.Ok(result)
+            : Results.BadRequest(result);
+    }
+
+    public async Task<IResult> CreateAdminAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
         if (!flow.IsAuthenticated)
@@ -31,7 +68,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
 
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
-            action: UAuthActions.Users.Create,
+            action: UAuthActions.Users.CreateAdmin,
             resource: "users");
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
@@ -145,6 +182,22 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         return Results.Ok();
     }
 
+    public async Task<IResult> DeleteMeAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.DeleteSelf,
+            resource: "users",
+            resourceId: flow?.UserKey?.Value);
+
+        await _users.DeleteMeAsync(accessContext, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
     public async Task<IResult> DeleteAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;
@@ -173,13 +226,15 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
+        var request = await ctx.ReadJsonAsync<UserIdentifierQuery>(ctx.RequestAborted) ?? new UserIdentifierQuery();
+
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserIdentifiers.GetSelf,
             resource: "users",
             resourceId: flow.UserKey!.Value);
 
-        var result = await _users.GetIdentifiersByUserAsync(accessContext,ctx.RequestAborted);
+        var result = await _users.GetIdentifiersByUserAsync(accessContext, request, ctx.RequestAborted);
 
         return Results.Ok(result);
     }
@@ -190,15 +245,71 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
+        var request = await ctx.ReadJsonAsync<UserIdentifierQuery>(ctx.RequestAborted) ?? new UserIdentifierQuery();
+
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserIdentifiers.GetAdmin,
             resource: "users",
             resourceId: userKey.Value);
 
-        var result = await _users.GetIdentifiersByUserAsync(accessContext, ctx.RequestAborted);
+        var result = await _users.GetIdentifiersByUserAsync(accessContext, request, ctx.RequestAborted);
 
         return Results.Ok(result);
+    }
+
+    public async Task<IResult> IdentifierExistsSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<IdentifierExistsRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.GetSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        var exists = await _users.UserIdentifierExistsAsync(
+            accessContext,
+            request.Type,
+            request.Value,
+            IdentifierExistenceScope.WithinUser,
+            ctx.RequestAborted);
+
+        return Results.Ok(new IdentifierExistsResponse
+        {
+            Exists = exists
+        });
+    }
+
+    public async Task<IResult> IdentifierExistsAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<IdentifierExistsRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.GetAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        var exists = await _users.UserIdentifierExistsAsync(
+            accessContext,
+            request.Type,
+            request.Value,
+            IdentifierExistenceScope.TenantAny,
+            ctx.RequestAborted);
+
+        return Results.Ok(new IdentifierExistsResponse
+        {
+            Exists = exists
+        });
     }
 
     public async Task<IResult> AddUserIdentifierSelfAsync(HttpContext ctx)

@@ -1,3 +1,4 @@
+using CodeBeam.UltimateAuth.Authentication.InMemory;
 using CodeBeam.UltimateAuth.Authorization.InMemory;
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
@@ -8,8 +9,6 @@ using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 using CodeBeam.UltimateAuth.Security.Argon2;
-using CodeBeam.UltimateAuth.Server.Authentication;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
@@ -57,6 +56,7 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddUltimateAuthAuthorizationReference()
     .AddUltimateAuthInMemorySessions()
     .AddUltimateAuthInMemoryTokens()
+    .AddUltimateAuthInMemoryAuthenticationSecurity()
     .AddUltimateAuthArgon2();
 
 builder.Services.AddUltimateAuthClient(o =>

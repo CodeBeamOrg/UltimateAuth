@@ -59,10 +59,6 @@ public sealed class UAuthSessionOptions
     /// <summary>
     /// Maximum number of session rotations within a single chain.
     /// Used for cleanup, replay protection, and analytics.
-    /// 
-    /// NOTE:
-    /// Enforcement is not active in v0.0.1.
-    /// This option is reserved for future security policies.
     /// </summary>
     public int MaxSessionsPerChain { get; set; } = 100;
 

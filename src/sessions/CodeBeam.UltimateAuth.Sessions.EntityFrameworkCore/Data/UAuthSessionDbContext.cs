@@ -33,19 +33,15 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.UserKey)
                 .IsRequired();
 
-            e.HasIndex(x => new { x.Tenant, x.UserKey })
-                .IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.UserKey }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.RootId }).IsUnique();
 
             e.Property(x => x.SecurityVersion)
-                .IsRequired();
-
-            e.Property(x => x.LastUpdatedAt)
                 .IsRequired();
 
             e.Property(x => x.RootId)
@@ -53,17 +49,13 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
                     v => v.Value,
                     v => SessionRootId.From(v))
                 .IsRequired();
-
-            e.HasIndex(x => new { x.Tenant, x.RootId });
-
         });
 
         b.Entity<SessionChainProjection>(e =>
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.RowVersion)
-                .IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.Property(x => x.UserKey)
                 .IsRequired();
@@ -90,7 +82,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         b.Entity<SessionProjection>(e =>
         {
             e.HasKey(x => x.Id);
-            e.Property(x => x.RowVersion).IsRowVersion();
+            e.Property(x => x.Version).IsConcurrencyToken();
 
             e.HasIndex(x => new { x.Tenant, x.SessionId }).IsUnique();
             e.HasIndex(x => new { x.Tenant, x.ChainId, x.RevokedAt });

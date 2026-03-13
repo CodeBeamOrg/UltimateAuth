@@ -1,52 +1,75 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed class UAuthSessionRoot
+public sealed class UAuthSessionRoot : IVersionedEntity
 {
     public SessionRootId RootId { get; }
-    public UserKey UserKey { get; }
     public TenantKey Tenant { get; }
+    public UserKey UserKey { get; }
+
+    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset? UpdatedAt { get; }
+
     public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
+
     public long SecurityVersion { get; }
-    public IReadOnlyList<UAuthSessionChain> Chains { get; }
-    public DateTimeOffset LastUpdatedAt { get; }
+    public long Version { get; set; }
 
     private UAuthSessionRoot(
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
-        IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt)
+        long version)
     {
         RootId = rootId;
         Tenant = tenant;
         UserKey = userKey;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
         IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersion = securityVersion;
-        Chains = chains;
-        LastUpdatedAt = lastUpdatedAt;
+        Version = version;
     }
 
     public static UAuthSessionRoot Create(
         TenantKey tenant,
         UserKey userKey,
-        DateTimeOffset issuedAt)
+        DateTimeOffset at)
     {
         return new UAuthSessionRoot(
             SessionRootId.New(),
             tenant,
             userKey,
-            isRevoked: false,
-            revokedAt: null,
-            securityVersion: 0,
-            chains: Array.Empty<UAuthSessionChain>(),
-            lastUpdatedAt: issuedAt
+            at,
+            null,
+            false,
+            null,
+            0,
+            0
+        );
+    }
+
+    public UAuthSessionRoot IncreaseSecurityVersion(DateTimeOffset at)
+    {
+        return new UAuthSessionRoot(
+            RootId,
+            Tenant,
+            UserKey,
+            CreatedAt,
+            at,
+            IsRevoked,
+            RevokedAt,
+            SecurityVersion + 1,
+            Version + 1
         );
     }
 
@@ -59,28 +82,12 @@ public sealed class UAuthSessionRoot
             RootId,
             Tenant,
             UserKey,
-            isRevoked: true,
-            revokedAt: at,
-            securityVersion: SecurityVersion,
-            chains: Chains,
-            lastUpdatedAt: at
-        );
-    }
-
-    public UAuthSessionRoot AttachChain(UAuthSessionChain chain, DateTimeOffset at)
-    {
-        if (IsRevoked)
-            return this;
-
-        return new UAuthSessionRoot(
-            RootId,
-            Tenant,
-            UserKey,
-            IsRevoked,
-            RevokedAt,
-            SecurityVersion,
-            Chains.Concat(new[] { chain }).ToArray(),
-            at
+            CreatedAt,
+            at,
+            true,
+            at,
+            SecurityVersion + 1,
+            Version + 1
         );
     }
 
@@ -88,23 +95,23 @@ public sealed class UAuthSessionRoot
         SessionRootId rootId,
         TenantKey tenant,
         UserKey userKey,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
         bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
-        IReadOnlyList<UAuthSessionChain> chains,
-        DateTimeOffset lastUpdatedAt)
+        long version)
     {
         return new UAuthSessionRoot(
             rootId,
             tenant,
             userKey,
+            createdAt,
+            updatedAt,
             isRevoked,
             revokedAt,
             securityVersion,
-            chains,
-            lastUpdatedAt
+            version
         );
     }
-
-
 }

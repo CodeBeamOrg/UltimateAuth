@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
 using Konscious.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Security.Argon2;
@@ -17,7 +18,7 @@ public sealed class Argon2PasswordHasher : IUAuthPasswordHasher
     public string Hash(string password)
     {
         if (string.IsNullOrEmpty(password))
-            throw new ArgumentException("Password cannot be null or empty.", nameof(password));
+            throw new UAuthValidationException("Password cannot be null or empty.");
 
         var salt = RandomNumberGenerator.GetBytes(_options.SaltSize);
 

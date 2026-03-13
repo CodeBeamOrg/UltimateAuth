@@ -20,5 +20,5 @@ internal sealed class RefreshTokenProjection
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
-    public byte[] RowVersion { get; set; } = default!;
+    public long Version { get; set; }
 }

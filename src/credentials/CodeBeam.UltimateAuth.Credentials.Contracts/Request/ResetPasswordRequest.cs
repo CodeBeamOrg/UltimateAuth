@@ -1,10 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-
-namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record ResetPasswordRequest
 {
-    public UserKey UserKey { get; init; } = default!;
+    public Guid Id { get; set; }
     public required string NewPassword { get; init; }
 
     /// <summary>

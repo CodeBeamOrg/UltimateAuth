@@ -36,7 +36,7 @@ public sealed class RefreshTokenValidatorTests
                 Tenant = TenantKey.Single,
                 RefreshToken = "non-existing",
                 Now = DateTimeOffset.UtcNow,
-                Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
+                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
             });
 
         Assert.False(result.IsValid);
@@ -73,7 +73,7 @@ public sealed class RefreshTokenValidatorTests
                 Tenant = TenantKey.Single,
                 RefreshToken = rawToken,
                 Now = now,
-                Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
+                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
             });
 
         Assert.False(result.IsValid);
@@ -106,7 +106,7 @@ public sealed class RefreshTokenValidatorTests
                 RefreshToken = "hash-2",
                 ExpectedSessionId = TestIds.Session("session-2-cccccccccccccccccccccc"),
                 Now = now,
-                Device = DeviceContext.FromDeviceId(DeviceId.Create(ValidDeviceId)),
+                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
             });
 
         Assert.False(result.IsValid);

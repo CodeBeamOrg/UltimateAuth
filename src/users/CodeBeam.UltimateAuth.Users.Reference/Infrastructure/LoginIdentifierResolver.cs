@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
@@ -7,15 +8,18 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
 {
     private readonly IUserIdentifierStore _store;
+    private readonly IIdentifierNormalizer _normalizer;
     private readonly IEnumerable<ICustomLoginIdentifierResolver> _customResolvers;
     private readonly UAuthLoginIdentifierOptions _options;
 
     public LoginIdentifierResolver(
         IUserIdentifierStore store,
+        IIdentifierNormalizer normalizer,
         IEnumerable<ICustomLoginIdentifierResolver> customResolvers,
         IOptions<UAuthServerOptions> options)
     {
         _store = store;
+        _normalizer = normalizer;
         _customResolvers = customResolvers;
         _options = options.Value.LoginIdentifiers;
     }
@@ -28,7 +32,16 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
             return null;
 
         var raw = identifier;
-        var normalized = Normalize(identifier);
+
+        var builtInType = DetectBuiltInType(identifier);
+
+        var normalizedResult = _normalizer.Normalize(builtInType, identifier);
+
+        if (!normalizedResult.IsValid)
+            return null;
+
+        var normalized = normalizedResult.Normalized;
+
 
         if (_options.EnableCustomResolvers && _options.CustomResolversFirst)
         {
@@ -37,9 +50,7 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
                 return custom;
         }
 
-        var builtInType = DetectBuiltInType(normalized);
-
-        if (!_options.AllowedBuiltIns.Contains(builtInType))
+        if (!_options.AllowedTypes.Contains(builtInType))
         {
             if (_options.EnableCustomResolvers && !_options.CustomResolversFirst)
                 return await TryCustomAsync(tenant, normalized, ct);
@@ -111,9 +122,6 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
 
         return null;
     }
-
-    private static string Normalize(string identifier)
-        => identifier.Trim();
 
     private static UserIdentifierType DetectBuiltInType(string normalized)
     {

@@ -4,11 +4,11 @@
 @inject NavigationManager Nav
 
 <MudLayout>
-    <MudAppBar Style="backdrop-filter: blur(10px)" Color="Color.Transparent" Dense="true" Elevation="0">
+    <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
         <UAuthLogo />
-        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home"))"><b>UltimateAuth</b></MudText>
-        <MudDivider Class="ml-4 mr-2" Vertical="true" />
-        <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
+        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home", true))"><b>UltimateAuth</b></MudText>
+        <MudDivider Class="ml-3 mr-1" Vertical="true" />
+        <MudText Class="ml-2" Style="line-height: 14px" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
 
         <MudSpacer />
 
@@ -34,6 +34,7 @@
                         <MudDivider />
 
                         <MudMenuItem Icon="@Icons.Material.Filled.Refresh" IconColor="Color.Secondary" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.VerifiedUser" IconColor="Color.Secondary" Label="Validate Session" OnClick="@Validate" />
                         <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Secondary" Label="Logout" OnClick="@Logout" />
 
                         @if (state.Identity?.SessionState is not null && state.Identity.SessionState != SessionState.Active)

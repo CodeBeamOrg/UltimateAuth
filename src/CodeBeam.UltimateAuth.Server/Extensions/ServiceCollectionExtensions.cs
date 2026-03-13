@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
@@ -16,13 +17,13 @@ using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
-using CodeBeam.UltimateAuth.Server.Defaults;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
+using CodeBeam.UltimateAuth.Server.Security;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -31,6 +32,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using CodeBeam.UltimateAuth.Users;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -70,6 +72,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
+        services.TryAddSingleton<INumericCodeGenerator, NumericCodeGenerator>();
         services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
 
         services.TryAddScoped<ITokenHasher>(sp =>
@@ -136,9 +139,9 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
 
+        services.TryAddScoped<ISessionApplicationService, SessionApplicationService>();
         services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
-        services.TryAddScoped<IUAuthSessionManager, UAuthSessionManager>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
@@ -190,6 +193,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
         services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
+        services.TryAddScoped<IIdentifierValidator, IdentifierValidator>();
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
@@ -202,12 +206,14 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
         services.TryAddSingleton<IUAuthBodyPolicyBuilder, UAuthBodyPolicyBuilder>();
         services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
+        services.TryAddScoped<IAuthenticationSecurityManager, AuthenticationSecurityManager>();
         services.TryAddScoped<IUAuthCookieManager, UAuthCookieManager>();
 
         services.TryAddScoped<IAuthFlow, AuthFlow>();
         services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
         services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
 
         services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
@@ -217,19 +223,11 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<AuthFlowEndpointFilter>();
         services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
-        //services.TryAddScoped<LoginEndpointHandler<UserKey>>();
+        services.TryAddScoped<ISessionEndpointHandler, SessionEndpointHandler>();
         services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandler>();
-
-        //services.TryAddScoped<ValidateEndpointHandler>();
         services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandler>();
-
-        //services.TryAddScoped<LogoutEndpointHandler<UserKey>>();
         services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
-
-        //services.TryAddScoped<RefreshEndpointHandler>();
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
-
-        //services.TryAddScoped<PkceEndpointHandler<UserKey>>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
 
         // ------------------------------
@@ -239,9 +237,9 @@ public static class ServiceCollectionExtensions
 
         services.PostConfigureAll<AuthenticationOptions>(options =>
         {
-            options.DefaultAuthenticateScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme ??= UAuthSchemeDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultSignInScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultChallengeScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
         });
 
         services.AddAuthentication().AddUAuthCookies();
@@ -252,7 +250,7 @@ public static class ServiceCollectionExtensions
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
-            opt.AllowedBuiltIns = new HashSet<UserIdentifierType>
+            opt.AllowedTypes = new HashSet<UserIdentifierType>
             {
                 UserIdentifierType.Username,
                 UserIdentifierType.Email
@@ -302,6 +300,7 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<IUserCreateValidator, UserCreateValidator>();
         return services;
     }
 

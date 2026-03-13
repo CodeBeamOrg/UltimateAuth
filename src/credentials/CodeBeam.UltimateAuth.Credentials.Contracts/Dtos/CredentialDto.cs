@@ -1,7 +1,10 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+
+namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record CredentialDto
 {
+    public Guid Id { get; set; }
     public CredentialType Type { get; init; }
 
     public CredentialSecurityStatus Status { get; init; }
@@ -10,12 +13,11 @@ public sealed record CredentialDto
 
     public DateTimeOffset? LastUsedAt { get; init; }
 
-    public DateTimeOffset? LockedUntil { get; init; }
-
     public DateTimeOffset? ExpiresAt { get; init; }
 
     public DateTimeOffset? RevokedAt { get; init; }
-    public DateTimeOffset? ResetRequestedAt { get; init; }
 
     public string? Source { get; init; }
+
+    public long Version { get; init; }
 }

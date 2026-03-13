@@ -1,12 +1,14 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -19,13 +21,15 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
+    private readonly IUAuthClientEvents _events;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
     {
         _post = post;
+        _events = events;
         _options = options.Value;
         _diagnostics = diagnostics;
         _nav = nav;
@@ -149,7 +153,11 @@ internal class UAuthFlowClient : IFlowClient
             throw new UAuthProtocolException("Malformed validation response.");
 
         if (raw.Status == 401 || (raw.Status >= 200 && raw.Status < 300))
+        {
+            // Don't set refresh mode to validate here, it's already validated.
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch));
             return body;
+        }
 
         if (raw.Status >= 400 && raw.Status < 500)
             throw new UAuthProtocolException($"Unexpected client error during validation: {raw.Status}");
@@ -227,6 +235,60 @@ internal class UAuthFlowClient : IFlowClient
         await _post.NavigateAsync(url, payload);
     }
 
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/me/logout-device"), request);
+
+        if (raw.Ok)
+        {
+            var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
+
+            if (result.Value?.CurrentChain == true)
+            {
+                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
+            }
+
+            return result;
+        }
+
+        return UAuthResultMapper.FromJson<RevokeResult>(raw);
+    }
+
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, LogoutDeviceRequest request)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-device"), request);
+        return UAuthResultMapper.FromJson<RevokeResult>(raw);
+    }
+
+    public async Task<UAuthResult> LogoutOtherDevicesSelfAsync()
+    {
+        var raw = await _post.SendJsonAsync(Url("/me/logout-others"));
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutOtherDevicesAdminAsync(UserKey userKey, LogoutOtherDevicesAdminRequest request)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-others"), request);
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutAllDevicesSelfAsync()
+    {
+        var raw = await _post.SendJsonAsync(Url("/me/logout-all"));
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
+        }
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey)
+    {
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-all"));
+        return UAuthResultMapper.From(raw);
+    }
+
+
     private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl)
     {
         var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
@@ -241,9 +303,6 @@ internal class UAuthFlowClient : IFlowClient
 
         return _post.NavigateAsync(hubLoginUrl, data);
     }
-
-
-    // ---------------- PKCE CRYPTO ----------------
 
     private static string CreateVerifier()
     {

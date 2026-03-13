@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
@@ -7,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Core.Domain;
 /// Represents a persisted refresh token bound to a session.
 /// Stored as a hashed value for security reasons.
 /// </summary>
-public sealed record StoredRefreshToken
+public sealed record StoredRefreshToken : IVersionedEntity
 {
     public string TokenHash { get; init; } = default!;
 
@@ -23,6 +24,8 @@ public sealed record StoredRefreshToken
     public DateTimeOffset? RevokedAt { get; init; }
 
     public string? ReplacedByTokenHash { get; init; }
+
+    public long Version { get; set; }
 
     [NotMapped]
     public bool IsRevoked => RevokedAt.HasValue;

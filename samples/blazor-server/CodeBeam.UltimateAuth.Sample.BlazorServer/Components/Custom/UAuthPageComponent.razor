@@ -1,0 +1,10 @@
+﻿<MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="mud-height-full" MaxWidth="MaxWidth.Small">
+        @ChildContent
+    </MudContainer>
+</MudPage>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

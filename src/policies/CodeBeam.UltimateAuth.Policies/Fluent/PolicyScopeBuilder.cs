@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Authorization.Policies;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Policies.Registry;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,8 +21,7 @@ internal sealed class PolicyScopeBuilder : IPolicyScopeBuilder
 
     public IPolicyScopeBuilder RequireAuthenticated() => Add<RequireAuthenticatedPolicy>();
     public IPolicyScopeBuilder RequireSelf() => Add<RequireSelfPolicy>();
-    public IPolicyScopeBuilder RequireAdmin() => Add<RequireAdminPolicy>();
-    public IPolicyScopeBuilder RequireSelfOrAdmin() => Add<RequireSelfOrAdminPolicy>();
+    public IPolicyScopeBuilder RequirePermission() => Add<MustHavePermissionPolicy>();
     public IPolicyScopeBuilder DenyCrossTenant() => Add<DenyCrossTenantPolicy>();
     
     private IPolicyScopeBuilder Add<TPolicy>() where TPolicy : IAccessPolicy
