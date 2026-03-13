@@ -235,9 +235,9 @@ internal class UAuthFlowClient : IFlowClient
         await _post.NavigateAsync(url, payload);
     }
 
-    public async Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceSelfRequest request)
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request)
     {
-        var raw = await _post.SendJsonAsync(Url($"/logout-device"), request);
+        var raw = await _post.SendJsonAsync(Url($"/me/logout-device"), request);
 
         if (raw.Ok)
         {
@@ -254,28 +254,27 @@ internal class UAuthFlowClient : IFlowClient
         return UAuthResultMapper.FromJson<RevokeResult>(raw);
     }
 
-    public async Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, SessionChainId chainId)
+    public async Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, LogoutDeviceRequest request)
     {
-        LogoutDeviceAdminRequest request = new() { UserKey = userKey, ChainId = chainId };
-        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-device/{userKey.Value}"), request);
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-device"), request);
         return UAuthResultMapper.FromJson<RevokeResult>(raw);
     }
 
     public async Task<UAuthResult> LogoutOtherDevicesSelfAsync()
     {
-        var raw = await _post.SendJsonAsync(Url("/logout-others"));
+        var raw = await _post.SendJsonAsync(Url("/me/logout-others"));
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> LogoutOtherDevicesAdminAsync(LogoutOtherDevicesAdminRequest request)
+    public async Task<UAuthResult> LogoutOtherDevicesAdminAsync(UserKey userKey, LogoutOtherDevicesAdminRequest request)
     {
-        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-others/{request.UserKey.Value}"), request);
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-others"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> LogoutAllDevicesSelfAsync()
     {
-        var raw = await _post.SendJsonAsync(Url("/logout-all"));
+        var raw = await _post.SendJsonAsync(Url("/me/logout-all"));
         if (raw.Ok)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
@@ -285,11 +284,7 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey)
     {
-        var raw = await _post.SendJsonAsync(Url($"/admin/users/logout-all/{userKey.Value}"));
-        if (raw.Ok)
-        {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
-        }
+        var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-all"));
         return UAuthResultMapper.From(raw);
     }
 

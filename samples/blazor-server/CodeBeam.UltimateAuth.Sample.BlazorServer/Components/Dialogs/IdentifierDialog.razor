@@ -7,7 +7,16 @@
 <MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
     <TitleContent>
         <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            @if (UserKey is null)
+            {
+                <text>User: @AuthState?.Identity?.DisplayName</text>
+            }
+            else
+            {
+                <text>UserKey: @UserKey.Value</text>
+            }
+        </MudText>
     </TitleContent>
     <DialogContent>
         <MudDataGrid @ref="@_grid" T="UserIdentifierDto" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
@@ -23,33 +32,41 @@
                 <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
                 <PropertyColumn Property="x => x.Type" Title="Type" Editable="false" />
                 <PropertyColumn Property="x => x.Value" Title="Value" />
-                <PropertyColumn Property="x => x.IsPrimary" Title="Primary" Editable="false" />
-                <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false" />
+                <PropertyColumn Property="x => x.IsPrimary" Title="Primary" Editable="false">
+                    <CellTemplate>
+                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsPrimary? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false">
+                    <CellTemplate>
+                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsVerified? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+                    </CellTemplate>
+                </PropertyColumn>
                 <TemplateColumn Title="Actions" Editable="false">
                     <CellTemplate>
                         <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
                             <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@context.Actions.StartEditingItemAsync" />
                             </MudTooltip>
                             @if (context.Item.IsPrimary)
                             {
                                 <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" Size="Size.Small" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
                                 </MudTooltip>
                             }
                             else
                             {
                                 <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" Size="Size.Small" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
                                 </MudTooltip>
                             }
 
                             <MudTooltip Text="Verify" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" OnClick="@(() => VerifyAsync(context.Item.Id))" />
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" Size="Size.Small" OnClick="@(() => VerifyAsync(context.Item.Id))" />
                             </MudTooltip>
 
                             <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
+                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
                             </MudTooltip>
                         </MudStack>
                     </CellTemplate>
@@ -85,7 +102,6 @@
 
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -102,6 +118,9 @@
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
+
+    [Parameter]
+    public UserKey? UserKey { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -130,7 +149,16 @@
             Descending = sort?.Descending ?? false
         };
 
-        var res = await UAuthClient.Identifiers.GetMyIdentifiersAsync(req);
+        UAuthResult<PagedResult<UserIdentifierDto>> res;
+
+        if (UserKey is null)
+        {
+            res = await UAuthClient.Identifiers.GetMyIdentifiersAsync(req);
+        }
+        else
+        {
+            res = await UAuthClient.Identifiers.GetUserIdentifiersAsync(UserKey.Value, req);
+        }
 
         if (!res.IsSuccess || res.Value is null)
         {
@@ -190,7 +218,18 @@
             Id = item.Id,
             NewValue = item.Value
         };
-        var result = await UAuthClient.Identifiers.UpdateSelfAsync(updateRequest);
+        
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.UpdateSelfAsync(updateRequest);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.UpdateAdminAsync(UserKey.Value, updateRequest);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier updated successfully", Severity.Success);
@@ -219,7 +258,17 @@
             IsPrimary = _newIdentifierPrimary
         };
 
-        var result = await UAuthClient.Identifiers.AddSelfAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.AddSelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.AddAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier added successfully", Severity.Success);
@@ -252,7 +301,17 @@
         }
 
         VerifyUserIdentifierRequest request = new() { IdentifierId = id };
-        var result = await UAuthClient.Identifiers.VerifySelfAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.VerifySelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.VerifyAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier verified successfully", Severity.Success);
@@ -268,7 +327,17 @@
     private async Task SetPrimaryAsync(Guid id)
     {
         SetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
-        var result = await UAuthClient.Identifiers.SetPrimarySelfAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.SetPrimarySelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.SetPrimaryAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Primary identifier set successfully", Severity.Success);
@@ -284,7 +353,17 @@
     private async Task UnsetPrimaryAsync(Guid id)
     {
         UnsetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
-        var result = await UAuthClient.Identifiers.UnsetPrimarySelfAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.UnsetPrimarySelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.UnsetPrimaryAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Primary identifier unset successfully", Severity.Success);
@@ -300,7 +379,17 @@
     private async Task DeleteIdentifier(Guid id)
     {
         DeleteUserIdentifierRequest request = new() { IdentifierId = id };
-        var result = await UAuthClient.Identifiers.DeleteSelfAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Identifiers.DeleteSelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Identifiers.DeleteAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Identifier deleted successfully", Severity.Success);
@@ -312,8 +401,6 @@
             Snackbar.Add(result?.GetErrorText ?? "Failed to delete identifier", Severity.Error);
         }
     }
-
-    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 
     private void Cancel() => MudDialog.Cancel();
 }

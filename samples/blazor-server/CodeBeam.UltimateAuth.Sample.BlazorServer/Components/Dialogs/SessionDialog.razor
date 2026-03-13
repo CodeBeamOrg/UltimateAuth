@@ -8,8 +8,17 @@
 
 <MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
     <TitleContent>
-        <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
+        <MudText>Session Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            @if (UserKey is null)
+            {
+                <text>User: @AuthState?.Identity?.DisplayName</text>
+            }
+            else
+            {
+                <text>UserKey: @UserKey.Value</text>
+            }
+        </MudText>
     </TitleContent>
     <DialogContent>
         @if (_chainDetail is not null)
@@ -119,14 +128,20 @@
         {
             <MudStack Class="mud-width-full mb-4" Row="true">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="LogoutAllAsync">Logout All Devices</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="LogoutOthersAsync">Logout Other Devices</MudButton>
+                @if (UserKey == null)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="LogoutOthersAsync">Logout Other Devices</MudButton>
+                }
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="RevokeAllAsync">Revoke All Devices</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="RevokeOthersAsync">Revoke Other Devices</MudButton>
+                @if (UserKey == null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="RevokeOthersAsync">Revoke Other Devices</MudButton>
+                }
             </MudStack>
             <MudDataGrid @ref="@_grid" T="SessionChainSummaryDto" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
                          EditMode="DataGridEditMode.Form" ReadOnly="false" Loading="@_loading" Filterable="false">
                 <ToolBarContent>
-                    <MudText>Identifiers</MudText>
+                    <MudText>Sessions</MudText>
                     <MudSpacer />
                     <MudDivider Style="width: 30%" />
                     <MudSpacer />
@@ -134,8 +149,16 @@
                 </ToolBarContent>
                 <Columns>
                     <HierarchyColumn T="SessionChainSummaryDto" />
-                    <PropertyColumn Property="x => x.State" Title="State" Editable="false" />
-                    <PropertyColumn Property="x => x.IsCurrentDevice" Title="Current Device" Editable="false" />
+                    <PropertyColumn Property="x => x.State" Title="State" Editable="false">
+                        <CellTemplate>
+                            <MudChip T="string" Class="ml-n1" Size="Size.Small" Text="@context.Item.State.ToDescriptionString()" />
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.IsCurrentDevice" Title="Current Device" Editable="false">
+                        <CellTemplate>
+                            <MudIcon Size="Size.Small" Icon="@(context.Item.IsCurrentDevice ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+                        </CellTemplate>
+                    </PropertyColumn>
                     <PropertyColumn Property="x => x.OperatingSystem" Title="Operating System" Editable="false" />
                     <PropertyColumn Property="x => x.Platform" Title="Platform" Editable="false" />
                     <PropertyColumn Property="x => x.Browser" Title="Browser" Editable="false" />
@@ -144,15 +167,15 @@
                         <CellTemplate>
                             <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
                                 <MudTooltip Text="Details" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.ViewList" OnClick="@(() => ShowChainDetailsAsync(context.Item.ChainId))" />
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.ViewList" Size="Size.Small" OnClick="@(() => ShowChainDetailsAsync(context.Item.ChainId))" />
                                 </MudTooltip>
 
                                 <MudTooltip Text="Logout Device" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Logout" OnClick="@(() => LogoutDeviceAsync(context.Item.ChainId))" />
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Logout" Size="Size.Small" OnClick="@(() => LogoutDeviceAsync(context.Item.ChainId))" />
                                 </MudTooltip>
 
                                 <MudTooltip Text="Revoke Device" Color="Color.Error" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.SensorsOff" OnClick="@(() => RevokeChainAsync(context.Item.ChainId))" />
+                                    <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.SensorsOff" Size="Size.Small" OnClick="@(() => RevokeChainAsync(context.Item.ChainId))" />
                                 </MudTooltip>
                             </MudStack>
                         </CellTemplate>
@@ -190,7 +213,6 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -205,6 +227,9 @@
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
+
+    [Parameter]
+    public UserKey? UserKey { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -233,7 +258,16 @@
             Descending = sort?.Descending ?? false
         };
 
-        var res = await UAuthClient.Sessions.GetMyChainsAsync();
+        UAuthResult<PagedResult<SessionChainSummaryDto>> res;
+
+        if (UserKey is null)
+        {
+            res = await UAuthClient.Sessions.GetMyChainsAsync(req);
+        }
+        else
+        {
+            res = await UAuthClient.Sessions.GetUserChainsAsync(UserKey.Value, req);
+        }
 
         if (!res.IsSuccess || res.Value is null)
         {
@@ -288,36 +322,57 @@
 
     private async Task LogoutAllAsync()
     {
-        var result = await UAuthClient.Flows.LogoutAllDevicesSelfAsync();
-        if (result.IsSuccess)
+        UAuthResult result;
+
+        if (UserKey is null)
         {
-            Snackbar.Add("Logged out of all devices.", Severity.Success);
-            Nav.NavigateTo("/login");
+            result = await UAuthClient.Flows.LogoutAllDevicesSelfAsync();
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            result = await UAuthClient.Flows.LogoutAllDevicesAdminAsync(UserKey.Value);
+        }
+        
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Logged out of all devices.", Severity.Success);
+            if (UserKey is null)
+                Nav.NavigateTo("/login");
+        }
+        else
+        {
+            Snackbar.Add(result.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
     private async Task LogoutOthersAsync()
     {
-
         var result = await UAuthClient.Flows.LogoutOtherDevicesSelfAsync();
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Logged out of other devices.", Severity.Success);
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
     private async Task LogoutDeviceAsync(SessionChainId chainId)
     {
-        LogoutDeviceSelfRequest request = new() { ChainId = chainId };
-        var result = await UAuthClient.Flows.LogoutDeviceSelfAsync(request);
+        LogoutDeviceRequest request = new() { ChainId = chainId };
+        UAuthResult<RevokeResult> result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Flows.LogoutDeviceSelfAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Flows.LogoutDeviceAdminAsync(UserKey.Value, request);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Logged out of device.", Severity.Success);
@@ -330,21 +385,33 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            Snackbar.Add(result.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
     private async Task RevokeAllAsync()
     {
-        var result = await UAuthClient.Sessions.RevokeAllMyChainsAsync();
-        if (result.IsSuccess)
+        UAuthResult result;
+
+        if (UserKey is null)
         {
-            Snackbar.Add("Logged out of all devices.", Severity.Success);
-            Nav.NavigateTo("/login");
+            result = await UAuthClient.Sessions.RevokeAllMyChainsAsync();
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            result = await UAuthClient.Sessions.RevokeAllUserChainsAsync(UserKey.Value);
+        }
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Logged out of all devices.", Severity.Success);
+            
+            if (UserKey is null)
+                Nav.NavigateTo("/login");
+        }
+        else
+        {
+            Snackbar.Add(result?.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
@@ -358,13 +425,23 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
     private async Task RevokeChainAsync(SessionChainId chainId)
     {
-        var result = await UAuthClient.Sessions.RevokeMyChainAsync(chainId);
+        UAuthResult<RevokeResult> result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Sessions.RevokeMyChainAsync(chainId);
+        }
+        else
+        {
+            result = await UAuthClient.Sessions.RevokeUserChainAsync(UserKey.Value, chainId);
+        }
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Device revoked successfully.", Severity.Success);
@@ -378,20 +455,30 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to logout", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
     private async Task ShowChainDetailsAsync(SessionChainId chainId)
     {
-        var result = await UAuthClient.Sessions.GetMyChainDetailAsync(chainId);
+        UAuthResult<SessionChainDetailDto> result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Sessions.GetMyChainDetailAsync(chainId);
+        }
+        else
+        {
+            result = await UAuthClient.Sessions.GetUserChainDetailAsync(UserKey.Value, chainId);
+        }
+
         if (result.IsSuccess)
         {
             _chainDetail = result.Value;
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to fetch chain details.", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to fetch chain details.", Severity.Error);
             _chainDetail = null;
         }
     }
@@ -400,8 +487,6 @@
     {
         _chainDetail = null;
     }
-
-    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 
     private void Cancel() => MudDialog.Cancel();
 }

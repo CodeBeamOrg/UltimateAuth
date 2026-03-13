@@ -8,6 +8,7 @@ public interface IUserClient
 {
     Task<UAuthResult<PagedResult<UserSummary>>> QueryUsersAsync(UserQuery query);
     Task<UAuthResult<UserCreateResult>> CreateAsync(CreateUserRequest request);
+    Task<UAuthResult<UserCreateResult>> CreateAdminAsync(CreateUserRequest request);
     Task<UAuthResult<UserStatusChangeResult>> ChangeStatusSelfAsync(ChangeUserStatusSelfRequest request);
     Task<UAuthResult<UserStatusChangeResult>> ChangeStatusAdminAsync(UserKey userKey, ChangeUserStatusAdminRequest request);
     Task<UAuthResult> DeleteMeAsync();

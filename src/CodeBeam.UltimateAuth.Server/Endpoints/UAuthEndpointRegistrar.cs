@@ -56,15 +56,15 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 => await h.LogoutAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             if (Enabled(UAuthActions.Flows.LogoutDeviceSelf))
-                group.MapPost("/logout-device", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                self.MapPost("/logout-device", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                 => await h.LogoutDeviceSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             if (Enabled(UAuthActions.Flows.LogoutOthersSelf))
-                group.MapPost("/logout-others", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                self.MapPost("/logout-others", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                 => await h.LogoutOthersSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             if (Enabled(UAuthActions.Flows.LogoutAllSelf))
-                group.MapPost("/logout-all", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
+                self.MapPost("/logout-all", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
                 => await h.LogoutAllSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
@@ -75,15 +75,15 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
 
             if (Enabled(UAuthActions.Flows.LogoutDeviceAdmin))
-                admin.MapPost("/users/logout-device/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                admin.MapPost("/users/{userKey}/logout-device", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.LogoutDeviceAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             if (Enabled(UAuthActions.Flows.LogoutOthersAdmin))
-                admin.MapPost("/users/logout-others/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                admin.MapPost("/users/{userKey}/logout-others", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.LogoutOthersAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
 
             if (Enabled(UAuthActions.Flows.LogoutAllAdmin))
-                admin.MapPost("/users/logout-all/{userKey}", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                admin.MapPost("/users/{userKey}/logout-all", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.LogoutAllAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
         }
 
@@ -198,6 +198,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             if (Enabled(UAuthActions.Users.QueryAdmin))
                 adminUsers.MapPost("/query", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.QueryUsersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+
+            if (Enabled(UAuthActions.Users.CreateAdmin))
+                adminUsers.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
             if (Enabled(UAuthActions.Users.ChangeStatusAdmin))
                 adminUsers.MapPost("/{userKey}/status", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)

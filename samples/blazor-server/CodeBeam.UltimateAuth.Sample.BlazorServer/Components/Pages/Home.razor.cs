@@ -182,7 +182,7 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task OpenUserDialog()
     {
-        await DialogService.ShowAsync<UsersDialog>("User Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+        await DialogService.ShowAsync<UsersDialog>("User Management", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.Large));
     }
 
     private async Task OpenRoleDialog()

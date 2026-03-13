@@ -36,7 +36,7 @@ public sealed class UAuthLoginIdentifierOptions
 
 public sealed class UAuthIdentifierNormalizationOptions
 {
-    public CaseHandling UsernameCase { get; set; } = CaseHandling.Preserve;
+    public CaseHandling UsernameCase { get; set; } = CaseHandling.ToLower;
     public CaseHandling EmailCase { get; set; } = CaseHandling.ToLower;
     public CaseHandling CustomCase { get; set; } = CaseHandling.Preserve;
 

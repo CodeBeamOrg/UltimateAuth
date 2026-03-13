@@ -7,7 +7,16 @@
 <MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
     <TitleContent>
         <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            @if (UserKey is null)
+            {
+                <text>User: @AuthState?.Identity?.DisplayName</text>
+            }
+            else
+            {
+                <text>UserKey: @UserKey.Value</text>
+            }
+        </MudText>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
@@ -85,17 +94,13 @@
 </MudDialog>
 
 @code {
-
     private MudForm? _form;
-
     private string? _firstName;
     private string? _lastName;
     private string? _displayName;
-
     private DateTime? _birthDate;
     private string? _gender;
     private string? _bio;
-
     private string? _language;
     private string? _timeZone;
     private string? _culture;
@@ -106,9 +111,21 @@
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
 
+    [Parameter]
+    public UserKey? UserKey { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        var result = await UAuthClient.Users.GetMeAsync();
+        UAuthResult<UserView> result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Users.GetMeAsync();
+        }
+        else
+        {
+            result = await UAuthClient.Users.GetProfileAsync(UserKey.Value);
+        }
 
         if (result.IsSuccess && result.Value is not null)
         {
@@ -156,7 +173,16 @@
             Culture = _culture
         };
 
-        var result = await UAuthClient.Users.UpdateMeAsync(request);
+        UAuthResult result;
+
+        if (UserKey is null)
+        {
+            result = await UAuthClient.Users.UpdateMeAsync(request);
+        }
+        else
+        {
+            result = await UAuthClient.Users.UpdateProfileAsync(UserKey.Value, request);
+        }
 
         if (result.IsSuccess)
         {
@@ -165,10 +191,9 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to update profile", Severity.Error);
+            Snackbar.Add(result.GetErrorText ?? "Failed to update profile", Severity.Error);
         }
     }
 
     private void Cancel() => MudDialog.Cancel();
-
 }

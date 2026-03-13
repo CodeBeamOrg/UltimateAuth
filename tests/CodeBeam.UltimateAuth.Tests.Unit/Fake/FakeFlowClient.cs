@@ -71,12 +71,22 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
-    public Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceSelfRequest request)
+    public Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, LogoutDeviceRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request)
     {
         throw new NotImplementedException();
     }
 
     public Task<UAuthResult> LogoutOtherDevicesAdminAsync(LogoutOtherDevicesAdminRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UAuthResult> LogoutOtherDevicesAdminAsync(UserKey userKey, LogoutOtherDevicesAdminRequest request)
     {
         throw new NotImplementedException();
     }

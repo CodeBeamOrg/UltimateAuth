@@ -58,6 +58,26 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             : Results.BadRequest(result);
     }
 
+    public async Task<IResult> CreateAdminAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<CreateUserRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.CreateAdmin,
+            resource: "users");
+
+        var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
+
+        return result.Succeeded
+            ? Results.Ok(result)
+            : Results.BadRequest(result);
+    }
+
     public async Task<IResult> ChangeStatusSelfAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;

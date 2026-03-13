@@ -12,10 +12,10 @@ public interface ISessionClient
     Task<UAuthResult> RevokeAllMyChainsAsync();
 
 
-    Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetUserChainsAsync(UserKey userKey);
+    Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null);
     Task<UAuthResult<SessionChainDetailDto>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId);
     Task<UAuthResult> RevokeUserSessionAsync(UserKey userKey, AuthSessionId sessionId);
-    Task<UAuthResult> RevokeUserChainAsync(UserKey userKey, SessionChainId chainId);
+    Task<UAuthResult<RevokeResult>> RevokeUserChainAsync(UserKey userKey, SessionChainId chainId);
     Task<UAuthResult> RevokeUserRootAsync(UserKey userKey);
     Task<UAuthResult> RevokeAllUserChainsAsync(UserKey userKey);
 }

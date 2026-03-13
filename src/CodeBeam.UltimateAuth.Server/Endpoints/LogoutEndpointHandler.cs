@@ -70,7 +70,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         if (flow.UserKey is not UserKey userKey)
             return Results.Unauthorized();
 
-        var request = await ctx.ReadJsonAsync<LogoutDeviceSelfRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<LogoutDeviceRequest>(ctx.RequestAborted);
 
         var access = await _accessContextFactory.CreateAsync(
             flow,
@@ -88,16 +88,16 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var request = await ctx.ReadJsonAsync<LogoutDeviceAdminRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<LogoutDeviceRequest>(ctx.RequestAborted);
 
         var access = await _accessContextFactory.CreateAsync(
             flow,
             UAuthActions.Flows.LogoutDeviceAdmin,
             resource: "flows",
-            resourceId: request.UserKey.Value);
+            resourceId: userKey.Value);
 
-        await _sessionApplicationService.LogoutDeviceAsync(access, request.ChainId, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _sessionApplicationService.LogoutDeviceAsync(access, request.ChainId, ctx.RequestAborted);
+        return Results.Ok(result);
     }
 
     public async Task<IResult> LogoutOthersSelfAsync(HttpContext ctx)
@@ -134,7 +134,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
             flow,
             UAuthActions.Flows.LogoutOthersAdmin,
             resource: "flows",
-            resourceId: request.UserKey.Value);
+            resourceId: userKey.Value);
 
         await _sessionApplicationService.LogoutOtherDevicesAsync(access, userKey, request.CurrentChainId, ctx.RequestAborted);
         return Results.Ok();

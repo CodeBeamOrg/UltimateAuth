@@ -25,6 +25,13 @@
         </MudGrid>
 
         <MudDataGrid @ref="@_grid" T="UserSummary" ServerData="LoadUsers" Dense="true" Hover="true" Striped="true" Bordered="true" Loading="@_loading" Elevation="0">
+            <ToolBarContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-width-full">
+                    <MudText Typo="Typo.h6">Users</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateUser">New User</MudButton>
+                </MudStack>
+            </ToolBarContent>
             <Columns>
                 <HierarchyColumn T="UserSummary" />
                 <PropertyColumn Property="x => x.UserName" Title="Username" />
@@ -164,7 +171,26 @@
 
     private async Task OpenUser(UserKey userKey)
     {
-        await DialogService.ShowAsync<UserDetailDialog>("User", UAuthDialog.GetDialogParameters(AuthState, userKey), UAuthDialog.GetDialogOptions());
+        var dialog = await DialogService.ShowAsync<UserDetailDialog>("User", UAuthDialog.GetDialogParameters(AuthState, userKey), UAuthDialog.GetDialogOptions());
+        await dialog.Result;
+        await ReloadAsync();
+    }
+
+    private async Task OpenCreateUser()
+    {
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>(
+            "Create User",
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true
+            });
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+            await ReloadAsync();
     }
 
     private async Task DeleteUserAsync(UserSummary user)

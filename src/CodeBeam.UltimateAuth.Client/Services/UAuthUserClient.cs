@@ -62,6 +62,12 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
+    public async Task<UAuthResult<UserCreateResult>> CreateAdminAsync(CreateUserRequest request)
+    {
+        var raw = await _request.SendJsonAsync(Url("/admin/users/create"), request);
+        return UAuthResultMapper.FromJson<UserCreateResult>(raw);
+    }
+
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusSelfAsync(ChangeUserStatusSelfRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/status"), request);
