@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.Common;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -156,49 +157,37 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task OpenProfileDialog()
     {
-        await DialogService.ShowAsync<ProfileDialog>("Manage Profile", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<ProfileDialog>("Manage Profile", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private async Task OpenIdentifierDialog()
     {
-        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private async Task OpenSessionDialog()
     {
-        await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private async Task OpenCredentialDialog()
     {
-        await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private async Task OpenAccountStatusDialog()
     {
-        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), GetDialogOptions());
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenUserDialog()
+    {
+        await DialogService.ShowAsync<UsersDialog>("User Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private async Task OpenRoleDialog()
     {
-        await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), GetDialogOptions());
-    }
-
-    private async Task OpenUserRoleDialog()
-    {
-        var parameters = GetDialogParameters();
-        parameters.Add("UserKey", AuthState.Identity.UserKey);
-        await DialogService.ShowAsync<UserRoleDialog>("Role Management", parameters, GetDialogOptions());
-    }
-
-    private DialogOptions GetDialogOptions()
-    {
-        return new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+        await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
     private DialogParameters GetDialogParameters()

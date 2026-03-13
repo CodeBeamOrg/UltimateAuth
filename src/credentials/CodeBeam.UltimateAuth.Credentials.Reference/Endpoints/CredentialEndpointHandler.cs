@@ -156,6 +156,23 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         return Results.Ok(result);
     }
 
+    public async Task<IResult> ChangeSecretAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        if (!TryGetSelf(out var flow, out var error))
+            return error!;
+
+        var request = await ctx.ReadJsonAsync<ChangeCredentialRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            flow,
+            action: UAuthActions.Credentials.ChangeAdmin,
+            resource: "credentials",
+            resourceId: userKey.Value);
+
+        var result = await _credentials.ChangeSecretAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> RevokeAdminAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;

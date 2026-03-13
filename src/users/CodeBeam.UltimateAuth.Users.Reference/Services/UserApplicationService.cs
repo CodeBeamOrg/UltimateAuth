@@ -246,9 +246,9 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region User Profile
 
-    public async Task<UserViewDto> GetMeAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<UserView> GetMeAsync(AccessContext context, CancellationToken ct = default)
     {
-        var command = new AccessCommand<UserViewDto>(async innerCt =>
+        var command = new AccessCommand<UserView>(async innerCt =>
         {
             if (context.ActorUserKey is null)
                 throw new UnauthorizedAccessException();
@@ -259,9 +259,9 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<UserViewDto> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<UserView> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
     {
-        var command = new AccessCommand<UserViewDto>(async innerCt =>
+        var command = new AccessCommand<UserView>(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
             return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, innerCt);
@@ -639,12 +639,16 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region Helpers
 
-    private async Task<UserViewDto> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
+    private async Task<UserView> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
     {
+        var lifecycle = await _lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey));
         var profile = await _profileStore.GetAsync(new UserProfileKey(tenant, userKey), ct);
 
+        if (lifecycle is null || lifecycle.IsDeleted)
+            throw new UAuthNotFoundException("user_not_found");
+
         if (profile is null || profile.IsDeleted)
-            throw new InvalidOperationException("user_profile_not_found");
+            throw new UAuthNotFoundException("user_profile_not_found");
 
         var identifiers = await _identifierStore.GetByUserAsync(tenant, userKey, ct);
 
@@ -660,7 +664,8 @@ internal sealed class UserApplicationService : IUserApplicationService
             PrimaryEmail = primaryEmail?.Value,
             PrimaryPhone = primaryPhone?.Value,
             EmailVerified = primaryEmail?.IsVerified ?? false,
-            PhoneVerified = primaryPhone?.IsVerified ?? false
+            PhoneVerified = primaryPhone?.IsVerified ?? false,
+            Status = lifecycle.Status
         };
     }
 
@@ -718,4 +723,115 @@ internal sealed class UserApplicationService : IUserApplicationService
             UserIdentifierType.Phone;
 
     #endregion
+
+    public async Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default)
+    {
+        var command = new AccessCommand<PagedResult<UserSummary>>(async innerCt =>
+        {
+            query ??= new UserQuery();
+
+            var lifecycleQuery = new UserLifecycleQuery
+            {
+                PageNumber = 1,
+                PageSize = int.MaxValue,
+                Status = query.Status,
+                IncludeDeleted = query.IncludeDeleted
+            };
+
+            var lifecycleResult = await _lifecycleStore.QueryAsync(context.ResourceTenant, lifecycleQuery, innerCt);
+            var lifecycles = lifecycleResult.Items;
+
+            if (lifecycles.Count == 0)
+            {
+                return new PagedResult<UserSummary>(
+                    Array.Empty<UserSummary>(),
+                    0,
+                    query.PageNumber,
+                    query.PageSize,
+                    query.SortBy,
+                    query.Descending);
+            }
+
+            var userKeys = lifecycles.Select(x => x.UserKey).ToList();
+            var profiles = await _profileStore.GetByUsersAsync(context.ResourceTenant, userKeys, innerCt);
+            var identifiers = await _identifierStore.GetByUsersAsync(context.ResourceTenant, userKeys, innerCt);
+            var profileMap = profiles.ToDictionary(x => x.UserKey);
+            var identifierGroups = identifiers.GroupBy(x => x.UserKey).ToDictionary(x => x.Key, x => x.ToList());
+
+            var summaries = new List<UserSummary>();
+
+            foreach (var lifecycle in lifecycles)
+            {
+                profileMap.TryGetValue(lifecycle.UserKey, out var profile);
+
+                identifierGroups.TryGetValue(lifecycle.UserKey, out var ids);
+
+                var username = ids?.FirstOrDefault(x =>
+                    x.Type == UserIdentifierType.Username &&
+                    x.IsPrimary);
+
+                var email = ids?.FirstOrDefault(x =>
+                    x.Type == UserIdentifierType.Email &&
+                    x.IsPrimary);
+
+                summaries.Add(new UserSummary
+                {
+                    UserKey = lifecycle.UserKey,
+                    DisplayName = profile?.DisplayName,
+                    UserName = username?.Value,
+                    PrimaryEmail = email?.Value,
+                    Status = lifecycle.Status,
+                    CreatedAt = lifecycle.CreatedAt
+                });
+            }
+
+            // SEARCH
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim().ToLowerInvariant();
+
+                summaries = summaries
+                    .Where(x =>
+                        (x.DisplayName?.ToLowerInvariant().Contains(search) ?? false) ||
+                        (x.PrimaryEmail?.ToLowerInvariant().Contains(search) ?? false) ||
+                        (x.UserName?.ToLowerInvariant().Contains(search) ?? false) ||
+                        x.UserKey.Value.ToLowerInvariant().Contains(search))
+                    .ToList();
+            }
+
+            // SORT
+            summaries = query.SortBy switch
+            {
+                nameof(UserSummary.DisplayName) =>
+                    query.Descending
+                        ? summaries.OrderByDescending(x => x.DisplayName).ToList()
+                        : summaries.OrderBy(x => x.DisplayName).ToList(),
+
+                nameof(UserSummary.CreatedAt) =>
+                    query.Descending
+                        ? summaries.OrderByDescending(x => x.CreatedAt).ToList()
+                        : summaries.OrderBy(x => x.CreatedAt).ToList(),
+
+                _ => summaries.OrderBy(x => x.CreatedAt).ToList()
+            };
+
+            var total = summaries.Count;
+
+            // PAGINATION
+            var items = summaries
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToList();
+
+            return new PagedResult<UserSummary>(
+                items,
+                total,
+                query.PageNumber,
+                query.PageSize,
+                query.SortBy,
+                query.Descending);
+        });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
 }

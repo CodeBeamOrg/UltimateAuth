@@ -4,10 +4,10 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal static class UserProfileMapper
 {
-    public static UserViewDto ToDto(UserProfile profile)
+    public static UserView ToDto(UserProfile profile)
         => new()
         {
-            UserKey = profile.UserKey.ToString(),
+            UserKey = profile.UserKey,
             FirstName = profile.FirstName,
             LastName = profile.LastName,
             DisplayName = profile.DisplayName,

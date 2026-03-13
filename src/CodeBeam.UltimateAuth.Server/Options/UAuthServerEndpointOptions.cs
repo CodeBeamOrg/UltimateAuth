@@ -8,7 +8,7 @@ public sealed class UAuthServerEndpointOptions
     /// </summary>
     public string BasePath { get; set; } = "/auth";
 
-    public bool Login { get; set; } = true;
+    public bool Authentication { get; set; } = true;
     public bool Pkce { get; set; } = true;
     //public bool Token { get; set; } = true;
     public bool Session { get; set; } = true;
@@ -27,7 +27,7 @@ public sealed class UAuthServerEndpointOptions
 
     internal UAuthServerEndpointOptions Clone() => new()
     {
-        Login = Login,
+        Authentication = Authentication,
         Pkce = Pkce,
         //Token = Token,
         Session = Session,

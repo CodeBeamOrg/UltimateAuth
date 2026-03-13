@@ -16,6 +16,7 @@ internal static class DefaultPolicySet
 
         // Intent-based
         registry.Add("", _ => new RequireSelfPolicy());
+        registry.Add("", _ => new DenyAdminSelfModificationPolicy());
         registry.Add("", _ => new RequireSystemPolicy());
 
         // Permission

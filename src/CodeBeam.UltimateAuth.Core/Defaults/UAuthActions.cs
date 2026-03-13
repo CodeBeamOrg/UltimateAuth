@@ -53,6 +53,7 @@ public static class UAuthActions
     {
         public const string Wildcard = "users.*";
 
+        public const string QueryAdmin = "users.query.admin";
         public const string CreateAnonymous = "users.create.anonymous";
         public const string CreateAdmin = "users.create.admin";
         public const string DeleteSelf = "users.delete.self";

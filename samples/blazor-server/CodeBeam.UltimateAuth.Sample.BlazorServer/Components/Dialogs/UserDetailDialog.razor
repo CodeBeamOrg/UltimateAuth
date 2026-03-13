@@ -1,0 +1,91 @@
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorServer.Common
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject IDialogService DialogService
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">User Management</MudText>
+        <MudText Typo="Typo.subtitle2">@_user?.UserKey.Value</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle1">User Info</MudText>
+                <MudText>UserKey: @_user?.UserKey.Value</MudText>
+                <MudText>Display Name: @_user?.DisplayName</MudText>
+                <MudText>Status: @_user?.Status</MudText>
+            </MudPaper>
+
+            <MudDivider />
+
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                @* <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenStatus">Status</MudButton> *@
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenProfile">Profile</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenIdentifiers">Identifiers</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCredentials">Credentials</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenRoles">Roles</MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private UserView? _user;
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public UAuthState AuthState { get; set; } = default!;
+
+    [Parameter]
+    public UserKey UserKey { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var result = await UAuthClient.Users.GetProfileAsync(UserKey);
+        _user = result.Value;
+    }
+
+    private async Task OpenProfile()
+    {
+        // await DialogService.ShowAsync<UserProfileDialog>(
+        //     "Profile",
+        //     new DialogParameters
+        //     {
+        //     { nameof(UserProfileDialog.UserKey), User.UserKey }
+        //     });
+    }
+
+    private async Task OpenIdentifiers()
+    {
+        // await DialogService.ShowAsync<UserIdentifiersDialog>(
+        //     "Identifiers",
+        //     new DialogParameters
+        //     {
+        //     { nameof(UserIdentifiersDialog.UserKey), User.UserKey }
+        //     });
+    }
+
+    private async Task OpenCredentials()
+    {
+        await DialogService.ShowAsync<CredentialDialog>("Credentials", UAuthDialog.GetDialogParameters(AuthState, _user?.UserKey), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenRoles()
+    {
+        await DialogService.ShowAsync<UserRoleDialog>("Roles", UAuthDialog.GetDialogParameters(AuthState, _user?.UserKey), UAuthDialog.GetDialogOptions());
+    }
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+}

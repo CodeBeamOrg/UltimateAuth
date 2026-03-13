@@ -195,6 +195,23 @@ public sealed class InMemoryUserIdentifierStore : InMemoryVersionedStore<UserIde
 
     }
 
+    public Task<IReadOnlyList<UserIdentifier>> GetByUsersAsync(TenantKey tenant, IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var set = userKeys.ToHashSet();
+
+        var result = Values()
+            .Where(x => x.Tenant == tenant)
+            .Where(x => set.Contains(x.UserKey))
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.Snapshot())
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult<IReadOnlyList<UserIdentifier>>(result);
+    }
+
     public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

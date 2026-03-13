@@ -14,6 +14,7 @@ public interface ICredentialEndpointHandler
 
     Task<IResult> GetAllAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> AddAdminAsync(UserKey userKey, HttpContext ctx);
+    Task<IResult> ChangeSecretAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> RevokeAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> DeleteAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> BeginResetAdminAsync(UserKey userKey, HttpContext ctx);

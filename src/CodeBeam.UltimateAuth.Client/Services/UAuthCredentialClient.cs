@@ -23,21 +23,15 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task<UAuthResult<GetCredentialsResult>> GetMyAsync()
-    {
-        var raw = await _request.SendFormAsync(Url("/credentials/get"));
-        return UAuthResultMapper.FromJson<GetCredentialsResult>(raw);
-    }
-
     public async Task<UAuthResult<AddCredentialResult>> AddMyAsync(AddCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/credentials/add"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/credentials/add"), request);
         return UAuthResultMapper.FromJson<AddCredentialResult>(raw);
     }
 
     public async Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/credentials/change"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/credentials/change"), request);
         if (raw.Ok)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.StateEvents.HandlingMode));
@@ -47,7 +41,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult> RevokeMyAsync(RevokeCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/credentials/revoke"), request);
+        var raw = await _request.SendJsonAsync(Url($"/me/credentials/revoke"), request);
         if (raw.Ok)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
@@ -57,13 +51,13 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginCredentialResetRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/credentials/reset/begin"), request);
+        var raw = await _request.SendJsonAsync(Url($"/me/credentials/reset/begin"), request);
         return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
     }
 
     public async Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteCredentialResetRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/credentials/reset/complete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/me/credentials/reset/complete"), request);
         if (raw.Ok)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
@@ -72,46 +66,39 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     }
 
 
-    public async Task<UAuthResult<GetCredentialsResult>> GetUserAsync(UserKey userKey)
-    {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/get"));
-        return UAuthResultMapper.FromJson<GetCredentialsResult>(raw);
-    }
-
-    public async Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request)
+    public async Task<UAuthResult<AddCredentialResult>> AddCredentialAsync(UserKey userKey, AddCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/add"), request);
         return UAuthResultMapper.FromJson<AddCredentialResult>(raw);
     }
 
-    public async Task<UAuthResult> RevokeUserAsync(UserKey userKey, RevokeCredentialRequest request)
+    public async Task<UAuthResult<ChangeCredentialResult>> ChangeCredentialAsync(UserKey userKey, ChangeCredentialRequest request)
+    {
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/change"), request);
+        return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
+    }
+
+    public async Task<UAuthResult> RevokeCredentialAsync(UserKey userKey, RevokeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/revoke"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> ActivateUserAsync(UserKey userKey)
-    {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/activate"));
-        return UAuthResultMapper.From(raw);
-    }
-
-    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginCredentialResetRequest request)
+    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetCredentialAsync(UserKey userKey, BeginCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/reset/begin"), request);
         return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
     }
 
-    public async Task<UAuthResult<CredentialActionResult>> CompleteResetUserAsync(UserKey userKey, CompleteCredentialResetRequest request)
+    public async Task<UAuthResult<CredentialActionResult>> CompleteResetCredentialAsync(UserKey userKey, CompleteCredentialResetRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/credentials/reset/complete"), request);
         return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
     }
 
-    public async Task<UAuthResult> DeleteUserAsync(UserKey userKey)
+    public async Task<UAuthResult> DeleteCredentialAsync(UserKey userKey)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/credentials/delete"));
         return UAuthResultMapper.From(raw);
     }
-
 }

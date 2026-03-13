@@ -6,18 +6,16 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 
 public interface ICredentialClient
 {
-    Task<UAuthResult<GetCredentialsResult>> GetMyAsync();
     Task<UAuthResult<AddCredentialResult>> AddMyAsync(AddCredentialRequest request);
     Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request);
     Task<UAuthResult> RevokeMyAsync(RevokeCredentialRequest request);
     Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginCredentialResetRequest request);
     Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteCredentialResetRequest request);
 
-    Task<UAuthResult<GetCredentialsResult>> GetUserAsync(UserKey userKey);
-    Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request);
-    Task<UAuthResult> RevokeUserAsync(UserKey userKey, RevokeCredentialRequest request);
-    Task<UAuthResult> ActivateUserAsync(UserKey userKey);
-    Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginCredentialResetRequest request);
-    Task<UAuthResult<CredentialActionResult>> CompleteResetUserAsync(UserKey userKey, CompleteCredentialResetRequest request);
-    Task<UAuthResult> DeleteUserAsync(UserKey userKey);
+    Task<UAuthResult<AddCredentialResult>> AddCredentialAsync(UserKey userKey, AddCredentialRequest request);
+    Task<UAuthResult<ChangeCredentialResult>> ChangeCredentialAsync(UserKey userKey, ChangeCredentialRequest request);
+    Task<UAuthResult> RevokeCredentialAsync(UserKey userKey, RevokeCredentialRequest request);
+    Task<UAuthResult<BeginCredentialResetResult>> BeginResetCredentialAsync(UserKey userKey, BeginCredentialResetRequest request);
+    Task<UAuthResult<CredentialActionResult>> CompleteResetCredentialAsync(UserKey userKey, CompleteCredentialResetRequest request);
+    Task<UAuthResult> DeleteCredentialAsync(UserKey userKey);
 }

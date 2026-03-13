@@ -31,7 +31,7 @@ public sealed class UAuthAccessOrchestrator : IAccessOrchestrator
         var decision = _authority.Decide(context, policies);
 
         if (!decision.IsAllowed)
-            throw new UAuthAuthorizationException(decision.DenyReason);
+            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
 
         if (decision.RequiresReauthentication)
             throw new InvalidOperationException("Requires reauthentication.");
@@ -49,7 +49,7 @@ public sealed class UAuthAccessOrchestrator : IAccessOrchestrator
         var decision = _authority.Decide(context, policies);
 
         if (!decision.IsAllowed)
-            throw new UAuthAuthorizationException(decision.DenyReason);
+            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
 
         if (decision.RequiresReauthentication)
             throw new InvalidOperationException("Requires reauthentication.");

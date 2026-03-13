@@ -1,8 +1,12 @@
-﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
-public sealed record UserViewDto
+namespace CodeBeam.UltimateAuth.Users.Contracts;
+
+public sealed record UserView
 {
-    public string UserKey { get; init; } = default!;
+    public UserKey UserKey { get; init; } = default!;
+    public UserStatus Status { get; init; }
 
     public string? UserName { get; init; }
     public string? PrimaryEmail { get; init; }

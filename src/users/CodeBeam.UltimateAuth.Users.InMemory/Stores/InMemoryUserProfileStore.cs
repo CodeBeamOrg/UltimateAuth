@@ -65,4 +65,21 @@ public sealed class InMemoryUserProfileStore : InMemoryVersionedStore<UserProfil
                 query.SortBy,
                 query.Descending));
     }
+
+    public Task<IReadOnlyList<UserProfile>> GetByUsersAsync(TenantKey tenant, IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var set = userKeys.ToHashSet();
+
+        var result = Values()
+            .Where(x => x.Tenant == tenant)
+            .Where(x => set.Contains(x.UserKey))
+            .Where(x => !x.IsDeleted)
+            .Select(x => x.Snapshot())
+            .ToList()
+            .AsReadOnly();
+
+        return Task.FromResult<IReadOnlyList<UserProfile>>(result);
+    }
 }

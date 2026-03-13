@@ -5,6 +5,7 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
 public interface IUserEndpointHandler
 {
+    Task<IResult> QueryUsersAsync(HttpContext ctx);
     Task<IResult> CreateAsync(HttpContext ctx);
     Task<IResult> ChangeStatusSelfAsync(HttpContext ctx);
     Task<IResult> ChangeStatusAdminAsync(UserKey userKey, HttpContext ctx);

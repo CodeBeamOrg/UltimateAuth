@@ -21,6 +21,25 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         _users = users;
     }
 
+    public async Task<IResult> QueryUsersAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var query = await ctx.ReadJsonAsync<UserQuery>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.QueryAdmin,
+            resource: "users");
+
+        var result = await _users.QueryUsersAsync(accessContext, query, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> CreateAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;

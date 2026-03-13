@@ -81,9 +81,8 @@
                 </MudGrid>
             </MudExpansionPanel>
         </MudExpansionPanels>
-
-
     </DialogContent>
+
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
@@ -198,7 +197,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to update identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to update identifier", Severity.Error);
         }
 
         await ReloadAsync();
@@ -229,7 +228,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to add identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to add identifier", Severity.Error);
         }
     }
 
@@ -262,7 +261,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to verify primary identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to verify primary identifier", Severity.Error);
         }
     }
 
@@ -278,7 +277,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to set primary identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to set primary identifier", Severity.Error);
         }
     }
 
@@ -294,7 +293,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to unset primary identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to unset primary identifier", Severity.Error);
         }
     }
 
@@ -310,7 +309,7 @@
         }
         else
         {
-            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Failed to delete identifier", Severity.Error);
+            Snackbar.Add(result?.GetErrorText ?? "Failed to delete identifier", Severity.Error);
         }
     }
 
