@@ -20,6 +20,7 @@ builder.Services.AddUltimateAuthClient(o =>
     o.Endpoints.BasePath = "https://localhost:6110/auth";
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Login.AllowCredentialPost = true;
+    o.Pkce.ReturnUrl = "https://localhost:6130/home";
 });
 
 //builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();

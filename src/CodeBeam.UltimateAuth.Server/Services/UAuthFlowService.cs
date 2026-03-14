@@ -41,6 +41,9 @@ internal sealed class UAuthFlowService : IUAuthFlowService
         var effectiveFlow = execution.EffectiveClientProfile is null
             ? flow
             : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthClientProfile)execution.EffectiveClientProfile, ct);
+        effectiveFlow = execution.Device is null
+            ? effectiveFlow
+            : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);
         return await _loginOrchestrator.LoginAsync(effectiveFlow, request, ct);
     }
 

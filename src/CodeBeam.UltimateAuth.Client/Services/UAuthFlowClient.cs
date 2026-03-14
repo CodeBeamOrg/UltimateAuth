@@ -22,14 +22,16 @@ internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
     private readonly IUAuthClientEvents _events;
+    private readonly IDeviceIdProvider _deviceIdProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IDeviceIdProvider deviceIdProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
     {
         _post = post;
         _events = events;
+        _deviceIdProvider = deviceIdProvider;
         _options = options.Value;
         _diagnostics = diagnostics;
         _nav = nav;
@@ -168,6 +170,7 @@ internal class UAuthFlowClient : IFlowClient
     public async Task BeginPkceAsync(string? returnUrl = null)
     {
         var pkce = _options.Pkce;
+        var deviceId = await _deviceIdProvider.GetOrCreateAsync();
 
         if (!pkce.Enabled)
             throw new InvalidOperationException("PKCE login is disabled by configuration.");
@@ -182,7 +185,8 @@ internal class UAuthFlowClient : IFlowClient
             new Dictionary<string, string>
             {
                 ["code_challenge"] = challenge,
-                ["challenge_method"] = "S256"
+                ["challenge_method"] = "S256",
+                ["device_id"] = deviceId.Value
             });
 
         if (!raw.Ok || raw.Body is null)
@@ -205,7 +209,7 @@ internal class UAuthFlowClient : IFlowClient
 
         if (pkce.AutoRedirect)
         {
-            await NavigateToHubLoginAsync(response.AuthorizationCode, verifier, resolvedReturnUrl);
+            await NavigateToHubLoginAsync(response.AuthorizationCode, verifier, resolvedReturnUrl, deviceId.Value);
         }
     }
 
@@ -229,7 +233,7 @@ internal class UAuthFlowClient : IFlowClient
             ["return_url"] = request.ReturnUrl,
 
             ["Identifier"] = request.Identifier ?? string.Empty,
-            ["Secret"] = request.Secret ?? string.Empty
+            ["Secret"] = request.Secret ?? string.Empty,
         };
 
         await _post.NavigateAsync(url, payload);
@@ -289,7 +293,7 @@ internal class UAuthFlowClient : IFlowClient
     }
 
 
-    private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl)
+    private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl, string deviceId)
     {
         var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
 
@@ -298,7 +302,8 @@ internal class UAuthFlowClient : IFlowClient
             ["authorization_code"] = authorizationCode,
             ["code_verifier"] = codeVerifier,
             ["return_url"] = returnUrl,
-            ["client_profile"] = _options.ClientProfile.ToString()
+            ["client_profile"] = _options.ClientProfile.ToString(),
+            ["device_id"] = deviceId
         };
 
         return _post.NavigateAsync(hubLoginUrl, data);

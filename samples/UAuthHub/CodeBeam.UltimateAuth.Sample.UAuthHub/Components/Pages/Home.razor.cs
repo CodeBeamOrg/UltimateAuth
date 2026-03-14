@@ -26,7 +26,7 @@ public partial class Home
             return;
         }
 
-        if (!HubSessionId.TryParse(HubKey, out var hubSessionId))
+        if (HubSessionId.TryParse(HubKey, out var hubSessionId))
             _state = await HubFlowReader.GetStateAsync(hubSessionId);
     }
 

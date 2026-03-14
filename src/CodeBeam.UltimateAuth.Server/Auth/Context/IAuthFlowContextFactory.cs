@@ -8,4 +8,5 @@ public interface IAuthFlowContextFactory
 {
     ValueTask<AuthFlowContext> CreateAsync(HttpContext httpContext, AuthFlowType flowType, CancellationToken ct = default);
     ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthClientProfile overriddenProfile, CancellationToken ct = default);
+    ValueTask<AuthFlowContext> RecreateWithDeviceAsync(AuthFlowContext existing, DeviceContext device, CancellationToken ct = default);
 }
