@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Controllers;
 
-[Route("uauthhub")]
+[Route("auth/uauthhub")]
 [IgnoreAntiforgeryToken]
 public sealed class HubLoginController : Controller
 {

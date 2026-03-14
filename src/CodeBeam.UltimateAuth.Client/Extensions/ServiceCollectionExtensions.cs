@@ -99,8 +99,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
         services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
 
-        //services.AddScoped<UAuthCascadingStateProvider>();
-        //services.AddScoped<CascadingValueSource<UAuthState>>(sp => sp.GetRequiredService<UAuthCascadingStateProvider>());
+        services.AddAuthorizationCore();
 
         return services;
     }

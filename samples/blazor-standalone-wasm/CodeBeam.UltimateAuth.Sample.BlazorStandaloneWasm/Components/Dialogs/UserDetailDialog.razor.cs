@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.Common;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Common;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;

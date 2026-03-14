@@ -1,29 +1,59 @@
-﻿@inject ISnackbar Snackbar
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure
+@using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
+@inject ISnackbar Snackbar
+@inject DarkModeManager DarkModeManager
 
 <UAuthApp OnReauthRequired="HandleReauth">
+    <CascadingValue Value="DarkModeManager" IsFixed="true">
+        <MudThemeProvider IsDarkMode="@DarkModeManager.IsDarkMode" />
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
 
-    <MudThemeProvider />
-    <MudPopoverProvider />
-    <MudSnackbarProvider />
-    <MudDialogProvider />
-
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-        </Found>
-        <NotFound>
-            <PageTitle>Not found</PageTitle>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Sorry, there's nothing at this address.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
+        <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(UAuthClientMarker).Assembly }">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                    <NotAuthorized>
+                        <NotAuthorized />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Found>
+        </Router>
+    </CascadingValue>
 </UAuthApp>
 
 @code {
-    private void HandleReauth()
+    private async Task HandleReauth()
     {
         Snackbar.Add("Reauthentication required. Please log in again.", Severity.Warning);
     }
+
+    #region DarkMode
+
+    protected override void OnInitialized()
+    {
+        DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await DarkModeManager.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        DarkModeManager.Changed -= OnThemeChanged;
+    }
+
+    #endregion
 }

@@ -213,18 +213,6 @@ public partial class Home : UAuthFlowPageBase
         }
     }
 
-    private string? _roles = "Admin";
-    private void RefreshHiddenState()
-    {
-        if (_roles == "Admin")
-        {
-            _roles = "User";
-            return;
-        }
-
-        _roles = "Admin";
-    }
-
     public override void Dispose()
     {
         base.Dispose();

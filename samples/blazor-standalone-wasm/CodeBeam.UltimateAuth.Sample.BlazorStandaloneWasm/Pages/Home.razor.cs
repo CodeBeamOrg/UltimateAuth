@@ -1,125 +1,222 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Authentication;
+using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.AspNetCore.Components;
+using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Common;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Components.Dialogs;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
+using System.Security.Claims;
 
-namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages
+namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages;
+
+public partial class Home : UAuthFlowPageBase
 {
-    public partial class Home
+    private string _selectedAuthState = "UAuthState";
+    private ClaimsPrincipal? _aspNetCoreState;
+
+    private bool _showAdminPreview = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        [CascadingParameter]
-        public UAuthState Auth { get; set; } = null!;
+        var initial = await AuthStateProvider.GetAuthenticationStateAsync();
+        _aspNetCoreState = initial.User;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        Diagnostics.Changed += OnDiagnosticsChanged;
+    }
 
-        private string? _username;
-        private string? _password;
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        _ = HandleAuthStateChangedAsync(task);
+    }
 
-        private AuthenticationState _authState = null!;
-
-        protected override async Task OnInitializedAsync()
+    private async Task HandleAuthStateChangedAsync(Task<AuthenticationState> task)
+    {
+        try
         {
-            Diagnostics.Changed += OnDiagnosticsChanged;
-            //_authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var state = await task;
+            _aspNetCoreState = state.User;
+            await InvokeAsync(StateHasChanged);
         }
-
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        catch
         {
-            if (firstRender)
-            {
-                await StateManager.EnsureAsync();
-                _authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                StateHasChanged();
-            }
-        }
 
-        private void OnDiagnosticsChanged()
-        {
-            InvokeAsync(StateHasChanged);
         }
+    }
 
-        private async Task ProgrammaticLogin()
-        {
-            var deviceId = await DeviceIdProvider.GetOrCreateAsync();
-            var request = new LoginRequest
-            {
-                Identifier = "admin",
-                Secret = "admin",
-            };
-            await UAuthClient.Flows.LoginAsync(request);
-        }
+    private void OnDiagnosticsChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
 
-        private async Task StartPkceLogin()
-        {
-            await UAuthClient.Flows.BeginPkceAsync();
-            //await UAuthClient.NavigateToHubLoginAsync(Nav.Uri);
-        }
+    private async Task Logout() => await UAuthClient.Flows.LogoutAsync();
 
-        private async Task ValidateAsync()
+    private async Task RefreshSession() => await UAuthClient.Flows.RefreshAsync(false);
+
+    private async Task Validate()
+    {
+        try
         {
             var result = await UAuthClient.Flows.ValidateAsync();
 
-            Snackbar.Add(
-                result.IsValid ? "Session is valid ✅" : $"Session invalid ❌ ({result.State})",
-                result.IsValid ? Severity.Success : Severity.Error);
-        }
-
-        private async Task LogoutAsync()
-        {
-            await UAuthClient.Flows.LogoutAsync();
-            Snackbar.Add("Logged out", Severity.Success);
-        }
-
-        private async Task RefreshAsync()
-        {
-            await UAuthClient.Flows.RefreshAsync();
-        }
-
-        private async Task RefreshAuthState()
-        {
-            await StateManager.OnLoginAsync();
-        }
-
-        protected override void OnAfterRender(bool firstRender)
-        {
-            if (firstRender)
+            if (result.IsValid)
             {
-                var uri = Nav.ToAbsoluteUri(Nav.Uri);
-                var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-
-                if (query.TryGetValue("error", out var error))
+                if (result.Snapshot?.Identity.UserStatus == UserStatus.SelfSuspended)
                 {
-                    ShowLoginError(error.ToString());
-                    ClearQueryString();
+                    Snackbar.Add("Your account is suspended by you.", Severity.Warning);
+                    return;
+                }
+                Snackbar.Add($"Session active • Tenant: {result.Snapshot?.Identity?.Tenant.Value} • User: {result.Snapshot?.Identity?.PrimaryUserName}", Severity.Success);
+            }
+            else
+            {
+                switch (result.State)
+                {
+                    case SessionState.Expired:
+                        Snackbar.Add("Session expired. Please sign in again.", Severity.Warning);
+                        break;
+
+                    case SessionState.DeviceMismatch:
+                        Snackbar.Add("Session invalid for this device.", Severity.Error);
+                        break;
+
+                    default:
+                        Snackbar.Add($"Session state: {result.State}", Severity.Error);
+                        break;
                 }
             }
         }
-
-        private void ShowLoginError(string code)
+        catch (UAuthTransportException)
         {
-            var message = code switch
-            {
-                "invalid" => "Invalid username or password.",
-                "locked" => "Your account is locked.",
-                "mfa" => "Multi-factor authentication required.",
-                _ => "Login failed."
-            };
-
-            Snackbar.Add(message, Severity.Error);
+            Snackbar.Add("Network error.", Severity.Error);
         }
-
-        private void ClearQueryString()
+        catch (UAuthProtocolException)
         {
-            var uri = new Uri(Nav.Uri);
-            var clean = uri.GetLeftPart(UriPartial.Path);
-            Nav.NavigateTo(clean, replace: true);
+            Snackbar.Add("Invalid response.", Severity.Error);
         }
-
-        public void Dispose()
+        catch (UAuthException ex)
         {
-            Diagnostics.Changed -= OnDiagnosticsChanged;
+            Snackbar.Add($"UAuth error: {ex.Message}", Severity.Error);
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
+    }
 
+    private Color GetHealthColor()
+    {
+        if (Diagnostics.RefreshReauthRequiredCount > 0)
+            return Color.Warning;
+
+        if (Diagnostics.TerminatedCount > 0)
+            return Color.Error;
+
+        return Color.Success;
+    }
+
+    private string GetHealthText()
+    {
+        if (Diagnostics.RefreshReauthRequiredCount > 0)
+            return "Reauthentication Required";
+
+        if (Diagnostics.TerminatedCount > 0)
+            return "Session Terminated";
+
+        return "Healthy";
+    }
+
+    private string? FormatRelative(DateTimeOffset? utc)
+    {
+        if (utc is null)
+            return null;
+
+        var diff = DateTimeOffset.UtcNow - utc.Value;
+
+        if (diff.TotalSeconds < 5)
+            return "just now";
+
+        if (diff.TotalSeconds < 60)
+            return $"{(int)diff.Seconds} secs ago";
+
+        if (diff.TotalMinutes < 60)
+            return $"{(int)diff.TotalMinutes} min ago";
+
+        if (diff.TotalHours < 24)
+            return $"{(int)diff.TotalHours} hrs ago";
+
+        return utc.Value.ToLocalTime().ToString("dd MMM yyyy");
+    }
+
+    private string? FormatLocalTime(DateTimeOffset? utc)
+    {
+        return utc?.ToLocalTime().ToString("dd MMM yyyy • HH:mm:ss");
+    }
+
+    private async Task OpenProfileDialog()
+    {
+        await DialogService.ShowAsync<ProfileDialog>("Manage Profile", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenIdentifierDialog()
+    {
+        await DialogService.ShowAsync<IdentifierDialog>("Manage Identifiers", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenSessionDialog()
+    {
+        await DialogService.ShowAsync<SessionDialog>("Manage Sessions", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenCredentialDialog()
+    {
+        await DialogService.ShowAsync<CredentialDialog>("Session Diagnostics", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private async Task OpenAccountStatusDialog()
+    {
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.ExtraSmall));
+    }
+
+    private async Task OpenUserDialog()
+    {
+        await DialogService.ShowAsync<UsersDialog>("User Management", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.Large));
+    }
+
+    private async Task OpenRoleDialog()
+    {
+        await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
+    private DialogParameters GetDialogParameters()
+    {
+        return new DialogParameters
+        {
+            ["AuthState"] = AuthState
+        };
+    }
+
+    private async Task SetAccountActiveAsync()
+    {
+        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfUserStatus.Active };
+        var result = await UAuthClient.Users.ChangeStatusSelfAsync(request);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Account activated successfully.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Activation failed.", Severity.Error);
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+        Diagnostics.Changed -= OnDiagnosticsChanged;
     }
 }

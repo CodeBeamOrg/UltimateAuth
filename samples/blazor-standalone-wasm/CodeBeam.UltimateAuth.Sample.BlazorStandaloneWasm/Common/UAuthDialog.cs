@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Common;
+namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Common;
 
 public static class UAuthDialog
 {
