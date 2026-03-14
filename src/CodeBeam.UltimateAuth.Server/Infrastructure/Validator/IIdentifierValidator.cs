@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IIdentifierValidator
 {
-    Task<IdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierDto identifier, CancellationToken ct = default);
+    Task<IdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierInfo identifier, CancellationToken ct = default);
 }

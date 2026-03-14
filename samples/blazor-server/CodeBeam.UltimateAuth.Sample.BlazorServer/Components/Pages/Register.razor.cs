@@ -39,7 +39,7 @@ public partial class Register
         }
         else
         {
-            Snackbar.Add(result.Problem?.Detail ?? result.Problem?.Title ?? "Failed to create user.", Severity.Error);
+            Snackbar.Add(result.GetErrorText ?? "Failed to create user.", Severity.Error);
         }
     }
 }

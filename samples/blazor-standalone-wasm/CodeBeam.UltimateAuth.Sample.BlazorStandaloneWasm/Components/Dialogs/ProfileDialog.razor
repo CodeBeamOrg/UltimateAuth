@@ -1,0 +1,103 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText>Identifier Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            @if (UserKey is null)
+            {
+                <text>User: @AuthState?.Identity?.DisplayName</text>
+            }
+            else
+            {
+                <text>UserKey: @UserKey.Value</text>
+            }
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loaded)
+        {
+            <MudForm @ref="_form" OnEnterPressed="SaveAsync">
+                <MudContainer Class="pa-2" Gutters="false">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">Name</MudText>
+                                <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_firstName" Label="First Name" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_lastName" Label="Last Name" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_displayName" Label="Display Name" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" class="mt-4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">Personal</MudText>
+                                <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker @bind-Date="_birthDate" Label="Birth Date" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_gender" Label="Gender" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_bio" Label="Bio" Lines="3" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" class="mt-4">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">Localization</MudText>
+                                <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_language" Label="Language" Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudSelectExtended T="string" @bind-Value="_timeZone" Label="Time Zone" Variant="Variant.Outlined" SearchBox="true">
+                                @foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
+                                {
+                                    <MudSelectItemExtended Value="@tz.Id">@tz.Id - @tz.DisplayName</MudSelectItemExtended>
+                                }
+                            </MudSelectExtended>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_culture" Label="Culture" Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudContainer>
+            </MudForm>
+        }
+        else
+        {
+            <div class="mud-width-full mud-height-full d-flex align-center justify-center">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>

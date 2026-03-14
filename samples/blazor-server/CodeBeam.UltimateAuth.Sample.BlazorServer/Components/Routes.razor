@@ -3,8 +3,7 @@
 @inject ISnackbar Snackbar
 @inject DarkModeManager DarkModeManager
 
-<UAuthApp RenderMode="UAuthRenderMode.Manual" OnReauthRequired="HandleReauth">
-
+<UAuthApp OnReauthRequired="HandleReauth">
     <CascadingValue Value="DarkModeManager" IsFixed="true">
         <MudThemeProvider IsDarkMode="@DarkModeManager.IsDarkMode" />
         <MudPopoverProvider />

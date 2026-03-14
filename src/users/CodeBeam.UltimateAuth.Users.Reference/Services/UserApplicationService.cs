@@ -305,9 +305,9 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region Identifiers
 
-    public async Task<PagedResult<UserIdentifierDto>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<UserIdentifierInfo>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default)
     {
-        var command = new AccessCommand<PagedResult<UserIdentifierDto>>(async innerCt =>
+        var command = new AccessCommand<PagedResult<UserIdentifierInfo>>(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
 
@@ -317,7 +317,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var result = await _identifierStore.QueryAsync(context.ResourceTenant, query, innerCt);
             var dtoItems = result.Items.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
 
-            return new PagedResult<UserIdentifierDto>(
+            return new PagedResult<UserIdentifierInfo>(
                 dtoItems,
                 result.TotalCount,
                 result.PageNumber,
@@ -329,9 +329,9 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<UserIdentifierDto?> GetIdentifierAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
+    public async Task<UserIdentifierInfo?> GetIdentifierAsync(AccessContext context, UserIdentifierType type, string value, CancellationToken ct = default)
     {
-        var command = new AccessCommand<UserIdentifierDto?>(async innerCt =>
+        var command = new AccessCommand<UserIdentifierInfo?>(async innerCt =>
         {
             var normalized = _identifierNormalizer.Normalize(type, value);
             if (!normalized.IsValid)
@@ -365,7 +365,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     {
         var command = new AccessCommand(async innerCt =>
         {
-            var validationDto = new UserIdentifierDto() { Type = request.Type, Value = request.Value };
+            var validationDto = new UserIdentifierInfo() { Type = request.Type, Value = request.Value };
             var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
             if (validationResult.IsValid != true)
             {

@@ -1,22 +1,24 @@
 using CodeBeam.UltimateAuth.Authentication.InMemory;
-using CodeBeam.UltimateAuth.Authorization.InMemory;
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
+using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
+using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,17 +28,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddControllers();
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(o => {
+    o.SnackbarConfiguration.PreventDuplicates = false;
+});
 builder.Services.AddMudExtensions();
-
-//builder.Services
-//    .AddAuthentication(options =>
-//    {
-//        options.DefaultAuthenticateScheme = UAuthSchemeDefaults.AuthenticationScheme;
-//        options.DefaultSignInScheme = UAuthSchemeDefaults.AuthenticationScheme;
-//        options.DefaultChallengeScheme = UAuthSchemeDefaults.AuthenticationScheme;
-//    })
-//    .AddUAuthCookies();
 
 //builder.Services.AddAuthorization();
 
@@ -66,6 +61,7 @@ builder.Services.AddUltimateAuthClient(o =>
 });
 
 builder.Services.AddSingleton<IUAuthHubMarker, DefaultUAuthHubMarker>();
+builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddCors(options =>
 {
@@ -75,33 +71,29 @@ builder.Services.AddCors(options =>
             .WithOrigins("https://localhost:6130")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .WithExposedHeaders("X-UAuth-Refresh"); // TODO: Add exposed headers globally
     });
 });
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    scope.ServiceProvider.GetRequiredService<IUserLifecycleStore>();
-    scope.ServiceProvider.GetRequiredService<IUserProfileStore>();
-    scope.ServiceProvider.GetRequiredService<IUserIdentifierStore>();
-
-    var seeder = scope.ServiceProvider.GetService<IAuthorizationSeeder>();
-    //if (seeder is not null)
-    //    await seeder.SeedAsync();
-
-    
-}
-
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-//app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+else
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+
+    using var scope = app.Services.CreateScope();
+    var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
+    await seedRunner.RunAsync(null);
+}
+
 app.UseHttpsRedirection();
 app.UseCors("WasmSample");
 
@@ -113,7 +105,8 @@ app.MapStaticAssets();
 
 app.MapControllers();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddUltimateAuthClientRoutes(typeof(UAuthClientMarker).Assembly);
 
 app.MapGet("/health", () =>
 {

@@ -15,7 +15,7 @@ public sealed class IdentifierValidator : IIdentifierValidator
         _options = options.Value.IdentifierValidation;
     }
 
-    public Task<IdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierDto identifier, CancellationToken ct = default)
+    public Task<IdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierInfo identifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 

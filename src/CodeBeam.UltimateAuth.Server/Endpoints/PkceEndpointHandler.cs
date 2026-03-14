@@ -48,6 +48,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     {
         var authContext = _authContext.Current;
 
+        // TODO: Make PKCE flow free
         if (authContext.FlowType != AuthFlowType.Login)
             return Results.BadRequest("PKCE is only supported for login flow.");
 
@@ -67,7 +68,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             clientProfile: authContext.ClientProfile,
             tenant: authContext.Tenant,
             redirectUri: request.RedirectUri,
-            deviceId: string.Empty // TODO: Fix here with device binding
+            deviceId: request.DeviceId
         );
 
         var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
@@ -114,7 +115,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 clientProfile: authContext.ClientProfile,
                 tenant: authContext.Tenant,
                 redirectUri: null,
-                deviceId: string.Empty),
+                deviceId: artifact.Context.DeviceId),
             _clock.UtcNow);
 
         if (!validation.Success)
@@ -135,6 +136,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         var execution = new AuthExecutionContext
         {
             EffectiveClientProfile = artifact.Context.ClientProfile,
+            Device = DeviceContext.Create(DeviceId.Create(artifact.Context.DeviceId), null, null, null, null, null)
         };
 
         var result = await _flow.LoginAsync(authContext, execution, loginRequest, ctx.RequestAborted);
@@ -178,12 +180,14 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             var codeChallenge = form["code_challenge"].ToString();
             var challengeMethod = form["challenge_method"].ToString();
             var redirectUri = form["redirect_uri"].ToString();
+            var deviceId = form["device_id"].ToString();
 
             return new PkceAuthorizeRequest
             {
                 CodeChallenge = codeChallenge,
                 ChallengeMethod = challengeMethod,
-                RedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? null : redirectUri
+                RedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? null : redirectUri,
+                DeviceId = deviceId
             };
         }
 

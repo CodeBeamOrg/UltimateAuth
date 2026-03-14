@@ -67,7 +67,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var dtos = credentials
                 .OfType<ICredentialDescriptor>()
-                .Select(c => new CredentialDto
+                .Select(c => new CredentialInfo
                 {
                     Id = c.Id,
                     Type = c.Type,

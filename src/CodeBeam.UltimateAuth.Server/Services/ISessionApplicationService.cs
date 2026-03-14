@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Server.Services;
 
 public interface ISessionApplicationService
 {
-    Task<PagedResult<SessionChainSummaryDto>> GetUserChainsAsync(AccessContext context,UserKey userKey, PageRequest request, CancellationToken ct = default);
+    Task<PagedResult<SessionChainSummary>> GetUserChainsAsync(AccessContext context,UserKey userKey, PageRequest request, CancellationToken ct = default);
     
-    Task<SessionChainDetailDto> GetUserChainDetailAsync(AccessContext context, UserKey userKey, SessionChainId chainId, CancellationToken ct = default);
+    Task<SessionChainDetail> GetUserChainDetailAsync(AccessContext context, UserKey userKey, SessionChainId chainId, CancellationToken ct = default);
 
     Task RevokeUserSessionAsync(AccessContext context, UserKey userKey, AuthSessionId sessionId, CancellationToken ct = default);
 

@@ -9,17 +9,17 @@ public sealed class UAuthClientPkceLoginFlowOptions
     /// </summary>
     public bool Enabled { get; set; } = true;
 
-    public string? ReturnUrl { get; init; }
+    public string? ReturnUrl { get; set; }
 
     /// <summary>
     /// Called after authorization_code is issued,
     /// before redirecting to the Hub.
     /// </summary>
-    public Func<PkceAuthorizeResponse, Task>? OnAuthorized { get; init; }
+    public Func<PkceAuthorizeResponse, Task>? OnAuthorized { get; set; }
 
     /// <summary>
     /// If false, BeginPkceAsync will NOT redirect automatically.
     /// Caller is responsible for navigation.
     /// </summary>
-    public bool AutoRedirect { get; init; } = true;
+    public bool AutoRedirect { get; set; } = true;
 }

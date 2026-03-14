@@ -27,6 +27,7 @@ public sealed class UAuthClientDiagnostics
     public int AutomaticRefreshCount { get; private set; }
    
     public int RefreshTouchedCount { get; private set; }
+    public int RefreshRotatedCount { get; private set; }
     public int RefreshNoOpCount { get; private set; }
     public int RefreshReauthRequiredCount { get; private set; }
     public int RefreshSuccessCount { get; private set; }
@@ -72,6 +73,12 @@ public sealed class UAuthClientDiagnostics
     internal void MarkRefreshTouched()
     {
         RefreshTouchedCount++;
+        Changed?.Invoke();
+    }
+
+    internal void MarkRefreshRotated()
+    {
+        RefreshRotatedCount++;
         Changed?.Invoke();
     }
 

@@ -1,6 +1,8 @@
 using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -15,16 +17,18 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddUltimateAuth();
 builder.Services.AddUltimateAuthClient(o =>
 {
-    o.Endpoints.BasePath = "https://localhost:6110";
+    o.Endpoints.BasePath = "https://localhost:6110/auth";
+    o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+    o.Login.AllowCredentialPost = true;
+    o.Pkce.ReturnUrl = "https://localhost:6130/home";
 });
 
-//builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
-//builder.Services.AddScoped<IUAuthAuthenticationStateSource, ClientAuthStateSource>();
-
-builder.Services.AddAuthorizationCore();
-
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(o => {
+    o.SnackbarConfiguration.PreventDuplicates = false;
+});
 builder.Services.AddMudExtensions();
+
+builder.Services.AddScoped<DarkModeManager>();
 
 //builder.Services.AddHttpClient("UAuthHub", client =>
 //{

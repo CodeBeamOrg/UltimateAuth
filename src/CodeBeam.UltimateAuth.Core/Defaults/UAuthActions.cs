@@ -118,8 +118,8 @@ public static class UAuthActions
 
         public static class Roles
         {
-            public const string ReadSelf = "authorization.roles.read.self";
-            public const string ReadAdmin = "authorization.roles.read.admin";
+            public const string GetSelf = "authorization.roles.get.self";
+            public const string GetAdmin = "authorization.roles.get.admin";
             public const string AssignAdmin = "authorization.roles.assign.admin";
             public const string RemoveAdmin = "authorization.roles.remove.admin";
             public const string CreateAdmin = "authorization.roles.create.admin";

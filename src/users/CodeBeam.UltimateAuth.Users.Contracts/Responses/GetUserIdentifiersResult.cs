@@ -2,5 +2,5 @@
 
 public sealed record GetUserIdentifiersResult
 {
-    public required IReadOnlyCollection<UserIdentifierDto> Identifiers { get; init; }
+    public required IReadOnlyCollection<UserIdentifierInfo> Identifiers { get; init; }
 }

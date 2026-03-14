@@ -1,78 +1,55 @@
 ﻿@inherits LayoutComponentBase
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <MudLayout>
-    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
-        <MudText><b>UltimateAuth</b></MudText>
-        <MudText Class="ml-2" Typo="Typo.subtitle2">Blazor Server Sample</MudText>
+    <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
+        <UAuthLogo />
+        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home", true))"><b>UltimateAuth</b></MudText>
+        <MudDivider Class="ml-3 mr-1" Vertical="true" />
+        <MudText Class="ml-2" Style="line-height: 14px" Typo="Typo.subtitle2">Blazor WASM Sample</MudText>
 
         <MudSpacer />
-        <MudMenu Label="Menu">
-            <MudMenuItem Label="Profile" />
-            <MudMenuItem Label="Refresh" />
-            <MudMenuItem Label="Logout" />
-        </MudMenu>
-        <MudMenu Open>
-            <ActivatorContent>
-                Text
-            </ActivatorContent>
-            <ChildContent>
-                <MudMenuItem Label="Content" />
-            </ChildContent>
-        </MudMenu>
 
-        <MudMenu>
+        <MudIconButton Icon="@(DarkModeManager.IsDarkMode? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => DarkModeManager.ToggleAsync())" />
 
-            <ActivatorContent>
-                <MudAvatar Class="cursor-pointer">
-                    <UAuthStateView>
-                        <Authorized Context="state">
-                            @(state.Identity?.PrimaryUserName?.Substring(0, 1).ToUpper())
-                        </Authorized>
-                        <NotAuthorized>
-                            <MudIcon Icon="@Icons.Material.Filled.Person" />
-                        </NotAuthorized>
-                    </UAuthStateView>
-                </MudAvatar>
-            </ActivatorContent>
+        <UAuthStateView>
+            <Authorized Context="state">
+                <MudMenu PopoverClass="mud-theme-primary uauth-menu-popover" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <div @onclick="@(() => context.ToggleAsync())">
+                            <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
+                                <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
+                                    <MudText Typo="Typo.subtitle2">@((state.Identity?.DisplayName ?? "?").Trim() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")</MudText>
+                                </MudAvatar>
+                            </MudBadge>
+                        </div>
+                    </ActivatorContent>
 
-            <ChildContent>
-
-                <UAuthStateView RequireActive="true">
-                    <Authorized Context="state">
-                        <MudText Class="px-4 py-2">
-                            <b>@state.Identity?.PrimaryUserName</b>
-                        </MudText>
+                    <ChildContent>
+                        <MudText Class="px-4 py-2"><b>@state.Identity?.DisplayName</b></MudText>
+                        <MudText Class="px-4" Typo="Typo.subtitle2">@string.Join(", ", state.Claims.Roles)</MudText>
 
                         <MudDivider />
 
-                        <MudMenuItem OnClick="@Refresh">
-                            <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-2" />
-                            Refresh Session
-                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh" IconColor="Color.Secondary" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.VerifiedUser" IconColor="Color.Secondary" Label="Validate Session" OnClick="@Validate" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Secondary" Label="Logout" OnClick="@Logout" />
 
-                        <MudMenuItem OnClick="@Logout">
-                            <MudIcon Icon="@Icons.Material.Filled.Logout" Class="mr-2" />
-                            Logout
-                        </MudMenuItem>
-                    </Authorized>
+                        @if (state.Identity?.SessionState is not null && state.Identity.SessionState != SessionState.Active)
+                        {
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Login" Label="Reauthenticate" OnClick="@GoToLoginWithReturn" />
+                        }
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
 
-                    <Inactive>
-                        <MudMenuItem Href="/login">
-                            Reauthenticate
-                        </MudMenuItem>
-                    </Inactive>
-
-                    <NotAuthorized>
-                        <MudMenuItem Href="/login">
-                            Sign In
-                        </MudMenuItem>
-                    </NotAuthorized>
-                </UAuthStateView>
-            </ChildContent>
-
-        </MudMenu>
+            <NotAuthorized>
+                <MudChip T="string" Style="width: fit-content" Text="Sign In" Color="Color.Primary" Variant="Variant.Filled" Class="cursor-pointer" OnClick="@HandleSignInClick" />
+            </NotAuthorized>
+        </UAuthStateView>
     </MudAppBar>
 
     <MudMainContent>
@@ -80,17 +57,9 @@
     </MudMainContent>
 </MudLayout>
 
-@code {
-    [CascadingParameter]
-    public UAuthState UAuth { get; set; } = default!;
 
-    private async Task Refresh()
-    {
-        await UAuthClient.Flows.RefreshAsync();
-    }
-
-    private async Task Logout()
-    {
-        await UAuthClient.Flows.LogoutAsync();
-    }
-}
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

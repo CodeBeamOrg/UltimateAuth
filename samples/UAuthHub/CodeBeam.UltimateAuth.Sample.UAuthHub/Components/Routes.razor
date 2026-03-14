@@ -1,14 +1,59 @@
-﻿<UAuthApp>
+﻿@using CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages
+@using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure
+@inject ISnackbar Snackbar
+@inject DarkModeManager DarkModeManager
 
-    <MudThemeProvider />
-    <MudPopoverProvider />
-    <MudDialogProvider />
-    <MudSnackbarProvider />
+<UAuthApp OnReauthRequired="HandleReauth">
+    <CascadingValue Value="DarkModeManager" IsFixed="true">
+        <MudThemeProvider IsDarkMode="@DarkModeManager.IsDarkMode" />
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
 
-    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-            <FocusOnNavigate RouteData="routeData" Selector="h1" />
-        </Found>
-    </Router>
+        <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(UAuthClientMarker).Assembly }">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                    <NotAuthorized>
+                        <NotAuthorized />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Found>
+        </Router>
+    </CascadingValue>
 </UAuthApp>
+
+@code {
+    private async Task HandleReauth()
+    {
+        Snackbar.Add("Reauthentication required. Please log in again.", Severity.Warning);
+    }
+
+    #region DarkMode
+
+    protected override void OnInitialized()
+    {
+        DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await DarkModeManager.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        DarkModeManager.Changed -= OnThemeChanged;
+    }
+
+    #endregion
+}

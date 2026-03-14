@@ -177,7 +177,7 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task OpenAccountStatusDialog()
     {
-        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.ExtraSmall));
     }
 
     private async Task OpenUserDialog()
@@ -211,18 +211,6 @@ public partial class Home : UAuthFlowPageBase
         {
             Snackbar.Add(result?.Problem?.Detail ?? result?.Problem?.Title ?? "Activation failed.", Severity.Error);
         }
-    }
-
-    private string? _roles = "Admin";
-    private void RefreshHiddenState()
-    {
-        if (_roles == "Admin")
-        {
-            _roles = "User";
-            return;
-        }
-
-        _roles = "Admin";
     }
 
     public override void Dispose()

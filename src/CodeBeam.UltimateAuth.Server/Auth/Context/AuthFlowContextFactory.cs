@@ -145,4 +145,26 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             returnUrlInfo
         );
     }
+
+    public ValueTask<AuthFlowContext> RecreateWithDeviceAsync(AuthFlowContext existing, DeviceContext device, CancellationToken ct = default)
+    {
+        var flowType = existing.FlowType;
+        var tenant = existing.Tenant;
+
+        return ValueTask.FromResult(new AuthFlowContext(
+            flowType,
+            existing.ClientProfile,
+            existing.EffectiveMode,
+            device,
+            tenant,
+            existing.IsAuthenticated,
+            existing.UserKey,
+            existing.Session,
+            existing.OriginalOptions,
+            existing.EffectiveOptions,
+            existing.Response,
+            existing.PrimaryTokenKind,
+            existing.ReturnUrlInfo
+        ));
+    }
 }

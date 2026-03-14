@@ -24,7 +24,9 @@ internal sealed class RefreshResponseWriter : IRefreshResponseWriter
         {
             RefreshOutcome.NoOp => "no-op",
             RefreshOutcome.Touched => "touched",
+            RefreshOutcome.Rotated => "rotated",
             RefreshOutcome.ReauthRequired => "reauth-required",
+            RefreshOutcome.Success => "success",
             _ => "unknown"
         };
     }

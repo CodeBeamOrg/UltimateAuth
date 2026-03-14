@@ -144,9 +144,9 @@ public sealed class UserIdentifier : IVersionedEntity, ISoftDeletable<UserIdenti
         return this;
     }
 
-    public UserIdentifierDto ToDto()
+    public UserIdentifierInfo ToDto()
     {
-        return new UserIdentifierDto()
+        return new UserIdentifierInfo()
         {
             Id = Id,
             Type = Type,
