@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization;
@@ -35,7 +36,7 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
         DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("role_name_required");
+            throw new UAuthValidationException("role_name_required");
 
         var normalized = Normalize(name);
 
@@ -61,7 +62,7 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
     public Role Rename(string newName, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(newName))
-            throw new InvalidOperationException("role_name_required");
+            throw new UAuthValidationException("role_name_required");
 
         if (NormalizedName == Normalize(newName))
             return this;

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
@@ -138,7 +139,7 @@ public sealed class UAuthSession : IVersionedEntity
     public UAuthSession WithChain(SessionChainId chainId)
     {
         if (!ChainId.IsUnassigned)
-            throw new InvalidOperationException("Chain already assigned.");
+            throw new UAuthConflictException("Chain already assigned.");
 
         return new UAuthSession(
             sessionId: SessionId,
