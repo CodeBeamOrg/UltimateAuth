@@ -4,5 +4,6 @@ public enum UserIdentifierType
 {
     Username,
     Email,
-    Phone
+    Phone,
+    Custom
 }

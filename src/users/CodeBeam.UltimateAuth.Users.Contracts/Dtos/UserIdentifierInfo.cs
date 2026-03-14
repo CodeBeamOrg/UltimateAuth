@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed record UserIdentifierDto : IVersionedEntity
+public sealed record UserIdentifierInfo : IVersionedEntity
 {
     public Guid Id { get; set; }
     public required UserIdentifierType Type { get; set; }

@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed record SessionChainSummaryDto
+public sealed record SessionChainSummary
 {
     public required SessionChainId ChainId { get; init; }
     public string? DeviceType { get; init; }

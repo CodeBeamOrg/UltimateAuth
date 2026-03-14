@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed record UserMfaStatusDto
+public sealed record UserMfaStatusInfo
 {
     public bool IsEnabled { get; init; }
     public IReadOnlyCollection<MfaMethod> EnabledMethods { get; init; } = Array.Empty<MfaMethod>();

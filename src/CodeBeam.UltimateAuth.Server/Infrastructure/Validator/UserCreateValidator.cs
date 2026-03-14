@@ -25,7 +25,7 @@ public sealed class UserCreateValidator : IUserCreateValidator
 
         if (!string.IsNullOrWhiteSpace(request.UserName))
         {
-            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierDto()
+            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierInfo()
             {
                 Type = UserIdentifierType.Username,
                 Value = request.UserName
@@ -36,7 +36,7 @@ public sealed class UserCreateValidator : IUserCreateValidator
 
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
-            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierDto()
+            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierInfo()
             {
                 Type = UserIdentifierType.Email,
                 Value = request.Email
@@ -47,7 +47,7 @@ public sealed class UserCreateValidator : IUserCreateValidator
 
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
-            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierDto()
+            var r = await _identifierValidator.ValidateAsync(context, new UserIdentifierInfo()
             {
                 Type = UserIdentifierType.Phone,
                 Value = request.Phone

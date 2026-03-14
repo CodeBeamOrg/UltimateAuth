@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public static class UserIdentifierMapper
 {
-    public static UserIdentifierDto ToDto(UserIdentifier record)
+    public static UserIdentifierInfo ToDto(UserIdentifier record)
         => new()
         {
             Id = record.Id,

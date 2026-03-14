@@ -352,12 +352,12 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 selfAuthz.MapPost("/check", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
                 => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
-            if (Enabled(UAuthActions.Authorization.Roles.ReadSelf))
+            if (Enabled(UAuthActions.Authorization.Roles.GetSelf))
                 selfAuthz.MapPost("/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
                 => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
 
-            if (Enabled(UAuthActions.Authorization.Roles.ReadAdmin))
+            if (Enabled(UAuthActions.Authorization.Roles.GetAdmin))
                 adminAuthz.MapPost("/users/{userKey}/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.GetUserRolesAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 

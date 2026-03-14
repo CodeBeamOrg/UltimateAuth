@@ -177,7 +177,7 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task OpenAccountStatusDialog()
     {
-        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+        await DialogService.ShowAsync<AccountStatusDialog>("Manage Account", GetDialogParameters(), UAuthDialog.GetDialogOptions(MaxWidth.ExtraSmall));
     }
 
     private async Task OpenUserDialog()

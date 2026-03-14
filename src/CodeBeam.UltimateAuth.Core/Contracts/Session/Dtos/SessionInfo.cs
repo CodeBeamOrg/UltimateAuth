@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed record SessionInfoDto(
+public sealed record SessionInfo(
     AuthSessionId SessionId,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,

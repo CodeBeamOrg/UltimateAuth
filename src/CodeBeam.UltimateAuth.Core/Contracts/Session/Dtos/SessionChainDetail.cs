@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed class SessionChainDetailDto
+public sealed class SessionChainDetail
 {
     public SessionChainId ChainId { get; init; }
 
@@ -24,5 +24,5 @@ public sealed class SessionChainDetailDto
 
     public AuthSessionId? ActiveSessionId { get; init; }
 
-    public IReadOnlyList<SessionInfoDto> Sessions { get; init; } = [];
+    public IReadOnlyList<SessionInfo> Sessions { get; init; } = [];
 }

@@ -24,17 +24,17 @@ internal sealed class UAuthSessionClient : ISessionClient
         => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
 
-    public async Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetMyChainsAsync(PageRequest? request = null)
+    public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetMyChainsAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url("/me/sessions/chains"), request);
-        return UAuthResultMapper.FromJson<PagedResult<SessionChainSummaryDto>>(raw);
+        return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 
-    public async Task<UAuthResult<SessionChainDetailDto>> GetMyChainDetailAsync(SessionChainId chainId)
+    public async Task<UAuthResult<SessionChainDetail>> GetMyChainDetailAsync(SessionChainId chainId)
     {
         var raw = await _request.SendFormAsync(Url($"/me/sessions/chains/{chainId}"));
-        return UAuthResultMapper.FromJson<SessionChainDetailDto>(raw);
+        return UAuthResultMapper.FromJson<SessionChainDetail>(raw);
     }
 
     public async Task<UAuthResult<RevokeResult>> RevokeMyChainAsync(SessionChainId chainId)
@@ -70,17 +70,17 @@ internal sealed class UAuthSessionClient : ISessionClient
     }
 
 
-    public async Task<UAuthResult<PagedResult<SessionChainSummaryDto>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null)
+    public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/sessions/chains"), request);
-        return UAuthResultMapper.FromJson<PagedResult<SessionChainSummaryDto>>(raw);
+        return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 
-    public async Task<UAuthResult<SessionChainDetailDto>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId)
+    public async Task<UAuthResult<SessionChainDetail>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/chains/{chainId}"));
-        return UAuthResultMapper.FromJson<SessionChainDetailDto>(raw);
+        return UAuthResultMapper.FromJson<SessionChainDetail>(raw);
     }
 
     public async Task<UAuthResult> RevokeUserSessionAsync(UserKey userKey, AuthSessionId sessionId)

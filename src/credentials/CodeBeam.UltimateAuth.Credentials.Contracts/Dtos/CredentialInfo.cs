@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
-public sealed record CredentialDto
+public sealed record CredentialInfo
 {
     public Guid Id { get; set; }
     public CredentialType Type { get; init; }

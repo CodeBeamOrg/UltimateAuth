@@ -73,7 +73,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
-            action: UAuthActions.Authorization.Roles.ReadSelf,
+            action: UAuthActions.Authorization.Roles.GetSelf,
             resource: "authorization.roles",
             resourceId: flow.UserKey!.Value
         );
@@ -97,7 +97,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
-            action: UAuthActions.Authorization.Roles.ReadAdmin,
+            action: UAuthActions.Authorization.Roles.GetAdmin,
             resource: "authorization.roles",
             resourceId: userKey.Value
         );

@@ -2,5 +2,5 @@
 
 public sealed record GetCredentialsResult
 {
-    public IReadOnlyCollection<CredentialDto> Credentials { get; init; } = Array.Empty<CredentialDto>();
+    public IReadOnlyCollection<CredentialInfo> Credentials { get; init; } = Array.Empty<CredentialInfo>();
 }
