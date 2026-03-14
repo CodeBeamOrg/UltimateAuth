@@ -30,6 +30,22 @@
     return;
 }
 
+@if (AuthState?.Identity?.UserStatus == UserStatus.Suspended)
+{
+    <UAuthPageComponent>
+        <MudStack>
+            <MudAlert Severity="Severity.Warning">
+                Your account is suspended. Please contact with administrator.
+            </MudAlert>
+
+            <MudStack Class="mud-width-full" Row="true" Justify="Justify.Center">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="Logout">Logout</MudButton>
+            </MudStack>
+        </MudStack>
+    </UAuthPageComponent>
+    return;
+}
+
 <MudPage Class="mud-width-full" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Gutters="false">
         <MudGrid Spacing="3">
@@ -46,20 +62,19 @@
                         <MudGrid Spacing="2">
                             <MudItem xs="12" sm="6">
                                 <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.VerifiedUser" OnClick="Validate">
-                                    Validate
+                                    <MudText Class="mud-width-full" Align="Align.Center">Validate</MudText>
                                 </MudButton>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
                                 <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshSession">
-                                    Manual Refresh
+                                    <MudText Class="mud-width-full" Align="Align.Center">Manual Refresh</MudText>
                                 </MudButton>
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout"
-                                           OnClick="Logout">
-                                    Logout
+                                <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout" OnClick="Logout">
+                                    <MudText Class="mud-width-full" Align="Align.Center">Logout</MudText>
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -70,23 +85,23 @@
                         </MudStack>
 
                         <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.SpaceDashboard" OnClick="OpenSessionDialog">
-                            Manage Sessions
+                            <MudText Class="mud-width-full" Align="Align.Center">Manage Sessions</MudText>
                         </MudButton>
 
                         <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Person" OnClick="OpenProfileDialog">
-                            Manage Profile
+                            <MudText Class="mud-width-full" Align="Align.Center">Manage Profile</MudText>
                         </MudButton>
 
                         <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Abc" OnClick="OpenIdentifierDialog">
-                            Manage Identifiers
+                            <MudText Class="mud-width-full" Align="Align.Center">Manage Identifiers</MudText>
                         </MudButton>
 
                         <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Password" OnClick="OpenCredentialDialog">
-                            Manage Credentials
+                            <MudText Class="mud-width-full" Align="Align.Center">Manage Credentials</MudText>
                         </MudButton>
 
                         <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="OpenAccountStatusDialog">
-                            Suspend | Delete Account
+                            <MudText Class="mud-width-full" Align="Align.Center">Suspend | Delete Account</MudText>
                         </MudButton>
 
                         <MudStack Class="mt-4" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
@@ -111,16 +126,18 @@
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
                                     <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick="OpenUserDialog">
-                                        User Management
+                                        @* <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center"> *@
+                                            @* <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" /> *@
+                                            <MudText Class="mud-width-full" Align="Align.Center">User Management</MudText>
+                                        @* </MudStack> *@
                                     </MudButton>
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
-                                    <MudButton FullWidth Variant="Variant.Outlined" OnClick="OpenRoleDialog">
-                                        <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
-                                            <MudText>Role Management</MudText>
-                                        </MudStack>
+                                    <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenRoleDialog">
+                                        @* <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"> *@
+                                            <MudText Class="mud-width-full" Align="Align.Center">Role Management</MudText>
+                                        @* </MudStack> *@
                                     </MudButton>
                                 </MudItem>
                             </MudGrid>
@@ -399,8 +416,8 @@
 
                             <MudItem xs="6">
                                 <MudPaper Class="pa-3 text-center" Style="background: var(--mud-palette-background-gray)" Elevation="0" Outlined="true">
-                                    <MudText Typo="Typo.caption">Touched</MudText>
-                                    <MudText Typo="Typo.h6">@Diagnostics.RefreshTouchedCount</MudText>
+                                    <MudText Typo="Typo.caption">Touched/Rotated</MudText>
+                                    <MudText Typo="Typo.h6">@Diagnostics.RefreshTouchedCount / @Diagnostics.RefreshRotatedCount</MudText>
                                 </MudPaper>
                             </MudItem>
 

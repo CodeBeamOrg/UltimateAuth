@@ -10,12 +10,24 @@ public partial class RoleDialog
     private MudDataGrid<RoleInfo>? _grid;
     private bool _loading;
     private string? _newRoleName;
+    private bool _loaded;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
 
     private async Task<GridData<RoleInfo>> LoadServerData(GridState<RoleInfo> state, CancellationToken ct)
     {

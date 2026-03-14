@@ -15,6 +15,7 @@ public partial class IdentifierDialog
     private bool _newIdentifierPrimary;
     private bool _loading = false;
     private bool _reloadQueued;
+    private bool _loaded;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -28,15 +29,16 @@ public partial class IdentifierDialog
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-
+        
         if (firstRender)
         {
+            _loaded = true;
             var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
             if (result != null && result.IsSuccess && result.Value != null)
             {
                 await ReloadAsync();
-                StateHasChanged();
             }
+            StateHasChanged();
         }
     }
 

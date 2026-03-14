@@ -15,12 +15,24 @@ public partial class UsersDialog
     private string? _search;
     private bool _reloadQueued;
     private UserStatus? _statusFilter;
+    private bool _loaded;
 
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
 
     private async Task<GridData<UserSummary>> LoadUsers(GridState<UserSummary> state, CancellationToken ct)
     {

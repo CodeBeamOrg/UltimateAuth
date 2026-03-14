@@ -103,6 +103,9 @@ internal class UAuthFlowClient : IFlowClient
             case RefreshOutcome.Touched:
                 _diagnostics.MarkRefreshTouched();
                 break;
+            case RefreshOutcome.Rotated:
+                _diagnostics.MarkRefreshRotated();
+                break;
             case RefreshOutcome.ReauthRequired:
                 _diagnostics.MarkRefreshReauthRequired();
                 break;

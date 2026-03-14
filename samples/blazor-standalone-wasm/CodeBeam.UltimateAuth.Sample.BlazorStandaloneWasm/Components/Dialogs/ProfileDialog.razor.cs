@@ -19,6 +19,7 @@ public partial class ProfileDialog
     private string? _language;
     private string? _timeZone;
     private string? _culture;
+    private bool _loaded;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -58,6 +59,7 @@ public partial class ProfileDialog
             _timeZone = p.TimeZone;
             _culture = p.Culture;
         }
+        _loaded = true;
     }
 
     private async Task SaveAsync()

@@ -15,7 +15,6 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
 using CodeBeam.UltimateAuth.Tokens.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Users.Reference;
 using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -72,7 +71,8 @@ builder.Services.AddCors(options =>
             .WithOrigins("https://localhost:6130")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .WithExposedHeaders("X-UAuth-Refresh"); // TODO: Add exposed headers globally
     });
 });
 

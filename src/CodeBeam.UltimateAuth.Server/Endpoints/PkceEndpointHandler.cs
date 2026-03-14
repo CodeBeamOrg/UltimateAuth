@@ -48,6 +48,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     {
         var authContext = _authContext.Current;
 
+        // TODO: Make PKCE flow free
         if (authContext.FlowType != AuthFlowType.Login)
             return Results.BadRequest("PKCE is only supported for login flow.");
 

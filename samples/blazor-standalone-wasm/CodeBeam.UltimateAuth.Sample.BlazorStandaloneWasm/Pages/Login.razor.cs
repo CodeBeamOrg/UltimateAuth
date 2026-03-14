@@ -80,7 +80,11 @@ public partial class Login : UAuthFlowPageBase
 
     private async Task StartPkceLogin()
     {
-        await UAuthClient.Flows.BeginPkceAsync();
+        string? returnUrl = null;
+        if (!string.IsNullOrEmpty(ReturnUrl))
+            returnUrl = Nav.BaseUri + ReturnUrl.TrimStart('/');
+
+        await UAuthClient.Flows.BeginPkceAsync(returnUrl);
     }
 
     private async Task ProgrammaticLogin()

@@ -23,11 +23,6 @@ builder.Services.AddUltimateAuthClient(o =>
     o.Pkce.ReturnUrl = "https://localhost:6130/home";
 });
 
-//builder.Services.AddScoped<AuthenticationStateProvider, UAuthAuthenticationStateProvider>();
-//builder.Services.AddScoped<IUAuthAuthenticationStateSource, ClientAuthStateSource>();
-
-//builder.Services.AddAuthorizationCore();
-
 builder.Services.AddMudServices(o => {
     o.SnackbarConfiguration.PreventDuplicates = false;
 });

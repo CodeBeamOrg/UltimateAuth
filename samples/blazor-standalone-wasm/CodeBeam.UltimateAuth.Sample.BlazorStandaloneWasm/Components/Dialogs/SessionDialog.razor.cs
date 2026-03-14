@@ -13,6 +13,7 @@ public partial class SessionDialog
     private bool _loading = false;
     private bool _reloadQueued;
     private SessionChainDetail? _chainDetail;
+    private bool _loaded;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -29,12 +30,13 @@ public partial class SessionDialog
 
         if (firstRender)
         {
+            _loaded = true;
             var result = await UAuthClient.Sessions.GetMyChainsAsync();
             if (result != null && result.IsSuccess && result.Value != null)
             {
                 await ReloadAsync();
-                StateHasChanged();
             }
+            StateHasChanged();
         }
     }
 

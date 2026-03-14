@@ -73,6 +73,12 @@
 
             <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
                 <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
+                    <MudStack Class="mb-4" Row="true" AlignItems="AlignItems.Center">
+                        <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
+                        <MudText Typo="Typo.h5">
+                            <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
+                        </MudText>
+                    </MudStack>
                     <MudButton FullWidth="true" Color="Color.Primary" Variant="Variant.Filled" OnClick="StartPkceLogin">Login (PKCE)</MudButton>
                     <MudExpansionPanel Text="Direct Login" Expanded="false">
                         <MudAlert Severity="Severity.Warning">
@@ -82,12 +88,6 @@
                         </MudAlert>
                         <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="@(ReturnUrl ?? "/home")">
                             <MudStack Class="mud-width-full">
-                                <MudStack Row="true" AlignItems="AlignItems.Center">
-                                    <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
-                                    <MudText Typo="Typo.h5">
-                                        <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
-                                    </MudText>
-                                </MudStack>
                                 <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
                                 <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
