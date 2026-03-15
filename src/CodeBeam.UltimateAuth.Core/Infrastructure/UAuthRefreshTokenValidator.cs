@@ -5,19 +5,20 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
 public sealed class UAuthRefreshTokenValidator : IRefreshTokenValidator
 {
-    private readonly IRefreshTokenStore _store;
+    private readonly IRefreshTokenStoreFactory _storeFactory;
     private readonly ITokenHasher _hasher;
 
-    public UAuthRefreshTokenValidator(IRefreshTokenStore store, ITokenHasher hasher)
+    public UAuthRefreshTokenValidator(IRefreshTokenStoreFactory storeFactory, ITokenHasher hasher)
     {
-        _store = store;
+        _storeFactory = storeFactory;
         _hasher = hasher;
     }
 
     public async Task<RefreshTokenValidationResult> ValidateAsync(RefreshTokenValidationContext context, CancellationToken ct = default)
     {
+        var store = _storeFactory.Create(context.Tenant);
         var hash = _hasher.Hash(context.RefreshToken);
-        var stored = await _store.FindByHashAsync(context.Tenant, hash, ct);
+        var stored = await store.FindByHashAsync(hash, ct);
 
         if (stored is null)
             return RefreshTokenValidationResult.Invalid();
@@ -31,7 +32,7 @@ public sealed class UAuthRefreshTokenValidator : IRefreshTokenValidator
 
         if (stored.IsExpired(context.Now))
         {
-            await _store.RevokeAsync(context.Tenant, hash, context.Now, null, ct);
+            await store.RevokeAsync(hash, context.Now, null, ct);
             return RefreshTokenValidationResult.Invalid();
         }
 

@@ -3,7 +3,7 @@
 /// <summary>
 /// Transport model for refresh token. Returned to client once upon creation.
 /// </summary>
-public sealed class RefreshToken
+public sealed class RefreshTokenInfo
 {
     /// <summary>
     /// Plain refresh token value (returned to client once).

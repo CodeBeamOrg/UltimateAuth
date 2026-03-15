@@ -7,7 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthInMemoryTokens(this IServiceCollection services)
     {
-        services.AddSingleton(typeof(IRefreshTokenStore), typeof(InMemoryRefreshTokenStore));
+        services.AddSingleton<IRefreshTokenStoreFactory, InMemoryRefreshTokenStoreFactory>();
 
         return services;
     }

@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
 
-namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
+namespace CodeBeam.UltimateAuth.EntityFrameworkCore;
 
-internal sealed class JsonValueConverter<T> : ValueConverter<T, string>
+public sealed class JsonValueConverter<T> : ValueConverter<T, string>
 {
     public JsonValueConverter()
         : base(

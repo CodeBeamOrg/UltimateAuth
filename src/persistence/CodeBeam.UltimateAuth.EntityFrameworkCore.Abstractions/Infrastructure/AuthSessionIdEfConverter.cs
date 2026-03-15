@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
+namespace CodeBeam.UltimateAuth.EntityFrameworkCore;
 
 internal static class AuthSessionIdEfConverter
 {
@@ -14,8 +14,7 @@ internal static class AuthSessionIdEfConverter
         return id;
     }
 
-    public static string ToDatabase(AuthSessionId id)
-        => id.Value;
+    public static string ToDatabase(AuthSessionId id) => id.Value;
 
     public static AuthSessionId? FromDatabaseNullable(string? raw)
     {

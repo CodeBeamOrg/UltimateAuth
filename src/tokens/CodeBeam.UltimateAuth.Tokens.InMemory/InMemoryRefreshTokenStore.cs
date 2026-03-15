@@ -5,88 +5,121 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tokens.InMemory;
 
-public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
+internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
-    private static string NormalizeTenant(string? tenantId) => tenantId ?? "__single__";
+    private readonly TenantKey _tenant;
+    private readonly SemaphoreSlim _tx = new(1, 1);
 
-    private readonly ConcurrentDictionary<TokenKey, StoredRefreshToken> _tokens = new();
+    private readonly ConcurrentDictionary<string, RefreshToken> _tokens = new();
 
-    public Task StoreAsync(TenantKey tenant, StoredRefreshToken token, CancellationToken ct = default)
+    public InMemoryRefreshTokenStore(TenantKey tenant)
     {
-        var key = new TokenKey(NormalizeTenant(tenant), token.TokenHash);
+        _tenant = tenant;
+    }
 
-        _tokens[key] = token;
+    public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
+    {
+        await _tx.WaitAsync(ct);
+
+        try
+        {
+            await action(ct);
+        }
+        finally
+        {
+            _tx.Release();
+        }
+    }
+
+    public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
+    {
+        await _tx.WaitAsync(ct);
+
+        try
+        {
+            return await action(ct);
+        }
+        finally
+        {
+            _tx.Release();
+        }
+    }
+
+    public Task StoreAsync(RefreshToken token, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (token.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
+        _tokens[token.TokenHash] = token;
+
         return Task.CompletedTask;
     }
 
-    public Task<StoredRefreshToken?> FindByHashAsync(TenantKey tenant, string tokenHash, CancellationToken ct = default)
+    public Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken ct = default)
     {
-        var key = new TokenKey(NormalizeTenant(tenant), tokenHash);
+        ct.ThrowIfCancellationRequested();
 
-        _tokens.TryGetValue(key, out var token);
+        _tokens.TryGetValue(tokenHash, out var token);
+
         return Task.FromResult(token);
     }
 
-    public Task RevokeAsync(TenantKey tenant, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
+    public Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
     {
-        var key = new TokenKey(NormalizeTenant(tenant), tokenHash);
+        ct.ThrowIfCancellationRequested();
 
-        if (_tokens.TryGetValue(key, out var token) && !token.IsRevoked)
+        if (_tokens.TryGetValue(tokenHash, out var token) && !token.IsRevoked)
         {
-            _tokens[key] = token with
-            {
-                RevokedAt = revokedAt,
-                ReplacedByTokenHash = replacedByTokenHash
-            };
+            _tokens[tokenHash] = token.Revoke(revokedAt, replacedByTokenHash);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RevokeBySessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeBySessionAsync(AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
-        foreach (var (key, token) in _tokens)
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var (hash, token) in _tokens.ToArray())
         {
-            if (key.TenantId == tenant &&
-                token.SessionId == sessionId &&
-                !token.IsRevoked)
+            if (token.SessionId == sessionId && !token.IsRevoked)
             {
-                _tokens[key] = token with { RevokedAt = revokedAt };
+                _tokens[hash] = token.Revoke(revokedAt);
             }
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RevokeByChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
-        foreach (var (key, token) in _tokens)
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var (hash, token) in _tokens.ToArray())
         {
-            if (key.TenantId == tenant &&
-                token.ChainId == chainId &&
-                !token.IsRevoked)
+            if (token.ChainId == chainId && !token.IsRevoked)
             {
-                _tokens[key] = token with { RevokedAt = revokedAt };
+                _tokens[hash] = token.Revoke(revokedAt);
             }
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RevokeAllForUserAsync(TenantKey tenant, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeAllForUserAsync(UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
-        foreach (var (key, token) in _tokens)
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var (hash, token) in _tokens.ToArray())
         {
-            if (key.TenantId == tenant &&
-                token.UserKey == userKey &&
-                !token.IsRevoked)
+            if (token.UserKey == userKey && !token.IsRevoked)
             {
-                _tokens[key] = token with { RevokedAt = revokedAt };
+                _tokens[hash] = token.Revoke(revokedAt);
             }
         }
 
         return Task.CompletedTask;
     }
-
-    private readonly record struct TokenKey(string TenantId, string TokenHash);
 }

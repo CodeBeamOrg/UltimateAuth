@@ -9,7 +9,7 @@ public sealed class RefreshFlowResult
 
     public AuthSessionId? SessionId { get; init; }
     public AccessToken? AccessToken { get; init; }
-    public RefreshToken? RefreshToken { get; init; }
+    public RefreshTokenInfo? RefreshToken { get; init; }
 
     public static RefreshFlowResult ReauthRequired()
     {
@@ -24,7 +24,7 @@ public sealed class RefreshFlowResult
         RefreshOutcome outcome,
         AuthSessionId? sessionId = null,
         AccessToken? accessToken = null,
-        RefreshToken? refreshToken = null)
+        RefreshTokenInfo? refreshToken = null)
     {
         return new RefreshFlowResult
         {

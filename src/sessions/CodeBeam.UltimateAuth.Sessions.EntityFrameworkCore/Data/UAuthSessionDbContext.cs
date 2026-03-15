@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;

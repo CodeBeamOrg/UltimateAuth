@@ -16,7 +16,7 @@ internal sealed class SessionChainProjection
     public DateTimeOffset LastSeenAt { get; set; }
     public DateTimeOffset? AbsoluteExpiresAt { get; set; }
     public DeviceId DeviceId { get; set; }
-    public DeviceContext Device { get; set; }
+    public DeviceContext Device { get; set; } = DeviceContext.Anonymous();
     public ClaimsSnapshot ClaimsSnapshot { get; set; } = ClaimsSnapshot.Empty;
     public AuthSessionId? ActiveSessionId { get; set; }
     public int RotationCount { get; set; }

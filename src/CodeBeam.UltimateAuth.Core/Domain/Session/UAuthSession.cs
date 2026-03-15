@@ -14,6 +14,7 @@ public sealed class UAuthSession : IVersionedEntity
     public DateTimeOffset ExpiresAt { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long SecurityVersionAtCreation { get; }
+    public DeviceContext Device { get; } // For snapshot,main value is chain's device.
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
     public long Version { get; set; }
@@ -29,6 +30,7 @@ public sealed class UAuthSession : IVersionedEntity
         DateTimeOffset expiresAt,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
+        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -41,6 +43,7 @@ public sealed class UAuthSession : IVersionedEntity
         ExpiresAt = expiresAt;
         RevokedAt = revokedAt;
         SecurityVersionAtCreation = securityVersionAtCreation;
+        Device = device;
         Claims = claims;
         Metadata = metadata;
         Version = version;
@@ -54,6 +57,7 @@ public sealed class UAuthSession : IVersionedEntity
         DateTimeOffset now,
         DateTimeOffset expiresAt,
         long securityVersion,
+        DeviceContext device,
         ClaimsSnapshot? claims,
         SessionMetadata metadata)
     {
@@ -66,6 +70,7 @@ public sealed class UAuthSession : IVersionedEntity
             expiresAt: expiresAt,
             revokedAt: null,
             securityVersionAtCreation: securityVersion,
+            device: device,
             claims: claims ?? ClaimsSnapshot.Empty,
             metadata: metadata,
             version: 0
@@ -86,6 +91,7 @@ public sealed class UAuthSession : IVersionedEntity
             ExpiresAt,
             at,
             SecurityVersionAtCreation,
+            Device,
             Claims,
             Metadata,
             Version + 1
@@ -101,6 +107,7 @@ public sealed class UAuthSession : IVersionedEntity
         DateTimeOffset expiresAt,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
+        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -114,6 +121,7 @@ public sealed class UAuthSession : IVersionedEntity
             expiresAt,
             revokedAt,
             securityVersionAtCreation,
+            device,
             claims,
             metadata,
             version
@@ -145,6 +153,7 @@ public sealed class UAuthSession : IVersionedEntity
             expiresAt: ExpiresAt,
             revokedAt: RevokedAt,
             securityVersionAtCreation: SecurityVersionAtCreation,
+            device: Device,
             claims: Claims,
             metadata: Metadata,
             version: Version + 1

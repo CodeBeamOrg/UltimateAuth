@@ -15,6 +15,7 @@ internal static class SessionProjectionMapper
             p.ExpiresAt,
             p.RevokedAt,
             p.SecurityVersionAtCreation,
+            p.Device,
             p.Claims,
             p.Metadata,
             p.Version
@@ -35,6 +36,7 @@ internal static class SessionProjectionMapper
             RevokedAt = s.RevokedAt,
 
             SecurityVersionAtCreation = s.SecurityVersionAtCreation,
+            Device = s.Device,
             Claims = s.Claims,
             Metadata = s.Metadata,
             Version = s.Version

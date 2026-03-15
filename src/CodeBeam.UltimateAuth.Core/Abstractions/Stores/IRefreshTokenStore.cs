@@ -1,23 +1,22 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
-/// <summary>
-/// Low-level persistence abstraction for refresh tokens.
-/// NO validation logic. NO business rules.
-/// </summary>
 public interface IRefreshTokenStore
 {
-    Task StoreAsync(TenantKey tenant, StoredRefreshToken token, CancellationToken ct = default);
+    Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default);
 
-    Task<StoredRefreshToken?> FindByHashAsync(TenantKey tenant, string tokenHash, CancellationToken ct = default);
+    Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default);
 
-    Task RevokeAsync(TenantKey tenant, string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default);
+    Task StoreAsync(RefreshToken token, CancellationToken ct = default);
 
-    Task RevokeBySessionAsync(TenantKey tenant, AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken ct = default);
 
-    Task RevokeByChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default);
 
-    Task RevokeAllForUserAsync(TenantKey tenant, UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeBySessionAsync(AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);
+
+    Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
+
+    Task RevokeAllForUserAsync(UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default);
 }

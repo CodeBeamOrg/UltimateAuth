@@ -38,11 +38,11 @@ public sealed class DeviceContext
 
     public static DeviceContext Create(
         DeviceId deviceId,
-        string? deviceType,
-        string? platform,
-        string? operatingSystem,
-        string? browser,
-        string? ipAddress)
+        string? deviceType = null,
+        string? platform = null,
+        string? operatingSystem = null,
+        string? browser = null,
+        string? ipAddress = null)
     {
         return new DeviceContext(
             deviceId,

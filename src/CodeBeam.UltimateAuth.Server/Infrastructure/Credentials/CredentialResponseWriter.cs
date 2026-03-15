@@ -33,7 +33,7 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
     public void Write(HttpContext context, GrantKind kind, AccessToken token)
         => WriteInternal(context, kind, token.Token);
 
-    public void Write(HttpContext context, GrantKind kind, RefreshToken token)
+    public void Write(HttpContext context, GrantKind kind, RefreshTokenInfo token)
         => WriteInternal(context, kind, token.Token);
 
     public void WriteInternal(HttpContext context, GrantKind kind, string value)

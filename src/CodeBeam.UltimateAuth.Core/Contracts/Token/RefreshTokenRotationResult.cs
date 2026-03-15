@@ -10,7 +10,7 @@ public sealed record RefreshTokenRotationResult
 
     public AuthSessionId? SessionId { get; init; }
     public AccessToken? AccessToken { get; init; }
-    public RefreshToken? RefreshToken { get; init; }
+    public RefreshTokenInfo? RefreshToken { get; init; }
 
     private RefreshTokenRotationResult() { }
 
@@ -18,7 +18,7 @@ public sealed record RefreshTokenRotationResult
 
     public static RefreshTokenRotationResult Success(
         AccessToken accessToken,
-        RefreshToken refreshToken)
+        RefreshTokenInfo refreshToken)
         => new()
         {
             IsSuccess = true,

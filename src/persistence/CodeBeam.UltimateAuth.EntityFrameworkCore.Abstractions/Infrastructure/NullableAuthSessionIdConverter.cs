@@ -1,16 +1,16 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
+namespace CodeBeam.UltimateAuth.EntityFrameworkCore;
 
-internal sealed class AuthSessionIdConverter : ValueConverter<AuthSessionId, string>
+public sealed class AuthSessionIdConverter : ValueConverter<AuthSessionId, string>
 {
     public AuthSessionIdConverter() : base(id => AuthSessionIdEfConverter.ToDatabase(id), raw => AuthSessionIdEfConverter.FromDatabase(raw))
     {
     }
 }
 
-internal sealed class NullableAuthSessionIdConverter : ValueConverter<AuthSessionId?, string?>
+public sealed class NullableAuthSessionIdConverter : ValueConverter<AuthSessionId?, string?>
 {
     public NullableAuthSessionIdConverter() : base(id => AuthSessionIdEfConverter.ToDatabaseNullable(id), raw => AuthSessionIdEfConverter.FromDatabaseNullable(raw))
     {
