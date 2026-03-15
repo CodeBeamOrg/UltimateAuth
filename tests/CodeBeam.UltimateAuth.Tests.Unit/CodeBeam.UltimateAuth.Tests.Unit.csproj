@@ -20,6 +20,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
+		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />

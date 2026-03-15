@@ -131,6 +131,34 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
         return copy;
     }
 
+    public static Role FromProjection(
+        RoleId id,
+        TenantKey tenant,
+        string name,
+        IEnumerable<Permission> permissions,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        var role = new Role
+        {
+            Id = id,
+            Tenant = tenant,
+            Name = name,
+            NormalizedName = Normalize(name),
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            DeletedAt = deletedAt,
+            Version = version
+        };
+
+        foreach (var p in permissions)
+            role._permissions.Add(p);
+
+        return role;
+    }
+
     private static string Normalize(string name)
         => name.Trim().ToUpperInvariant();
 }

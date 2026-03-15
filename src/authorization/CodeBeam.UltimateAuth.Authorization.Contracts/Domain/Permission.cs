@@ -16,4 +16,6 @@ public readonly record struct Permission(string Value)
     public bool IsPrefix => Value.EndsWith(".*");
 
     public override string ToString() => Value;
+
+    public static implicit operator string(Permission p) => p.Value;
 }
