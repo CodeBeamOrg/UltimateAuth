@@ -8,5 +8,5 @@ public interface ICredentialResponseWriter
 {
     void Write(HttpContext context, GrantKind kind, AuthSessionId sessionId);
     void Write(HttpContext context, GrantKind kind, AccessToken accessToken);
-    void Write(HttpContext context, GrantKind kind, RefreshToken refreshToken);
+    void Write(HttpContext context, GrantKind kind, RefreshTokenInfo refreshToken);
 }

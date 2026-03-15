@@ -10,11 +10,11 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
 internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegration
 {
-    private readonly ICredentialStore _credentialStore;
+    private readonly IPasswordCredentialStore _credentialStore;
     private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly IClock _clock;
 
-    public PasswordUserLifecycleIntegration(ICredentialStore credentialStore, IUAuthPasswordHasher passwordHasher, IClock clock)
+    public PasswordUserLifecycleIntegration(IPasswordCredentialStore credentialStore, IUAuthPasswordHasher passwordHasher, IClock clock)
     {
         _credentialStore = credentialStore;
         _passwordHasher = passwordHasher;

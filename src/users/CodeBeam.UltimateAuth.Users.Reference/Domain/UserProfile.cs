@@ -164,4 +164,45 @@ public sealed class UserProfile : IVersionedEntity, ISoftDeletable<UserProfile>,
 
         return this;
     }
+
+    public static UserProfile FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        string? firstName,
+        string? lastName,
+        string? displayName,
+        DateOnly? birthDate,
+        string? gender,
+        string? bio,
+        string? language,
+        string? timeZone,
+        string? culture,
+        IReadOnlyDictionary<string, string>? metadata,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        return new UserProfile
+        {
+            Id = id,
+            Tenant = tenant,
+            UserKey = userKey,
+            FirstName = firstName,
+            LastName = lastName,
+            DisplayName = displayName,
+            BirthDate = birthDate,
+            Gender = gender,
+            Bio = bio,
+            Language = language,
+            TimeZone = timeZone,
+            Culture = culture,
+            Metadata = metadata,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            DeletedAt = deletedAt,
+            Version = version
+        };
+    }
 }

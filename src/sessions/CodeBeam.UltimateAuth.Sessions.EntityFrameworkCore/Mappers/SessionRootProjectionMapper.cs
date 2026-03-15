@@ -12,7 +12,6 @@ internal static class SessionRootProjectionMapper
             root.UserKey,
             root.CreatedAt,
             root.UpdatedAt,
-            root.IsRevoked,
             root.RevokedAt,
             root.SecurityVersion,
             root.Version
@@ -29,8 +28,6 @@ internal static class SessionRootProjectionMapper
 
             CreatedAt = root.CreatedAt,
             UpdatedAt = root.UpdatedAt,
-
-            IsRevoked = root.IsRevoked,
             RevokedAt = root.RevokedAt,
 
             SecurityVersion = root.SecurityVersion,

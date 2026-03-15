@@ -14,12 +14,12 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
     private static readonly Guid _userPasswordId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     public int Order => 10;
 
-    private readonly ICredentialStore _credentials;
+    private readonly IPasswordCredentialStore _credentials;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
     private readonly IUAuthPasswordHasher _hasher;
     private readonly IClock _clock;
 
-    public InMemoryCredentialSeedContributor(ICredentialStore credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher, IClock clock)
+    public InMemoryCredentialSeedContributor(IPasswordCredentialStore credentials, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher, IClock clock)
     {
         _credentials = credentials;
         _ids = ids;

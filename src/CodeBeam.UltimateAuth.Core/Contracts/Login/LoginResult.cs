@@ -7,7 +7,7 @@ public sealed record LoginResult
     public LoginStatus Status { get; init; }
     public AuthSessionId? SessionId { get; init; }
     public AccessToken? AccessToken { get; init; }
-    public RefreshToken? RefreshToken { get; init; }
+    public RefreshTokenInfo? RefreshToken { get; init; }
     public LoginContinuation? Continuation { get; init; }
     public AuthFailureReason? FailureReason { get; init; }
     public DateTimeOffset? LockoutUntilUtc { get; init; }

@@ -9,7 +9,7 @@ public sealed class CredentialSecurityState
     public Guid SecurityStamp { get; }
 
     public bool IsRevoked => RevokedAt != null;
-    public bool IsExpired => ExpiresAt != null;
+    public bool IsExpired(DateTimeOffset now) => ExpiresAt != null && ExpiresAt <= now;
 
     public CredentialSecurityState(
         DateTimeOffset? revokedAt = null,
@@ -26,7 +26,7 @@ public sealed class CredentialSecurityState
         if (RevokedAt is not null)
             return CredentialSecurityStatus.Revoked;
 
-        if (ExpiresAt is not null && ExpiresAt <= now)
+        if (IsExpired(now))
             return CredentialSecurityStatus.Expired;
 
         return CredentialSecurityStatus.Active;

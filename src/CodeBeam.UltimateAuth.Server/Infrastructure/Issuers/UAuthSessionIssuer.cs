@@ -117,6 +117,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 now: now,
                 expiresAt: expiresAt,
                 securityVersion: root.SecurityVersion,
+                device: context.Device,
                 claims: context.Claims,
                 metadata: context.Metadata
             );
@@ -193,6 +194,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 now: now,
                 expiresAt: expiresAt,
                 securityVersion: root.SecurityVersion,
+                device: context.Device,
                 claims: context.Claims,
                 metadata: context.Metadata
             );

@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference;
@@ -33,7 +34,7 @@ internal sealed class UserRoleService : IUserRoleService
             var role = await _roles.GetByNameAsync(context.ResourceTenant, normalized, innerCt);
 
             if (role is null || role.IsDeleted)
-                throw new InvalidOperationException("role_not_found");
+                throw new UAuthNotFoundException("role_not_found");
 
             await _userRoles.AssignAsync(context.ResourceTenant, targetUserKey, role.Id, now, innerCt);
         });

@@ -18,15 +18,15 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
     private readonly IOpaqueTokenGenerator _opaqueGenerator;
     private readonly IJwtTokenGenerator _jwtGenerator;
     private readonly ITokenHasher _tokenHasher;
-    private readonly IRefreshTokenStore _refreshTokenStore;
+    private readonly IRefreshTokenStoreFactory _storeFactory;
     private readonly IClock _clock;
 
-    public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStore refreshTokenStore, IClock clock)
+    public UAuthTokenIssuer(IOpaqueTokenGenerator opaqueGenerator, IJwtTokenGenerator jwtGenerator, ITokenHasher tokenHasher, IRefreshTokenStoreFactory storeFactory, IClock clock)
     {
         _opaqueGenerator = opaqueGenerator;
         _jwtGenerator = jwtGenerator;
         _tokenHasher = tokenHasher;
-        _refreshTokenStore = refreshTokenStore;
+        _storeFactory = storeFactory;
         _clock = clock;
     }
 
@@ -50,36 +50,37 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         };
     }
 
-    public async Task<RefreshToken?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
+    public async Task<RefreshTokenInfo?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque)
             return null;
 
-        var expires = _clock.UtcNow.Add(flow.OriginalOptions.Token.RefreshTokenLifetime);
+        if (context.SessionId is not AuthSessionId sessionId)
+            return null;
+
+        var now = _clock.UtcNow;
+        var expires = now.Add(flow.OriginalOptions.Token.RefreshTokenLifetime);
 
         var raw = _opaqueGenerator.Generate();
         var hash = _tokenHasher.Hash(raw);
 
-        if (context.SessionId is not AuthSessionId sessionId)
-            return null;
-
-        var stored = new StoredRefreshToken
-        {
-            Tenant = flow.Tenant,
-            TokenHash = hash,
-            UserKey = context.UserKey,
-            SessionId = sessionId,
-            ChainId = context.ChainId,
-            IssuedAt = _clock.UtcNow,
-            ExpiresAt = expires
-        };
+        var stored = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: hash,
+            tenant: flow.Tenant,
+            userKey: context.UserKey,
+            sessionId: sessionId,
+            chainId: context.ChainId,
+            createdAt: now,
+            expiresAt: expires);
 
         if (persistence == RefreshTokenPersistence.Persist)
         {
-            await _refreshTokenStore.StoreAsync(flow.Tenant, stored, ct);
+            var store = _storeFactory.Create(flow.Tenant);
+            await store.StoreAsync(stored, ct);
         }
 
-        return new RefreshToken
+        return new RefreshTokenInfo
         {
             Token = raw,
             TokenHash = hash,

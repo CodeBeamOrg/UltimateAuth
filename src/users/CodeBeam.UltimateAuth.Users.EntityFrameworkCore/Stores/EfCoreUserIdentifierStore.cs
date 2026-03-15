@@ -1,0 +1,322 @@
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference;
+using Microsoft.EntityFrameworkCore;
+
+namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
+
+internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
+{
+    private readonly UAuthUserDbContext _db;
+
+    public EfCoreUserIdentifierStore(UAuthUserDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<bool> ExistsAsync(Guid key, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        return await _db.Identifiers
+            .AnyAsync(x => x.Id == key, ct);
+    }
+
+    public async Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var q = _db.Identifiers
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == query.Tenant &&
+                x.Type == query.Type &&
+                x.NormalizedValue == query.NormalizedValue &&
+                x.DeletedAt == null);
+
+        if (query.ExcludeIdentifierId.HasValue)
+            q = q.Where(x => x.Id != query.ExcludeIdentifierId.Value);
+
+        q = query.Scope switch
+        {
+            IdentifierExistenceScope.WithinUser =>
+                q.Where(x => x.UserKey == query.UserKey),
+
+            IdentifierExistenceScope.TenantPrimaryOnly =>
+                q.Where(x => x.IsPrimary),
+
+            IdentifierExistenceScope.TenantAny =>
+                q,
+
+            _ => q
+        };
+
+        var match = await q
+            .Select(x => new
+            {
+                x.Id,
+                x.UserKey,
+                x.IsPrimary
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (match is null)
+            return new IdentifierExistenceResult(false);
+
+        return new IdentifierExistenceResult(
+            true,
+            match.UserKey,
+            match.Id,
+            match.IsPrimary);
+    }
+
+    public async Task<UserIdentifier?> GetAsync(Guid key, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = await _db.Identifiers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == key, ct);
+
+        return projection?.ToDomain();
+    }
+
+    public async Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = await _db.Identifiers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x =>
+                    x.Tenant == tenant &&
+                    x.Type == type &&
+                    x.NormalizedValue == normalizedValue &&
+                    x.DeletedAt == null,
+                ct);
+
+        return projection?.ToDomain();
+    }
+
+    public async Task<UserIdentifier?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = await _db.Identifiers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id, ct);
+
+        return projection?.ToDomain();
+    }
+
+    public async Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projections = await _db.Identifiers
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == tenant &&
+                x.UserKey == userKey &&
+                x.DeletedAt == null)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+        return projections.Select(x => x.ToDomain()).ToList();
+    }
+
+    public async Task AddAsync(UserIdentifier entity, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = entity.ToProjection();
+
+        if (entity.Version != 0)
+            throw new UAuthValidationException("New identifier must have version 0.");
+
+        using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        if (entity.IsPrimary)
+        {
+            await _db.Identifiers
+                .Where(x =>
+                    x.Tenant == entity.Tenant &&
+                    x.UserKey == entity.UserKey &&
+                    x.Type == entity.Type &&
+                    x.IsPrimary &&
+                    x.DeletedAt == null)
+                .ExecuteUpdateAsync(
+                    x => x.SetProperty(i => i.IsPrimary, false),
+                    ct);
+        }
+
+        _db.Identifiers.Add(projection);
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
+    public async Task SaveAsync(UserIdentifier entity, long expectedVersion, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = entity.ToProjection();
+
+        using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        if (entity.IsPrimary)
+        {
+            await _db.Identifiers
+                .Where(x =>
+                    x.Tenant == entity.Tenant &&
+                    x.UserKey == entity.UserKey &&
+                    x.Type == entity.Type &&
+                    x.Id != entity.Id &&
+                    x.IsPrimary &&
+                    x.DeletedAt == null)
+                .ExecuteUpdateAsync(
+                    x => x.SetProperty(i => i.IsPrimary, false),
+                    ct);
+        }
+
+        _db.Entry(projection).State = EntityState.Modified;
+
+        _db.Entry(projection)
+            .Property(x => x.Version)
+            .OriginalValue = expectedVersion;
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new UAuthConcurrencyException("identifier_concurrency_conflict");
+        }
+    }
+
+    public async Task<PagedResult<UserIdentifier>> QueryAsync(TenantKey tenant, UserIdentifierQuery query, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (query.UserKey is null)
+            throw new UAuthIdentifierValidationException("userKey_required");
+
+        var normalized = query.Normalize();
+
+        var baseQuery = _db.Identifiers
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == tenant &&
+                x.UserKey == query.UserKey &&
+                (query.IncludeDeleted || x.DeletedAt == null));
+
+        baseQuery = query.SortBy switch
+        {
+            nameof(UserIdentifier.Type) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Type)
+                    : baseQuery.OrderBy(x => x.Type),
+
+            nameof(UserIdentifier.CreatedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
+                    : baseQuery.OrderBy(x => x.CreatedAt),
+
+            nameof(UserIdentifier.Value) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.Value)
+                    : baseQuery.OrderBy(x => x.Value),
+
+            _ => baseQuery.OrderBy(x => x.CreatedAt)
+        };
+
+        var total = await baseQuery.CountAsync(ct);
+
+        var items = await baseQuery
+            .Skip((normalized.PageNumber - 1) * normalized.PageSize)
+            .Take(normalized.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<UserIdentifier>(
+            items.Select(x => x.ToDomain()).ToList(),
+            total,
+            normalized.PageNumber,
+            normalized.PageSize,
+            query.SortBy,
+            query.Descending);
+    }
+
+    public async Task<IReadOnlyList<UserIdentifier>> GetByUsersAsync(TenantKey tenant, IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projections = await _db.Identifiers
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == tenant &&
+                userKeys.Contains(x.UserKey) &&
+                x.DeletedAt == null)
+            .ToListAsync(ct);
+
+        return projections.Select(x => x.ToDomain()).ToList();
+    }
+
+    public async Task DeleteAsync(Guid key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projection = await _db.Identifiers
+            .SingleOrDefaultAsync(x => x.Id == key, ct);
+
+        if (projection is null)
+            throw new UAuthNotFoundException("identifier_not_found");
+
+        if (projection.Version != expectedVersion)
+            throw new UAuthConcurrencyException("identifier_concurrency_conflict");
+
+        if (mode == DeleteMode.Hard)
+        {
+            _db.Identifiers.Remove(projection);
+        }
+        else
+        {
+            projection.DeletedAt = now;
+            projection.IsPrimary = false;
+            projection.Version++;
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (mode == DeleteMode.Hard)
+        {
+            await _db.Identifiers
+                .Where(x =>
+                    x.Tenant == tenant &&
+                    x.UserKey == userKey)
+                .ExecuteDeleteAsync(ct);
+
+            return;
+        }
+
+        await _db.Identifiers
+            .Where(x =>
+                x.Tenant == tenant &&
+                x.UserKey == userKey &&
+                x.DeletedAt == null)
+            .ExecuteUpdateAsync(
+                x => x
+                    .SetProperty(i => i.DeletedAt, deletedAt)
+                    .SetProperty(i => i.IsPrimary, false),
+                ct);
+    }
+}

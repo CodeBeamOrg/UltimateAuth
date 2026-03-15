@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Collections;
 
@@ -29,7 +30,7 @@ public sealed class AccessContext
     public UserKey GetTargetUserKey()
     {
         if (TargetUserKey is not UserKey targetUserKey)
-            throw new InvalidOperationException("Target user is not found.");
+            throw new UAuthNotFoundException("Target user is not found.");
 
         return targetUserKey;
     }

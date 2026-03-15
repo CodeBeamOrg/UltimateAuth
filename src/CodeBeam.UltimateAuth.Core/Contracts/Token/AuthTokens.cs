@@ -12,5 +12,5 @@ public sealed record AuthTokens
     /// </summary>
     public AccessToken AccessToken { get; init; } = default!;
 
-    public RefreshToken? RefreshToken { get; init; }
+    public RefreshTokenInfo? RefreshToken { get; init; }
 }

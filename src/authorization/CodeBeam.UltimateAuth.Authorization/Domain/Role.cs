@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization;
@@ -35,7 +36,7 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
         DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("role_name_required");
+            throw new UAuthValidationException("role_name_required");
 
         var normalized = Normalize(name);
 
@@ -61,7 +62,7 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
     public Role Rename(string newName, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(newName))
-            throw new InvalidOperationException("role_name_required");
+            throw new UAuthValidationException("role_name_required");
 
         if (NormalizedName == Normalize(newName))
             return this;
@@ -128,6 +129,34 @@ public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletab
             copy._permissions.Add(p);
 
         return copy;
+    }
+
+    public static Role FromProjection(
+        RoleId id,
+        TenantKey tenant,
+        string name,
+        IEnumerable<Permission> permissions,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        var role = new Role
+        {
+            Id = id,
+            Tenant = tenant,
+            Name = name,
+            NormalizedName = Normalize(name),
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            DeletedAt = deletedAt,
+            Version = version
+        };
+
+        foreach (var p in permissions)
+            role._permissions.Add(p);
+
+        return role;
     }
 
     private static string Normalize(string name)

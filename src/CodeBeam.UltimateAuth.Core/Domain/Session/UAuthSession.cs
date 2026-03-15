@@ -1,9 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-// TODO: Add ISoftDeleteable
 public sealed class UAuthSession : IVersionedEntity
 {
     public AuthSessionId SessionId { get; }
@@ -12,12 +12,14 @@ public sealed class UAuthSession : IVersionedEntity
     public SessionChainId ChainId { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset ExpiresAt { get; }
-    public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long SecurityVersionAtCreation { get; }
+    public DeviceContext Device { get; } // For snapshot,main value is chain's device.
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
 
     private UAuthSession(
         AuthSessionId sessionId,
@@ -26,9 +28,9 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
+        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -39,9 +41,9 @@ public sealed class UAuthSession : IVersionedEntity
         ChainId = chainId;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
-        IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersionAtCreation = securityVersionAtCreation;
+        Device = device;
         Claims = claims;
         Metadata = metadata;
         Version = version;
@@ -55,6 +57,7 @@ public sealed class UAuthSession : IVersionedEntity
         DateTimeOffset now,
         DateTimeOffset expiresAt,
         long securityVersion,
+        DeviceContext device,
         ClaimsSnapshot? claims,
         SessionMetadata metadata)
     {
@@ -65,9 +68,9 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt: now,
             expiresAt: expiresAt,
-            isRevoked: false,
             revokedAt: null,
             securityVersionAtCreation: securityVersion,
+            device: device,
             claims: claims ?? ClaimsSnapshot.Empty,
             metadata: metadata,
             version: 0
@@ -76,7 +79,8 @@ public sealed class UAuthSession : IVersionedEntity
 
     public UAuthSession Revoke(DateTimeOffset at)
     {
-        if (IsRevoked) return this;
+        if (IsRevoked)
+            return this;
 
         return new UAuthSession(
             SessionId,
@@ -85,9 +89,9 @@ public sealed class UAuthSession : IVersionedEntity
             ChainId,
             CreatedAt,
             ExpiresAt,
-            true,
             at,
             SecurityVersionAtCreation,
+            Device,
             Claims,
             Metadata,
             Version + 1
@@ -101,9 +105,9 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
+        DeviceContext device,
         ClaimsSnapshot claims,
         SessionMetadata metadata,
         long version)
@@ -115,9 +119,9 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt,
             expiresAt,
-            isRevoked,
             revokedAt,
             securityVersionAtCreation,
+            device,
             claims,
             metadata,
             version
@@ -138,7 +142,7 @@ public sealed class UAuthSession : IVersionedEntity
     public UAuthSession WithChain(SessionChainId chainId)
     {
         if (!ChainId.IsUnassigned)
-            throw new InvalidOperationException("Chain already assigned.");
+            throw new UAuthConflictException("Chain already assigned.");
 
         return new UAuthSession(
             sessionId: SessionId,
@@ -147,9 +151,9 @@ public sealed class UAuthSession : IVersionedEntity
             chainId: chainId,
             createdAt: CreatedAt,
             expiresAt: ExpiresAt,
-            isRevoked: IsRevoked,
             revokedAt: RevokedAt,
             securityVersionAtCreation: SecurityVersionAtCreation,
+            device: Device,
             claims: Claims,
             metadata: Metadata,
             version: Version + 1
