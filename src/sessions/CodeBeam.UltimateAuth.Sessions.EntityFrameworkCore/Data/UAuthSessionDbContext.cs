@@ -34,8 +34,13 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-
-            e.Property(x => x.UserKey)
+            e.Property(x => x.UserKey).IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired();
+            e.Property(x => x.Tenant)
+                .HasConversion(
+                    v => v.Value,
+                    v => TenantKey.FromInternal(v))
+                .HasMaxLength(128)
                 .IsRequired();
 
             e.HasIndex(x => new { x.Tenant, x.UserKey }).IsUnique();
@@ -48,6 +53,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
                 .HasConversion(
                     v => v.Value,
                     v => SessionRootId.From(v))
+                .HasMaxLength(128)
                 .IsRequired();
         });
 
@@ -56,16 +62,41 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-
-            e.Property(x => x.UserKey)
+            e.Property(x => x.UserKey).IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired();
+            e.Property(x => x.Tenant)
+                .HasConversion(
+                    v => v.Value,
+                    v => TenantKey.FromInternal(v))
+                .HasMaxLength(128)
                 .IsRequired();
 
             e.HasIndex(x => new { x.Tenant, x.ChainId }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.UserKey });
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.DeviceId });
+            e.HasIndex(x => new { x.Tenant, x.RootId });
+
+            e.HasOne<SessionRootProjection>()
+                .WithMany()
+                .HasForeignKey(x => new { x.Tenant, x.RootId })
+                .HasPrincipalKey(x => new { x.Tenant, x.RootId })
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.Property(x => x.ChainId)
                 .HasConversion(
                     v => v.Value,
                     v => SessionChainId.From(v))
+                .IsRequired();
+
+            e.Property(x => x.DeviceId)
+                .HasConversion(
+                    v => v.Value,
+                    v => DeviceId.Create(v))
+                .HasMaxLength(64)
+                .IsRequired();
+
+            e.Property(x => x.Device)
+                .HasConversion(new JsonValueConverter<DeviceContext>())
                 .IsRequired();
 
             e.Property(x => x.ActiveSessionId)
@@ -83,9 +114,26 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Version).IsConcurrencyToken();
+            e.Property(x => x.CreatedAt).IsRequired();
+            e.Property(x => x.Tenant)
+                .HasConversion(
+                    v => v.Value,
+                    v => TenantKey.FromInternal(v))
+                .HasMaxLength(128)
+                .IsRequired();
 
             e.HasIndex(x => new { x.Tenant, x.SessionId }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.ChainId });
             e.HasIndex(x => new { x.Tenant, x.ChainId, x.RevokedAt });
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.RevokedAt });
+            e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
+            e.HasIndex(x => new { x.Tenant, x.RevokedAt });
+
+            e.HasOne<SessionChainProjection>()
+                .WithMany()
+                .HasForeignKey(x => new { x.Tenant, x.ChainId })
+                .HasPrincipalKey(x => new { x.Tenant, x.ChainId })
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.Property(x => x.SessionId)
                 .HasConversion(new AuthSessionIdConverter())

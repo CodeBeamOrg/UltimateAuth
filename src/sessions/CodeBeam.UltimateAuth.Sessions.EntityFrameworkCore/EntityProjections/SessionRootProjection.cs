@@ -13,9 +13,10 @@ internal sealed class SessionRootProjection
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 
-    public bool IsRevoked { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
     public long SecurityVersion { get; set; }
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
 }

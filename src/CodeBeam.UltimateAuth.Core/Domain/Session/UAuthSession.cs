@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
-// TODO: Add ISoftDeleteable
 public sealed class UAuthSession : IVersionedEntity
 {
     public AuthSessionId SessionId { get; }
@@ -13,12 +12,13 @@ public sealed class UAuthSession : IVersionedEntity
     public SessionChainId ChainId { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset ExpiresAt { get; }
-    public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
     public long SecurityVersionAtCreation { get; }
     public ClaimsSnapshot Claims { get; }
     public SessionMetadata Metadata { get; }
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
 
     private UAuthSession(
         AuthSessionId sessionId,
@@ -27,7 +27,6 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
         ClaimsSnapshot claims,
@@ -40,7 +39,6 @@ public sealed class UAuthSession : IVersionedEntity
         ChainId = chainId;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
-        IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersionAtCreation = securityVersionAtCreation;
         Claims = claims;
@@ -66,7 +64,6 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt: now,
             expiresAt: expiresAt,
-            isRevoked: false,
             revokedAt: null,
             securityVersionAtCreation: securityVersion,
             claims: claims ?? ClaimsSnapshot.Empty,
@@ -77,7 +74,8 @@ public sealed class UAuthSession : IVersionedEntity
 
     public UAuthSession Revoke(DateTimeOffset at)
     {
-        if (IsRevoked) return this;
+        if (IsRevoked)
+            return this;
 
         return new UAuthSession(
             SessionId,
@@ -86,7 +84,6 @@ public sealed class UAuthSession : IVersionedEntity
             ChainId,
             CreatedAt,
             ExpiresAt,
-            true,
             at,
             SecurityVersionAtCreation,
             Claims,
@@ -102,7 +99,6 @@ public sealed class UAuthSession : IVersionedEntity
         SessionChainId chainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersionAtCreation,
         ClaimsSnapshot claims,
@@ -116,7 +112,6 @@ public sealed class UAuthSession : IVersionedEntity
             chainId,
             createdAt,
             expiresAt,
-            isRevoked,
             revokedAt,
             securityVersionAtCreation,
             claims,
@@ -148,7 +143,6 @@ public sealed class UAuthSession : IVersionedEntity
             chainId: chainId,
             createdAt: CreatedAt,
             expiresAt: ExpiresAt,
-            isRevoked: IsRevoked,
             revokedAt: RevokedAt,
             securityVersionAtCreation: SecurityVersionAtCreation,
             claims: Claims,

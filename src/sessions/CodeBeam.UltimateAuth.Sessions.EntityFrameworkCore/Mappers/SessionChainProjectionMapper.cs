@@ -27,6 +27,9 @@ internal static class SessionChainProjectionMapper
 
     public static SessionChainProjection ToProjection(this UAuthSessionChain chain)
     {
+        if (chain.Device.DeviceId is not DeviceId deviceId)
+            throw new ArgumentException("Device id required.");
+
         return new SessionChainProjection
         {
             ChainId = chain.ChainId,
@@ -36,6 +39,7 @@ internal static class SessionChainProjectionMapper
             CreatedAt = chain.CreatedAt,
             LastSeenAt = chain.LastSeenAt,
             AbsoluteExpiresAt = chain.AbsoluteExpiresAt,
+            DeviceId = deviceId,
             Device = chain.Device,
             ClaimsSnapshot = chain.ClaimsSnapshot,
             ActiveSessionId = chain.ActiveSessionId,

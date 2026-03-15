@@ -15,9 +15,8 @@ internal sealed class SessionProjection
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
-    public DateTimeOffset? LastSeenAt { get; set; }
 
-    public bool IsRevoked { get; set; }
+    
     public DateTimeOffset? RevokedAt { get; set; }
 
     public long SecurityVersionAtCreation { get; set; }
@@ -27,4 +26,6 @@ internal sealed class SessionProjection
     public SessionMetadata Metadata { get; set; } = SessionMetadata.Empty;
 
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
 }

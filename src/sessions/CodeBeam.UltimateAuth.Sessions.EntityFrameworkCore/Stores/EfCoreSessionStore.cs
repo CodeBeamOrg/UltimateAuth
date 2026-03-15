@@ -10,12 +10,10 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 internal sealed class EfCoreSessionStore : ISessionStore
 {
     private readonly UltimateAuthSessionDbContext _db;
-    private readonly TenantContext _tenant;
 
-    public EfCoreSessionStore(UltimateAuthSessionDbContext db, TenantContext tenant)
+    public EfCoreSessionStore(UltimateAuthSessionDbContext db)
     {
         _db = db;
-        _tenant = tenant;
     }
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
@@ -24,12 +22,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         await strategy.ExecuteAsync(async () =>
         {
-            var connection = _db.Database.GetDbConnection();
-            if (connection.State != ConnectionState.Open)
-                await connection.OpenAsync(ct);
-
-            await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
-            _db.Database.UseTransaction(tx);
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
 
             try
             {
@@ -47,10 +40,6 @@ internal sealed class EfCoreSessionStore : ISessionStore
                 await tx.RollbackAsync(ct);
                 throw;
             }
-            finally
-            {
-                _db.Database.UseTransaction(null);
-            }
         });
     }
 
@@ -60,12 +49,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         return await strategy.ExecuteAsync(async () =>
         {
-            var connection = _db.Database.GetDbConnection();
-            if (connection.State != ConnectionState.Open)
-                await connection.OpenAsync(ct);
-
-            await using var tx = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
-            _db.Database.UseTransaction(tx);
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
 
             try
             {
@@ -74,14 +58,15 @@ internal sealed class EfCoreSessionStore : ISessionStore
                 await tx.CommitAsync(ct);
                 return result;
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                await tx.RollbackAsync(ct);
+                throw new UAuthConcurrencyException("concurrency_conflict");
+            }
             catch
             {
                 await tx.RollbackAsync(ct);
                 throw;
-            }
-            finally
-            {
-                _db.Database.UseTransaction(null);
             }
         });
     }
@@ -97,24 +82,15 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return projection?.ToDomain();
     }
 
-    public async Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
+    public Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var projection = session.ToProjection();
-        projection.Version = expectedVersion;
-
-        _db.Entry(projection).State = EntityState.Modified;
+        _db.Sessions.Attach(projection);
         _db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
-
-        try
-        {
-            await Task.CompletedTask;
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new UAuthConcurrencyException("session_concurrency_conflict");
-        }
+        _db.Entry(projection).State = EntityState.Modified;
+        return Task.CompletedTask;
     }
 
     public async Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default)
@@ -133,18 +109,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId);
+        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.SessionId == sessionId, ct);
 
-        if (projection is null)
+        if (projection is null || projection.IsRevoked)
             return false;
 
-        var session = projection.ToDomain();
-        if (session.IsRevoked)
-            return false;
-
-        var revoked = session.Revoke(at);
+        var revoked = projection.ToDomain().Revoke(at);
         _db.Sessions.Update(revoked.ToProjection());
-
         return true;
     }
 
@@ -153,29 +124,23 @@ internal sealed class EfCoreSessionStore : ISessionStore
         ct.ThrowIfCancellationRequested();
 
         var chains = await _db.Chains.Where(x => x.UserKey == user).ToListAsync(ct);
+        var chainIds = chains.Select(x => x.ChainId).ToList();
+        var sessions = await _db.Sessions.Where(x => chainIds.Contains(x.ChainId)).ToListAsync(ct);
+
+        foreach (var sessionProjection in sessions)
+        {
+            var session = sessionProjection.ToDomain();
+
+            if (!session.IsRevoked)
+                _db.Sessions.Update(session.Revoke(at).ToProjection());
+        }
 
         foreach (var chainProjection in chains)
         {
             var chain = chainProjection.ToDomain();
 
-            var sessions = await _db.Sessions.Where(x => x.ChainId == chain.ChainId).ToListAsync(ct);
-
-            foreach (var sessionProjection in sessions)
-            {
-                var session = sessionProjection.ToDomain();
-
-                if (session.IsRevoked)
-                    continue;
-
-                var revoked = session.Revoke(at);
-                _db.Sessions.Update(revoked.ToProjection());
-            }
-
             if (chain.ActiveSessionId is not null)
-            {
-                var updatedChain = chain.DetachSession(at);
-                _db.Chains.Update(updatedChain.ToProjection());
-            }
+                _db.Chains.Update(chain.DetachSession(at).ToProjection());
         }
     }
 
@@ -184,29 +149,23 @@ internal sealed class EfCoreSessionStore : ISessionStore
         ct.ThrowIfCancellationRequested();
 
         var chains = await _db.Chains.Where(x => x.UserKey == user && x.ChainId != keepChain).ToListAsync(ct);
+        var chainIds = chains.Select(x => x.ChainId).ToList();
+        var sessions = await _db.Sessions.Where(x => chainIds.Contains(x.ChainId)).ToListAsync(ct);
+
+        foreach (var sessionProjection in sessions)
+        {
+            var session = sessionProjection.ToDomain();
+
+            if (!session.IsRevoked)
+                _db.Sessions.Update(session.Revoke(at).ToProjection());
+        }
 
         foreach (var chainProjection in chains)
         {
             var chain = chainProjection.ToDomain();
 
-            var sessions = await _db.Sessions.Where(x => x.ChainId == chain.ChainId).ToListAsync(ct);
-
-            foreach (var sessionProjection in sessions)
-            {
-                var session = sessionProjection.ToDomain();
-
-                if (session.IsRevoked)
-                    continue;
-
-                var revoked = session.Revoke(at);
-                _db.Sessions.Update(revoked.ToProjection());
-            }
-
             if (chain.ActiveSessionId is not null)
-            {
-                var updatedChain = chain.DetachSession(at);
-                _db.Chains.Update(updatedChain.ToProjection());
-            }
+                _db.Chains.Update(chain.DetachSession(at).ToProjection());
         }
     }
 
@@ -231,7 +190,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
                 x.Tenant == tenant &&
                 x.UserKey == userKey &&
                 x.RevokedAt == null &&
-                x.Device.DeviceId == deviceId)
+                x.DeviceId == deviceId)
             .SingleOrDefaultAsync(ct);
 
         return projection?.ToDomain();
@@ -392,19 +351,8 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await _db.Roots
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.UserKey == userKey);
-
-        if (rootProjection is null)
-            return null;
-
-        var chains = await _db.Chains
-            .AsNoTracking()
-            .Where(x => x.UserKey == userKey)
-            .ToListAsync();
-
-        return rootProjection.ToDomain();
+        var rootProjection = await _db.Roots.AsNoTracking().SingleOrDefaultAsync(x => x.UserKey == userKey, ct);
+        return rootProjection?.ToDomain();
     }
 
     public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
@@ -511,19 +459,8 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await _db.Roots
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.RootId == rootId);
-
-        if (rootProjection is null)
-            return null;
-
-        var chains = await _db.Chains
-            .AsNoTracking()
-            .Where(x => x.RootId == rootId)
-            .ToListAsync();
-
-        return rootProjection.ToDomain();
+        var projection = await _db.Roots.AsNoTracking().SingleOrDefaultAsync(x => x.RootId == rootId, ct);
+        return projection?.ToDomain();
     }
 
     public async Task RemoveSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)

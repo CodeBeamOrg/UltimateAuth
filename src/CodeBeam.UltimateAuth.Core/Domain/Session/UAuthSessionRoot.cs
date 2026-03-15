@@ -11,12 +11,12 @@ public sealed class UAuthSessionRoot : IVersionedEntity
 
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? UpdatedAt { get; }
-
-    public bool IsRevoked { get; }
     public DateTimeOffset? RevokedAt { get; }
 
     public long SecurityVersion { get; }
     public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
 
     private UAuthSessionRoot(
         SessionRootId rootId,
@@ -24,7 +24,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
         UserKey userKey,
         DateTimeOffset createdAt,
         DateTimeOffset? updatedAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
         long version)
@@ -34,7 +33,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
         UserKey = userKey;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
-        IsRevoked = isRevoked;
         RevokedAt = revokedAt;
         SecurityVersion = securityVersion;
         Version = version;
@@ -51,7 +49,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             userKey,
             at,
             null,
-            false,
             null,
             0,
             0
@@ -66,7 +63,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             UserKey,
             CreatedAt,
             at,
-            IsRevoked,
             RevokedAt,
             SecurityVersion + 1,
             Version + 1
@@ -84,7 +80,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             UserKey,
             CreatedAt,
             at,
-            true,
             at,
             SecurityVersion + 1,
             Version + 1
@@ -97,7 +92,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
         UserKey userKey,
         DateTimeOffset createdAt,
         DateTimeOffset? updatedAt,
-        bool isRevoked,
         DateTimeOffset? revokedAt,
         long securityVersion,
         long version)
@@ -108,7 +102,6 @@ public sealed class UAuthSessionRoot : IVersionedEntity
             userKey,
             createdAt,
             updatedAt,
-            isRevoked,
             revokedAt,
             securityVersion,
             version
