@@ -5,10 +5,14 @@ namespace CodeBeam.UltimateAuth.EntityFrameworkCore;
 
 public sealed class JsonValueConverter<T> : ValueConverter<T, string>
 {
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
     public JsonValueConverter()
-        : base(
-            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => JsonSerializer.Deserialize<T>(v, (JsonSerializerOptions?)null)!)
+        : base(v => Serialize(v), v => Deserialize(v))
     {
     }
+
+    private static string Serialize(T value) => JsonSerializer.Serialize(value, Options);
+
+    private static T Deserialize(string json) => JsonSerializer.Deserialize<T>(json, Options)!;
 }

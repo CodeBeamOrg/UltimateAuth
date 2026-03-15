@@ -144,6 +144,37 @@ public sealed class UserIdentifier : IVersionedEntity, ISoftDeletable<UserIdenti
         return this;
     }
 
+    public static UserIdentifier FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        UserIdentifierType type,
+        string value,
+        string normalizedValue,
+        bool isPrimary,
+        DateTimeOffset createdAt,
+        DateTimeOffset? verifiedAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        return new UserIdentifier
+        {
+            Id = id,
+            Tenant = tenant,
+            UserKey = userKey,
+            Type = type,
+            Value = value,
+            NormalizedValue = normalizedValue,
+            IsPrimary = isPrimary,
+            CreatedAt = createdAt,
+            VerifiedAt = verifiedAt,
+            UpdatedAt = updatedAt,
+            DeletedAt = deletedAt,
+            Version = version
+        };
+    }
+
     public UserIdentifierInfo ToDto()
     {
         return new UserIdentifierInfo()

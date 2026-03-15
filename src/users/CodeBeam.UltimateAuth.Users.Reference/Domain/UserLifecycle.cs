@@ -93,4 +93,29 @@ public sealed class UserLifecycle : IVersionedEntity, ISoftDeletable<UserLifecyc
         SecurityVersion++;
         return this;
     }
+
+    public static UserLifecycle FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        UserStatus status,
+        long securityVersion,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        return new UserLifecycle
+        {
+            Id = id,
+            Tenant = tenant,
+            UserKey = userKey,
+            Status = status,
+            SecurityVersion = securityVersion,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            DeletedAt = deletedAt,
+            Version = version
+        };
+    }
 }
