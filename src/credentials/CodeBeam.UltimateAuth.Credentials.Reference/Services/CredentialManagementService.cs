@@ -17,7 +17,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 internal sealed class CredentialManagementService : ICredentialManagementService, IUserCredentialsInternalService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
-    private readonly ICredentialStore _credentials;
+    private readonly IPasswordCredentialStore _credentials;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager;
     private readonly IOpaqueTokenGenerator _tokenGenerator;
     private readonly INumericCodeGenerator _numericCodeGenerator;
@@ -30,7 +30,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
     public CredentialManagementService(
         IAccessOrchestrator accessOrchestrator,
-        ICredentialStore credentials,
+        IPasswordCredentialStore credentials,
         IAuthenticationSecurityManager authenticationSecurityManager,
         IOpaqueTokenGenerator tokenGenerator,
         INumericCodeGenerator numericCodeGenerator,
@@ -66,7 +66,6 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var credentials = await _credentials.GetByUserAsync(context.ResourceTenant, subjectUser, innerCt);
 
             var dtos = credentials
-                .OfType<ICredentialDescriptor>()
                 .Select(c => new CredentialInfo
                 {
                     Id = c.Id,
@@ -174,7 +173,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetByIdAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
+            var credential = await _credentials.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -352,7 +351,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetByIdAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
+            var credential = await _credentials.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -361,7 +360,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 return CredentialActionResult.Fail("credential_not_found");
 
             var oldVersion = pwd.Version;
-            await _credentials.DeleteAsync(new CredentialKey(context.ResourceTenant, pwd.Id), request.Mode, now, oldVersion, innerCt);
+            await _credentials.DeleteAsync(new CredentialKey(context.ResourceTenant, pwd.Id), oldVersion, request.Mode, now,  innerCt);
 
             return CredentialActionResult.Success();
         });

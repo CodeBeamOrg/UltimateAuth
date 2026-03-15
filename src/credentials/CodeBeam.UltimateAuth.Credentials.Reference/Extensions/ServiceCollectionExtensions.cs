@@ -14,7 +14,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference
             services.TryAddScoped<IUserCredentialsInternalService, CredentialManagementService>();
             services.TryAddScoped<ICredentialEndpointHandler, CredentialEndpointHandler>();
             services.TryAddScoped<IUserLifecycleIntegration, PasswordUserLifecycleIntegration>();
-
+            services.AddScoped<ICredentialProvider, PasswordCredentialProvider>();
             return services;
         }
     }

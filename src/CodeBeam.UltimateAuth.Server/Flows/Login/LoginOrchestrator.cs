@@ -21,8 +21,7 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 internal sealed class LoginOrchestrator : ILoginOrchestrator
 {
     private readonly ILoginIdentifierResolver _identifierResolver;
-    private readonly ICredentialStore _credentialStore; // authentication
-    private readonly ICredentialValidator _credentialValidator;
+    private readonly IEnumerable<ICredentialProvider> _credentialProviders; // authentication
     private readonly IUserRuntimeStateProvider _users; // eligible
     private readonly ILoginAuthority _authority;
     private readonly ISessionOrchestrator _sessionOrchestrator;
@@ -35,8 +34,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
 
     public LoginOrchestrator(
         ILoginIdentifierResolver identifierResolver,
-        ICredentialStore credentialStore,
-        ICredentialValidator credentialValidator,
+        IEnumerable<ICredentialProvider> credentialProviders,
         IUserRuntimeStateProvider users,
         ILoginAuthority authority,
         ISessionOrchestrator sessionOrchestrator,
@@ -48,8 +46,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         IOptions<UAuthServerOptions> options)
     {
         _identifierResolver = identifierResolver;
-        _credentialStore = credentialStore;
-        _credentialValidator = credentialValidator;
+        _credentialProviders = credentialProviders;
         _users = users;
         _authority = authority;
         _sessionOrchestrator = sessionOrchestrator;
@@ -99,21 +96,24 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
                     return LoginResult.Failed(AuthFailureReason.LockedOut, factorState.LockedUntil, 0);
                 }
 
-                var credentials = await _credentialStore.GetByUserAsync(request.Tenant, userKey.Value, ct);
-
-                // TODO: Add .Where(c => c.Type == request.Factor) when we support multiple factors per user
-                foreach (var credential in credentials.OfType<ICredentialDescriptor>())
+                foreach (var provider in _credentialProviders)
                 {
-                    if (!credential.Security.IsUsable(now))
-                        continue;
+                    var credentials = await provider.GetByUserAsync(request.Tenant, userKey.Value, ct);
 
-                    var result = await _credentialValidator.ValidateAsync((ICredential)credential, request.Secret, ct);
-
-                    if (result.IsValid)
+                    foreach (var credential in credentials)
                     {
-                        credentialsValid = true;
-                        break;
+                        if (credential.IsDeleted || !credential.Security.IsUsable(now))
+                            continue;
+
+                        if (await provider.ValidateAsync(credential, request.Secret, ct))
+                        {
+                            credentialsValid = true;
+                            break;
+                        }
                     }
+
+                    if (credentialsValid)
+                        break;
                 }
             }
         }

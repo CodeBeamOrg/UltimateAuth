@@ -6,13 +6,14 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class PasswordCredential : ISecretCredential, ICredentialDescriptor, IVersionedEntity, IEntitySnapshot<PasswordCredential>, ISoftDeletable<PasswordCredential>
+public sealed class PasswordCredential : ISecretCredential, IVersionedEntity, IEntitySnapshot<PasswordCredential>, ISoftDeletable<PasswordCredential>
 {
     public Guid Id { get; init; }
     public TenantKey Tenant { get; init; }
     public UserKey UserKey { get; init; }
     public CredentialType Type => CredentialType.Password;
 
+    // TODO: Add hash algorithm (PasswordHash object with hash and algorithm properties)
     public string SecretHash { get; private set; } = default!;
     public CredentialSecurityState Security { get; private set; } = CredentialSecurityState.Active();
     public CredentialMetadata Metadata { get; private set; } = new CredentialMetadata();

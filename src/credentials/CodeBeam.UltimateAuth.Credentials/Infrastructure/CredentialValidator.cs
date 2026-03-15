@@ -18,7 +18,7 @@ public sealed class CredentialValidator : ICredentialValidator
     {
         ct.ThrowIfCancellationRequested();
 
-        if (credential is ICredentialDescriptor securable)
+        if (credential is ICredential securable)
         {
             if (!securable.Security.IsUsable(_clock.UtcNow))
             {
