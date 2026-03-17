@@ -2,6 +2,7 @@
 
 @using CodeBeam.UltimateAuth.Client.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
 @inject IUAuthStateManager StateManager
 @inject IUAuthClientBootstrapper Bootstrapper
 @inject ISessionCoordinator Coordinator
@@ -12,11 +13,39 @@
         {
             <UAuthScope>
                 @ChildContent
+                @if (UseBuiltInRouter)
+                {
+                    @RenderRouter()
+                }
             </UAuthScope>
         }
         else
         {
             @ChildContent
+            @if (UseBuiltInRouter)
+            {
+                @RenderRouter()
+            }
         }
     </CascadingValue>
 </CascadingAuthenticationState>
+
+@code {
+    private RenderFragment RenderRouter() => @<Router AppAssembly="@AppAssembly" AdditionalAssemblies="GetAdditionalAssemblies()">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="@DefaultLayout">
+                <NotAuthorized>
+                    @if (NotAuthorized is not null)
+                    {
+                        @NotAuthorized
+                    }
+                    else
+                    {
+                        <p>Not authorized</p>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="@FocusSelector" />
+        </Found>
+    </Router>;
+}

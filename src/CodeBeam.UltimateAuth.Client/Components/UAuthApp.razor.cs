@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using System.Reflection;
 
 namespace CodeBeam.UltimateAuth.Client;
 
@@ -8,7 +9,28 @@ public partial class UAuthApp
     private bool _coordinatorStarted;
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; } = default!;
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? NotAuthorized { get; set; }
+
+    [Parameter]
+    public bool UseBuiltInRouter { get; set; }
+
+    [Parameter]
+    public bool UseUAuthClientRoutes { get; set; } = true;
+
+    [Parameter]
+    public Assembly? AppAssembly { get; set; }
+
+    [Parameter]
+    public IEnumerable<Assembly>? AdditionalAssemblies { get; set; }
+
+    [Parameter]
+    public Type? DefaultLayout { get; set; }
+
+    [Parameter]
+    public string? FocusSelector { get; set; } = "h1";
 
     [Parameter]
     public UAuthRenderMode RenderMode { get; set; } = UAuthRenderMode.Manual;
@@ -81,6 +103,17 @@ public partial class UAuthApp
         StateManager.MarkStale();
         if (OnReauthRequired.HasDelegate)
             await OnReauthRequired.InvokeAsync();
+    }
+
+    private IEnumerable<Assembly> GetAdditionalAssemblies()
+    {
+        if (AdditionalAssemblies is null && UseUAuthClientRoutes)
+            return UAuthAssemblies.Client();
+
+        if (UseUAuthClientRoutes)
+            return AdditionalAssemblies.WithUltimateAuth();
+
+        return Enumerable.Empty<Assembly>();
     }
 
     public async ValueTask DisposeAsync()
