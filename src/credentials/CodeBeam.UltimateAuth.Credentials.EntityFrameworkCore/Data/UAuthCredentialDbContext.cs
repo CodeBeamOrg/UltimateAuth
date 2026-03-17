@@ -27,6 +27,7 @@ internal sealed class UAuthCredentialDbContext : DbContext
     {
         b.Entity<PasswordCredentialProjection>(e =>
         {
+            e.ToTable("UAuth_PasswordCredentials");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();

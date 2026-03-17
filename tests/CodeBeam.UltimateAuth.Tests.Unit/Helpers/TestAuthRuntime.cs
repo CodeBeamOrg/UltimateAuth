@@ -1,6 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Authentication.InMemory;
-using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -8,18 +6,13 @@ using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
-using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Sessions.InMemory;
-using CodeBeam.UltimateAuth.Tokens.InMemory;
-using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Users.Reference;
-using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -45,15 +38,7 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         services.AddSingleton<IUAuthPasswordHasher, TestPasswordHasher>();
         // InMemory plugins
-        services.AddUltimateAuthUsersInMemory();
-        services.AddUltimateAuthCredentialsInMemory();
-        services.AddUltimateAuthInMemorySessions();
-        services.AddUltimateAuthInMemoryTokens();
-        services.AddUltimateAuthInMemoryAuthenticationSecurity();
-        services.AddUltimateAuthAuthorizationInMemory();
-        services.AddUltimateAuthUsersReference();
-        services.AddUltimateAuthAuthorizationReference();
-        services.AddUltimateAuthCredentialsReference();
+        services.AddInMemoryReference();
 
         services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();

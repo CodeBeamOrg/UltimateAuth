@@ -19,6 +19,7 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
     {
         b.Entity<RefreshTokenProjection>(e =>
         {
+            e.ToTable("UAuth_RefreshTokens");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)

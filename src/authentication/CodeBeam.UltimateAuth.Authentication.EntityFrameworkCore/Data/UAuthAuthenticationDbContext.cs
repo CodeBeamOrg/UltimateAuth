@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Core.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
@@ -25,6 +24,7 @@ internal sealed class UAuthAuthenticationDbContext : DbContext
     {
         b.Entity<AuthenticationSecurityStateProjection>(e =>
         {
+            e.ToTable("UAuth_Authentication");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.SecurityVersion).IsConcurrencyToken();

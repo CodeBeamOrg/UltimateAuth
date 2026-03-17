@@ -44,6 +44,7 @@ internal sealed class UAuthUserDbContext : DbContext
     {
         b.Entity<UserIdentifierProjection>(e =>
         {
+            e.ToTable("UAuth_UserIdentifiers");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)
@@ -86,6 +87,7 @@ internal sealed class UAuthUserDbContext : DbContext
     {
         b.Entity<UserLifecycleProjection>(e =>
         {
+            e.ToTable("UAuth_UserLifecycles");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)
@@ -119,6 +121,7 @@ internal sealed class UAuthUserDbContext : DbContext
     {
         b.Entity<UserProfileProjection>(e =>
         {
+            e.ToTable("UAuth_UserProfiles");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)

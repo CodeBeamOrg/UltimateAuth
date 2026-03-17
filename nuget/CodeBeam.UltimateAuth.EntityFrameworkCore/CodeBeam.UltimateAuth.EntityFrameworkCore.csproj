@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>0.1.0-preview.1</Version>
+		<InformationalVersion>0.1.0-preview.1</InformationalVersion>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
+	  <ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
+	  <ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.EntityFrameworkCore\CodeBeam.UltimateAuth.Users.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
+	</ItemGroup>
+
+</Project>

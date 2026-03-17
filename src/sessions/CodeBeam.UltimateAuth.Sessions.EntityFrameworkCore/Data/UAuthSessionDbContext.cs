@@ -32,6 +32,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
 
         b.Entity<SessionRootProjection>(e =>
         {
+            e.ToTable("UAuth_SessionRoots");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
@@ -60,6 +61,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
 
         b.Entity<SessionChainProjection>(e =>
         {
+            e.ToTable("UAuth_SessionChains");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
@@ -113,6 +115,7 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
 
         b.Entity<SessionProjection>(e =>
         {
+            e.ToTable("UAuth_Sessions");
             e.HasKey(x => x.Id);
             e.Property(x => x.Version).IsConcurrencyToken();
             e.Property(x => x.CreatedAt).IsRequired();

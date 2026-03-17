@@ -30,6 +30,7 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
     {
         b.Entity<RoleProjection>(e =>
         {
+            e.ToTable("UAuth_Roles");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)
@@ -70,6 +71,7 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
     {
         b.Entity<RolePermissionProjection>(e =>
         {
+            e.ToTable("UAuth_RolePermissions");
             e.HasKey(x => new { x.Tenant, x.RoleId, x.Permission });
 
             e.Property(x => x.Tenant)
@@ -100,6 +102,7 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
     {
         b.Entity<UserRoleProjection>(e =>
         {
+            e.ToTable("UAuth_UserRoles");
             e.HasKey(x => new { x.Tenant, x.UserKey, x.RoleId });
 
             e.Property(x => x.Tenant)

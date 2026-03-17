@@ -1,14 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CodeBeam.UltimateAuth.Authentication.InMemory;
+namespace CodeBeam.UltimateAuth.Authentication.InMemory.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthInMemoryAuthenticationSecurity(this IServiceCollection services)
+    public static IServiceCollection AddUltimateAuthAuthenticationInMemory(this IServiceCollection services)
     {
         services.AddSingleton<IAuthenticationSecurityStateStore, InMemoryAuthenticationSecurityStateStore>();
-
         return services;
     }
 }

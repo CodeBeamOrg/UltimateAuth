@@ -11,8 +11,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 	  <ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions\CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions.csproj" />
-	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
-	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
+	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
 	</ItemGroup>
 
 </Project>

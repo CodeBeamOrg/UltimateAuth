@@ -1,21 +1,13 @@
-using CodeBeam.UltimateAuth.Authentication.InMemory;
-using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Runtime;
-using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure;
 using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Sessions.InMemory;
-using CodeBeam.UltimateAuth.Tokens.InMemory;
-using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
@@ -43,15 +35,7 @@ builder.Services.AddUltimateAuthServer(o => {
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
-    .AddUltimateAuthUsersInMemory()
-    .AddUltimateAuthUsersReference()
-    .AddUltimateAuthCredentialsInMemory()
-    .AddUltimateAuthCredentialsReference()
-    .AddUltimateAuthAuthorizationInMemory()
-    .AddUltimateAuthAuthorizationReference()
-    .AddUltimateAuthInMemorySessions()
-    .AddUltimateAuthInMemoryTokens()
-    .AddUltimateAuthInMemoryAuthenticationSecurity()
+    .AddInMemoryReference()
     .AddUltimateAuthArgon2();
 
 builder.Services.AddUltimateAuthClient(o =>
@@ -106,7 +90,7 @@ app.MapStaticAssets();
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddUltimateAuthClientRoutes(typeof(UAuthClientMarker).Assembly);
+    .AddUltimateAuthRoutes(UAuthAssemblies.Client());
 
 app.MapGet("/health", () =>
 {

@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthEntityFrameworkCoreAuthorization(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
+    public static IServiceCollection AddUltimateAuthAuthorizationEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
         services.AddDbContextPool<UAuthAuthorizationDbContext>(configureDb);
         services.AddScoped<IRoleStore, EfCoreRoleStore>();
