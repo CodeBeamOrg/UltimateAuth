@@ -1,11 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Security;
 
 // TODO: Do not store reset token hash in db.
-public sealed class AuthenticationSecurityState
+public sealed class AuthenticationSecurityState : IVersionedEntity
 {
     public Guid Id { get; }
     public TenantKey Tenant { get; }
@@ -28,6 +29,9 @@ public sealed class AuthenticationSecurityState
 
     public bool IsLocked(DateTimeOffset now) => LockedUntil.HasValue && LockedUntil > now;
     public bool HasResetRequest => ResetRequestedAt is not null;
+
+
+    long IVersionedEntity.Version { get => SecurityVersion; set => throw new NotImplementedException(); }
 
     private AuthenticationSecurityState(
         Guid id,
@@ -424,5 +428,40 @@ public sealed class AuthenticationSecurityState
             null,
             0,
             securityVersion: SecurityVersion + 1);
+    }
+
+    public static AuthenticationSecurityState FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType,
+        int failedAttempts,
+        DateTimeOffset? lastFailedAt,
+        DateTimeOffset? lockedUntil,
+        bool requiresReauthentication,
+        DateTimeOffset? resetRequestedAt,
+        DateTimeOffset? resetExpiresAt,
+        DateTimeOffset? resetConsumedAt,
+        string? resetTokenHash,
+        int resetAttempts,
+        long securityVersion)
+    {
+        return new AuthenticationSecurityState(
+            id,
+            tenant,
+            userKey,
+            scope,
+            credentialType,
+            failedAttempts,
+            lastFailedAt,
+            lockedUntil,
+            requiresReauthentication,
+            resetRequestedAt,
+            resetExpiresAt,
+            resetConsumedAt,
+            resetTokenHash,
+            resetAttempts,
+            securityVersion);
     }
 }
