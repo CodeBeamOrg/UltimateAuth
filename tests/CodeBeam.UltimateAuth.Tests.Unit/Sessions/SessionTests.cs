@@ -96,7 +96,7 @@ public class SessionTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
+            Tenant = TenantKeys.Single,
             Identifier = "user",
             Secret = "user"
         });
@@ -121,7 +121,7 @@ public class SessionTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
+            Tenant = TenantKeys.Single,
             Identifier = "user",
             Secret = "user"
         });

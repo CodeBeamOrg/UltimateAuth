@@ -8,7 +8,6 @@ using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
-using Microsoft.AspNetCore.Session;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
@@ -17,7 +16,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 internal sealed class CredentialManagementService : ICredentialManagementService, IUserCredentialsInternalService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
-    private readonly IPasswordCredentialStore _credentials;
+    private readonly IPasswordCredentialStoreFactory _credentialsFactory;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager;
     private readonly IOpaqueTokenGenerator _tokenGenerator;
     private readonly INumericCodeGenerator _numericCodeGenerator;
@@ -30,7 +29,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
     public CredentialManagementService(
         IAccessOrchestrator accessOrchestrator,
-        IPasswordCredentialStore credentials,
+        IPasswordCredentialStoreFactory credentialsFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         IOpaqueTokenGenerator tokenGenerator,
         INumericCodeGenerator numericCodeGenerator,
@@ -42,7 +41,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
-        _credentials = credentials;
+        _credentialsFactory = credentialsFactory;
         _authenticationSecurityManager = authenticationSecurityManager;
         _tokenGenerator = tokenGenerator;
         _numericCodeGenerator = numericCodeGenerator;
@@ -62,8 +61,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         {
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
-
-            var credentials = await _credentials.GetByUserAsync(context.ResourceTenant, subjectUser, innerCt);
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            var credentials = await store.GetByUserAsync(subjectUser, innerCt);
 
             var dtos = credentials
                 .Select(c => new CredentialInfo
@@ -105,7 +104,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 metadata: new CredentialMetadata(),
                 now: now);
 
-            await _credentials.AddAsync(credential, innerCt);
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            await store.AddAsync(credential, innerCt);
 
             return AddCredentialResult.Success(credential.Id, credential.Type);
         });
@@ -122,8 +122,9 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credentials = await _credentials.GetByUserAsync(context.ResourceTenant, subjectUser, innerCt);
-            var pwd = credentials.OfType<PasswordCredential>().Where(c => c.Security.IsUsable(now)).SingleOrDefault();
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            var credentials = await store.GetByUserAsync(subjectUser, innerCt);
+            var pwd = credentials.OfType<PasswordCredential>().Where(c => c.Security.IsUsable(now)).FirstOrDefault();
 
             if (pwd is null)
                 throw new UAuthNotFoundException("credential_not_found");
@@ -146,16 +147,16 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var oldVersion = pwd.Version;
             var newHash = _hasher.Hash(request.NewSecret);
             var updated = pwd.ChangeSecret(newHash, now);
-            await _credentials.SaveAsync(updated, oldVersion, innerCt);
+            await store.SaveAsync(updated, oldVersion, innerCt);
 
             var sessionStore = _sessionFactory.Create(context.ResourceTenant);
             if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
             {
-                await sessionStore.RevokeOtherChainsAsync(context.ResourceTenant, subjectUser, chainId, now, innerCt);
+                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
             }
             else
             {
-                await sessionStore.RevokeAllChainsAsync(context.ResourceTenant, subjectUser, now, innerCt);
+                await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
             }
 
             return ChangeCredentialResult.Success(pwd.Type);
@@ -173,7 +174,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            var credential = await store.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -183,7 +185,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var oldVersion = pwd.Version;
             var updated = pwd.Revoke(now);
-            await _credentials.SaveAsync(updated, oldVersion, innerCt);
+            await store.SaveAsync(updated, oldVersion, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -294,7 +296,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 throw new UAuthConflictException("invalid_reset_token");
             }
 
-            var credentials = await _credentials.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            var credentials = await store.GetByUserAsync(userKey, innerCt);
             var pwd = credentials.OfType<PasswordCredential>().FirstOrDefault(c => c.Security.IsUsable(now));
 
             if (pwd is null)
@@ -311,7 +314,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var newHash = _hasher.Hash(request.NewSecret);
             var updated = pwd.ChangeSecret(newHash, now);
 
-            await _credentials.SaveAsync(updated, oldVersion, innerCt);
+            await store.SaveAsync(updated, oldVersion, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -351,7 +354,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var credential = await _credentials.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
+            var store = _credentialsFactory.Create(context.ResourceTenant);
+            var credential = await store.GetAsync(new CredentialKey(context.ResourceTenant, request.Id), innerCt);
 
             if (credential is not PasswordCredential pwd)
                 return CredentialActionResult.Fail("credential_not_found");
@@ -360,7 +364,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 return CredentialActionResult.Fail("credential_not_found");
 
             var oldVersion = pwd.Version;
-            await _credentials.DeleteAsync(new CredentialKey(context.ResourceTenant, pwd.Id), oldVersion, request.Mode, now,  innerCt);
+            await store.DeleteAsync(new CredentialKey(context.ResourceTenant, pwd.Id), oldVersion, request.Mode, now,  innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -375,7 +379,8 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     {
         ct.ThrowIfCancellationRequested();
 
-        await _credentials.DeleteByUserAsync(tenant, userKey, DeleteMode.Soft, _clock.UtcNow, ct);
+        var store = _credentialsFactory.Create(tenant);
+        await store.DeleteByUserAsync(userKey, DeleteMode.Soft, _clock.UtcNow, ct);
         return CredentialActionResult.Success();
     }
 }

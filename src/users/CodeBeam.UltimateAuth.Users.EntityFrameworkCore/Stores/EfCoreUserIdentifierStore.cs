@@ -10,18 +10,22 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
 internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly IDbContextFactory<UAuthUserDbContext> _dbFactory;
+    private readonly TenantKey _tenant;
 
-    public EfCoreUserIdentifierStore(UAuthUserDbContext db)
+    public EfCoreUserIdentifierStore(IDbContextFactory<UAuthUserDbContext> dbFactory, TenantContext tenant)
     {
-        _db = db;
+        _dbFactory = dbFactory;
+        _tenant = tenant.Tenant;
     }
 
     public async Task<bool> ExistsAsync(Guid key, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        return await db.Identifiers
             .AnyAsync(x => x.Id == key, ct);
     }
 
@@ -29,10 +33,12 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var q = _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var q = db.Identifiers
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == query.Tenant &&
+                x.Tenant == _tenant &&
                 x.Type == query.Type &&
                 x.NormalizedValue == query.NormalizedValue &&
                 x.DeletedAt == null);
@@ -77,22 +83,26 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Identifiers
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == key, ct);
 
         return projection?.ToDomain();
     }
 
-    public async Task<UserIdentifier?> GetAsync(TenantKey tenant, UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
+    public async Task<UserIdentifier?> GetAsync(UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Identifiers
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x =>
-                    x.Tenant == tenant &&
+                    x.Tenant == _tenant &&
                     x.Type == type &&
                     x.NormalizedValue == normalizedValue &&
                     x.DeletedAt == null,
@@ -105,21 +115,25 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Identifiers
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id, ct);
 
         return projection?.ToDomain();
     }
 
-    public async Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public async Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projections = await db.Identifiers
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.DeletedAt == null)
             .OrderBy(x => x.CreatedAt)
@@ -132,16 +146,18 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
+
         var projection = entity.ToProjection();
 
         if (entity.Version != 0)
             throw new UAuthValidationException("New identifier must have version 0.");
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        using var tx = await db.Database.BeginTransactionAsync(ct);
 
         if (entity.IsPrimary)
         {
-            await _db.Identifiers
+            await db.Identifiers
                 .Where(x =>
                     x.Tenant == entity.Tenant &&
                     x.UserKey == entity.UserKey &&
@@ -153,9 +169,9 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
                     ct);
         }
 
-        _db.Identifiers.Add(projection);
+        db.Identifiers.Add(projection);
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
 
@@ -163,13 +179,15 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
+
         var projection = entity.ToProjection();
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        using var tx = await db.Database.BeginTransactionAsync(ct);
 
         if (entity.IsPrimary)
         {
-            await _db.Identifiers
+            await db.Identifiers
                 .Where(x =>
                     x.Tenant == entity.Tenant &&
                     x.UserKey == entity.UserKey &&
@@ -182,15 +200,15 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
                     ct);
         }
 
-        _db.Entry(projection).State = EntityState.Modified;
+        db.Entry(projection).State = EntityState.Modified;
 
-        _db.Entry(projection)
+        db.Entry(projection)
             .Property(x => x.Version)
             .OriginalValue = expectedVersion;
 
         try
         {
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
         catch (DbUpdateConcurrencyException)
@@ -199,19 +217,21 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
         }
     }
 
-    public async Task<PagedResult<UserIdentifier>> QueryAsync(TenantKey tenant, UserIdentifierQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<UserIdentifier>> QueryAsync(UserIdentifierQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        await using var db = _dbFactory.CreateDbContext();
 
         if (query.UserKey is null)
             throw new UAuthIdentifierValidationException("userKey_required");
 
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Identifiers
+        var baseQuery = db.Identifiers
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == query.UserKey &&
                 (query.IncludeDeleted || x.DeletedAt == null));
 
@@ -251,14 +271,16 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
             query.Descending);
     }
 
-    public async Task<IReadOnlyList<UserIdentifier>> GetByUsersAsync(TenantKey tenant, IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    public async Task<IReadOnlyList<UserIdentifier>> GetByUsersAsync(IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projections = await db.Identifiers
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 userKeys.Contains(x.UserKey) &&
                 x.DeletedAt == null)
             .ToListAsync(ct);
@@ -270,7 +292,9 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Identifiers
             .SingleOrDefaultAsync(x => x.Id == key, ct);
 
         if (projection is null)
@@ -281,7 +305,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.Identifiers.Remove(projection);
+            db.Identifiers.Remove(projection);
         }
         else
         {
@@ -290,27 +314,29 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
             projection.Version++;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
+    public async Task DeleteByUserAsync(UserKey userKey, DeleteMode mode, DateTimeOffset deletedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
+
         if (mode == DeleteMode.Hard)
         {
-            await _db.Identifiers
+            await db.Identifiers
                 .Where(x =>
-                    x.Tenant == tenant &&
+                    x.Tenant == _tenant &&
                     x.UserKey == userKey)
                 .ExecuteDeleteAsync(ct);
 
             return;
         }
 
-        await _db.Identifiers
+        await db.Identifiers
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.DeletedAt == null)
             .ExecuteUpdateAsync(

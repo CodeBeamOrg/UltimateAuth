@@ -8,8 +8,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthCredentialsEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContextPool<UAuthCredentialDbContext>(configureDb);
-        services.AddScoped<IPasswordCredentialStore, EfCorePasswordCredentialStore>();
+        services.AddDbContext<UAuthCredentialDbContext>(configureDb);
+        services.AddScoped<IPasswordCredentialStoreFactory, EfCorePasswordCredentialStoreFactory>();
         return services;
     }
 }

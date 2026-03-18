@@ -10,10 +10,16 @@ internal sealed class InMemorySessionStore : ISessionStore
 {
     private readonly SemaphoreSlim _tx = new(1, 1);
     private readonly object _lock = new();
+    private readonly TenantKey _tenant;
+
+    public InMemorySessionStore(TenantKey tenant)
+    {
+        _tenant = tenant;
+    }
 
     private readonly ConcurrentDictionary<AuthSessionId, UAuthSession> _sessions = new();
     private readonly ConcurrentDictionary<SessionChainId, UAuthSessionChain> _chains = new();
-    private readonly ConcurrentDictionary<UserKey, UAuthSessionRoot> _roots = new();
+    private readonly ConcurrentDictionary<(TenantKey, UserKey), UAuthSessionRoot> _roots = new();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -222,13 +228,13 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeOtherChainsAsync(TenantKey tenant, UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
+    public Task RevokeOtherChainsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         foreach (var (id, chain) in _chains)
         {
-            if (chain.Tenant != tenant)
+            if (chain.Tenant != _tenant)
                 continue;
 
             if (chain.UserKey != user)
@@ -244,13 +250,13 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeAllChainsAsync(TenantKey tenant, UserKey user, DateTimeOffset at, CancellationToken ct = default)
+    public Task RevokeAllChainsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         foreach (var (id, chain) in _chains)
         {
-            if (chain.Tenant != tenant)
+            if (chain.Tenant != _tenant)
                 continue;
 
             if (chain.UserKey != user)
@@ -266,7 +272,7 @@ internal sealed class InMemorySessionStore : ISessionStore
     public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        return Task.FromResult(_roots.TryGetValue(userKey, out var r) ? r : null);
+        return Task.FromResult(_roots.TryGetValue((_tenant, userKey), out var r) ? r : null);
     }
 
     public Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId, CancellationToken ct = default)
@@ -279,13 +285,13 @@ internal sealed class InMemorySessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!_roots.TryGetValue(root.UserKey, out var current))
+        if (!_roots.TryGetValue((_tenant, root.UserKey), out var current))
             throw new UAuthNotFoundException("root_not_found");
 
         if (current.Version != expectedVersion)
             throw new UAuthConcurrencyException("root_concurrency_conflict");
 
-        _roots[root.UserKey] = root;
+        _roots[(_tenant, root.UserKey)] = root;
         return Task.CompletedTask;
     }
 
@@ -295,13 +301,13 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         lock (_lock)
         {
-            if (_roots.ContainsKey(root.UserKey))
+            if (_roots.ContainsKey((_tenant, root.UserKey)))
                 throw new UAuthConcurrencyException("root_already_exists");
 
             if (root.Version != 0)
                 throw new InvalidOperationException("New root must have version 0.");
 
-            _roots[root.UserKey] = root;
+            _roots[(_tenant, root.UserKey)] = root;
         }
 
         return Task.CompletedTask;
@@ -311,9 +317,9 @@ internal sealed class InMemorySessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_roots.TryGetValue(userKey, out var root))
+        if (_roots.TryGetValue((_tenant, userKey), out var root))
         {
-            _roots[userKey] = root.Revoke(at);
+            _roots[(_tenant, userKey)] = root.Revoke(at);
         }
         return Task.CompletedTask;
     }
@@ -328,7 +334,7 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<SessionChainId?>(null);
     }
 
-    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey,bool includeHistoricalRoots = false, CancellationToken ct = default)
+    public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, bool includeHistoricalRoots = false, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -353,13 +359,13 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.FromResult<IReadOnlyList<UAuthSessionChain>>(result);
     }
 
-    public Task<UAuthSessionChain?> GetChainByDeviceAsync(TenantKey tenant, UserKey userKey, DeviceId deviceId, CancellationToken ct = default)
+    public Task<UAuthSessionChain?> GetChainByDeviceAsync(UserKey userKey, DeviceId deviceId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var chain = _chains.Values
             .FirstOrDefault(c =>
-                c.Tenant == tenant &&
+                c.Tenant == _tenant &&
                 c.UserKey == userKey &&
                 !c.IsRevoked &&
                 c.Device.DeviceId == deviceId);
@@ -468,7 +474,7 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         lock (_lock)
         {
-            if (!_roots.TryGetValue(userKey, out var root))
+            if (!_roots.TryGetValue((_tenant, userKey), out var root))
                 return Task.CompletedTask;
 
             var chains = _chains.Values
@@ -500,7 +506,7 @@ internal sealed class InMemorySessionStore : ISessionStore
             if (!root.IsRevoked)
             {
                 var revokedRoot = root.Revoke(at);
-                _roots[userKey] = revokedRoot;
+                _roots[(_tenant, userKey)] = revokedRoot;
             }
         }
 

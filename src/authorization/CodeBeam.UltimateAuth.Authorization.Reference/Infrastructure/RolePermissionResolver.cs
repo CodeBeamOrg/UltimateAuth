@@ -1,16 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.Reference;
 
 internal sealed class RolePermissionResolver : IRolePermissionResolver
 {
-    private readonly IRoleStore _roles;
+    private readonly IRoleStoreFactory _roleFactory;
 
-    public RolePermissionResolver(IRoleStore roles)
+    public RolePermissionResolver(IRoleStoreFactory roleFactory)
     {
-        _roles = roles;
+        _roleFactory = roleFactory;
     }
 
     public async Task<IReadOnlyCollection<Permission>> ResolveAsync(TenantKey tenant, IReadOnlyCollection<RoleId> roleIds, CancellationToken ct = default)
@@ -18,7 +17,8 @@ internal sealed class RolePermissionResolver : IRolePermissionResolver
         if (roleIds.Count == 0)
             return Array.Empty<Permission>();
 
-        var roles = await _roles.GetByIdsAsync(tenant, roleIds, ct);
+        var roleStore = _roleFactory.Create(tenant);
+        var roles = await roleStore.GetByIdsAsync(roleIds, ct);
 
         var permissions = new HashSet<Permission>();
 

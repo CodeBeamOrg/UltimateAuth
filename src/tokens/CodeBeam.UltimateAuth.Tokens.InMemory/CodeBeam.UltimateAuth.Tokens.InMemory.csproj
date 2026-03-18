@@ -10,6 +10,7 @@
 	
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+	  <ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.InMemory.Abstractions\CodeBeam.UltimateAuth.InMemory.Abstractions.csproj" />
 	</ItemGroup>
 
 </Project>

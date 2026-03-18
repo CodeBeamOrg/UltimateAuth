@@ -10,15 +10,15 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference;
 internal sealed class UserRoleService : IUserRoleService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
-    private readonly IUserRoleStore _userRoles;
-    private readonly IRoleStore _roles;
+    private readonly IUserRoleStoreFactory _userRoleFactory;
+    private readonly IRoleStoreFactory _roleFactory;
     private readonly IClock _clock;
 
-    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStore userRoles, IRoleStore roles, IClock clock)
+    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStoreFactory userRoleFactory, IRoleStoreFactory roleFactory, IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
-        _userRoles = userRoles;
-        _roles = roles;
+        _userRoleFactory = userRoleFactory;
+        _roleFactory = roleFactory;
         _clock = clock;
     }
 
@@ -30,13 +30,15 @@ internal sealed class UserRoleService : IUserRoleService
 
         var cmd = new AccessCommand(async innerCt =>
         {
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);
             var normalized = roleName.Trim().ToUpperInvariant();
-            var role = await _roles.GetByNameAsync(context.ResourceTenant, normalized, innerCt);
+            var role = await roleStore.GetByNameAsync(normalized, innerCt);
 
             if (role is null || role.IsDeleted)
                 throw new UAuthNotFoundException("role_not_found");
 
-            await _userRoles.AssignAsync(context.ResourceTenant, targetUserKey, role.Id, now, innerCt);
+            await userRoleStore.AssignAsync(targetUserKey, role.Id, now, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -48,13 +50,15 @@ internal sealed class UserRoleService : IUserRoleService
 
         var cmd = new AccessCommand(async innerCt =>
         {
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);
             var normalized = roleName.Trim().ToUpperInvariant();
-            var role = await _roles.GetByNameAsync(context.ResourceTenant, normalized, innerCt);
+            var role = await roleStore.GetByNameAsync(normalized, innerCt);
 
             if (role is null)
                 return;
 
-            await _userRoles.RemoveAsync(context.ResourceTenant, targetUserKey, role.Id, innerCt);
+            await userRoleStore.RemoveAsync(targetUserKey, role.Id, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -68,9 +72,11 @@ internal sealed class UserRoleService : IUserRoleService
         {
             request = request.Normalize();
 
-            var assignments = await _userRoles.GetAssignmentsAsync(context.ResourceTenant, targetUserKey, innerCt);
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);
+            var assignments = await userRoleStore.GetAssignmentsAsync(targetUserKey, innerCt);
             var roleIds = assignments.Select(x => x.RoleId).ToArray();
-            var roles = await _roles.GetByIdsAsync(context.ResourceTenant, roleIds, innerCt);
+            var roles = await roleStore.GetByIdsAsync(roleIds, innerCt);
 
             var roleMap = roles.ToDictionary(x => x.Id);
 

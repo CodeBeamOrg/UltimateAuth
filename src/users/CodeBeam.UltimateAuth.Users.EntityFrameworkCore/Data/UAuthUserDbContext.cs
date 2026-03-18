@@ -11,33 +11,16 @@ internal sealed class UAuthUserDbContext : DbContext
     public DbSet<UserLifecycleProjection> Lifecycles => Set<UserLifecycleProjection>();
     public DbSet<UserProfileProjection> Profiles => Set<UserProfileProjection>();
 
-    private readonly TenantContext _tenant;
-
-    public UAuthUserDbContext(DbContextOptions<UAuthUserDbContext> options, TenantContext tenant)
+    public UAuthUserDbContext(DbContextOptions<UAuthUserDbContext> options)
         : base(options)
     {
-        _tenant = tenant;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
-        ConfigureTenantFilters(b);
-
         ConfigureIdentifiers(b);
         ConfigureLifecycles(b);
         ConfigureProfiles(b);
-    }
-
-    private void ConfigureTenantFilters(ModelBuilder b)
-    {
-        b.Entity<UserIdentifierProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
-
-        b.Entity<UserLifecycleProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
-
-        b.Entity<UserProfileProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
     }
 
     private void ConfigureIdentifiers(ModelBuilder b)

@@ -7,7 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthAuthenticationInMemory(this IServiceCollection services)
     {
-        services.AddSingleton<IAuthenticationSecurityStateStore, InMemoryAuthenticationSecurityStateStore>();
+        services.AddSingleton<IAuthenticationSecurityStateStoreFactory, InMemoryAuthenticationSecurityStateStoreFactory>();
         return services;
     }
 }

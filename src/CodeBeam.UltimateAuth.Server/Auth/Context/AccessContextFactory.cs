@@ -9,12 +9,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AccessContextFactory : IAccessContextFactory
 {
-    private readonly IUserRoleStore _roleStore;
+    private readonly IUserRoleStoreFactory _userRoleFactory;
     private readonly IUserIdConverterResolver _converterResolver;
 
-    public AccessContextFactory(IUserRoleStore roleStore, IUserIdConverterResolver converterResolver)
+    public AccessContextFactory(IUserRoleStoreFactory userRoleFactory, IUserIdConverterResolver converterResolver)
     {
-        _roleStore = roleStore;
+        _userRoleFactory = userRoleFactory;
         _converterResolver = converterResolver;
     }
 
@@ -45,7 +45,8 @@ internal sealed class AccessContextFactory : IAccessContextFactory
 
         if (authFlow.IsAuthenticated && authFlow.UserKey is not null)
         {
-            var assignments = await _roleStore.GetAssignmentsAsync(authFlow.Tenant, authFlow.UserKey.Value, ct);
+            var userRoleStore = _userRoleFactory.Create(authFlow.Tenant);
+            var assignments = await userRoleStore.GetAssignmentsAsync(authFlow.UserKey.Value, ct);
             var roleIds = assignments.Select(x => x.RoleId).ToArray();
 
             attrs["roles"] = roleIds;

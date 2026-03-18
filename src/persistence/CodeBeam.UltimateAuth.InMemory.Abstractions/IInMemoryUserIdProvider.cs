@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Infrastructure;
+﻿namespace CodeBeam.UltimateAuth.InMemory;
 
 public interface IInMemoryUserIdProvider<TUserId>
 {

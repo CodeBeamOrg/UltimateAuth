@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
@@ -12,25 +12,25 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
 {
     public int Order => 0;
 
-    private readonly IUserLifecycleStore _lifecycle;
-    private readonly IUserProfileStore _profiles;
-    private readonly IUserIdentifierStore _identifiers;
+    private readonly IUserLifecycleStoreFactory _lifecycleFactory;
+    private readonly IUserIdentifierStoreFactory _identifierFactory;
+    private readonly IUserProfileStoreFactory _profileFactory;
     private readonly IInMemoryUserIdProvider<UserKey> _ids;
     private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IClock _clock;
 
     public InMemoryUserSeedContributor(
-        IUserLifecycleStore lifecycle,
-        IUserProfileStore profiles,
-        IUserIdentifierStore identifiers,
+        IUserLifecycleStoreFactory lifecycleFactory,
+        IUserProfileStoreFactory profileFactory,
+        IUserIdentifierStoreFactory identifierFactory,
         IInMemoryUserIdProvider<UserKey> ids,
         IIdentifierNormalizer identifierNormalizer,
         IClock clock)
     {
-        _lifecycle = lifecycle;
-        _profiles = profiles;
+        _lifecycleFactory = lifecycleFactory;
+        _identifierFactory = identifierFactory;
+        _profileFactory = profileFactory;
         _ids = ids;
-        _identifiers = identifiers;
         _identifierNormalizer = identifierNormalizer;
         _clock = clock;
     }
@@ -43,47 +43,60 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
 
     private async Task SeedUserAsync(TenantKey tenant, UserKey userKey, string displayName, string username, string email, string phone, CancellationToken ct)
     {
-        var userLifecycleKey = new UserLifecycleKey(tenant, userKey);
-        if (await _lifecycle.ExistsAsync(userLifecycleKey, ct))
-            return;
+        var now = _clock.UtcNow;
 
-        await _lifecycle.AddAsync(UserLifecycle.Create(tenant, userKey, _clock.UtcNow), ct);
-        await _profiles.AddAsync(UserProfile.Create(_clock.UtcNow, tenant, userKey, displayName: displayName), ct);
+        var lifecycleStore = _lifecycleFactory.Create(tenant);
+        var profileStore = _profileFactory.Create(tenant);
+        var identifierStore = _identifierFactory.Create(tenant);
 
-        await _identifiers.AddAsync(
-            UserIdentifier.Create(
-                Guid.NewGuid(),
-                tenant,
-                userKey,
-                UserIdentifierType.Username,
-                username,
-                _identifierNormalizer.Normalize(UserIdentifierType.Username, username).Normalized,
-                _clock.UtcNow,
-                true,
-                _clock.UtcNow), ct);
+        var lifecycleKey = new UserLifecycleKey(tenant, userKey);
 
-        await _identifiers.AddAsync(
-            UserIdentifier.Create(
-                Guid.NewGuid(),
-                tenant,
-                userKey,
-                UserIdentifierType.Email,
-                email,
-                _identifierNormalizer.Normalize(UserIdentifierType.Email, email).Normalized,
-                _clock.UtcNow,
-                true,
-                _clock.UtcNow), ct);
+        var exists = await lifecycleStore.ExistsAsync(lifecycleKey, ct);
 
-        await _identifiers.AddAsync(
-            UserIdentifier.Create(
-                Guid.NewGuid(),
-                tenant,
-                userKey,
-                UserIdentifierType.Phone,
-                phone,
-                _identifierNormalizer.Normalize(UserIdentifierType.Phone, phone).Normalized,
-                _clock.UtcNow,
-                true,
-                _clock.UtcNow), ct);
+        if (!exists)
+        {
+            await lifecycleStore.AddAsync(
+                UserLifecycle.Create(tenant, userKey, now),
+                ct);
+        }
+
+        var profileKey = new UserProfileKey(tenant, userKey);
+        if (!await profileStore.ExistsAsync(profileKey, ct))
+        {
+            await profileStore.AddAsync(
+                UserProfile.Create(now, tenant, userKey, displayName: displayName),
+                ct);
+        }
+
+        async Task EnsureIdentifier(
+            UserIdentifierType type,
+            string value,
+            bool isPrimary)
+        {
+            var normalized = _identifierNormalizer
+                .Normalize(type, value).Normalized;
+
+            var existing = await identifierStore.GetAsync(type, normalized, ct);
+
+            if (existing is not null)
+                return;
+
+            await identifierStore.AddAsync(
+                UserIdentifier.Create(
+                    Guid.NewGuid(),
+                    tenant,
+                    userKey,
+                    type,
+                    value,
+                    normalized,
+                    now,
+                    isPrimary,
+                    now),
+                ct);
+        }
+
+        await EnsureIdentifier(UserIdentifierType.Username, username, true);
+        await EnsureIdentifier(UserIdentifierType.Email, email, true);
+        await EnsureIdentifier(UserIdentifierType.Phone, phone, true);
     }
 }

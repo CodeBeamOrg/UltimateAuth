@@ -10,24 +10,34 @@ namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
 internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSecurityStateStore
 {
     private readonly UAuthAuthenticationDbContext _db;
+    private readonly TenantKey _tenant;
 
-    public EfCoreAuthenticationSecurityStateStore(UAuthAuthenticationDbContext db)
+    public EfCoreAuthenticationSecurityStateStore(
+        UAuthAuthenticationDbContext db,
+        TenantContext tenant)
     {
         _db = db;
+        _tenant = tenant.Tenant;
     }
 
-    public async Task<AuthenticationSecurityState?> GetAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
+    public async Task<AuthenticationSecurityState?> GetAsync(
+        UserKey userKey,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType,
+        CancellationToken ct = default)
     {
         var entity = await _db.AuthenticationSecurityStates
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.Scope == scope &&
                 x.CredentialType == credentialType,
                 ct);
 
-        return entity is null ? null : AuthenticationSecurityStateMapper.ToDomain(entity);
+        return entity is null
+            ? null
+            : AuthenticationSecurityStateMapper.ToDomain(entity);
     }
 
     public async Task AddAsync(AuthenticationSecurityState state, CancellationToken ct = default)
@@ -43,6 +53,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
     {
         var entity = await _db.AuthenticationSecurityStates
             .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
                 x.Id == state.Id,
                 ct);
 
@@ -53,15 +64,21 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
             throw new UAuthConflictException("security_state_version_conflict");
 
         AuthenticationSecurityStateMapper.UpdateProjection(state, entity);
+
         entity.SecurityVersion++;
+
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
+    public async Task DeleteAsync(
+        UserKey userKey,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType,
+        CancellationToken ct = default)
     {
         var entity = await _db.AuthenticationSecurityStates
             .SingleOrDefaultAsync(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.Scope == scope &&
                 x.CredentialType == credentialType,
@@ -71,6 +88,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
             return;
 
         _db.AuthenticationSecurityStates.Remove(entity);
+
         await _db.SaveChangesAsync(ct);
     }
 }

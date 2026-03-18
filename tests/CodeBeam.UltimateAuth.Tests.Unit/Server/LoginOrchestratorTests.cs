@@ -67,8 +67,9 @@ public class LoginOrchestratorTests
                 Secret = "wrong",
             });
 
-        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
-        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
         state?.FailedAttempts.Should().Be(1);
     }
 
@@ -99,8 +100,9 @@ public class LoginOrchestratorTests
                 Secret = "user", // valid password
             });
 
-        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
-        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
         state?.FailedAttempts.Should().Be(0);
     }
 
@@ -159,8 +161,9 @@ public class LoginOrchestratorTests
                 Secret = "wrong",
             });
 
-        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
-        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         state!.IsLocked(DateTimeOffset.UtcNow).Should().BeTrue();
     }
@@ -214,8 +217,9 @@ public class LoginOrchestratorTests
                 Secret = "wrong",
             });
 
-        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
-        var state1 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         await orchestrator.LoginAsync(flow,
             new LoginRequest
@@ -224,7 +228,7 @@ public class LoginOrchestratorTests
                 Identifier = "user",
             });
 
-        var state2 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
         state2?.FailedAttempts.Should().Be(state1!.FailedAttempts);
     }
 
@@ -250,8 +254,9 @@ public class LoginOrchestratorTests
                 });
         }
 
-        var store = runtime.Services.GetRequiredService<InMemoryAuthenticationSecurityStateStore>();
-        var state = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         state?.IsLocked(DateTimeOffset.UtcNow).Should().BeFalse();
         state?.FailedAttempts.Should().Be(5);
@@ -277,8 +282,9 @@ public class LoginOrchestratorTests
                 Secret = "wrong",
             });
 
-        var store = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStore>();
-        var state1 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
 
         var lockedUntil = state1!.LockedUntil;
 
@@ -290,7 +296,7 @@ public class LoginOrchestratorTests
                 Secret = "wrong",
             });
 
-        var state2 = await store.GetAsync(TenantKey.Single, TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
         state2?.LockedUntil.Should().Be(lockedUntil);
     }
 

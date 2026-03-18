@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.InMemory;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 

@@ -8,10 +8,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthUsersEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContextPool<UAuthUserDbContext>(configureDb);
-        services.AddScoped<IUserLifecycleStore, EfCoreUserLifecycleStore>();
-        services.AddScoped<IUserIdentifierStore, EfCoreUserIdentifierStore>();
-        services.AddScoped<IUserProfileStore, EfCoreUserProfileStore>();
+        services.AddDbContextFactory<UAuthUserDbContext>(configureDb);
+        services.AddSingleton<IUserLifecycleStoreFactory, EfCoreUserLifecycleStoreFactory>();
+        services.AddSingleton<IUserIdentifierStoreFactory, EfCoreUserIdentifierStoreFactory>();
+        services.AddSingleton<IUserProfileStoreFactory, EfCoreUserProfileStoreFactory>();
         return services;
     }
 }

@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
 // TODO: Multi profile (e.g., public profiles, private profiles, profiles per application, etc. with ProfileKey)
-public sealed class UserProfile : IVersionedEntity, ISoftDeletable<UserProfile>, IEntitySnapshot<UserProfile>
+public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletable<UserProfile>, IEntitySnapshot<UserProfile>
 {
     private UserProfile() { }
 

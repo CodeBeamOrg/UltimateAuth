@@ -20,8 +20,8 @@ public interface ISessionStore
     Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion, CancellationToken ct = default);
     Task CreateChainAsync(UAuthSessionChain chain, CancellationToken ct = default);
     Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
-    Task RevokeOtherChainsAsync(TenantKey tenant, UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default);
-    Task RevokeAllChainsAsync(TenantKey tenant, UserKey user, DateTimeOffset at, CancellationToken ct = default);
+    Task RevokeOtherChainsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default);
+    Task RevokeAllChainsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default);
     Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
     Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
 
@@ -34,7 +34,7 @@ public interface ISessionStore
 
     Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, bool includeHistoricalRoots = false, CancellationToken ct = default);
-    Task<UAuthSessionChain?> GetChainByDeviceAsync(TenantKey tenant, UserKey userKey, DeviceId deviceId, CancellationToken ct = default);
+    Task<UAuthSessionChain?> GetChainByDeviceAsync(UserKey userKey, DeviceId deviceId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default);
 }

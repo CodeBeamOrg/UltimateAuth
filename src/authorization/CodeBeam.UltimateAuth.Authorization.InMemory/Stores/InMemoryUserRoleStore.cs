@@ -8,35 +8,41 @@ namespace CodeBeam.UltimateAuth.Authorization.InMemory;
 
 internal sealed class InMemoryUserRoleStore : IUserRoleStore
 {
-    private readonly ConcurrentDictionary<(TenantKey, UserKey), List<UserRole>> _assignments = new();
+    private readonly TenantKey _tenant;
+    private readonly ConcurrentDictionary<UserKey, List<UserRole>> _assignments = new();
 
-    public Task<IReadOnlyCollection<UserRole>> GetAssignmentsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public InMemoryUserRoleStore(TenantContext tenant)
+    {
+        _tenant = tenant.Tenant;
+    }
+
+    public Task<IReadOnlyCollection<UserRole>> GetAssignmentsAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_assignments.TryGetValue((tenant, userKey), out var list))
+        if (_assignments.TryGetValue(userKey, out var list))
         {
             lock (list)
-                return Task.FromResult<IReadOnlyCollection<UserRole>>(list.ToArray());
+                return Task.FromResult<IReadOnlyCollection<UserRole>>(list.Select(x => x).ToArray());
         }
 
         return Task.FromResult<IReadOnlyCollection<UserRole>>(Array.Empty<UserRole>());
     }
 
-    public Task AssignAsync(TenantKey tenant, UserKey userKey, RoleId roleId, DateTimeOffset assignedAt, CancellationToken ct = default)
+    public Task AssignAsync(UserKey userKey, RoleId roleId, DateTimeOffset assignedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var list = _assignments.GetOrAdd((tenant, userKey), _ => new List<UserRole>());
+        var list = _assignments.GetOrAdd(userKey, _ => new List<UserRole>());
 
         lock (list)
         {
             if (list.Any(x => x.RoleId == roleId))
-                throw new UAuthConflictException("Role is already assigned to the user.");
+                throw new UAuthConflictException("role_already_assigned");
 
             list.Add(new UserRole
             {
-                Tenant = tenant,
+                Tenant = _tenant,
                 UserKey = userKey,
                 RoleId = roleId,
                 AssignedAt = assignedAt
@@ -46,11 +52,11 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
         return Task.CompletedTask;
     }
 
-    public Task RemoveAsync(TenantKey tenant, UserKey userKey, RoleId roleId, CancellationToken ct = default)
+    public Task RemoveAsync(UserKey userKey, RoleId roleId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_assignments.TryGetValue((tenant, userKey), out var list))
+        if (_assignments.TryGetValue(userKey, out var list))
         {
             lock (list)
             {
@@ -61,17 +67,12 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
         return Task.CompletedTask;
     }
 
-    public Task RemoveAssignmentsByRoleAsync(TenantKey tenant, RoleId roleId, CancellationToken ct = default)
+    public Task RemoveAssignmentsByRoleAsync(RoleId roleId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        foreach (var kv in _assignments)
+        foreach (var list in _assignments.Values)
         {
-            if (kv.Key.Item1 != tenant)
-                continue;
-
-            var list = kv.Value;
-
             lock (list)
             {
                 list.RemoveAll(x => x.RoleId == roleId);
@@ -81,19 +82,14 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
         return Task.CompletedTask;
     }
 
-    public Task<int> CountAssignmentsAsync(TenantKey tenant, RoleId roleId, CancellationToken ct = default)
+    public Task<int> CountAssignmentsAsync(RoleId roleId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var count = 0;
 
-        foreach (var kv in _assignments)
+        foreach (var list in _assignments.Values)
         {
-            if (kv.Key.Item1 != tenant)
-                continue;
-
-            var list = kv.Value;
-
             lock (list)
             {
                 count += list.Count(x => x.RoleId == roleId);

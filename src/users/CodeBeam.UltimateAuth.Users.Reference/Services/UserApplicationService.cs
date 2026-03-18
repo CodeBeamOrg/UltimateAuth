@@ -13,9 +13,9 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 internal sealed class UserApplicationService : IUserApplicationService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
-    private readonly IUserLifecycleStore _lifecycleStore;
-    private readonly IUserProfileStore _profileStore;
-    private readonly IUserIdentifierStore _identifierStore;
+    private readonly IUserLifecycleStoreFactory _lifecycleStoreFactory;
+    private readonly IUserIdentifierStoreFactory _identifierStoreFactory;
+    private readonly IUserProfileStoreFactory _profileStoreFactory;
     private readonly IUserCreateValidator _userCreateValidator;
     private readonly IIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
@@ -26,9 +26,9 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public UserApplicationService(
         IAccessOrchestrator accessOrchestrator,
-        IUserLifecycleStore lifecycleStore,
-        IUserProfileStore profileStore,
-        IUserIdentifierStore identifierStore,
+        IUserLifecycleStoreFactory lifecycleStoreFactory,
+        IUserIdentifierStoreFactory identifierStoreFactory,
+        IUserProfileStoreFactory profileStoreFactory,
         IUserCreateValidator userCreateValidator,
         IIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
@@ -38,9 +38,9 @@ internal sealed class UserApplicationService : IUserApplicationService
         IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
-        _lifecycleStore = lifecycleStore;
-        _profileStore = profileStore;
-        _identifierStore = identifierStore;
+        _lifecycleStoreFactory = lifecycleStoreFactory;
+        _identifierStoreFactory = identifierStoreFactory;
+        _profileStoreFactory = profileStoreFactory;
         _userCreateValidator = userCreateValidator;
         _identifierValidator = identifierValidator;
         _integrations = integrations;
@@ -65,9 +65,11 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
             var userKey = UserKey.New();
 
-            await _lifecycleStore.AddAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
+            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+            await lifecycleStore.AddAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
 
-            await _profileStore.AddAsync(
+            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+            await profileStore.AddAsync(
                 UserProfile.Create(
                     now,
                     context.ResourceTenant,
@@ -82,9 +84,10 @@ internal sealed class UserApplicationService : IUserApplicationService
                     timezone: request.TimeZone,
                     culture: request.Culture), innerCt);
 
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             if (!string.IsNullOrWhiteSpace(request.UserName))
             {
-                await _identifierStore.AddAsync(
+                await identifierStore.AddAsync(
                     UserIdentifier.Create(
                         Guid.NewGuid(),
                         context.ResourceTenant,
@@ -99,7 +102,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
-                await _identifierStore.AddAsync(
+                await identifierStore.AddAsync(
                     UserIdentifier.Create(
                         Guid.NewGuid(),
                         context.ResourceTenant,
@@ -114,7 +117,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (!string.IsNullOrWhiteSpace(request.Phone))
             {
-                await _identifierStore.AddAsync(
+                await identifierStore.AddAsync(
                     UserIdentifier.Create(
                         Guid.NewGuid(),
                         context.ResourceTenant,
@@ -152,7 +155,8 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var targetUserKey = context.GetTargetUserKey();
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
-            var current = await _lifecycleStore.GetAsync(userLifecycleKey, innerCt);
+            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+            var current = await lifecycleStore.GetAsync(userLifecycleKey, innerCt);
             var now = _clock.UtcNow;
 
             if (current is null)
@@ -167,7 +171,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     throw new UAuthConflictException("admin_cannot_set_self_status");
             }
             var newEntity = current.ChangeStatus(now, newStatus);
-            await _lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
+            await lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -181,20 +185,23 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
 
             var lifecycleKey = new UserLifecycleKey(context.ResourceTenant, userKey);
-            var lifecycle = await _lifecycleStore.GetAsync(lifecycleKey, innerCt);
+            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+            var lifecycle = await lifecycleStore.GetAsync(lifecycleKey, innerCt);
 
             if (lifecycle is null)
                 throw new UAuthNotFoundException();
 
+            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var profileKey = new UserProfileKey(context.ResourceTenant, userKey);
-            var profile = await _profileStore.GetAsync(profileKey, innerCt);
+            var profile = await profileStore.GetAsync(profileKey, innerCt);
 
-            await _lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, innerCt);
-            await _identifierStore.DeleteByUserAsync(context.ResourceTenant, userKey, DeleteMode.Soft, now, innerCt);
+            await lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, innerCt);
+            await identifierStore.DeleteByUserAsync(userKey, DeleteMode.Soft, now, innerCt);
 
             if (profile is not null)
             {
-                await _profileStore.DeleteAsync(profileKey, profile.Version, DeleteMode.Soft, now, innerCt);
+                await profileStore.DeleteAsync(profileKey, profile.Version, DeleteMode.Soft, now, innerCt);
             }
 
             foreach (var integration in _integrations)
@@ -203,7 +210,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
-            await sessionStore.RevokeAllChainsAsync(context.ResourceTenant, userKey, now, innerCt);
+            await sessionStore.RevokeAllChainsAsync(userKey, now, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -216,20 +223,22 @@ internal sealed class UserApplicationService : IUserApplicationService
             var targetUserKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
-
-            var lifecycle = await _lifecycleStore.GetAsync(userLifecycleKey, innerCt);
+            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+            var lifecycle = await lifecycleStore.GetAsync(userLifecycleKey, innerCt);
 
             if (lifecycle is null)
                 throw new UAuthNotFoundException();
 
+            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var profileKey = new UserProfileKey(context.ResourceTenant, targetUserKey);
-            var profile = await _profileStore.GetAsync(profileKey, innerCt);
-            await _lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
-            await _identifierStore.DeleteByUserAsync(context.ResourceTenant, targetUserKey, request.Mode, now, innerCt);
+            var profile = await profileStore.GetAsync(profileKey, innerCt);
+            await lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
+            await identifierStore.DeleteByUserAsync(targetUserKey, request.Mode, now, innerCt);
 
             if (profile is not null)
             {
-                await _profileStore.DeleteAsync(profileKey, profile.Version, request.Mode, now, innerCt);
+                await profileStore.DeleteAsync(profileKey, profile.Version, request.Mode, now, innerCt);
             }
 
             foreach (var integration in _integrations)
@@ -280,8 +289,8 @@ internal sealed class UserApplicationService : IUserApplicationService
             var now = _clock.UtcNow;
 
             var key = new UserProfileKey(tenant, userKey);
-
-            var profile = await _profileStore.GetAsync(key, innerCt);
+            var profileStore = _profileStoreFactory.Create(tenant);
+            var profile = await profileStore.GetAsync(key, innerCt);
 
             if (profile is null)
                 throw new UAuthNotFoundException();
@@ -294,7 +303,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 .UpdateLocalization(request.Language, request.TimeZone, request.Culture, now)
                 .UpdateMetadata(request.Metadata, now);
 
-            await _profileStore.SaveAsync(profile, expectedVersion, innerCt);
+            await profileStore.SaveAsync(profile, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -313,8 +322,8 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             query ??= new UserIdentifierQuery();
             query.UserKey = targetUserKey;
-
-            var result = await _identifierStore.QueryAsync(context.ResourceTenant, query, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var result = await identifierStore.QueryAsync(query, innerCt);
             var dtoItems = result.Items.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
 
             return new PagedResult<UserIdentifierInfo>(
@@ -337,7 +346,8 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (!normalized.IsValid)
                 return null;
 
-            var identifier = await _identifierStore.GetAsync(context.ResourceTenant, type, normalized.Normalized, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetAsync(type, normalized.Normalized, innerCt);
             return identifier is null ? null : UserIdentifierMapper.ToDto(identifier);
         });
 
@@ -354,7 +364,8 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             UserKey? userKey = scope == IdentifierExistenceScope.WithinUser ? context.GetTargetUserKey() : null;
 
-            var result = await _identifierStore.ExistsAsync(new IdentifierExistenceQuery(context.ResourceTenant, type, normalized.Normalized, scope, userKey), innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var result = await identifierStore.ExistsAsync(new IdentifierExistenceQuery(type, normalized.Normalized, scope, userKey), innerCt);
             return result.Exists;
         });
 
@@ -379,11 +390,12 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (!normalized.IsValid)
                 throw new UAuthIdentifierValidationException(normalized.ErrorCode ?? "identifier_invalid");
 
-            var existing = await _identifierStore.GetByUserAsync(context.ResourceTenant, userKey, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var existing = await identifierStore.GetByUserAsync(userKey, innerCt);
             EnsureMultipleIdentifierAllowed(request.Type, existing);
 
-            var userScopeResult = await _identifierStore.ExistsAsync(
-                new IdentifierExistenceQuery(context.ResourceTenant, request.Type, normalized.Normalized, IdentifierExistenceScope.WithinUser, UserKey: userKey), innerCt);
+            var userScopeResult = await identifierStore.ExistsAsync(
+                new IdentifierExistenceQuery(request.Type, normalized.Normalized, IdentifierExistenceScope.WithinUser, UserKey: userKey), innerCt);
 
             if (userScopeResult.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
@@ -397,9 +409,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                     ? IdentifierExistenceScope.TenantAny
                     : IdentifierExistenceScope.TenantPrimaryOnly;
 
-                var globalResult = await _identifierStore.ExistsAsync(
+                var globalResult = await identifierStore.ExistsAsync(
                     new IdentifierExistenceQuery(
-                        context.ResourceTenant,
                         request.Type,
                         normalized.Normalized,
                         scope),
@@ -416,7 +427,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 EnsureVerificationRequirements(request.Type, isVerified: false);
             }
 
-            await _identifierStore.AddAsync(
+            await identifierStore.AddAsync(
                     UserIdentifier.Create(
                         Guid.NewGuid(),
                         context.ResourceTenant,
@@ -437,7 +448,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             EnsureOverrideAllowed(context);
 
-            var identifier = await _identifierStore.GetByIdAsync(request.Id, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
 
             if (identifier is null || identifier.IsDeleted)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
@@ -461,9 +473,8 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (string.Equals(identifier.NormalizedValue, normalized.Normalized, StringComparison.Ordinal))
                 throw new UAuthIdentifierValidationException("identifier_value_unchanged");
 
-            var withinUserResult = await _identifierStore.ExistsAsync(
+            var withinUserResult = await identifierStore.ExistsAsync(
                 new IdentifierExistenceQuery(
-                    identifier.Tenant,
                     identifier.Type,
                     normalized.Normalized,
                     IdentifierExistenceScope.WithinUser,
@@ -483,9 +494,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                     ? IdentifierExistenceScope.TenantAny
                     : IdentifierExistenceScope.TenantPrimaryOnly;
 
-                var result = await _identifierStore.ExistsAsync(
+                var result = await identifierStore.ExistsAsync(
                     new IdentifierExistenceQuery(
-                        identifier.Tenant,
                         identifier.Type,
                         normalized.Normalized,
                         scope,
@@ -499,7 +509,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var expectedVersion = identifier.Version;
             identifier.ChangeValue(request.NewValue, normalized.Normalized, _clock.UtcNow);
 
-            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+            await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -511,7 +521,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             EnsureOverrideAllowed(context);
 
-            var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
@@ -520,15 +531,15 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
 
-            var result = await _identifierStore.ExistsAsync(
-                new IdentifierExistenceQuery(identifier.Tenant, identifier.Type, identifier.NormalizedValue, IdentifierExistenceScope.TenantPrimaryOnly, ExcludeIdentifierId: identifier.Id), innerCt);
+            var result = await identifierStore.ExistsAsync(
+                new IdentifierExistenceQuery(identifier.Type, identifier.NormalizedValue, IdentifierExistenceScope.TenantPrimaryOnly, ExcludeIdentifierId: identifier.Id), innerCt);
 
             if (result.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists");
 
             var expectedVersion = identifier.Version;
             identifier.SetPrimary(_clock.UtcNow);
-            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+            await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -540,7 +551,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             EnsureOverrideAllowed(context);
 
-            var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
@@ -548,7 +560,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierValidationException("identifier_already_not_primary");
 
             var userIdentifiers =
-            await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+            await identifierStore.GetByUserAsync(identifier.UserKey, innerCt);
 
             var activeLoginPrimaries = userIdentifiers
                 .Where(i =>
@@ -565,7 +577,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var expectedVersion = identifier.Version;
             identifier.UnsetPrimary(_clock.UtcNow);
-            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+            await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -577,13 +589,14 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             EnsureOverrideAllowed(context);
 
-            var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var expectedVersion = identifier.Version;
             identifier.MarkVerified(_clock.UtcNow);
-            await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+            await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -595,11 +608,12 @@ internal sealed class UserApplicationService : IUserApplicationService
         {
             EnsureOverrideAllowed(context);
 
-            var identifier = await _identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            var identifiers = await _identifierStore.GetByUserAsync(identifier.Tenant, identifier.UserKey, innerCt);
+            var identifiers = await identifierStore.GetByUserAsync(identifier.UserKey, innerCt);
             var loginIdentifiers = identifiers.Where(i => !i.IsDeleted && IsLoginIdentifier(i.Type)).ToList();
 
             if (identifier.IsPrimary)
@@ -622,12 +636,12 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (request.Mode == DeleteMode.Hard)
             {
-                await _identifierStore.DeleteAsync(identifier.Id, expectedVersion, DeleteMode.Hard, _clock.UtcNow, innerCt);
+                await identifierStore.DeleteAsync(identifier.Id, expectedVersion, DeleteMode.Hard, _clock.UtcNow, innerCt);
             }
             else
             {
                 identifier.MarkDeleted(_clock.UtcNow);
-                await _identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
+                await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
             }
         });
 
@@ -641,8 +655,11 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     private async Task<UserView> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
     {
-        var lifecycle = await _lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey));
-        var profile = await _profileStore.GetAsync(new UserProfileKey(tenant, userKey), ct);
+        var lifecycleStore = _lifecycleStoreFactory.Create(tenant);
+        var identifierStore = _identifierStoreFactory.Create(tenant);
+        var profileStore = _profileStoreFactory.Create(tenant);
+        var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey));
+        var profile = await profileStore.GetAsync(new UserProfileKey(tenant, userKey), ct);
 
         if (lifecycle is null || lifecycle.IsDeleted)
             throw new UAuthNotFoundException("user_not_found");
@@ -650,7 +667,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (profile is null || profile.IsDeleted)
             throw new UAuthNotFoundException("user_profile_not_found");
 
-        var identifiers = await _identifierStore.GetByUserAsync(tenant, userKey, ct);
+        var identifiers = await identifierStore.GetByUserAsync(userKey, ct);
 
         var username = identifiers.FirstOrDefault(x => x.Type == UserIdentifierType.Username && x.IsPrimary);
         var primaryEmail = identifiers.FirstOrDefault(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
@@ -738,7 +755,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                 IncludeDeleted = query.IncludeDeleted
             };
 
-            var lifecycleResult = await _lifecycleStore.QueryAsync(context.ResourceTenant, lifecycleQuery, innerCt);
+            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+            var lifecycleResult = await lifecycleStore.QueryAsync(lifecycleQuery, innerCt);
             var lifecycles = lifecycleResult.Items;
 
             if (lifecycles.Count == 0)
@@ -753,8 +771,10 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             var userKeys = lifecycles.Select(x => x.UserKey).ToList();
-            var profiles = await _profileStore.GetByUsersAsync(context.ResourceTenant, userKeys, innerCt);
-            var identifiers = await _identifierStore.GetByUsersAsync(context.ResourceTenant, userKeys, innerCt);
+            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+            var profiles = await profileStore.GetByUsersAsync(userKeys, innerCt);
+            var identifiers = await identifierStore.GetByUsersAsync(userKeys, innerCt);
             var profileMap = profiles.ToDictionary(x => x.UserKey);
             var identifierGroups = identifiers.GroupBy(x => x.UserKey).ToDictionary(x => x.Key, x => x.ToList());
 

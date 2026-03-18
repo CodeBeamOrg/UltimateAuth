@@ -5,20 +5,21 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
 internal sealed class PasswordCredentialProvider : ICredentialProvider
 {
-    private readonly IPasswordCredentialStore _store;
+    private readonly IPasswordCredentialStoreFactory _storeFactory;
     private readonly ICredentialValidator _validator;
 
     public CredentialType Type => CredentialType.Password;
 
-    public PasswordCredentialProvider(IPasswordCredentialStore store, ICredentialValidator validator)
+    public PasswordCredentialProvider(IPasswordCredentialStoreFactory storeFactory, ICredentialValidator validator)
     {
-        _store = store;
+        _storeFactory = storeFactory;
         _validator = validator;
     }
 
     public async Task<IReadOnlyCollection<ICredential>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var creds = await _store.GetByUserAsync(tenant, userKey, ct);
+        var store = _storeFactory.Create(tenant);
+        var creds = await store.GetByUserAsync(userKey, ct);
         return creds.Cast<ICredential>().ToList();
     }
 

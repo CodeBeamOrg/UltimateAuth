@@ -10,6 +10,6 @@ public sealed class InMemorySessionStoreFactory : ISessionStoreFactory
 
     public ISessionStore Create(TenantKey tenant)
     {
-        return _kernels.GetOrAdd(tenant, _ => new InMemorySessionStore());
+        return _kernels.GetOrAdd(tenant, t => new InMemorySessionStore(t));
     }
 }

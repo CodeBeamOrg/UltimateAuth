@@ -8,21 +8,25 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
 internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly IDbContextFactory<UAuthUserDbContext> _dbFactory;
+    private readonly TenantKey _tenant;
 
-    public EfCoreUserLifecycleStore(UAuthUserDbContext db)
+    public EfCoreUserLifecycleStore(IDbContextFactory<UAuthUserDbContext> dbFactory, TenantContext tenant)
     {
-        _db = db;
+        _dbFactory = dbFactory;
+        _tenant = tenant.Tenant;
     }
 
     public async Task<UserLifecycle?> GetAsync(UserLifecycleKey key, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Lifecycles
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Lifecycles
             .AsNoTracking()
             .SingleOrDefaultAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
 
@@ -33,9 +37,11 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Lifecycles
+        await using var db = _dbFactory.CreateDbContext();
+
+        return await db.Lifecycles
             .AnyAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
     }
@@ -44,31 +50,33 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
         var projection = entity.ToProjection();
 
         if (entity.Version != 0)
             throw new InvalidOperationException("New lifecycle must have version 0.");
 
-        _db.Lifecycles.Add(projection);
+        db.Lifecycles.Add(projection);
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task SaveAsync(UserLifecycle entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
+
         var projection = entity.ToProjection();
 
-        _db.Entry(projection).State = EntityState.Modified;
+        db.Attach(projection);
 
-        _db.Entry(projection)
-            .Property(x => x.Version)
-            .OriginalValue = expectedVersion;
+        db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
+        db.Entry(projection).State = EntityState.Modified;
 
         try
         {
-            await _db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -80,9 +88,11 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Lifecycles
+        await using var db = _dbFactory.CreateDbContext();
+
+        var projection = await db.Lifecycles
             .SingleOrDefaultAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
 
@@ -94,7 +104,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.Lifecycles.Remove(projection);
+            db.Lifecycles.Remove(projection);
         }
         else
         {
@@ -102,18 +112,19 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
             projection.Version++;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
-    public async Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<UserLifecycle>> QueryAsync(UserLifecycleQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
+        await using var db = _dbFactory.CreateDbContext();
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Lifecycles
+        var baseQuery = db.Lifecycles
             .AsNoTracking()
-            .Where(x => x.Tenant == tenant);
+            .Where(x => x.Tenant == _tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);

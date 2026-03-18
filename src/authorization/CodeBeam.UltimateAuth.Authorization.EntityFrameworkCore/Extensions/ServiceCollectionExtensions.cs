@@ -7,9 +7,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthAuthorizationEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContextPool<UAuthAuthorizationDbContext>(configureDb);
-        services.AddScoped<IRoleStore, EfCoreRoleStore>();
-        services.AddScoped<IUserRoleStore, EfCoreUserRoleStore>();
+        services.AddDbContext<UAuthAuthorizationDbContext>(configureDb);
+        services.AddScoped<IRoleStoreFactory, EfCoreRoleStoreFactory>();
+        services.AddScoped<IUserRoleStoreFactory, EfCoreUserRoleStoreFactory>();
         return services;
     }
 }

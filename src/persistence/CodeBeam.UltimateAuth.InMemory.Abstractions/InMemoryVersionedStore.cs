@@ -1,8 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using System.Collections.Concurrent;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions;
+namespace CodeBeam.UltimateAuth.InMemory;
 
 public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TEntity, TKey>
     where TEntity : class, IVersionedEntity, IEntitySnapshot<TEntity>

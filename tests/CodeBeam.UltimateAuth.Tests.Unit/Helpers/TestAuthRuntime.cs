@@ -42,9 +42,9 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
-        services.AddSingleton<InMemoryAuthenticationSecurityStateStore>();
-        services.AddSingleton<IAuthenticationSecurityStateStore>(sp =>
-            sp.GetRequiredService<InMemoryAuthenticationSecurityStateStore>());
+        //services.AddSingleton<InMemoryAuthenticationSecurityStateStore>();
+        //services.AddSingleton<IAuthenticationSecurityStateStore>(sp =>
+        //    sp.GetRequiredService<InMemoryAuthenticationSecurityStateStore>());
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
@@ -52,7 +52,15 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         services.AddSingleton<IClock>(Clock);
 
         Services = services.BuildServiceProvider();
-        Services.GetRequiredService<SeedRunner>().RunAsync(null).GetAwaiter().GetResult();
+
+        using (var scope = Services.CreateScope())
+        {
+            var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
+            seedRunner.RunAsync(null).GetAwaiter().GetResult();
+        }
+
+        //Services = services.BuildServiceProvider();
+        //Services.GetRequiredService<SeedRunner>().RunAsync(null).GetAwaiter().GetResult();
     }
 
     public ILoginOrchestrator GetLoginOrchestrator()

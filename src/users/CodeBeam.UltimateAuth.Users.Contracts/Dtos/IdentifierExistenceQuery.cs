@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record IdentifierExistenceQuery(
-    TenantKey Tenant,
     UserIdentifierType Type,
     string NormalizedValue,
     IdentifierExistenceScope Scope,

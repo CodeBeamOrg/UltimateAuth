@@ -11,12 +11,12 @@ namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 {
     private readonly UAuthCredentialDbContext _db;
-    private readonly TenantContext _tenant;
+    private readonly TenantKey _tenant;
 
     public EfCorePasswordCredentialStore(UAuthCredentialDbContext db, TenantContext tenant)
     {
         _db = db;
-        _tenant = tenant;
+        _tenant = tenant.Tenant;
     }
 
     public async Task<bool> ExistsAsync(CredentialKey key, CancellationToken ct = default)
@@ -24,14 +24,16 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
         return await _db.PasswordCredentials
             .AnyAsync(x =>
                 x.Id == key.Id &&
-                x.Tenant == key.Tenant,
+                x.Tenant == _tenant,
                 ct);
     }
 
     public async Task AddAsync(PasswordCredential credential, CancellationToken ct = default)
     {
         var entity = credential.ToProjection();
+
         _db.PasswordCredentials.Add(entity);
+
         await _db.SaveChangesAsync(ct);
     }
 
@@ -41,7 +43,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.Id == key.Id &&
-                     x.Tenant == key.Tenant,
+                     x.Tenant == _tenant,
                 ct);
 
         return entity?.ToDomain();
@@ -52,7 +54,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
         var entity = await _db.PasswordCredentials
             .SingleOrDefaultAsync(x =>
                 x.Id == credential.Id &&
-                x.Tenant == credential.Tenant,
+                x.Tenant == _tenant,
                 ct);
 
         if (entity is null)
@@ -63,18 +65,30 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
         credential.UpdateProjection(entity);
         entity.Version++;
+
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task RevokeAsync(CredentialKey key, DateTimeOffset revokedAt, long expectedVersion, CancellationToken ct = default)
     {
-        var credential = await GetAsync(key, ct);
+        var entity = await _db.PasswordCredentials
+            .SingleOrDefaultAsync(x =>
+                x.Id == key.Id &&
+                x.Tenant == _tenant,
+                ct);
 
-        if (credential is null)
+        if (entity is null)
             throw new UAuthNotFoundException("credential_not_found");
 
-        var revoked = credential.Revoke(revokedAt);
-        await SaveAsync(revoked, expectedVersion, ct);
+        if (entity.Version != expectedVersion)
+            throw new UAuthConcurrencyException("credential_version_conflict");
+
+        var domain = entity.ToDomain().Revoke(revokedAt);
+        domain.UpdateProjection(entity);
+
+        entity.Version++;
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(CredentialKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
@@ -82,7 +96,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
         var entity = await _db.PasswordCredentials
             .SingleOrDefaultAsync(x =>
                 x.Id == key.Id &&
-                x.Tenant == key.Tenant,
+                x.Tenant == _tenant,
                 ct);
 
         if (entity is null)
@@ -104,12 +118,12 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public async Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         var entities = await _db.PasswordCredentials
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.DeletedAt == null)
             .ToListAsync(ct);
@@ -120,27 +134,28 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
             .AsReadOnly();
     }
 
-    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
+    public async Task DeleteByUserAsync(UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
-        var entities = await _db.PasswordCredentials
-            .Where(x =>
-                x.Tenant == tenant &&
-                x.UserKey == userKey)
-            .ToListAsync(ct);
-
-        foreach (var entity in entities)
+        if (mode == DeleteMode.Hard)
         {
-            if (mode == DeleteMode.Hard)
-            {
-                _db.PasswordCredentials.Remove(entity);
-            }
-            else
-            {
-                entity.DeletedAt = now;
-                entity.Version++;
-            }
+            await _db.PasswordCredentials
+                .Where(x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == userKey)
+                .ExecuteDeleteAsync(ct);
+
+            return;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _db.PasswordCredentials
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.DeletedAt == null)
+            .ExecuteUpdateAsync(x =>
+                x
+                    .SetProperty(c => c.DeletedAt, now)
+                    .SetProperty(c => c.Version, c => c.Version + 1),
+                ct);
     }
 }

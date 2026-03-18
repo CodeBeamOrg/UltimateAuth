@@ -6,18 +6,19 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference;
 
 internal sealed class UserPermissionStore : IUserPermissionStore
 {
-    private readonly IUserRoleStore _userRoles;
+    private readonly IUserRoleStoreFactory _userRolesFactory;
     private readonly IRolePermissionResolver _resolver;
 
-    public UserPermissionStore(IUserRoleStore userRoles, IRolePermissionResolver resolver)
+    public UserPermissionStore(IUserRoleStoreFactory userRolesFactory, IRolePermissionResolver resolver)
     {
-        _userRoles = userRoles;
+        _userRolesFactory = userRolesFactory;
         _resolver = resolver;
     }
 
     public async Task<IReadOnlyCollection<Permission>> GetPermissionsAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var assignments = await _userRoles.GetAssignmentsAsync(tenant, userKey, ct);
+        var userRoleStore = _userRolesFactory.Create(tenant);
+        var assignments = await userRoleStore.GetAssignmentsAsync(userKey, ct);
         var roleIds = assignments.Select(x => x.RoleId).ToArray();
         return await _resolver.ResolveAsync(tenant, roleIds, ct);
     }

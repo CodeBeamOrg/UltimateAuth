@@ -6,7 +6,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 namespace CodeBeam.UltimateAuth.Core.Security;
 
 // TODO: Do not store reset token hash in db.
-public sealed class AuthenticationSecurityState : IVersionedEntity
+public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntity, IEntitySnapshot<AuthenticationSecurityState>
 {
     public Guid Id { get; }
     public TenantKey Tenant { get; }
@@ -31,7 +31,11 @@ public sealed class AuthenticationSecurityState : IVersionedEntity
     public bool HasResetRequest => ResetRequestedAt is not null;
 
 
-    long IVersionedEntity.Version { get => SecurityVersion; set => throw new NotImplementedException(); }
+    long IVersionedEntity.Version
+    {
+        get => SecurityVersion;
+        set => throw new NotSupportedException("AuthenticationSecurityState uses SecurityVersion.");
+    }
 
     private AuthenticationSecurityState(
         Guid id,
@@ -428,6 +432,27 @@ public sealed class AuthenticationSecurityState : IVersionedEntity
             null,
             0,
             securityVersion: SecurityVersion + 1);
+    }
+
+    public AuthenticationSecurityState Snapshot()
+    {
+        return new AuthenticationSecurityState(
+            id: Id,
+            tenant: Tenant,
+            userKey: UserKey,
+            scope: Scope,
+            credentialType: CredentialType,
+            failedAttempts: FailedAttempts,
+            lastFailedAt: LastFailedAt,
+            lockedUntil: LockedUntil,
+            requiresReauthentication: RequiresReauthentication,
+            resetRequestedAt: ResetRequestedAt,
+            resetExpiresAt: ResetExpiresAt,
+            resetConsumedAt: ResetConsumedAt,
+            resetTokenHash: ResetTokenHash,
+            resetAttempts: ResetAttempts,
+            securityVersion: SecurityVersion
+        );
     }
 
     public static AuthenticationSecurityState FromProjection(

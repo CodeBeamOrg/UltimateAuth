@@ -1,20 +1,22 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.InMemory;
 
 namespace CodeBeam.UltimateAuth.Authorization.InMemory;
 
-internal sealed class InMemoryRoleStore : InMemoryVersionedStore<Role, RoleKey>, IRoleStore
+internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, RoleKey>, IRoleStore
 {
     protected override RoleKey GetKey(Role entity) => new(entity.Tenant, entity.Id);
 
+    public InMemoryRoleStore(TenantContext tenant) : base(tenant)
+    {
+    }
+
     protected override void BeforeAdd(Role entity)
     {
-        if (Values().Any(r =>
-                r.Tenant == entity.Tenant &&
+        if (TenantValues().Any(r =>
                 r.NormalizedName == entity.NormalizedName &&
                 !r.IsDeleted))
         {
@@ -26,8 +28,7 @@ internal sealed class InMemoryRoleStore : InMemoryVersionedStore<Role, RoleKey>,
     {
         if (entity.NormalizedName != current.NormalizedName)
         {
-            if (Values().Any(r =>
-                    r.Tenant == entity.Tenant &&
+            if (TenantValues().Any(r =>
                     r.NormalizedName == entity.NormalizedName &&
                     r.Id != entity.Id &&
                     !r.IsDeleted))
@@ -37,44 +38,40 @@ internal sealed class InMemoryRoleStore : InMemoryVersionedStore<Role, RoleKey>,
         }
     }
 
-    public Task<Role?> GetByNameAsync(TenantKey tenant, string normalizedName, CancellationToken ct = default)
+    public Task<Role?> GetByNameAsync(string normalizedName, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var role = Values()
+        var role = TenantValues()
             .FirstOrDefault(r =>
-                r.Tenant == tenant &&
                 r.NormalizedName == normalizedName &&
                 !r.IsDeleted);
 
-        return Task.FromResult(role);
+        return Task.FromResult(role?.Snapshot());
     }
 
-    public Task<IReadOnlyCollection<Role>> GetByIdsAsync(TenantKey tenant, IReadOnlyCollection<RoleId> roleIds, CancellationToken ct = default)
+    public Task<IReadOnlyCollection<Role>> GetByIdsAsync(IReadOnlyCollection<RoleId> roleIds, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var result = new List<Role>(roleIds.Count);
+        var set = roleIds.ToHashSet();
 
-        foreach (var id in roleIds)
-        {
-            if (TryGet(new RoleKey(tenant, id), out var role) && role is not null)
-            {
-                result.Add(role.Snapshot());
-            }
-        }
+        var result = TenantValues()
+            .Where(r => set.Contains(r.Id) && !r.IsDeleted)
+            .Select(r => r.Snapshot())
+            .ToList()
+            .AsReadOnly();
 
         return Task.FromResult<IReadOnlyCollection<Role>>(result);
     }
 
-    public Task<PagedResult<Role>> QueryAsync(TenantKey tenant, RoleQuery query, CancellationToken ct = default)
+    public Task<PagedResult<Role>> QueryAsync(RoleQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var normalized = query.Normalize();
 
-        var baseQuery = Values()
-            .Where(r => r.Tenant == tenant);
+        var baseQuery = TenantValues().AsQueryable();
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(r => !r.IsDeleted);
@@ -113,6 +110,7 @@ internal sealed class InMemoryRoleStore : InMemoryVersionedStore<Role, RoleKey>,
         var items = baseQuery
             .Skip((normalized.PageNumber - 1) * normalized.PageSize)
             .Take(normalized.PageSize)
+            .Select(x => x.Snapshot())
             .ToList()
             .AsReadOnly();
 
