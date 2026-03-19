@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Server.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,17 +10,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddUltimateAuth();
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("ApiUser", policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireClaim("scope", "api");
-        // veya role, veya custom claim
-    });
-});
+builder.Services.AddUltimateAuthResourceApi();
 
 builder.Services.AddCors(options =>
 {

@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;

@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
-namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+namespace CodeBeam.UltimateAuth.Users;
 
 public interface IUserCreateValidator
 {

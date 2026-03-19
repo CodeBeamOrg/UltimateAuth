@@ -4,10 +4,34 @@
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.0.1</Version>
-		<InformationalVersion>0.0.1</InformationalVersion>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageId>CodeBeam.UltimateAuth.Server</PackageId>
+		<Version>0.1.0-preview.1</Version>
+
+		<Authors>CodeBeam</Authors>
+		<Company>CodeBeam</Company>
+
+		<Description>
+			Main server package for UltimateAuth.
+			Includes authentication, authorization, users, credentials, sessions, tokens and policy modules with dependency injection setup.
+			This is the primary package to install for backend applications.
+		</Description>
+
+		<PackageTags>authentication;authorization;identity;security;server;oauth;pkce;jwt;aspnetcore;auth-framework</PackageTags>
+
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,14 +43,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
-		<ProjectReference Include="..\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
 		<ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />
+		<ProjectReference Include="..\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
 		<ProjectReference Include="..\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
-		<ProjectReference Include="..\policies\CodeBeam.UltimateAuth.Policies\CodeBeam.UltimateAuth.Policies.csproj" />
-		<ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
 		<ProjectReference Include="..\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
+		<ProjectReference Include="..\policies\CodeBeam.UltimateAuth.Policies\CodeBeam.UltimateAuth.Policies.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>
