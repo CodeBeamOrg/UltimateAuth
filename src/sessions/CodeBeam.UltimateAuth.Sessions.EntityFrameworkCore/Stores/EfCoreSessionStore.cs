@@ -9,10 +9,10 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
 internal sealed class EfCoreSessionStore : ISessionStore
 {
-    private readonly UltimateAuthSessionDbContext _db;
+    private readonly UAuthSessionDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreSessionStore(UltimateAuthSessionDbContext db, TenantContext tenant)
+    public EfCoreSessionStore(UAuthSessionDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
@@ -84,15 +84,24 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return projection?.ToDomain();
     }
 
-    public Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
+    public async Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = session.ToProjection();
-        _db.Sessions.Attach(projection);
-        _db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
-        _db.Entry(projection).State = EntityState.Modified;
-        return Task.CompletedTask;
+        var projection = await _db.Sessions
+            .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
+                x.SessionId == session.SessionId,
+                ct);
+
+        if (projection is null)
+            throw new UAuthNotFoundException("session_not_found");
+
+        if (projection.Version != expectedVersion)
+            throw new UAuthConcurrencyException("session_concurrency_conflict");
+
+        session.UpdateProjection(projection);
+        projection.Version++;
     }
 
     public Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default)
@@ -115,11 +124,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
 
-        if (projection is null || projection.IsRevoked)
+        if (projection is null || projection.RevokedAt is not null)
             return false;
 
-        var revoked = projection.ToDomain().Revoke(at);
-        _db.Sessions.Update(revoked.ToProjection());
+        var domain = projection.ToDomain().Revoke(at);
+        domain.UpdateProjection(projection);
+        projection.Version++;
+
         return true;
     }
 
@@ -127,24 +138,35 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var chains = await _db.Chains.Where(x => x.Tenant == _tenant && x.UserKey == user).ToListAsync(ct);
+        var chains = await _db.Chains
+            .Where(x => x.Tenant == _tenant && x.UserKey == user)
+            .ToListAsync(ct);
+
         var chainIds = chains.Select(x => x.ChainId).ToList();
-        var sessions = await _db.Sessions.Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId)).ToListAsync(ct);
+
+        var sessions = await _db.Sessions
+            .Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId))
+            .ToListAsync(ct);
 
         foreach (var sessionProjection in sessions)
         {
-            var session = sessionProjection.ToDomain();
+            if (sessionProjection.RevokedAt is not null)
+                continue;
 
-            if (!session.IsRevoked)
-                _db.Sessions.Update(session.Revoke(at).ToProjection());
+            var domain = sessionProjection.ToDomain().Revoke(at);
+            domain.UpdateProjection(sessionProjection);
+            sessionProjection.Version++;
         }
 
         foreach (var chainProjection in chains)
         {
-            var chain = chainProjection.ToDomain();
+            if (chainProjection.ActiveSessionId is null)
+                continue;
 
-            if (chain.ActiveSessionId is not null)
-                _db.Chains.Update(chain.DetachSession(at).ToProjection());
+            var domain = chainProjection.ToDomain().DetachSession(at);
+
+            domain.UpdateProjection(chainProjection);
+            chainProjection.Version++;
         }
     }
 
@@ -152,24 +174,35 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var chains = await _db.Chains.Where(x => x.Tenant == _tenant && x.UserKey == user && x.ChainId != keepChain).ToListAsync(ct);
+        var chains = await _db.Chains
+            .Where(x => x.Tenant == _tenant && x.UserKey == user && x.ChainId != keepChain)
+            .ToListAsync(ct);
+
         var chainIds = chains.Select(x => x.ChainId).ToList();
-        var sessions = await _db.Sessions.Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId)).ToListAsync(ct);
+
+        var sessions = await _db.Sessions
+            .Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId))
+            .ToListAsync(ct);
 
         foreach (var sessionProjection in sessions)
         {
-            var session = sessionProjection.ToDomain();
+            if (sessionProjection.RevokedAt is not null)
+                continue;
 
-            if (!session.IsRevoked)
-                _db.Sessions.Update(session.Revoke(at).ToProjection());
+            var domain = sessionProjection.ToDomain().Revoke(at);
+            domain.UpdateProjection(sessionProjection);
+            sessionProjection.Version++;
         }
 
         foreach (var chainProjection in chains)
         {
-            var chain = chainProjection.ToDomain();
+            if (chainProjection.ActiveSessionId is null)
+                continue;
 
-            if (chain.ActiveSessionId is not null)
-                _db.Chains.Update(chain.DetachSession(at).ToProjection());
+            var domain = chainProjection.ToDomain().DetachSession(at);
+
+            domain.UpdateProjection(chainProjection);
+            chainProjection.Version++;
         }
     }
 
@@ -200,22 +233,24 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return projection?.ToDomain();
     }
 
-    public Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion, CancellationToken ct = default)
+    public async Task SaveChainAsync(UAuthSessionChain chain, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = chain.ToProjection();
+        var projection = await _db.Chains
+            .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
+                x.ChainId == chain.ChainId,
+                ct);
 
-        if (chain.Version != expectedVersion + 1)
-            throw new InvalidOperationException("Chain version must be incremented by domain.");
+        if (projection is null)
+            throw new UAuthNotFoundException("chain_not_found");
 
-        _db.Entry(projection).State = EntityState.Modified;
+        if (projection.Version != expectedVersion)
+            throw new UAuthConcurrencyException("chain_concurrency_conflict");
 
-        _db.Entry(projection)
-            .Property(x => x.Version)
-            .OriginalValue = expectedVersion;
-
-        return Task.CompletedTask;
+        chain.UpdateProjection(projection);
+        projection.Version++;
     }
 
     public Task CreateChainAsync(UAuthSessionChain chain, CancellationToken ct = default)
@@ -236,49 +271,47 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId);
+        var projection = await _db.Chains
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
-        if (projection is null)
+        if (projection is null || projection.RevokedAt is not null)
             return;
 
-        var chain = projection.ToDomain();
-        if (chain.IsRevoked)
-            return;
-
-        _db.Chains.Update(chain.Revoke(at).ToProjection());
+        var domain = projection.ToDomain().Revoke(at);
+        domain.UpdateProjection(projection);
+        projection.Version++;
     }
 
     public async Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var chainProjection = await _db.Chains.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
+        var chainProjection = await _db.Chains
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
-        if (chainProjection is null)
+        if (chainProjection is null || chainProjection.RevokedAt is not null)
             return;
 
-        var chain = chainProjection.ToDomain();
-
-        if (chain.IsRevoked)
-            return;
-
-        var sessions = await _db.Sessions.Where(x => x.Tenant == _tenant && x.ChainId == chainId).ToListAsync(ct);
+        var sessions = await _db.Sessions
+            .Where(x => x.Tenant == _tenant && x.ChainId == chainId)
+            .ToListAsync(ct);
 
         foreach (var sessionProjection in sessions)
         {
-            var session = sessionProjection.ToDomain();
-
-            if (session.IsRevoked)
+            if (sessionProjection.RevokedAt is not null)
                 continue;
 
-            var revoked = session.Revoke(at);
-            _db.Sessions.Update(revoked.ToProjection());
+            var domain = sessionProjection.ToDomain().Revoke(at);
+
+            domain.UpdateProjection(sessionProjection);
+            sessionProjection.Version++;
         }
 
-        if (chain.ActiveSessionId is not null)
+        if (chainProjection.ActiveSessionId is not null)
         {
-            var updatedChain = chain.DetachSession(at);
-            _db.Chains.Update(updatedChain.ToProjection());
+            var domain = chainProjection.ToDomain().DetachSession(at);
+            domain.UpdateProjection(chainProjection);
+            chainProjection.Version++;
         }
     }
 
@@ -291,17 +324,14 @@ internal sealed class EfCoreSessionStore : ISessionStore
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.ChainId != currentChainId &&
-                !x.IsRevoked)
+                x.RevokedAt == null)
             .ToListAsync(ct);
 
         foreach (var projection in projections)
         {
-            var chain = projection.ToDomain();
-
-            if (chain.IsRevoked)
-                continue;
-
-            _db.Chains.Update(chain.Revoke(at).ToProjection());
+            var domain = projection.ToDomain().Revoke(at);
+            domain.UpdateProjection(projection);
+            projection.Version++;
         }
     }
 
@@ -313,17 +343,14 @@ internal sealed class EfCoreSessionStore : ISessionStore
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
-                !x.IsRevoked)
+                x.RevokedAt == null)
             .ToListAsync(ct);
 
         foreach (var projection in projections)
         {
-            var chain = projection.ToDomain();
-
-            if (chain.IsRevoked)
-                continue;
-
-            _db.Chains.Update(chain.Revoke(at).ToProjection());
+            var domain = projection.ToDomain().Revoke(at);
+            domain.UpdateProjection(projection);
+            projection.Version++;
         }
     }
 
@@ -342,13 +369,20 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId);
+        var projection = _db.Chains.Local
+            .FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
+
+        if (projection is null)
+        {
+            projection = await _db.Chains
+                .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
+        }
 
         if (projection is null)
             return;
 
         projection.ActiveSessionId = sessionId;
-        _db.Chains.Update(projection);
+        projection.Version++;
     }
 
     public async Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default)
@@ -359,22 +393,24 @@ internal sealed class EfCoreSessionStore : ISessionStore
         return rootProjection?.ToDomain();
     }
 
-    public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
+    public async Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = root.ToProjection();
+        var projection = await _db.Roots
+            .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == root.UserKey,
+                ct);
 
-        if (root.Version != expectedVersion + 1)
-            throw new InvalidOperationException("Root version must be incremented by domain.");
+        if (projection is null)
+            throw new UAuthNotFoundException("root_not_found");
 
-        _db.Entry(projection).State = EntityState.Modified;
+        if (projection.Version != expectedVersion)
+            throw new UAuthConcurrencyException("root_concurrency_conflict");
 
-        _db.Entry(projection)
-            .Property(x => x.Version)
-            .OriginalValue = expectedVersion;
-
-        return Task.CompletedTask;
+        root.UpdateProjection(projection);
+        projection.Version++;
     }
 
     public Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default)
@@ -395,13 +431,15 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Roots.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey);
+        var projection = await _db.Roots
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
 
-        if (projection is null)
+        if (projection is null || projection.RevokedAt is not null)
             return;
 
-        var root = projection.ToDomain();
-        _db.Roots.Update(root.Revoke(at).ToProjection());
+        var domain = projection.ToDomain().Revoke(at);
+        domain.UpdateProjection(projection);
+        projection.Version++;
     }
 
     public async Task<SessionChainId?> GetChainIdBySessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
@@ -423,7 +461,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         if (!includeHistoricalRoots)
         {
-            rootsQuery = rootsQuery.Where(r => !r.IsRevoked);
+            rootsQuery = rootsQuery.Where(x => x.RevokedAt == null);
         }
 
         var rootIds = await rootsQuery.Select(r => r.RootId).ToListAsync();
@@ -484,27 +522,27 @@ internal sealed class EfCoreSessionStore : ISessionStore
         ct.ThrowIfCancellationRequested();
 
         var chainProjection = await _db.Chains
-            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId);
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         if (chainProjection is null)
             return;
 
-        var sessionProjections = await _db.Sessions.Where(x => x.Tenant == _tenant && x.ChainId == chainId && !x.IsRevoked).ToListAsync();
+        var sessionProjections = await _db.Sessions
+            .Where(x => x.Tenant == _tenant && x.ChainId == chainId && x.RevokedAt == null)
+            .ToListAsync(ct);
 
         foreach (var sessionProjection in sessionProjections)
         {
-            var session = sessionProjection.ToDomain();
-            var revoked = session.Revoke(at);
-
-            _db.Sessions.Update(revoked.ToProjection());
+            var revoked = sessionProjection.ToDomain().Revoke(at);
+            revoked.UpdateProjection(sessionProjection);
+            sessionProjection.Version++;
         }
 
-        if (!chainProjection.IsRevoked)
+        if (chainProjection.RevokedAt is null)
         {
-            var chain = chainProjection.ToDomain();
-            var revokedChain = chain.Revoke(at);
-
-            _db.Chains.Update(revokedChain.ToProjection());
+            var revokedChain = chainProjection.ToDomain().Revoke(at);
+            revokedChain.UpdateProjection(chainProjection);
+            chainProjection.Version++;
         }
     }
 
@@ -512,42 +550,48 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await _db.Roots.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey);
+        var rootProjection = await _db.Roots
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
 
         if (rootProjection is null)
             return;
 
-        var chainProjections = await _db.Chains.Where(x => x.Tenant == _tenant && x.UserKey == userKey).ToListAsync();
+        var chainProjections = await _db.Chains
+            .Where(x => x.Tenant == _tenant && x.UserKey == userKey)
+            .ToListAsync(ct);
 
         foreach (var chainProjection in chainProjections)
         {
-            var chainId = chainProjection.ChainId;
+            var sessions = await _db.Sessions
+                .Where(x => x.Tenant == _tenant && x.ChainId == chainProjection.ChainId)
+                .ToListAsync(ct);
 
-            var sessionProjections = await _db.Sessions.Where(x => x.Tenant == _tenant && x.ChainId == chainId && !x.IsRevoked).ToListAsync();
-
-            foreach (var sessionProjection in sessionProjections)
+            foreach (var sessionProjection in sessions)
             {
-                var session = sessionProjection.ToDomain();
-                var revokedSession = session.Revoke(at);
+                if (sessionProjection.RevokedAt is not null)
+                    continue;
 
-                _db.Sessions.Update(revokedSession.ToProjection());
+                var sessionDomain = sessionProjection.ToDomain().Revoke(at);
+
+                sessionDomain.UpdateProjection(sessionProjection);
+                sessionProjection.Version++;
             }
 
-            if (!chainProjection.IsRevoked)
+            if (chainProjection.RevokedAt is null)
             {
-                var chain = chainProjection.ToDomain();
-                var revokedChain = chain.Revoke(at);
+                var chainDomain = chainProjection.ToDomain().Revoke(at);
 
-                _db.Chains.Update(revokedChain.ToProjection());
+                chainDomain.UpdateProjection(chainProjection);
+                chainProjection.Version++;
             }
         }
 
-        if (!rootProjection.IsRevoked)
+        if (rootProjection.RevokedAt is null)
         {
-            var root = rootProjection.ToDomain();
-            var revokedRoot = root.Revoke(at);
+            var rootDomain = rootProjection.ToDomain().Revoke(at);
 
-            _db.Roots.Update(revokedRoot.ToProjection());
+            rootDomain.UpdateProjection(rootProjection);
+            rootProjection.Version++;
         }
     }
 }

@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
 internal sealed class EfCoreSessionStoreFactory : ISessionStoreFactory
 {
-    private readonly UltimateAuthSessionDbContext _db;
+    private readonly UAuthSessionDbContext _db;
 
-    public EfCoreSessionStoreFactory(UltimateAuthSessionDbContext db)
+    public EfCoreSessionStoreFactory(UAuthSessionDbContext db)
     {
         _db = db;
     }

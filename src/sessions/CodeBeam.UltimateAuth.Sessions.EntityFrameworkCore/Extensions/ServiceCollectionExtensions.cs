@@ -8,7 +8,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthSessionsEntityFrameworkCore(this IServiceCollection services,Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContext<UltimateAuthSessionDbContext>(configureDb);
+        services.AddDbContext<UAuthSessionDbContext>(configureDb);
         services.AddScoped<ISessionStoreFactory, EfCoreSessionStoreFactory>();
 
         return services;

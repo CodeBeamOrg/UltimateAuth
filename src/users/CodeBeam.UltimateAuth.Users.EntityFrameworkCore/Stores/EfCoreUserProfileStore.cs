@@ -61,25 +61,22 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = entity.ToProjection();
+        var existing = await _db.Profiles
+            .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == entity.UserKey,
+                ct);
 
-        _db.Attach(projection);
+        if (existing is null)
+            throw new UAuthNotFoundException("user_profile_not_found");
 
-        _db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
-
-        // Store owns version increment
-        projection.Version = expectedVersion + 1;
-
-        _db.Entry(projection).State = EntityState.Modified;
-
-        try
-        {
-            await _db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
+        if (existing.Version != expectedVersion)
             throw new UAuthConcurrencyException("user_profile_concurrency_conflict");
-        }
+
+        entity.UpdateProjection(existing);
+        existing.Version++;
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(UserProfileKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)

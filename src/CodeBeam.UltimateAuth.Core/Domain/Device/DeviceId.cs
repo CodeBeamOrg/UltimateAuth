@@ -1,7 +1,10 @@
-﻿using System.Security;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Security;
+using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
 
+[JsonConverter(typeof(DeviceIdJsonConverter))]
 public readonly record struct DeviceId
 {
     public const int MinLength = 16;

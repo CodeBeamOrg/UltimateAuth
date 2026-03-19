@@ -111,7 +111,8 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
         }
         else
         {
-            entity.DeletedAt = now;
+            var domain = entity.ToDomain().MarkDeleted(now);
+            domain.UpdateProjection(entity);
             entity.Version++;
         }
 

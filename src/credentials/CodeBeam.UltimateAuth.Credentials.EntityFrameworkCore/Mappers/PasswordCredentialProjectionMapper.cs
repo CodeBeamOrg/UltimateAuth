@@ -18,16 +18,20 @@ internal static class PasswordCredentialProjectionMapper
             Source = p.Source
         };
 
-        return PasswordCredential.Create(
+        return PasswordCredential.FromProjection(
             id: p.Id,
             tenant: p.Tenant,
             userKey: p.UserKey,
             secretHash: p.SecretHash,
             security: security,
             metadata: metadata,
-            now: p.CreatedAt
+            createdAt: p.CreatedAt,
+            updatedAt: p.UpdatedAt,
+            deletedAt: p.DeletedAt,
+            version: p.Version
         );
     }
+
     public static PasswordCredentialProjection ToProjection(this PasswordCredential c)
     {
         return new PasswordCredentialProjection
@@ -63,5 +67,6 @@ internal static class PasswordCredentialProjectionMapper
         p.Source = c.Metadata.Source;
 
         p.UpdatedAt = c.UpdatedAt;
+        p.DeletedAt = c.DeletedAt;
     }
 }

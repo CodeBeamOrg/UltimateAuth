@@ -151,4 +151,29 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
 
         return this;
     }
+
+    public static PasswordCredential FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        string secretHash,
+        CredentialSecurityState security,
+        CredentialMetadata metadata,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        return new PasswordCredential(
+            id,
+            tenant,
+            userKey,
+            secretHash,
+            security,
+            metadata,
+            createdAt,
+            updatedAt,
+            deletedAt,
+            version);
+    }
 }
