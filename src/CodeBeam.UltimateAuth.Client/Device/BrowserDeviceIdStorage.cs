@@ -1,14 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 
-namespace CodeBeam.UltimateAuth.Client.Device;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Device;
 
 public sealed class BrowserDeviceIdStorage : IDeviceIdStorage
 {
     private const string Key = "udid";
-    private readonly IBrowserStorage _storage;
+    private readonly IClientStorage _storage;
 
-    public BrowserDeviceIdStorage(IBrowserStorage storage)
+    public BrowserDeviceIdStorage(IClientStorage storage)
     {
         _storage = storage;
     }

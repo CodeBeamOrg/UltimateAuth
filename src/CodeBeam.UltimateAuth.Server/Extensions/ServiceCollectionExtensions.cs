@@ -33,6 +33,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -71,10 +72,10 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
 
-        AddUsersInternal(services);
-        AddCredentialsInternal(services);
-        AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
+        //AddUsersInternal(services);
+        //AddCredentialsInternal(services);
+        //AddAuthorizationInternal(services);
+        //AddUltimateAuthPolicies(services);
 
         services.AddOptions<UAuthServerOptions>()
             .Configure(options =>
@@ -350,6 +351,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    // TODO: This is not true, need to build true pipeline for ResourceApi.
     private static IServiceCollection AddUltimateAuthResourceInternal(this IServiceCollection services)
     {
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
@@ -371,6 +373,18 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.AddAuthentication();
+
+        services.TryAddSingleton<ISessionStoreFactory, NotSupportedSessionStoreFactory>();
+        services.TryAddSingleton<IRefreshTokenStoreFactory, NotSupportedRefreshTokenStoreFactory>();
+        services.TryAddSingleton<IUserRoleStoreFactory, NotSupportedUserRoleStoreFactory>();
+        services.TryAddSingleton<IUAuthPasswordHasher, NotSupportedPasswordHasher>();
+        services.TryAddSingleton<IIdentifierValidator, NoOpIdentifierValidator>();
+        services.TryAddSingleton<IAccessPolicyProvider, AllowAllAccessPolicyProvider>();
+        services.TryAddScoped<IUserClaimsProvider, NoOpUserClaimsProvider>();
+        services.TryAddSingleton<ITokenHasher, NoOpTokenHasher>();
+
+        services.Replace(ServiceDescriptor.Scoped<ISessionValidator, NoOpSessionValidator>());
+        services.Replace(ServiceDescriptor.Scoped<IRefreshTokenValidator, NoOpRefreshTokenValidator>());
 
         services.PostConfigureAll<AuthenticationOptions>(options =>
         {

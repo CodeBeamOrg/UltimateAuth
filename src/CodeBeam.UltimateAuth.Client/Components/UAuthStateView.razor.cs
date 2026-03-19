@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public partial class UAuthStateView : UAuthReactiveComponentBase
 {

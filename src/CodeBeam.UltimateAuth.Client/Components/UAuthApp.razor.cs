@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System.Reflection;
 
-namespace CodeBeam.UltimateAuth.Client;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public partial class UAuthApp
 {
@@ -108,7 +108,7 @@ public partial class UAuthApp
     private IEnumerable<Assembly> GetAdditionalAssemblies()
     {
         if (AdditionalAssemblies is null && UseUAuthClientRoutes)
-            return UAuthAssemblies.Client();
+            return UAuthAssemblies.BlazorClient();
 
         if (UseUAuthClientRoutes)
             return AdditionalAssemblies.WithUltimateAuth();

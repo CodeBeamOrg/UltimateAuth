@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.JSInterop;
 
-namespace CodeBeam.UltimateAuth.Client;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public partial class UAuthLoginForm
 {

@@ -1,6 +1,7 @@
-﻿using Microsoft.JSInterop;
+﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+using Microsoft.JSInterop;
 
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
 internal sealed class BrowserUAuthBridge : IBrowserUAuthBridge
 {

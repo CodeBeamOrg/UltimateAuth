@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Client;
 
-public sealed class UAuthDeviceIdProvider : IDeviceIdProvider
+internal sealed class UAuthDeviceIdProvider : IDeviceIdProvider
 {
     private readonly IDeviceIdStorage _storage;
     private readonly IDeviceIdGenerator _generator;

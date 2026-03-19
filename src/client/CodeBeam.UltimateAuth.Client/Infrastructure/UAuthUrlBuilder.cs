@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Client.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
-internal static class UAuthUrlBuilder
+public static class UAuthUrlBuilder
 {
     public static string Build(string authority, string relativePath, UAuthClientMultiTenantOptions tenant)
     {

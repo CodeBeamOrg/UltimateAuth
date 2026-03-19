@@ -7,7 +7,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
 // TODO: Add multi tab single refresh support
 internal sealed class SessionCoordinator : ISessionCoordinator

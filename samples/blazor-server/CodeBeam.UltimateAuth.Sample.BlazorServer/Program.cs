@@ -1,5 +1,4 @@
-using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.InMemory;
@@ -11,6 +10,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
+using CodeBeam.UltimateAuth.Client.Blazor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +44,7 @@ builder.Services.AddUltimateAuthServer(o =>
     .AddInMemoryReference()
     .AddUltimateAuthArgon2();
 
-builder.Services.AddUltimateAuthClient(o =>
+builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
@@ -89,6 +89,6 @@ app.UseAntiforgery();
 app.MapUltimateAuthEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddUltimateAuthRoutes(UAuthAssemblies.Client());
+    .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 
 app.Run();

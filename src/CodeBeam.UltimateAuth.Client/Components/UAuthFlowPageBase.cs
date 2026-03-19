@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using System.Text.Json;
 
-namespace CodeBeam.UltimateAuth.Client;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
 {

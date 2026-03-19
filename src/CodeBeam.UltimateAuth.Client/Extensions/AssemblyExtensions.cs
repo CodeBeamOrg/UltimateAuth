@@ -1,12 +1,12 @@
 ﻿using System.Reflection;
 
-namespace CodeBeam.UltimateAuth.Client;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public static class UAuthAssemblies
 {
     public static Assembly[] WithUltimateAuth(this IEnumerable<Assembly>? assemblies)
     {
-        var authAssembly = typeof(UAuthClientMarker).Assembly;
+        var authAssembly = typeof(UAuthBlazorClientMarker).Assembly;
 
         if (assemblies is null)
             return new[] { authAssembly };
@@ -14,8 +14,8 @@ public static class UAuthAssemblies
         return assemblies.Append(authAssembly).DistinctBy(a => a.FullName).ToArray();
     }
 
-    public static Assembly[] Client()
+    public static Assembly[] BlazorClient()
     {
-        return new[] { typeof(UAuthClientMarker).Assembly };
+        return new[] { typeof(UAuthBlazorClientMarker).Assembly };
     }
 }

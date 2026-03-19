@@ -1,12 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using System.Net;
 
 // TODO: Add fluent helper API like RequiredOk
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
 internal sealed class UAuthRequestClient : IUAuthRequestClient
 {

@@ -28,7 +28,7 @@
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
-		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
+		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
 		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
 		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />

@@ -23,8 +23,9 @@
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.InMemory/CodeBeam.UltimateAuth.Authorization.InMemory.csproj" Id="a1e6d007-bdc0-4574-b549-ec863757edd3" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Reference/CodeBeam.UltimateAuth.Authorization.Reference.csproj" Id="84b784d0-bb48-406a-a0d1-c600da667597" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization/CodeBeam.UltimateAuth.Authorization.csproj" Id="28b1d647-fb0b-4cc3-8503-2680c4a9b28f" />
+  <Project Path="src/client/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.csproj" Id="fa128a9b-613c-4762-993a-2886280d3051" />
   <Project Path="src/CodeBeam.UltimateAuth.Client.JsMinifier/CodeBeam.UltimateAuth.Client.JsMinifier.csproj" Id="ef5cfc86-bfd3-4f81-a973-ce7ef58e7525" />
-  <Project Path="src/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.csproj" Id="eb60a3b7-ba9d-48c9-98ad-b28e879b23bf" />
+  <Project Path="src/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.Blazor.csproj" Id="eb60a3b7-ba9d-48c9-98ad-b28e879b23bf" />
   <Project Path="src/CodeBeam.UltimateAuth.Core/CodeBeam.UltimateAuth.Core.csproj" />
   <Project Path="src/CodeBeam.UltimateAuth.Server/CodeBeam.UltimateAuth.Server.csproj" Id="0a8cdd12-a8c4-4530-87e8-ae778c46322b" />
   <Project Path="src/credentials/CodeBeam.UltimateAuth.Credentials.Contracts/CodeBeam.UltimateAuth.Credentials.Contracts.csproj" Id="88b70848-fa74-40ea-bf34-3fa2f70f4f37" />

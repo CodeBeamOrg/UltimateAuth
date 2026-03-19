@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Client.Devices;
 
-public sealed class UAuthDeviceIdGenerator : IDeviceIdGenerator
+internal sealed class UAuthDeviceIdGenerator : IDeviceIdGenerator
 {
     public DeviceId Generate()
     {

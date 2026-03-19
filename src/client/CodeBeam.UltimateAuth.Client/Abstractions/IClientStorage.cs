@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
-public interface IBrowserStorage
+public interface IClientStorage
 {
     ValueTask SetAsync(StorageScope scope, string key, string value);
     ValueTask<string?> GetAsync(StorageScope scope, string key);

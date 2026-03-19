@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Events;
@@ -9,7 +10,6 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Cryptography;
@@ -23,18 +23,18 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IUAuthRequestClient _post;
     private readonly IUAuthClientEvents _events;
     private readonly IDeviceIdProvider _deviceIdProvider;
+    private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
-    private readonly NavigationManager _nav;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IDeviceIdProvider deviceIdProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, NavigationManager nav)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IDeviceIdProvider deviceIdProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
     {
         _post = post;
         _events = events;
         _deviceIdProvider = deviceIdProvider;
+        _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
         _diagnostics = diagnostics;
-        _nav = nav;
     }
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
@@ -208,7 +208,7 @@ internal class UAuthFlowClient : IFlowClient
             ?? pkce.ReturnUrl
             ?? _options.Login.ReturnUrl
             ?? _options.DefaultReturnUrl
-            ?? _nav.Uri;
+            ?? _returnUrlProvider.GetCurrentUrl();
 
         if (pkce.AutoRedirect)
         {

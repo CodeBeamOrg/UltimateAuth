@@ -1,5 +1,5 @@
-using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Extensions;
+using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Runtime;
@@ -38,7 +38,7 @@ builder.Services.AddUltimateAuthServer(o => {
     .AddInMemoryReference()
     .AddUltimateAuthArgon2();
 
-builder.Services.AddUltimateAuthClient(o =>
+builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     //o.Refresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
@@ -90,7 +90,7 @@ app.MapStaticAssets();
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddUltimateAuthRoutes(UAuthAssemblies.Client());
+    .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 
 app.MapGet("/health", () =>
 {

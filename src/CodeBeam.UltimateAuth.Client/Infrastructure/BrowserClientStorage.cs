@@ -1,13 +1,14 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using Microsoft.JSInterop;
 
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
-public sealed class BrowserStorage : IBrowserStorage
+public sealed class BrowserClientStorage : IClientStorage
 {
     private readonly IJSRuntime _js;
 
-    public BrowserStorage(IJSRuntime js)
+    public BrowserClientStorage(IJSRuntime js)
     {
         _js = js;
     }
