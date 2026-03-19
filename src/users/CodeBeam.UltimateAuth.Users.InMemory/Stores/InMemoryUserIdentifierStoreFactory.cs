@@ -13,7 +13,6 @@ internal sealed class InMemoryUserIdentifierStoreFactory : IUserIdentifierStoreF
     public InMemoryUserIdentifierStoreFactory(IServiceProvider provider)
     {
         _provider = provider;
-        Console.WriteLine($"FACTORY: {GetHashCode()}");
     }
 
     public IUserIdentifierStore Create(TenantKey tenant)

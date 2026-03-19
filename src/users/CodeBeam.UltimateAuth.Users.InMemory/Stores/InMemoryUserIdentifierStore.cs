@@ -15,7 +15,7 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
 
     public InMemoryUserIdentifierStore(TenantContext tenant) : base(tenant)
     {
-        Console.WriteLine($"STORE: {GetHashCode()}");
+
     }
 
     public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)

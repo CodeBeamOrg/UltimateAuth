@@ -11,12 +11,9 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
     public DbSet<RolePermissionProjection> RolePermissions => Set<RolePermissionProjection>();
     public DbSet<UserRoleProjection> UserRoles => Set<UserRoleProjection>();
 
-    private readonly TenantContext _tenant;
-
-    public UAuthAuthorizationDbContext(DbContextOptions<UAuthAuthorizationDbContext> options, TenantContext tenant)
+    public UAuthAuthorizationDbContext(DbContextOptions<UAuthAuthorizationDbContext> options)
         : base(options)
     {
-        _tenant = tenant;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -58,12 +55,12 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
                 .IsRequired();
 
             e.Property(x => x.CreatedAt)
-                .IsRequired();
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
 
             e.HasIndex(x => new { x.Tenant, x.Id }).IsUnique();
             e.HasIndex(x => new { x.Tenant, x.NormalizedName }).IsUnique();
-
-            e.HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
         });
     }
 
@@ -93,8 +90,6 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
 
             e.HasIndex(x => new { x.Tenant, x.RoleId });
             e.HasIndex(x => new { x.Tenant, x.Permission });
-
-            e.HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
         });
     }
 
@@ -130,8 +125,6 @@ internal sealed class UAuthAuthorizationDbContext : DbContext
 
             e.HasIndex(x => new { x.Tenant, x.UserKey });
             e.HasIndex(x => new { x.Tenant, x.RoleId });
-
-            e.HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
         });
     }
 }

@@ -5,9 +5,9 @@ namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class EfCoreRefreshTokenStoreFactory : IRefreshTokenStoreFactory
 {
-    private readonly UltimateAuthTokenDbContext _db;
+    private readonly UAuthTokenDbContext _db;
 
-    public EfCoreRefreshTokenStoreFactory(UltimateAuthTokenDbContext db)
+    public EfCoreRefreshTokenStoreFactory(UAuthTokenDbContext db)
     {
         _db = db;
     }

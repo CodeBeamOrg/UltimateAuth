@@ -12,19 +12,13 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
     private readonly UAuthAuthenticationDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreAuthenticationSecurityStateStore(
-        UAuthAuthenticationDbContext db,
-        TenantContext tenant)
+    public EfCoreAuthenticationSecurityStateStore(UAuthAuthenticationDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
-    public async Task<AuthenticationSecurityState?> GetAsync(
-        UserKey userKey,
-        AuthenticationSecurityScope scope,
-        CredentialType? credentialType,
-        CancellationToken ct = default)
+    public async Task<AuthenticationSecurityState?> GetAsync(UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
     {
         var entity = await _db.AuthenticationSecurityStates
             .AsNoTracking()
@@ -65,16 +59,10 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
 
         AuthenticationSecurityStateMapper.UpdateProjection(state, entity);
 
-        entity.SecurityVersion++;
-
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(
-        UserKey userKey,
-        AuthenticationSecurityScope scope,
-        CredentialType? credentialType,
-        CancellationToken ct = default)
+    public async Task DeleteAsync(UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
     {
         var entity = await _db.AuthenticationSecurityStates
             .SingleOrDefaultAsync(x =>

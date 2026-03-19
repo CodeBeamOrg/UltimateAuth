@@ -7,11 +7,11 @@ namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 {
-    private readonly UltimateAuthTokenDbContext _db;
+    private readonly UAuthTokenDbContext _db;
     private readonly TenantKey _tenant;
     private bool _inTransaction;
 
-    public EfCoreRefreshTokenStore(UltimateAuthTokenDbContext db, TenantContext tenant)
+    public EfCoreRefreshTokenStore(UAuthTokenDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

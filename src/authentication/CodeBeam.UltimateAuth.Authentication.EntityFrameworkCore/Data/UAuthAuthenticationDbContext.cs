@@ -7,12 +7,11 @@ namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
 internal sealed class UAuthAuthenticationDbContext : DbContext
 {
     public DbSet<AuthenticationSecurityStateProjection> AuthenticationSecurityStates => Set<AuthenticationSecurityStateProjection>();
-    private readonly TenantContext _tenant;
 
-    public UAuthAuthenticationDbContext(DbContextOptions<UAuthAuthenticationDbContext> options, TenantContext tenant)
+
+    public UAuthAuthenticationDbContext(DbContextOptions<UAuthAuthenticationDbContext> options)
         : base(options)
     {
-        _tenant = tenant;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -74,6 +73,6 @@ internal sealed class UAuthAuthenticationDbContext : DbContext
             e.HasIndex(x => new { x.Tenant, x.ResetRequestedAt });
             e.HasIndex(x => new { x.Tenant, x.UserKey, x.Scope });
 
-            e.HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant); });
+        });
     }
 }
