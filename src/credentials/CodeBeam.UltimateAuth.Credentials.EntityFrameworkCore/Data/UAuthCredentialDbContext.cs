@@ -1,7 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Credentials.Contracts;
-using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
@@ -10,12 +8,9 @@ internal sealed class UAuthCredentialDbContext : DbContext
 {
     public DbSet<PasswordCredentialProjection> PasswordCredentials => Set<PasswordCredentialProjection>();
 
-    private readonly TenantContext _tenant;
-
-    public UAuthCredentialDbContext(DbContextOptions<UAuthCredentialDbContext> options, TenantContext tenant)
+    public UAuthCredentialDbContext(DbContextOptions<UAuthCredentialDbContext> options)
         : base(options)
     {
-        _tenant = tenant;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -64,8 +59,6 @@ internal sealed class UAuthCredentialDbContext : DbContext
             e.HasIndex(x => new { x.Tenant, x.UserKey, x.DeletedAt });
             e.HasIndex(x => new { x.Tenant, x.RevokedAt });
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
-
-            e.HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
         });
     }
 }

@@ -62,10 +62,10 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
     }
 
     public static UserProfile Create(
-        DateTimeOffset createdAt,
+        Guid? id,
         TenantKey tenant,
         UserKey userKey,
-        Guid? id = null,
+        DateTimeOffset createdAt,
         string? firstName = null,
         string? lastName = null,
         string? displayName = null,

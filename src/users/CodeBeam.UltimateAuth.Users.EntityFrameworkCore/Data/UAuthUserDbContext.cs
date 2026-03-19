@@ -128,7 +128,7 @@ internal sealed class UAuthUserDbContext : DbContext
 
             e.Property(x => x.Metadata)
                 .HasConversion(new NullableJsonValueConverter<Dictionary<string, string>>())
-                .Metadata.SetValueComparer(JsonValueComparers.Create<DeviceContext>());
+                .Metadata.SetValueComparer(JsonValueComparers.Create<Dictionary<string, string>>());
 
             e.Property(x => x.CreatedAt)
                 .IsRequired();

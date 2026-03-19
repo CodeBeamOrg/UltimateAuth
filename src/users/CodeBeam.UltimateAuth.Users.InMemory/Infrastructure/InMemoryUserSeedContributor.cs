@@ -64,7 +64,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
         if (!await profileStore.ExistsAsync(profileKey, ct))
         {
             await profileStore.AddAsync(
-                UserProfile.Create(now, tenant, userKey, displayName: displayName),
+                UserProfile.Create(Guid.NewGuid(), tenant, userKey, now, displayName: displayName),
                 ct);
         }
 

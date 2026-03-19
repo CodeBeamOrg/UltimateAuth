@@ -1,20 +1,19 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Reference;
-using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
 internal sealed class EfCoreUserProfileStoreFactory : IUserProfileStoreFactory
 {
-    private readonly IDbContextFactory<UAuthUserDbContext> _dbFactory;
+    private readonly UAuthUserDbContext _db;
 
-    public EfCoreUserProfileStoreFactory(IDbContextFactory<UAuthUserDbContext> dbFactory)
+    public EfCoreUserProfileStoreFactory(UAuthUserDbContext db)
     {
-        _dbFactory = dbFactory;
+        _db = db;
     }
 
     public IUserProfileStore Create(TenantKey tenant)
     {
-        return new EfCoreUserProfileStore(_dbFactory, new TenantContext(tenant));
+        return new EfCoreUserProfileStore(_db, new TenantContext(tenant));
     }
 }

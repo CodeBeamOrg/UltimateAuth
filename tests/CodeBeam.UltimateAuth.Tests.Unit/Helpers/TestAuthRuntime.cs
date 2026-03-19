@@ -40,11 +40,6 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         // InMemory plugins
         services.AddInMemoryReference();
 
-        services.AddScoped<ILoginOrchestrator, LoginOrchestrator>();
-        services.AddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
-        //services.AddSingleton<InMemoryAuthenticationSecurityStateStore>();
-        //services.AddSingleton<IAuthenticationSecurityStateStore>(sp =>
-        //    sp.GetRequiredService<InMemoryAuthenticationSecurityStateStore>());
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
@@ -93,7 +88,7 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         return await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
+            Tenant = TenantKeys.Single,
             Identifier = "user",
             Secret = "user"
         });

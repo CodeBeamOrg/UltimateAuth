@@ -6,15 +6,15 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
 internal sealed class EfCoreUserLifecycleStoreFactory : IUserLifecycleStoreFactory
 {
-    private readonly IDbContextFactory<UAuthUserDbContext> _dbFactory;
+    private readonly UAuthUserDbContext _db;
 
-    public EfCoreUserLifecycleStoreFactory(IDbContextFactory<UAuthUserDbContext> dbFactory)
+    public EfCoreUserLifecycleStoreFactory(UAuthUserDbContext db)
     {
-        _dbFactory = dbFactory;
+        _db = db;
     }
 
     public IUserLifecycleStore Create(TenantKey tenant)
     {
-        return new EfCoreUserLifecycleStore(_dbFactory, new TenantContext(tenant));
+        return new EfCoreUserLifecycleStore(_db, new TenantContext(tenant));
     }
 }

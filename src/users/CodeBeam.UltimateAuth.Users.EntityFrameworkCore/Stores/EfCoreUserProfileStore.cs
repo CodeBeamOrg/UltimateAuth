@@ -9,12 +9,12 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
 internal sealed class EfCoreUserProfileStore : IUserProfileStore
 {
-    private readonly IDbContextFactory<UAuthUserDbContext> _dbFactory;
+    private readonly UAuthUserDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserProfileStore(IDbContextFactory<UAuthUserDbContext> dbFactory, TenantContext tenant)
+    public EfCoreUserProfileStore(UAuthUserDbContext db, TenantContext tenant)
     {
-        _dbFactory = dbFactory;
+        _db = db;
         _tenant = tenant.Tenant;
     }
 
@@ -22,9 +22,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
-        var projection = await db.Profiles
+        var projection = await _db.Profiles
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -38,9 +36,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
-        return await db.Profiles
+        return await _db.Profiles
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == key.UserKey,
@@ -51,36 +47,46 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
         var projection = entity.ToProjection();
-        db.Profiles.Add(projection);
-        await db.SaveChangesAsync(ct);
+
+        if (entity.Version != 0)
+            throw new InvalidOperationException("New profile must have version 0.");
+
+        _db.Profiles.Add(projection);
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task SaveAsync(UserProfile entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
         var projection = entity.ToProjection();
 
-        if (entity.Version != expectedVersion + 1)
-            throw new InvalidOperationException("Profile version must be incremented by domain.");
+        _db.Attach(projection);
 
-        db.Entry(projection).State = EntityState.Modified;
-        db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
-        await db.SaveChangesAsync(ct);
+        _db.Entry(projection).Property(x => x.Version).OriginalValue = expectedVersion;
+
+        // Store owns version increment
+        projection.Version = expectedVersion + 1;
+
+        _db.Entry(projection).State = EntityState.Modified;
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new UAuthConcurrencyException("user_profile_concurrency_conflict");
+        }
     }
 
     public async Task DeleteAsync(UserProfileKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
-        var projection = await db.Profiles
+        var projection = await _db.Profiles
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == key.UserKey,
@@ -94,7 +100,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
 
         if (mode == DeleteMode.Hard)
         {
-            db.Profiles.Remove(projection);
+            _db.Profiles.Remove(projection);
         }
         else
         {
@@ -102,17 +108,16 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
             projection.Version++;
         }
 
-        await db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<PagedResult<UserProfile>> QueryAsync(UserProfileQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
         var normalized = query.Normalize();
 
-        var baseQuery = db.Profiles
+        var baseQuery = _db.Profiles
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant);
 
@@ -164,9 +169,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        await using var db = _dbFactory.CreateDbContext();
-
-        var projections = await db.Profiles
+        var projections = await _db.Profiles
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant)
             .Where(x => userKeys.Contains(x.UserKey))

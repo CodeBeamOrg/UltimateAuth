@@ -71,9 +71,10 @@ internal sealed class UserApplicationService : IUserApplicationService
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             await profileStore.AddAsync(
                 UserProfile.Create(
-                    now,
+                    Guid.NewGuid(),
                     context.ResourceTenant,
                     userKey,
+                    now,
                     firstName: request.FirstName,
                     lastName: request.LastName,
                     displayName: request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
