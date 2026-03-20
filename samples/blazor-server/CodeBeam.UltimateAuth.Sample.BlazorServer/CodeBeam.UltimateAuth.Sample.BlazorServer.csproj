@@ -4,33 +4,20 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>0.0.1</Version>
+		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
 		<PackageReference Include="MudBlazor" Version="9.0.0" />
 		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.1" />
 		<PackageReference Include="Scalar.AspNetCore" Version="2.12.46" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
-		<ProjectReference Include="..\..\..\src\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
-		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
-		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.Bundle.csproj" />
+		<ProjectReference Include="..\..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
-		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
-		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
-		<ProjectReference Include="..\..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
-		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users.InMemory\CodeBeam.UltimateAuth.Users.InMemory.csproj" />
-		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
-		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>
 
 </Project>

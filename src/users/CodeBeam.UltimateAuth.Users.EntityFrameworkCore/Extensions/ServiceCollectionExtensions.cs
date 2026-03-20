@@ -6,12 +6,12 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthEntityFrameworkCoreUsers(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
+    public static IServiceCollection AddUltimateAuthUsersEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContextPool<UAuthUserDbContext>(configureDb);
-        services.AddScoped<IUserLifecycleStore, EfCoreUserLifecycleStore>();
-        services.AddScoped<IUserIdentifierStore, EfCoreUserIdentifierStore>();
-        services.AddScoped<IUserProfileStore, EfCoreUserProfileStore>();
+        services.AddDbContext<UAuthUserDbContext>(configureDb);
+        services.AddScoped<IUserLifecycleStoreFactory, EfCoreUserLifecycleStoreFactory>();
+        services.AddScoped<IUserIdentifierStoreFactory, EfCoreUserIdentifierStoreFactory>();
+        services.AddScoped<IUserProfileStoreFactory, EfCoreUserProfileStoreFactory>();
         return services;
     }
 }

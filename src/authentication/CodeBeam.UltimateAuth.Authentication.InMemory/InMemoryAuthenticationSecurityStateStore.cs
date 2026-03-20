@@ -9,16 +9,30 @@ namespace CodeBeam.UltimateAuth.Authentication.InMemory;
 
 internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthenticationSecurityStateStore
 {
-    private readonly ConcurrentDictionary<Guid, AuthenticationSecurityState> _byId = new();
-    private readonly ConcurrentDictionary<(TenantKey, UserKey, AuthenticationSecurityScope, CredentialType?), Guid> _index = new();
+    private readonly TenantKey _tenant;
 
-    public Task<AuthenticationSecurityState?> GetAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
+    private readonly ConcurrentDictionary<Guid, AuthenticationSecurityState> _byId = new();
+    private readonly ConcurrentDictionary<(UserKey, AuthenticationSecurityScope, CredentialType?), Guid> _index = new();
+
+    public InMemoryAuthenticationSecurityStateStore(TenantContext tenant)
+    {
+        _tenant = tenant.Tenant;
+    }
+
+    public Task<AuthenticationSecurityState?> GetAsync(
+        UserKey userKey,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType,
+        CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_index.TryGetValue((tenant, userKey, scope, credentialType), out var id) && _byId.TryGetValue(id, out var state))
+        var key = (userKey, scope, credentialType);
+
+        if (_index.TryGetValue(key, out var id) &&
+            _byId.TryGetValue(id, out var state))
         {
-            return Task.FromResult<AuthenticationSecurityState?>(state);
+            return Task.FromResult<AuthenticationSecurityState?>(state.Snapshot());
         }
 
         return Task.FromResult<AuthenticationSecurityState?>(null);
@@ -28,12 +42,17 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
     {
         ct.ThrowIfCancellationRequested();
 
-        var key = (state.Tenant, state.UserKey, state.Scope, state.CredentialType);
+        if (state.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
+        var key = (state.UserKey, state.Scope, state.CredentialType);
 
         if (!_index.TryAdd(key, state.Id))
             throw new UAuthConflictException("security_state_already_exists");
 
-        if (!_byId.TryAdd(state.Id, state))
+        var snapshot = state.Snapshot();
+
+        if (!_byId.TryAdd(state.Id, snapshot))
         {
             _index.TryRemove(key, out _);
             throw new UAuthConflictException("security_state_add_failed");
@@ -46,7 +65,10 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
     {
         ct.ThrowIfCancellationRequested();
 
-        var key = (state.Tenant, state.UserKey, state.Scope, state.CredentialType);
+        if (state.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
+        var key = (state.UserKey, state.Scope, state.CredentialType);
 
         if (!_index.TryGetValue(key, out var id) || id != state.Id)
             throw new UAuthConflictException("security_state_index_corrupted");
@@ -57,17 +79,23 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
         if (current.SecurityVersion != expectedVersion)
             throw new UAuthConflictException("security_state_version_conflict");
 
-        if (!_byId.TryUpdate(state.Id, state, current))
+        var next = state.Snapshot();
+
+        if (!_byId.TryUpdate(state.Id, next, current))
             throw new UAuthConflictException("security_state_update_conflict");
 
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
+    public Task DeleteAsync(
+        UserKey userKey,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType,
+        CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var key = (tenant, userKey, scope, credentialType);
+        var key = (userKey, scope, credentialType);
 
         if (!_index.TryRemove(key, out var id))
             return Task.CompletedTask;

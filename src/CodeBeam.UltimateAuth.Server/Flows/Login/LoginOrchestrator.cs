@@ -119,12 +119,12 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency
-        var kernel = _storeFactory.Create(request.Tenant);
+        var sessionStore = _storeFactory.Create(request.Tenant);
         SessionChainId? chainId = null;
 
         if (userKey is not null)
         {
-            var chain = await kernel.GetChainByDeviceAsync(request.Tenant, userKey.Value, deviceId, ct);
+            var chain = await sessionStore.GetChainByDeviceAsync(userKey.Value, deviceId, ct);
 
             if (chain is not null && !chain.IsRevoked)
                 chainId = chain.ChainId;

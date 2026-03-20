@@ -5,38 +5,33 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class UltimateAuthSessionDbContext : DbContext
+internal sealed class UAuthSessionDbContext : DbContext
 {
     public DbSet<SessionRootProjection> Roots => Set<SessionRootProjection>();
     public DbSet<SessionChainProjection> Chains => Set<SessionChainProjection>();
     public DbSet<SessionProjection> Sessions => Set<SessionProjection>();
 
 
-    private readonly TenantContext _tenant;
-
-    public UltimateAuthSessionDbContext(DbContextOptions options, TenantContext tenant) : base(options)
+    public UAuthSessionDbContext(DbContextOptions options) : base(options)
     {
-        _tenant = tenant;
     }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
-        b.Entity<SessionProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
-
-        b.Entity<SessionChainProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
-
-        b.Entity<SessionRootProjection>()
-            .HasQueryFilter(x => _tenant.IsGlobal || x.Tenant == _tenant.Tenant);
-
         b.Entity<SessionRootProjection>(e =>
         {
+            e.ToTable("UAuth_SessionRoots");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-            e.Property(x => x.UserKey).IsRequired();
             e.Property(x => x.CreatedAt).IsRequired();
+
+            e.Property(x => x.UserKey)
+                .HasConversion(
+                    v => v.Value,
+                    v => UserKey.FromString(v))
+                .HasMaxLength(128)
+                .IsRequired();
             e.Property(x => x.Tenant)
                 .HasConversion(
                     v => v.Value,
@@ -60,11 +55,18 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
 
         b.Entity<SessionChainProjection>(e =>
         {
+            e.ToTable("UAuth_SessionChains");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-            e.Property(x => x.UserKey).IsRequired();
             e.Property(x => x.CreatedAt).IsRequired();
+
+            e.Property(x => x.UserKey)
+                .HasConversion(
+                    v => v.Value,
+                    v => UserKey.FromString(v))
+                .HasMaxLength(128)
+                .IsRequired();
             e.Property(x => x.Tenant)
                 .HasConversion(
                     v => v.Value,
@@ -113,9 +115,17 @@ internal sealed class UltimateAuthSessionDbContext : DbContext
 
         b.Entity<SessionProjection>(e =>
         {
+            e.ToTable("UAuth_Sessions");
             e.HasKey(x => x.Id);
             e.Property(x => x.Version).IsConcurrencyToken();
             e.Property(x => x.CreatedAt).IsRequired();
+
+            e.Property(x => x.UserKey)
+                .HasConversion(
+                    v => v.Value,
+                    v => UserKey.FromString(v))
+                .HasMaxLength(128)
+                .IsRequired();
             e.Property(x => x.Tenant)
                 .HasConversion(
                     v => v.Value,

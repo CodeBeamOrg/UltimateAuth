@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -10,17 +9,19 @@ namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 internal sealed class EfCoreRoleStore : IRoleStore
 {
     private readonly UAuthAuthorizationDbContext _db;
+    private readonly TenantKey _tenant;
 
-    public EfCoreRoleStore(UAuthAuthorizationDbContext db)
+    public EfCoreRoleStore(UAuthAuthorizationDbContext db, TenantContext tenant)
     {
         _db = db;
+        _tenant = tenant.Tenant;
     }
 
     public async Task<bool> ExistsAsync(RoleKey key, CancellationToken ct = default)
     {
         return await _db.Roles
             .AnyAsync(x =>
-                x.Tenant == key.Tenant &&
+                x.Tenant == _tenant &&
                 x.Id == key.RoleId,
                 ct);
     }
@@ -29,7 +30,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
     {
         var exists = await _db.Roles
             .AnyAsync(x =>
-                x.Tenant == role.Tenant &&
+                x.Tenant == _tenant &&
                 x.NormalizedName == role.NormalizedName &&
                 x.DeletedAt == null,
                 ct);
@@ -42,7 +43,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         _db.Roles.Add(entity);
 
         var permissionEntities = role.Permissions
-            .Select(p => RolePermissionMapper.ToProjection(role.Tenant, role.Id, p));
+            .Select(p => RolePermissionMapper.ToProjection(_tenant, role.Id, p));
 
         _db.RolePermissions.AddRange(permissionEntities);
 
@@ -54,28 +55,28 @@ internal sealed class EfCoreRoleStore : IRoleStore
         var entity = await _db.Roles
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
-                x.Tenant == key.Tenant &&
+                x.Tenant == _tenant &&
                 x.Id == key.RoleId,
                 ct);
 
         if (entity is null)
             return null;
 
-        var permissionEntities = await _db.RolePermissions
+        var permissions = await _db.RolePermissions
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == key.Tenant &&
+                x.Tenant == _tenant &&
                 x.RoleId == key.RoleId)
             .ToListAsync(ct);
 
-        return RoleMapper.ToDomain(entity, permissionEntities);
+        return RoleMapper.ToDomain(entity, permissions);
     }
 
     public async Task SaveAsync(Role role, long expectedVersion, CancellationToken ct = default)
     {
         var entity = await _db.Roles
             .SingleOrDefaultAsync(x =>
-                x.Tenant == role.Tenant &&
+                x.Tenant == _tenant &&
                 x.Id == role.Id,
                 ct);
 
@@ -89,7 +90,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         {
             var exists = await _db.Roles
                 .AnyAsync(x =>
-                    x.Tenant == role.Tenant &&
+                    x.Tenant == _tenant &&
                     x.NormalizedName == role.NormalizedName &&
                     x.Id != role.Id &&
                     x.DeletedAt == null,
@@ -100,18 +101,21 @@ internal sealed class EfCoreRoleStore : IRoleStore
         }
 
         RoleMapper.UpdateProjection(role, entity);
-
         entity.Version++;
 
         var existingPermissions = await _db.RolePermissions
             .Where(x =>
-                x.Tenant == role.Tenant &&
+                x.Tenant == _tenant &&
                 x.RoleId == role.Id)
             .ToListAsync(ct);
 
         _db.RolePermissions.RemoveRange(existingPermissions);
-        var newPermissions = role.Permissions.Select(p => RolePermissionMapper.ToProjection(role.Tenant, role.Id, p));
+
+        var newPermissions = role.Permissions
+            .Select(p => RolePermissionMapper.ToProjection(_tenant, role.Id, p));
+
         _db.RolePermissions.AddRange(newPermissions);
+
         await _db.SaveChangesAsync(ct);
     }
 
@@ -119,7 +123,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
     {
         var entity = await _db.Roles
             .SingleOrDefaultAsync(x =>
-                x.Tenant == key.Tenant &&
+                x.Tenant == _tenant &&
                 x.Id == key.RoleId,
                 ct);
 
@@ -131,13 +135,12 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         if (mode == DeleteMode.Hard)
         {
-            var permissions = await _db.RolePermissions
+            await _db.RolePermissions
                 .Where(x =>
-                    x.Tenant == key.Tenant &&
+                    x.Tenant == _tenant &&
                     x.RoleId == key.RoleId)
-                .ToListAsync(ct);
+                .ExecuteDeleteAsync(ct);
 
-            _db.RolePermissions.RemoveRange(permissions);
             _db.Roles.Remove(entity);
         }
         else
@@ -149,12 +152,12 @@ internal sealed class EfCoreRoleStore : IRoleStore
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<Role?> GetByNameAsync(TenantKey tenant, string normalizedName, CancellationToken ct = default)
+    public async Task<Role?> GetByNameAsync(string normalizedName, CancellationToken ct = default)
     {
         var entity = await _db.Roles
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.NormalizedName == normalizedName &&
                 x.DeletedAt == null,
                 ct);
@@ -162,25 +165,24 @@ internal sealed class EfCoreRoleStore : IRoleStore
         if (entity is null)
             return null;
 
-        var permissionEntities = await _db.RolePermissions
+        var permissions = await _db.RolePermissions
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 x.RoleId == entity.Id)
             .ToListAsync(ct);
 
-        return RoleMapper.ToDomain(entity, permissionEntities);
+        return RoleMapper.ToDomain(entity, permissions);
     }
 
     public async Task<IReadOnlyCollection<Role>> GetByIdsAsync(
-        TenantKey tenant,
         IReadOnlyCollection<RoleId> roleIds,
         CancellationToken ct = default)
     {
         var entities = await _db.Roles
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 roleIds.Contains(x.Id))
             .ToListAsync(ct);
 
@@ -189,7 +191,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         var permissions = await _db.RolePermissions
             .AsNoTracking()
             .Where(x =>
-                x.Tenant == tenant &&
+                x.Tenant == _tenant &&
                 roleIdsSet.Contains(x.RoleId))
             .ToListAsync(ct);
 
@@ -210,7 +212,6 @@ internal sealed class EfCoreRoleStore : IRoleStore
     }
 
     public async Task<PagedResult<Role>> QueryAsync(
-        TenantKey tenant,
         RoleQuery query,
         CancellationToken ct = default)
     {
@@ -218,7 +219,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         var baseQuery = _db.Roles
             .AsNoTracking()
-            .Where(x => x.Tenant == tenant);
+            .Where(x => x.Tenant == _tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);
@@ -232,24 +233,16 @@ internal sealed class EfCoreRoleStore : IRoleStore
         baseQuery = query.SortBy switch
         {
             nameof(Role.CreatedAt) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
-                    : baseQuery.OrderBy(x => x.CreatedAt),
+                query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt) : baseQuery.OrderBy(x => x.CreatedAt),
 
             nameof(Role.UpdatedAt) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.UpdatedAt)
-                    : baseQuery.OrderBy(x => x.UpdatedAt),
+                query.Descending ? baseQuery.OrderByDescending(x => x.UpdatedAt) : baseQuery.OrderBy(x => x.UpdatedAt),
 
             nameof(Role.Name) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.Name)
-                    : baseQuery.OrderBy(x => x.Name),
+                query.Descending ? baseQuery.OrderByDescending(x => x.Name) : baseQuery.OrderBy(x => x.Name),
 
             nameof(Role.NormalizedName) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.NormalizedName)
-                    : baseQuery.OrderBy(x => x.NormalizedName),
+                query.Descending ? baseQuery.OrderByDescending(x => x.NormalizedName) : baseQuery.OrderBy(x => x.NormalizedName),
 
             _ => baseQuery.OrderBy(x => x.CreatedAt)
         };

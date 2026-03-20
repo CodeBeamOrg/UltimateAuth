@@ -9,10 +9,12 @@ namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 {
     private readonly UAuthUserDbContext _db;
+    private readonly TenantKey _tenant;
 
-    public EfCoreUserLifecycleStore(UAuthUserDbContext db)
+    public EfCoreUserLifecycleStore(UAuthUserDbContext db, TenantContext tenant)
     {
         _db = db;
+        _tenant = tenant.Tenant;
     }
 
     public async Task<UserLifecycle?> GetAsync(UserLifecycleKey key, CancellationToken ct = default)
@@ -22,7 +24,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
         var projection = await _db.Lifecycles
             .AsNoTracking()
             .SingleOrDefaultAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
 
@@ -35,7 +37,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         return await _db.Lifecycles
             .AnyAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
     }
@@ -44,10 +46,10 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = entity.ToProjection();
-
         if (entity.Version != 0)
             throw new InvalidOperationException("New lifecycle must have version 0.");
+
+        var projection = entity.ToProjection();
 
         _db.Lifecycles.Add(projection);
 
@@ -58,22 +60,22 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = entity.ToProjection();
+        var existing = await _db.Lifecycles
+            .SingleOrDefaultAsync(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == entity.UserKey,
+                ct);
 
-        _db.Entry(projection).State = EntityState.Modified;
+        if (existing is null)
+            throw new UAuthNotFoundException("user_lifecycle_not_found");
 
-        _db.Entry(projection)
-            .Property(x => x.Version)
-            .OriginalValue = expectedVersion;
-
-        try
-        {
-            await _db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
+        if (existing.Version != expectedVersion)
             throw new UAuthConcurrencyException("user_lifecycle_concurrency_conflict");
-        }
+
+        entity.UpdateProjection(existing);
+        existing.Version++;
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(UserLifecycleKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
@@ -82,7 +84,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         var projection = await _db.Lifecycles
             .SingleOrDefaultAsync(
-                x => x.Tenant == key.Tenant &&
+                x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
                 ct);
 
@@ -105,7 +107,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<UserLifecycle>> QueryAsync(UserLifecycleQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -113,7 +115,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         var baseQuery = _db.Lifecycles
             .AsNoTracking()
-            .Where(x => x.Tenant == tenant);
+            .Where(x => x.Tenant == _tenant);
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);
@@ -124,19 +126,13 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
         baseQuery = query.SortBy switch
         {
             nameof(UserLifecycle.Id) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.Id)
-                    : baseQuery.OrderBy(x => x.Id),
+                query.Descending ? baseQuery.OrderByDescending(x => x.Id) : baseQuery.OrderBy(x => x.Id),
 
             nameof(UserLifecycle.CreatedAt) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.CreatedAt)
-                    : baseQuery.OrderBy(x => x.CreatedAt),
+                query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt) : baseQuery.OrderBy(x => x.CreatedAt),
 
             nameof(UserLifecycle.Status) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.Status)
-                    : baseQuery.OrderBy(x => x.Status),
+                query.Descending ? baseQuery.OrderByDescending(x => x.Status) : baseQuery.OrderBy(x => x.Status),
 
             _ => baseQuery.OrderBy(x => x.CreatedAt)
         };

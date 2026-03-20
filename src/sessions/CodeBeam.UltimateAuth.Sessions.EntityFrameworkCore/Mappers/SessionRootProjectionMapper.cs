@@ -34,4 +34,12 @@ internal static class SessionRootProjectionMapper
             Version = root.Version
         };
     }
+
+    public static void UpdateProjection(this UAuthSessionRoot source, SessionRootProjection target)
+    {
+        target.UpdatedAt = source.UpdatedAt;
+        target.RevokedAt = source.RevokedAt;
+        target.SecurityVersion = source.SecurityVersion;
+        // Version store-owned
+    }
 }

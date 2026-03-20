@@ -18,5 +18,4 @@ internal sealed class UserAccessorBridge : IUserAccessor
         var accessor = _services.GetRequiredService<IUserAccessor<UserKey>>();
         await accessor.ResolveAsync(context);
     }
-
 }

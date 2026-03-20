@@ -11,7 +11,7 @@ public class UAuthResult
 
     public HttpStatusInfo Http => new(Status);
 
-    public string? GetErrorText => Problem?.Detail ?? Problem?.Title;
+    public string? ErrorText => Problem?.Detail ?? Problem?.Title;
 
     public sealed class HttpStatusInfo
     {

@@ -5,12 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
-internal sealed class UltimateAuthTokenDbContext : DbContext
+internal sealed class UAuthTokenDbContext : DbContext
 {
     public DbSet<RefreshTokenProjection> RefreshTokens => Set<RefreshTokenProjection>();
-    public DbSet<RevokedTokenIdProjection> RevokedTokenIds => Set<RevokedTokenIdProjection>();
+    //public DbSet<RevokedTokenIdProjection> RevokedTokenIds => Set<RevokedTokenIdProjection>(); // TODO: Add when JWT added.
 
-    public UltimateAuthTokenDbContext(DbContextOptions<UltimateAuthTokenDbContext> options)
+    public UAuthTokenDbContext(DbContextOptions<UAuthTokenDbContext> options)
         : base(options)
     {
     }
@@ -19,6 +19,7 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
     {
         b.Entity<RefreshTokenProjection>(e =>
         {
+            e.ToTable("UAuth_RefreshTokens");
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version)
@@ -28,6 +29,12 @@ internal sealed class UltimateAuthTokenDbContext : DbContext
                 .HasConversion(
                     v => v.Value,
                     v => TenantKey.FromInternal(v))
+                .HasMaxLength(128)
+                .IsRequired();
+            e.Property(x => x.UserKey)
+                .HasConversion(
+                    v => v.Value,
+                    v => UserKey.FromString(v))
                 .HasMaxLength(128)
                 .IsRequired();
 

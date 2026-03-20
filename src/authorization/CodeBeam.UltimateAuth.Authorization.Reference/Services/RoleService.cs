@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
@@ -10,19 +9,19 @@ namespace CodeBeam.UltimateAuth.Authorization.Reference;
 internal sealed class RoleService : IRoleService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
-    private readonly IRoleStore _roles;
-    private readonly IUserRoleStore _userRoles;
+    private readonly IRoleStoreFactory _roleFactory;
+    private readonly IUserRoleStoreFactory _userRoleFactory;
     private readonly IClock _clock;
 
     public RoleService(
         IAccessOrchestrator accessOrchestrator,
-        IRoleStore roles,
-        IUserRoleStore userRoles,
+        IRoleStoreFactory roleFactory,
+        IUserRoleStoreFactory userRoleFactory,
         IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
-        _roles = roles;
-        _userRoles = userRoles;
+        _roleFactory = roleFactory;
+        _userRoleFactory = userRoleFactory;
         _clock = clock;
     }
 
@@ -33,7 +32,8 @@ internal sealed class RoleService : IRoleService
         var cmd = new AccessCommand<Role>(async innerCt =>
         {
             var role = Role.Create(RoleId.New(), context.ResourceTenant, name, permissions, _clock.UtcNow);
-            await _roles.AddAsync(role, innerCt);
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            await roleStore.AddAsync(role, innerCt);
 
             return role;
         });
@@ -48,7 +48,8 @@ internal sealed class RoleService : IRoleService
         var cmd = new AccessCommand(async innerCt =>
         {
             var key = new RoleKey(context.ResourceTenant, roleId);
-            var role = await _roles.GetAsync(key, innerCt);
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            var role = await roleStore.GetAsync(key, innerCt);
 
             if (role is null || role.IsDeleted)
                 throw new UAuthNotFoundException("role_not_found");
@@ -56,7 +57,7 @@ internal sealed class RoleService : IRoleService
             var expected = role.Version;
             role.Rename(newName, _clock.UtcNow);
 
-            await _roles.SaveAsync(role, expected, innerCt);
+            await roleStore.SaveAsync(role, expected, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -69,15 +70,16 @@ internal sealed class RoleService : IRoleService
         var cmd = new AccessCommand<DeleteRoleResult>(async innerCt =>
         {
             var key = new RoleKey(context.ResourceTenant, roleId);
-
-            var role = await _roles.GetAsync(key, innerCt);
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            var role = await roleStore.GetAsync(key, innerCt);
 
             if (role is null)
                 throw new UAuthNotFoundException("role_not_found");
 
-            var removed = await _userRoles.CountAssignmentsAsync(context.ResourceTenant, roleId, innerCt);
-            await _userRoles.RemoveAssignmentsByRoleAsync(context.ResourceTenant, roleId, innerCt);
-            await _roles.DeleteAsync(key, role.Version, mode, _clock.UtcNow, innerCt);
+            var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);
+            var removed = await userRoleStore.CountAssignmentsAsync(roleId, innerCt);
+            await userRoleStore.RemoveAssignmentsByRoleAsync(roleId, innerCt);
+            await roleStore.DeleteAsync(key, role.Version, mode, _clock.UtcNow, innerCt);
 
             return new DeleteRoleResult
             {
@@ -97,8 +99,9 @@ internal sealed class RoleService : IRoleService
 
         var cmd = new AccessCommand(async innerCt =>
         {
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
             var key = new RoleKey(context.ResourceTenant, roleId);
-            var role = await _roles.GetAsync(key, innerCt);
+            var role = await roleStore.GetAsync(key, innerCt);
 
             if (role is null || role.IsDeleted)
                 throw new UAuthNotFoundException("role_not_found");
@@ -106,7 +109,7 @@ internal sealed class RoleService : IRoleService
             var expected = role.Version;
             role.SetPermissions(permissions, _clock.UtcNow);
 
-            await _roles.SaveAsync(role, expected, innerCt);
+            await roleStore.SaveAsync(role, expected, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -118,7 +121,8 @@ internal sealed class RoleService : IRoleService
 
         var cmd = new AccessCommand<PagedResult<Role>>(async innerCt =>
         {
-            return await _roles.QueryAsync(context.ResourceTenant, query, innerCt);
+            var roleStore = _roleFactory.Create(context.ResourceTenant);
+            return await roleStore.QueryAsync(query, innerCt);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);

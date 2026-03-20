@@ -1,21 +1,25 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.InMemory;
 
 namespace CodeBeam.UltimateAuth.Credentials.InMemory;
 
-internal sealed class InMemoryPasswordCredentialStore : InMemoryVersionedStore<PasswordCredential, CredentialKey>, IPasswordCredentialStore
+internal sealed class InMemoryPasswordCredentialStore : InMemoryTenantVersionedStore<PasswordCredential, CredentialKey>, IPasswordCredentialStore
 {
     protected override CredentialKey GetKey(PasswordCredential entity)
         => new(entity.Tenant, entity.Id);
 
+    public InMemoryPasswordCredentialStore(TenantContext tenant) : base(tenant)
+    {
+    }
+
     protected override void BeforeAdd(PasswordCredential entity)
     {
-        var exists = Values()
+        var exists = TenantValues()
             .Any(x =>
                 x.Tenant == entity.Tenant &&
                 x.UserKey == entity.UserKey &&
@@ -25,13 +29,12 @@ internal sealed class InMemoryPasswordCredentialStore : InMemoryVersionedStore<P
             throw new UAuthConflictException("password_credential_exists");
     }
 
-    public Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var result = Values()
+        var result = TenantValues()
             .Where(x =>
-                x.Tenant == tenant &&
                 x.UserKey == userKey &&
                 !x.IsDeleted)
             .Select(x => x.Snapshot())
@@ -50,15 +53,15 @@ internal sealed class InMemoryPasswordCredentialStore : InMemoryVersionedStore<P
         return SaveAsync(revoked, expectedVersion, ct);
     }
 
-    public async Task DeleteByUserAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
+    public async Task DeleteByUserAsync(UserKey userKey, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
-        var credentials = Values()
-            .Where(c => c.Tenant == tenant && c.UserKey == userKey)
+        var credentials = TenantValues()
+            .Where(c => c.UserKey == userKey)
             .ToList();
 
         foreach (var credential in credentials)
         {
-            await DeleteAsync(new CredentialKey(tenant, credential.Id), credential.Version, mode, now, ct);
+            await DeleteAsync(GetKey(credential), credential.Version, mode, now, ct);
         }
     }
 }

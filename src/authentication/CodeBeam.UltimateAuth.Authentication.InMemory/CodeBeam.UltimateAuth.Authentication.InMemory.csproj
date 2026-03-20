@@ -2,15 +2,28 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Authentication.InMemory</PackageId>
+
+		<Description>
+			In-memory authentication persistence for UltimateAuth.
+			Provides lightweight storage for authentication state such as sessions and authentication context. Suitable for development and testing.
+		</Description>
+
+		<PackageTags>authentication;session;identity;inmemory;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
+		<ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

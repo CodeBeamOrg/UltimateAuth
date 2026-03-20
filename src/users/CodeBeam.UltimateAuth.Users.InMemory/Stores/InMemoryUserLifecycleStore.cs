@@ -1,23 +1,25 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-public sealed class InMemoryUserLifecycleStore : InMemoryVersionedStore<UserLifecycle, UserLifecycleKey>, IUserLifecycleStore
+public sealed class InMemoryUserLifecycleStore : InMemoryTenantVersionedStore<UserLifecycle, UserLifecycleKey>, IUserLifecycleStore
 {
     protected override UserLifecycleKey GetKey(UserLifecycle entity)
         => new(entity.Tenant, entity.UserKey);
 
-    public Task<PagedResult<UserLifecycle>> QueryAsync(TenantKey tenant, UserLifecycleQuery query, CancellationToken ct = default)
+    public InMemoryUserLifecycleStore(TenantContext tenant) : base(tenant)
+    {
+    }
+
+    public Task<PagedResult<UserLifecycle>> QueryAsync(UserLifecycleQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var normalized = query.Normalize();
-
-        var baseQuery = Values()
-            .Where(x => x.Tenant == tenant);
+        var baseQuery = TenantValues().AsQueryable();
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => !x.IsDeleted);
@@ -42,11 +44,6 @@ public sealed class InMemoryUserLifecycleStore : InMemoryVersionedStore<UserLife
                     ? baseQuery.OrderByDescending(x => x.Status)
                     : baseQuery.OrderBy(x => x.Status),
 
-            nameof(UserLifecycle.Tenant) =>
-                query.Descending
-                    ? baseQuery.OrderByDescending(x => x.Tenant.Value)
-                    : baseQuery.OrderBy(x => x.Tenant.Value),
-
             nameof(UserLifecycle.UserKey) =>
                 query.Descending
                     ? baseQuery.OrderByDescending(x => x.UserKey.Value)
@@ -61,7 +58,7 @@ public sealed class InMemoryUserLifecycleStore : InMemoryVersionedStore<UserLife
         };
 
         var totalCount = baseQuery.Count();
-        var items = baseQuery.Skip((normalized.PageNumber - 1) * normalized.PageSize).Take(normalized.PageSize).ToList().AsReadOnly();
+        var items = baseQuery.Skip((normalized.PageNumber - 1) * normalized.PageSize).Take(normalized.PageSize).Select(x => x.Snapshot()).ToList().AsReadOnly();
 
         return Task.FromResult(new PagedResult<UserLifecycle>(items, totalCount, normalized.PageNumber, normalized.PageSize, query.SortBy, query.Descending));
     }

@@ -3,16 +3,17 @@ using System.Text;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Errors;
 using Konscious.Security.Cryptography;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Security.Argon2;
 
-public sealed class Argon2PasswordHasher : IUAuthPasswordHasher
+internal sealed class Argon2PasswordHasher : IUAuthPasswordHasher
 {
     private readonly Argon2Options _options;
 
-    public Argon2PasswordHasher(Argon2Options options)
+    public Argon2PasswordHasher(IOptions<Argon2Options> options)
     {
-        _options = options;
+        _options = options.Value;
     }
 
     public string Hash(string password)
@@ -40,13 +41,20 @@ public sealed class Argon2PasswordHasher : IUAuthPasswordHasher
         if (parts.Length != 2)
             return false;
 
-        var salt = Convert.FromBase64String(parts[0]);
-        var expectedHash = Convert.FromBase64String(parts[1]);
+        try
+        {
+            var salt = Convert.FromBase64String(parts[0]);
+            var expectedHash = Convert.FromBase64String(parts[1]);
 
-        var argon2 = CreateArgon2(secret, salt);
-        var actualHash = argon2.GetBytes(expectedHash.Length);
+            var argon2 = CreateArgon2(secret, salt);
+            var actualHash = argon2.GetBytes(expectedHash.Length);
 
-        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+            return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private Argon2id CreateArgon2(string password, byte[] salt)

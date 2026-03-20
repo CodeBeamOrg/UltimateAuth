@@ -10,7 +10,7 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     private readonly TenantKey _tenant;
     private readonly SemaphoreSlim _tx = new(1, 1);
 
-    private readonly ConcurrentDictionary<string, RefreshToken> _tokens = new();
+    private readonly ConcurrentDictionary<(TenantKey, string), RefreshToken> _tokens = new();
 
     public InMemoryRefreshTokenStore(TenantKey tenant)
     {
@@ -52,7 +52,7 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         if (token.Tenant != _tenant)
             throw new InvalidOperationException("Tenant mismatch.");
 
-        _tokens[token.TokenHash] = token;
+        _tokens[(_tenant, token.TokenHash)] = token;
 
         return Task.CompletedTask;
     }
@@ -61,7 +61,7 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        _tokens.TryGetValue(tokenHash, out var token);
+        _tokens.TryGetValue((_tenant, tokenHash), out var token);
 
         return Task.FromResult(token);
     }
@@ -70,9 +70,9 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_tokens.TryGetValue(tokenHash, out var token) && !token.IsRevoked)
+        if (_tokens.TryGetValue((_tenant, tokenHash), out var token) && !token.IsRevoked)
         {
-            _tokens[tokenHash] = token.Revoke(revokedAt, replacedByTokenHash);
+            _tokens[(_tenant, tokenHash)] = token.Revoke(revokedAt, replacedByTokenHash);
         }
 
         return Task.CompletedTask;
@@ -82,11 +82,14 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        foreach (var (hash, token) in _tokens.ToArray())
+        foreach (var ((tenant, hash), token) in _tokens.ToArray())
         {
+            if (tenant != _tenant)
+                continue;
+
             if (token.SessionId == sessionId && !token.IsRevoked)
             {
-                _tokens[hash] = token.Revoke(revokedAt);
+                _tokens[(_tenant, hash)] = token.Revoke(revokedAt);
             }
         }
 
@@ -97,11 +100,14 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        foreach (var (hash, token) in _tokens.ToArray())
+        foreach (var ((tenant, hash), token) in _tokens.ToArray())
         {
+            if (tenant != _tenant)
+                continue;
+
             if (token.ChainId == chainId && !token.IsRevoked)
             {
-                _tokens[hash] = token.Revoke(revokedAt);
+                _tokens[(_tenant, hash)] = token.Revoke(revokedAt);
             }
         }
 
@@ -112,11 +118,14 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        foreach (var (hash, token) in _tokens.ToArray())
+        foreach (var ((tenant, hash), token) in _tokens.ToArray())
         {
+            if (tenant != _tenant)
+                continue;
+
             if (token.UserKey == userKey && !token.IsRevoked)
             {
-                _tokens[hash] = token.Revoke(revokedAt);
+                _tokens[(_tenant, hash)] = token.Revoke(revokedAt);
             }
         }
 

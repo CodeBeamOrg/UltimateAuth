@@ -7,18 +7,18 @@ using Microsoft.Extensions.Options;
 namespace CodeBeam.UltimateAuth.Users.Reference;
 public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
 {
-    private readonly IUserIdentifierStore _store;
+    private readonly IUserIdentifierStoreFactory _storeFactory;
     private readonly IIdentifierNormalizer _normalizer;
     private readonly IEnumerable<ICustomLoginIdentifierResolver> _customResolvers;
     private readonly UAuthLoginIdentifierOptions _options;
 
     public LoginIdentifierResolver(
-        IUserIdentifierStore store,
+        IUserIdentifierStoreFactory storeFactory,
         IIdentifierNormalizer normalizer,
         IEnumerable<ICustomLoginIdentifierResolver> customResolvers,
         IOptions<UAuthServerOptions> options)
     {
-        _store = store;
+        _storeFactory = storeFactory;
         _normalizer = normalizer;
         _customResolvers = customResolvers;
         _options = options.Value.LoginIdentifiers;
@@ -58,7 +58,8 @@ public sealed class LoginIdentifierResolver : ILoginIdentifierResolver
             return null;
         }
 
-        var found = await _store.GetAsync(tenant, builtInType, normalized, ct);
+        var store = _storeFactory.Create(tenant);
+        var found = await store.GetAsync(builtInType, normalized, ct);
         if (found is null || !found.IsPrimary)
         {
             if (_options.EnableCustomResolvers && !_options.CustomResolversFirst)

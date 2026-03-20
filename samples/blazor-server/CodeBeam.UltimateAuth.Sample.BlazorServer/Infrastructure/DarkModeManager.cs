@@ -7,9 +7,9 @@ public sealed class DarkModeManager
 {
     private const string StorageKey = "uauth:theme:dark";
 
-    private readonly IBrowserStorage _storage;
+    private readonly IClientStorage _storage;
 
-    public DarkModeManager(IBrowserStorage storage)
+    public DarkModeManager(IClientStorage storage)
     {
         _storage = storage;
     }

@@ -1,26 +1,19 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-public sealed class EfCoreSessionStoreFactory : ISessionStoreFactory
+internal sealed class EfCoreSessionStoreFactory : ISessionStoreFactory
 {
-    private readonly IServiceProvider _sp;
+    private readonly UAuthSessionDbContext _db;
 
-    public EfCoreSessionStoreFactory(IServiceProvider sp)
+    public EfCoreSessionStoreFactory(UAuthSessionDbContext db)
     {
-        _sp = sp;
+        _db = db;
     }
 
     public ISessionStore Create(TenantKey tenant)
     {
-        return ActivatorUtilities.CreateInstance<EfCoreSessionStore>(_sp, new TenantContext(tenant));
+        return new EfCoreSessionStore(_db, new TenantContext(tenant));
     }
-
-    // TODO: Implement global here
-    //public ISessionStoreKernel CreateGlobal()
-    //{
-    //    return ActivatorUtilities.CreateInstance<EfCoreSessionStoreKernel>(_sp, new TenantContext(null, isGlobal: true));
-    //}
 }

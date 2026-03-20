@@ -2,18 +2,30 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Users.Reference</PackageId>
+
+		<Description>
+			Default reference implementation for the UltimateAuth Users module.
+			This package provides a ready-to-use implementation of the Users domain, including application services, endpoint handlers and default behaviors.
+		</Description>
+
+		<PackageTags>authentication;identity;users;reference;plugin;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<!--TODO: Ultimate target: remove server dependency completely. Reference is only about it's own domain-->
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
-	  <ProjectReference Include="..\..\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
-	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
 	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

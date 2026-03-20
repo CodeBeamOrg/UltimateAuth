@@ -30,7 +30,7 @@ public partial class ResetDialog
         var result = await UAuthClient.Credentials.BeginResetMyAsync(request);
         if (!result.IsSuccess || result.Value is null)
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to request credential reset.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to request credential reset.", Severity.Error);
             return;
         }
 

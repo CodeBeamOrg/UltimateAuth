@@ -33,6 +33,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -62,6 +63,32 @@ public static class ServiceCollectionExtensions
             });
 
         services.AddUltimateAuthServerInternal();
+
+        return services;
+    }
+
+    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddUltimateAuth();
+
+        //AddUsersInternal(services);
+        //AddCredentialsInternal(services);
+        //AddAuthorizationInternal(services);
+        //AddUltimateAuthPolicies(services);
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            .BindConfiguration("UltimateAuth:Server")
+            .PostConfigure(options =>
+            {
+                options.Endpoints.Authentication = false;
+            });
+
+        services.AddUltimateAuthResourceInternal();
 
         return services;
     }
@@ -215,6 +242,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
 
+        services.TryAddSingleton<SeedRunner>();
+
         services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
         // -----------------------------
@@ -319,6 +348,49 @@ public static class ServiceCollectionExtensions
     internal static IServiceCollection AddAuthorizationInternal(IServiceCollection services)
     {
         services.TryAddScoped(typeof(IUserClaimsProvider), typeof(AuthorizationClaimsProvider));
+        return services;
+    }
+
+    // TODO: This is not true, need to build true pipeline for ResourceApi.
+    private static IServiceCollection AddUltimateAuthResourceInternal(this IServiceCollection services)
+    {
+        services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
+        services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
+
+        services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
+        services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
+        services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+
+        services.TryAddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
+        services.TryAddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
+
+        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+
+        services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
+
+        services.AddHttpContextAccessor();
+        services.AddAuthentication();
+
+        services.TryAddSingleton<ISessionStoreFactory, NotSupportedSessionStoreFactory>();
+        services.TryAddSingleton<IRefreshTokenStoreFactory, NotSupportedRefreshTokenStoreFactory>();
+        services.TryAddSingleton<IUserRoleStoreFactory, NotSupportedUserRoleStoreFactory>();
+        services.TryAddSingleton<IUAuthPasswordHasher, NotSupportedPasswordHasher>();
+        services.TryAddSingleton<IIdentifierValidator, NoOpIdentifierValidator>();
+        services.TryAddSingleton<IAccessPolicyProvider, AllowAllAccessPolicyProvider>();
+        services.TryAddScoped<IUserClaimsProvider, NoOpUserClaimsProvider>();
+        services.TryAddSingleton<ITokenHasher, NoOpTokenHasher>();
+
+        services.Replace(ServiceDescriptor.Scoped<ISessionValidator, NoOpSessionValidator>());
+        services.Replace(ServiceDescriptor.Scoped<IRefreshTokenValidator, NoOpRefreshTokenValidator>());
+
+        services.PostConfigureAll<AuthenticationOptions>(options =>
+        {
+            options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+        });
+
         return services;
     }
 }

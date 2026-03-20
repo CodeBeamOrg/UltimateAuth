@@ -10,13 +10,13 @@ namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
 internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegration
 {
-    private readonly IPasswordCredentialStore _credentialStore;
+    private readonly IPasswordCredentialStoreFactory _credentialStoreFactory;
     private readonly IUAuthPasswordHasher _passwordHasher;
     private readonly IClock _clock;
 
-    public PasswordUserLifecycleIntegration(IPasswordCredentialStore credentialStore, IUAuthPasswordHasher passwordHasher, IClock clock)
+    public PasswordUserLifecycleIntegration(IPasswordCredentialStoreFactory credentialStoreFactory, IUAuthPasswordHasher passwordHasher, IClock clock)
     {
-        _credentialStore = credentialStore;
+        _credentialStoreFactory = credentialStoreFactory;
         _passwordHasher = passwordHasher;
         _clock = clock;
     }
@@ -40,11 +40,13 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
             metadata: new CredentialMetadata { },
             _clock.UtcNow);
 
-        await _credentialStore.AddAsync(credential, ct);
+        var credentialStore = _credentialStoreFactory.Create(tenant);
+        await credentialStore.AddAsync(credential, ct);
     }
 
     public async Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct)
     {
-        await _credentialStore.DeleteByUserAsync(tenant, userKey, mode, _clock.UtcNow, ct);
+        var credentialStore = _credentialStoreFactory.Create(tenant);
+        await credentialStore.DeleteByUserAsync(userKey, mode, _clock.UtcNow, ct);
     }
 }

@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client;
+﻿using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -80,7 +80,6 @@ public partial class Login : UAuthFlowPageBase
 
     private async Task ProgrammaticLogin()
     {
-        var deviceId = await DeviceIdProvider.GetOrCreateAsync();
         var request = new LoginRequest
         {
             Identifier = "admin",

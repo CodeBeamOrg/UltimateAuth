@@ -5,7 +5,8 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
-public sealed class UserIdentifier : IVersionedEntity, ISoftDeletable<UserIdentifier>, IEntitySnapshot<UserIdentifier>
+
+public sealed class UserIdentifier : ITenantEntity, IVersionedEntity, ISoftDeletable<UserIdentifier>, IEntitySnapshot<UserIdentifier>
 {
     public Guid Id { get; private set; }
     public TenantKey Tenant { get; private set; }

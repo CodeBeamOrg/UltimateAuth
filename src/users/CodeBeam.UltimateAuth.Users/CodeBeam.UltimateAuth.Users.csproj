@@ -2,15 +2,30 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Users</PackageId>
+
+		<Description>
+			Users module for UltimateAuth.
+			Provides orchestration, abstractions and dependency injection wiring for user management functionality.
+			Use with a persistence provider such as EntityFrameworkCore or InMemory.
+			This package is included transitively by CodeBeam.UltimateAuth.Server and usually does not need to be installed directly.
+		</Description>
+
+		<PackageTags>authentication;identity;users;module;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
+		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<ProjectReference Include="..\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

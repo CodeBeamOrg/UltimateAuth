@@ -42,4 +42,15 @@ internal static class SessionProjectionMapper
             Version = s.Version
         };
     }
+
+    public static void UpdateProjection(this UAuthSession source, SessionProjection target)
+    {
+        target.ExpiresAt = source.ExpiresAt;
+        target.RevokedAt = source.RevokedAt;
+        target.SecurityVersionAtCreation = source.SecurityVersionAtCreation;
+        target.Device = source.Device;
+        target.Claims = source.Claims;
+        target.Metadata = source.Metadata;
+        // Version store-owned
+    }
 }

@@ -10,6 +10,7 @@
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
 		<PackageReference Include="FluentAssertions" Version="8.8.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
 		<PackageReference Include="Moq" Version="4.20.72" />
 		<PackageReference Include="xunit" Version="2.9.3" />
@@ -18,13 +19,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\nuget\CodeBeam.UltimateAuth.EntityFrameworkCore\CodeBeam.UltimateAuth.EntityFrameworkCoreReference.csproj" />
+		<ProjectReference Include="..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.Bundle.csproj" />
+		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
 		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
-		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
+		<ProjectReference Include="..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
+		<ProjectReference Include="..\..\src\client\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
 		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
 		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />
@@ -32,7 +37,8 @@
 		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
 		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
-		<ProjectReference Include="..\..\src\persistence\CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions\CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions.csproj" />
+		<ProjectReference Include="..\..\src\persistence\CodeBeam.UltimateAuth.EntityFrameworkCore\CodeBeam.UltimateAuth.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\persistence\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.csproj" />
 		<ProjectReference Include="..\..\src\policies\CodeBeam.UltimateAuth.Policies\CodeBeam.UltimateAuth.Policies.csproj" />
 		<ProjectReference Include="..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
 		<ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" />

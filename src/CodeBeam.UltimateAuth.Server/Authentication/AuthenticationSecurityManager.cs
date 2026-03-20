@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Security;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -10,12 +9,12 @@ namespace CodeBeam.UltimateAuth.Server.Security;
 
 internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityManager
 {
-    private readonly IAuthenticationSecurityStateStore _store;
+    private readonly IAuthenticationSecurityStateStoreFactory _storeFactory;
     private readonly UAuthServerOptions _options;
 
-    public AuthenticationSecurityManager(IAuthenticationSecurityStateStore store, IOptions<UAuthServerOptions> options)
+    public AuthenticationSecurityManager(IAuthenticationSecurityStateStoreFactory storeFactory, IOptions<UAuthServerOptions> options)
     {
-        _store = store;
+        _storeFactory = storeFactory;
         _options = options.Value;
     }
 
@@ -23,13 +22,14 @@ internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityMan
     {
         ct.ThrowIfCancellationRequested();
 
-        var state = await _store.GetAsync(tenant, userKey, AuthenticationSecurityScope.Account, credentialType: null, ct);
+        var store = _storeFactory.Create(tenant);
+        var state = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, credentialType: null, ct);
 
         if (state is not null)
             return state;
 
         var created = AuthenticationSecurityState.CreateAccount(tenant, userKey);
-        await _store.AddAsync(created, ct);
+        await store.AddAsync(created, ct);
         return created;
     }
 
@@ -37,25 +37,28 @@ internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityMan
     {
         ct.ThrowIfCancellationRequested();
 
-        var state = await _store.GetAsync(tenant, userKey, AuthenticationSecurityScope.Factor, type, ct);
+        var store = _storeFactory.Create(tenant);
+        var state = await store.GetAsync(userKey, AuthenticationSecurityScope.Factor, type, ct);
 
         if (state is not null)
             return state;
 
         var created = AuthenticationSecurityState.CreateFactor(tenant, userKey, type);
-        await _store.AddAsync(created, ct);
+        await store.AddAsync(created, ct);
         return created;
     }
 
     public Task UpdateAsync(AuthenticationSecurityState updated, long expectedVersion, CancellationToken ct = default)
     {
-        return _store.UpdateAsync(updated, expectedVersion, ct);
+        var store = _storeFactory.Create(updated.Tenant);
+        return store.UpdateAsync(updated, expectedVersion, ct);
     }
 
     public Task DeleteAsync(TenantKey tenant, UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        return _store.DeleteAsync(tenant, userKey, scope, credentialType, ct);
+        var store = _storeFactory.Create(tenant);
+        return store.DeleteAsync(userKey, scope, credentialType, ct);
     }
 }

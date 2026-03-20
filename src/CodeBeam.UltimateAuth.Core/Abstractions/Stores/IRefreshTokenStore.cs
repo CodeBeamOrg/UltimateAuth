@@ -5,7 +5,6 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 public interface IRefreshTokenStore
 {
     Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default);
-
     Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default);
 
     Task StoreAsync(RefreshToken token, CancellationToken ct = default);

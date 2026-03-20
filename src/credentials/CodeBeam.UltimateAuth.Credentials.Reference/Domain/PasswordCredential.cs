@@ -6,7 +6,7 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class PasswordCredential : ISecretCredential, IVersionedEntity, IEntitySnapshot<PasswordCredential>, ISoftDeletable<PasswordCredential>
+public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVersionedEntity, IEntitySnapshot<PasswordCredential>, ISoftDeletable<PasswordCredential>
 {
     public Guid Id { get; init; }
     public TenantKey Tenant { get; init; }
@@ -150,5 +150,30 @@ public sealed class PasswordCredential : ISecretCredential, IVersionedEntity, IE
         UpdatedAt = now;
 
         return this;
+    }
+
+    public static PasswordCredential FromProjection(
+        Guid id,
+        TenantKey tenant,
+        UserKey userKey,
+        string secretHash,
+        CredentialSecurityState security,
+        CredentialMetadata metadata,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt,
+        long version)
+    {
+        return new PasswordCredential(
+            id,
+            tenant,
+            userKey,
+            secretHash,
+            security,
+            metadata,
+            createdAt,
+            updatedAt,
+            deletedAt,
+            version);
     }
 }

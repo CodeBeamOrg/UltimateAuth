@@ -139,7 +139,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to update identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to update identifier", Severity.Error);
         }
 
         await ReloadAsync();
@@ -180,7 +180,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to add identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to add identifier", Severity.Error);
         }
     }
 
@@ -223,7 +223,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to verify primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to verify primary identifier", Severity.Error);
         }
     }
 
@@ -249,7 +249,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to set primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to set primary identifier", Severity.Error);
         }
     }
 
@@ -275,7 +275,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to unset primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to unset primary identifier", Severity.Error);
         }
     }
 
@@ -301,7 +301,7 @@ public partial class IdentifierDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to delete identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to delete identifier", Severity.Error);
         }
     }
 

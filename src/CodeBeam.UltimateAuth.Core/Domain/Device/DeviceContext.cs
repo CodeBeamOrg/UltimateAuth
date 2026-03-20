@@ -1,5 +1,9 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Text.Json.Serialization;
 
+namespace CodeBeam.UltimateAuth.Core.Domain;
+
+[JsonConverter(typeof(DeviceContextJsonConverter))]
 public sealed class DeviceContext
 {
     public DeviceId? DeviceId { get; init; }

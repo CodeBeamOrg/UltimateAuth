@@ -33,4 +33,12 @@ internal static class UserLifecycleMapper
             Version = d.Version
         };
     }
+
+    public static void UpdateProjection(this UserLifecycle source, UserLifecycleProjection target)
+    {
+        target.Status = source.Status;
+        target.SecurityVersion = source.SecurityVersion;
+        target.UpdatedAt = source.UpdatedAt;
+        target.DeletedAt = source.DeletedAt;
+    }
 }

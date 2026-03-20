@@ -7,17 +7,18 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class UserRuntimeStateProvider : IUserRuntimeStateProvider
 {
-    private readonly IUserLifecycleStore _lifecycleStore;
+    private readonly IUserLifecycleStoreFactory _lifecycleStoreFactory;
 
-    public UserRuntimeStateProvider(IUserLifecycleStore lifecycleStore)
+    public UserRuntimeStateProvider(IUserLifecycleStoreFactory lifecycleStoreFactory)
     {
-        _lifecycleStore = lifecycleStore;
+        _lifecycleStoreFactory = lifecycleStoreFactory;
     }
 
     public async Task<UserRuntimeRecord?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
         var userLifecycleKey = new UserLifecycleKey(tenant, userKey);
-        var lifecycle = await _lifecycleStore.GetAsync(userLifecycleKey, ct);
+        var lifecycleStore = _lifecycleStoreFactory.Create(tenant);
+        var lifecycle = await lifecycleStore.GetAsync(userLifecycleKey, ct);
 
         if (lifecycle is null)
             return null;

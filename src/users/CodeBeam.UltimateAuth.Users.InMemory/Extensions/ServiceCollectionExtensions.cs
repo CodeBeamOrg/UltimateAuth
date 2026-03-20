@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,9 +11,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthUsersInMemory(this IServiceCollection services)
     {
-        services.TryAddSingleton<IUserLifecycleStore, InMemoryUserLifecycleStore>();
-        services.TryAddSingleton<IUserIdentifierStore, InMemoryUserIdentifierStore>();
-        services.TryAddSingleton<IUserProfileStore, InMemoryUserProfileStore>();
+        services.AddSingleton<IUserLifecycleStoreFactory, InMemoryUserLifecycleStoreFactory>();
+        services.AddSingleton<IUserIdentifierStoreFactory, InMemoryUserIdentifierStoreFactory>();
+        services.AddSingleton<IUserProfileStoreFactory, InMemoryUserProfileStoreFactory>();
         services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
 
         // Seed never try add

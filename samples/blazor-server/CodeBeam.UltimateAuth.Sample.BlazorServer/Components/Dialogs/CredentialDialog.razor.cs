@@ -82,7 +82,7 @@ public partial class CredentialDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "An error occurred while changing password", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "An error occurred while changing password", Severity.Error);
         }
     }
 

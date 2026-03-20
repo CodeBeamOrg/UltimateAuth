@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Packages/">
+    <Project Path="nuget/CodeBeam.UltimateAuth.EntityFrameworkCore/CodeBeam.UltimateAuth.EntityFrameworkCoreReference.csproj" Id="764569b4-dd5b-4a18-a332-7307d20ee21a" />
+    <Project Path="nuget/CodeBeam.UltimateAuth.InMemory/CodeBeam.UltimateAuth.InMemory.Bundle.csproj" />
+    <Project Path="nuget/CodeBeam.UltimateAuth.Reference.Bundle/CodeBeam.UltimateAuth.Reference.Bundle.csproj" Id="f01dee6a-a60d-40a2-bb6a-9894b03e7122" />
+  </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer/CodeBeam.UltimateAuth.Sample.BlazorServer.csproj" />
     <Project Path="samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
@@ -6,20 +11,22 @@
     <Project Path="samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub.csproj" Id="ae5368ee-10aa-4c75-9653-a7f481849834" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
     <File Path="Readme.md" />
     <File Path="Roadmap.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Unit/CodeBeam.UltimateAuth.Tests.Unit.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />
   </Folder>
+  <Project Path="src/authentication/CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore/CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.csproj" Id="a8d758ad-052e-4331-9bf7-280ea9a55981" />
   <Project Path="src/authentication/CodeBeam.UltimateAuth.Authentication.InMemory/CodeBeam.UltimateAuth.Authentication.InMemory.csproj" Id="bd87e254-0565-4fc5-950d-ee5bbb416079" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Contracts/CodeBeam.UltimateAuth.Authorization.Contracts.csproj" Id="40a23002-f885-42a8-bdd9-fd962ab28742" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore/CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.csproj" Id="8572d1e8-db32-42a1-b61c-e8805e59c019" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.InMemory/CodeBeam.UltimateAuth.Authorization.InMemory.csproj" Id="a1e6d007-bdc0-4574-b549-ec863757edd3" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Reference/CodeBeam.UltimateAuth.Authorization.Reference.csproj" Id="84b784d0-bb48-406a-a0d1-c600da667597" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization/CodeBeam.UltimateAuth.Authorization.csproj" Id="28b1d647-fb0b-4cc3-8503-2680c4a9b28f" />
-  <Project Path="src/CodeBeam.UltimateAuth.Client.JsMinifier/CodeBeam.UltimateAuth.Client.JsMinifier.csproj" Id="ef5cfc86-bfd3-4f81-a973-ce7ef58e7525" />
-  <Project Path="src/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.csproj" Id="eb60a3b7-ba9d-48c9-98ad-b28e879b23bf" />
+  <Project Path="src/client/CodeBeam.UltimateAuth.Client.Blazor/CodeBeam.UltimateAuth.Client.Blazor.csproj" Id="eb60a3b7-ba9d-48c9-98ad-b28e879b23bf" />
+  <Project Path="src/client/CodeBeam.UltimateAuth.Client/CodeBeam.UltimateAuth.Client.csproj" Id="fa128a9b-613c-4762-993a-2886280d3051" />
   <Project Path="src/CodeBeam.UltimateAuth.Core/CodeBeam.UltimateAuth.Core.csproj" />
   <Project Path="src/CodeBeam.UltimateAuth.Server/CodeBeam.UltimateAuth.Server.csproj" Id="0a8cdd12-a8c4-4530-87e8-ae778c46322b" />
   <Project Path="src/credentials/CodeBeam.UltimateAuth.Credentials.Contracts/CodeBeam.UltimateAuth.Credentials.Contracts.csproj" Id="88b70848-fa74-40ea-bf34-3fa2f70f4f37" />
@@ -27,7 +34,8 @@
   <Project Path="src/credentials/CodeBeam.UltimateAuth.Credentials.InMemory/CodeBeam.UltimateAuth.Credentials.InMemory.csproj" Id="62ee7b1d-46ce-4f2e-985d-1e794f891b8b" />
   <Project Path="src/credentials/CodeBeam.UltimateAuth.Credentials.Reference/CodeBeam.UltimateAuth.Credentials.Reference.csproj" Id="ca03a140-f3dc-4a21-9b7d-895a3b10808b" />
   <Project Path="src/credentials/CodeBeam.UltimateAuth.Credentials/CodeBeam.UltimateAuth.Credentials.csproj" Id="2281c3b5-1d60-4542-a673-553f96eed25b" />
-  <Project Path="src/persistence/CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions/CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions.csproj" Id="8867767d-bd1b-4d51-ac3f-0979038165c9" />
+  <Project Path="src/persistence/CodeBeam.UltimateAuth.EntityFrameworkCore/CodeBeam.UltimateAuth.EntityFrameworkCore.csproj" Id="8867767d-bd1b-4d51-ac3f-0979038165c9" />
+  <Project Path="src/persistence/CodeBeam.UltimateAuth.InMemory/CodeBeam.UltimateAuth.InMemory.csproj" Id="68de660f-3eb8-4922-b8eb-7ad7c97217ab" />
   <Project Path="src/policies/CodeBeam.UltimateAuth.Policies/CodeBeam.UltimateAuth.Policies.csproj" Id="b37c337f-2446-4f54-8684-b72fa83ac444" />
   <Project Path="src/security/CodeBeam.UltimateAuth.Security.Argon2/CodeBeam.UltimateAuth.Security.Argon2.csproj" Id="6abfb7a6-ea36-42db-a843-38054dd40fd8" />
   <Project Path="src/sessions/CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore/CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" Id="5b9a090d-1689-4a81-9dfa-3ba69f0bda38" />
@@ -39,4 +47,5 @@
   <Project Path="src/users/CodeBeam.UltimateAuth.Users.InMemory/CodeBeam.UltimateAuth.Users.InMemory.csproj" Id="7ce3df22-4773-4b9b-afd0-8ba506e0f9de" />
   <Project Path="src/users/CodeBeam.UltimateAuth.Users.Reference/CodeBeam.UltimateAuth.Users.Reference.csproj" Id="601176dd-b760-4b6f-9cc7-c618134ae178" />
   <Project Path="src/users/CodeBeam.UltimateAuth.Users/CodeBeam.UltimateAuth.Users.csproj" Id="30d5db36-6dc8-46f6-9139-8b6b3d6053d5" />
+  <Project Path="src\client/CodeBeam.UltimateAuth.Client.JsMinifier/CodeBeam.UltimateAuth.Client.JsMinifier.csproj" Id="ef5cfc86-bfd3-4f81-a973-ce7ef58e7525" />
 </Solution>

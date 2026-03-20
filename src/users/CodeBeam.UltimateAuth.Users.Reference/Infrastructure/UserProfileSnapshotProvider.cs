@@ -6,16 +6,17 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class UserProfileSnapshotProvider : IUserProfileSnapshotProvider
 {
-    private readonly IUserProfileStore _store;
+    private readonly IUserProfileStoreFactory _storeFactory;
 
-    public UserProfileSnapshotProvider(IUserProfileStore store)
+    public UserProfileSnapshotProvider(IUserProfileStoreFactory storeFactory)
     {
-        _store = store;
+        _storeFactory = storeFactory;
     }
 
     public async Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var profile = await _store.GetAsync(new UserProfileKey(tenant, userKey), ct);
+        var store = _storeFactory.Create(tenant);
+        var profile = await store.GetAsync(new UserProfileKey(tenant, userKey), ct);
 
         if (profile is null || profile.IsDeleted)
             return null;

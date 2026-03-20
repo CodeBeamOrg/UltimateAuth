@@ -39,4 +39,17 @@ internal static class UserIdentifierMapper
             Version = d.Version
         };
     }
+
+    public static void UpdateProjection(this UserIdentifier source, UserIdentifierProjection target)
+    {
+        // Don't touch identity and concurrency properties
+
+        target.Value = source.Value;
+        target.NormalizedValue = source.NormalizedValue;
+        target.IsPrimary = source.IsPrimary;
+
+        target.VerifiedAt = source.VerifiedAt;
+        target.UpdatedAt = source.UpdatedAt;
+        target.DeletedAt = source.DeletedAt;
+    }
 }

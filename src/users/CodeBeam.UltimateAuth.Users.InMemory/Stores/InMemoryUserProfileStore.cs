@@ -1,24 +1,26 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
 
-public sealed class InMemoryUserProfileStore : InMemoryVersionedStore<UserProfile, UserProfileKey>, IUserProfileStore
+public sealed class InMemoryUserProfileStore : InMemoryTenantVersionedStore<UserProfile, UserProfileKey>, IUserProfileStore
 {
     protected override UserProfileKey GetKey(UserProfile entity)
         => new(entity.Tenant, entity.UserKey);
 
-    public Task<PagedResult<UserProfile>> QueryAsync(TenantKey tenant, UserProfileQuery query, CancellationToken ct = default)
+    public InMemoryUserProfileStore(TenantContext tenant) : base(tenant)
+    {
+    }
+
+    public Task<PagedResult<UserProfile>> QueryAsync(UserProfileQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var normalized = query.Normalize();
-
-        var baseQuery = Values()
-            .Where(x => x.Tenant == tenant);
+        var baseQuery = TenantValues().AsQueryable();
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => !x.IsDeleted);
@@ -53,6 +55,7 @@ public sealed class InMemoryUserProfileStore : InMemoryVersionedStore<UserProfil
         var items = baseQuery
             .Skip((normalized.PageNumber - 1) * normalized.PageSize)
             .Take(normalized.PageSize)
+            .Select(x => x.Snapshot())
             .ToList()
             .AsReadOnly();
 
@@ -66,14 +69,13 @@ public sealed class InMemoryUserProfileStore : InMemoryVersionedStore<UserProfil
                 query.Descending));
     }
 
-    public Task<IReadOnlyList<UserProfile>> GetByUsersAsync(TenantKey tenant, IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    public Task<IReadOnlyList<UserProfile>> GetByUsersAsync(IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         var set = userKeys.ToHashSet();
 
-        var result = Values()
-            .Where(x => x.Tenant == tenant)
+        var result = TenantValues()
             .Where(x => set.Contains(x.UserKey))
             .Where(x => !x.IsDeleted)
             .Select(x => x.Snapshot())

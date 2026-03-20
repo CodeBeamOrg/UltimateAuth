@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Client</PackageId>
+
+		<Description>Core client engine for UltimateAuth. Provides platform-agnostic authentication features. This package does NOT include transport, storage or UI integration. For complete experience, use a platform adapter such as CodeBeam.UltimateAuth.Client.Blazor</Description>
+		<PackageTags>authentication;authorization;identity;aspnetcore;auth;oauth;pkce;jwt;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<ProjectReference Include="..\..\authorization\CodeBeam.UltimateAuth.Authorization.Contracts\CodeBeam.UltimateAuth.Authorization.Contracts.csproj" />
+		<ProjectReference Include="..\..\credentials\CodeBeam.UltimateAuth.Credentials.Contracts\CodeBeam.UltimateAuth.Credentials.Contracts.csproj" />
+		<ProjectReference Include="..\..\users\CodeBeam.UltimateAuth.Users.Contracts\CodeBeam.UltimateAuth.Users.Contracts.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+
+</Project>

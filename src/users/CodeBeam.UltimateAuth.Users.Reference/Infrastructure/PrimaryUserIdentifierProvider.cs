@@ -6,16 +6,17 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 internal sealed class PrimaryUserIdentifierProvider : IPrimaryUserIdentifierProvider
 {
-    private readonly IUserIdentifierStore _store;
+    private readonly IUserIdentifierStoreFactory _storeFactory;
 
-    public PrimaryUserIdentifierProvider(IUserIdentifierStore store)
+    public PrimaryUserIdentifierProvider(IUserIdentifierStoreFactory storeFactory)
     {
-        _store = store;
+        _storeFactory = storeFactory;
     }
 
     public async Task<PrimaryUserIdentifiers?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
     {
-        var identifiers = await _store.GetByUserAsync(tenant, userKey, ct);
+        var store = _storeFactory.Create(tenant);
+        var identifiers = await store.GetByUserAsync(userKey, ct);
         var primary = identifiers.Where(x => x.IsPrimary).ToList();
 
         if (primary.Count == 0)

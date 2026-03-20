@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle</PackageId>
+
+		<Description>
+			Provides a complete Entity Framework Core persistence setup for UltimateAuth.
+			This package includes reference domain implementations and Entity Framework Core-based persistence for all modules.
+			It is designed for production scenarios requiring durable storage.
+		</Description>
+
+		<PackageTags>authentication;authorization;identity;efcore;inmemory;bundle;auth-framework;security;jwt</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
+		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore\CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore\CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore\CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore\CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore\CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore.csproj" />
+		<ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.EntityFrameworkCore\CodeBeam.UltimateAuth.Users.EntityFrameworkCore.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+</Project>

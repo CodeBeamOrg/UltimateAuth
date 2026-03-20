@@ -72,7 +72,7 @@ public partial class PermissionDialog
 
         if (!result.IsSuccess)
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to update permissions", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to update permissions", Severity.Error);
             return;
         }
 

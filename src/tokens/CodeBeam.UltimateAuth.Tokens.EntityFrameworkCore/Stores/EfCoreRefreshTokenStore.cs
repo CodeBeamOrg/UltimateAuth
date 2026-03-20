@@ -7,13 +7,14 @@ namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
 internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 {
-    private readonly UltimateAuthTokenDbContext _db;
+    private readonly UAuthTokenDbContext _db;
     private readonly TenantKey _tenant;
+    private bool _inTransaction;
 
-    public EfCoreRefreshTokenStore(UltimateAuthTokenDbContext db, TenantKey tenant)
+    public EfCoreRefreshTokenStore(UAuthTokenDbContext db, TenantContext tenant)
     {
         _db = db;
-        _tenant = tenant;
+        _tenant = tenant.Tenant;
     }
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
@@ -22,8 +23,9 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 
         await strategy.ExecuteAsync(async () =>
         {
-            await using var tx =
-                await _db.Database.BeginTransactionAsync(ct);
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            _inTransaction = true;
 
             try
             {
@@ -36,6 +38,10 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
                 await tx.RollbackAsync(ct);
                 throw;
             }
+            finally
+            {
+                _inTransaction = false;
+            }
         });
     }
 
@@ -45,8 +51,9 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
 
         return await strategy.ExecuteAsync(async () =>
         {
-            await using var tx =
-                await _db.Database.BeginTransactionAsync(ct);
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            _inTransaction = true;
 
             try
             {
@@ -60,25 +67,36 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
                 await tx.RollbackAsync(ct);
                 throw;
             }
+            finally
+            {
+                _inTransaction = false;
+            }
         });
+    }
+
+    private void EnsureTransaction()
+    {
+        if (!_inTransaction)
+            throw new InvalidOperationException("Operation must be executed inside ExecuteAsync.");
     }
 
     public Task StoreAsync(RefreshToken token, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
         if (token.Tenant != _tenant)
             throw new InvalidOperationException("Tenant mismatch.");
 
-        var projection = token.ToProjection();
-
-        _db.RefreshTokens.Add(projection);
+        _db.RefreshTokens.Add(token.ToProjection());
 
         return Task.CompletedTask;
     }
 
-    public async Task<RefreshToken?> FindByHashAsync(
-        string tokenHash,
-        CancellationToken ct = default)
+    public async Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var p = await _db.RefreshTokens
             .AsNoTracking()
             .SingleOrDefaultAsync(
@@ -89,12 +107,11 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         return p?.ToDomain();
     }
 
-    public Task RevokeAsync(
-        string tokenHash,
-        DateTimeOffset revokedAt,
-        string? replacedByTokenHash = null,
-        CancellationToken ct = default)
+    public Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
         var query = _db.RefreshTokens
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -115,11 +132,11 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
             ct);
     }
 
-    public Task RevokeBySessionAsync(
-        AuthSessionId sessionId,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeBySessionAsync(AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
         return _db.RefreshTokens
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -130,11 +147,11 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
                 ct);
     }
 
-    public Task RevokeByChainAsync(
-        SessionChainId chainId,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
         return _db.RefreshTokens
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -145,11 +162,11 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
                 ct);
     }
 
-    public Task RevokeAllForUserAsync(
-        UserKey userKey,
-        DateTimeOffset revokedAt,
-        CancellationToken ct = default)
+    public Task RevokeAllForUserAsync(UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
         return _db.RefreshTokens
             .Where(x =>
                 x.Tenant == _tenant &&

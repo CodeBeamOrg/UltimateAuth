@@ -7,10 +7,15 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUltimateAuthArgon2(this IServiceCollection services, Action<Argon2Options>? configure = null)
     {
-        var options = new Argon2Options();
-        configure?.Invoke(options);
+        if (configure != null)
+        {
+            services.Configure(configure);
+        }
+        else
+        {
+            services.Configure<Argon2Options>(_ => { });
+        }
 
-        services.AddSingleton(options);
         services.AddSingleton<IUAuthPasswordHasher, Argon2PasswordHasher>();
 
         return services;

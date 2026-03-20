@@ -2,18 +2,30 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<Version>0.0.1</Version>
-		<InformationalVersion>0.0.1</InformationalVersion>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Authorization.InMemory</PackageId>
+
+		<Description>
+			In-memory persistence implementation for UltimateAuth Authorization module.
+			Provides lightweight storage for roles, claims and authorization data.
+			Suitable for development and testing scenarios only.
+		</Description>
+
+		<PackageTags>authentication;authorization;roles;claims;inmemory;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
+	  <ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.csproj" />
 	  <ProjectReference Include="..\CodeBeam.UltimateAuth.Authorization\CodeBeam.UltimateAuth.Authorization.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

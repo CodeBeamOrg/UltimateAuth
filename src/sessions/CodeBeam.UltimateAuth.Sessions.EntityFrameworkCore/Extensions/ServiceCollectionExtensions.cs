@@ -2,13 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
+namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthEntityFrameworkCoreSessions(this IServiceCollection services,Action<DbContextOptionsBuilder> configureDb)
+    public static IServiceCollection AddUltimateAuthSessionsEntityFrameworkCore(this IServiceCollection services,Action<DbContextOptionsBuilder> configureDb)
     {
-        services.AddDbContextPool<UltimateAuthSessionDbContext>(configureDb);
+        services.AddDbContext<UAuthSessionDbContext>(configureDb);
         services.AddScoped<ISessionStoreFactory, EfCoreSessionStoreFactory>();
 
         return services;

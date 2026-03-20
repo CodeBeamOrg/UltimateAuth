@@ -40,7 +40,7 @@ public partial class AccountStatusDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Delete failed.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Delete failed.", Severity.Error);
         }
     }
 
@@ -71,7 +71,7 @@ public partial class AccountStatusDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Delete failed.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Delete failed.", Severity.Error);
         }
     }
 }

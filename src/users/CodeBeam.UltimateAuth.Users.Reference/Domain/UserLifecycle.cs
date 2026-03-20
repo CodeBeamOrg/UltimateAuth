@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-public sealed class UserLifecycle : IVersionedEntity, ISoftDeletable<UserLifecycle>, IEntitySnapshot<UserLifecycle>
+public sealed class UserLifecycle : ITenantEntity, IVersionedEntity, ISoftDeletable<UserLifecycle>, IEntitySnapshot<UserLifecycle>
 {
     private UserLifecycle() { }
 

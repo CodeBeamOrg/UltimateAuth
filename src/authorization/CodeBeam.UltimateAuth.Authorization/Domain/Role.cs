@@ -1,12 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
-using CodeBeam.UltimateAuth.Authorization.Domain;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization;
 
-public sealed class Role : IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletable<Role>
+public sealed class Role : ITenantEntity, IVersionedEntity, IEntitySnapshot<Role>, ISoftDeletable<Role>
 {
     private readonly HashSet<Permission> _permissions = new();
 

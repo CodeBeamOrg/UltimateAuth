@@ -49,4 +49,24 @@ internal static class UserProfileMapper
             Version = d.Version
         };
     }
+
+    public static void UpdateProjection(this UserProfile source, UserProfileProjection target)
+    {
+        target.DisplayName = source.DisplayName;
+        target.FirstName = source.FirstName;
+        target.LastName = source.LastName;
+        target.Metadata = source.Metadata?.ToDictionary();
+        target.UpdatedAt = source.UpdatedAt;
+        target.DeletedAt = source.DeletedAt;
+        target.BirthDate = source.BirthDate;
+        target.Gender = source.Gender;
+        target.Bio = source.Bio;
+        target.Language = source.Language;
+        target.TimeZone = source.TimeZone;
+        target.Culture = source.Culture;
+
+        // Version store-owned
+        // Id / Tenant / UserKey / CreatedAt immutable
+    }
+
 }
