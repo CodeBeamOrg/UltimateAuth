@@ -2,14 +2,9 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-	</PropertyGroup>
 
-	<PropertyGroup>
 		<PackageId>CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore</PackageId>
-		<Version>0.1.0-preview.1</Version>
 
 		<Description>
 			Entity Framework Core authentication persistence for UltimateAuth.
@@ -19,20 +14,11 @@
 		<PackageTags>authentication;session;identity;efcore;database;auth-framework</PackageTags>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		
-		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
-	  <ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.EntityFrameworkCore.Abstractions\CodeBeam.UltimateAuth.EntityFrameworkCore.csproj" />
+	  <ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.EntityFrameworkCore\CodeBeam.UltimateAuth.EntityFrameworkCore.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

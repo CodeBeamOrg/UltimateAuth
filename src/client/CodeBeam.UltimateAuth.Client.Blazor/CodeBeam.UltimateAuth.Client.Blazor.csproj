@@ -2,14 +2,9 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-	</PropertyGroup>
 
-	<PropertyGroup>
 		<PackageId>CodeBeam.UltimateAuth.Client.Blazor</PackageId>
-		<Version>0.1.0-preview.1</Version>
 
 		<Description>
 			Blazor client integration for UltimateAuth.
@@ -19,16 +14,6 @@
 		<PackageTags>authentication;authorization;identity;blazor;wasm;aspnetcore;client;auth;oauth;pkce;jwt;auth-framework</PackageTags>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		
-		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net8.0' ">
@@ -63,8 +48,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\client\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
-		<ProjectReference Include="..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
+		<ProjectReference Include="..\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
