@@ -4,7 +4,6 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
-using CodeBeam.UltimateAuth.Security.Argon2;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
@@ -14,6 +13,8 @@ using CodeBeam.UltimateAuth.Client.Blazor;
 
 var builder = WebApplication.CreateBuilder(args);
 
+#region Core
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddCircuitOptions(options =>
@@ -21,12 +22,20 @@ builder.Services.AddRazorComponents()
         options.DetailedErrors = true;
     });
 
+builder.Services.AddOpenApi();
+
+#endregion
+
+# region UI & MudBlazor & Extensions
+
 builder.Services.AddMudServices(o => {
     o.SnackbarConfiguration.PreventDuplicates = false;
 });
 builder.Services.AddMudExtensions();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.Services.AddScoped<DarkModeManager>();
+
+#endregion
+
 
 builder.Services.AddUltimateAuthServer(o =>
 {
@@ -41,8 +50,7 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
     o.Identifiers.AllowMultipleUsernames = true;
 })
-    .AddInMemoryReference()
-    .AddUltimateAuthArgon2();
+    .AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
@@ -51,7 +59,6 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
-builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

@@ -40,7 +40,7 @@ public partial class UsersDialog
 
         if (!res.IsSuccess || res.Value == null)
         {
-            Snackbar.Add(res.GetErrorText ?? "Failed to load users.", Severity.Error);
+            Snackbar.Add(res.ErrorText ?? "Failed to load users.", Severity.Error);
 
             return new GridData<UserSummary>
             {
@@ -153,7 +153,7 @@ public partial class UsersDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to delete user.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to delete user.", Severity.Error);
         }
     }
 

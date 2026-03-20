@@ -58,7 +58,7 @@ public partial class UserRoleDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed", Severity.Error);
         }
 
         _selectedRole = null;
@@ -104,7 +104,7 @@ public partial class UserRoleDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed", Severity.Error);
         }
     }
 

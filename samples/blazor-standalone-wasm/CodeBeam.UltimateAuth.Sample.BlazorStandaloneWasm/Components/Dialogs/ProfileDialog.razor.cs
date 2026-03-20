@@ -108,7 +108,7 @@ public partial class ProfileDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to update profile", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to update profile", Severity.Error);
         }
     }
 

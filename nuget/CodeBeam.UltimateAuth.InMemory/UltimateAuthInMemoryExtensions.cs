@@ -1,13 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using CodeBeam.UltimateAuth.Credentials.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Credentials.Reference.Extensions;
 using CodeBeam.UltimateAuth.Users.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Users.Reference.Extensions;
 using CodeBeam.UltimateAuth.Authorization.InMemory.Extensions;
-using CodeBeam.UltimateAuth.Authorization.Reference.Extensions;
 using CodeBeam.UltimateAuth.Sessions.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Tokens.InMemory.Extensions;
 using CodeBeam.UltimateAuth.Authentication.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Reference.Bundle;
 
 namespace CodeBeam.UltimateAuth.InMemory;
 
@@ -28,15 +26,13 @@ public static class UltimateAuthInMemoryExtensions
     /// is sufficient. For production environments, consider using persistent storage implementations.</remarks>
     /// <param name="services">The service collection to which the in-memory UltimateAuth services will be added.</param>
     /// <returns>The same instance of <see cref="IServiceCollection"/> that was provided, to support method chaining.</returns>
-    public static IServiceCollection AddInMemoryReference(this IServiceCollection services)
+    public static IServiceCollection AddUltimateAuthInMemory(this IServiceCollection services)
     {
         services
+            .AddUltimateAuthReferences()
             .AddUltimateAuthUsersInMemory()
-            .AddUltimateAuthUsersReference()
             .AddUltimateAuthCredentialsInMemory()
-            .AddUltimateAuthCredentialsReference()
             .AddUltimateAuthAuthorizationInMemory()
-            .AddUltimateAuthAuthorizationReference()
             .AddUltimateAuthSessionsInMemory()
             .AddUltimateAuthTokensInMemory()
             .AddUltimateAuthAuthenticationInMemory();

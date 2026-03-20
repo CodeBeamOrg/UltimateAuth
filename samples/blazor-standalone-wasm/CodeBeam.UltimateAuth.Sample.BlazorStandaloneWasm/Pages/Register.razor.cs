@@ -35,11 +35,11 @@ public partial class Register
         var result = await UAuthClient.Users.CreateAsync(request);
         if (result.IsSuccess)
         {
-            Snackbar.Add("User created succesfully.", Severity.Success);
+            Snackbar.Add("User created successfully.", Severity.Success);
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to create user.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to create user.", Severity.Error);
         }
     }
 }

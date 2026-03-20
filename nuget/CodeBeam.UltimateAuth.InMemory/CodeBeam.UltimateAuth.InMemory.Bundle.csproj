@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.InMemory.Bundle</PackageId>
+
+		<Description>
+			Provides a complete in-memory setup for UltimateAuth.
+			This package includes reference domain implementations amd in memory persistence for all modules.
+			It is ideal for development, testing, and prototyping scenarios.
+			No external database is required.
+		</Description>
+
+		<PackageTags>authentication;authorization;identity;efcore;inmemory;bundle;auth-framework;security;jwt</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+  <ItemGroup>
+		<ProjectReference Include="..\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
+		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
+		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
+		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
+		<ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
+		<ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
+		<ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.InMemory\CodeBeam.UltimateAuth.Users.InMemory.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+</Project>

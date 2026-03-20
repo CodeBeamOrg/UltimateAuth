@@ -41,7 +41,7 @@ public partial class CreateUserDialog
 
         if (!result.IsSuccess)
         {
-            Snackbar.Add(result.GetErrorText ?? "User creation failed.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "User creation failed.", Severity.Error);
             return;
         }
 

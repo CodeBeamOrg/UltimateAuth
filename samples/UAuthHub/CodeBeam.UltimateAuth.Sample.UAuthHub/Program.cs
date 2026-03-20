@@ -35,8 +35,7 @@ builder.Services.AddUltimateAuthServer(o => {
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
 })
-    .AddInMemoryReference()
-    .AddUltimateAuthArgon2();
+    .AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {

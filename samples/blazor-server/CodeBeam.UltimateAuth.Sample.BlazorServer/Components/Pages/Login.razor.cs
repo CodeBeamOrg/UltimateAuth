@@ -80,7 +80,6 @@ public partial class Login : UAuthFlowPageBase
 
     private async Task ProgrammaticLogin()
     {
-        var deviceId = await DeviceIdProvider.GetOrCreateAsync();
         var request = new LoginRequest
         {
             Identifier = "admin",

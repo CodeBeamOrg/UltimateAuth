@@ -135,7 +135,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to logout.", Severity.Error);
         }
     }
 
@@ -149,7 +149,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to logout", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to logout", Severity.Error);
         }
     }
 
@@ -179,7 +179,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Failed to logout.", Severity.Error);
         }
     }
 
@@ -205,7 +205,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
         }
     }
 
@@ -219,7 +219,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
         }
     }
 
@@ -249,7 +249,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
         }
     }
 
@@ -272,7 +272,7 @@ public partial class SessionDialog
         }
         else
         {
-            Snackbar.Add(result?.GetErrorText ?? "Failed to fetch chain details.", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to fetch chain details.", Severity.Error);
             _chainDetail = null;
         }
     }

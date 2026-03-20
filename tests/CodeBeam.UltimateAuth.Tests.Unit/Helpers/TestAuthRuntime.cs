@@ -38,7 +38,7 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         services.AddSingleton<IUAuthPasswordHasher, TestPasswordHasher>();
         // InMemory plugins
-        services.AddInMemoryReference();
+        services.AddUltimateAuthInMemory();
 
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();

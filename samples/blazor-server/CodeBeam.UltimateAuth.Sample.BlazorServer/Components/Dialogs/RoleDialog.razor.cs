@@ -33,7 +33,7 @@ public partial class RoleDialog
 
         if (!res.IsSuccess || res.Value == null)
         {
-            Snackbar.Add(res.GetErrorText ?? "Failed", Severity.Error);
+            Snackbar.Add(res.ErrorText ?? "Failed", Severity.Error);
 
             return new GridData<RoleInfo>
             {
@@ -64,7 +64,7 @@ public partial class RoleDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Rename failed", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Rename failed", Severity.Error);
         }
 
         await ReloadAsync();
@@ -93,7 +93,7 @@ public partial class RoleDialog
         }
         else
         {
-            Snackbar.Add(res.GetErrorText ?? "Creation failed.", Severity.Error);
+            Snackbar.Add(res.ErrorText ?? "Creation failed.", Severity.Error);
         }
     }
 
@@ -119,7 +119,7 @@ public partial class RoleDialog
         }
         else
         {
-            Snackbar.Add(result.GetErrorText ?? "Deletion failed.", Severity.Error);
+            Snackbar.Add(result.ErrorText ?? "Deletion failed.", Severity.Error);
         }
     }
 
