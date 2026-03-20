@@ -13,9 +13,12 @@
 
 		<Authors>CodeBeam</Authors>
 		<Company>CodeBeam</Company>
+		
 		<Description>Core domain primitives and abstractions for UltimateAuth. This package is not intended to be installed directly in most applications. Use CodeBeam.UltimateAuth.Server or Client packages instead.</Description>
 		<PackageTags>authentication;authorization;identity;security;oauth;login;session;auth;refresh-token;pkce;dotnet;aspnetcore;blazor;maui;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		
 		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -32,6 +35,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 

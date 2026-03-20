@@ -4,10 +4,34 @@
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.0.1</Version>
-		<InformationalVersion>0.0.1</InformationalVersion>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageId>CodeBeam.UltimateAuth.Security.Argon2</PackageId>
+		<Version>0.1.0-preview.1</Version>
+
+		<Authors>CodeBeam</Authors>
+		<Company>CodeBeam</Company>
+
+		<Description>
+			Argon2 password hashing provider for UltimateAuth.
+
+			Provides a secure implementation of IUAuthPasswordHasher using Argon2, designed for modern authentication systems with strong resistance against brute-force and GPU attacks.
+		</Description>
+
+		<PackageTags>authentication;security;argon2;password-hashing;cryptography;identity;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		
+		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,6 +41,11 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

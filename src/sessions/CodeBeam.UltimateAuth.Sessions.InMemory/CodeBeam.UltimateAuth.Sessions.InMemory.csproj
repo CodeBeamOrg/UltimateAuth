@@ -4,14 +4,42 @@
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageId>CodeBeam.UltimateAuth.Sessions.InMemory</PackageId>
+		<Version>0.1.0-preview.1</Version>
+
+		<Description>
+			In-memory session persistence for UltimateAuth.
+			Provides lightweight storage for session state and lifecycle.
+			Suitable for development and testing scenarios only.
+		</Description>
+
+		<PackageTags>authentication;sessions;inmemory;auth-framework</PackageTags>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
-		<ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.InMemory.Abstractions\CodeBeam.UltimateAuth.InMemory.Abstractions.csproj" />
+		<ProjectReference Include="..\..\persistence\CodeBeam.UltimateAuth.InMemory.Abstractions\CodeBeam.UltimateAuth.InMemory.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

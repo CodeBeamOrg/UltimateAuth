@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemoryReference.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />

@@ -21,8 +21,9 @@
 		</Description>
 
 		<PackageTags>authentication;identity;users;contracts;shared;dto;auth-framework</PackageTags>
-
+		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		
 		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -37,6 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="logo.png" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 

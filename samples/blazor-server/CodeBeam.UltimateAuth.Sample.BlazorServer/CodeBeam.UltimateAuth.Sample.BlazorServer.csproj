@@ -15,13 +15,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemory.csproj" />
+		<ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.InMemory\CodeBeam.UltimateAuth.InMemoryReference.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Client\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
-		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
-		<ProjectReference Include="..\..\..\src\credentials\CodeBeam.UltimateAuth.Credentials\CodeBeam.UltimateAuth.Credentials.csproj" />
 		<ProjectReference Include="..\..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
-		<ProjectReference Include="..\..\..\src\users\CodeBeam.UltimateAuth.Users\CodeBeam.UltimateAuth.Users.csproj" />
 	</ItemGroup>
 
 </Project>

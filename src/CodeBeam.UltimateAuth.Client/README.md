@@ -1,6 +1,6 @@
 ﻿# UltimateAuth Blazor Client
 
-Client integration for UltimateAuth.
+Client blazor integration for UltimateAuth.
 
 ## Features
 
@@ -9,3 +9,4 @@ Client integration for UltimateAuth.
 - Token flows
 - PKCE support
 - Blazor components
+- JS Interop unified transport layer
