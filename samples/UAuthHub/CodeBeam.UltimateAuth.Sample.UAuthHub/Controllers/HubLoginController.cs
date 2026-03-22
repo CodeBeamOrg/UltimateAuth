@@ -42,7 +42,7 @@ public sealed class HubLoginController : Controller
             hubSessionId: hubSessionId,
             flowType: HubFlowType.Login,
             clientProfile: client_profile,
-            tenant: TenantKeys.System,
+            tenant: TenantKeys.System, // TODO: Think about multi tenant scenarios
             returnUrl: return_url,
             payload: payload,
             expiresAt: _clock.UtcNow.Add(_options.Hub.FlowLifetime));

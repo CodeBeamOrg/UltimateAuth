@@ -111,7 +111,6 @@ public class ChangePasswordTests
         var oldLogin = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user"
             });
@@ -121,7 +120,6 @@ public class ChangePasswordTests
         var newLogin = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "newpass123"
             });

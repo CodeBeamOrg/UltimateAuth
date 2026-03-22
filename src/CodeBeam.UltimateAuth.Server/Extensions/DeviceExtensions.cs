@@ -7,9 +7,9 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class DeviceExtensions
 {
-    public static DeviceInfo GetDevice(this HttpContext context)
+    public static async Task<DeviceInfo> GetDeviceAsync(this HttpContext context)
     {
         var resolver = context.RequestServices.GetRequiredService<IDeviceResolver>();
-        return resolver.Resolve(context);
+        return await resolver.ResolveAsync(context);
     }
 }

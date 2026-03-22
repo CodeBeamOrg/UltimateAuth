@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Stores;
@@ -18,6 +19,24 @@ public partial class Home
 
     private HubFlowState? _state;
 
+    private UAuthClientProductInfo? _productInfo;
+    private MudTextField<string> _usernameField = default!;
+
+    private CancellationTokenSource? _lockoutCts;
+    private PeriodicTimer? _lockoutTimer;
+    private DateTimeOffset? _lockoutUntil;
+    private TimeSpan _remaining;
+    private bool _isLocked;
+    private DateTimeOffset? _lockoutStartedAt;
+    private TimeSpan _lockoutDuration;
+    private double _progressPercent;
+    private int? _remainingAttempts = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _productInfo = ClientProductInfoProvider.Get();
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(HubKey))
@@ -32,39 +51,73 @@ public partial class Home
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
-            return;
-
-        var currentError = await BrowserStorage.GetAsync(StorageScope.Session, "uauth:last_error");
-
-        if (!string.IsNullOrWhiteSpace(currentError))
-        {
-            Snackbar.Add(ResolveErrorMessage(currentError), Severity.Error);
-            await BrowserStorage.RemoveAsync(StorageScope.Session, "uauth:last_error");
-        }
-
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var query = QueryHelpers.ParseQuery(uri.Query);
-
-        if (query.TryGetValue("__uauth_error", out var error))
-        {
-            await BrowserStorage.SetAsync(StorageScope.Session, "uauth:last_error", error.ToString());
-        }
-        
         if (string.IsNullOrWhiteSpace(HubKey))
-        {
             return;
-        }
 
         if (_state is null || !_state.Exists)
-            return;
-
-        if (_state?.IsActive != true)
         {
             await StartNewPkceAsync();
             return;
         }
+
+        if (_state.IsExpired)
+        {
+            await StartNewPkceAsync();
+            return;
+        }
+
+        if (_state.Error != null)
+        {
+            Snackbar.Add(ResolveErrorMessage(_state.Error), Severity.Error);
+
+            await Task.Delay(200); // UX
+            await StartNewPkceAsync();
+        }
     }
+
+    //protected override async Task OnAfterRenderAsync(bool firstRender)
+    //{
+    //    if (!firstRender)
+    //        return;
+
+    //    var currentError = await BrowserStorage.GetAsync(StorageScope.Session, "uauth:last_error");
+
+    //    if (!string.IsNullOrWhiteSpace(currentError))
+    //    {
+    //        Snackbar.Add(ResolveErrorMessage(currentError), Severity.Error);
+    //        await BrowserStorage.RemoveAsync(StorageScope.Session, "uauth:last_error");
+    //    }
+
+    //    var uri = Nav.ToAbsoluteUri(Nav.Uri);
+    //    var query = QueryHelpers.ParseQuery(uri.Query);
+
+    //    if (query.TryGetValue("__uauth_error", out var error))
+    //    {
+    //        await BrowserStorage.SetAsync(StorageScope.Session, "uauth:last_error", error.ToString());
+    //    }
+
+    //    if (string.IsNullOrWhiteSpace(HubKey))
+    //    {
+    //        return;
+    //    }
+
+    //    if (_state is null || !_state.Exists)
+    //        return;
+
+    //    if (_state?.IsActive != true)
+    //    {
+    //        await StartNewPkceAsync();
+    //        return;
+    //    }
+
+    //    if (_state?.Error != null)
+    //    {
+    //        Snackbar.Add("Error.", Severity.Error);
+
+    //        await Task.Delay(300); // UX
+    //        await StartNewPkceAsync();
+    //    }
+    //}
 
     // For testing & debugging
     private async Task ProgrammaticPkceLogin()
@@ -79,15 +132,41 @@ public partial class Home
 
         var credentials = await HubCredentialResolver.ResolveAsync(hubSessionId);
 
-        var request = new PkceLoginRequest
+        //var request = new PkceLoginRequest
+        //{
+        //    Identifier = "admin",
+        //    Secret = "admin",
+        //    AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
+        //    CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
+        //    ReturnUrl = _state?.ReturnUrl ?? string.Empty
+        //};
+
+        var request = new TryPkceLoginRequest
         {
             Identifier = "admin",
             Secret = "admin",
             AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
             CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
-            ReturnUrl = _state?.ReturnUrl ?? string.Empty
+            ReturnUrl = _state?.ReturnUrl ?? string.Empty,
+            HubSessionId = _state?.HubSessionId.Value ?? hubSessionId.Value,
         };
-        await UAuthClient.Flows.CompletePkceLoginAsync(request);
+
+        await UAuthClient.Flows.TryCompletePkceLoginAsync(request);
+    }
+
+    private void HandleLoginResult(TryLoginResult result)
+    {
+        if (!result.Success)
+        {
+            Snackbar.Add("Login failed", Severity.Error);
+
+            if (result.RemainingAttempts is not null)
+            {
+                // UI update
+            }
+
+            return;
+        }
     }
 
     private async Task StartNewPkceAsync()

@@ -1,11 +1,65 @@
-﻿@using CodeBeam.UltimateAuth.Core.Abstractions
-@using CodeBeam.UltimateAuth.Server.Infrastructure
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
-@Body
+<MudLayout>
+    <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
+        <UAuthLogo />
+        <MudText Class="ml-2 cursor-pointer" Style="user-select: none" @onclick="@(() => Nav.NavigateTo("/home", true))"><b>UltimateAuth</b></MudText>
+        <MudDivider Class="ml-3 mr-1" Vertical="true" />
+        <MudText Class="ml-2" Style="line-height: 14px" Typo="Typo.subtitle2">UAuthHub Sample</MudText>
 
-<div id="blazor-error-ui" data-nosnippet>
+        <MudSpacer />
+
+        <MudIconButton Icon="@(DarkModeManager.IsDarkMode? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => DarkModeManager.ToggleAsync())" />
+
+        <UAuthStateView>
+            <Authorized Context="state">
+                <MudMenu PopoverClass="mud-theme-primary uauth-menu-popover" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <div @onclick="@(() => context.ToggleAsync())">
+                            <MudBadge Overlap="true" Dot="true" Color="@GetBadgeColor()">
+                                <MudAvatar Class="cursor-pointer mud-ripple" Variant="Variant.Filled" Color="Color.Primary">
+                                    <MudText Typo="Typo.subtitle2">@((state.Identity?.DisplayName ?? "?").Trim() is var n ? (n.Length >= 2 ? n[..2] : n[..1]) : "?")</MudText>
+                                </MudAvatar>
+                            </MudBadge>
+                        </div>
+                    </ActivatorContent>
+
+                    <ChildContent>
+                        <MudText Class="px-4 py-2"><b>@state.Identity?.DisplayName</b></MudText>
+                        <MudText Class="px-4" Typo="Typo.subtitle2">@string.Join(", ", state.Claims.Roles)</MudText>
+
+                        <MudDivider />
+
+                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh" IconColor="Color.Secondary" Label="Refresh Session" OnClick="@Refresh" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.VerifiedUser" IconColor="Color.Secondary" Label="Validate Session" OnClick="@Validate" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Secondary" Label="Logout" OnClick="@Logout" />
+
+                        @if (state.Identity?.SessionState is not null && state.Identity.SessionState != SessionState.Active)
+                        {
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Login" Label="Reauthenticate" OnClick="@GoToLoginWithReturn" />
+                        }
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+
+            <NotAuthorized>
+                <MudChip T="string" Style="width: fit-content" Text="Sign In" Color="Color.Primary" Variant="Variant.Filled" Class="cursor-pointer" OnClick="@HandleSignInClick" />
+            </NotAuthorized>
+        </UAuthStateView>
+    </MudAppBar>
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+
+<div id="blazor-error-ui">
     An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
 </div>

@@ -45,7 +45,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var credential = _transportCredentialResolver.Resolve(Context);
+        var credential = await _transportCredentialResolver.ResolveAsync(Context);
 
         if (credential is null)
             return AuthenticateResult.NoResult();

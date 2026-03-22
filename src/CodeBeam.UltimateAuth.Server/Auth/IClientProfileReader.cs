@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 public interface IClientProfileReader
 {
-    UAuthClientProfile Read(HttpContext context);
+    Task<UAuthClientProfile> ReadAsync(HttpContext context);
 }

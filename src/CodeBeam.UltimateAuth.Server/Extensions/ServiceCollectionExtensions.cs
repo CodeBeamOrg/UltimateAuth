@@ -168,6 +168,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ISessionApplicationService, SessionApplicationService>();
         services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
+        services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
@@ -183,6 +184,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
         services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();
+        services.TryAddScoped<IInternalLoginOrchestrator, LoginOrchestrator>();
         services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
         services.TryAddScoped<ILoginAuthority, LoginAuthority>();
         services.TryAddScoped<IAuthAuthority, AuthAuthority>();
@@ -203,7 +205,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
-        services.TryAddScoped<IFlowCredentialResolver, FlowCredentialResolver>();
+        services.TryAddScoped<IValidateCredentialResolver, ValidateCredentialResolver>();
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
         services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();

@@ -8,5 +8,5 @@ namespace CodeBeam.UltimateAuth.Server.Abstractions;
 /// </summary>
 public interface IDeviceResolver
 {
-    DeviceInfo Resolve(HttpContext context);
+    Task<DeviceInfo> ResolveAsync(HttpContext context);
 }

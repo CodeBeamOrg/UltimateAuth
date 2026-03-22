@@ -31,6 +31,8 @@ internal sealed class HubFlowReader : IHubFlowReader
             FlowType = flow.FlowType,
             ClientProfile = flow.ClientProfile,
             ReturnUrl = flow.ReturnUrl,
+            Error = flow.Error,
+            AttemptCount = flow.AttemptCount,
             IsExpired = flow.IsExpired(now),
             IsCompleted = flow.IsCompleted,
             IsActive = !flow.IsExpired(now) && !flow.IsCompleted

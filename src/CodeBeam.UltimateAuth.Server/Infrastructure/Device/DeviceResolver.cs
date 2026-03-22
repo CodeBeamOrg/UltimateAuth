@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
@@ -11,11 +12,11 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 // Consider creating a seperate package with a library like UA Parser, WURFL or DeviceAtlas for more accurate device detection. (Add IDeviceInfoParser)
 public sealed class DeviceResolver : IDeviceResolver
 {
-    public DeviceInfo Resolve(HttpContext context)
+    public async Task<DeviceInfo> ResolveAsync(HttpContext context)
     {
         var request = context.Request;
 
-        var rawDeviceId = ResolveRawDeviceId(context);
+        var rawDeviceId = await ResolveRawDeviceId(context);
         if (!DeviceId.TryCreate(rawDeviceId, out var deviceId))
         {
             //throw new InvalidOperationException("device_id_required");
@@ -35,14 +36,21 @@ public sealed class DeviceResolver : IDeviceResolver
         return deviceInfo;
     }
 
-    private static string? ResolveRawDeviceId(HttpContext context)
+    private static async Task<string?> ResolveRawDeviceId(HttpContext context)
     {
         if (context.Request.Headers.TryGetValue("X-UDID", out var header))
             return header.ToString();
 
-        if (context.Request.HasFormContentType && context.Request.Form.TryGetValue(UAuthConstants.Form.Device, out var formValue) && !StringValues.IsNullOrEmpty(formValue))
+        if (context.Request.HasFormContentType)
         {
-            return formValue.ToString();
+            var form = await context.GetCachedFormAsync();
+
+            if (form is not null &&
+                form.TryGetValue(UAuthConstants.Form.Device, out var formValue) &&
+                !StringValues.IsNullOrEmpty(formValue))
+            {
+                return formValue.ToString();
+            }
         }
 
         if (context.Request.Cookies.TryGetValue("udid", out var cookie))

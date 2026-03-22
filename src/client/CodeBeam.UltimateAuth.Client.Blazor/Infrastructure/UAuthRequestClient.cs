@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using System.Net;
@@ -86,5 +87,26 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         //    throw new UAuthTransportException($"Server error {result.Status}", (HttpStatusCode)result.Status);
 
         return result;
+    }
+
+    public async Task<TTryResult> TryAndCommitAsync<TTryResult>(string tryEndpoint, string commitEndpoint, object request, CancellationToken ct = default)
+    {
+        await _bootstrapper.EnsureStartedAsync();
+
+        var response = await _js.InvokeAsync<TTryResult>(
+            "uauth.tryAndCommit",
+            ct,
+            new
+            {
+                tryUrl = tryEndpoint,
+                commitUrl = commitEndpoint,
+                data = request,
+                clientProfile = _options.ClientProfile.ToString()
+            });
+
+        if (response is null)
+            throw new UAuthProtocolException("Invalid tryAndCommit response.");
+
+        return response;
     }
 }

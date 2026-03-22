@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -117,6 +118,16 @@ internal sealed class FakeFlowClient : IFlowClient
             IsSuccess = true,
             Outcome = outcome
         });
+    }
+
+    public Task<TryPkceLoginResult> TryCompletePkceLoginAsync(TryPkceLoginRequest request, bool commitOnSuccess = false, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null)
+    {
+        throw new NotImplementedException();
     }
 
     public Task<AuthValidationResult> ValidateAsync()

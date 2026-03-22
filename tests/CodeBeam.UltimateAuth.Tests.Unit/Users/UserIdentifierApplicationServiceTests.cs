@@ -66,10 +66,8 @@ public class UserIdentifierApplicationServiceTests
         var result = await loginOrchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "+905551111111",
                 Secret = "user",
-                //Device = TestDevice.Default()
             });
 
         result.IsSuccess.Should().BeFalse();

@@ -41,12 +41,15 @@ public sealed class UAuthLoginOptions
     /// </remarks>
     public bool ExtendLockOnFailure { get; set; } = false;
 
+    public TimeSpan TryLoginDuration { get; set; } = TimeSpan.FromSeconds(180);
+
     internal UAuthLoginOptions Clone() => new()
     {
         MaxFailedAttempts = MaxFailedAttempts,
         LockoutDuration = LockoutDuration,
         IncludeFailureDetails = IncludeFailureDetails,
         FailureWindow = FailureWindow,
-        ExtendLockOnFailure = ExtendLockOnFailure
+        ExtendLockOnFailure = ExtendLockOnFailure,
+        TryLoginDuration = TryLoginDuration
     };
 }

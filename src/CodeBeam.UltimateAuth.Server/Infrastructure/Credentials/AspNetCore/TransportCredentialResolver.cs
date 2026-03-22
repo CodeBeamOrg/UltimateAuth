@@ -14,121 +14,85 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         _server = server;
     }
 
-    public TransportCredential? Resolve(HttpContext context)
+    public async ValueTask<TransportCredential?> ResolveAsync(HttpContext context)
     {
         var cookies = _server.CurrentValue.Cookie;
 
-        if (TryFromAuthorizationHeader(context, out var bearer))
-            return bearer;
-
-        if (TryFromCookies(context, cookies, out var cookie))
-            return cookie;
-
-        if (TryFromQuery(context, out var query))
-            return query;
-
-        if (TryFromBody(context, out var body))
-            return body;
-
-        if (TryFromHub(context, out var hub))
-            return hub;
-
-        return null;
+        return await TryFromAuthorizationHeaderAsync(context)
+            ?? await TryFromCookiesAsync(context, cookies)
+            ?? await TryFromQueryAsync(context)
+            ?? await TryFromBodyAsync(context)
+            ?? await TryFromHubAsync(context);
     }
 
     // TODO: Make scheme configurable, shouldn't be hard coded
-    private static bool TryFromAuthorizationHeader(HttpContext ctx, out TransportCredential credential)
+    private static async ValueTask<TransportCredential?> TryFromAuthorizationHeaderAsync(HttpContext ctx)
     {
-        credential = default!;
-
         if (!ctx.Request.Headers.TryGetValue("Authorization", out var header))
-            return false;
+            return null;
 
         var value = header.ToString();
         if (!value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return false;
+            return null;
 
         var token = value["Bearer ".Length..].Trim();
         if (string.IsNullOrWhiteSpace(token))
-            return false;
+            return null;
 
-        credential = new TransportCredential
+        return new TransportCredential
         {
             Kind = TransportCredentialKind.AccessToken,
             Value = token,
             TenantId = ctx.GetTenant().Value,
-            Device = ctx.GetDevice()
+            Device = await ctx.GetDeviceAsync()
         };
-
-        return true;
     }
 
-    private static bool TryFromCookies(
-    HttpContext ctx,
-    UAuthCookiePolicyOptions cookieSet,
-    out TransportCredential credential)
+    private static async ValueTask<TransportCredential?> TryFromCookiesAsync(HttpContext ctx, UAuthCookiePolicyOptions cookieSet)
     {
-        credential = default!;
-
-        // Session cookie
         if (TryReadCookie(ctx, cookieSet.Session.Name, out var session))
-        {
-            credential = Build(ctx, TransportCredentialKind.Session, session);
-            return true;
-        }
+            return await BuildAsync(ctx, TransportCredentialKind.Session, session);
 
-        // Refresh token cookie
         if (TryReadCookie(ctx, cookieSet.RefreshToken.Name, out var refresh))
-        {
-            credential = Build(ctx, TransportCredentialKind.RefreshToken, refresh);
-            return true;
-        }
+            return await BuildAsync(ctx, TransportCredentialKind.RefreshToken, refresh);
 
-        // Access token cookie (optional)
         if (TryReadCookie(ctx, cookieSet.AccessToken.Name, out var access))
-        {
-            credential = Build(ctx, TransportCredentialKind.AccessToken, access);
-            return true;
-        }
+            return await BuildAsync(ctx, TransportCredentialKind.AccessToken, access);
 
-        return false;
+        return null;
     }
 
-    private static bool TryFromQuery(HttpContext ctx, out TransportCredential credential)
+    private static async ValueTask<TransportCredential?> TryFromQueryAsync(HttpContext ctx)
     {
-        credential = default!;
-
         if (!ctx.Request.Query.TryGetValue("access_token", out var token))
-            return false;
+            return null;
 
         var value = token.ToString();
         if (string.IsNullOrWhiteSpace(value))
-            return false;
+            return null;
 
-        credential = new TransportCredential
+        return new TransportCredential
         {
             Kind = TransportCredentialKind.AccessToken,
             Value = value,
             TenantId = ctx.GetTenant().Value,
-            Device = ctx.GetDevice()
+            Device = await ctx.GetDeviceAsync()
         };
-
-        return true;
     }
 
-    private static bool TryFromBody(HttpContext ctx, out TransportCredential credential)
+    private static ValueTask<TransportCredential?> TryFromBodyAsync(HttpContext ctx)
     {
-        credential = default!;
         // intentionally empty for now
         // body parsing is expensive and opt-in later
-        return false;
+
+        return ValueTask.FromResult<TransportCredential?>(null);
     }
 
-    private static bool TryFromHub(HttpContext ctx, out TransportCredential credential)
+    private static ValueTask<TransportCredential?> TryFromHubAsync(HttpContext ctx)
     {
-        credential = default!;
         // UAuthHub detection can live here later
-        return false;
+
+        return ValueTask.FromResult<TransportCredential?>(null);
     }
 
     private static bool TryReadCookie(HttpContext ctx, string name, out string value)
@@ -149,12 +113,12 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         return true;
     }
 
-    private static TransportCredential Build(HttpContext ctx, TransportCredentialKind kind, string value)
+    private static async Task<TransportCredential> BuildAsync(HttpContext ctx, TransportCredentialKind kind, string value)
         => new()
         {
             Kind = kind,
             Value = value,
             TenantId = ctx.GetTenant().Value,
-            Device = ctx.GetDevice()
+            Device = await ctx.GetDeviceAsync()
         };
 }

@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 /// Gets the credential from the HTTP context.
 /// IPrimaryCredentialResolver is used to determine which kind of credential to resolve.
 /// </summary>
-public interface IFlowCredentialResolver
+public interface IValidateCredentialResolver
 {
-    ResolvedCredential? Resolve(HttpContext context, EffectiveAuthResponse response);
+    Task<ResolvedCredential?> ResolveAsync(HttpContext context, EffectiveAuthResponse response);
 }

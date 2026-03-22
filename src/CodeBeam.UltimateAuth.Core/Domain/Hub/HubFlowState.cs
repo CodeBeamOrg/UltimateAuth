@@ -8,6 +8,8 @@ public sealed class HubFlowState
     public HubFlowType FlowType { get; init; }
     public UAuthClientProfile ClientProfile { get; init; }
     public string? ReturnUrl { get; init; }
+    public string? Error { get; init; }
+    public int AttemptCount { get; init; }
 
     public bool IsActive { get; init; }
     public bool IsExpired { get; init; }

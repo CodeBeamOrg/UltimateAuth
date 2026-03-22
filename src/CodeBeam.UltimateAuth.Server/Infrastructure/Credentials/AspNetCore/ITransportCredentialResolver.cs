@@ -4,5 +4,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface ITransportCredentialResolver
 {
-    TransportCredential? Resolve(HttpContext context);
+    ValueTask<TransportCredential?> ResolveAsync(HttpContext context);
 }

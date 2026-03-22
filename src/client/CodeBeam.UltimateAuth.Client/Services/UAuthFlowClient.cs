@@ -41,30 +41,55 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task LoginAsync(LoginRequest request, string? returnUrl = null)
     {
-        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+        EnsureCanPost();
 
-        if (!_options.Login.AllowCredentialPost && !canPost)
-        {
-            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
-                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
-                "If this is a trusted server-hosted client, you may explicitly enable " +
-                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
-        }
-
-        var resolvedReturnUrl =
-            returnUrl
-            ?? _options.Login.ReturnUrl
-            ?? _options.DefaultReturnUrl;
-
-        var payload = request.ToDictionary();
-
-        if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
-        {
-            payload["return_url"] = resolvedReturnUrl;
-        }
+        var payload = BuildPayload(request, returnUrl);
 
         var url = Url(_options.Endpoints.Login);
         await _post.NavigateAsync(url, payload);
+    }
+
+    public async Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null)
+    {
+        EnsureCanPost();
+
+        var payload = BuildPayload(request, returnUrl);
+
+        var tryUrl = Url(_options.Endpoints.TryLogin);
+        var commitUrl = Url(_options.Endpoints.Login);
+
+        switch (mode)
+        {
+            case UAuthSubmitMode.TryOnly:
+                {
+                    var result = await _post.SendJsonAsync(tryUrl, request);
+
+                    var parsed = result.Body.Value.Deserialize<TryLoginResult>(
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (parsed is null)
+                        throw new UAuthProtocolException("Invalid try-login result.");
+
+                    return parsed;
+                }
+
+            case UAuthSubmitMode.DirectCommit:
+                {
+                    await _post.NavigateAsync(commitUrl, payload);
+                    return new TryLoginResult { Success = true };
+                }
+
+            case UAuthSubmitMode.TryAndCommit:
+            default:
+                {
+                    var result = await _post.TryAndCommitAsync<TryLoginResult>(tryUrl, commitUrl, payload);
+
+                    if (result is null)
+                        throw new UAuthProtocolException("Invalid try-login result.");
+
+                    return result;
+                }
+        }
     }
 
     public async Task LogoutAsync()
@@ -216,6 +241,46 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
+    public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(TryPkceLoginRequest request, bool commitOnSuccess = false, CancellationToken ct = default)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (!_options.Pkce.Enabled)
+        {
+            throw new InvalidOperationException("PKCE login is disabled by configuration, but a PKCE try-complete was attempted.");
+        }
+
+        var url = Url(_options.Endpoints.PkceTryComplete);
+        var raw = await _post.SendJsonAsync(url, request, ct);
+
+        if (raw == null || raw.Body is null)
+            throw new UAuthProtocolException("Invalid PKCE try-complete response.");
+
+        var result = raw.Body.Value.Deserialize<TryPkceLoginResult>(
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+        if (result is null)
+            throw new UAuthProtocolException("Invalid PKCE try-complete result format.");
+
+        if (commitOnSuccess && result.Success)
+        {
+            await CompletePkceLoginAsync(new PkceLoginRequest
+            {
+                AuthorizationCode = request.AuthorizationCode,
+                CodeVerifier = request.CodeVerifier,
+                Identifier = request.Identifier,
+                Secret = request.Secret,
+                ReturnUrl = request.ReturnUrl
+            });
+        }
+
+        return result;
+    }
+
     public async Task CompletePkceLoginAsync(PkceLoginRequest request)
     {
         if (request is null)
@@ -295,6 +360,36 @@ internal class UAuthFlowClient : IFlowClient
         return UAuthResultMapper.From(raw);
     }
 
+
+    private void EnsureCanPost()
+    {
+        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+
+        if (!_options.Login.AllowCredentialPost && !canPost)
+        {
+            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
+                "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
+                "If this is a trusted server-hosted client, you may explicitly enable " +
+                "Login.AllowCredentialPost, but doing so is insecure for public clients.");
+        }
+    }
+
+    private IDictionary<string, string> BuildPayload(LoginRequest request, string? returnUrl)
+    {
+        var payload = request.ToDictionary();
+
+        var resolvedReturnUrl =
+            returnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl;
+
+        if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
+        {
+            payload["return_url"] = resolvedReturnUrl;
+        }
+
+        return payload;
+    }
 
     private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl, string deviceId)
     {

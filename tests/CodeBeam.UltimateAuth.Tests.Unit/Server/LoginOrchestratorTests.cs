@@ -22,7 +22,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -40,7 +39,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -62,7 +60,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -87,7 +84,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -95,7 +91,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user", // valid password
             });
@@ -116,7 +111,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -134,7 +128,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "ghost",
                 Secret = "whatever",
             });
@@ -156,7 +149,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -182,7 +174,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -190,7 +181,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -212,7 +202,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -224,7 +213,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
             });
 
@@ -248,7 +236,6 @@ public class LoginOrchestratorTests
             await orchestrator.LoginAsync(flow,
                 new LoginRequest
                 {
-                    Tenant = TenantKey.Single,
                     Identifier = "user",
                     Secret = "wrong",
                 });
@@ -277,7 +264,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -291,7 +277,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -319,7 +304,6 @@ public class LoginOrchestratorTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });
@@ -347,7 +331,6 @@ public class LoginOrchestratorTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });
@@ -368,7 +351,6 @@ public class LoginOrchestratorTests
 
         var result = await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });

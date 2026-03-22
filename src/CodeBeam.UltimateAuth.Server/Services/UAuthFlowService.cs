@@ -9,11 +9,12 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
-internal sealed class UAuthFlowService : IUAuthFlowService
+internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowService
 {
     private readonly IAuthFlowContextAccessor _authFlow;
     private readonly IAuthFlowContextFactory _authFlowContextFactory;
     private readonly ILoginOrchestrator _loginOrchestrator;
+    private readonly IInternalLoginOrchestrator _internalLoginOrchestrator;
     private readonly ISessionOrchestrator _orchestrator;
     private readonly UAuthEventDispatcher _events;
 
@@ -21,12 +22,14 @@ internal sealed class UAuthFlowService : IUAuthFlowService
         IAuthFlowContextAccessor authFlow,
         IAuthFlowContextFactory authFlowContextFactory,
         ILoginOrchestrator loginOrchestrator,
+        IInternalLoginOrchestrator internalLoginOrchestrator,
         ISessionOrchestrator orchestrator,
         UAuthEventDispatcher events)
     {
         _authFlow = authFlow;
         _authFlowContextFactory = authFlowContextFactory;
         _loginOrchestrator = loginOrchestrator;
+        _internalLoginOrchestrator = internalLoginOrchestrator;
         _orchestrator = orchestrator;
         _events = events;
     }
@@ -45,6 +48,22 @@ internal sealed class UAuthFlowService : IUAuthFlowService
             ? effectiveFlow
             : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);
         return await _loginOrchestrator.LoginAsync(effectiveFlow, request, ct);
+    }
+
+    public Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, LoginExecutionOptions loginExecution, CancellationToken ct = default)
+    {
+        return _internalLoginOrchestrator.LoginAsync(flow, request, loginExecution, ct);
+    }
+
+    public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, LoginExecutionOptions loginExecution, CancellationToken ct = default)
+    {
+        var effectiveFlow = execution.EffectiveClientProfile is null
+            ? flow
+            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthClientProfile)execution.EffectiveClientProfile, ct);
+        effectiveFlow = execution.Device is null
+            ? effectiveFlow
+            : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);
+        return await _internalLoginOrchestrator.LoginAsync(effectiveFlow, request, loginExecution, ct);
     }
 
     public async Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)

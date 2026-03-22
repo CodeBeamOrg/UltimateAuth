@@ -54,6 +54,55 @@ window.uauth.submitForm = function (form) {
     form.submit();
 };
 
+window.uauth.tryAndCommit = async function (options) {
+    const { tryUrl, commitUrl, data, clientProfile } = options;
+
+    const tryResponse = await window.uauth.postJson({
+        url: tryUrl,
+        payload: data,
+        clientProfile: clientProfile
+    });
+
+    if (!tryResponse || !tryResponse.body) {
+        return { success: false };
+    }
+
+    const result = tryResponse.body;
+
+    if (result.success) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = commitUrl;
+
+        for (const key in data) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = data[key] ?? "";
+            form.appendChild(input);
+        }
+
+        const cp = document.createElement("input");
+        cp.type = "hidden";
+        cp.name = "__uauth_client_profile";
+        cp.value = clientProfile ?? "";
+        form.appendChild(cp);
+
+        const udid = document.createElement("input");
+        udid.type = "hidden";
+        udid.name = "__uauth_device";
+        udid.value = window.uauth.deviceId;
+        form.appendChild(udid);
+
+        document.body.appendChild(form);
+        form.submit();
+
+        return result;
+    }
+
+    return result;
+};
+
 window.uauth.post = async function (options) {
     const {
         url,

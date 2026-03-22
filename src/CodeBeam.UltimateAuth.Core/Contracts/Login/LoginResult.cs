@@ -36,6 +36,14 @@ public sealed record LoginResult
             RefreshToken = tokens?.RefreshToken
         };
 
+    public static LoginResult SuccessPreview()
+    {
+        return new LoginResult
+        {
+            Status = LoginStatus.Success
+        };
+    }
+
     public static LoginResult Continue(LoginContinuation continuation)
         => new()
         {

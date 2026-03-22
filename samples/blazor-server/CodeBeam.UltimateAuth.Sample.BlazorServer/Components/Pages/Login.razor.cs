@@ -52,7 +52,6 @@ public partial class Login : UAuthFlowPageBase
         }
 
         _remainingAttempts = payload.RemainingAttempts;
-
         ShowLoginError(payload.Reason, payload.RemainingAttempts);
     }
 
@@ -155,6 +154,21 @@ public partial class Login : UAuthFlowPageBase
         {
             var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
             _progressPercent = Math.Max(0, percent);
+        }
+    }
+
+    private void HandleTry(TryLoginResult result)
+    {
+        if (!result.Success)
+        {
+            if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+            {
+                _lockoutUntil = until;
+                StartCountdown();
+            }
+
+            _remainingAttempts = result.RemainingAttempts;
+            ShowLoginError(result.Reason, result.RemainingAttempts);
         }
     }
 

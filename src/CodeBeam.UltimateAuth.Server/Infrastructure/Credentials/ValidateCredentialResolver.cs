@@ -8,29 +8,29 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-internal sealed class FlowCredentialResolver : IFlowCredentialResolver
+internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
 {
     private readonly IPrimaryCredentialResolver _primaryResolver;
 
-    public FlowCredentialResolver(IPrimaryCredentialResolver primaryResolver)
+    public ValidateCredentialResolver(IPrimaryCredentialResolver primaryResolver)
     {
         _primaryResolver = primaryResolver;
     }
 
-    public ResolvedCredential? Resolve(HttpContext context, EffectiveAuthResponse response)
+    public async Task<ResolvedCredential?> ResolveAsync(HttpContext context, EffectiveAuthResponse response)
     {
         var kind = _primaryResolver.Resolve(context);
 
         return kind switch
         {
-            PrimaryGrantKind.Stateful => ResolveSession(context, response),
-            PrimaryGrantKind.Stateless => ResolveAccessToken(context, response),
+            PrimaryGrantKind.Stateful => await ResolveSession(context, response),
+            PrimaryGrantKind.Stateless => await ResolveAccessToken(context, response),
 
             _ => null
         };
     }
 
-    private static ResolvedCredential? ResolveSession(HttpContext context, EffectiveAuthResponse response)
+    private static async Task<ResolvedCredential?> ResolveSession(HttpContext context, EffectiveAuthResponse response)
     {
         var delivery = response.SessionIdDelivery;
 
@@ -52,11 +52,11 @@ internal sealed class FlowCredentialResolver : IFlowCredentialResolver
             Kind = PrimaryGrantKind.Stateful,
             Value = raw.Trim(),
             Tenant = context.GetTenant(),
-            Device = context.GetDevice()
+            Device = await context.GetDeviceAsync()
         };
     }
 
-    private static ResolvedCredential? ResolveAccessToken(HttpContext context, EffectiveAuthResponse response)
+    private static async Task<ResolvedCredential?> ResolveAccessToken(HttpContext context, EffectiveAuthResponse response)
     {
         var delivery = response.AccessTokenDelivery;
 
@@ -84,8 +84,7 @@ internal sealed class FlowCredentialResolver : IFlowCredentialResolver
             Kind = PrimaryGrantKind.Stateless,
             Value = value,
             Tenant = context.GetTenant(),
-            Device = context.GetDevice()
+            Device = await context.GetDeviceAsync()
         };
     }
-
 }

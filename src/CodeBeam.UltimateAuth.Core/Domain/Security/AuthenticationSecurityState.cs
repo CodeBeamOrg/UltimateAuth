@@ -158,9 +158,18 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
         if (threshold < 0)
             throw new UAuthValidationException(nameof(threshold));
 
-        var nextCount = FailedAttempts + 1;
+        var effectiveFailedAttempts = FailedAttempts;
+        var effectiveLockedUntil = LockedUntil;
 
-        DateTimeOffset? nextLockedUntil = LockedUntil;
+        if (effectiveLockedUntil.HasValue && now >= effectiveLockedUntil.Value)
+        {
+            effectiveFailedAttempts = 0;
+            effectiveLockedUntil = null;
+        }
+
+        var nextCount = effectiveFailedAttempts + 1;
+
+        DateTimeOffset? nextLockedUntil = effectiveLockedUntil;
 
         if (threshold > 0 && nextCount >= threshold)
         {
