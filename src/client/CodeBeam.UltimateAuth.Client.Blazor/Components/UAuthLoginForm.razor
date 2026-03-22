@@ -12,7 +12,7 @@
 @inject IOptions<UAuthClientOptions> Options
 @inject NavigationManager Navigation
 
-<form @ref="_form" method="post" action="@ResolvedEndpoint" onsubmit="@HandleSubmit" onsubmit:preventDefault>
+<form @ref="_form" method="post" action="@ResolvedEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
     <input type="hidden" name="Identifier" value="@Identifier" />
     <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
     <input type="hidden" name="@UAuthConstants.Form.ClientProfile" value="@ClientProfileValue" />

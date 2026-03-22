@@ -157,18 +157,25 @@ public partial class Login : UAuthFlowPageBase
         }
     }
 
-    private void HandleTry(TryLoginResult result)
+    private void HandleTry(IUAuthTryResult result)
     {
-        if (!result.Success)
+        if (result is TryLoginResult pkce)
         {
-            if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+            if (!result.Success)
             {
-                _lockoutUntil = until;
-                StartCountdown();
-            }
+                if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+                {
+                    _lockoutUntil = until;
+                    StartCountdown();
+                }
 
-            _remainingAttempts = result.RemainingAttempts;
-            ShowLoginError(result.Reason, result.RemainingAttempts);
+                _remainingAttempts = result.RemainingAttempts;
+                ShowLoginError(result.Reason, result.RemainingAttempts);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Unexpected result type.", Severity.Error);
         }
     }
 

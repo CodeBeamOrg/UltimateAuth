@@ -32,7 +32,7 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
-    public Task CompletePkceLoginAsync(PkceLoginRequest request)
+    public Task CompletePkceLoginAsync(PkceCompleteRequest request)
     {
         throw new NotImplementedException();
     }
@@ -120,7 +120,12 @@ internal sealed class FakeFlowClient : IFlowClient
         });
     }
 
-    public Task<TryPkceLoginResult> TryCompletePkceLoginAsync(TryPkceLoginRequest request, bool commitOnSuccess = false, CancellationToken ct = default)
+    public Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, bool commitOnSuccess = false, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
     {
         throw new NotImplementedException();
     }

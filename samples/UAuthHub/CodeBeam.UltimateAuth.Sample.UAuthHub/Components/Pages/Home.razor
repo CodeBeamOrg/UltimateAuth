@@ -69,7 +69,7 @@
 
             <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
                 <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
-                    <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="HandleLoginResult">
+                    <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="@HandleLoginResult">
                         <MudStack Class="mud-width-full">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />

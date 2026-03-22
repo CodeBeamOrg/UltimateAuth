@@ -61,7 +61,7 @@ public partial class UAuthLoginForm
     public bool AllowEnterKeyToSubmit { get; set; } = true;
 
     [Parameter]
-    public EventCallback<TryLoginResult> OnTryResult { get; set; }
+    public EventCallback<IUAuthTryResult> OnTryResult { get; set; }
 
     private ElementReference _form;
 
@@ -117,11 +117,6 @@ public partial class UAuthLoginForm
         _flow = await HubFlowReader.GetStateAsync(EffectiveHubSessionId.Value);
     }
 
-    private async Task HandleSubmit()
-    {
-        await SubmitAsync();
-    }
-
     public async Task SubmitAsync()
     {
         if (_form.Context is null)
@@ -173,7 +168,7 @@ public partial class UAuthLoginForm
         if (_credentials is null)
             throw new InvalidOperationException("Missing PKCE credentials.");
 
-        var request = new TryPkceLoginRequest
+        var request = new PkceCompleteRequest
         {
             Identifier = Identifier,
             Secret = Secret,
@@ -183,55 +178,32 @@ public partial class UAuthLoginForm
             HubSessionId = EffectiveHubSessionId?.Value
         };
 
-        //switch (SubmitMode)
-        //{
-        //    case UAuthSubmitMode.DirectCommit:
-        //        {
-        //            await UAuthClient.Flows.CompletePkceLoginAsync(new PkceLoginRequest
-        //            {
-        //                Identifier = Identifier,
-        //                Secret = Secret,
-        //                AuthorizationCode = _credentials.AuthorizationCode,
-        //                CodeVerifier = _credentials.CodeVerifier,
-        //                ReturnUrl = EffectiveReturnUrl,
-        //                //HubSessionId = EffectiveHubSessionId?.Value
-        //            });
-        //            break;
-        //        }
+        switch (SubmitMode)
+        {
+            case UAuthSubmitMode.DirectCommit:
+                {
+                    await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.DirectCommit);
+                    break;
+                }
 
-        //    case UAuthSubmitMode.TryOnly:
-        //        {
-        //            var result = await UAuthClient.Flows.TryCompletePkceLoginAsync(request);
-        //            await EmitResultAsync(result);
-        //            break;
-        //        }
+            case UAuthSubmitMode.TryOnly:
+                {
+                    var result = await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.TryOnly);
+                    await EmitResultAsync(result);
+                    break;
+                }
 
-        //    case UAuthSubmitMode.TryThenCommit:
-        //    default:
-        //        {
-        //            var result = await UAuthClient.Flows.TryCompletePkceLoginAsync(request);
-
-        //            await EmitResultAsync(result);
-
-        //            if (!result.Success)
-        //                return;
-
-        //            await UAuthClient.Flows.CompletePkceLoginAsync(new PkceLoginRequest
-        //            {
-        //                Identifier = Identifier,
-        //                Secret = Secret,
-        //                AuthorizationCode = _credentials.AuthorizationCode,
-        //                CodeVerifier = _credentials.CodeVerifier,
-        //                ReturnUrl = EffectiveReturnUrl,
-        //                //HubSessionId = EffectiveHubSessionId?.Value
-        //            });
-
-        //            break;
-        //        }
-        //}
+            case UAuthSubmitMode.TryAndCommit:
+            default:
+                {
+                    var result = await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.TryAndCommit);
+                    await EmitResultAsync(result);
+                    break;
+                }
+        }
     }
 
-    private async Task EmitResultAsync(TryLoginResult result)
+    private async Task EmitResultAsync(IUAuthTryResult result)
     {
         if (OnTryResult.HasDelegate)
             await OnTryResult.InvokeAsync(result);

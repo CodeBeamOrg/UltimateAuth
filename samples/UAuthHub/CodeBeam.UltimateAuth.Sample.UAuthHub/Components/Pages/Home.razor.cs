@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -141,7 +142,7 @@ public partial class Home
         //    ReturnUrl = _state?.ReturnUrl ?? string.Empty
         //};
 
-        var request = new TryPkceLoginRequest
+        var request = new PkceCompleteRequest
         {
             Identifier = "admin",
             Secret = "admin",
@@ -151,21 +152,19 @@ public partial class Home
             HubSessionId = _state?.HubSessionId.Value ?? hubSessionId.Value,
         };
 
-        await UAuthClient.Flows.TryCompletePkceLoginAsync(request);
+        await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.TryAndCommit);
     }
 
-    private void HandleLoginResult(TryLoginResult result)
+    private async Task HandleLoginResult(IUAuthTryResult result)
     {
-        if (!result.Success)
+        if (result is TryPkceLoginResult pkce)
         {
-            Snackbar.Add("Login failed", Severity.Error);
-
-            if (result.RemainingAttempts is not null)
+            if (!result.Success)
             {
-                // UI update
+                Snackbar.Add("Login failed", Severity.Error);
+                await StartNewPkceAsync();
             }
-
-            return;
+            
         }
     }
 

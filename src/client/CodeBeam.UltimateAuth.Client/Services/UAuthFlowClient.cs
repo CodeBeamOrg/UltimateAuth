@@ -241,47 +241,68 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
-    public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(TryPkceLoginRequest request, bool commitOnSuccess = false, CancellationToken ct = default)
+    public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
     {
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
         if (!_options.Pkce.Enabled)
+            throw new InvalidOperationException("PKCE login is disabled.");
+
+        var tryUrl = Url(_options.Endpoints.PkceTryComplete);
+        var commitUrl = Url(_options.Endpoints.PkceComplete);
+
+        var payload = new Dictionary<string, string>
         {
-            throw new InvalidOperationException("PKCE login is disabled by configuration, but a PKCE try-complete was attempted.");
+            ["authorization_code"] = request.AuthorizationCode,
+            ["code_verifier"] = request.CodeVerifier,
+            ["Identifier"] = request.Identifier ?? string.Empty,
+            ["Secret"] = request.Secret ?? string.Empty
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.ReturnUrl))
+        {
+            payload["return_url"] = request.ReturnUrl;
         }
 
-        var url = Url(_options.Endpoints.PkceTryComplete);
-        var raw = await _post.SendJsonAsync(url, request, ct);
-
-        if (raw == null || raw.Body is null)
-            throw new UAuthProtocolException("Invalid PKCE try-complete response.");
-
-        var result = raw.Body.Value.Deserialize<TryPkceLoginResult>(
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-        if (result is null)
-            throw new UAuthProtocolException("Invalid PKCE try-complete result format.");
-
-        if (commitOnSuccess && result.Success)
+        switch (mode)
         {
-            await CompletePkceLoginAsync(new PkceLoginRequest
-            {
-                AuthorizationCode = request.AuthorizationCode,
-                CodeVerifier = request.CodeVerifier,
-                Identifier = request.Identifier,
-                Secret = request.Secret,
-                ReturnUrl = request.ReturnUrl
-            });
-        }
+            case UAuthSubmitMode.TryOnly:
+                {
+                    var raw = await _post.SendJsonAsync(tryUrl, request);
 
-        return result;
+                    var parsed = raw.Body.Value.Deserialize<TryPkceLoginResult>(
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (parsed is null)
+                        throw new UAuthProtocolException("Invalid PKCE try result.");
+
+                    return parsed;
+                }
+
+            case UAuthSubmitMode.DirectCommit:
+                {
+                    await _post.NavigateAsync(commitUrl, payload);
+                    return new TryPkceLoginResult { Success = true };
+                }
+
+            case UAuthSubmitMode.TryAndCommit:
+            default:
+                {
+                    var result = await _post.TryAndCommitAsync<TryPkceLoginResult>(
+                        tryUrl,
+                        commitUrl,
+                        payload);
+
+                    if (result is null)
+                        throw new UAuthProtocolException("Invalid PKCE try result.");
+
+                    return result;
+                }
+        }
     }
 
-    public async Task CompletePkceLoginAsync(PkceLoginRequest request)
+    public async Task CompletePkceLoginAsync(PkceCompleteRequest request)
     {
         if (request is null)
             throw new ArgumentNullException(nameof(request));

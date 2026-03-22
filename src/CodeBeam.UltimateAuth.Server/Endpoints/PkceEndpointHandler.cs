@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -100,9 +101,9 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         if (authContext.FlowType != AuthFlowType.Login)
             return Results.BadRequest("PKCE is only supported for login flow.");
 
-        var request = await ReadPkceTryCompleteRequestAsync(ctx);
+        var request = await ReadPkceCompleteRequestAsync(ctx);
         if (request is null)
-            return Results.BadRequest("Invalid PKCE completion payload.");
+            return Results.BadRequest("Invalid PKCE payload.");
 
         if (string.IsNullOrWhiteSpace(request.AuthorizationCode) || string.IsNullOrWhiteSpace(request.CodeVerifier))
             return Results.BadRequest("authorization_code and code_verifier are required.");
@@ -277,51 +278,20 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     {
         if (ctx.Request.HasJsonContentType())
         {
-            return await ctx.Request.ReadFromJsonAsync<PkceCompleteRequest>(
-                cancellationToken: ctx.RequestAborted);
+            return await ctx.Request.ReadFromJsonAsync<PkceCompleteRequest>(cancellationToken: ctx.RequestAborted);
         }
 
         if (ctx.Request.HasFormContentType)
         {
-            var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
+            var form = await ctx.GetCachedFormAsync();
 
-            var authorizationCode = form["authorization_code"].ToString();
-            var codeVerifier = form["code_verifier"].ToString();
-            var identifier = form["Identifier"].ToString();
-            var secret = form["Secret"].ToString();
-            var returnUrl = form["return_url"].ToString();
+            var authorizationCode = form["authorization_code"].FirstOrDefault();
+            var codeVerifier = form["code_verifier"].FirstOrDefault();
+            var identifier = form["Identifier"].FirstOrDefault();
+            var secret = form["Secret"].FirstOrDefault();
+            var returnUrl = form["return_url"].FirstOrDefault();
 
             return new PkceCompleteRequest
-            {
-                AuthorizationCode = authorizationCode,
-                CodeVerifier = codeVerifier,
-                Identifier = identifier,
-                Secret = secret,
-                ReturnUrl = returnUrl
-            };
-        }
-
-        return null;
-    }
-
-    private static async Task<TryPkceLoginRequest?> ReadPkceTryCompleteRequestAsync(HttpContext ctx)
-    {
-        if (ctx.Request.HasJsonContentType())
-        {
-            return await ctx.Request.ReadFromJsonAsync<TryPkceLoginRequest>(cancellationToken: ctx.RequestAborted);
-        }
-
-        if (ctx.Request.HasFormContentType)
-        {
-            var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
-
-            var authorizationCode = form["authorization_code"].ToString();
-            var codeVerifier = form["code_verifier"].ToString();
-            var identifier = form["Identifier"].ToString();
-            var secret = form["Secret"].ToString();
-            var returnUrl = form["return_url"].ToString();
-
-            return new TryPkceLoginRequest
             {
                 AuthorizationCode = authorizationCode,
                 CodeVerifier = codeVerifier,

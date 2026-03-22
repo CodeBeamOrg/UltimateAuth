@@ -63,13 +63,22 @@ window.uauth.tryAndCommit = async function (options) {
         clientProfile: clientProfile
     });
 
-    if (!tryResponse || !tryResponse.body) {
-        return { success: false };
+    let result = tryResponse?.body;
+
+    if (!result) {
+        result = {};
     }
 
-    const result = tryResponse.body;
+    const normalized = {
+        success: result.success ?? false,
+        reason: result.reason ?? null,
+        remainingAttempts: result.remainingAttempts ?? null,
+        lockoutUntilUtc: result.lockoutUntilUtc ?? null,
+        requiresMfa: result.requiresMfa ?? false,
+        retryWithNewPkce: result.retryWithNewPkce ?? false
+    };
 
-    if (result.success) {
+    if (normalized.success) {
         const form = document.createElement("form");
         form.method = "POST";
         form.action = commitUrl;
@@ -96,11 +105,9 @@ window.uauth.tryAndCommit = async function (options) {
 
         document.body.appendChild(form);
         form.submit();
-
-        return result;
     }
 
-    return result;
+    return normalized;
 };
 
 window.uauth.post = async function (options) {

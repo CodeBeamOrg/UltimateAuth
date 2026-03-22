@@ -17,8 +17,8 @@ public interface IFlowClient
     Task<AuthValidationResult> ValidateAsync();
 
     Task BeginPkceAsync(string? returnUrl = null);
-    Task<TryPkceLoginResult> TryCompletePkceLoginAsync(TryPkceLoginRequest request, bool commitOnSuccess = false, CancellationToken ct = default);
-    Task CompletePkceLoginAsync(PkceLoginRequest request);
+    Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode);
+    Task CompletePkceLoginAsync(PkceCompleteRequest request);
 
     Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request);
     Task<UAuthResult> LogoutOtherDevicesSelfAsync();
