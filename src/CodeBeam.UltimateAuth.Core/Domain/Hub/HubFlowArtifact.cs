@@ -39,4 +39,10 @@ public sealed class HubFlowArtifact : AuthArtifact
         Error = error;
         RegisterAttempt();
     }
+
+    public void ClearError()
+    {
+        Error = null;
+        RegisterAttempt();
+    }
 }

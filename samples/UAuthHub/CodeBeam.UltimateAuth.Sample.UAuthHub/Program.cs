@@ -28,6 +28,8 @@ builder.Services.AddMudServices(o => {
 });
 builder.Services.AddMudExtensions();
 
+builder.Services.AddScoped<DarkModeManager>();
+
 //builder.Services.AddAuthorization();
 
 //builder.Services.AddHttpContextAccessor();
@@ -35,8 +37,14 @@ builder.Services.AddMudExtensions();
 builder.Services.AddUltimateAuthServer(o => {
     o.Diagnostics.EnableRefreshDetails = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
+    //o.Session.Lifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
+    //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
+    //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
+    o.Login.MaxFailedAttempts = 2;
+    o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
+    o.Identifiers.AllowMultipleUsernames = true;
 })
     .AddUltimateAuthInMemory();
 
@@ -47,7 +55,6 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 });
 
 builder.Services.AddSingleton<IUAuthHubMarker, DefaultUAuthHubMarker>();
-builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddCors(options =>
 {

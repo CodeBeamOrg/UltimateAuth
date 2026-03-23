@@ -170,6 +170,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
         services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
+        services.TryAddScoped<IPkceService, PkceService>();
+        services.TryAddScoped<IHubFlowService, HubFlowService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 

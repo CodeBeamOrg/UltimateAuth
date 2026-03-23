@@ -5,12 +5,16 @@
 
 @implements IDisposable
 @using CodeBeam.UltimateAuth.Client.Infrastructure
+@using CodeBeam.UltimateAuth.Client.Options
 @using CodeBeam.UltimateAuth.Client.Runtime
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Server.Services
 @using CodeBeam.UltimateAuth.Server.Stores
+@using Microsoft.Extensions.Options
 @inject IUAuthClient UAuthClient
 @inject IAuthStore AuthStore
+@inject IHubFlowService HubFlowService
 @inject IHubFlowReader HubFlowReader
 @inject IHubCredentialResolver HubCredentialResolver
 @inject IClientStorage BrowserStorage
@@ -18,6 +22,7 @@
 @inject IUAuthClientProductInfoProvider ClientProductInfoProvider
 @inject IDeviceIdProvider DeviceIdProvider
 @inject IDialogService DialogService
+@inject IOptions<UAuthClientOptions> Options
 
 @if (_state == null || !_state.IsActive)
 {
@@ -69,7 +74,7 @@
 
             <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
                 <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
-                    <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="@HandleLoginResult">
+                    <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.DirectCommit" OnTryResult="@HandleLoginResult">
                         <MudStack Class="mud-width-full">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />

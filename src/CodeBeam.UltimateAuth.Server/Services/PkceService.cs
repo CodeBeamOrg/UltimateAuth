@@ -1,0 +1,122 @@
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Stores;
+using Microsoft.Extensions.Options;
+
+namespace CodeBeam.UltimateAuth.Server.Services;
+
+internal sealed class PkceService : IPkceService
+{
+    private readonly IAuthStore _authStore;
+    private readonly IPkceAuthorizationValidator _validator;
+    private readonly IUAuthFlowService _flow;
+    private readonly IClock _clock;
+    private readonly UAuthServerOptions _options;
+
+    public PkceService(IAuthStore authStore, IPkceAuthorizationValidator validator, IUAuthFlowService flow, IClock clock, IOptions<UAuthServerOptions> options)
+    {
+        _authStore = authStore;
+        _validator = validator;
+        _flow = flow;
+        _clock = clock;
+        _options = options.Value;
+    }
+
+    public async Task<PkceAuthorizeResponse> AuthorizeAsync(PkceAuthorizeCommand command, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(command.CodeChallenge))
+            throw new InvalidOperationException("code_challenge is required.");
+
+        if (!string.Equals(command.ChallengeMethod, "S256", StringComparison.Ordinal))
+            throw new InvalidOperationException("Only S256 supported.");
+
+        var authorizationCode = AuthArtifactKey.New();
+
+        var snapshot = new PkceContextSnapshot(
+            clientProfile: command.ClientProfile,
+            tenant: command.Tenant,
+            redirectUri: command.RedirectUri,
+            deviceId: command.DeviceId
+        );
+
+        var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
+
+        var artifact = new PkceAuthorizationArtifact(
+            authorizationCode: authorizationCode,
+            codeChallenge: command.CodeChallenge,
+            challengeMethod: PkceChallengeMethod.S256,
+            expiresAt: expiresAt,
+            context: snapshot
+        );
+
+        await _authStore.StoreAsync(authorizationCode, artifact, ct);
+
+        return new PkceAuthorizeResponse
+        {
+            AuthorizationCode = authorizationCode.Value,
+            ExpiresIn = _options.Pkce.AuthorizationCodeLifetimeSeconds
+        };
+    }
+
+    public async Task<PkceCompleteResult> CompleteAsync(AuthFlowContext auth, PkceCompleteRequest request, CancellationToken ct = default)
+    {
+        var key = new AuthArtifactKey(request.AuthorizationCode);
+
+        var artifact = await _authStore.ConsumeAsync(key, ct) as PkceAuthorizationArtifact;
+
+        if (artifact is null)
+        {
+            return new PkceCompleteResult
+            {
+                InvalidPkce = true
+            };
+        }
+
+        var validation = _validator.Validate(
+            artifact,
+            request.CodeVerifier,
+            new PkceContextSnapshot(
+                clientProfile: auth.ClientProfile,
+                tenant: auth.Tenant,
+                redirectUri: null,
+                deviceId: artifact.Context.DeviceId),
+            _clock.UtcNow);
+
+        if (!validation.Success)
+        {
+            artifact.RegisterAttempt();
+
+            return new PkceCompleteResult
+            {
+                Success = false,
+                FailureReason = AuthFailureReason.InvalidCredentials
+            };
+        }
+
+        var loginRequest = new LoginRequest
+        {
+            Identifier = request.Identifier!,
+            Secret = request.Secret!,
+            RequestTokens = auth.AllowsTokenIssuance
+        };
+
+        var execution = new AuthExecutionContext
+        {
+            EffectiveClientProfile = artifact.Context.ClientProfile,
+            Device = DeviceContext.Create(DeviceId.Create(artifact.Context.DeviceId))
+        };
+
+        var result = await _flow.LoginAsync(auth, execution, loginRequest, ct);
+
+        return new PkceCompleteResult
+        {
+            Success = result.IsSuccess,
+            FailureReason = result.FailureReason,
+            LoginResult = result
+        };
+    }
+}

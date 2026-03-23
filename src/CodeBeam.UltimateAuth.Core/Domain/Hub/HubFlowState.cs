@@ -15,4 +15,21 @@ public sealed class HubFlowState
     public bool IsExpired { get; init; }
     public bool IsCompleted { get; init; }
     public bool Exists { get; init; }
+
+    public HubFlowState ClearError()
+    {
+        return new HubFlowState
+        {
+            HubSessionId = HubSessionId,
+            FlowType = FlowType,
+            ClientProfile = ClientProfile,
+            ReturnUrl = ReturnUrl,
+            Error = null,
+            AttemptCount = AttemptCount,
+            IsActive = IsActive,
+            IsExpired = IsExpired,
+            IsCompleted = IsCompleted,
+            Exists = Exists
+        };
+    }
 }

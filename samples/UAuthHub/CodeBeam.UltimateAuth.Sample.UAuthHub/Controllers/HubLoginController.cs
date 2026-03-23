@@ -30,13 +30,15 @@ public sealed class HubLoginController : Controller
         [FromForm] string authorization_code,
         [FromForm] string code_verifier,
         [FromForm] UAuthClientProfile client_profile,
-        [FromForm] string? return_url)
+        [FromForm] string? return_url,
+        [FromForm] string device_id)
     {
         var hubSessionId = HubSessionId.New();
 
         var payload = new HubFlowPayload();
         payload.Set("authorization_code", authorization_code);
         payload.Set("code_verifier", code_verifier);
+        payload.Set("device_id", device_id);
 
         var artifact = new HubFlowArtifact(
             hubSessionId: hubSessionId,

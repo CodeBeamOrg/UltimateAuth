@@ -241,8 +241,87 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
+    public async Task<PkceCredentials> BeginPkceSilentAsync()
+    {
+        var pkce = _options.Pkce;
+
+        if (!pkce.Enabled)
+            throw new InvalidOperationException("PKCE login is disabled.");
+
+        var verifier = CreateVerifier();
+        var challenge = CreateChallenge(verifier);
+
+        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
+
+        var raw = await _post.SendFormAsync(
+            authorizeUrl,
+            new Dictionary<string, string>
+            {
+                ["code_challenge"] = challenge,
+                ["challenge_method"] = "S256",
+            });
+
+        if (!raw.Ok || raw.Body is null)
+            throw new InvalidOperationException("PKCE authorize failed.");
+
+        var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (response is null || string.IsNullOrWhiteSpace(response.AuthorizationCode))
+            throw new InvalidOperationException("Invalid PKCE authorize response.");
+
+        if (pkce.OnAuthorized is not null)
+            await pkce.OnAuthorized(response);
+
+        return new PkceCredentials
+        {
+            AuthorizationCode = response.AuthorizationCode,
+            CodeVerifier = verifier
+        };
+    }
+
+    public async Task<PkceCredentials> ContinuePkceAsync(HubFlowArtifact hub)
+    {
+        var pkce = _options.Pkce;
+
+        if (!pkce.Enabled)
+            throw new InvalidOperationException("PKCE disabled.");
+
+        var deviceId = hub.Payload.GetRequired<string>("device_id");
+        var clientProfile = hub.ClientProfile;
+
+        var verifier = CreateVerifier();
+        var challenge = CreateChallenge(verifier);
+
+        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
+
+        var raw = await _post.SendFormAsync(
+            authorizeUrl,
+            new Dictionary<string, string>
+            {
+                ["code_challenge"] = challenge,
+                ["challenge_method"] = "S256",
+                ["device_id"] = deviceId
+            });
+
+        var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return new PkceCredentials
+        {
+            AuthorizationCode = response.AuthorizationCode,
+            CodeVerifier = verifier
+        };
+    }
+
     public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
     {
+        if (mode == UAuthSubmitMode.DirectCommit)
+        {
+            await CompletePkceLoginAsync(request);
+            return new TryPkceLoginResult();
+        }
+
         if (request is null)
             throw new ArgumentNullException(nameof(request));
 
@@ -323,6 +402,8 @@ internal class UAuthFlowClient : IFlowClient
 
             ["Identifier"] = request.Identifier ?? string.Empty,
             ["Secret"] = request.Secret ?? string.Empty,
+
+            ["hub_session_id"] = request.HubSessionId ?? string.Empty,
         };
 
         await _post.NavigateAsync(url, payload);

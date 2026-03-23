@@ -1,11 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.WebUtilities;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
@@ -70,55 +70,17 @@ public partial class Home
         if (_state.Error != null)
         {
             Snackbar.Add(ResolveErrorMessage(_state.Error), Severity.Error);
+            _state = _state.ClearError();
 
-            await Task.Delay(200); // UX
-            await StartNewPkceAsync();
+            await Task.Delay(200);
+            await ContinuePkceAsync();
+
+            if (HubSessionId.TryParse(HubKey, out var hubSessionId))
+            {
+                _state = await HubFlowReader.GetStateAsync(hubSessionId);
+            }
         }
     }
-
-    //protected override async Task OnAfterRenderAsync(bool firstRender)
-    //{
-    //    if (!firstRender)
-    //        return;
-
-    //    var currentError = await BrowserStorage.GetAsync(StorageScope.Session, "uauth:last_error");
-
-    //    if (!string.IsNullOrWhiteSpace(currentError))
-    //    {
-    //        Snackbar.Add(ResolveErrorMessage(currentError), Severity.Error);
-    //        await BrowserStorage.RemoveAsync(StorageScope.Session, "uauth:last_error");
-    //    }
-
-    //    var uri = Nav.ToAbsoluteUri(Nav.Uri);
-    //    var query = QueryHelpers.ParseQuery(uri.Query);
-
-    //    if (query.TryGetValue("__uauth_error", out var error))
-    //    {
-    //        await BrowserStorage.SetAsync(StorageScope.Session, "uauth:last_error", error.ToString());
-    //    }
-
-    //    if (string.IsNullOrWhiteSpace(HubKey))
-    //    {
-    //        return;
-    //    }
-
-    //    if (_state is null || !_state.Exists)
-    //        return;
-
-    //    if (_state?.IsActive != true)
-    //    {
-    //        await StartNewPkceAsync();
-    //        return;
-    //    }
-
-    //    if (_state?.Error != null)
-    //    {
-    //        Snackbar.Add("Error.", Severity.Error);
-
-    //        await Task.Delay(300); // UX
-    //        await StartNewPkceAsync();
-    //    }
-    //}
 
     // For testing & debugging
     private async Task ProgrammaticPkceLogin()
@@ -132,15 +94,6 @@ public partial class Home
             return;
 
         var credentials = await HubCredentialResolver.ResolveAsync(hubSessionId);
-
-        //var request = new PkceLoginRequest
-        //{
-        //    Identifier = "admin",
-        //    Secret = "admin",
-        //    AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
-        //    CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
-        //    ReturnUrl = _state?.ReturnUrl ?? string.Empty
-        //};
 
         var request = new PkceCompleteRequest
         {
@@ -161,11 +114,52 @@ public partial class Home
         {
             if (!result.Success)
             {
-                Snackbar.Add("Login failed", Severity.Error);
-                await StartNewPkceAsync();
+                if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+                {
+                    _lockoutUntil = until;
+                    StartCountdown();
+                }
+
+                _remainingAttempts = result.RemainingAttempts;
+
+                ShowLoginError(result.Reason, result.RemainingAttempts);
+                await ContinuePkceAsync();
             }
-            
         }
+    }
+
+    private PkceCredentials? _pkce;
+    private string? _hubSessionId;
+
+    private async Task ContinuePkceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_hubSessionId))
+            return;
+
+        _pkce = await UAuthClient.Flows.BeginPkceSilentAsync();
+        await HubFlowService.ContinuePkceAsync(_hubSessionId, _pkce.AuthorizationCode, _pkce.CodeVerifier);
+    }
+
+    private async Task StartNewPkceSilentAsync()
+    {
+        var returnUrl = await ResolveReturnUrlAsync();
+
+        _pkce = await UAuthClient.Flows.BeginPkceSilentAsync();
+
+        HubBeginRequest request = new HubBeginRequest()
+        {
+            AuthorizationCode = _pkce.AuthorizationCode,
+            CodeVerifier = _pkce.CodeVerifier,
+            ClientProfile = Options.Value.ClientProfile,
+            Tenant = TenantKeys.Single, // TODO
+            ReturnUrl = returnUrl,
+            PreviousHubSessionId = _hubSessionId
+            //deviceId: _deviceId
+        };
+
+        var result = await HubFlowService.BeginLoginAsync(request);
+
+        _hubSessionId = result.HubSessionId;
     }
 
     private async Task StartNewPkceAsync()
@@ -199,7 +193,99 @@ public partial class Home
 
         return Nav.Uri;
     }
-    
+
+    private async void StartCountdown()
+    {
+        if (_lockoutUntil is null)
+            return;
+
+        _isLocked = true;
+        _lockoutStartedAt = DateTimeOffset.UtcNow;
+        _lockoutDuration = _lockoutUntil.Value - DateTimeOffset.UtcNow;
+        UpdateRemaining();
+
+        _lockoutCts?.Cancel();
+        _lockoutCts = new CancellationTokenSource();
+
+        _lockoutTimer?.Dispose();
+        _lockoutTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await _lockoutTimer.WaitForNextTickAsync(_lockoutCts.Token))
+            {
+                UpdateRemaining();
+
+                if (_remaining <= TimeSpan.Zero)
+                {
+                    ResetLockoutState();
+                    await InvokeAsync(StateHasChanged);
+                    break;
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+
+        }
+    }
+
+    private void ResetLockoutState()
+    {
+        _isLocked = false;
+        _lockoutUntil = null;
+        _progressPercent = 0;
+        _remainingAttempts = null;
+    }
+
+    private void UpdateRemaining()
+    {
+        if (_lockoutUntil is null || _lockoutStartedAt is null)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+
+        _remaining = _lockoutUntil.Value - now;
+
+        if (_remaining <= TimeSpan.Zero)
+        {
+            _remaining = TimeSpan.Zero;
+            return;
+        }
+
+        var elapsed = now - _lockoutStartedAt.Value;
+
+        if (_lockoutDuration.TotalSeconds > 0)
+        {
+            var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
+            _progressPercent = Math.Max(0, percent);
+        }
+    }
+
+    private void ShowLoginError(AuthFailureReason? reason, int? remainingAttempts)
+    {
+        string message = reason switch
+        {
+            AuthFailureReason.InvalidCredentials when remainingAttempts is > 0
+                => $"Invalid username or password. {remainingAttempts} attempt(s) remaining.",
+
+            AuthFailureReason.InvalidCredentials
+                => "Invalid username or password.",
+
+            AuthFailureReason.RequiresMfa
+                => "Multi-factor authentication required.",
+
+            AuthFailureReason.LockedOut
+                => "Your account is locked.",
+
+            _ => "Login failed."
+        };
+
+        Snackbar.Add(message, Severity.Error);
+    }
+
     private string ResolveErrorMessage(string? errorKey)
     {
         if (errorKey == "invalid")

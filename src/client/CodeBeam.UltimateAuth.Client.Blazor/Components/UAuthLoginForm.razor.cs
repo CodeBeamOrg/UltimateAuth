@@ -182,7 +182,7 @@ public partial class UAuthLoginForm
         {
             case UAuthSubmitMode.DirectCommit:
                 {
-                    await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.DirectCommit);
+                    await UAuthClient.Flows.CompletePkceLoginAsync(request);
                     break;
                 }
 
