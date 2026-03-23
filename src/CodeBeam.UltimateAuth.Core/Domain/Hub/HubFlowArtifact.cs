@@ -14,7 +14,7 @@ public sealed class HubFlowArtifact : AuthArtifact
 
     public HubFlowPayload Payload { get; }
 
-    public string? Error { get; private set; }
+    public HubErrorCode? Error { get; private set; }
 
     public HubFlowArtifact(
         HubSessionId hubSessionId,
@@ -34,7 +34,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         Payload = payload;
     }
 
-    public void SetError(string error)
+    public void SetError(HubErrorCode error)
     {
         Error = error;
         RegisterAttempt();

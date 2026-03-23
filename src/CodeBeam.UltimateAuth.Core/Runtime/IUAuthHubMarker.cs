@@ -6,4 +6,5 @@
 /// </summary>
 public interface IUAuthHubMarker
 {
+    bool RequiresCors { get; }
 }

@@ -12,7 +12,6 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddCircuitOptions(options =>
@@ -27,7 +26,6 @@ builder.Services.AddMudExtensions();
 
 builder.Services.AddScoped<DarkModeManager>();
 
-
 builder.Services.AddUltimateAuthServer(o => {
     o.Diagnostics.EnableRefreshDetails = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
@@ -41,7 +39,7 @@ builder.Services.AddUltimateAuthServer(o => {
     o.Identifiers.AllowMultipleUsernames = true;
 })
     .AddUltimateAuthInMemory()
-    .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130"));
+    .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130")); // Client sample's URL
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
@@ -49,25 +47,11 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("UAuthHub", policy =>
-//    {
-//        policy
-//            .WithOrigins("https://localhost:6130")
-//            .AllowAnyHeader()
-//            .AllowAnyMethod()
-//            .AllowCredentials()
-//            .WithExposedHeaders("X-UAuth-Refresh"); // TODO: Add exposed headers globally
-//    });
-//});
-
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 else
@@ -81,7 +65,6 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors("UAuthHub");
 
 app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
@@ -93,14 +76,5 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
-
-app.MapGet("/health", () =>
-{
-    return Results.Ok(new
-    {
-        service = "UAuthHub",
-        status = "ok"
-    });
-});
 
 app.Run();

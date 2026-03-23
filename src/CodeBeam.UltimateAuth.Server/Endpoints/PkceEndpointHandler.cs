@@ -265,7 +265,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
             if (artifact is HubFlowArtifact hub)
             {
-                hub.SetError("invalid");
+                hub.SetError(HubErrorCode.InvalidCredentials);
                 await _authStore.StoreAsync(key, hub);
 
                 return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}");

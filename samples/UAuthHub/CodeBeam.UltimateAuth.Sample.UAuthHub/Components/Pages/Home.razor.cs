@@ -4,20 +4,14 @@ using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
 
 public partial class Home
 {
-    [SupplyParameterFromQuery(Name = "hub")]
-    public string? HubKey { get; set; }
-
     private string? _username;
     private string? _password;
-
-    private HubFlowState? _state;
 
     private UAuthClientProductInfo? _productInfo;
     private UAuthLoginForm _loginForm = null!;
@@ -38,51 +32,35 @@ public partial class Home
         _productInfo = ClientProductInfoProvider.Get();
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (string.IsNullOrWhiteSpace(HubKey))
-        {
-            _state = null;
-            return;
-        }
-
-        if (HubSessionId.TryParse(HubKey, out var hubSessionId))
-            _state = await HubFlowReader.GetStateAsync(hubSessionId);
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (string.IsNullOrWhiteSpace(HubKey))
             return;
 
-        if (_state is null || !_state.Exists)
+        if (HubState is null || !HubState.Exists)
         {
             await StartNewPkceAsync();
             return;
         }
 
-        if (_state.IsExpired)
+        if (HubState.IsExpired)
         {
             await StartNewPkceAsync();
             return;
         }
 
-        if (_state.Error != null && !_errorHandled)
+        if (HubState.Error != null && !_errorHandled)
         {
             _errorHandled = true;
-
-            Snackbar.Add(ResolveErrorMessage(_state.Error), Severity.Error);
-            //_state = _state.ClearError();
-
-            //await Task.Delay(200);
+            Snackbar.Add(ResolveErrorMessage(HubState.Error), Severity.Error);
             await ContinuePkceAsync();
 
             if (HubSessionId.TryParse(HubKey, out var hubSessionId))
             {
-                _state = await HubFlowReader.GetStateAsync(hubSessionId);
+                await ReloadState();
             }
 
-            await _loginForm.RefreshAsync();
+            await _loginForm.ReloadAsync();
 
             StateHasChanged();
         }
@@ -91,7 +69,7 @@ public partial class Home
     // For testing & debugging
     private async Task ProgrammaticPkceLogin()
     {
-        var hub = _state;
+        var hub = HubState;
 
         if (hub is null)
             return;
@@ -107,8 +85,8 @@ public partial class Home
             Secret = "admin",
             AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
             CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
-            ReturnUrl = _state?.ReturnUrl ?? string.Empty,
-            HubSessionId = _state?.HubSessionId.Value ?? hubSessionId.Value,
+            ReturnUrl = HubState?.ReturnUrl ?? string.Empty,
+            HubSessionId = HubState?.HubSessionId.Value ?? hubSessionId.Value,
         };
 
         await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.TryAndCommit);
@@ -159,7 +137,7 @@ public partial class Home
 
     private async Task<string> ResolveReturnUrlAsync()
     {
-        var fromContext = _state?.ReturnUrl;
+        var fromContext = HubState?.ReturnUrl;
         if (!string.IsNullOrWhiteSpace(fromContext))
             return fromContext;
 
@@ -275,11 +253,11 @@ public partial class Home
         Snackbar.Add(message, Severity.Error);
     }
 
-    private string ResolveErrorMessage(string? errorKey)
+    private string ResolveErrorMessage(HubErrorCode? errorCode)
     {
-        if (errorKey == "invalid")
+        if (errorCode == HubErrorCode.InvalidCredentials)
         {
-            return "Login failed.";
+            return "Invalid credentials.";
         }
 
         return "Failed attempt.";

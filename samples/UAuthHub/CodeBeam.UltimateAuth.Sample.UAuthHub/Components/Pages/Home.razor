@@ -1,7 +1,7 @@
 ﻿@page "/"
 @page "/login"
 @attribute [UAuthLoginPage]
-@inherits UAuthFlowPageBase
+@inherits UAuthHubPageBase
 
 @implements IDisposable
 @using CodeBeam.UltimateAuth.Client.Infrastructure
@@ -16,7 +16,6 @@
 @inject IAuthStore AuthStore
 @inject IHubFlowService HubFlowService
 @inject IPkceService PkceService
-@inject IHubFlowReader HubFlowReader
 @inject IHubCredentialResolver HubCredentialResolver
 @inject IClientStorage BrowserStorage
 @inject ISnackbar Snackbar
@@ -25,7 +24,7 @@
 @inject IDialogService DialogService
 @inject IOptions<UAuthClientOptions> Options
 
-@if (_state == null || !_state.IsActive)
+@if (!IsHubAuthorized)
 {
     <MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
         <MudPaper Class="pa-8" Elevation="4" Style="max-width: 520px; width: 100%;">
@@ -115,11 +114,12 @@
                         <MudText Style="color: var(--mud-palette-text-secondary)" Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
                     </MudStack>
 
-                    <MudDivider Class="my-2" />
+                    @* <MudDivider Class="my-2" /> *@
 
                     <MudStack>
+                        @* TODO: Enhance sample *@
                         @* <MudText Align="Align.Center" Typo="Typo.subtitle2"><MudLink Class="cursor-pointer" OnClick="OpenResetDialog">Forgot Password</MudLink></MudText> *@
-                        <MudText Align="Align.Center" Typo="Typo.subtitle2">Don't have an account? <MudLink Class="cursor-pointer" Href="/register">SignUp</MudLink></MudText>
+                        @* <MudText Align="Align.Center" Typo="Typo.subtitle2">Don't have an account? <MudLink Class="cursor-pointer" Href="/register">SignUp</MudLink></MudText> *@
                     </MudStack>
                 </MudPaper>
             </MudItem>
