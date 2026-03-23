@@ -6,6 +6,8 @@ using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -118,5 +120,60 @@ internal sealed class PkceService : IPkceService
             FailureReason = result.FailureReason,
             LoginResult = result
         };
+    }
+
+    public async Task<PkceCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default)
+    {
+        if (!hub.Payload.TryGet<string>("device_id", out var deviceId) || string.IsNullOrWhiteSpace(deviceId))
+            throw new InvalidOperationException("HubFlow missing device_id.");
+
+        var verifier = CreateVerifier();
+        var challenge = CreateChallenge(verifier);
+
+        var authorizationCode = AuthArtifactKey.New();
+
+        var snapshot = new PkceContextSnapshot(
+            clientProfile: hub.ClientProfile,
+            tenant: hub.Tenant,
+            redirectUri: null,
+            deviceId: deviceId
+        );
+
+        var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
+
+        var artifact = new PkceAuthorizationArtifact(
+            authorizationCode,
+            challenge,
+            PkceChallengeMethod.S256,
+            expiresAt,
+            snapshot
+        );
+
+        await _authStore.StoreAsync(authorizationCode, artifact, ct);
+
+        return new PkceCredentials
+        {
+            AuthorizationCode = authorizationCode.Value,
+            CodeVerifier = verifier
+        };
+    }
+
+    private static string CreateVerifier()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+    }
+
+    private static string CreateChallenge(string verifier)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(verifier));
+
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 }

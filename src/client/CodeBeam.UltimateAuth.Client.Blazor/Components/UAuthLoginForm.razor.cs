@@ -209,6 +209,13 @@ public partial class UAuthLoginForm
             await OnTryResult.InvokeAsync(result);
     }
 
+    public async Task RefreshAsync()
+    {
+        await ReloadCredentialsAsync();
+        await ReloadStateAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string ClientProfileValue => Options.Value.ClientProfile.ToString();
 
     private string EffectiveEndpoint => LoginType == UAuthLoginType.Pkce

@@ -241,85 +241,46 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
-    public async Task<PkceCredentials> BeginPkceSilentAsync()
-    {
-        var pkce = _options.Pkce;
+    //public async Task<PkceCredentials> ContinuePkceAsync(HubFlowArtifact hub)
+    //{
+    //    var pkce = _options.Pkce;
 
-        if (!pkce.Enabled)
-            throw new InvalidOperationException("PKCE login is disabled.");
+    //    if (!pkce.Enabled)
+    //        throw new InvalidOperationException("PKCE disabled.");
 
-        var verifier = CreateVerifier();
-        var challenge = CreateChallenge(verifier);
+    //    var deviceId = hub.Payload.GetRequired<string>("device_id");
+    //    var clientProfile = hub.ClientProfile;
 
-        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
+    //    var verifier = CreateVerifier();
+    //    var challenge = CreateChallenge(verifier);
 
-        var raw = await _post.SendFormAsync(
-            authorizeUrl,
-            new Dictionary<string, string>
-            {
-                ["code_challenge"] = challenge,
-                ["challenge_method"] = "S256",
-            });
+    //    var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
 
-        if (!raw.Ok || raw.Body is null)
-            throw new InvalidOperationException("PKCE authorize failed.");
+    //    var raw = await _post.SendFormAsync(
+    //        authorizeUrl,
+    //        new Dictionary<string, string>
+    //        {
+    //            ["code_challenge"] = challenge,
+    //            ["challenge_method"] = "S256",
+    //            ["device_id"] = deviceId
+    //        });
 
-        var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    //    var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
+    //        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        if (response is null || string.IsNullOrWhiteSpace(response.AuthorizationCode))
-            throw new InvalidOperationException("Invalid PKCE authorize response.");
-
-        if (pkce.OnAuthorized is not null)
-            await pkce.OnAuthorized(response);
-
-        return new PkceCredentials
-        {
-            AuthorizationCode = response.AuthorizationCode,
-            CodeVerifier = verifier
-        };
-    }
-
-    public async Task<PkceCredentials> ContinuePkceAsync(HubFlowArtifact hub)
-    {
-        var pkce = _options.Pkce;
-
-        if (!pkce.Enabled)
-            throw new InvalidOperationException("PKCE disabled.");
-
-        var deviceId = hub.Payload.GetRequired<string>("device_id");
-        var clientProfile = hub.ClientProfile;
-
-        var verifier = CreateVerifier();
-        var challenge = CreateChallenge(verifier);
-
-        var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
-
-        var raw = await _post.SendFormAsync(
-            authorizeUrl,
-            new Dictionary<string, string>
-            {
-                ["code_challenge"] = challenge,
-                ["challenge_method"] = "S256",
-                ["device_id"] = deviceId
-            });
-
-        var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        return new PkceCredentials
-        {
-            AuthorizationCode = response.AuthorizationCode,
-            CodeVerifier = verifier
-        };
-    }
+    //    return new PkceCredentials
+    //    {
+    //        AuthorizationCode = response.AuthorizationCode,
+    //        CodeVerifier = verifier
+    //    };
+    //}
 
     public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
     {
         if (mode == UAuthSubmitMode.DirectCommit)
         {
             await CompletePkceLoginAsync(request);
-            return new TryPkceLoginResult();
+            return new TryPkceLoginResult { Success = true };
         }
 
         if (request is null)
@@ -359,19 +320,10 @@ internal class UAuthFlowClient : IFlowClient
                     return parsed;
                 }
 
-            case UAuthSubmitMode.DirectCommit:
-                {
-                    await _post.NavigateAsync(commitUrl, payload);
-                    return new TryPkceLoginResult { Success = true };
-                }
-
             case UAuthSubmitMode.TryAndCommit:
             default:
                 {
-                    var result = await _post.TryAndCommitAsync<TryPkceLoginResult>(
-                        tryUrl,
-                        commitUrl,
-                        payload);
+                    var result = await _post.TryAndCommitAsync<TryPkceLoginResult>(tryUrl, commitUrl, payload);
 
                     if (result is null)
                         throw new UAuthProtocolException("Invalid PKCE try result.");

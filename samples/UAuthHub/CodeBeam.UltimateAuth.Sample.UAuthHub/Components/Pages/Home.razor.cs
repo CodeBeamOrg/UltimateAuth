@@ -1,9 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -21,6 +23,7 @@ public partial class Home
     private HubFlowState? _state;
 
     private UAuthClientProductInfo? _productInfo;
+    private UAuthLoginForm _loginForm = null!;
     private MudTextField<string> _usernameField = default!;
 
     private CancellationTokenSource? _lockoutCts;
@@ -32,6 +35,7 @@ public partial class Home
     private TimeSpan _lockoutDuration;
     private double _progressPercent;
     private int? _remainingAttempts = null;
+    private bool _errorHandled;
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,18 +71,24 @@ public partial class Home
             return;
         }
 
-        if (_state.Error != null)
+        if (_state.Error != null && !_errorHandled)
         {
-            Snackbar.Add(ResolveErrorMessage(_state.Error), Severity.Error);
-            _state = _state.ClearError();
+            _errorHandled = true;
 
-            await Task.Delay(200);
+            Snackbar.Add(ResolveErrorMessage(_state.Error), Severity.Error);
+            //_state = _state.ClearError();
+
+            //await Task.Delay(200);
             await ContinuePkceAsync();
 
             if (HubSessionId.TryParse(HubKey, out var hubSessionId))
             {
                 _state = await HubFlowReader.GetStateAsync(hubSessionId);
             }
+
+            await _loginForm.RefreshAsync();
+
+            StateHasChanged();
         }
     }
 
@@ -129,37 +139,20 @@ public partial class Home
     }
 
     private PkceCredentials? _pkce;
-    private string? _hubSessionId;
 
     private async Task ContinuePkceAsync()
     {
-        if (string.IsNullOrWhiteSpace(_hubSessionId))
+        if (string.IsNullOrWhiteSpace(HubKey))
             return;
 
-        _pkce = await UAuthClient.Flows.BeginPkceSilentAsync();
-        await HubFlowService.ContinuePkceAsync(_hubSessionId, _pkce.AuthorizationCode, _pkce.CodeVerifier);
-    }
+        var key = new AuthArtifactKey(HubKey);
+        var artifact = await AuthStore.GetAsync(key) as HubFlowArtifact;
 
-    private async Task StartNewPkceSilentAsync()
-    {
-        var returnUrl = await ResolveReturnUrlAsync();
+        if (artifact is null)
+            return;
 
-        _pkce = await UAuthClient.Flows.BeginPkceSilentAsync();
-
-        HubBeginRequest request = new HubBeginRequest()
-        {
-            AuthorizationCode = _pkce.AuthorizationCode,
-            CodeVerifier = _pkce.CodeVerifier,
-            ClientProfile = Options.Value.ClientProfile,
-            Tenant = TenantKeys.Single, // TODO
-            ReturnUrl = returnUrl,
-            PreviousHubSessionId = _hubSessionId
-            //deviceId: _deviceId
-        };
-
-        var result = await HubFlowService.BeginLoginAsync(request);
-
-        _hubSessionId = result.HubSessionId;
+        _pkce = await PkceService.RefreshAsync(artifact);
+        await HubFlowService.ContinuePkceAsync(HubKey, _pkce.AuthorizationCode, _pkce.CodeVerifier);
     }
 
     private async Task StartNewPkceAsync()
