@@ -82,9 +82,9 @@ internal sealed class PkceService : IPkceService
             artifact,
             request.CodeVerifier,
             new PkceContextSnapshot(
-                clientProfile: auth.ClientProfile,
-                tenant: auth.Tenant,
-                redirectUri: null,
+                clientProfile: artifact.Context.ClientProfile,
+                tenant: artifact.Context.Tenant,
+                redirectUri: artifact.Context.RedirectUri,
                 device: artifact.Context.Device),
             _clock.UtcNow);
 
@@ -132,7 +132,7 @@ internal sealed class PkceService : IPkceService
         var snapshot = new PkceContextSnapshot(
             clientProfile: hub.ClientProfile,
             tenant: hub.Tenant,
-            redirectUri: null,
+            redirectUri: hub.ReturnUrl,
             device: device
         );
 

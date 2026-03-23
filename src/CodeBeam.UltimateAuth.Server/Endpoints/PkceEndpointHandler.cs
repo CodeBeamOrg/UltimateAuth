@@ -107,9 +107,9 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             artifact,
             request.CodeVerifier,
             new PkceContextSnapshot(
-                clientProfile: authContext.ClientProfile,
-                tenant: authContext.Tenant,
-                redirectUri: null,
+                clientProfile: artifact.Context.ClientProfile,
+                tenant: artifact.Context.Tenant,
+                redirectUri: artifact.Context.RedirectUri,
                 device: artifact.Context.Device),
             _clock.UtcNow);
 

@@ -25,9 +25,8 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
 
     private static bool IsContextValid(PkceContextSnapshot original, PkceContextSnapshot completion)
     {
-        // TODO: Fix this
-        //if (!original.ClientProfile.Equals(completion.ClientProfile))
-        //    return false;
+        if (!original.ClientProfile.Equals(completion.ClientProfile))
+            return false;
 
         if (!string.Equals(original.Tenant, completion.Tenant, StringComparison.Ordinal))
             return false;
