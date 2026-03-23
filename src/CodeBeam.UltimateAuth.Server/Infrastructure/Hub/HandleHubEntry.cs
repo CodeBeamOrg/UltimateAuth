@@ -1,11 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
@@ -33,20 +37,42 @@ internal class HandleHub
         var payload = new HubFlowPayload();
         payload.Set("authorization_code", authorizationCode);
         payload.Set("code_verifier", codeVerifier);
-        payload.Set("device_id", deviceId);
 
         var tenant = ctx.GetTenant();
+
+        var deviceRaw = form["device"].FirstOrDefault();
+        DeviceContext device;
+
+        if (!string.IsNullOrWhiteSpace(deviceRaw))
+        {
+            try
+            {
+                var bytes = WebEncoders.Base64UrlDecode(deviceRaw);
+                var json = Encoding.UTF8.GetString(bytes);
+
+                device = JsonSerializer.Deserialize<DeviceContext>(json) ?? DeviceContext.Anonymous();
+            }
+            catch
+            {
+                device = DeviceContext.Anonymous();
+            }
+        }
+        else
+        {
+            device = DeviceContext.Anonymous();
+        }
 
         var artifact = new HubFlowArtifact(
             hubSessionId,
             HubFlowType.Login,
             clientProfile,
             tenant,
+            device,
             returnUrl,
             payload,
             clock.UtcNow.Add(options.Value.Hub.FlowLifetime));
 
         await store.StoreAsync(new AuthArtifactKey(hubSessionId.Value), artifact);
-        return Results.Redirect($"{options.Value.Hub.LoginPath}?hub={hubSessionId.Value}");
+        return Results.Redirect($"{options.Value.Hub.LoginPath}?{UAuthConstants.Query.Hub}={hubSessionId.Value}");
     }
 }

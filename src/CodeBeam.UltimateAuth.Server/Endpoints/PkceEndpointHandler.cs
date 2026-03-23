@@ -1,16 +1,18 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
@@ -61,7 +63,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             {
                 CodeChallenge = request.CodeChallenge,
                 ChallengeMethod = request.ChallengeMethod,
-                DeviceId = request.DeviceId,
+                Device = request.Device,
                 RedirectUri = request.RedirectUri,
                 ClientProfile = auth.ClientProfile,
                 Tenant = auth.Tenant
@@ -108,7 +110,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 clientProfile: authContext.ClientProfile,
                 tenant: authContext.Tenant,
                 redirectUri: null,
-                deviceId: artifact.Context.DeviceId),
+                device: artifact.Context.Device),
             _clock.UtcNow);
 
         if (!validation.Success)
@@ -130,7 +132,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         var execution = new AuthExecutionContext
         {
             EffectiveClientProfile = artifact.Context.ClientProfile,
-            Device = DeviceContext.Create(DeviceId.Create(artifact.Context.DeviceId))
+            Device = artifact.Context.Device
         };
 
         var preview = await _internalFlowService.LoginAsync(authContext, execution, loginRequest,
@@ -204,19 +206,41 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         if (ctx.Request.HasFormContentType)
         {
-            var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
+            var form = await ctx.GetCachedFormAsync();
 
             var codeChallenge = form["code_challenge"].ToString();
             var challengeMethod = form["challenge_method"].ToString();
             var redirectUri = form["redirect_uri"].ToString();
-            var deviceId = form["device_id"].ToString();
+
+            var deviceRaw = form["device"].FirstOrDefault();
+            DeviceContext? device = null;
+
+            if (!string.IsNullOrWhiteSpace(deviceRaw))
+            {
+                try
+                {
+                    var bytes = WebEncoders.Base64UrlDecode(deviceRaw);
+                    var json = Encoding.UTF8.GetString(bytes);
+                    device = JsonSerializer.Deserialize<DeviceContext>(json);
+                }
+                catch
+                {
+                    device = null;
+                }
+            }
+
+            if (device == null)
+            {
+                var info = await ctx.GetDeviceAsync();
+                device = DeviceContext.Create(info.DeviceId, info.DeviceType, info.Platform, info.OperatingSystem, info.Browser, info.IpAddress);
+            }
 
             return new PkceAuthorizeRequest
             {
                 CodeChallenge = codeChallenge,
                 ChallengeMethod = challengeMethod,
                 RedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? null : redirectUri,
-                DeviceId = deviceId
+                Device = device
             };
         }
 
@@ -268,7 +292,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 hub.SetError(HubErrorCode.InvalidCredentials);
                 await _authStore.StoreAsync(key, hub);
 
-                return Results.Redirect($"{basePath}?hub={Uri.EscapeDataString(hubKey)}");
+                return Results.Redirect($"{basePath}?{UAuthConstants.Query.Hub}={Uri.EscapeDataString(hubKey)}");
             }
         }
         return Results.Redirect(basePath);
@@ -276,7 +300,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
     private async Task<string?> ResolveHubKeyAsync(HttpContext ctx)
     {
-        if (ctx.Request.Query.TryGetValue("hub", out var q) && !string.IsNullOrWhiteSpace(q))
+        if (ctx.Request.Query.TryGetValue(UAuthConstants.Query.Hub, out var q) && !string.IsNullOrWhiteSpace(q))
             return q.ToString();
 
         if (ctx.Request.HasFormContentType)

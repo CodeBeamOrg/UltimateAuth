@@ -42,7 +42,7 @@ internal sealed class PkceService : IPkceService
             clientProfile: command.ClientProfile,
             tenant: command.Tenant,
             redirectUri: command.RedirectUri,
-            deviceId: command.DeviceId
+            device: command.Device
         );
 
         var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
@@ -85,7 +85,7 @@ internal sealed class PkceService : IPkceService
                 clientProfile: auth.ClientProfile,
                 tenant: auth.Tenant,
                 redirectUri: null,
-                deviceId: artifact.Context.DeviceId),
+                device: artifact.Context.Device),
             _clock.UtcNow);
 
         if (!validation.Success)
@@ -109,7 +109,7 @@ internal sealed class PkceService : IPkceService
         var execution = new AuthExecutionContext
         {
             EffectiveClientProfile = artifact.Context.ClientProfile,
-            Device = DeviceContext.Create(DeviceId.Create(artifact.Context.DeviceId))
+            Device = artifact.Context.Device
         };
 
         var result = await _flow.LoginAsync(auth, execution, loginRequest, ct);
@@ -124,19 +124,16 @@ internal sealed class PkceService : IPkceService
 
     public async Task<HubCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default)
     {
-        if (!hub.Payload.TryGet<string>("device_id", out var deviceId) || string.IsNullOrWhiteSpace(deviceId))
-            throw new InvalidOperationException("HubFlow missing device_id.");
-
         var verifier = CreateVerifier();
         var challenge = CreateChallenge(verifier);
-
+        var device = hub.Device;
         var authorizationCode = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
             clientProfile: hub.ClientProfile,
             tenant: hub.Tenant,
             redirectUri: null,
-            deviceId: deviceId
+            device: device
         );
 
         var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);

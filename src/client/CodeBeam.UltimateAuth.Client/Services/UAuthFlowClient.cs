@@ -22,15 +22,17 @@ internal class UAuthFlowClient : IFlowClient
 {
     private readonly IUAuthRequestClient _post;
     private readonly IUAuthClientEvents _events;
+    private readonly IClientDeviceProvider _clientDeviceProvider;
     private readonly IDeviceIdProvider _deviceIdProvider;
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IDeviceIdProvider deviceIdProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IDeviceIdProvider deviceIdProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
     {
         _post = post;
         _events = events;
+        _clientDeviceProvider = clientDeviceProvider;
         _deviceIdProvider = deviceIdProvider;
         _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
@@ -198,7 +200,7 @@ internal class UAuthFlowClient : IFlowClient
     public async Task BeginPkceAsync(string? returnUrl = null)
     {
         var pkce = _options.Pkce;
-        var deviceId = await _deviceIdProvider.GetOrCreateAsync();
+        var device = await _clientDeviceProvider.GetAsync();
 
         if (!pkce.Enabled)
             throw new InvalidOperationException("PKCE login is disabled by configuration.");
@@ -213,8 +215,7 @@ internal class UAuthFlowClient : IFlowClient
             new Dictionary<string, string>
             {
                 ["code_challenge"] = challenge,
-                ["challenge_method"] = "S256",
-                ["device_id"] = deviceId.Value
+                ["challenge_method"] = "S256"
             });
 
         if (!raw.Ok || raw.Body is null)
@@ -237,7 +238,7 @@ internal class UAuthFlowClient : IFlowClient
 
         if (pkce.AutoRedirect)
         {
-            await NavigateToHubLoginAsync(response.AuthorizationCode, verifier, resolvedReturnUrl, deviceId.Value);
+            await NavigateToHubLoginAsync(response.AuthorizationCode, verifier, resolvedReturnUrl, device);
         }
     }
 
@@ -411,9 +412,12 @@ internal class UAuthFlowClient : IFlowClient
         return payload;
     }
 
-    private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl, string deviceId)
+    private Task NavigateToHubLoginAsync(string authorizationCode, string codeVerifier, string returnUrl, DeviceContext device)
     {
         var hubLoginUrl = Url(_options.Endpoints.HubLoginPath);
+
+        var deviceJson = JsonSerializer.Serialize(device);
+        var deviceEncoded = Base64Url.Encode(Encoding.UTF8.GetBytes(deviceJson));
 
         var data = new Dictionary<string, string>
         {
@@ -421,7 +425,7 @@ internal class UAuthFlowClient : IFlowClient
             ["code_verifier"] = codeVerifier,
             ["return_url"] = returnUrl,
             ["client_profile"] = _options.ClientProfile.ToString(),
-            ["device_id"] = deviceId
+            ["device"] = deviceEncoded
         };
 
         return _post.NavigateAsync(hubLoginUrl, data);

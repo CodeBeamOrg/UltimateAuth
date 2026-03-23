@@ -74,6 +74,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IUserIdConverterResolver, UAuthUserIdConverterResolver>();
         services.TryAddSingleton<IUAuthProductInfoProvider, UAuthProductInfoProvider>();
+        services.TryAddSingleton<IUserAgentParser, UAuthUserAgentParser>();
 
         return services;
     }

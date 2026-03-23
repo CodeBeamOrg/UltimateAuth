@@ -10,6 +10,7 @@ public sealed class HubFlowArtifact : AuthArtifact
 
     public UAuthClientProfile ClientProfile { get; }
     public TenantKey Tenant { get; }
+    public DeviceContext Device { get; }
     public string? ReturnUrl { get; }
 
     public HubFlowPayload Payload { get; }
@@ -21,6 +22,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         HubFlowType flowType,
         UAuthClientProfile clientProfile,
         TenantKey tenant,
+        DeviceContext device,
         string? returnUrl,
         HubFlowPayload payload,
         DateTimeOffset expiresAt)
@@ -30,6 +32,7 @@ public sealed class HubFlowArtifact : AuthArtifact
         FlowType = flowType;
         ClientProfile = clientProfile;
         Tenant = tenant;
+        Device = device;
         ReturnUrl = returnUrl;
         Payload = payload;
     }

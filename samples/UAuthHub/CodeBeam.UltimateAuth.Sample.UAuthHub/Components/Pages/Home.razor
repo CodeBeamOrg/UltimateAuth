@@ -24,31 +24,6 @@
 @inject IDialogService DialogService
 @inject IOptions<UAuthClientOptions> Options
 
-@if (!IsHubAuthorized)
-{
-    <MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
-        <MudPaper Class="pa-8" Elevation="4" Style="max-width: 520px; width: 100%;">
-            <MudStack Spacing="3" AlignItems="AlignItems.Center">
-                <UAuthLogo Size="72" />
-
-                <MudText Typo="Typo.h5"><b>Access Denied</b></MudText>
-
-                <MudText Typo="Typo.body2" Align="Align.Center">
-                    This page cannot be accessed directly.
-                    UAuthHub login flows can only be initiated by an authorized client application.
-                </MudText>
-
-                <MudDivider Class="my-2" />
-
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    UltimateAuth protects this resource based on your session and permissions.
-                </MudText>
-            </MudStack>
-        </MudPaper>
-    </MudPage>
-    return;
-}
-
 <MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium" Gutters="false">
         <MudGrid Spacing="0">

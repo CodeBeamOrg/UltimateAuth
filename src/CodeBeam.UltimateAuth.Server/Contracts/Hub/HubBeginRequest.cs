@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Contracts;
@@ -15,5 +16,5 @@ public sealed record HubBeginRequest
 
     public string? PreviousHubSessionId { get; init; }
 
-    public string? DeviceId { get; init; }
+    public required DeviceContext Device { get; init; }
 }

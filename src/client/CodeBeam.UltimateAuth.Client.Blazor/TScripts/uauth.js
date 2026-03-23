@@ -234,3 +234,11 @@ window.uauth.postJson = async function (options) {
 window.uauth.setDeviceId = function (value) {
     window.uauth.deviceId = value;
 };
+
+window.uauth.getDeviceInfo = function () {
+    return {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language
+    };
+};

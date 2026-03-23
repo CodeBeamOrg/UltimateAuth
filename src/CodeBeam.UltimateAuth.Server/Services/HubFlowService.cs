@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -36,13 +35,13 @@ internal sealed class HubFlowService : IHubFlowService
         var payload = new HubFlowPayload();
         payload.Set("authorization_code", request.AuthorizationCode);
         payload.Set("code_verifier", request.CodeVerifier);
-        payload.Set("device_id", request.DeviceId);
 
         var artifact = new HubFlowArtifact(
             hubSessionId,
             HubFlowType.Login,
             request.ClientProfile,
             request.Tenant,
+            request.Device,
             request.ReturnUrl,
             payload,
             _clock.UtcNow.Add(_options.Hub.FlowLifetime));
