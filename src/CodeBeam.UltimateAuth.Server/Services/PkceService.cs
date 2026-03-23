@@ -122,7 +122,7 @@ internal sealed class PkceService : IPkceService
         };
     }
 
-    public async Task<PkceCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default)
+    public async Task<HubCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default)
     {
         if (!hub.Payload.TryGet<string>("device_id", out var deviceId) || string.IsNullOrWhiteSpace(deviceId))
             throw new InvalidOperationException("HubFlow missing device_id.");
@@ -151,7 +151,7 @@ internal sealed class PkceService : IPkceService
 
         await _authStore.StoreAsync(authorizationCode, artifact, ct);
 
-        return new PkceCredentials
+        return new HubCredentials
         {
             AuthorizationCode = authorizationCode.Value,
             CodeVerifier = verifier

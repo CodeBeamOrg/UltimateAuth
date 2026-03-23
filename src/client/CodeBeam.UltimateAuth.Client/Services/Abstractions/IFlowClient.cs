@@ -17,7 +17,6 @@ public interface IFlowClient
     Task<AuthValidationResult> ValidateAsync();
 
     Task BeginPkceAsync(string? returnUrl = null);
-    //Task<PkceCredentials> ContinuePkceAsync(HubFlowArtifact hub);
     Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode);
     Task CompletePkceLoginAsync(PkceCompleteRequest request);
 

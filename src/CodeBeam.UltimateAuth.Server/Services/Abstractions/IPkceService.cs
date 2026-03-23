@@ -8,5 +8,5 @@ public interface IPkceService
 {
     Task<PkceAuthorizeResponse> AuthorizeAsync(PkceAuthorizeCommand command, CancellationToken ct = default);
     Task<PkceCompleteResult> CompleteAsync(AuthFlowContext auth, PkceCompleteRequest request, CancellationToken ct = default);
-    Task<PkceCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default);
+    Task<HubCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default);
 }

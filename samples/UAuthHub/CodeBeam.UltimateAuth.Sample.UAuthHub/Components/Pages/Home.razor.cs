@@ -3,9 +3,6 @@ using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Server.Contracts;
-using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -24,7 +21,6 @@ public partial class Home
 
     private UAuthClientProductInfo? _productInfo;
     private UAuthLoginForm _loginForm = null!;
-    private MudTextField<string> _usernameField = default!;
 
     private CancellationTokenSource? _lockoutCts;
     private PeriodicTimer? _lockoutTimer;
@@ -138,7 +134,7 @@ public partial class Home
         }
     }
 
-    private PkceCredentials? _pkce;
+    private HubCredentials? _pkce;
 
     private async Task ContinuePkceAsync()
     {

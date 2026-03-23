@@ -70,6 +70,11 @@ h1:focus {
         color: white;
     }
 
+    .uauth-login-paper.mud-theme-secondary {
+        background: linear-gradient(145deg, var(--mud-palette-secondary), rgba(0, 0, 0, 0.85) );
+        color: white;
+    }
+
 .uauth-brand-glow {
     filter: drop-shadow(0 0 25px rgba(255,255,255,0.15));
 }

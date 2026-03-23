@@ -171,7 +171,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IPkceService, PkceService>();
-        services.TryAddScoped<IHubFlowService, HubFlowService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
@@ -214,7 +213,6 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IAuthResponseResolver, AuthResponseResolver>();
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
-        services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
         services.TryAddSingleton<IAuthRedirectResolver, AuthRedirectResolver>();
 
         services.TryAddScoped<ISessionTouchService, SessionTouchService>();
@@ -229,7 +227,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
         services.TryAddSingleton<IClientProfileReader, ClientProfileReader>();
-        services.TryAddScoped<IHubFlowReader, HubFlowReader>();
         
         services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
         services.TryAddScoped<IEffectiveServerOptionsProvider,EffectiveServerOptionsProvider>();
@@ -393,6 +390,45 @@ public static class ServiceCollectionExtensions
         services.PostConfigureAll<AuthenticationOptions>(options =>
         {
             options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubServerOptions>? configure = null)
+    {
+        services.PostConfigure<UAuthServerOptions>(options =>
+        {
+            configure?.Invoke(options.Hub);
+        });
+
+        services.TryAddSingleton<IUAuthHubMarker, UAuthHubMarker>();
+
+        services.TryAddScoped<IHubFlowService, HubFlowService>();
+        services.TryAddScoped<IHubFlowReader, HubFlowReader>();
+        services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("UAuthHub", policy =>
+            {
+                var sp = services.BuildServiceProvider();
+                var serverOptions = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+                var origins = serverOptions.Hub.AllowedClientOrigins
+                    .Select(OriginHelper.Normalize)
+                    .ToArray();
+
+                if (origins.Length > 0)
+                {
+                    policy
+                        .WithOrigins(origins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .WithExposedHeaders("X-UAuth-Refresh");
+                }
+            });
         });
 
         return services;

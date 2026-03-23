@@ -54,10 +54,10 @@
     <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium" Gutters="false">
         <MudGrid Spacing="0">
             <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
-                <MudPaper Class="mud-theme-primary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
+                <MudPaper Class="mud-theme-secondary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
                     <MudStack Class="my-4">
                         <div class="uauth-brand-glow uauth-logo-slide d-flex justify-center">
-                            <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-primary)" />
+                            <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-secondary)" />
                         </div>
                         <MudText Style="font-weight: 700" Typo="Typo.h4" Align="Align.Center">UAuthHub</MudText>
                         <MudText Align="Align.Center">The centralized AuthServer for your application.</MudText>
@@ -83,7 +83,7 @@
                                     <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
                                 </MudText>
                             </MudStack>
-                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
+                            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
                             <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
                             @if (_isLocked)

@@ -16,5 +16,5 @@ public sealed class UAuthClientEndpointOptions
     public string PkceAuthorize { get; set; } = "/pkce/authorize";
     public string PkceTryComplete { get; set; } = "/pkce/try-complete";
     public string PkceComplete { get; set; } = "/pkce/complete";
-    public string HubLoginPath { get; set; } = "/uauthhub/login";
+    public string HubLoginPath { get; set; } = "/uauthhub/entry";
 }

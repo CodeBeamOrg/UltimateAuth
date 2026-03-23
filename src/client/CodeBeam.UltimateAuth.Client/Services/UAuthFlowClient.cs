@@ -241,40 +241,6 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
-    //public async Task<PkceCredentials> ContinuePkceAsync(HubFlowArtifact hub)
-    //{
-    //    var pkce = _options.Pkce;
-
-    //    if (!pkce.Enabled)
-    //        throw new InvalidOperationException("PKCE disabled.");
-
-    //    var deviceId = hub.Payload.GetRequired<string>("device_id");
-    //    var clientProfile = hub.ClientProfile;
-
-    //    var verifier = CreateVerifier();
-    //    var challenge = CreateChallenge(verifier);
-
-    //    var authorizeUrl = Url(_options.Endpoints.PkceAuthorize);
-
-    //    var raw = await _post.SendFormAsync(
-    //        authorizeUrl,
-    //        new Dictionary<string, string>
-    //        {
-    //            ["code_challenge"] = challenge,
-    //            ["challenge_method"] = "S256",
-    //            ["device_id"] = deviceId
-    //        });
-
-    //    var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
-    //        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-    //    return new PkceCredentials
-    //    {
-    //        AuthorizationCode = response.AuthorizationCode,
-    //        CodeVerifier = verifier
-    //    };
-    //}
-
     public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
     {
         if (mode == UAuthSubmitMode.DirectCommit)
