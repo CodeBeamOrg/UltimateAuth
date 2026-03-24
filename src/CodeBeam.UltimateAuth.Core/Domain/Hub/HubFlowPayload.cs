@@ -19,4 +19,17 @@ public sealed class HubFlowPayload
         value = default;
         return false;
     }
+
+    public T GetRequired<T>(string key)
+    {
+        if (TryGet<T>(key, out var value) && value is not null)
+            return value;
+
+        throw new InvalidOperationException($"Payload key '{key}' is missing or invalid.");
+    }
+
+    public T? GetOptional<T>(string key)
+    {
+        return TryGet<T>(key, out var value) ? value : default;
+    }
 }

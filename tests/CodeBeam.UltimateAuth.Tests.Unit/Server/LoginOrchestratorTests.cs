@@ -4,6 +4,10 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +26,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -40,7 +43,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -62,7 +64,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -87,7 +88,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -95,7 +95,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user", // valid password
             });
@@ -116,7 +115,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -134,7 +132,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "ghost",
                 Secret = "whatever",
             });
@@ -156,7 +153,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -182,7 +178,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -190,7 +185,6 @@ public class LoginOrchestratorTests
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "user",
             });
@@ -212,7 +206,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -224,7 +217,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
             });
 
@@ -248,7 +240,6 @@ public class LoginOrchestratorTests
             await orchestrator.LoginAsync(flow,
                 new LoginRequest
                 {
-                    Tenant = TenantKey.Single,
                     Identifier = "user",
                     Secret = "wrong",
                 });
@@ -277,7 +268,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -291,7 +281,6 @@ public class LoginOrchestratorTests
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
-                Tenant = TenantKey.Single,
                 Identifier = "user",
                 Secret = "wrong",
             });
@@ -319,7 +308,6 @@ public class LoginOrchestratorTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });
@@ -347,7 +335,6 @@ public class LoginOrchestratorTests
 
         await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });
@@ -368,10 +355,80 @@ public class LoginOrchestratorTests
 
         var result = await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKey.Single,
             Identifier = "user",
             Secret = "user",
         });
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Login_With_Execution_Context_Should_Create_Session_For_Overridden_Device()
+    {
+        var runtime = new TestAuthRuntime<string>();
+
+        using var scope = runtime.Services.CreateScope();
+
+        var flowService = scope.ServiceProvider.GetRequiredService<IUAuthFlowService>();
+        var sessionStoreFactory = scope.ServiceProvider.GetRequiredService<ISessionStoreFactory>();
+
+        var flow = await runtime.CreateLoginFlowAsync();
+        var overriddenDevice = TestDevice.Alternative();
+
+        var execution = new AuthExecutionContext
+        {
+            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            Device = overriddenDevice
+        };
+
+        var result = await flowService.LoginAsync(
+            flow,
+            execution,
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "user"
+            }, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.SessionId.Should().NotBeNull();
+
+        var sessionStore = sessionStoreFactory.Create(TenantKeys.Single);
+        var session = await sessionStore.GetSessionAsync(result.SessionId!.Value);
+
+        session.Should().NotBeNull();
+        session!.Device.DeviceId.Should().Be(overriddenDevice.DeviceId);
+
+        var chainStore = sessionStoreFactory.Create(TenantKeys.Single);
+        var chain = await chainStore.GetChainByDeviceAsync(TestUsers.User, (DeviceId)overriddenDevice.DeviceId!);
+
+        chain.Should().NotBeNull();
+        chain!.Device.DeviceId.Should().Be(overriddenDevice.DeviceId);
+    }
+
+    [Fact]
+    public async Task Internal_Login_Should_Respect_LoginExecutionOptions()
+    {
+        var runtime = new TestAuthRuntime<string>();
+
+        using var scope = runtime.Services.CreateScope();
+
+        var service = scope.ServiceProvider.GetRequiredService<IUAuthInternalFlowService>();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var options = new LoginExecutionOptions
+        {
+            
+        };
+
+        var result = await service.LoginAsync(
+            flow,
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "user"
+            },
+            options);
 
         result.IsSuccess.Should().BeTrue();
     }

@@ -99,6 +99,21 @@ public partial class Login : UAuthFlowPageBase
         await UAuthClient.Flows.LoginAsync(request, ReturnUrl ?? "/home");
     }
 
+    private async Task HandleLoginResult(IUAuthTryResult result)
+    {
+        if (!result.Success)
+        {
+            if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+            {
+                _lockoutUntil = until;
+                StartCountdown();
+            }
+
+            _remainingAttempts = result.RemainingAttempts;
+            ShowLoginError(result.Reason, result.RemainingAttempts);
+        }
+    }
+
     private async void StartCountdown()
     {
         if (_lockoutUntil is null)

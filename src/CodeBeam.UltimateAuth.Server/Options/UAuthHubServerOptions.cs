@@ -10,7 +10,7 @@ public sealed class UAuthHubServerOptions
     /// Lifetime of hub flow artifacts (UI orchestration).
     /// Should be short-lived.
     /// </summary>
-    public TimeSpan FlowLifetime { get; set; } = TimeSpan.FromMinutes(2);
+    public TimeSpan FlowLifetime { get; set; } = TimeSpan.FromMinutes(5);
 
     public string? LoginPath { get; set; } = "/login";
 

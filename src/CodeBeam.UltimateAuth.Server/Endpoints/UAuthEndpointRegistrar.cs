@@ -47,6 +47,9 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                 => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
 
+            group.MapPost("/try-login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
+                => await h.TryLoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+
             group.MapPost("/validate", async ([FromServices] IValidateEndpointHandler h, HttpContext ctx)
                 => await h.ValidateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.ValidateSession));
 
@@ -95,6 +98,9 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             pkce.MapPost("/complete", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
                     => await h.CompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+
+            pkce.MapPost("/try-complete", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
+                    => await h.TryCompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
         }
 
         //if (options.Endpoints.Token != false)

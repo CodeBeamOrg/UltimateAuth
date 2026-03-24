@@ -17,4 +17,6 @@ public interface IPkceEndpointHandler
     /// then issues a session or token.
     /// </summary>
     Task<IResult> CompleteAsync(HttpContext ctx);
+
+    Task<IResult> TryCompleteAsync(HttpContext ctx);
 }

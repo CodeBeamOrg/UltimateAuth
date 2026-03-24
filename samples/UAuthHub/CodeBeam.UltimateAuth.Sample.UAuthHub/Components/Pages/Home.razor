@@ -1,82 +1,103 @@
 ﻿@page "/"
 @page "/login"
-@using CodeBeam.UltimateAuth.Client
-@using CodeBeam.UltimateAuth.Client.Authentication
-@using CodeBeam.UltimateAuth.Client.Diagnostics
+@attribute [UAuthLoginPage]
+@inherits UAuthHubPageBase
+
+@implements IDisposable
 @using CodeBeam.UltimateAuth.Client.Infrastructure
+@using CodeBeam.UltimateAuth.Client.Options
+@using CodeBeam.UltimateAuth.Client.Runtime
 @using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Core.Domain
-@using CodeBeam.UltimateAuth.Core.Runtime
-@using CodeBeam.UltimateAuth.Server.Abstractions
-@using CodeBeam.UltimateAuth.Server.Infrastructure
 @using CodeBeam.UltimateAuth.Server.Services
 @using CodeBeam.UltimateAuth.Server.Stores
-@inject IUAuthStateManager StateManager
-@inject IHubFlowReader HubFlowReader
-@inject IHubCredentialResolver HubCredentialResolver
-@inject IAuthStore AuthStore
-@inject IClientStorage BrowserStorage
-@inject IUAuthFlowService Flow
-@inject ISnackbar Snackbar
-@inject IFlowCredentialResolver CredentialResolver
+@using Microsoft.Extensions.Options
 @inject IUAuthClient UAuthClient
-@inject NavigationManager Nav
-@inject IUAuthProductInfoProvider ProductInfo
-@inject AuthenticationStateProvider AuthStateProvider
-@inject UAuthClientDiagnostics Diagnostics
+@inject IAuthStore AuthStore
+@inject IHubFlowService HubFlowService
+@inject IPkceService PkceService
+@inject IHubCredentialResolver HubCredentialResolver
+@inject IClientStorage BrowserStorage
+@inject ISnackbar Snackbar
+@inject IUAuthClientProductInfoProvider ClientProductInfoProvider
+@inject IDeviceIdProvider DeviceIdProvider
+@inject IDialogService DialogService
+@inject IOptions<UAuthClientOptions> Options
 
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium" Gutters="false">
+        <MudGrid Spacing="0">
+            <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
+                <MudPaper Class="mud-theme-secondary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
+                    <MudStack Class="my-4">
+                        <div class="uauth-brand-glow uauth-logo-slide d-flex justify-center">
+                            <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-secondary)" />
+                        </div>
+                        <MudText Style="font-weight: 700" Typo="Typo.h4" Align="Align.Center">UAuthHub</MudText>
+                        <MudText Align="Align.Center">The centralized AuthServer for your application.</MudText>
+                    </MudStack>
 
-<div class="uauth-page d-flex align-center justify-center">
-    <MudStack Class="uauth-stack">
-        @if (_state == null || !_state.IsActive)
-        {
-            <MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
-                <MudPaper Class="pa-8" Elevation="4" Style="max-width: 520px; width: 100%;">
-                    <MudStack Spacing="3" AlignItems="AlignItems.Center">
-                        <UAuthLogo Size="72" />
+                    <MudDivider />
 
-                        <MudText Typo="Typo.h5"><b>Access Denied</b></MudText>
-
-                        <MudText Typo="Typo.body2" Align="Align.Center">
-                            This page cannot be accessed directly.
-                            UAuthHub login flows can only be initiated by an authorized client application.
-                        </MudText>
-
-                        <MudDivider Class="my-2" />
-
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            UltimateAuth protects this resource based on your session and permissions.
-                        </MudText>
+                    <MudStack Class="mt-4" Wrap="Wrap.Wrap" Spacing="0">
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center"><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@_productInfo?.FrameworkDescription</MudText>
                     </MudStack>
                 </MudPaper>
-            </MudPage>
-            return;
-        }
-        <UAuthLoginForm Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce">
-            <MudStack>
-                <MudText Typo="Typo.h4">Welcome to UltimateAuth!</MudText>
-                <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Immediate="true" HelperText="Default: Admin" />
-                <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Immediate="true" HelperText="Default: Password!" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Login</MudButton>
-            </MudStack>
-        </UAuthLoginForm>
+            </MudItem>
 
-        <MudStack Class="mud-width-full">
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="ProgrammaticPkceLogin">Programmatic Pkce Login</MudButton>
-        </MudStack>
+            <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
+                <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
+                    <UAuthLoginForm @ref="_loginForm" Identifier="@_username" Secret="@_password" LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="@HandleLoginResult">
+                        <MudStack Class="mud-width-full">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
+                                <MudText Typo="Typo.h5">
+                                    <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
+                                </MudText>
+                            </MudStack>
+                            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
+                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
+                            @if (_isLocked)
+                            {
+                                <MudAlert NoIcon="true" Severity="Severity.Error" Variant="Variant.Filled">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.subtitle2">Your account is locked.</MudText>
+                                            <MudText Typo="Typo.subtitle2">Try again in </MudText>
+                                        </MudStack>
+                                        <MudProgressCircular Class="mud-theme-error" Value="@_progressPercent" Max="100" Size="Size.Large">
+                                            @_remaining.Minutes.ToString("00"):@_remaining.Seconds.ToString("00")
+                                        </MudProgressCircular>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </UAuthLoginForm>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">
+                        Default sample users:
+                        <b>admin/admin</b> (Admin),
+                        <b>user/user</b> (Standard User)
+                    </MudAlert>
 
-        <MudStack Spacing="0">
-            <MudText><b>@ProductInfo.Get().ProductName</b> v @ProductInfo.Get().Version</MudText>
-        </MudStack>
+                    <MudDivider Class="my-8" />
 
-        <MudStack Spacing="0">
-            <MudText>Hub SessionId: @_state?.HubSessionId</MudText>
-            <MudText>Client Profile: @_state?.ClientProfile</MudText>
-            <MudText>Return Url: @_state?.ReturnUrl</MudText>
-            <MudText>Flow Type: @_state?.FlowType</MudText>
-            <MudText>IsActive: @_state?.IsActive</MudText>
-        </MudStack>
-    </MudStack>
-</div>
+                    <MudStack Class="mud-width-full">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProgrammaticPkceLogin">Programmatic Login</MudButton>
+                        <MudText Style="color: var(--mud-palette-text-secondary)" Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                    </MudStack>
 
+                    @* <MudDivider Class="my-2" /> *@
+
+                    <MudStack>
+                        @* TODO: Enhance sample *@
+                        @* <MudText Align="Align.Center" Typo="Typo.subtitle2"><MudLink Class="cursor-pointer" OnClick="OpenResetDialog">Forgot Password</MudLink></MudText> *@
+                        @* <MudText Align="Align.Center" Typo="Typo.subtitle2">Don't have an account? <MudLink Class="cursor-pointer" Href="/register">SignUp</MudLink></MudText> *@
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</MudPage>

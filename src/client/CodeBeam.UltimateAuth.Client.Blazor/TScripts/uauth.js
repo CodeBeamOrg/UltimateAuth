@@ -54,6 +54,62 @@ window.uauth.submitForm = function (form) {
     form.submit();
 };
 
+window.uauth.tryAndCommit = async function (options) {
+    const { tryUrl, commitUrl, data, clientProfile } = options;
+
+    const tryResponse = await window.uauth.postJson({
+        url: tryUrl,
+        payload: data,
+        clientProfile: clientProfile
+    });
+
+    let result = tryResponse?.body;
+
+    if (!result) {
+        result = {};
+    }
+
+    const normalized = {
+        success: result.success ?? false,
+        reason: result.reason ?? null,
+        remainingAttempts: result.remainingAttempts ?? null,
+        lockoutUntilUtc: result.lockoutUntilUtc ?? null,
+        requiresMfa: result.requiresMfa ?? false,
+        retryWithNewPkce: result.retryWithNewPkce ?? false
+    };
+
+    if (normalized.success) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = commitUrl;
+
+        for (const key in data) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = data[key] ?? "";
+            form.appendChild(input);
+        }
+
+        const cp = document.createElement("input");
+        cp.type = "hidden";
+        cp.name = "__uauth_client_profile";
+        cp.value = clientProfile ?? "";
+        form.appendChild(cp);
+
+        const udid = document.createElement("input");
+        udid.type = "hidden";
+        udid.name = "__uauth_device";
+        udid.value = window.uauth.deviceId;
+        form.appendChild(udid);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    return normalized;
+};
+
 window.uauth.post = async function (options) {
     const {
         url,
@@ -177,4 +233,12 @@ window.uauth.postJson = async function (options) {
 
 window.uauth.setDeviceId = function (value) {
     window.uauth.deviceId = value;
+};
+
+window.uauth.getDeviceInfo = function () {
+    return {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language
+    };
 };

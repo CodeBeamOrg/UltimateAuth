@@ -1,15 +1,19 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
@@ -17,80 +21,64 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authContext;
     private readonly IUAuthFlowService _flow;
+    private readonly IPkceService _pkceService;
+    private readonly IUAuthInternalFlowService _internalFlowService;
     private readonly IAuthStore _authStore;
     private readonly IPkceAuthorizationValidator _validator;
     private readonly IClock _clock;
-    private readonly UAuthServerOptions _options;
     private readonly ICredentialResponseWriter _credentialResponseWriter;
     private readonly IAuthRedirectResolver _redirectResolver;
 
     public PkceEndpointHandler(
         IAuthFlowContextAccessor authContext,
         IUAuthFlowService flow,
+        IPkceService pkceService,
+        IUAuthInternalFlowService internalFlowService,
         IAuthStore authStore,
         IPkceAuthorizationValidator validator,
         IClock clock,
-        IOptions<UAuthServerOptions> options,
         ICredentialResponseWriter credentialResponseWriter,
         IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;
+        _pkceService = pkceService;
+        _internalFlowService = internalFlowService;
         _authStore = authStore;
         _validator = validator;
         _clock = clock;
-        _options = options.Value;
         _credentialResponseWriter = credentialResponseWriter;
         _redirectResolver = redirectResolver;
     }
 
     public async Task<IResult> AuthorizeAsync(HttpContext ctx)
     {
-        var authContext = _authContext.Current;
-
-        // TODO: Make PKCE flow free
-        if (authContext.FlowType != AuthFlowType.Login)
-            return Results.BadRequest("PKCE is only supported for login flow.");
+        var auth = _authContext.Current;
 
         var request = await ReadPkceAuthorizeRequestAsync(ctx);
         if (request is null)
             return Results.BadRequest("Invalid content type.");
 
-        if (string.IsNullOrWhiteSpace(request.CodeChallenge))
-            return Results.BadRequest("code_challenge is required.");
-
-        if (!string.Equals(request.ChallengeMethod, "S256", StringComparison.Ordinal))
-            return Results.BadRequest("Only S256 challenge method is supported.");
-
-        var authorizationCode = AuthArtifactKey.New();
-
-        var snapshot = new PkceContextSnapshot(
-            clientProfile: authContext.ClientProfile,
-            tenant: authContext.Tenant,
-            redirectUri: request.RedirectUri,
-            deviceId: request.DeviceId
-        );
-
-        var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
-
-        var artifact = new PkceAuthorizationArtifact(
-            authorizationCode: authorizationCode,
-            codeChallenge: request.CodeChallenge,
-            challengeMethod: PkceChallengeMethod.S256,
-            expiresAt: expiresAt,
-            context: snapshot
-        );
-
-        await _authStore.StoreAsync(authorizationCode, artifact, ctx.RequestAborted);
+        var result = await _pkceService.AuthorizeAsync(
+            new PkceAuthorizeCommand
+            {
+                CodeChallenge = request.CodeChallenge,
+                ChallengeMethod = request.ChallengeMethod,
+                Device = request.Device,
+                RedirectUri = request.RedirectUri,
+                ClientProfile = auth.ClientProfile,
+                Tenant = auth.Tenant
+            },
+            ctx.RequestAborted);
 
         return Results.Ok(new PkceAuthorizeResponse
         {
-            AuthorizationCode = authorizationCode.Value,
-            ExpiresIn = _options.Pkce.AuthorizationCodeLifetimeSeconds
+            AuthorizationCode = result.AuthorizationCode,
+            ExpiresIn = result.ExpiresIn
         });
     }
 
-    public async Task<IResult> CompleteAsync(HttpContext ctx)
+    public async Task<IResult> TryCompleteAsync(HttpContext ctx)
     {
         var authContext = _authContext.Current;
 
@@ -99,67 +87,111 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         var request = await ReadPkceCompleteRequestAsync(ctx);
         if (request is null)
-            return Results.BadRequest("Invalid PKCE completion payload.");
+            return Results.BadRequest("Invalid PKCE payload.");
 
         if (string.IsNullOrWhiteSpace(request.AuthorizationCode) || string.IsNullOrWhiteSpace(request.CodeVerifier))
             return Results.BadRequest("authorization_code and code_verifier are required.");
 
         var artifactKey = new AuthArtifactKey(request.AuthorizationCode);
-        var artifact = await _authStore.ConsumeAsync(artifactKey, ctx.RequestAborted) as PkceAuthorizationArtifact;
+        var artifact = await _authStore.GetAsync(artifactKey, ctx.RequestAborted) as PkceAuthorizationArtifact;
 
         if (artifact is null)
-            return Results.Unauthorized(); // replay / expired / unknown code
+        {
+            return Results.Ok(new TryPkceLoginResult
+            {
+                Success = false,
+                RetryWithNewPkce = true
+            });
+        }
 
-        var validation = _validator.Validate(artifact, request.CodeVerifier,
+        var validation = _validator.Validate(
+            artifact,
+            request.CodeVerifier,
             new PkceContextSnapshot(
-                clientProfile: authContext.ClientProfile,
-                tenant: authContext.Tenant,
-                redirectUri: null,
-                deviceId: artifact.Context.DeviceId),
+                clientProfile: artifact.Context.ClientProfile,
+                tenant: artifact.Context.Tenant,
+                redirectUri: artifact.Context.RedirectUri,
+                device: artifact.Context.Device),
             _clock.UtcNow);
 
         if (!validation.Success)
         {
-            artifact.RegisterAttempt();
-            return await RedirectToLoginWithErrorAsync(ctx, authContext, "invalid");
+            return Results.Ok(new TryPkceLoginResult
+            {
+                Success = false,
+                RetryWithNewPkce = true
+            });
         }
 
         var loginRequest = new LoginRequest
         {
             Identifier = request.Identifier,
             Secret = request.Secret,
-            Tenant = authContext.Tenant,
-            At = _clock.UtcNow,
             RequestTokens = authContext.AllowsTokenIssuance
         };
 
         var execution = new AuthExecutionContext
         {
             EffectiveClientProfile = artifact.Context.ClientProfile,
-            Device = DeviceContext.Create(DeviceId.Create(artifact.Context.DeviceId), null, null, null, null, null)
+            Device = artifact.Context.Device
         };
 
-        var result = await _flow.LoginAsync(authContext, execution, loginRequest, ctx.RequestAborted);
+        var preview = await _internalFlowService.LoginAsync(authContext, execution, loginRequest,
+             new LoginExecutionOptions
+             {
+                 Mode = LoginExecutionMode.Preview,
+                 SuppressFailureAttempt = false,
+                 SuppressSuccessReset = true
+             }, ctx.RequestAborted);
 
-        if (!result.IsSuccess)
-            return await RedirectToLoginWithErrorAsync(ctx, authContext, "invalid");
-
-        if (result.SessionId is not null)
+        return Results.Ok(new TryPkceLoginResult
         {
-            _credentialResponseWriter.Write(ctx, GrantKind.Session, result.SessionId.Value);
-        }
+            Success = preview.IsSuccess,
+            Reason = preview.FailureReason,
+            RemainingAttempts = preview.RemainingAttempts,
+            LockoutUntilUtc = preview.LockoutUntilUtc,
+            RequiresMfa = preview.FailureReason == AuthFailureReason.RequiresMfa,
+            RetryWithNewPkce = false
+        });
+    }
 
-        if (result.AccessToken is not null)
-        {
-            _credentialResponseWriter.Write(ctx, GrantKind.AccessToken, result.AccessToken);
-        }
+    public async Task<IResult> CompleteAsync(HttpContext ctx)
+    {
+        var auth = _authContext.Current;
 
-        if (result.RefreshToken is not null)
-        {
-            _credentialResponseWriter.Write(ctx, GrantKind.RefreshToken, result.RefreshToken);
-        }
+        var request = await ReadPkceCompleteRequestAsync(ctx);
+        if (request is null)
+            return Results.BadRequest("Invalid PKCE payload.");
 
-        var decision = _redirectResolver.ResolveSuccess(authContext, ctx);
+        var result = await _pkceService.CompleteAsync(
+            auth,
+            new PkceCompleteRequest
+            {
+                AuthorizationCode = request.AuthorizationCode!,
+                CodeVerifier = request.CodeVerifier!,
+                Identifier = request.Identifier,
+                Secret = request.Secret
+            },
+            ctx.RequestAborted);
+
+        if (result.InvalidPkce)
+            return Results.Unauthorized();
+
+        if (!result.Success)
+            return await RedirectToLoginWithErrorAsync(ctx, auth, "invalid");
+
+        var login = result.LoginResult!;
+
+        if (login.SessionId is not null)
+            _credentialResponseWriter.Write(ctx, GrantKind.Session, login.SessionId.Value);
+
+        if (login.AccessToken is not null)
+            _credentialResponseWriter.Write(ctx, GrantKind.AccessToken, login.AccessToken);
+
+        if (login.RefreshToken is not null)
+            _credentialResponseWriter.Write(ctx, GrantKind.RefreshToken, login.RefreshToken);
+
+        var decision = _redirectResolver.ResolveSuccess(auth, ctx);
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
@@ -175,19 +207,47 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         if (ctx.Request.HasFormContentType)
         {
-            var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
+            var form = await ctx.GetCachedFormAsync();
 
-            var codeChallenge = form["code_challenge"].ToString();
-            var challengeMethod = form["challenge_method"].ToString();
-            var redirectUri = form["redirect_uri"].ToString();
-            var deviceId = form["device_id"].ToString();
+            var codeChallenge = form?["code_challenge"].ToString();
+            var challengeMethod = form?["challenge_method"].ToString();
+            var redirectUri = form?["redirect_uri"].ToString();
+
+            if (string.IsNullOrWhiteSpace(codeChallenge))
+                throw new UAuthValidationException("code_challenge is required");
+
+            if (string.IsNullOrWhiteSpace(challengeMethod))
+                throw new UAuthValidationException("challange_method is required");
+
+            var deviceRaw = form?["device"].FirstOrDefault();
+            DeviceContext? device = null;
+
+            if (!string.IsNullOrWhiteSpace(deviceRaw))
+            {
+                try
+                {
+                    var bytes = WebEncoders.Base64UrlDecode(deviceRaw);
+                    var json = Encoding.UTF8.GetString(bytes);
+                    device = JsonSerializer.Deserialize<DeviceContext>(json);
+                }
+                catch
+                {
+                    device = null;
+                }
+            }
+
+            if (device == null)
+            {
+                var info = await ctx.GetDeviceAsync();
+                device = DeviceContext.Create(info.DeviceId, info.DeviceType, info.Platform, info.OperatingSystem, info.Browser, info.IpAddress);
+            }
 
             return new PkceAuthorizeRequest
             {
                 CodeChallenge = codeChallenge,
                 ChallengeMethod = challengeMethod,
                 RedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? null : redirectUri,
-                DeviceId = deviceId
+                Device = device
             };
         }
 
@@ -198,27 +258,32 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     {
         if (ctx.Request.HasJsonContentType())
         {
-            return await ctx.Request.ReadFromJsonAsync<PkceCompleteRequest>(
-                cancellationToken: ctx.RequestAborted);
+            return await ctx.Request.ReadFromJsonAsync<PkceCompleteRequest>(cancellationToken: ctx.RequestAborted);
         }
 
         if (ctx.Request.HasFormContentType)
         {
-            var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted);
+            var form = await ctx.GetCachedFormAsync();
 
-            var authorizationCode = form["authorization_code"].ToString();
-            var codeVerifier = form["code_verifier"].ToString();
-            var identifier = form["Identifier"].ToString();
-            var secret = form["Secret"].ToString();
-            var returnUrl = form["return_url"].ToString();
+            var authorizationCode = form?["authorization_code"].FirstOrDefault();
+            var codeVerifier = form?["code_verifier"].FirstOrDefault();
+            var identifier = form?["Identifier"].FirstOrDefault();
+            var secret = form?["Secret"].FirstOrDefault();
+            var returnUrl = form?["return_url"].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(authorizationCode))
+                throw new UAuthValidationException("authorization_code is required");
+
+            if (string.IsNullOrWhiteSpace(codeVerifier))
+                throw new UAuthValidationException("code_verifier is required");
 
             return new PkceCompleteRequest
             {
                 AuthorizationCode = authorizationCode,
                 CodeVerifier = codeVerifier,
-                Identifier = identifier,
-                Secret = secret,
-                ReturnUrl = returnUrl
+                Identifier = identifier ?? string.Empty,
+                Secret = secret ?? string.Empty,
+                ReturnUrl = returnUrl ?? string.Empty
             };
         }
 
@@ -228,7 +293,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     private async Task<IResult> RedirectToLoginWithErrorAsync(HttpContext ctx, AuthFlowContext auth, string error)
     {
         var basePath = auth.OriginalOptions.Hub.LoginPath ?? "/login";
-        var hubKey = ctx.Request.Query["hub"].ToString();
+        var hubKey = await ResolveHubKeyAsync(ctx);
 
         if (!string.IsNullOrWhiteSpace(hubKey))
         {
@@ -237,15 +302,28 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
             if (artifact is HubFlowArtifact hub)
             {
-                hub.MarkCompleted();
-                await _authStore.StoreAsync(key, hub, ctx.RequestAborted);
-            }
+                hub.SetError(HubErrorCode.InvalidCredentials);
+                await _authStore.StoreAsync(key, hub);
 
-            return Results.Redirect(
-                $"{basePath}?hub={Uri.EscapeDataString(hubKey)}&__uauth_error={Uri.EscapeDataString(error)}");
+                return Results.Redirect($"{basePath}?{UAuthConstants.Query.Hub}={Uri.EscapeDataString(hubKey)}");
+            }
+        }
+        return Results.Redirect(basePath);
+    }
+
+    private async Task<string?> ResolveHubKeyAsync(HttpContext ctx)
+    {
+        if (ctx.Request.Query.TryGetValue(UAuthConstants.Query.Hub, out var q) && !string.IsNullOrWhiteSpace(q))
+            return q.ToString();
+
+        if (ctx.Request.HasFormContentType)
+        {
+            var form = await ctx.GetCachedFormAsync();
+
+            if (form?.TryGetValue("hub_session_id", out var f) == true && !string.IsNullOrWhiteSpace(f))
+                return f.ToString();
         }
 
-        return Results.Redirect(
-            $"{basePath}?__uauth_error={Uri.EscapeDataString(error)}");
+        return null;
     }
 }

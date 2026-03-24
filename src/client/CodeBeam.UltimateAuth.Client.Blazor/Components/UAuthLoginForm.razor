@@ -12,7 +12,7 @@
 @inject IOptions<UAuthClientOptions> Options
 @inject NavigationManager Navigation
 
-<form @ref="_form" method="post" action="@ResolvedEndpoint">
+<form @ref="_form" method="post" action="@ResolvedEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
     <input type="hidden" name="Identifier" value="@Identifier" />
     <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
     <input type="hidden" name="@UAuthConstants.Form.ClientProfile" value="@ClientProfileValue" />
@@ -23,7 +23,11 @@
     {
         <input type="hidden" name="authorization_code" value="@_credentials?.AuthorizationCode" />
         <input type="hidden" name="code_verifier" value="@_credentials?.CodeVerifier" />
-        <input type="hidden" name="@UAuthConstants.Form.ReturnUrl" value="@EffectiveReturnUrl" />
+    }
+
+    @if (SubmitMode == UAuthSubmitMode.DirectCommit)
+    {
+        <input type="hidden" name="return_url" value="@EffectiveReturnUrl" />
     }
 
     @ChildContent

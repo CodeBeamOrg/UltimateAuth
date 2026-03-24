@@ -13,3 +13,8 @@ public interface ILoginOrchestrator
 {
     Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default);
 }
+
+internal interface IInternalLoginOrchestrator
+{
+    Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, LoginExecutionOptions loginExecution, CancellationToken ct = default);
+}

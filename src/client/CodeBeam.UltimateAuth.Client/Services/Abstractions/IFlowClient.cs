@@ -9,13 +9,16 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IFlowClient
 {
     Task LoginAsync(LoginRequest request, string? returnUrl = null);
+    Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null);
+
     Task LogoutAsync();
     Task<RefreshResult> RefreshAsync(bool isAuto = false);
     //Task ReauthAsync();
     Task<AuthValidationResult> ValidateAsync();
 
     Task BeginPkceAsync(string? returnUrl = null);
-    Task CompletePkceLoginAsync(PkceLoginRequest request);
+    Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode);
+    Task CompletePkceLoginAsync(PkceCompleteRequest request);
 
     Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request);
     Task<UAuthResult> LogoutOtherDevicesSelfAsync();

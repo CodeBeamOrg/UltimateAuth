@@ -11,14 +11,14 @@ namespace CodeBeam.UltimateAuth.Server.Endpoints;
 internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
 {
     private readonly IAuthFlowContextAccessor _authContext;
-    private readonly IFlowCredentialResolver _credentialResolver;
+    private readonly IValidateCredentialResolver _credentialResolver;
     private readonly ISessionValidator _sessionValidator;
     private readonly IAuthStateSnapshotFactory _snapshotFactory;
     private readonly IClock _clock;
 
     public ValidateEndpointHandler(
         IAuthFlowContextAccessor authContext,
-        IFlowCredentialResolver credentialResolver,
+        IValidateCredentialResolver credentialResolver,
         ISessionValidator sessionValidator,
         IAuthStateSnapshotFactory snapshotFactory,
         IClock clock)
@@ -33,7 +33,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
     public async Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default)
     {
         var auth = _authContext.Current;
-        var credential = _credentialResolver.Resolve(context, auth.Response);
+        var credential = await _credentialResolver.ResolveAsync(context, auth.Response);
 
         if (credential is null)
         {

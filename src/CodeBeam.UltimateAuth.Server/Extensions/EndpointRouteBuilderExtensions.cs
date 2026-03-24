@@ -13,7 +13,8 @@ public static class EndpointRouteBuilderExtensions
     {
         var registrar = endpoints.ServiceProvider.GetRequiredService<IAuthEndpointRegistrar>();
         var options = endpoints.ServiceProvider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
-        var rootGroup = endpoints.MapGroup("");
+        var rootGroup = endpoints.MapGroup("")
+            .RequireCors("UAuthHub");
         registrar.MapEndpoints(rootGroup, options);
 
         if (endpoints is WebApplication app)

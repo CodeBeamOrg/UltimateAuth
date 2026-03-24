@@ -1,75 +1,74 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Stores;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.WebUtilities;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
 
 public partial class Home
 {
-    [SupplyParameterFromQuery(Name = "hub")]
-    public string? HubKey { get; set; }
-
     private string? _username;
     private string? _password;
 
-    private HubFlowState? _state;
+    private UAuthClientProductInfo? _productInfo;
+    private UAuthLoginForm _loginForm = null!;
 
-    protected override async Task OnParametersSetAsync()
+    private CancellationTokenSource? _lockoutCts;
+    private PeriodicTimer? _lockoutTimer;
+    private DateTimeOffset? _lockoutUntil;
+    private TimeSpan _remaining;
+    private bool _isLocked;
+    private DateTimeOffset? _lockoutStartedAt;
+    private TimeSpan _lockoutDuration;
+    private double _progressPercent;
+    private int? _remainingAttempts = null;
+    private bool _errorHandled;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(HubKey))
-        {
-            _state = null;
-            return;
-        }
-
-        if (HubSessionId.TryParse(HubKey, out var hubSessionId))
-            _state = await HubFlowReader.GetStateAsync(hubSessionId);
+        _productInfo = ClientProductInfoProvider.Get();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
-            return;
-
-        var currentError = await BrowserStorage.GetAsync(StorageScope.Session, "uauth:last_error");
-
-        if (!string.IsNullOrWhiteSpace(currentError))
-        {
-            Snackbar.Add(ResolveErrorMessage(currentError), Severity.Error);
-            await BrowserStorage.RemoveAsync(StorageScope.Session, "uauth:last_error");
-        }
-
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var query = QueryHelpers.ParseQuery(uri.Query);
-
-        if (query.TryGetValue("__uauth_error", out var error))
-        {
-            await BrowserStorage.SetAsync(StorageScope.Session, "uauth:last_error", error.ToString());
-        }
-        
         if (string.IsNullOrWhiteSpace(HubKey))
+            return;
+
+        if (HubState is null || !HubState.Exists)
         {
             return;
         }
 
-        if (_state is null || !_state.Exists)
-            return;
-
-        if (_state?.IsActive != true)
+        if (HubState.IsExpired)
         {
-            await StartNewPkceAsync();
+            await ContinuePkceAsync();
             return;
+        }
+
+        if (HubState.Error != null && !_errorHandled)
+        {
+            _errorHandled = true;
+            Snackbar.Add(ResolveErrorMessage(HubState.Error), Severity.Error);
+            await ContinuePkceAsync();
+
+            if (HubSessionId.TryParse(HubKey, out var hubSessionId))
+            {
+                await ReloadState();
+            }
+
+            await _loginForm.ReloadAsync();
+
+            StateHasChanged();
         }
     }
 
     // For testing & debugging
     private async Task ProgrammaticPkceLogin()
     {
-        var hub = _state;
+        var hub = HubState;
 
         if (hub is null)
             return;
@@ -79,15 +78,54 @@ public partial class Home
 
         var credentials = await HubCredentialResolver.ResolveAsync(hubSessionId);
 
-        var request = new PkceLoginRequest
+        var request = new PkceCompleteRequest
         {
             Identifier = "admin",
             Secret = "admin",
             AuthorizationCode = credentials?.AuthorizationCode ?? string.Empty,
             CodeVerifier = credentials?.CodeVerifier ?? string.Empty,
-            ReturnUrl = _state?.ReturnUrl ?? string.Empty
+            ReturnUrl = HubState?.ReturnUrl ?? string.Empty,
+            HubSessionId = HubState?.HubSessionId.Value ?? hubSessionId.Value,
         };
-        await UAuthClient.Flows.CompletePkceLoginAsync(request);
+
+        await UAuthClient.Flows.TryCompletePkceLoginAsync(request, UAuthSubmitMode.TryAndCommit);
+    }
+
+    private async Task HandleLoginResult(IUAuthTryResult result)
+    {
+        if (result is TryPkceLoginResult pkce)
+        {
+            if (!result.Success)
+            {
+                if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
+                {
+                    _lockoutUntil = until;
+                    StartCountdown();
+                }
+
+                _remainingAttempts = result.RemainingAttempts;
+
+                ShowLoginError(result.Reason, result.RemainingAttempts);
+                await ContinuePkceAsync();
+            }
+        }
+    }
+
+    private HubCredentials? _pkce;
+
+    private async Task ContinuePkceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(HubKey))
+            return;
+
+        var key = new AuthArtifactKey(HubKey);
+        var artifact = await AuthStore.GetAsync(key) as HubFlowArtifact;
+
+        if (artifact is null)
+            return;
+
+        _pkce = await PkceService.RefreshAsync(artifact);
+        await HubFlowService.ContinuePkceAsync(HubKey, _pkce.AuthorizationCode, _pkce.CodeVerifier);
     }
 
     private async Task StartNewPkceAsync()
@@ -98,7 +136,7 @@ public partial class Home
 
     private async Task<string> ResolveReturnUrlAsync()
     {
-        var fromContext = _state?.ReturnUrl;
+        var fromContext = HubState?.ReturnUrl;
         if (!string.IsNullOrWhiteSpace(fromContext))
             return fromContext;
 
@@ -115,18 +153,106 @@ public partial class Home
                 return flow.ReturnUrl!;
         }
 
-        // Config default (recommend adding to options)
-        //if (!string.IsNullOrWhiteSpace(_options.Login.DefaultReturnUrl))
-        //    return _options.Login.DefaultReturnUrl!;
-
         return Nav.Uri;
     }
-    
-    private string ResolveErrorMessage(string? errorKey)
+
+    private async void StartCountdown()
     {
-        if (errorKey == "invalid")
+        if (_lockoutUntil is null)
+            return;
+
+        _isLocked = true;
+        _lockoutStartedAt = DateTimeOffset.UtcNow;
+        _lockoutDuration = _lockoutUntil.Value - DateTimeOffset.UtcNow;
+        UpdateRemaining();
+
+        _lockoutCts?.Cancel();
+        _lockoutCts = new CancellationTokenSource();
+
+        _lockoutTimer?.Dispose();
+        _lockoutTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
         {
-            return "Login failed.";
+            while (await _lockoutTimer.WaitForNextTickAsync(_lockoutCts.Token))
+            {
+                UpdateRemaining();
+
+                if (_remaining <= TimeSpan.Zero)
+                {
+                    ResetLockoutState();
+                    await InvokeAsync(StateHasChanged);
+                    break;
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+
+        }
+    }
+
+    private void ResetLockoutState()
+    {
+        _isLocked = false;
+        _lockoutUntil = null;
+        _progressPercent = 0;
+        _remainingAttempts = null;
+    }
+
+    private void UpdateRemaining()
+    {
+        if (_lockoutUntil is null || _lockoutStartedAt is null)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+
+        _remaining = _lockoutUntil.Value - now;
+
+        if (_remaining <= TimeSpan.Zero)
+        {
+            _remaining = TimeSpan.Zero;
+            return;
+        }
+
+        var elapsed = now - _lockoutStartedAt.Value;
+
+        if (_lockoutDuration.TotalSeconds > 0)
+        {
+            var percent = 100 - (elapsed.TotalSeconds / _lockoutDuration.TotalSeconds * 100);
+            _progressPercent = Math.Max(0, percent);
+        }
+    }
+
+    private void ShowLoginError(AuthFailureReason? reason, int? remainingAttempts)
+    {
+        string message = reason switch
+        {
+            AuthFailureReason.InvalidCredentials when remainingAttempts is > 0
+                => $"Invalid username or password. {remainingAttempts} attempt(s) remaining.",
+
+            AuthFailureReason.InvalidCredentials
+                => "Invalid username or password.",
+
+            AuthFailureReason.RequiresMfa
+                => "Multi-factor authentication required.",
+
+            AuthFailureReason.LockedOut
+                => "Your account is locked.",
+
+            _ => "Login failed."
+        };
+
+        Snackbar.Add(message, Severity.Error);
+    }
+
+    private string ResolveErrorMessage(HubErrorCode? errorCode)
+    {
+        if (errorCode == HubErrorCode.InvalidCredentials)
+        {
+            return "Invalid credentials.";
         }
 
         return "Failed attempt.";

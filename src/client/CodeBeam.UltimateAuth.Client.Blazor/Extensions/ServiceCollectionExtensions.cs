@@ -50,6 +50,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBrowserUAuthBridge, BrowserUAuthBridge>();
         services.AddScoped<IReturnUrlProvider, BlazorReturnUrlProvider>();
+        services.AddScoped<IClientDeviceProvider, ClientDeviceProvider>();
 
         services.AddAuthorizationCore();
 

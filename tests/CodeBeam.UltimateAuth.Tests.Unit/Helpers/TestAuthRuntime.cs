@@ -88,7 +88,6 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         return await orchestrator.LoginAsync(flow, new LoginRequest
         {
-            Tenant = TenantKeys.Single,
             Identifier = "user",
             Secret = "user"
         });

@@ -18,7 +18,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
-internal sealed class LoginOrchestrator : ILoginOrchestrator
+internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrchestrator
 {
     private readonly ILoginIdentifierResolver _identifierResolver;
     private readonly IEnumerable<ICredentialProvider> _credentialProviders; // authentication
@@ -31,6 +31,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
     private readonly UAuthServerOptions _options;
+    private readonly IClock _clock;
 
     public LoginOrchestrator(
         ILoginIdentifierResolver identifierResolver,
@@ -43,7 +44,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         ISessionStoreFactory storeFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
-        IOptions<UAuthServerOptions> options)
+        IOptions<UAuthServerOptions> options,
+        IClock clock)
     {
         _identifierResolver = identifierResolver;
         _credentialProviders = credentialProviders;
@@ -56,17 +58,21 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
         _options = options.Value;
+        _clock = clock;
     }
 
-    public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
+    public Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
+        => LoginAsync(flow, request, new LoginExecutionOptions { Mode = LoginExecutionMode.Commit }, ct);
+
+    public async Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, LoginExecutionOptions loginExecution, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (flow.Device.DeviceId is not DeviceId deviceId)
             throw new UAuthConflictException("Device id could not resolved.");
 
-        var now = request.At ?? DateTimeOffset.UtcNow;
-        var resolution = await _identifierResolver.ResolveAsync(request.Tenant, request.Identifier, ct);
+        var now = _clock.UtcNow;
+        var resolution = await _identifierResolver.ResolveAsync(flow.Tenant, request.Identifier, ct);
         var userKey = resolution?.UserKey;
 
         bool userExists = false;
@@ -77,19 +83,18 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
 
         if (userKey is not null)
         {
-            var user = await _users.GetAsync(request.Tenant, userKey.Value, ct);
+            var user = await _users.GetAsync(flow.Tenant, userKey.Value, ct);
             if (user is not null && user.CanAuthenticate && !user.IsDeleted)
             {
                 userExists = true;
-
-                accountState = await _authenticationSecurityManager.GetOrCreateAccountAsync(request.Tenant, userKey.Value, ct);
+                accountState = await _authenticationSecurityManager.GetOrCreateAccountAsync(flow.Tenant, userKey.Value, ct);
 
                 if (accountState.IsLocked(now))
                 {
                     return LoginResult.Failed(AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
-                factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(request.Tenant, userKey.Value, request.Factor, ct);
+                factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(flow.Tenant, userKey.Value, request.Factor, ct);
 
                 if (factorState.IsLocked(now))
                 {
@@ -98,7 +103,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
 
                 foreach (var provider in _credentialProviders)
                 {
-                    var credentials = await provider.GetByUserAsync(request.Tenant, userKey.Value, ct);
+                    var credentials = await provider.GetByUserAsync(flow.Tenant, userKey.Value, ct);
 
                     foreach (var credential in credentials)
                     {
@@ -119,7 +124,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency
-        var sessionStore = _storeFactory.Create(request.Tenant);
+        var sessionStore = _storeFactory.Create(flow.Tenant);
         SessionChainId? chainId = null;
 
         if (userKey is not null)
@@ -133,7 +138,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         // TODO: Add accountState here, currently it only checks factor state
         var decisionContext = new LoginDecisionContext
         {
-            Tenant = request.Tenant,
+            Tenant = flow.Tenant,
             Identifier = request.Identifier,
             CredentialsValid = credentialsValid,
             UserExists = userExists,
@@ -144,31 +149,35 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
 
         var decision = _authority.Decide(decisionContext);
 
-        var max = _options.Login.MaxFailedAttempts;
-
         if (decision.Kind == LoginDecisionKind.Deny)
         {
             if (userKey is not null && userExists && factorState is not null)
             {
-                var securityVersion = factorState.SecurityVersion;
-                factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.ExtendLockOnFailure);
-                await _authenticationSecurityManager.UpdateAsync(factorState, securityVersion, ct);
-
                 DateTimeOffset? lockedUntil = null;
                 int? remainingAttempts = null;
 
+                if (!loginExecution.SuppressFailureAttempt)
+                {
+                    var version = factorState.SecurityVersion;
+                    factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.ExtendLockOnFailure);
+                    await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
+                }
+
                 if (_options.Login.IncludeFailureDetails)
                 {
-                    if (factorState.IsLocked(now))
+                    var stateForResponse = factorState;
+
+                    if (stateForResponse.IsLocked(now))
                     {
-                        lockedUntil = factorState.LockedUntil;
+                        lockedUntil = stateForResponse.LockedUntil;
                         remainingAttempts = 0;
                     }
                     else if (_options.Login.MaxFailedAttempts > 0)
                     {
-                        remainingAttempts = _options.Login.MaxFailedAttempts - factorState.FailedAttempts;
+                        remainingAttempts = _options.Login.MaxFailedAttempts - stateForResponse.FailedAttempts;
                     }
                 }
+
 
                 return LoginResult.Failed(
                     factorState.IsLocked(now)
@@ -194,18 +203,23 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
             return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
 
         // After this point, the login is successful. We can reset any failure counts and proceed to create a session.
-        if (factorState is not null)
+        if (loginExecution.Mode == LoginExecutionMode.Preview)
+        {
+            return LoginResult.SuccessPreview();
+        }
+
+        if (!loginExecution.SuppressSuccessReset && factorState is not null)
         {
             var version = factorState.SecurityVersion;
             factorState = factorState.RegisterSuccess();
             await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
         }
 
-        var claims = await _claimsProvider.GetClaimsAsync(request.Tenant, userKey.Value, ct);
+        var claims = await _claimsProvider.GetClaimsAsync(flow.Tenant, userKey.Value, ct);
 
         var sessionContext = new AuthenticatedSessionContext
         {
-            Tenant = request.Tenant,
+            Tenant = flow.Tenant,
             UserKey = userKey.Value,
             Now = now,
             Device = flow.Device,
@@ -224,7 +238,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         {
             var tokenContext = new TokenIssuanceContext
             {
-                Tenant = request.Tenant,
+                Tenant = flow.Tenant,
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
                 ChainId = issuedSession.Session.ChainId,
@@ -239,7 +253,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator
         }
 
         await _events.DispatchAsync(
-            new UserLoggedInContext(request.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
+            new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
     }

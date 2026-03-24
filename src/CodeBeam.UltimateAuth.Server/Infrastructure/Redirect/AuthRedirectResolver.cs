@@ -100,11 +100,11 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         if (options.Hub.AllowedClientOrigins.Count == 0)
             return;
 
-        if (!options.Hub.AllowedClientOrigins.Any(o => Normalize(o) == Normalize(baseAddress)))
+        var normalized = OriginHelper.Normalize(baseAddress);
+
+        if (!options.Hub.AllowedClientOrigins.Any(o => OriginHelper.Normalize(o) == normalized))
         {
             throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed.");
         }
     }
-
-    private static string Normalize(string uri) => uri.TrimEnd('/').ToLowerInvariant();
 }

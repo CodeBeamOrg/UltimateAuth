@@ -86,7 +86,7 @@
                             Instead of use PKCE flow.
                             This section only demonstrates that direct login flow is working, but not suggested.
                         </MudAlert>
-                        <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="@(ReturnUrl ?? "/home")">
+                        <UAuthLoginForm Identifier="@_username" Secret="@_password" ReturnUrl="@(ReturnUrl ?? "/home")" OnTryResult="HandleLoginResult">
                             <MudStack Class="mud-width-full">
                                 <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
                                 <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />

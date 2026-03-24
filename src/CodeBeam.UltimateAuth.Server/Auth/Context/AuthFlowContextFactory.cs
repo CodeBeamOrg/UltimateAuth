@@ -47,7 +47,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var sessionCtx = ctx.GetSessionContext();
         var user = ctx.GetUserContext();
 
-        var clientProfile = _clientProfileReader.Read(ctx);
+        var clientProfile = await _clientProfileReader.ReadAsync(ctx);
         var originalOptions = _serverOptionsProvider.GetOriginal(ctx);
         var effectiveOptions = _serverOptionsProvider.GetEffective(ctx, flowType, clientProfile);
 
@@ -61,9 +61,9 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
-        var deviceInfo = _deviceResolver.Resolve(ctx);
+        var deviceInfo = await _deviceResolver.ResolveAsync(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
-        var returnUrl = ctx.GetReturnUrl();
+        var returnUrl = await ctx.GetReturnUrlAsync();
         var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
         SessionSecurityContext? sessionSecurityContext = null;

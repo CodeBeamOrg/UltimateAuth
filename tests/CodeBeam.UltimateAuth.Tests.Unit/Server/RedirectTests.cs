@@ -48,13 +48,13 @@ public class RedirectTests
     }
 
     [Fact]
-    public void ClientProfile_Is_Read_From_Header()
+    public async Task ClientProfile_Is_Read_From_Header()
     {
         var reader = new ClientProfileReader();
         var ctx = TestHttpContext.Create();
         ctx.Request.Headers[UAuthConstants.Headers.ClientProfile] = "BlazorServer";
 
-        var profile = reader.Read(ctx);
+        var profile = await reader.ReadAsync(ctx);
         profile.Should().Be(UAuthClientProfile.BlazorServer);
     }
 

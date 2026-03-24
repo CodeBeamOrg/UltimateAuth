@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
@@ -14,12 +15,12 @@ public sealed class PkceContextSnapshot
         UAuthClientProfile clientProfile,
         TenantKey tenant,
         string? redirectUri,
-        string? deviceId)
+        DeviceContext device)
     {
         ClientProfile = clientProfile;
         Tenant = tenant;
         RedirectUri = redirectUri;
-        DeviceId = deviceId;
+        Device = device;
     }
 
     /// <summary>
@@ -42,5 +43,5 @@ public sealed class PkceContextSnapshot
     /// Optional device binding identifier.
     /// Enables future hard-binding of PKCE flows to devices.
     /// </summary>
-    public string? DeviceId { get; }
+    public DeviceContext Device { get; }
 }
