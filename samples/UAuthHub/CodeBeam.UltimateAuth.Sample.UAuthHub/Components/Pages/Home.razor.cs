@@ -39,13 +39,12 @@ public partial class Home
 
         if (HubState is null || !HubState.Exists)
         {
-            await StartNewPkceAsync();
             return;
         }
 
         if (HubState.IsExpired)
         {
-            await StartNewPkceAsync();
+            await ContinuePkceAsync();
             return;
         }
 
@@ -153,10 +152,6 @@ public partial class Home
             if (artifact is HubFlowArtifact flow && !string.IsNullOrWhiteSpace(flow.ReturnUrl))
                 return flow.ReturnUrl!;
         }
-
-        // Config default (recommend adding to options)
-        //if (!string.IsNullOrWhiteSpace(_options.Login.DefaultReturnUrl))
-        //    return _options.Login.DefaultReturnUrl!;
 
         return Nav.Uri;
     }
