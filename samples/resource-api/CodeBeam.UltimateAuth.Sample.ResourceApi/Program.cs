@@ -19,13 +19,13 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins("https://localhost:6130")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -34,6 +34,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("WasmSample");
 
+app.UseUltimateAuthResourceApi();
 app.UseAuthentication();
 app.UseAuthorization();
 

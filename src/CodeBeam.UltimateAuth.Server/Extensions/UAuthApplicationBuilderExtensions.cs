@@ -40,4 +40,15 @@ public static class UltimateAuthApplicationBuilderExtensions
         app.UseAuthorization();
         return app;
     }
+
+    public static IApplicationBuilder UseUltimateAuthResourceApi(this IApplicationBuilder app)
+    {
+        app.UseUAuthExceptionHandling();
+        app.UseMiddleware<TenantMiddleware>();
+        app.UseMiddleware<SessionResolutionMiddleware>();
+        app.UseMiddleware<SessionValidationMiddleware>();
+        app.UseMiddleware<UserMiddleware>();
+
+        return app;
+    }
 }

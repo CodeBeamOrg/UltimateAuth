@@ -4,6 +4,7 @@ public enum AuthOperation
 {
     Login,
     Access,
+    ResourceAccess,
     Refresh,
     Revoke,
     Logout,

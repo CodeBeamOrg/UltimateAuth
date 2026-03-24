@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -28,16 +29,21 @@ builder.Services.AddMudServices(o => {
 });
 builder.Services.AddMudExtensions();
 
+builder.Services.AddScoped<ProductApiService>();
 builder.Services.AddScoped<DarkModeManager>();
 
-//builder.Services.AddHttpClient("UAuthHub", client =>
-//{
-//    client.BaseAddress = new Uri("https://localhost:6110");
-//});
 
 //builder.Services.AddHttpClient("ResourceApi", client =>
 //{
 //    client.BaseAddress = new Uri("https://localhost:6120");
 //});
+
+builder.Services.AddScoped(sp =>
+{
+    return new HttpClient
+    {
+        BaseAddress = new Uri("https://localhost:6120") // Resource API
+    };
+});
 
 await builder.Build().RunAsync();

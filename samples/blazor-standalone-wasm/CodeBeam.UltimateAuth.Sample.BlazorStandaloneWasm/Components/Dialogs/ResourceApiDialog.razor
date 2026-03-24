@@ -1,0 +1,16 @@
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi
+@inject ProductApiService Api
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+
+    <TitleContent>
+        <MudText>Resource Api</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Sample demonstration of a resource.</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        Products: @(string.Join(", ", _products.Select(x => x.Name)))
+        <MudButton OnClick="GetProducts">Get Products</MudButton>
+    </DialogContent>
+
+</MudDialog>

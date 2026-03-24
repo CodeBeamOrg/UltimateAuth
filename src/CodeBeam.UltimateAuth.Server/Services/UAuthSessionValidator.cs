@@ -22,6 +22,8 @@ internal sealed class UAuthSessionValidator : ISessionValidator
 
     // TODO: Improve Device binding
     // Validate runs before AuthFlowContext is set, do not call _authFlow here.
+
+    // TODO: Add GetSessionAggregate store method to 1 call instead of 3 calls of root chain session
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
         var kernel = _storeFactory.Create(context.Tenant);

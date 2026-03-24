@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
-public static class DeviceExtensions
+public static class HttpContextDeviceExtensions
 {
     public static async Task<DeviceInfo> GetDeviceAsync(this HttpContext context)
     {

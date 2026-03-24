@@ -190,6 +190,11 @@ public partial class Home : UAuthFlowPageBase
         await DialogService.ShowAsync<RoleDialog>("Role Management", GetDialogParameters(), UAuthDialog.GetDialogOptions());
     }
 
+    private async Task OpenResourceApiDialog()
+    {
+        await DialogService.ShowAsync<ResourceApiDialog>("Resource Api", GetDialogParameters(), UAuthDialog.GetDialogOptions());
+    }
+
     private DialogParameters GetDialogParameters()
     {
         return new DialogParameters
