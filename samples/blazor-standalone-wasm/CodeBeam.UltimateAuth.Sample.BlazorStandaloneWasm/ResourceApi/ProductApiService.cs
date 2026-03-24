@@ -12,11 +12,22 @@ public class ProductApiService
         _http = http;
     }
 
-    public async Task<List<Product>> GetAllAsync()
+    private HttpRequestMessage CreateRequest(HttpMethod method, string url, object? body = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/products");
+        var request = new HttpRequestMessage(method, url);
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        return request;
+    }
+
+    public async Task<List<Product>> GetAllAsync()
+    {
+        var request = CreateRequest(HttpMethod.Get, "/api/products");
         var response = await _http.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
@@ -27,7 +38,8 @@ public class ProductApiService
 
     public async Task<Product?> GetAsync(int id)
     {
-        var response = await _http.GetAsync($"/api/products/{id}");
+        var request = CreateRequest(HttpMethod.Get, $"/api/products/{id}");
+        var response = await _http.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
             return null;
@@ -37,7 +49,8 @@ public class ProductApiService
 
     public async Task<Product?> CreateAsync(Product product)
     {
-        var response = await _http.PostAsJsonAsync("/api/products", product);
+        var request = CreateRequest(HttpMethod.Post, "/api/products", product);
+        var response = await _http.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
             throw new Exception($"Create failed: {response.StatusCode}");
@@ -45,9 +58,21 @@ public class ProductApiService
         return await response.Content.ReadFromJsonAsync<Product>();
     }
 
+    public async Task<Product?> UpdateAsync(int id, Product product)
+    {
+        var request = CreateRequest(HttpMethod.Put, $"/api/products/{id}", product);
+        var response = await _http.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"Update failed: {response.StatusCode}");
+
+        return await response.Content.ReadFromJsonAsync<Product>();
+    }
+
     public async Task DeleteAsync(int id)
     {
-        var response = await _http.DeleteAsync($"/api/products/{id}");
+        var request = CreateRequest(HttpMethod.Delete, $"/api/products/{id}");
+        var response = await _http.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
             throw new Exception($"Delete failed: {response.StatusCode}");

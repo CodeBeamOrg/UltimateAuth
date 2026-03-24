@@ -67,26 +67,17 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
+    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthResourceApiOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
 
-        //AddUsersInternal(services);
-        //AddCredentialsInternal(services);
-        //AddAuthorizationInternal(services);
-        //AddUltimateAuthPolicies(services);
-
-        services.AddOptions<UAuthServerOptions>()
+        services.AddOptions<UAuthResourceApiOptions>()
             .Configure(options =>
             {
                 configure?.Invoke(options);
             })
-            .BindConfiguration("UltimateAuth:Server")
-            .PostConfigure(options =>
-            {
-                options.Endpoints.Authentication = false;
-            });
+            .BindConfiguration("UltimateAuth:ResourceApi");
 
         services.AddUltimateAuthResourceInternal();
 
@@ -126,7 +117,7 @@ public static class ServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, InvalidOrRevokedSessionInvariant>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, TenantResolvedInvariant>());
 
-        // EVENTS
+        // Events
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
@@ -247,9 +238,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
-        // -----------------------------
-        // ENDPOINTS
-        // -----------------------------
+        // Endpoints
         services.TryAddScoped<AuthFlowEndpointFilter>();
         services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
 
@@ -260,9 +249,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
 
-        // ------------------------------
-        // ASP.NET CORE INTEGRATION
-        // ------------------------------
+        // ASP.NET Core Integration
         services.AddAuthentication();
 
         services.PostConfigureAll<AuthenticationOptions>(options =>
@@ -389,17 +376,16 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    // TODO: This is not true, need to build true pipeline for ResourceApi.
     private static IServiceCollection AddUltimateAuthResourceInternal(this IServiceCollection services)
     {
+        // Resource API Specific
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
         services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
-
-        services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
         
+        // Server & Resource API Shared
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
@@ -413,14 +399,12 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
-        services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
         services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
-        services.AddHttpContextAccessor();
-        services.AddAuthentication();
+       
 
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddSingleton<ITenantIdResolver>(sp =>
@@ -446,37 +430,24 @@ public static class ServiceCollectionExtensions
             };
         });
 
-        services.AddAuthentication();
-
-        services.PostConfigureAll<AuthenticationOptions>(options =>
+        // ASP.NET Core Integration
+        services.AddHttpContextAccessor();
+        services.AddAuthentication(options =>
         {
-            options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
-            options.DefaultSignInScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
-            options.DefaultChallengeScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
-        });
-
-        services.AddAuthentication().AddUAuthResourceApi();
+            options.DefaultAuthenticateScheme = UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultChallengeScheme = UAuthConstants.SchemeDefaults.GlobalScheme;
+        })
+            .AddUAuthResourceApi();
         services.AddAuthorization();
 
-        services.TryAddSingleton<IRefreshTokenStoreFactory, NotSupportedRefreshTokenStoreFactory>();
-        services.TryAddSingleton<IUserRoleStoreFactory, NotSupportedUserRoleStoreFactory>();
-        services.TryAddSingleton<IUAuthPasswordHasher, NotSupportedPasswordHasher>();
-        services.TryAddSingleton<IIdentifierValidator, NoOpIdentifierValidator>();
-        services.TryAddSingleton<IAccessPolicyProvider, AllowAllAccessPolicyProvider>();
-        services.TryAddScoped<IUserClaimsProvider, NoOpUserClaimsProvider>();
-        services.TryAddSingleton<ITokenHasher, NoOpTokenHasher>();
-        services.TryAddScoped<IPrimaryUserIdentifierProvider, NoOpPrimaryUserIdentifierProvider>();
-        services.TryAddScoped<IUserProfileSnapshotProvider, NoOpUserProfileSnapshotProvider>();
-        services.TryAddScoped<IUserLifecycleSnapshotProvider, NoOpUserLifecycleSnapshotProvider>();
-
-        //services.PostConfigureAll<AuthenticationOptions>(options =>
-        //{
-        //    options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
-        //});
-
-        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>(client =>
+        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
         {
-            client.BaseAddress = new Uri("https://localhost:6110"); // Auth Server
+            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+
+            if (string.IsNullOrWhiteSpace(opts.UAuthHubBaseUrl))
+                throw new InvalidOperationException("UAuthHubBaseUrl is not configured. Add it via UAuthResourceApiOptions.");
+
+            client.BaseAddress = new Uri(opts.UAuthHubBaseUrl);
         });
 
         return services;

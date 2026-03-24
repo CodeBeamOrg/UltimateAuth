@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddUltimateAuthResourceApi();
+builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6110");
 
 builder.Services.AddCors(options =>
 {
