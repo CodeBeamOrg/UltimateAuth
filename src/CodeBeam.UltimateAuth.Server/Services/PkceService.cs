@@ -124,6 +124,11 @@ internal sealed class PkceService : IPkceService
 
     public async Task<HubCredentials> RefreshAsync(HubFlowArtifact hub, CancellationToken ct = default)
     {
+        if (hub.Payload.TryGet<string>("authorization_code", out var oldCode) && !string.IsNullOrWhiteSpace(oldCode))
+        {
+            await _authStore.ConsumeAsync(new AuthArtifactKey(oldCode), ct);
+        }
+
         var verifier = CreateVerifier();
         var challenge = CreateChallenge(verifier);
         var device = hub.Device;

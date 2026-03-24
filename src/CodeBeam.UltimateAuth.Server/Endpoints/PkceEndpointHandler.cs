@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -208,11 +209,17 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         {
             var form = await ctx.GetCachedFormAsync();
 
-            var codeChallenge = form["code_challenge"].ToString();
-            var challengeMethod = form["challenge_method"].ToString();
-            var redirectUri = form["redirect_uri"].ToString();
+            var codeChallenge = form?["code_challenge"].ToString();
+            var challengeMethod = form?["challenge_method"].ToString();
+            var redirectUri = form?["redirect_uri"].ToString();
 
-            var deviceRaw = form["device"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(codeChallenge))
+                throw new UAuthValidationException("code_challenge is required");
+
+            if (string.IsNullOrWhiteSpace(challengeMethod))
+                throw new UAuthValidationException("challange_method is required");
+
+            var deviceRaw = form?["device"].FirstOrDefault();
             DeviceContext? device = null;
 
             if (!string.IsNullOrWhiteSpace(deviceRaw))
@@ -258,19 +265,25 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         {
             var form = await ctx.GetCachedFormAsync();
 
-            var authorizationCode = form["authorization_code"].FirstOrDefault();
-            var codeVerifier = form["code_verifier"].FirstOrDefault();
-            var identifier = form["Identifier"].FirstOrDefault();
-            var secret = form["Secret"].FirstOrDefault();
-            var returnUrl = form["return_url"].FirstOrDefault();
+            var authorizationCode = form?["authorization_code"].FirstOrDefault();
+            var codeVerifier = form?["code_verifier"].FirstOrDefault();
+            var identifier = form?["Identifier"].FirstOrDefault();
+            var secret = form?["Secret"].FirstOrDefault();
+            var returnUrl = form?["return_url"].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(authorizationCode))
+                throw new UAuthValidationException("authorization_code is required");
+
+            if (string.IsNullOrWhiteSpace(codeVerifier))
+                throw new UAuthValidationException("code_verifier is required");
 
             return new PkceCompleteRequest
             {
                 AuthorizationCode = authorizationCode,
                 CodeVerifier = codeVerifier,
-                Identifier = identifier,
-                Secret = secret,
-                ReturnUrl = returnUrl
+                Identifier = identifier ?? string.Empty,
+                Secret = secret ?? string.Empty,
+                ReturnUrl = returnUrl ?? string.Empty
             };
         }
 

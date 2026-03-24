@@ -66,6 +66,9 @@ internal class UAuthFlowClient : IFlowClient
                 {
                     var result = await _post.SendJsonAsync(tryUrl, request);
 
+                    if (result.Body is null)
+                        throw new UAuthProtocolException("Empty response body.");
+
                     var parsed = result.Body.Value.Deserialize<TryLoginResult>(
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
@@ -277,6 +280,9 @@ internal class UAuthFlowClient : IFlowClient
             case UAuthSubmitMode.TryOnly:
                 {
                     var raw = await _post.SendJsonAsync(tryUrl, request);
+
+                    if (raw.Body is null)
+                        throw new UAuthProtocolException("Empty response body.");
 
                     var parsed = raw.Body.Value.Deserialize<TryPkceLoginResult>(
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
