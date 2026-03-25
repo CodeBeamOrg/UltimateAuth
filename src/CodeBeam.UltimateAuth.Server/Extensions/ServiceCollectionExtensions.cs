@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Extensions;
@@ -8,7 +9,6 @@ using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
-using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
@@ -17,29 +17,31 @@ using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
+using CodeBeam.UltimateAuth.Server.Authorization;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Security;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
+using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using CodeBeam.UltimateAuth.Users;
-using CodeBeam.UltimateAuth.Server.ResourceApi;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null)
+    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null, Action<AccessPolicyRegistry>? configurePolicies = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
@@ -47,7 +49,8 @@ public static class ServiceCollectionExtensions
         AddUsersInternal(services);
         AddCredentialsInternal(services);
         AddAuthorizationInternal(services);
-        AddUltimateAuthPolicies(services);
+
+        services.AddUltimateAuthPolicies(configurePolicies);
 
         services.AddOptions<UAuthServerOptions>()
             // Program.cs configuration (lowest precedence)
@@ -67,10 +70,11 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthResourceApiOptions>? configure = null)
+    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthResourceApiOptions>? configure = null, Action<AccessPolicyRegistry>? configurePolicies = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddUltimateAuth();
+        services.AddUltimateAuthPolicies(configurePolicies, isResourceApp: true);
 
         services.AddOptions<UAuthResourceApiOptions>()
             .Configure(options =>
@@ -80,6 +84,24 @@ public static class ServiceCollectionExtensions
             .BindConfiguration("UltimateAuth:ResourceApi");
 
         services.AddUltimateAuthResourceInternal();
+
+        var temp = new UAuthResourceApiOptions();
+        configure?.Invoke(temp);
+
+        if (temp.AllowedClientOrigins?.Count > 0)
+        {
+            services.AddCors(cors =>
+            {
+                cors.AddPolicy(temp.CorsPolicyName, policy =>
+                {
+                    policy
+                        .WithOrigins(temp.AllowedClientOrigins.ToArray())
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
+        }
 
         return services;
     }
@@ -262,6 +284,8 @@ public static class ServiceCollectionExtensions
         services.AddAuthentication().AddUAuthCookies();
         services.AddAuthorization();
 
+        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
@@ -278,14 +302,22 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null)
+    internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null, bool isResourceApp = false)
     {
         if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
             throw new InvalidOperationException("UltimateAuth policies already registered.");
 
         var registry = new AccessPolicyRegistry();
 
-        DefaultPolicySet.Register(registry);
+        if (isResourceApp)
+        {
+            DefaultPolicySet.RegisterResource(registry);
+        }
+        else
+        {
+            DefaultPolicySet.RegisterServer(registry);
+        }
+        
         configure?.Invoke(registry);
 
         services.AddSingleton(registry);
@@ -337,7 +369,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubServerOptions>? configure = null)
+    public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubOptions>? configure = null)
     {
         services.PostConfigure<UAuthServerOptions>(options =>
         {
@@ -384,16 +416,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
         services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
-        
+        services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
+
         // Server & Resource API Shared
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
 
-        services.TryAddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
-        services.TryAddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
-        services.TryAddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
-        services.TryAddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
 
         services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
 
@@ -403,8 +436,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
-
-       
 
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddSingleton<ITenantIdResolver>(sp =>
@@ -439,6 +470,9 @@ public static class ServiceCollectionExtensions
         })
             .AddUAuthResourceApi();
         services.AddAuthorization();
+
+        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
 
         services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
         {

@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class UAuthHubServerOptions
+public sealed class UAuthHubOptions
 {
     public string? ClientBaseAddress { get; set; }
 
@@ -14,7 +14,7 @@ public sealed class UAuthHubServerOptions
 
     public string? LoginPath { get; set; } = "/login";
 
-    internal UAuthHubServerOptions Clone() => new()
+    internal UAuthHubOptions Clone() => new()
     {
         ClientBaseAddress = ClientBaseAddress,
         AllowedClientOrigins = new HashSet<string>(AllowedClientOrigins),

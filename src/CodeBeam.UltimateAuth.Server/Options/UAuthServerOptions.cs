@@ -76,7 +76,7 @@ public sealed class UAuthServerOptions
 
     public UAuthResetOptions ResetCredential { get; init; } = new();
 
-    public UAuthHubServerOptions Hub { get; set; } = new();
+    public UAuthHubOptions Hub { get; set; } = new();
 
     /// <summary>
     /// Controls how session identifiers are resolved from incoming requests

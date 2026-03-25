@@ -7,7 +7,7 @@ public class UAuthResult
     public string? CorrelationId { get; init; }
     public string? TraceId { get; init; }
 
-    public UAuthProblem? Problem { get; init; }
+    public UAuthProblem? Problem { get; set; }
 
     public HttpStatusInfo Http => new(Status);
 
@@ -31,5 +31,5 @@ public class UAuthResult
 
 public sealed class UAuthResult<T> : UAuthResult
 {
-    public T? Value { get; init; }
+    public T? Value { get; set; }
 }

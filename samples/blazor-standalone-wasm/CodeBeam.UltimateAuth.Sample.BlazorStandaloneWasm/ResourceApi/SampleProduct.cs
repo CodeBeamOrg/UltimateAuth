@@ -1,7 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
 
-public class Product
+public class SampleProduct
 {
     public int Id { get; set; }
-    public string Name { get; set; } = "";
+    public string? Name { get; set; }
 }

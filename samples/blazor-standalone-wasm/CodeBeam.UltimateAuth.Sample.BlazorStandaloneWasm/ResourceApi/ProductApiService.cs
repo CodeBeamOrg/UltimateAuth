@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.WebAssembly.Http;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
@@ -25,56 +26,53 @@ public class ProductApiService
         return request;
     }
 
-    public async Task<List<Product>> GetAllAsync()
+    public Task<UAuthResult<List<SampleProduct>>> GetAllAsync()
+        => SendAsync<List<SampleProduct>>(CreateRequest(HttpMethod.Get, "/api/products"));
+
+    public Task<UAuthResult<SampleProduct?>> GetAsync(int id)
+        => SendAsync<SampleProduct?>(CreateRequest(HttpMethod.Get, $"/api/products/{id}"));
+
+    public Task<UAuthResult<SampleProduct?>> CreateAsync(SampleProduct product)
+        => SendAsync<SampleProduct?>(CreateRequest(HttpMethod.Post, $"/api/products", product));
+
+    public Task<UAuthResult<SampleProduct?>> UpdateAsync(int id, SampleProduct product)
+        => SendAsync<SampleProduct?>(CreateRequest(HttpMethod.Put, $"/api/products/{id}", product));
+
+    public Task<UAuthResult<SampleProduct?>> DeleteAsync(int id)
+        => SendAsync<SampleProduct?>(CreateRequest(HttpMethod.Delete, $"/api/products/{id}"));
+
+    private async Task<UAuthResult<T>> SendAsync<T>(HttpRequestMessage request)
     {
-        var request = CreateRequest(HttpMethod.Get, "/api/products");
         var response = await _http.SendAsync(request);
 
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Failed to fetch products: {response.StatusCode}");
+        var result = new UAuthResult<T>
+        {
+            Status = (int)response.StatusCode,
+            IsSuccess = response.IsSuccessStatusCode
+        };
 
-        return await response.Content.ReadFromJsonAsync<List<Product>>() ?? new();
+        if (response.IsSuccessStatusCode)
+        {
+            result.Value = await response.Content.ReadFromJsonAsync<T>();
+            return result;
+        }
+
+        result.Problem = await TryReadProblem(response);
+        return result;
     }
 
-    public async Task<Product?> GetAsync(int id)
+    private async Task<UAuthProblem?> TryReadProblem(HttpResponseMessage response)
     {
-        var request = CreateRequest(HttpMethod.Get, $"/api/products/{id}");
-        var response = await _http.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-            return null;
-
-        return await response.Content.ReadFromJsonAsync<Product>();
-    }
-
-    public async Task<Product?> CreateAsync(Product product)
-    {
-        var request = CreateRequest(HttpMethod.Post, "/api/products", product);
-        var response = await _http.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Create failed: {response.StatusCode}");
-
-        return await response.Content.ReadFromJsonAsync<Product>();
-    }
-
-    public async Task<Product?> UpdateAsync(int id, Product product)
-    {
-        var request = CreateRequest(HttpMethod.Put, $"/api/products/{id}", product);
-        var response = await _http.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Update failed: {response.StatusCode}");
-
-        return await response.Content.ReadFromJsonAsync<Product>();
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var request = CreateRequest(HttpMethod.Delete, $"/api/products/{id}");
-        var response = await _http.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Delete failed: {response.StatusCode}");
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<UAuthProblem>();
+        }
+        catch
+        {
+            return new UAuthProblem
+            {
+                Title = response.ReasonPhrase
+            };
+        }
     }
 }

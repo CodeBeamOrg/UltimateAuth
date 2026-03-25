@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Middlewares;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -43,6 +45,18 @@ public static class UltimateAuthApplicationBuilderExtensions
 
     public static IApplicationBuilder UseUltimateAuthResourceApi(this IApplicationBuilder app)
     {
+        var logger = app.ApplicationServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("UltimateAuth");
+
+        var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+
+        if (options.AllowedClientOrigins?.Count > 0)
+        {
+            app.UseCors(options.CorsPolicyName);
+            logger.LogInformation("UAuth Resource API initialized with CORS.");
+        }
+
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
         app.UseMiddleware<SessionResolutionMiddleware>();

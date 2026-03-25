@@ -2,5 +2,5 @@
 
 public static class ProductStore
 {
-    public static List<Product> Items = new() { new Product() { Id = 0, Name = "Test"} };
+    public static List<SampleProduct> Items = new() { new SampleProduct() { Id = 0, Name = "Test"} };
 }

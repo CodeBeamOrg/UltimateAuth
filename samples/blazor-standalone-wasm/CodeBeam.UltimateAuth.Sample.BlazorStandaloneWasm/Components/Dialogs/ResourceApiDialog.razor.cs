@@ -1,5 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -13,10 +16,80 @@ public partial class ResourceApiDialog
     [Parameter]
     public UAuthState AuthState { get; set; } = default!;
 
-    List<Product> _products = new List<Product>();
+    private List<SampleProduct> _products = new List<SampleProduct>();
+    private string? _newName = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _products = (await Api.GetAllAsync()).Value ?? new();
+            StateHasChanged();
+        }
+    }
+
+    private async Task<DataGridEditFormAction> CommittedItemChanges(SampleProduct item)
+    {
+        var result = await Api.UpdateAsync(item.Id, item);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Product updated successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result?.ErrorText ?? "Failed to update product.", Severity.Error);
+        }
+
+        return DataGridEditFormAction.Close;
+    }
 
     private async Task GetProducts()
     {
-        _products = await Api.GetAllAsync();
+        var result = await Api.GetAllAsync();
+
+        if (result.IsSuccess)
+        {
+            _products = result.Value ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
+        }
+    }
+
+    private async Task CreateProduct()
+    {
+        var product = new SampleProduct
+        {
+            Name = _newName
+        };
+
+        var result = await Api.CreateAsync(product);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("New product created.");
+            _products = (await Api.GetAllAsync()).Value ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
+        }
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        var result = await Api.DeleteAsync(id);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Product deleted succesfully.", Severity.Success);
+            _products = (await Api.GetAllAsync()).Value ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
+        }
     }
 }

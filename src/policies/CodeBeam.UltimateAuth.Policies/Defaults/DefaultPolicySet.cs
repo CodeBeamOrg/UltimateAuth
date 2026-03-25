@@ -7,12 +7,27 @@ namespace CodeBeam.UltimateAuth.Policies.Defaults;
 
 internal static class DefaultPolicySet
 {
-    public static void Register(AccessPolicyRegistry registry)
+    public static void RegisterServer(AccessPolicyRegistry registry)
     {
         // Invariant
         registry.Add("", _ => new RequireAuthenticatedPolicy());
         registry.Add("", _ => new DenyCrossTenantPolicy());
         registry.Add("", sp => new RequireActiveUserPolicy(sp.GetRequiredService<IUserRuntimeStateProvider>()));
+
+        // Intent-based
+        registry.Add("", _ => new RequireSelfPolicy());
+        registry.Add("", _ => new DenyAdminSelfModificationPolicy());
+        registry.Add("", _ => new RequireSystemPolicy());
+
+        // Permission
+        registry.Add("", _ => new MustHavePermissionPolicy());
+    }
+
+    public static void RegisterResource(AccessPolicyRegistry registry)
+    {
+        // Invariant
+        registry.Add("", _ => new RequireAuthenticatedPolicy());
+        registry.Add("", _ => new DenyCrossTenantPolicy());
 
         // Intent-based
         registry.Add("", _ => new RequireSelfPolicy());
