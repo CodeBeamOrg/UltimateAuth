@@ -46,11 +46,14 @@ public static class UAuthExceptionHandlingExtensions
     private static int MapStatusCode(UAuthRuntimeException ex) =>
         ex switch
         {
+            UAuthAuthenticationException => StatusCodes.Status401Unauthorized,
+            UAuthAuthorizationException => StatusCodes.Status403Forbidden,
             UAuthConflictException => StatusCodes.Status409Conflict,
             UAuthValidationException => StatusCodes.Status400BadRequest,
             UAuthUnauthorizedException => StatusCodes.Status401Unauthorized,
             UAuthForbiddenException => StatusCodes.Status403Forbidden,
             UAuthNotFoundException => StatusCodes.Status404NotFound,
+            UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
             _ => StatusCodes.Status400BadRequest
         };
 }

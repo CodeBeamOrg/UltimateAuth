@@ -21,6 +21,7 @@ public static class UAuthConstants
     public static class HttpItems
     {
         public const string SessionContext = "__UAuth.SessionContext";
+        public const string SessionValidationResult = "__UAuth.SessionValidationResult";
         public const string TenantContextKey = "__UAuthTenant";
         public const string UserContextKey = "__UAuthUser";
     }

@@ -28,7 +28,7 @@ public sealed class UAuthSessionOrchestrator : ISessionOrchestrator
         switch (decision.Decision)
         {
             case AuthorizationDecision.Deny:
-                throw new UAuthAuthorizationException(decision.Reason ?? "authorization_denied");
+                throw new UAuthAuthenticationException(decision.Reason ?? "authorization_denied");
 
             case AuthorizationDecision.Challenge:
                 throw new UAuthChallengeRequiredException(decision.Reason);

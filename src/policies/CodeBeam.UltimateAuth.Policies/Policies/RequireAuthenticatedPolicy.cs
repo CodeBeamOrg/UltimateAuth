@@ -1,7 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Defaults;
-using System.Net;
 
 namespace CodeBeam.UltimateAuth.Policies;
 

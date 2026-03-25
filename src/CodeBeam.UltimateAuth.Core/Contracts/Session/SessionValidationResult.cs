@@ -29,7 +29,7 @@ public sealed class SessionValidationResult
 
     public static SessionValidationResult Active(
         TenantKey tenant,
-        UserKey? userId,
+        UserKey? userKey,
         AuthSessionId sessionId,
         SessionChainId chainId,
         SessionRootId rootId,
@@ -40,7 +40,7 @@ public sealed class SessionValidationResult
         {
             Tenant = tenant,
             State = SessionState.Active,
-            UserKey = userId,
+            UserKey = userKey,
             SessionId = sessionId,
             ChainId = chainId,
             RootId = rootId,

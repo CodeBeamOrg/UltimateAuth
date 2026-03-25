@@ -11,7 +11,6 @@ public static class AuthFlowTypeExtensions
             AuthFlowType.Login => AuthOperation.Login,
             AuthFlowType.Reauthentication => AuthOperation.Login,
 
-            AuthFlowType.ApiAccess => AuthOperation.Access,
             AuthFlowType.ValidateSession => AuthOperation.Access,
             AuthFlowType.UserInfo => AuthOperation.Access,
             AuthFlowType.PermissionQuery => AuthOperation.Access,
@@ -24,6 +23,8 @@ public static class AuthFlowTypeExtensions
             AuthFlowType.Logout => AuthOperation.Logout,
             AuthFlowType.RevokeSession => AuthOperation.Revoke,
             AuthFlowType.RevokeToken => AuthOperation.Revoke,
+
+            AuthFlowType.ApiAccess => AuthOperation.ResourceAccess,
 
             AuthFlowType.QuerySession => AuthOperation.System,
 
