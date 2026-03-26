@@ -77,6 +77,11 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
+        var local = _db.Sessions.Local.FirstOrDefault(x => x.Tenant == _tenant && x.SessionId == sessionId);
+
+        if (local != null)
+            return local.ToDomain();
+
         var projection = await _db.Sessions
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId);
@@ -88,11 +93,16 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions
+        var projection = _db.Sessions.Local.FirstOrDefault(x => x.Tenant == _tenant && x.SessionId == session.SessionId);
+
+        if (projection == null)
+        {
+            projection = await _db.Sessions
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.SessionId == session.SessionId,
                 ct);
+        }
 
         if (projection is null)
             throw new UAuthNotFoundException("session_not_found");
@@ -210,9 +220,14 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
+        var local = _db.Chains.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
+
+        if (local is not null)
+            return local.ToDomain();
+
         var projection = await _db.Chains
             .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId);
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         return projection?.ToDomain();
     }
@@ -221,6 +236,17 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
+        var local = _db.Chains.Local
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null &&
+                x.DeviceId == deviceId)
+            .FirstOrDefault();
+
+        if (local != null)
+            return local.ToDomain();
+
         var projection = await _db.Chains
             .AsNoTracking()
             .Where(x =>
@@ -228,7 +254,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
                 x.UserKey == userKey &&
                 x.RevokedAt == null &&
                 x.DeviceId == deviceId)
-            .SingleOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
         return projection?.ToDomain();
     }
@@ -237,11 +263,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains
-            .SingleOrDefaultAsync(x =>
-                x.Tenant == _tenant &&
-                x.ChainId == chain.ChainId,
-                ct);
+        var projection = _db.Chains.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chain.ChainId);
+
+        if (projection is null)
+        {
+            projection = await _db.Chains
+                .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chain.ChainId, ct);
+        }
 
         if (projection is null)
             throw new UAuthNotFoundException("chain_not_found");
@@ -263,6 +291,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
         var projection = chain.ToProjection();
 
         _db.Chains.Add(projection);
+        _db.Entry(projection).State = EntityState.Added;
 
         return Task.CompletedTask;
     }
@@ -369,17 +398,15 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = _db.Chains.Local
-            .FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
+        var projection = _db.Chains.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
 
         if (projection is null)
         {
-            projection = await _db.Chains
-                .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
+            projection = await _db.Chains.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
         }
 
         if (projection is null)
-            return;
+            throw new UAuthNotFoundException("chain_not_found");
 
         projection.ActiveSessionId = sessionId;
         projection.Version++;

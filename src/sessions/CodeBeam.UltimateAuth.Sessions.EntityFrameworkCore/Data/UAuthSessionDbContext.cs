@@ -24,7 +24,11 @@ public sealed class UAuthSessionDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-            e.Property(x => x.CreatedAt).IsRequired();
+
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
 
             e.Property(x => x.UserKey)
                 .HasConversion(
@@ -59,7 +63,10 @@ public sealed class UAuthSessionDbContext : DbContext
             e.HasKey(x => x.Id);
 
             e.Property(x => x.Version).IsConcurrencyToken();
-            e.Property(x => x.CreatedAt).IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
 
             e.Property(x => x.UserKey)
                 .HasConversion(
@@ -119,6 +126,11 @@ public sealed class UAuthSessionDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Version).IsConcurrencyToken();
             e.Property(x => x.CreatedAt).IsRequired();
+
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
 
             e.Property(x => x.UserKey)
                 .HasConversion(

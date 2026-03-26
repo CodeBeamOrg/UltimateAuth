@@ -61,8 +61,10 @@ public sealed class UAuthUserDbContext : DbContext
             e.HasIndex(x => new { x.Tenant, x.UserKey, x.IsPrimary });
             e.HasIndex(x => new { x.Tenant, x.NormalizedValue });
 
-            e.Property(x => x.CreatedAt)
-                .IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
         });
     }
 
@@ -95,8 +97,10 @@ public sealed class UAuthUserDbContext : DbContext
             e.Property(x => x.SecurityVersion)
                 .IsRequired();
 
-            e.Property(x => x.CreatedAt)
-                .IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
         });
     }
 
@@ -130,8 +134,10 @@ public sealed class UAuthUserDbContext : DbContext
                 .HasConversion(new NullableJsonValueConverter<Dictionary<string, string>>())
                 .Metadata.SetValueComparer(JsonValueComparers.Create<Dictionary<string, string>>());
 
-            e.Property(x => x.CreatedAt)
-                .IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired()
+                .HasConversion(
+                    v => v.UtcDateTime,
+                    v => new DateTimeOffset(v, TimeSpan.Zero));
         });
     }
 }
