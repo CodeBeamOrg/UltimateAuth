@@ -1,0 +1,73 @@
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Pages
+@using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Infrastructure
+@inject ISnackbar Snackbar
+@inject DarkModeManager DarkModeManager
+
+<CascadingValue Value="DarkModeManager" IsFixed="true">
+
+    <UAuthApp OnReauthRequired="HandleReauth" UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.MainLayout)">
+        <ChildContent>
+            <MudThemeProvider IsDarkMode="@DarkModeManager.IsDarkMode" />
+            <MudPopoverProvider />
+            <MudDialogProvider />
+            <MudSnackbarProvider />
+        </ChildContent>
+        <NotAuthorized>
+            <NotAuthorized />
+        </NotAuthorized>
+    </UAuthApp>
+
+    @* Advanced: you can fully control routing by providing your own Router *@
+    @* <UAuthApp OnReauthRequired="HandleReauth">
+        <MudThemeProvider IsDarkMode="@DarkModeManager.IsDarkMode" />
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+
+        <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="UAuthAssemblies.Client()">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                    <NotAuthorized>
+                        <NotAuthorized />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Found>
+        </Router>
+    </UAuthApp> *@
+</CascadingValue>
+
+@code {
+    private async Task HandleReauth()
+    {
+        Snackbar.Add("Reauthentication required. Please log in again.", Severity.Warning);
+    }
+
+    #region DarkMode
+
+    protected override void OnInitialized()
+    {
+        DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await DarkModeManager.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        DarkModeManager.Changed -= OnThemeChanged;
+    }
+
+    #endregion
+}

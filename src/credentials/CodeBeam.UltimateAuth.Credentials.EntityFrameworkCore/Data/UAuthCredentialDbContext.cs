@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 
-internal sealed class UAuthCredentialDbContext : DbContext
+public sealed class UAuthCredentialDbContext : DbContext
 {
     public DbSet<PasswordCredentialProjection> PasswordCredentials => Set<PasswordCredentialProjection>();
 

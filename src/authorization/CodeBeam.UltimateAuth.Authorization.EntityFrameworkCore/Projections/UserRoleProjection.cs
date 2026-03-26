@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 
-internal sealed class UserRoleProjection
+public sealed class UserRoleProjection
 {
     public TenantKey Tenant { get; set; }
 

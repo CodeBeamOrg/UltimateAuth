@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class UserProfileProjection
+public sealed class UserProfileProjection
 {
     public Guid Id { get; set; }
 

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
 
-internal sealed class UAuthAuthenticationDbContext : DbContext
+public sealed class UAuthAuthenticationDbContext : DbContext
 {
     public DbSet<AuthenticationSecurityStateProjection> AuthenticationSecurityStates => Set<AuthenticationSecurityStateProjection>();
 

@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/Packages/">
-    <Project Path="nuget/CodeBeam.UltimateAuth.EntityFrameworkCore/CodeBeam.UltimateAuth.EntityFrameworkCoreReference.csproj" Id="764569b4-dd5b-4a18-a332-7307d20ee21a" />
+    <Project Path="nuget/CodeBeam.UltimateAuth.EntityFrameworkCore/CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" Id="764569b4-dd5b-4a18-a332-7307d20ee21a" />
     <Project Path="nuget/CodeBeam.UltimateAuth.InMemory/CodeBeam.UltimateAuth.InMemory.Bundle.csproj" />
     <Project Path="nuget/CodeBeam.UltimateAuth.Reference.Bundle/CodeBeam.UltimateAuth.Reference.Bundle.csproj" Id="f01dee6a-a60d-40a2-bb6a-9894b03e7122" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore/CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.csproj" Id="84201d45-0298-4bf3-9bd4-0567b373f6a0" />
     <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer/CodeBeam.UltimateAuth.Sample.BlazorServer.csproj" />
     <Project Path="samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
+    <Project Path="samples/CodeBeam.UltimateAuth.Sample.Seed/CodeBeam.UltimateAuth.Sample.Seed.csproj" Id="c79b227b-409e-439d-97df-8979a3dc1a60" />
     <Project Path="samples/resource-api/CodeBeam.UltimateAuth.Sample.ResourceApi/CodeBeam.UltimateAuth.Sample.ResourceApi.csproj" Id="3d877c9b-65eb-45be-b259-431b2d386736" />
     <Project Path="samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub.csproj" Id="ae5368ee-10aa-4c75-9653-a7f481849834" />
   </Folder>

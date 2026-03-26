@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
     <ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
+    <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
   </ItemGroup>
 
 </Project>

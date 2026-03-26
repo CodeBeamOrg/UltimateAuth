@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class UAuthUserDbContext : DbContext
+public sealed class UAuthUserDbContext : DbContext
 {
     public DbSet<UserIdentifierProjection> Identifiers => Set<UserIdentifierProjection>();
     public DbSet<UserLifecycleProjection> Lifecycles => Set<UserLifecycleProjection>();

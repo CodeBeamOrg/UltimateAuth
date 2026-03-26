@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class UserIdentifierProjection
+public sealed class UserIdentifierProjection
 {
     public Guid Id { get; set; }
 

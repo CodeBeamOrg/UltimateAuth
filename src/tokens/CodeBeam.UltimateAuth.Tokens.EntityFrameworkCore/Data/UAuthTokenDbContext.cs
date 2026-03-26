@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
-internal sealed class UAuthTokenDbContext : DbContext
+public sealed class UAuthTokenDbContext : DbContext
 {
     public DbSet<RefreshTokenProjection> RefreshTokens => Set<RefreshTokenProjection>();
     //public DbSet<RevokedTokenIdProjection> RevokedTokenIds => Set<RevokedTokenIdProjection>(); // TODO: Add when JWT added.

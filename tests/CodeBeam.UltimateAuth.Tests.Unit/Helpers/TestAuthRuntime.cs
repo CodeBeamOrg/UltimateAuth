@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.InMemory;
+using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
@@ -35,6 +36,8 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         {
             configureServer?.Invoke(options);
         });
+
+        services.AddUltimateAuthSampleSeed();
 
         services.AddSingleton<IUAuthPasswordHasher, TestPasswordHasher>();
         // InMemory plugins

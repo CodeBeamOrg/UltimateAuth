@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class UAuthSessionDbContext : DbContext
+public sealed class UAuthSessionDbContext : DbContext
 {
     public DbSet<SessionRootProjection> Roots => Set<SessionRootProjection>();
     public DbSet<SessionChainProjection> Chains => Set<SessionChainProjection>();
     public DbSet<SessionProjection> Sessions => Set<SessionProjection>();
 
 
-    public UAuthSessionDbContext(DbContextOptions options) : base(options)
+    public UAuthSessionDbContext(DbContextOptions<UAuthSessionDbContext> options) : base(options)
     {
     }
 

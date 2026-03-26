@@ -1,29 +1,28 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
-namespace CodeBeam.UltimateAuth.Users.InMemory;
+namespace CodeBeam.UltimateAuth.Sample.Seed;
 
-internal sealed class InMemoryUserSeedContributor : ISeedContributor
+public sealed class UserSeedContributor : ISeedContributor
 {
     public int Order => 0;
 
     private readonly IUserLifecycleStoreFactory _lifecycleFactory;
     private readonly IUserIdentifierStoreFactory _identifierFactory;
     private readonly IUserProfileStoreFactory _profileFactory;
-    private readonly IInMemoryUserIdProvider<UserKey> _ids;
+    private readonly IUserIdProvider<UserKey> _ids;
     private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IClock _clock;
 
-    public InMemoryUserSeedContributor(
+    public UserSeedContributor(
         IUserLifecycleStoreFactory lifecycleFactory,
         IUserProfileStoreFactory profileFactory,
         IUserIdentifierStoreFactory identifierFactory,
-        IInMemoryUserIdProvider<UserKey> ids,
+        IUserIdProvider<UserKey> ids,
         IIdentifierNormalizer identifierNormalizer,
         IClock clock)
     {
@@ -68,10 +67,7 @@ internal sealed class InMemoryUserSeedContributor : ISeedContributor
                 ct);
         }
 
-        async Task EnsureIdentifier(
-            UserIdentifierType type,
-            string value,
-            bool isPrimary)
+        async Task EnsureIdentifier(UserIdentifierType type, string value, bool isPrimary)
         {
             var normalized = _identifierNormalizer
                 .Normalize(type, value).Normalized;

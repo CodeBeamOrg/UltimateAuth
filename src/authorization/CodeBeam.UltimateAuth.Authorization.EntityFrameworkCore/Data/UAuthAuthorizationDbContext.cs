@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 
-internal sealed class UAuthAuthorizationDbContext : DbContext
+public sealed class UAuthAuthorizationDbContext : DbContext
 {
     public DbSet<RoleProjection> Roles => Set<RoleProjection>();
     public DbSet<RolePermissionProjection> RolePermissions => Set<RolePermissionProjection>();

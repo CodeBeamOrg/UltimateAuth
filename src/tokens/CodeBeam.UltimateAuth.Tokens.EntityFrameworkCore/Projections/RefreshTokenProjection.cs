@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
-internal sealed class RefreshTokenProjection
+public sealed class RefreshTokenProjection
 {
     public long Id { get; set; } // EF PK
 

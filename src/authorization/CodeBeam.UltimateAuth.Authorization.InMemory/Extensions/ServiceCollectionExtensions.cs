@@ -11,9 +11,6 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IRoleStoreFactory, InMemoryRoleStoreFactory>();
         services.TryAddSingleton<IUserRoleStoreFactory, InMemoryUserRoleStoreFactory>();
 
-        // Never try add - seeding is enumerated and all contributors are added.
-        services.AddSingleton<ISeedContributor, InMemoryAuthorizationSeedContributor>();
-
         return services;
     }
 }

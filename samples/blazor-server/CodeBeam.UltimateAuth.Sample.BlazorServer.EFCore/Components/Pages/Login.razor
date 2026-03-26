@@ -1,0 +1,126 @@
+﻿@page "/login"
+@attribute [UAuthLoginPage]
+@inherits UAuthFlowPageBase
+
+@implements IDisposable
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject IUAuthClientProductInfoProvider ClientProductInfoProvider
+@inject IDeviceIdProvider DeviceIdProvider
+@inject IDialogService DialogService
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium" Gutters="false">
+        <MudGrid Spacing="0">
+            <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
+                <MudPaper Class="mud-theme-primary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
+                    <UAuthStateView>
+                        <Authorized Context="state">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.subtitle1">You are already signed in</MudText>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudAvatar Class="uauth-brand-glow" Color="Color.Secondary" Variant="Variant.Filled">
+                                        @(state.Identity?.PrimaryUserName?.Substring(0, 2))
+                                    </MudAvatar>
+
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6">
+                                            <b>@state.Identity?.PrimaryUserName</b>
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">
+                                            Roles: @string.Join(", ", state.Claims.Roles)
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudStack Class="mt-2" Row="true" Spacing="2" Justify="Justify.SpaceBetween">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Nav.NavigateTo("/home"))">
+                                        Continue
+                                    </MudButton>
+
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@UAuthClient.Flows.LogoutAsync">
+                                        Switch account
+                                    </MudButton>
+                                </MudStack>
+
+                                <MudAlert Class="white-text mt-4" Dense="true" Variant="Variant.Text">
+                                    In a production application, users would typically be redirected automatically.
+                                    This screen is shown in the sample to demonstrate session handling behavior.
+                                </MudAlert>
+                            </MudStack>
+                            <MudDivider />
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <MudStack Class="my-4">
+                                <div class="uauth-brand-glow uauth-logo-slide d-flex justify-center">
+                                    <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-primary)" />
+                                </div>
+                                <MudText Style="font-weight: 700" Typo="Typo.h4" Align="Align.Center">UltimateAuth</MudText>
+                                <MudText Align="Align.Center">The Modern Unified Auth Framework for .NET — Reimagined.</MudText>
+                            </MudStack>
+                            <MudDivider />
+                        </NotAuthorized>
+                    </UAuthStateView>
+
+                    <MudStack Class="mt-4" Wrap="Wrap.Wrap" Spacing="0">
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center"><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@_productInfo?.FrameworkDescription</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
+                <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
+                    <UAuthLoginForm Identifier="@_username" Secret="@_password" OnTryResult="@HandleTry" ReturnUrl="@(ReturnUrl ?? "/home")">
+                        <MudStack Class="mud-width-full">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
+                                <MudText Typo="Typo.h5">
+                                    <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
+                                </MudText>
+                            </MudStack>
+                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
+                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
+                            @if (_isLocked)
+                            {
+                                <MudAlert NoIcon="true" Severity="Severity.Error" Variant="Variant.Filled">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.subtitle2">Your account is locked.</MudText>
+                                            <MudText Typo="Typo.subtitle2">Try again in </MudText>
+                                        </MudStack>
+                                        <MudProgressCircular Class="mud-theme-error" Value="@_progressPercent" Max="100" Size="Size.Large">
+                                            @_remaining.Minutes.ToString("00"):@_remaining.Seconds.ToString("00")
+                                        </MudProgressCircular>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </UAuthLoginForm>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">
+                        Default sample users:
+                        <b>admin/admin</b> (Admin),
+                        <b>user/user</b> (Standard User)
+                    </MudAlert>
+
+                    <MudDivider Class="my-8" />
+
+                    <MudStack Class="mud-width-full">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ProgrammaticLogin">Programmatic Login</MudButton>
+                        <MudText Style="color: var(--mud-palette-text-secondary)" Typo="Typo.subtitle2" Align="Align.Center">Login programmatically as admin/admin.</MudText>
+                    </MudStack>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudStack>
+                        <MudText Align="Align.Center" Typo="Typo.subtitle2"><MudLink Class="cursor-pointer" OnClick="OpenResetDialog">Forgot Password</MudLink></MudText>
+                        <MudText Align="Align.Center" Typo="Typo.subtitle2">Don't have an account? <MudLink Class="cursor-pointer" Href="/register">SignUp</MudLink></MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</MudPage>
