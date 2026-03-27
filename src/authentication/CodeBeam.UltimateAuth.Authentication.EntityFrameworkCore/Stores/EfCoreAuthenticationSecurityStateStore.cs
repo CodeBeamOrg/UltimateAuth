@@ -7,20 +7,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
 
-internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSecurityStateStore
+internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuthenticationSecurityStateStore where TDbContext : DbContext
 {
-    private readonly UAuthAuthenticationDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreAuthenticationSecurityStateStore(UAuthAuthenticationDbContext db, TenantContext tenant)
+    public EfCoreAuthenticationSecurityStateStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<AuthenticationSecurityStateProjection> DbSet => _db.Set<AuthenticationSecurityStateProjection>();
+
     public async Task<AuthenticationSecurityState?> GetAsync(UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
     {
-        var entity = await _db.AuthenticationSecurityStates
+        var entity = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -38,14 +40,14 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
     {
         var entity = AuthenticationSecurityStateMapper.ToProjection(state);
 
-        _db.AuthenticationSecurityStates.Add(entity);
+        DbSet.Add(entity);
 
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(AuthenticationSecurityState state, long expectedVersion, CancellationToken ct = default)
     {
-        var entity = await _db.AuthenticationSecurityStates
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.Id == state.Id,
@@ -64,7 +66,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
 
     public async Task DeleteAsync(UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
     {
-        var entity = await _db.AuthenticationSecurityStates
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -75,7 +77,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore : IAuthenticationSe
         if (entity is null)
             return;
 
-        _db.AuthenticationSecurityStates.Remove(entity);
+        DbSet.Remove(entity);
 
         await _db.SaveChangesAsync(ct);
     }

@@ -1,18 +1,19 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 
-internal sealed class EfCoreRoleStoreFactory : IRoleStoreFactory
+internal sealed class EfCoreRoleStoreFactory<TDbContext> : IRoleStoreFactory where TDbContext : DbContext
 {
-    private readonly UAuthAuthorizationDbContext _db;
+    private readonly TDbContext _db;
 
-    public EfCoreRoleStoreFactory(UAuthAuthorizationDbContext db)
+    public EfCoreRoleStoreFactory(TDbContext db)
     {
         _db = db;
     }
 
     public IRoleStore Create(TenantKey tenant)
     {
-        return new EfCoreRoleStore(_db, new TenantContext(tenant));
+        return new EfCoreRoleStore<TDbContext>(_db, new TenantContext(tenant));
     }
 }

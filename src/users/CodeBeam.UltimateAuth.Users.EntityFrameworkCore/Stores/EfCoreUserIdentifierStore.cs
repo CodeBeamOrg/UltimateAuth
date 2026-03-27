@@ -8,22 +8,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
+internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierStore where TDbContext : DbContext
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserIdentifierStore(UAuthUserDbContext db, TenantContext tenant)
+    public EfCoreUserIdentifierStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<UserIdentifierProjection> DbSet => _db.Set<UserIdentifierProjection>();
+
     public async Task<bool> ExistsAsync(Guid key, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Identifiers
+        return await DbSet
             .AnyAsync(x =>
                 x.Id == key &&
                 x.Tenant == _tenant,
@@ -34,7 +36,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var q = _db.Identifiers
+        var q = DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -82,7 +84,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        var projection = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Id == key &&
@@ -96,7 +98,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        var projection = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x =>
@@ -113,7 +115,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        var projection = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Id == id &&
@@ -127,7 +129,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Identifiers
+        var projections = await DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -152,7 +154,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         if (entity.IsPrimary)
         {
-            await _db.Identifiers
+            await DbSet
                 .Where(x =>
                     x.Tenant == _tenant &&
                     x.UserKey == entity.UserKey &&
@@ -164,7 +166,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
                     ct);
         }
 
-        _db.Identifiers.Add(projection);
+        DbSet.Add(projection);
 
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -178,7 +180,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         if (entity.IsPrimary)
         {
-            await _db.Identifiers
+            await DbSet
                 .Where(x =>
                     x.Tenant == _tenant &&
                     x.UserKey == entity.UserKey &&
@@ -191,7 +193,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
                     ct);
         }
 
-        var existing = await _db.Identifiers
+        var existing = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == entity.Id &&
                 x.Tenant == _tenant,
@@ -215,7 +217,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Identifiers
+        var projection = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == key &&
                 x.Tenant == _tenant,
@@ -229,7 +231,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.Identifiers.Remove(projection);
+            DbSet.Remove(projection);
         }
         else
         {
@@ -247,7 +249,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         if (mode == DeleteMode.Hard)
         {
-            await _db.Identifiers
+            await DbSet
                 .Where(x =>
                     x.Tenant == _tenant &&
                     x.UserKey == userKey)
@@ -256,7 +258,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
             return;
         }
 
-        await _db.Identifiers
+        await DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -275,7 +277,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
         if (userKeys is null || userKeys.Count == 0)
             return Array.Empty<UserIdentifier>();
 
-        var projections = await _db.Identifiers
+        var projections = await DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -299,7 +301,7 @@ internal sealed class EfCoreUserIdentifierStore : IUserIdentifierStore
 
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Identifiers
+        var baseQuery = DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&

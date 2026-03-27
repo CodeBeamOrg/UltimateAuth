@@ -6,22 +6,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
+internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore where TDbContext : DbContext
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserLifecycleStore(UAuthUserDbContext db, TenantContext tenant)
+    public EfCoreUserLifecycleStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<UserLifecycleProjection> DbSet => _db.Set<UserLifecycleProjection>();
+
     public async Task<UserLifecycle?> GetAsync(UserLifecycleKey key, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Lifecycles
+        var projection = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.Tenant == _tenant &&
@@ -35,7 +37,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Lifecycles
+        return await DbSet
             .AnyAsync(
                 x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
@@ -51,7 +53,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         var projection = entity.ToProjection();
 
-        _db.Lifecycles.Add(projection);
+        DbSet.Add(projection);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -60,7 +62,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var existing = await _db.Lifecycles
+        var existing = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == entity.UserKey,
@@ -82,7 +84,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Lifecycles
+        var projection = await DbSet
             .SingleOrDefaultAsync(
                 x => x.Tenant == _tenant &&
                      x.UserKey == key.UserKey,
@@ -96,7 +98,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.Lifecycles.Remove(projection);
+            DbSet.Remove(projection);
         }
         else
         {
@@ -113,7 +115,7 @@ internal sealed class EfCoreUserLifecycleStore : IUserLifecycleStore
 
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Lifecycles
+        var baseQuery = DbSet
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant);
 

@@ -6,10 +6,14 @@ namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthAuthenticationEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
+    public static IServiceCollection AddUltimateAuthAuthenticationEntityFrameworkCore<TDbContext>(this IServiceCollection services, Action<DbContextOptionsBuilder>? configureDb = null) where TDbContext : DbContext
     {
-        services.AddDbContext<UAuthAuthenticationDbContext>(configureDb);
-        services.AddScoped<IAuthenticationSecurityStateStoreFactory, EfCoreAuthenticationSecurityStateStoreFactory>();
+        if (configureDb != null)
+        {
+            services.AddDbContext<TDbContext>(configureDb);
+        }
+        
+        services.AddScoped<IAuthenticationSecurityStateStoreFactory, EfCoreAuthenticationSecurityStateStoreFactory<TDbContext>>();
         return services;
     }
 }

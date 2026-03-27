@@ -14,9 +14,7 @@ public sealed class RoleProjection
     public string NormalizedName { get; set; } = default!;
 
     public DateTimeOffset CreatedAt { get; set; }
-
     public DateTimeOffset? UpdatedAt { get; set; }
-
     public DateTimeOffset? DeletedAt { get; set; }
 
     public long Version { get; set; }

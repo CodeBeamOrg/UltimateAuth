@@ -8,20 +8,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 
-internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
+internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCredentialStore where TDbContext : DbContext
 {
-    private readonly UAuthCredentialDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCorePasswordCredentialStore(UAuthCredentialDbContext db, TenantContext tenant)
+    public EfCorePasswordCredentialStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<PasswordCredentialProjection> DbSet => _db.Set<PasswordCredentialProjection>();
+
     public async Task<bool> ExistsAsync(CredentialKey key, CancellationToken ct = default)
     {
-        return await _db.PasswordCredentials
+        return await DbSet
             .AnyAsync(x =>
                 x.Id == key.Id &&
                 x.Tenant == _tenant,
@@ -32,14 +34,14 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
     {
         var entity = credential.ToProjection();
 
-        _db.PasswordCredentials.Add(entity);
+        DbSet.Add(entity);
 
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task<PasswordCredential?> GetAsync(CredentialKey key, CancellationToken ct = default)
     {
-        var entity = await _db.PasswordCredentials
+        var entity = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.Id == key.Id &&
@@ -51,7 +53,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
     public async Task SaveAsync(PasswordCredential credential, long expectedVersion, CancellationToken ct = default)
     {
-        var entity = await _db.PasswordCredentials
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == credential.Id &&
                 x.Tenant == _tenant,
@@ -71,7 +73,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
     public async Task RevokeAsync(CredentialKey key, DateTimeOffset revokedAt, long expectedVersion, CancellationToken ct = default)
     {
-        var entity = await _db.PasswordCredentials
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == key.Id &&
                 x.Tenant == _tenant,
@@ -93,7 +95,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
     public async Task DeleteAsync(CredentialKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
-        var entity = await _db.PasswordCredentials
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == key.Id &&
                 x.Tenant == _tenant,
@@ -107,7 +109,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.PasswordCredentials.Remove(entity);
+            DbSet.Remove(entity);
         }
         else
         {
@@ -121,7 +123,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
 
     public async Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
-        var entities = await _db.PasswordCredentials
+        var entities = await DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -139,7 +141,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
     {
         if (mode == DeleteMode.Hard)
         {
-            await _db.PasswordCredentials
+            await DbSet
                 .Where(x =>
                     x.Tenant == _tenant &&
                     x.UserKey == userKey)
@@ -148,7 +150,7 @@ internal sealed class EfCorePasswordCredentialStore : IPasswordCredentialStore
             return;
         }
 
-        await _db.PasswordCredentials
+        await DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
