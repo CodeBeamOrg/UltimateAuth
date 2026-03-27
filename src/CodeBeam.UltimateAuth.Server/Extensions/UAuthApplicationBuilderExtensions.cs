@@ -65,4 +65,13 @@ public static class UltimateAuthApplicationBuilderExtensions
 
         return app;
     }
+
+    public static IApplicationBuilder UseUltimateAuthResourceApiWithAspNetCore(this IApplicationBuilder app)
+    {
+        app.UseUltimateAuthResourceApi();
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        return app;
+    }
 }

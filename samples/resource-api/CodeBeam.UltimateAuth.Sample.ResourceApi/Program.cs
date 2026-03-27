@@ -17,13 +17,9 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
 app.UseHttpsRedirection();
 
-app.UseUltimateAuthResourceApi();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseUltimateAuthResourceApiWithAspNetCore();
 
 app.MapControllers();
-
 app.Run();

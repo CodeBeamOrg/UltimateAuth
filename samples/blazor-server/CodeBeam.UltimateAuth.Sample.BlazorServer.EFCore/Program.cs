@@ -1,6 +1,5 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
@@ -87,10 +86,6 @@ else
     app.MapOpenApi();
     app.MapScalarApiReference();
 
-    //using var scope = app.Services.CreateScope();
-    //var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
-    //await seedRunner.RunAsync(null);
-
     using (var scope = app.Services.CreateScope())
     {
         await UAuthDbInitializer.InitializeAsync(app.Services, reset: true);
@@ -105,7 +100,7 @@ app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseUltimateAuthWithAspNetCore(enableCors: true);
+app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();

@@ -92,7 +92,7 @@ app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseUltimateAuthWithAspNetCore(enableCors: true);
+app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();

@@ -13,36 +13,31 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddMudServices(o => {
+    o.SnackbarConfiguration.PreventDuplicates = false;
+});
+builder.Services.AddMudExtensions();
+builder.Services.AddScoped<DarkModeManager>();
+
+
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 builder.Services.AddUltimateAuth();
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    o.Endpoints.BasePath = "https://localhost:6110/auth";
+    o.Endpoints.BasePath = "https://localhost:6110/auth"; // UAuthHub URL
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Login.AllowCredentialPost = true;
-    o.Pkce.ReturnUrl = "https://localhost:6130/home";
+    o.Pkce.ReturnUrl = "https://localhost:6130/home"; // This application domain + path
 });
-
-builder.Services.AddMudServices(o => {
-    o.SnackbarConfiguration.PreventDuplicates = false;
-});
-builder.Services.AddMudExtensions();
 
 builder.Services.AddScoped<ProductApiService>();
-builder.Services.AddScoped<DarkModeManager>();
-
-
-//builder.Services.AddHttpClient("ResourceApi", client =>
-//{
-//    client.BaseAddress = new Uri("https://localhost:6120");
-//});
 
 builder.Services.AddScoped(sp =>
 {
     return new HttpClient
     {
-        BaseAddress = new Uri("https://localhost:6120") // Resource API
+        BaseAddress = new Uri("https://localhost:6120") // Resource API URL
     };
 });
 

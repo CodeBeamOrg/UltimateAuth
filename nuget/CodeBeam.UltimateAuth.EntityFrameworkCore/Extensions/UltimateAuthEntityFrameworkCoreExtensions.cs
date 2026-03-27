@@ -69,21 +69,6 @@ public static class UltimateAuthEntityFrameworkCoreExtensions
         return services;
     }
 
-
-    //public static IServiceCollection AddUltimateAuthEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
-    //{
-    //    services
-    //        .AddUltimateAuthReferences()
-    //        .AddUltimateAuthUsersEntityFrameworkCore<UAuthUserDbContext>(configureDb)
-    //        .AddUltimateAuthCredentialsEntityFrameworkCore<UAuthCredentialDbContext>(configureDb)
-    //        .AddUltimateAuthAuthorizationEntityFrameworkCore<UAuthAuthorizationDbContext>(configureDb)
-    //        .AddUltimateAuthSessionsEntityFrameworkCore<UAuthSessionDbContext>(configureDb)
-    //        .AddUltimateAuthTokensEntityFrameworkCore<UAuthTokenDbContext>(configureDb)
-    //        .AddUltimateAuthAuthenticationEntityFrameworkCore<UAuthAuthenticationDbContext>(configureDb);
-
-    //    return services;
-    //}
-
     /// <summary>
     /// Adds and configures Entity Framework Core-based UltimateAuth services and related references to the specified
     /// service collection.
