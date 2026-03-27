@@ -14,10 +14,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUserLifecycleStoreFactory, InMemoryUserLifecycleStoreFactory>();
         services.AddSingleton<IUserIdentifierStoreFactory, InMemoryUserIdentifierStoreFactory>();
         services.AddSingleton<IUserProfileStoreFactory, InMemoryUserProfileStoreFactory>();
-        services.TryAddSingleton<IInMemoryUserIdProvider<UserKey>, InMemoryUserIdProvider>();
-
-        // Seed never try add
-        services.AddSingleton<ISeedContributor, InMemoryUserSeedContributor>();
 
         return services;
     }

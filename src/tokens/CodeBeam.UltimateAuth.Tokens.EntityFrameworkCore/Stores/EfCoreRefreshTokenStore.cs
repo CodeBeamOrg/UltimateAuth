@@ -5,17 +5,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 
-internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
+internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore where TDbContext : DbContext
 {
-    private readonly UAuthTokenDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
     private bool _inTransaction;
 
-    public EfCoreRefreshTokenStore(UAuthTokenDbContext db, TenantContext tenant)
+    public EfCoreRefreshTokenStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
+
+    private DbSet<RefreshTokenProjection> DbSet => _db.Set<RefreshTokenProjection>();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -88,7 +90,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         if (token.Tenant != _tenant)
             throw new InvalidOperationException("Tenant mismatch.");
 
-        _db.RefreshTokens.Add(token.ToProjection());
+        DbSet.Add(token.ToProjection());
 
         return Task.CompletedTask;
     }
@@ -97,7 +99,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var p = await _db.RefreshTokens
+        var p = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 x => x.Tenant == _tenant &&
@@ -112,7 +114,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         ct.ThrowIfCancellationRequested();
         EnsureTransaction();
 
-        var query = _db.RefreshTokens
+        var query = DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.TokenHash == tokenHash &&
@@ -137,7 +139,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         ct.ThrowIfCancellationRequested();
         EnsureTransaction();
 
-        return _db.RefreshTokens
+        return DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.SessionId == sessionId &&
@@ -152,7 +154,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         ct.ThrowIfCancellationRequested();
         EnsureTransaction();
 
-        return _db.RefreshTokens
+        return DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.ChainId == chainId &&
@@ -167,7 +169,7 @@ internal sealed class EfCoreRefreshTokenStore : IRefreshTokenStore
         ct.ThrowIfCancellationRequested();
         EnsureTransaction();
 
-        return _db.RefreshTokens
+        return DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&

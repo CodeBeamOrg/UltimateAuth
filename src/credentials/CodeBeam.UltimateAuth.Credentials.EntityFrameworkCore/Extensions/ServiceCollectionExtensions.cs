@@ -6,10 +6,14 @@ namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUltimateAuthCredentialsEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
+    public static IServiceCollection AddUltimateAuthCredentialsEntityFrameworkCore<TDbContext>(this IServiceCollection services, Action<DbContextOptionsBuilder>? configureDb = null) where TDbContext : DbContext
     {
-        services.AddDbContext<UAuthCredentialDbContext>(configureDb);
-        services.AddScoped<IPasswordCredentialStoreFactory, EfCorePasswordCredentialStoreFactory>();
+        if (configureDb != null)
+        {
+            services.AddDbContext<TDbContext>(configureDb);
+        }
+        
+        services.AddScoped<IPasswordCredentialStoreFactory, EfCorePasswordCredentialStoreFactory<TDbContext>>();
         return services;
     }
 }

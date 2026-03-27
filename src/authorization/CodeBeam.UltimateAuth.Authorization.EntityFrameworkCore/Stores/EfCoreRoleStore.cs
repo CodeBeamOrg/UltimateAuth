@@ -6,20 +6,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 
-internal sealed class EfCoreRoleStore : IRoleStore
+internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext : DbContext
 {
-    private readonly UAuthAuthorizationDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreRoleStore(UAuthAuthorizationDbContext db, TenantContext tenant)
+    public EfCoreRoleStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<RoleProjection> DbSetRole => _db.Set<RoleProjection>();
+    private DbSet<RolePermissionProjection> DbSetPermission => _db.Set<RolePermissionProjection>();
+
     public async Task<bool> ExistsAsync(RoleKey key, CancellationToken ct = default)
     {
-        return await _db.Roles
+        return await DbSetRole
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
                 x.Id == key.RoleId,
@@ -28,7 +31,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
     public async Task AddAsync(Role role, CancellationToken ct = default)
     {
-        var exists = await _db.Roles
+        var exists = await DbSetRole
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
                 x.NormalizedName == role.NormalizedName &&
@@ -40,19 +43,19 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         var entity = RoleMapper.ToProjection(role);
 
-        _db.Roles.Add(entity);
+        DbSetRole.Add(entity);
 
         var permissionEntities = role.Permissions
             .Select(p => RolePermissionMapper.ToProjection(_tenant, role.Id, p));
 
-        _db.RolePermissions.AddRange(permissionEntities);
+        DbSetPermission.AddRange(permissionEntities);
 
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task<Role?> GetAsync(RoleKey key, CancellationToken ct = default)
     {
-        var entity = await _db.Roles
+        var entity = await DbSetRole
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -62,7 +65,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         if (entity is null)
             return null;
 
-        var permissions = await _db.RolePermissions
+        var permissions = await DbSetPermission
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -74,7 +77,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
     public async Task SaveAsync(Role role, long expectedVersion, CancellationToken ct = default)
     {
-        var entity = await _db.Roles
+        var entity = await DbSetRole
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.Id == role.Id,
@@ -88,7 +91,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         if (entity.NormalizedName != role.NormalizedName)
         {
-            var exists = await _db.Roles
+            var exists = await DbSetRole
                 .AnyAsync(x =>
                     x.Tenant == _tenant &&
                     x.NormalizedName == role.NormalizedName &&
@@ -103,25 +106,25 @@ internal sealed class EfCoreRoleStore : IRoleStore
         RoleMapper.UpdateProjection(role, entity);
         entity.Version++;
 
-        var existingPermissions = await _db.RolePermissions
+        var existingPermissions = await DbSetPermission
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.RoleId == role.Id)
             .ToListAsync(ct);
 
-        _db.RolePermissions.RemoveRange(existingPermissions);
+        DbSetPermission.RemoveRange(existingPermissions);
 
         var newPermissions = role.Permissions
             .Select(p => RolePermissionMapper.ToProjection(_tenant, role.Id, p));
 
-        _db.RolePermissions.AddRange(newPermissions);
+        DbSetPermission.AddRange(newPermissions);
 
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(RoleKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
-        var entity = await _db.Roles
+        var entity = await DbSetRole
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.Id == key.RoleId,
@@ -135,13 +138,13 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         if (mode == DeleteMode.Hard)
         {
-            await _db.RolePermissions
+            await DbSetPermission
                 .Where(x =>
                     x.Tenant == _tenant &&
                     x.RoleId == key.RoleId)
                 .ExecuteDeleteAsync(ct);
 
-            _db.Roles.Remove(entity);
+            DbSetRole.Remove(entity);
         }
         else
         {
@@ -154,7 +157,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
     public async Task<Role?> GetByNameAsync(string normalizedName, CancellationToken ct = default)
     {
-        var entity = await _db.Roles
+        var entity = await DbSetRole
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -165,7 +168,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         if (entity is null)
             return null;
 
-        var permissions = await _db.RolePermissions
+        var permissions = await DbSetPermission
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -179,7 +182,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
         IReadOnlyCollection<RoleId> roleIds,
         CancellationToken ct = default)
     {
-        var entities = await _db.Roles
+        var entities = await DbSetRole
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -188,7 +191,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
 
         var roleIdsSet = entities.Select(x => x.Id).ToList();
 
-        var permissions = await _db.RolePermissions
+        var permissions = await DbSetPermission
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -217,7 +220,7 @@ internal sealed class EfCoreRoleStore : IRoleStore
     {
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Roles
+        var baseQuery = DbSetRole
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant);
 

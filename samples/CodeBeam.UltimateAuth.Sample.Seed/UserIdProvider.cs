@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.InMemory;
 
-namespace CodeBeam.UltimateAuth.Users.InMemory;
+namespace CodeBeam.UltimateAuth.Sample.Seed;
 
-public sealed class InMemoryUserIdProvider : IInMemoryUserIdProvider<UserKey>
+public sealed class UserIdProvider : IUserIdProvider<UserKey>
 {
     private static readonly UserKey Admin = UserKey.FromGuid(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
     private static readonly UserKey User = UserKey.FromGuid(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));

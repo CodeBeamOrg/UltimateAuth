@@ -1,0 +1,26 @@
+﻿@page "/authorized-test"
+@attribute [Authorize]
+
+<MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudPaper Class="pa-8" Style="max-width: 520px; width: 100%;" Elevation="0" Outlined="true">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Success" Size="Size.Large" />
+
+            <MudText Typo="Typo.h5"><b>Everything is Ok</b></MudText>
+
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                If you see this section, it means you succesfully logged in.
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Href="/home" Color="Color.Primary" Variant="Variant.Filled">Go Profile</MudButton>
+            </MudStack>
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.caption" Color="Color.Primary">
+                UltimateAuth protects this resource based on your session and permissions.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</MudPage>

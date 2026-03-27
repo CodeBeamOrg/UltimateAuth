@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class SessionRootProjection
+public sealed class SessionRootProjection
 {
     public long Id { get; set; }
     public SessionRootId RootId { get; set; }

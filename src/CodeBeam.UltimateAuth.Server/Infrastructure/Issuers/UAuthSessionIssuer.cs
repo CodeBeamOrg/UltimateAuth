@@ -67,8 +67,30 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
             if (context.ChainId is not null)
             {
-                chain = await kernel.GetChainAsync(context.ChainId.Value)
-                    ?? throw new UAuthNotFoundException("Chain not found.");
+                var existing = await kernel.GetChainAsync(context.ChainId.Value);
+
+                if (existing is null)
+                {
+                    chain = UAuthSessionChain.Create(
+                        SessionChainId.New(),
+                        root.RootId,
+                        context.Tenant,
+                        context.UserKey,
+                        now,
+                        expiresAt,
+                        context.Device,
+                        ClaimsSnapshot.Empty,
+                        root.SecurityVersion
+                    );
+                    await kernel.CreateChainAsync(chain);
+                }
+                else
+                {
+                    chain = existing;
+                }
+
+                //chain = await kernel.GetChainAsync(context.ChainId.Value)
+                //    ?? throw new UAuthNotFoundException("Chain not found.");
 
                 if (chain.IsRevoked)
                     throw new UAuthValidationException("Chain revoked.");

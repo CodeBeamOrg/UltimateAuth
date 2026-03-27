@@ -23,7 +23,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         using var connection = CreateOpenConnection();
         await using var db = CreateDb(connection);
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserIdentifierStore(db, new TenantContext(tenant));
+        var store = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db, new TenantContext(tenant));
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
         var identifier = UserIdentifier.Create(
@@ -49,7 +49,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         using var connection = CreateOpenConnection();
         await using var db = CreateDb(connection);
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserIdentifierStore(db, new TenantContext(tenant));
+        var store = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db, new TenantContext(tenant));
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
         var identifier = UserIdentifier.Create(
@@ -77,7 +77,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
         await using var db1 = CreateDb(connection);
-        var store1 = new EfCoreUserIdentifierStore(db1, new TenantContext(tenant));
+        var store1 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db1, new TenantContext(tenant));
 
         var identifier = UserIdentifier.Create(
             Guid.NewGuid(),
@@ -92,7 +92,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         await store1.AddAsync(identifier);
 
         await using var db2 = CreateDb(connection);
-        var store2 = new EfCoreUserIdentifierStore(db2, new TenantContext(tenant));
+        var store2 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db2, new TenantContext(tenant));
 
         var updated = identifier.SetPrimary(DateTimeOffset.UtcNow);
 
@@ -120,13 +120,13 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCoreUserIdentifierStore(db1, new TenantContext(tenant));
+            var store1 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db1, new TenantContext(tenant));
             await store1.AddAsync(identifier);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCoreUserIdentifierStore(db2, new TenantContext(tenant));
+            var store2 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db2, new TenantContext(tenant));
             var existing = await store2.GetAsync(identifier.Id);
             var updated = existing!.SetPrimary(DateTimeOffset.UtcNow);
             await store2.SaveAsync(updated, expectedVersion: 0);
@@ -134,7 +134,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
 
         await using (var db3 = CreateDb(connection))
         {
-            var store3 = new EfCoreUserIdentifierStore(db3, new TenantContext(tenant));
+            var store3 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db3, new TenantContext(tenant));
             var result = await store3.GetAsync(identifier.Id);
             Assert.Equal(1, result!.Version);
         }
@@ -147,8 +147,8 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
         var tenant1 = TenantKeys.Single;
         var tenant2 = TenantKey.FromInternal("tenant-2");
-        var store1 = new EfCoreUserIdentifierStore(db, new TenantContext(tenant1));
-        var store2 = new EfCoreUserIdentifierStore(db, new TenantContext(tenant2));
+        var store1 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db, new TenantContext(tenant1));
+        var store2 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db, new TenantContext(tenant2));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -174,7 +174,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         using var connection = CreateOpenConnection();
         await using var db = CreateDb(connection);
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserIdentifierStore(db, new TenantContext(tenant));
+        var store = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db, new TenantContext(tenant));
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
         var identifier = UserIdentifier.Create(

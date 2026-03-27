@@ -1,0 +1,106 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText>Identifier Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+            @if (UserKey is null)
+            {
+                <text>User: @AuthState?.Identity?.DisplayName</text>
+            }
+            else
+            {
+                <text>UserKey: @UserKey.Value</text>
+            }
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudDataGrid @ref="@_grid" T="UserIdentifierInfo" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
+                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges" Loading="@_loading">
+            <ToolBarContent>
+                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                    <MudText>Identifiers</MudText>
+                    <MudSpacer />
+                    <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
+                </MudStack>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+                <PropertyColumn Property="x => x.Type" Title="Type" Editable="false" />
+                <PropertyColumn Property="x => x.Value" Title="Value" />
+                <PropertyColumn Property="x => x.IsPrimary" Title="Primary" Editable="false">
+                    <CellTemplate>
+                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsPrimary? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false">
+                    <CellTemplate>
+                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsVerified? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn Title="Actions" Editable="false">
+                    <CellTemplate>
+                        <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@context.Actions.StartEditingItemAsync" />
+                            </MudTooltip>
+                            @if (context.Item.IsPrimary)
+                            {
+                                <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" Size="Size.Small" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" Size="Size.Small" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
+                                </MudTooltip>
+                            }
+
+                            <MudTooltip Text="Verify" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" Size="Size.Small" OnClick="@(() => VerifyAsync(context.Item.Id))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="UserIdentifierInfo" PageSizeOptions="new int[] { 5, 10, 20 }" />
+            </PagerContent>
+        </MudDataGrid>
+
+        <MudExpansionPanels Class="mt-4" Elevation="0">
+            <MudExpansionPanel Style="background: var(--mud-palette-background-gray)" Text="Add New Identifier" Expanded="false">
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" Dense="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4" Class="d-flex align-center justify-start">
+                        <MudSwitchM3 @bind-Value="_newIdentifierPrimary" Label="Primary" Color="Color.Primary" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton Style="width: fit-content" Color="Color.Primary" Variant="Variant.Outlined" OnClick="AddNewIdentifier">Add</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>

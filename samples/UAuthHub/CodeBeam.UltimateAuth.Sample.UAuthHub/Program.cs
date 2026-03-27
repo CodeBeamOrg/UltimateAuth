@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.InMemory;
+using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -40,6 +41,8 @@ builder.Services.AddUltimateAuthServer(o => {
 })
     .AddUltimateAuthInMemory()
     .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130")); // Client sample's URL
+
+builder.Services.AddUltimateAuthSampleSeed();
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {

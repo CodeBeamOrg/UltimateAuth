@@ -7,16 +7,20 @@ using System.Data;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class EfCoreSessionStore : ISessionStore
+internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbContext : DbContext
 {
-    private readonly UAuthSessionDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreSessionStore(UAuthSessionDbContext db, TenantContext tenant)
+    public EfCoreSessionStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
+
+    private DbSet<SessionProjection> DbSetSession => _db.Set<SessionProjection>();
+    private DbSet<SessionChainProjection> DbSetChain => _db.Set<SessionChainProjection>();
+    private DbSet<SessionRootProjection> DbSetRoot => _db.Set<SessionRootProjection>();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -77,7 +81,12 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions
+        var local = DbSetSession.Local.FirstOrDefault(x => x.Tenant == _tenant && x.SessionId == sessionId);
+
+        if (local != null)
+            return local.ToDomain();
+
+        var projection = await DbSetSession
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId);
 
@@ -88,11 +97,16 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions
+        var projection = DbSetSession.Local.FirstOrDefault(x => x.Tenant == _tenant && x.SessionId == session.SessionId);
+
+        if (projection == null)
+        {
+            projection = await DbSetSession
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.SessionId == session.SessionId,
                 ct);
+        }
 
         if (projection is null)
             throw new UAuthNotFoundException("session_not_found");
@@ -113,7 +127,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
         if (session.Version != 0)
             throw new InvalidOperationException("New session must have version 0.");
 
-        _db.Sessions.Add(projection);
+        DbSetSession.Add(projection);
 
         return Task.CompletedTask;
     }
@@ -122,7 +136,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
+        var projection = await DbSetSession.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
 
         if (projection is null || projection.RevokedAt is not null)
             return false;
@@ -138,13 +152,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var chains = await _db.Chains
+        var chains = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == user)
             .ToListAsync(ct);
 
         var chainIds = chains.Select(x => x.ChainId).ToList();
 
-        var sessions = await _db.Sessions
+        var sessions = await DbSetSession
             .Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId))
             .ToListAsync(ct);
 
@@ -174,13 +188,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var chains = await _db.Chains
+        var chains = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == user && x.ChainId != keepChain)
             .ToListAsync(ct);
 
         var chainIds = chains.Select(x => x.ChainId).ToList();
 
-        var sessions = await _db.Sessions
+        var sessions = await DbSetSession
             .Where(x => x.Tenant == _tenant && chainIds.Contains(x.ChainId))
             .ToListAsync(ct);
 
@@ -210,9 +224,14 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains
+        var local = DbSetChain.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
+
+        if (local is not null)
+            return local.ToDomain();
+
+        var projection = await DbSetChain
             .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId);
+            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         return projection?.ToDomain();
     }
@@ -221,14 +240,25 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains
+        var local = DbSetChain.Local
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null &&
+                x.DeviceId == deviceId)
+            .FirstOrDefault();
+
+        if (local != null)
+            return local.ToDomain();
+
+        var projection = await DbSetChain
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
                 x.RevokedAt == null &&
                 x.DeviceId == deviceId)
-            .SingleOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
         return projection?.ToDomain();
     }
@@ -237,11 +267,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains
-            .SingleOrDefaultAsync(x =>
-                x.Tenant == _tenant &&
-                x.ChainId == chain.ChainId,
-                ct);
+        var projection = DbSetChain.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chain.ChainId);
+
+        if (projection is null)
+        {
+            projection = await DbSetChain
+                .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chain.ChainId, ct);
+        }
 
         if (projection is null)
             throw new UAuthNotFoundException("chain_not_found");
@@ -262,7 +294,8 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         var projection = chain.ToProjection();
 
-        _db.Chains.Add(projection);
+        DbSetChain.Add(projection);
+        _db.Entry(projection).State = EntityState.Added;
 
         return Task.CompletedTask;
     }
@@ -271,7 +304,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Chains
+        var projection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         if (projection is null || projection.RevokedAt is not null)
@@ -286,13 +319,13 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var chainProjection = await _db.Chains
+        var chainProjection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         if (chainProjection is null || chainProjection.RevokedAt is not null)
             return;
 
-        var sessions = await _db.Sessions
+        var sessions = await DbSetSession
             .Where(x => x.Tenant == _tenant && x.ChainId == chainId)
             .ToListAsync(ct);
 
@@ -319,7 +352,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Chains
+        var projections = await DbSetChain
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -339,7 +372,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Chains
+        var projections = await DbSetChain
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -358,7 +391,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Chains
+        return await DbSetChain
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant && x.ChainId == chainId)
             .Select(x => x.ActiveSessionId)
@@ -369,17 +402,15 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = _db.Chains.Local
-            .FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
+        var projection = DbSetChain.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
 
         if (projection is null)
         {
-            projection = await _db.Chains
-                .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
+            projection = await DbSetChain.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
         }
 
         if (projection is null)
-            return;
+            throw new UAuthNotFoundException("chain_not_found");
 
         projection.ActiveSessionId = sessionId;
         projection.Version++;
@@ -389,7 +420,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await _db.Roots.AsNoTracking().SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
+        var rootProjection = await DbSetRoot.AsNoTracking().SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
         return rootProjection?.ToDomain();
     }
 
@@ -397,7 +428,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Roots
+        var projection = await DbSetRoot
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == root.UserKey,
@@ -422,7 +453,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
 
         var projection = root.ToProjection();
 
-        _db.Roots.Add(projection);
+        DbSetRoot.Add(projection);
 
         return Task.CompletedTask;
     }
@@ -431,7 +462,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Roots
+        var projection = await DbSetRoot
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
 
         if (projection is null || projection.RevokedAt is not null)
@@ -446,7 +477,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Sessions
+        return await DbSetSession
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant && x.SessionId == sessionId)
             .Select(x => (SessionChainId?)x.ChainId)
@@ -457,7 +488,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootsQuery = _db.Roots.AsNoTracking().Where(x => x.Tenant == _tenant && x.UserKey == userKey);
+        var rootsQuery = DbSetRoot.AsNoTracking().Where(x => x.Tenant == _tenant && x.UserKey == userKey);
 
         if (!includeHistoricalRoots)
         {
@@ -469,7 +500,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
         if (rootIds.Count == 0)
             return Array.Empty<UAuthSessionChain>();
 
-        var projections = await _db.Chains.AsNoTracking().Where(x => x.Tenant == _tenant && rootIds.Contains(x.RootId)).ToListAsync();
+        var projections = await DbSetChain.AsNoTracking().Where(x => x.Tenant == _tenant && rootIds.Contains(x.RootId)).ToListAsync();
         return projections.Select(c => c.ToDomain()).ToList();
     }
 
@@ -477,7 +508,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Chains
+        var projections = await DbSetChain
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant && x.RootId == rootId)
             .ToListAsync();
@@ -489,7 +520,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Sessions
+        var projections = await DbSetSession
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant && x.ChainId == chainId)
             .ToListAsync();
@@ -501,7 +532,7 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Roots.AsNoTracking().SingleOrDefaultAsync(x => x.Tenant == _tenant && x.RootId == rootId, ct);
+        var projection = await DbSetRoot.AsNoTracking().SingleOrDefaultAsync(x => x.Tenant == _tenant && x.RootId == rootId, ct);
         return projection?.ToDomain();
     }
 
@@ -509,25 +540,25 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Sessions.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
+        var projection = await DbSetSession.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
 
         if (projection is null)
             return;
 
-        _db.Sessions.Remove(projection);
+        DbSetSession.Remove(projection);
     }
 
     public async Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var chainProjection = await _db.Chains
+        var chainProjection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
         if (chainProjection is null)
             return;
 
-        var sessionProjections = await _db.Sessions
+        var sessionProjections = await DbSetSession
             .Where(x => x.Tenant == _tenant && x.ChainId == chainId && x.RevokedAt == null)
             .ToListAsync(ct);
 
@@ -550,19 +581,19 @@ internal sealed class EfCoreSessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await _db.Roots
+        var rootProjection = await DbSetRoot
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
 
         if (rootProjection is null)
             return;
 
-        var chainProjections = await _db.Chains
+        var chainProjections = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == userKey)
             .ToListAsync(ct);
 
         foreach (var chainProjection in chainProjections)
         {
-            var sessions = await _db.Sessions
+            var sessions = await DbSetSession
                 .Where(x => x.Tenant == _tenant && x.ChainId == chainProjection.ChainId)
                 .ToListAsync(ct);
 

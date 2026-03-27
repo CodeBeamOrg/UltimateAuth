@@ -4,22 +4,21 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
-using CodeBeam.UltimateAuth.InMemory;
 
-namespace CodeBeam.UltimateAuth.Credentials.InMemory;
+namespace CodeBeam.UltimateAuth.Sample.Seed;
 
-internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
+internal sealed class CredentialSeedContributor : ISeedContributor
 {
     private static readonly Guid _adminPasswordId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid _userPasswordId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     public int Order => 10;
 
     private readonly IPasswordCredentialStoreFactory _credentialFactory;
-    private readonly IInMemoryUserIdProvider<UserKey> _ids;
+    private readonly IUserIdProvider<UserKey> _ids;
     private readonly IUAuthPasswordHasher _hasher;
     private readonly IClock _clock;
 
-    public InMemoryCredentialSeedContributor(IPasswordCredentialStoreFactory credentialFactory, IInMemoryUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher, IClock clock)
+    public CredentialSeedContributor(IPasswordCredentialStoreFactory credentialFactory, IUserIdProvider<UserKey> ids, IUAuthPasswordHasher hasher, IClock clock)
     {
         _credentialFactory = credentialFactory;
         _ids = ids;
@@ -38,6 +37,12 @@ internal sealed class InMemoryCredentialSeedContributor : ISeedContributor
         try
         {
             var credentialStore = _credentialFactory.Create(tenant);
+
+            var existing = await credentialStore.GetByUserAsync(userKey, ct);
+
+            if (existing.Any(x => x.Id == credentialId))
+                return;
+
             await credentialStore.AddAsync(
                 PasswordCredential.Create(
                     credentialId,

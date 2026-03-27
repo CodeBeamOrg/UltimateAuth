@@ -6,20 +6,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 
-internal sealed class EfCoreUserRoleStore : IUserRoleStore
+internal sealed class EfCoreUserRoleStore<TDbContext> : IUserRoleStore where TDbContext : DbContext
 {
-    private readonly UAuthAuthorizationDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserRoleStore(UAuthAuthorizationDbContext db, TenantContext tenant)
+    public EfCoreUserRoleStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<UserRoleProjection> DbSet => _db.Set<UserRoleProjection>();
+
     public async Task<IReadOnlyCollection<UserRole>> GetAssignmentsAsync(UserKey userKey, CancellationToken ct = default)
     {
-        var entities = await _db.UserRoles
+        var entities = await DbSet
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -31,7 +33,7 @@ internal sealed class EfCoreUserRoleStore : IUserRoleStore
 
     public async Task AssignAsync(UserKey userKey, RoleId roleId, DateTimeOffset assignedAt, CancellationToken ct = default)
     {
-        var exists = await _db.UserRoles
+        var exists = await DbSet
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -49,13 +51,13 @@ internal sealed class EfCoreUserRoleStore : IUserRoleStore
             AssignedAt = assignedAt
         };
 
-        _db.UserRoles.Add(entity);
+        DbSet.Add(entity);
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task RemoveAsync(UserKey userKey, RoleId roleId, CancellationToken ct = default)
     {
-        var entity = await _db.UserRoles
+        var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == userKey &&
@@ -65,13 +67,13 @@ internal sealed class EfCoreUserRoleStore : IUserRoleStore
         if (entity is null)
             return;
 
-        _db.UserRoles.Remove(entity);
+        DbSet.Remove(entity);
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task RemoveAssignmentsByRoleAsync(RoleId roleId, CancellationToken ct = default)
     {
-        await _db.UserRoles
+        await DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.RoleId == roleId)
@@ -80,7 +82,7 @@ internal sealed class EfCoreUserRoleStore : IUserRoleStore
 
     public async Task<int> CountAssignmentsAsync(RoleId roleId, CancellationToken ct = default)
     {
-        return await _db.UserRoles
+        return await DbSet
             .CountAsync(x =>
                 x.Tenant == _tenant &&
                 x.RoleId == roleId,

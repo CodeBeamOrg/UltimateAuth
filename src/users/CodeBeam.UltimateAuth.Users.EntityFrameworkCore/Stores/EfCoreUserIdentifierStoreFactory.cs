@@ -4,17 +4,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class EfCoreUserIdentifierStoreFactory : IUserIdentifierStoreFactory
+internal sealed class EfCoreUserIdentifierStoreFactory<TDbContext> : IUserIdentifierStoreFactory where TDbContext : DbContext
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly TDbContext _db;
 
-    public EfCoreUserIdentifierStoreFactory(UAuthUserDbContext db)
+    public EfCoreUserIdentifierStoreFactory(TDbContext db)
     {
         _db = db;
     }
 
     public IUserIdentifierStore Create(TenantKey tenant)
     {
-        return new EfCoreUserIdentifierStore(_db, new TenantContext(tenant));
+        return new EfCoreUserIdentifierStore<TDbContext>(_db, new TenantContext(tenant));
     }
 }

@@ -22,7 +22,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreRefreshTokenStore(db, new TenantContext(tenant));
+        var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantContext(tenant));
         AuthSessionId.TryCreate(ValidRaw, out var sessionId);
 
         var token = RefreshToken.Create(
@@ -58,7 +58,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreRefreshTokenStore(db, new TenantContext(tenant));
+            var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantContext(tenant));
 
             var token = RefreshToken.Create(
                 TokenId.From(Guid.NewGuid()),
@@ -79,7 +79,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreRefreshTokenStore(db, new TenantContext(tenant));
+            var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -89,7 +89,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreRefreshTokenStore(db, new TenantContext(tenant));
+            var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantContext(tenant));
             var result = await store.FindByHashAsync(tokenHash);
 
             Assert.NotNull(result!.RevokedAt);
@@ -103,7 +103,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreRefreshTokenStore(db, new TenantContext(tenant));
+        var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantContext(tenant));
         AuthSessionId.TryCreate(ValidRaw, out var sessionId);
 
         var token = RefreshToken.Create(

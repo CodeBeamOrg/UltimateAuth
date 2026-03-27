@@ -23,17 +23,15 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IUAuthRequestClient _post;
     private readonly IUAuthClientEvents _events;
     private readonly IClientDeviceProvider _clientDeviceProvider;
-    private readonly IDeviceIdProvider _deviceIdProvider;
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IDeviceIdProvider deviceIdProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
     {
         _post = post;
         _events = events;
         _clientDeviceProvider = clientDeviceProvider;
-        _deviceIdProvider = deviceIdProvider;
         _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
         _diagnostics = diagnostics;
@@ -64,13 +62,22 @@ internal class UAuthFlowClient : IFlowClient
         {
             case UAuthSubmitMode.TryOnly:
                 {
-                    var result = await _post.SendJsonAsync(tryUrl, request);
+                    var result = await _post.SendJsonAsync(tryUrl, payload);
 
                     if (result.Body is null)
                         throw new UAuthProtocolException("Empty response body.");
 
-                    var parsed = result.Body.Value.Deserialize<TryLoginResult>(
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    TryLoginResult parsed;
+
+                    try
+                    {
+                        parsed = result.Body.Value.Deserialize<TryLoginResult>(
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+                    }
+                    catch (JsonException ex)
+                    {
+                        throw new UAuthProtocolException("Invalid try-login result.", ex);
+                    }
 
                     if (parsed is null)
                         throw new UAuthProtocolException("Invalid try-login result.");

@@ -1,9 +1,15 @@
-﻿using CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.Extensions;
+﻿using CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.Extensions;
+using CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore.Extensions;
+using CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.Extensions;
 using CodeBeam.UltimateAuth.Reference.Bundle;
+using CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.Extensions;
+using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore.Extensions;
+using CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Users.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,14 +62,9 @@ public static class UltimateAuthEntityFrameworkCoreExtensions
     /// </remarks>
     public static IServiceCollection AddUltimateAuthEntityFrameworkCore(this IServiceCollection services, Action<DbContextOptionsBuilder> configureDb)
     {
-        services
-            .AddUltimateAuthReferences()
-            .AddUltimateAuthUsersEntityFrameworkCore(configureDb)
-            .AddUltimateAuthCredentialsEntityFrameworkCore(configureDb)
-            .AddUltimateAuthAuthorizationEntityFrameworkCore(configureDb)
-            .AddUltimateAuthSessionsEntityFrameworkCore(configureDb)
-            .AddUltimateAuthTokensEntityFrameworkCore(configureDb)
-            .AddUltimateAuthAuthenticationEntityFrameworkCore(configureDb);
+        services.AddUltimateAuthReferences();
+        services.AddDbContext<UAuthDbContext>(configureDb);
+        services.AddUltimateAuthEfCoreStores();
 
         return services;
     }
@@ -91,13 +92,24 @@ public static class UltimateAuthEntityFrameworkCoreExtensions
 
         services
             .AddUltimateAuthReferences()
-            .AddUltimateAuthUsersEntityFrameworkCore(options.Resolve(options.Users))
-            .AddUltimateAuthCredentialsEntityFrameworkCore(options.Resolve(options.Credentials))
-            .AddUltimateAuthAuthorizationEntityFrameworkCore(options.Resolve(options.Authorization))
-            .AddUltimateAuthSessionsEntityFrameworkCore(options.Resolve(options.Sessions))
-            .AddUltimateAuthTokensEntityFrameworkCore(options.Resolve(options.Tokens))
-            .AddUltimateAuthAuthenticationEntityFrameworkCore(options.Resolve(options.Authentication));
+            .AddUltimateAuthUsersEntityFrameworkCore<UAuthUserDbContext>(options.Resolve(options.Users))
+            .AddUltimateAuthCredentialsEntityFrameworkCore<UAuthCredentialDbContext>(options.Resolve(options.Credentials))
+            .AddUltimateAuthAuthorizationEntityFrameworkCore<UAuthAuthorizationDbContext>(options.Resolve(options.Authorization))
+            .AddUltimateAuthSessionsEntityFrameworkCore<UAuthSessionDbContext>(options.Resolve(options.Sessions))
+            .AddUltimateAuthTokensEntityFrameworkCore<UAuthTokenDbContext>(options.Resolve(options.Tokens))
+            .AddUltimateAuthAuthenticationEntityFrameworkCore<UAuthAuthenticationDbContext>(options.Resolve(options.Authentication));
 
         return services;
+    }
+
+    public static IServiceCollection AddUltimateAuthEfCoreStores(this IServiceCollection services)
+    {
+        return services
+            .AddUltimateAuthUsersEntityFrameworkCore<UAuthDbContext>()
+            .AddUltimateAuthSessionsEntityFrameworkCore<UAuthDbContext>()
+            .AddUltimateAuthTokensEntityFrameworkCore<UAuthDbContext>()
+            .AddUltimateAuthAuthorizationEntityFrameworkCore<UAuthDbContext>()
+            .AddUltimateAuthCredentialsEntityFrameworkCore<UAuthDbContext>()
+            .AddUltimateAuthAuthenticationEntityFrameworkCore<UAuthDbContext>();
     }
 }

@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class SessionChainProjection
+public sealed class SessionChainProjection
 {
     public long Id { get; set; }
 

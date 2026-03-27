@@ -3,20 +3,17 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 
-internal sealed class SessionProjection
+public sealed class SessionProjection
 {
     public long Id { get; set; } // EF internal PK
 
     public AuthSessionId SessionId { get; set; } = default!;
     public SessionChainId ChainId { get; set; } = default!;
-
     public TenantKey Tenant { get; set; }
     public UserKey UserKey { get; set; } = default!;
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
-
-    
     public DateTimeOffset? RevokedAt { get; set; }
 
     public long SecurityVersionAtCreation { get; set; }

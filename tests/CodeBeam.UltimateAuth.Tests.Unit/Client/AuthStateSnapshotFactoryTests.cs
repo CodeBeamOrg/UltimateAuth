@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -6,6 +8,7 @@ using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using FluentAssertions;
 using Moq;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

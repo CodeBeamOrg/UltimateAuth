@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class UserProfileProjection
+public sealed class UserProfileProjection
 {
     public Guid Id { get; set; }
 
@@ -32,9 +32,7 @@ internal sealed class UserProfileProjection
     public Dictionary<string, string>? Metadata { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
-
     public DateTimeOffset? UpdatedAt { get; set; }
-
     public DateTimeOffset? DeletedAt { get; set; }
 
     public long Version { get; set; }

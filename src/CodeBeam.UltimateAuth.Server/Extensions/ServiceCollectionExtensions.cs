@@ -256,8 +256,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
 
-        services.TryAddSingleton<SeedRunner>();
-
         services.TryAddScoped<IHubCapabilities, HubCapabilities>();
 
         // Endpoints

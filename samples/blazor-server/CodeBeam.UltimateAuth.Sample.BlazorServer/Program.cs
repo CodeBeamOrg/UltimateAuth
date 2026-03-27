@@ -1,15 +1,17 @@
+using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
-using CodeBeam.UltimateAuth.Client.Blazor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +61,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
+builder.Services.AddUltimateAuthSampleSeed();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -66,7 +69,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         ForwardedHeaders.XForwardedFor |
         ForwardedHeaders.XForwardedProto;
 });
-
 
 var app = builder.Build();
 

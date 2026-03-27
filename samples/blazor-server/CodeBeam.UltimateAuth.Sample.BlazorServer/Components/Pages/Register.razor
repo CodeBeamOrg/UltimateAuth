@@ -45,6 +45,12 @@
                             <MudPasswordField @bind-Value="@_passwordCheck" Variant="Variant.Outlined" Label="Password (Again)" Required="true" Immediate="true" />
                             <MudTextField @bind-Value="@_email" Variant="Variant.Outlined" Label="Email" Required="true" Immediate="true" />
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRegisterAsync">Sign Up</MudButton>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudStack>
+                                <MudText Align="Align.Center" Typo="Typo.subtitle2">Already have an account? <MudLink Class="cursor-pointer" Href="/login">SignIn</MudLink></MudText>
+                            </MudStack>
                         </MudStack>
                     </MudForm>
                 </MudPaper>

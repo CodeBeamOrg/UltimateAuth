@@ -1,24 +1,24 @@
-﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.InMemory;
 
-namespace CodeBeam.UltimateAuth.Authorization.InMemory;
+namespace CodeBeam.UltimateAuth.Sample.Seed;
 
-internal sealed class InMemoryAuthorizationSeedContributor : ISeedContributor
+internal sealed class AuthorizationSeedContributor : ISeedContributor
 {
     public int Order => 20;
 
     private readonly IRoleStoreFactory _roleStoreFactory;
     private readonly IUserRoleStoreFactory _userRoleStoreFactory;
-    private readonly IInMemoryUserIdProvider<UserKey> _ids;
+    private readonly IUserIdProvider<UserKey> _ids;
     private readonly IClock _clock;
 
-    public InMemoryAuthorizationSeedContributor(
+    public AuthorizationSeedContributor(
         IRoleStoreFactory roleStoreFactory,
         IUserRoleStoreFactory userRoleStoreFactory,
-        IInMemoryUserIdProvider<UserKey> ids,
+        IUserIdProvider<UserKey> ids,
         IClock clock)
     {
         _roleStoreFactory = roleStoreFactory;

@@ -7,22 +7,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
-internal sealed class EfCoreUserProfileStore : IUserProfileStore
+internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore where TDbContext : DbContext
 {
-    private readonly UAuthUserDbContext _db;
+    private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserProfileStore(UAuthUserDbContext db, TenantContext tenant)
+    public EfCoreUserProfileStore(TDbContext db, TenantContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
     }
 
+    private DbSet<UserProfileProjection> DbSet => _db.Set<UserProfileProjection>();
+
     public async Task<UserProfile?> GetAsync(UserProfileKey key, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Profiles
+        var projection = await DbSet
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -36,7 +38,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _db.Profiles
+        return await DbSet
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == key.UserKey,
@@ -52,7 +54,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
         if (entity.Version != 0)
             throw new InvalidOperationException("New profile must have version 0.");
 
-        _db.Profiles.Add(projection);
+        DbSet.Add(projection);
 
         await _db.SaveChangesAsync(ct);
     }
@@ -61,7 +63,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var existing = await _db.Profiles
+        var existing = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == entity.UserKey,
@@ -83,7 +85,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projection = await _db.Profiles
+        var projection = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
                 x.UserKey == key.UserKey,
@@ -97,7 +99,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
 
         if (mode == DeleteMode.Hard)
         {
-            _db.Profiles.Remove(projection);
+            DbSet.Remove(projection);
         }
         else
         {
@@ -114,7 +116,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
 
         var normalized = query.Normalize();
 
-        var baseQuery = _db.Profiles
+        var baseQuery = DbSet
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant);
 
@@ -166,7 +168,7 @@ internal sealed class EfCoreUserProfileStore : IUserProfileStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var projections = await _db.Profiles
+        var projections = await DbSet
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant)
             .Where(x => userKeys.Contains(x.UserKey))
