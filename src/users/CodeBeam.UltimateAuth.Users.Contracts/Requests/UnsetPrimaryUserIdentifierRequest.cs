@@ -2,5 +2,5 @@
 
 public sealed record UnsetPrimaryUserIdentifierRequest
 {
-    public Guid IdentifierId { get; set; }
+    public Guid Id { get; init; }
 }

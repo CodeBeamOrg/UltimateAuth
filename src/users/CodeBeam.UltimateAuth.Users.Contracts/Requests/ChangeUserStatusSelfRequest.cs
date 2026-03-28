@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public class ChangeUserStatusSelfRequest
+public sealed record ChangeUserStatusSelfRequest
 {
     public required SelfUserStatus NewStatus { get; init; }
 }

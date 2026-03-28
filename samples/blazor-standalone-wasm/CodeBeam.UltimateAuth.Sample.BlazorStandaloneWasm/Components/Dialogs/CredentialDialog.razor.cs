@@ -69,7 +69,7 @@ public partial class CredentialDialog
         }
         else
         {
-            result = await UAuthClient.Credentials.ChangeCredentialAsync(UserKey.Value, request);
+            result = await UAuthClient.Credentials.ChangeUserAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)

@@ -9,13 +9,13 @@ public interface ICredentialClient
     Task<UAuthResult<AddCredentialResult>> AddMyAsync(AddCredentialRequest request);
     Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request);
     Task<UAuthResult> RevokeMyAsync(RevokeCredentialRequest request);
-    Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginCredentialResetRequest request);
-    Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteCredentialResetRequest request);
+    Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginResetCredentialRequest request);
+    Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteResetCredentialRequest request);
 
-    Task<UAuthResult<AddCredentialResult>> AddCredentialAsync(UserKey userKey, AddCredentialRequest request);
-    Task<UAuthResult<ChangeCredentialResult>> ChangeCredentialAsync(UserKey userKey, ChangeCredentialRequest request);
-    Task<UAuthResult> RevokeCredentialAsync(UserKey userKey, RevokeCredentialRequest request);
-    Task<UAuthResult<BeginCredentialResetResult>> BeginResetCredentialAsync(UserKey userKey, BeginCredentialResetRequest request);
-    Task<UAuthResult<CredentialActionResult>> CompleteResetCredentialAsync(UserKey userKey, CompleteCredentialResetRequest request);
-    Task<UAuthResult> DeleteCredentialAsync(UserKey userKey);
+    Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request);
+    Task<UAuthResult<ChangeCredentialResult>> ChangeUserAsync(UserKey userKey, ChangeCredentialRequest request);
+    Task<UAuthResult> RevokeUserAsync(UserKey userKey, RevokeCredentialRequest request);
+    Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginResetCredentialRequest request);
+    Task<UAuthResult<CredentialActionResult>> CompleteResetUserAsync(UserKey userKey, CompleteResetCredentialRequest request);
+    Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteCredentialRequest request);
 }

@@ -205,7 +205,7 @@ public partial class IdentifierDialog
             return;
         }
 
-        VerifyUserIdentifierRequest request = new() { IdentifierId = id };
+        VerifyUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
@@ -231,7 +231,7 @@ public partial class IdentifierDialog
 
     private async Task SetPrimaryAsync(Guid id)
     {
-        SetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        SetPrimaryUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
@@ -257,7 +257,7 @@ public partial class IdentifierDialog
 
     private async Task UnsetPrimaryAsync(Guid id)
     {
-        UnsetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        UnsetPrimaryUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
@@ -283,7 +283,7 @@ public partial class IdentifierDialog
 
     private async Task DeleteIdentifier(Guid id)
     {
-        DeleteUserIdentifierRequest request = new() { IdentifierId = id };
+        DeleteUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)

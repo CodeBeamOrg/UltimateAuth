@@ -53,10 +53,11 @@ public partial class RoleDialog
     {
         var req = new RenameRoleRequest
         {
+            Id = role.Id,
             Name = role.Name
         };
 
-        var result = await UAuthClient.Authorization.RenameRoleAsync(role.Id, req);
+        var result = await UAuthClient.Authorization.RenameRoleAsync(req);
 
         if (result.IsSuccess)
         {
@@ -109,8 +110,8 @@ public partial class RoleDialog
         if (confirm != true)
             return;
 
-        var req = new DeleteRoleRequest();
-        var result = await UAuthClient.Authorization.DeleteRoleAsync(roleId, req);
+        var req = new DeleteRoleRequest() { Id = roleId };
+        var result = await UAuthClient.Authorization.DeleteRoleAsync(req);
 
         if (result.IsSuccess)
         {

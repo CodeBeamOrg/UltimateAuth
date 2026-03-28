@@ -1,7 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed class IdentifierExistsRequest
+public sealed record IdentifierExistsRequest
 {
-    public UserIdentifierType Type { get; set; }
-    public string Value { get; set; } = default!;
+    public UserIdentifierType Type { get; init; }
+    public required string Value { get; set; }
 }

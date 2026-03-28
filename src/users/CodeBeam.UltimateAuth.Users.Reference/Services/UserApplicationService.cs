@@ -323,7 +323,10 @@ internal sealed class UserApplicationService : IUserApplicationService
             var targetUserKey = context.GetTargetUserKey();
 
             query ??= new UserIdentifierQuery();
-            query.UserKey = targetUserKey;
+            query = query with
+            {
+                UserKey = targetUserKey
+            };
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var result = await identifierStore.QueryAsync(query, innerCt);
             var dtoItems = result.Items.Select(UserIdentifierMapper.ToDto).ToList().AsReadOnly();
@@ -524,7 +527,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
@@ -554,7 +557,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
@@ -592,7 +595,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
@@ -611,7 +614,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var identifier = await identifierStore.GetByIdAsync(request.IdentifierId, innerCt);
+            var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
             if (identifier is null)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 

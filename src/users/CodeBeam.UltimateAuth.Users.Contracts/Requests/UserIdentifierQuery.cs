@@ -3,9 +3,9 @@ using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed class UserIdentifierQuery : PageRequest
+public sealed record UserIdentifierQuery : PageRequest
 {
-    public UserKey? UserKey { get; set; }
+    public UserKey? UserKey { get; init; }
 
-    public bool IncludeDeleted { get; init; } = false;
+    public bool IncludeDeleted { get; init; }
 }

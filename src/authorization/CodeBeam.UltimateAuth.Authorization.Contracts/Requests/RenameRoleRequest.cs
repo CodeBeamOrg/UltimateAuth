@@ -1,6 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class RenameRoleRequest
+public sealed record RenameRoleRequest
 {
-    public string Name { get; set; } = default!;
+    public required RoleId Id { get; init; }
+    public required string Name { get; init; }
 }

@@ -13,9 +13,9 @@ public interface ICredentialManagementService
 
     Task<CredentialActionResult> RevokeAsync(AccessContext context, RevokeCredentialRequest request, CancellationToken ct = default);
 
-    Task<BeginCredentialResetResult> BeginResetAsync(AccessContext context, BeginCredentialResetRequest request, CancellationToken ct = default);
+    Task<BeginCredentialResetResult> BeginResetAsync(AccessContext context, BeginResetCredentialRequest request, CancellationToken ct = default);
 
-    Task<CredentialActionResult> CompleteResetAsync(AccessContext context, CompleteCredentialResetRequest request, CancellationToken ct = default);
+    Task<CredentialActionResult> CompleteResetAsync(AccessContext context, CompleteResetCredentialRequest request, CancellationToken ct = default);
 
     Task<CredentialActionResult> DeleteAsync(AccessContext context, DeleteCredentialRequest request, CancellationToken ct = default);
 }

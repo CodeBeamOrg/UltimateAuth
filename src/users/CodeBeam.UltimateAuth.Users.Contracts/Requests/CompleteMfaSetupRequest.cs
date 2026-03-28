@@ -3,5 +3,5 @@
 public sealed record CompleteMfaSetupRequest
 {
     public MfaMethod Method { get; init; }
-    public string VerificationCode { get; init; } = default!;
+    public required string VerificationCode { get; init; }
 }

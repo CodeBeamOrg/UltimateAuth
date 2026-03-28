@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed class DeleteUserRequest
+public sealed record DeleteUserRequest
 {
-    public DeleteMode Mode { get; init; } = DeleteMode.Soft;
+    public DeleteMode Mode { get; init; }
 }

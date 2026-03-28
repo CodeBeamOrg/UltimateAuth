@@ -126,7 +126,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: userKey.Value
         );
 
-        await _userRoles.AssignAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
+        await _userRoles.AssignAsync(accessContext, userKey, req.RoleName, ctx.RequestAborted);
         return Results.Ok();
     }
 
@@ -145,7 +145,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             resourceId: userKey.Value
         );
 
-        await _userRoles.RemoveAsync(accessContext, userKey, req.Role, ctx.RequestAborted);
+        await _userRoles.RemoveAsync(accessContext, userKey, req.RoleName, ctx.RequestAborted);
         return Results.Ok();
     }
 

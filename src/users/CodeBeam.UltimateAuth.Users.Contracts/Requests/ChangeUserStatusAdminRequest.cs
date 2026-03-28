@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed class ChangeUserStatusAdminRequest
+public sealed record ChangeUserStatusAdminRequest
 {
     public required UserStatus NewStatus { get; init; }
 }

@@ -1,7 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class CreateRoleRequest
+public sealed record CreateRoleRequest
 {
-    public string Name { get; set; } = default!;
-    public IEnumerable<Permission>? Permissions { get; set; }
+    public required string Name { get; init; }
+    public IEnumerable<Permission>? Permissions { get; init; }
 }

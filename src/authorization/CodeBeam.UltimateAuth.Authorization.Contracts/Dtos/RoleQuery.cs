@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class RoleQuery : PageRequest
+public sealed record RoleQuery : PageRequest
 {
     public string? Search { get; set; }
     public bool IncludeDeleted { get; set; }

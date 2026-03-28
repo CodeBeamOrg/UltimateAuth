@@ -1,6 +1,7 @@
 ﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class SetPermissionsRequest
+public sealed record SetPermissionsRequest
 {
-    public IEnumerable<Permission> Permissions { get; set; } = [];
+    public required RoleId Id { get; init; }
+    public IEnumerable<Permission> Permissions { get; init; } = [];
 }

@@ -2,7 +2,7 @@
 
 public sealed record ResetPasswordRequest
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
     public required string NewPassword { get; init; }
 
     /// <summary>

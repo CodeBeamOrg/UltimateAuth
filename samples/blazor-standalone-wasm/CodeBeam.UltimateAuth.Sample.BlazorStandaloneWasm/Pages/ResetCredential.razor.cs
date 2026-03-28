@@ -25,7 +25,7 @@ public partial class ResetCredential
             return;
         }
 
-        var request = new CompleteCredentialResetRequest
+        var request = new CompleteResetCredentialRequest
         {
             ResetToken = _code,
             NewSecret = _newPassword ?? string.Empty,

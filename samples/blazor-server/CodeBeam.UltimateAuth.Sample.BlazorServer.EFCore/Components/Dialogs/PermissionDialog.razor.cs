@@ -65,10 +65,11 @@ public partial class PermissionDialog
 
         var req = new SetPermissionsRequest
         {
+            Id = Role.Id,
             Permissions = permissions
         };
 
-        var result = await UAuthClient.Authorization.SetPermissionsAsync(Role.Id, req);
+        var result = await UAuthClient.Authorization.SetPermissionsAsync(req);
 
         if (!result.IsSuccess)
         {

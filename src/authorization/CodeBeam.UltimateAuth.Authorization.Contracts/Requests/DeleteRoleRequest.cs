@@ -2,7 +2,8 @@
 
 namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class DeleteRoleRequest
+public sealed record DeleteRoleRequest
 {
-    public DeleteMode Mode { get; set; }
+    public required RoleId Id { get; init; }
+    public DeleteMode Mode { get; init; }
 }
