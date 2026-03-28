@@ -118,11 +118,11 @@ public partial class SessionDialog
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Flows.LogoutAllDevicesSelfAsync();
+            result = await UAuthClient.Flows.LogoutAllMyDevicesAsync();
         }
         else
         {
-            result = await UAuthClient.Flows.LogoutAllDevicesAdminAsync(UserKey.Value);
+            result = await UAuthClient.Flows.LogoutAllUserDevicesAsync(UserKey.Value);
         }
 
         if (result.IsSuccess)
@@ -139,7 +139,7 @@ public partial class SessionDialog
 
     private async Task LogoutOthersAsync()
     {
-        var result = await UAuthClient.Flows.LogoutOtherDevicesSelfAsync();
+        var result = await UAuthClient.Flows.LogoutMyOtherDevicesAsync();
 
         if (result.IsSuccess)
         {
@@ -158,11 +158,11 @@ public partial class SessionDialog
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Flows.LogoutDeviceSelfAsync(request);
+            result = await UAuthClient.Flows.LogoutMyDeviceAsync(request);
         }
         else
         {
-            result = await UAuthClient.Flows.LogoutDeviceAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Flows.LogoutUserDeviceAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)

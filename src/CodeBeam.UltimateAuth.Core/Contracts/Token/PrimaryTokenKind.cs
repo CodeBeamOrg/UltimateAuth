@@ -2,6 +2,6 @@
 
 public enum PrimaryTokenKind
 {
-    Session = 1,
-    AccessToken = 2
+    Session = 0,
+    AccessToken = 10
 }

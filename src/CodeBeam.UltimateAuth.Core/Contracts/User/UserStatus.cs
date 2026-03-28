@@ -16,5 +16,5 @@ public enum UserStatus
     PendingActivation = 60,
     PendingVerification = 70,
 
-    Unknown = 99
+    Unknown = 100
 }

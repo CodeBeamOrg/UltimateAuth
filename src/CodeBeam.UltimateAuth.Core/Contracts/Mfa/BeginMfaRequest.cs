@@ -2,5 +2,5 @@
 
 public sealed record BeginMfaRequest
 {
-    public string MfaToken { get; init; } = default!;
+    public required string MfaToken { get; init; }
 }

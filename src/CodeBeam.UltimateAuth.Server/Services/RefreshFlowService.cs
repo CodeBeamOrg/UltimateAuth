@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -11,15 +12,18 @@ internal sealed class RefreshFlowService : IRefreshFlowService
     private readonly ISessionValidator _sessionValidator;
     private readonly ISessionTouchService _sessionRefresh;
     private readonly IRefreshTokenRotationService _tokenRotation;
+    private readonly IClock _clock;
 
     public RefreshFlowService(
         ISessionValidator sessionValidator,
         ISessionTouchService sessionRefresh,
-        IRefreshTokenRotationService tokenRotation)
+        IRefreshTokenRotationService tokenRotation,
+        IClock clock)
     {
         _sessionValidator = sessionValidator;
         _sessionRefresh = sessionRefresh;
         _tokenRotation = tokenRotation;
+        _clock = clock;
     }
 
     public async Task<RefreshFlowResult> RefreshAsync(AuthFlowContext flow, RefreshFlowRequest request, CancellationToken ct = default)
@@ -47,12 +51,14 @@ internal sealed class RefreshFlowService : IRefreshFlowService
         if (request.SessionId is null)
             return RefreshFlowResult.ReauthRequired();
 
+        var now = _clock.UtcNow;
+
         var validation = await _sessionValidator.ValidateSessionAsync(
             new SessionValidationContext
             {
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device
             },
             ct);
@@ -65,7 +71,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
             TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
         };
 
-        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, request.Now, ct);
+        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
 
         if (!refresh.IsSuccess || refresh.SessionId is null)
             return RefreshFlowResult.ReauthRequired();
@@ -78,36 +84,20 @@ internal sealed class RefreshFlowService : IRefreshFlowService
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
             return RefreshFlowResult.ReauthRequired();
 
+        var now = _clock.UtcNow;
+
         var rotation = await _tokenRotation.RotateAsync(
             flow,
             new RefreshTokenRotationContext
             {
                 RefreshToken = request.RefreshToken!,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device
             },
             ct);
 
         if (!rotation.Result.IsSuccess)
             return RefreshFlowResult.ReauthRequired();
-
-        //if (rotation.Result.RefreshToken is not null)
-        //{
-        //    var converter = _userIdConverterResolver.GetConverter<TUserId>();
-
-        //    await _refreshTokenStore.StoreAsync(
-        //        flow.TenantId,
-        //        new StoredRefreshToken<TUserId>
-        //        {
-        //            TokenHash = rotation.Result.RefreshToken.TokenHash,
-        //            UserId = rotation.UserId!,
-        //            SessionId = rotation.SessionId!.Value,
-        //            ChainId = rotation.ChainId,
-        //            ExpiresAt = rotation.Result.RefreshToken.ExpiresAt,
-        //            IssuedAt = request.Now
-        //        },
-        //        ct);
-        //}
 
         return RefreshFlowResult.Success(
             outcome: RefreshOutcome.Rotated,
@@ -120,12 +110,14 @@ internal sealed class RefreshFlowService : IRefreshFlowService
         if (request.SessionId is null || string.IsNullOrWhiteSpace(request.RefreshToken))
             return RefreshFlowResult.ReauthRequired();
 
+        var now = _clock.UtcNow;
+
         var validation = await _sessionValidator.ValidateSessionAsync(
             new SessionValidationContext
             {
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device
             },
             ct);
@@ -138,7 +130,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
             new RefreshTokenRotationContext
             {
                 RefreshToken = request.RefreshToken!,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device,
                 ExpectedSessionId = request.SessionId.Value
             },
@@ -152,7 +144,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
             TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
         };
 
-        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, request.Now, ct);
+        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
 
         if (!refresh.IsSuccess || refresh.SessionId is null)
             return RefreshFlowResult.ReauthRequired();
@@ -171,12 +163,14 @@ internal sealed class RefreshFlowService : IRefreshFlowService
         if (request.SessionId is null || string.IsNullOrWhiteSpace(request.RefreshToken))
             return RefreshFlowResult.ReauthRequired();
 
+        var now = _clock.UtcNow;
+
         var validation = await _sessionValidator.ValidateSessionAsync(
             new SessionValidationContext
             {
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device
             },
             ct);
@@ -189,7 +183,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
             new RefreshTokenRotationContext
             {
                 RefreshToken = request.RefreshToken!,
-                Now = request.Now,
+                Now = now,
                 Device = request.Device,
                 ExpectedSessionId = request.SessionId.Value
             },

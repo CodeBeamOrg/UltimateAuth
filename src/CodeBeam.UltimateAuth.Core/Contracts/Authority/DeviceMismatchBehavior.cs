@@ -2,7 +2,7 @@
 
 public enum DeviceMismatchBehavior
 {
-    Reject,
-    Allow,
-    AllowAndRebind
+    Reject = 0,
+    Allow = 10,
+    AllowAndRebind = 20
 }

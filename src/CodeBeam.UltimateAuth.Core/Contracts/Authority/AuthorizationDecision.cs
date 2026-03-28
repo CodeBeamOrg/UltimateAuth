@@ -2,7 +2,7 @@
 
 public enum AuthorizationDecision
 {
-    Allow,
-    Deny,
-    Challenge
+    Allow = 0,
+    Deny = 10,
+    Challenge = 20
 }

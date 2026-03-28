@@ -217,7 +217,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         var claims = await _claimsProvider.GetClaimsAsync(flow.Tenant, userKey.Value, ct);
 
-        var sessionContext = new AuthenticatedSessionContext
+        var sessionContext = new SessionIssuanceContext
         {
             Tenant = flow.Tenant,
             UserKey = userKey.Value,

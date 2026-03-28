@@ -5,10 +5,10 @@ public enum SessionTouchMode
     /// <summary>
     /// Touch only if store policy allows (interval, throttling, etc.)
     /// </summary>
-    IfNeeded,
+    IfNeeded = 0,
 
     /// <summary>
     /// Always update session activity, ignoring store heuristics.
     /// </summary>
-    Force
+    Force = 10
 }

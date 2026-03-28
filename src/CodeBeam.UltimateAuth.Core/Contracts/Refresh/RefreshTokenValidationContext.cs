@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 public sealed record RefreshTokenValidationContext
 {
     public TenantKey Tenant { get; init; }
-    public string RefreshToken { get; init; } = default!;
+    public required string RefreshToken { get; init; }
     public DateTimeOffset Now { get; init; }
 
     public required DeviceContext Device { get; init; }

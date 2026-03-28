@@ -186,7 +186,7 @@ app.MapRazorComponents<App>()
 ```
 
 ### 4) Add UAuth Script
-Place this in `App.razor` or `index.html`
+Place this in `App.razor` or `index.html` in your Blazor client application:
 ```csharp
 <script src="_content/CodeBeam.UltimateAuth.Client.Blazor/uauth.min.js"></script>
 ```
@@ -281,7 +281,7 @@ LogoutAll But Keep Current Device
 
 private async Task LogoutOthersAsync()
 {
-    var result = await UAuthClient.Flows.LogoutOtherDevicesSelfAsync();
+    var result = await UAuthClient.Flows.LogoutMyOtherDevicesAsync();
     Console.WriteLine(result.IsSuccess);
 }
 ```

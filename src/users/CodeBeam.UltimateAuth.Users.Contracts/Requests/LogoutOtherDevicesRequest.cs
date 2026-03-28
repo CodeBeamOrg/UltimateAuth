@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed record LogoutOtherDevicesAdminRequest
+public sealed record LogoutOtherDevicesRequest
 {
     public required SessionChainId CurrentChainId { get; init; }
 }

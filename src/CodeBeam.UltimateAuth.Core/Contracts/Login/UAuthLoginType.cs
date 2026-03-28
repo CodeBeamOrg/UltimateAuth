@@ -2,6 +2,6 @@
 
 public enum UAuthLoginType
 {
-    Password,   // /auth/login
-    Pkce        // /auth/pkce/complete
+    Password = 0,
+    Pkce = 10
 }

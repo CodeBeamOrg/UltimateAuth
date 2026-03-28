@@ -2,6 +2,6 @@
 
 public sealed record CompleteMfaRequest
 {
-    public string ChallengeId { get; init; } = default!;
-    public string Code { get; init; } = default!;
+    public required string ChallengeId { get; init; }
+    public required string Code { get; init; }
 }

@@ -44,10 +44,9 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
 
         var request = new RefreshFlowRequest
         {
-            SessionId = flow?.Session?.SessionId,
+            SessionId = flow.Session?.SessionId,
             RefreshToken = _refreshTokenResolver.Resolve(ctx),
-            Device = flow!.Device,
-            Now = DateTimeOffset.UtcNow
+            Device = flow.Device,
         };
 
         var result = await _refreshFlow.RefreshAsync(flow, request, ctx.RequestAborted);

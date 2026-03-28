@@ -10,7 +10,7 @@ public sealed record AuthTokens
     /// The issued access token.
     /// Always present when <see cref="AuthTokens"/> is returned.
     /// </summary>
-    public AccessToken AccessToken { get; init; } = default!;
+    public required AccessToken AccessToken { get; init; }
 
     public RefreshTokenInfo? RefreshToken { get; init; }
 }

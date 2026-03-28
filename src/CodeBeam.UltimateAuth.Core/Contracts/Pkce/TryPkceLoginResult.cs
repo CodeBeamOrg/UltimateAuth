@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed class TryPkceLoginResult : IUAuthTryResult
+public sealed record TryPkceLoginResult : IUAuthTryResult
 {
     public bool Success { get; init; }
     public AuthFailureReason? Reason { get; init; }

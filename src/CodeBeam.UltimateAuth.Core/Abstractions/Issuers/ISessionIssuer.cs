@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
 public interface ISessionIssuer
 {
-    Task<IssuedSession> IssueSessionAsync(AuthenticatedSessionContext context, CancellationToken cancellationToken = default);
+    Task<IssuedSession> IssueSessionAsync(SessionIssuanceContext context, CancellationToken cancellationToken = default);
 
     Task<IssuedSession> RotateSessionAsync(SessionRotationContext context, CancellationToken cancellationToken = default);
 

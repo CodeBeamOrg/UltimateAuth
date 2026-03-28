@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-internal sealed record CreateLoginSessionCommand(AuthenticatedSessionContext LoginContext) : ISessionCommand<IssuedSession>
+internal sealed record CreateLoginSessionCommand(SessionIssuanceContext LoginContext) : ISessionCommand<IssuedSession>
 {
     public Task<IssuedSession> ExecuteAsync(AuthContext _, ISessionIssuer issuer, CancellationToken ct)
     {

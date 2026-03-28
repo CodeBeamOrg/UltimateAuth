@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -17,6 +18,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
     private readonly IInternalLoginOrchestrator _internalLoginOrchestrator;
     private readonly ISessionOrchestrator _orchestrator;
     private readonly UAuthEventDispatcher _events;
+    private readonly IClock _clock;
 
     public UAuthFlowService(
         IAuthFlowContextAccessor authFlow,
@@ -24,7 +26,8 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
         ILoginOrchestrator loginOrchestrator,
         IInternalLoginOrchestrator internalLoginOrchestrator,
         ISessionOrchestrator orchestrator,
-        UAuthEventDispatcher events)
+        UAuthEventDispatcher events,
+        IClock clock)
     {
         _authFlow = authFlow;
         _authFlowContextFactory = authFlowContextFactory;
@@ -32,6 +35,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
         _internalLoginOrchestrator = internalLoginOrchestrator;
         _orchestrator = orchestrator;
         _events = events;
+        _clock = clock;
     }
 
     public Task<LoginResult> LoginAsync(AuthFlowContext flow, LoginRequest request, CancellationToken ct = default)
@@ -69,7 +73,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
     public async Task LogoutAsync(LogoutRequest request, CancellationToken ct = default)
     {
         var authFlow = _authFlow.Current;
-        var now = request.At ?? DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
         var authContext = authFlow.ToAuthContext(now);
 
         var revoked = await _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.SessionId), ct);
@@ -80,13 +84,13 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
         if (authFlow.UserKey is not UserKey uaKey)
             return;
 
-        await _events.DispatchAsync(new UserLoggedOutContext(request.Tenant, uaKey, request.At ?? DateTimeOffset.Now, LogoutReason.Explicit, request.SessionId));
+        await _events.DispatchAsync(new UserLoggedOutContext(authFlow.Tenant, uaKey, now, LogoutReason.Explicit, request.SessionId));
     }
 
     public async Task LogoutAllAsync(LogoutAllRequest request, CancellationToken ct = default)
     {
         var authFlow = _authFlow.Current;
-        var now = request.At ?? DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
 
         if (authFlow.Session is not SessionSecurityContext session)
             throw new InvalidOperationException("LogoutAll requires an active session.");
