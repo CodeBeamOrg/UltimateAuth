@@ -63,13 +63,13 @@ public partial class PermissionDialog
     {
         var permissions = _groups.SelectMany(g => g.Items).Where(x => x.Selected).Select(x => Permission.From(x.Value)).ToList();
 
-        var req = new SetPermissionsRequest
+        var req = new SetRolePermissionsRequest
         {
-            Id = Role.Id,
+            RoleId = Role.Id,
             Permissions = permissions
         };
 
-        var result = await UAuthClient.Authorization.SetPermissionsAsync(req);
+        var result = await UAuthClient.Authorization.SetRolePermissionsAsync(req);
 
         if (!result.IsSuccess)
         {

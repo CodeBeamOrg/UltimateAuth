@@ -96,9 +96,9 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
         return result;
     }
 
-    public async Task<UAuthResult> SetPermissionsAsync(SetPermissionsRequest request)
+    public async Task<UAuthResult> SetRolePermissionsAsync(SetRolePermissionsRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/permissions"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.RoleId.Value}/permissions"), request);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)

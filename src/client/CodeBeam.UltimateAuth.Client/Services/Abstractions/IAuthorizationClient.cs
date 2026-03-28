@@ -15,6 +15,6 @@ public interface IAuthorizationClient
     Task<UAuthResult<RoleInfo>> CreateRoleAsync(CreateRoleRequest request);
     Task<UAuthResult<PagedResult<RoleInfo>>> QueryRolesAsync(RoleQuery request);
     Task<UAuthResult> RenameRoleAsync(RenameRoleRequest request);
-    Task<UAuthResult> SetPermissionsAsync(SetPermissionsRequest request);
+    Task<UAuthResult> SetRolePermissionsAsync(SetRolePermissionsRequest request);
     Task<UAuthResult<DeleteRoleResult>> DeleteRoleAsync(DeleteRoleRequest request);
 }
