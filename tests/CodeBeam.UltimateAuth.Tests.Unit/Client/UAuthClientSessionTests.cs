@@ -27,10 +27,7 @@ public class UAuthClientSessionTests
             }
         });
 
-        var sessionClient = new UAuthSessionClient(
-            _request.Object,
-            options,
-            _events.Object);
+        var sessionClient = new UAuthSessionClient(_request.Object, options, _events.Object);
 
         return new UAuthClient(
             flows: Mock.Of<IFlowClient>(),
@@ -63,9 +60,7 @@ public class UAuthClientSessionTests
             .ReturnsAsync(SuccessJson(response));
 
         var client = CreateClient();
-
         await client.Sessions.GetMyChainsAsync();
-
         _request.Verify(x => x.SendJsonAsync("/auth/me/sessions/chains", It.IsAny<object>()), Times.Once);
     }
 
@@ -81,10 +76,27 @@ public class UAuthClientSessionTests
             }));
 
         var client = CreateClient();
-
         await client.Sessions.GetMyChainDetailAsync(chainId);
-
         _request.Verify(x => x.SendFormAsync($"/auth/me/sessions/chains/{chainId.Value}"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUserChainDetail_Should_Call_Correct_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+        var chainId = SessionChainId.New();
+
+        var response = new SessionChainDetail
+        {
+            ChainId = chainId
+        };
+
+        _request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateClient();
+        await client.Sessions.GetUserChainDetailAsync(userKey, chainId);
+        _request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/chains/{chainId.Value}"), Times.Once);
     }
 
     [Fact]
@@ -103,10 +115,7 @@ public class UAuthClientSessionTests
 
         await client.Sessions.RevokeMyChainAsync(chainId);
 
-        _events.Verify(x =>
-            x.PublishAsync(It.Is<UAuthStateEventArgs>(e =>
-                e.Type == UAuthStateEvent.SessionRevoked)),
-            Times.Once);
+        _events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.SessionRevoked)), Times.Once);
     }
 
     [Fact]
@@ -122,10 +131,28 @@ public class UAuthClientSessionTests
 
         var client = CreateClient();
         var chainId = SessionChainId.From(Guid.NewGuid());
-
         await client.Sessions.RevokeMyChainAsync(chainId);
 
         _events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RevokeUserChain_Should_Call_Correct_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+        var chainId = SessionChainId.New();
+
+        var response = new RevokeResult
+        {
+            CurrentChain = false
+        };
+
+        _request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateClient();
+        await client.Sessions.RevokeUserChainAsync(userKey, chainId);
+        _request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/chains/{chainId.Value}/revoke"), Times.Once);
     }
 
     [Fact]
@@ -135,13 +162,8 @@ public class UAuthClientSessionTests
             .ReturnsAsync(new UAuthTransportResult { Ok = true, Status = 200 });
 
         var client = CreateClient();
-
         await client.Sessions.RevokeAllMyChainsAsync();
-
-        _events.Verify(x =>
-            x.PublishAsync(It.Is<UAuthStateEventArgs>(e =>
-                e.Type == UAuthStateEvent.SessionRevoked)),
-            Times.Once);
+        _events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.SessionRevoked)), Times.Once);
     }
 
     [Fact]
@@ -151,12 +173,21 @@ public class UAuthClientSessionTests
             .ReturnsAsync(new UAuthTransportResult { Ok = false, Status = 400 });
 
         var client = CreateClient();
-
         await client.Sessions.RevokeAllMyChainsAsync();
+        _events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+    }
 
-        _events.Verify(x =>
-            x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
-            Times.Never);
+    [Fact]
+    public async Task RevokeAllUserChains_Should_Call_Correct_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+
+        _request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateClient();
+        await client.Sessions.RevokeAllUserChainsAsync(userKey);
+        _request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/revoke-all"), Times.Once);
     }
 
     [Fact]
@@ -166,12 +197,8 @@ public class UAuthClientSessionTests
             .ReturnsAsync(Success);
 
         var client = CreateClient();
-
         await client.Sessions.RevokeMyOtherChainsAsync();
-
-        _request.Verify(x =>
-            x.SendFormAsync("/auth/me/sessions/revoke-others"),
-            Times.Once);
+        _request.Verify(x => x.SendFormAsync("/auth/me/sessions/revoke-others"), Times.Once);
     }
 
     [Fact]
@@ -186,12 +213,9 @@ public class UAuthClientSessionTests
 
         var client = CreateClient();
         var userKey = UserKey.FromString("user-1");
-
         await client.Sessions.GetUserChainsAsync(userKey);
 
-        _request.Verify(x =>
-            x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/sessions/chains", It.IsAny<object>()),
-            Times.Once);
+        _request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/sessions/chains", It.IsAny<object>()), Times.Once);
     }
 
     [Fact]
@@ -206,9 +230,7 @@ public class UAuthClientSessionTests
 
         await client.Sessions.RevokeUserSessionAsync(userKey, sessionId);
 
-        _request.Verify(x =>
-            x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/{sessionId.Value}/revoke"),
-            Times.Once);
+        _request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/{sessionId.Value}/revoke"), Times.Once);
     }
 
     [Fact]
@@ -219,9 +241,24 @@ public class UAuthClientSessionTests
 
         var client = CreateClient();
         var userKey = UserKey.FromString("user-1");
-
         await client.Sessions.RevokeUserRootAsync(userKey);
-
         _request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/sessions/revoke-root"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RevokeMyChain_Should_NOT_Publish_Event_When_Value_Null()
+    {
+        _request.Setup(x => x.SendJsonAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = null
+            });
+
+        var client = CreateClient();
+        var chainId = SessionChainId.New();
+        await client.Sessions.RevokeMyChainAsync(chainId);
+        _events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 }
