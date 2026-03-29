@@ -62,4 +62,21 @@ public class ClientOptionsValidatorTests
         var options = provider.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
         options.ClientProfile.Should().Be(UAuthClientProfile.BlazorWasm);
     }
+
+    [Fact]
+    public void Marker_Should_Not_Throw_On_First_Call()
+    {
+        var marker = new ClientConfigurationMarker();
+        var act = () => marker.MarkConfigured();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Marker_Should_Throw_When_Configured_Twice()
+    {
+        var marker = new ClientConfigurationMarker();
+        marker.MarkConfigured();
+        Action act = () => marker.MarkConfigured();
+        act.Should().Throw<InvalidOperationException>();
+    }
 }

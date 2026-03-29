@@ -99,37 +99,37 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> AddUserAsync(UserKey userKey, AddUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/add"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/add"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/update"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/update"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> SetUserPrimaryAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/set-primary"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/set-primary"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UnsetUserPrimaryAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/unset-primary"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/unset-primary"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> VerifyUserAsync(UserKey userKey, VerifyUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/verify"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/verify"), request);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/delete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/delete"), request);
         return UAuthResultMapper.From(raw);
     }
 }

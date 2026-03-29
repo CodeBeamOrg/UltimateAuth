@@ -33,13 +33,13 @@ internal sealed class UAuthSessionClient : ISessionClient
 
     public async Task<UAuthResult<SessionChainDetail>> GetMyChainDetailAsync(SessionChainId chainId)
     {
-        var raw = await _request.SendFormAsync(Url($"/me/sessions/chains/{chainId}"));
+        var raw = await _request.SendFormAsync(Url($"/me/sessions/chains/{chainId.Value}"));
         return UAuthResultMapper.FromJson<SessionChainDetail>(raw);
     }
 
     public async Task<UAuthResult<RevokeResult>> RevokeMyChainAsync(SessionChainId chainId)
     {
-        var raw = await _request.SendJsonAsync(Url($"/me/sessions/chains/{chainId}/revoke"));
+        var raw = await _request.SendJsonAsync(Url($"/me/sessions/chains/{chainId.Value}/revoke"));
         var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
 
         if (result.Value?.CurrentChain == true)
@@ -73,37 +73,37 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/sessions/chains"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/sessions/chains"), request);
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 
     public async Task<UAuthResult<SessionChainDetail>> GetUserChainDetailAsync(UserKey userKey, SessionChainId chainId)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/chains/{chainId}"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/sessions/chains/{chainId.Value}"));
         return UAuthResultMapper.FromJson<SessionChainDetail>(raw);
     }
 
     public async Task<UAuthResult> RevokeUserSessionAsync(UserKey userKey, AuthSessionId sessionId)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/{sessionId}/revoke"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/sessions/{sessionId.Value}/revoke"));
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<RevokeResult>> RevokeUserChainAsync(UserKey userKey, SessionChainId chainId)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/chains/{chainId}/revoke"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/sessions/chains/{chainId.Value}/revoke"));
         return UAuthResultMapper.FromJson<RevokeResult>(raw);
     }
 
     public async Task<UAuthResult> RevokeUserRootAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/revoke-root"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/sessions/revoke-root"));
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> RevokeAllUserChainsAsync(UserKey userKey)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey}/sessions/revoke-all"));
+        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/sessions/revoke-all"));
         return UAuthResultMapper.From(raw);
     }
 }
