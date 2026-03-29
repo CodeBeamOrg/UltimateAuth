@@ -689,4 +689,130 @@ public class UAuthFlowClientTests : UAuthClientTestBase
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task CompletePkce_Should_Throw_When_Request_Null()
+    {
+        var client = CreateFlowClient();
+        Func<Task> act = async () => await client.CompletePkceLoginAsync(null!);
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task CompletePkce_Should_Throw_When_Pkce_Disabled()
+    {
+        var options = Options.Create(new UAuthClientOptions
+        {
+            Pkce = new UAuthClientPkceLoginFlowOptions
+            {
+                Enabled = false
+            }
+        });
+
+        var client = new UAuthFlowClient(
+            Mock.Of<IUAuthRequestClient>(),
+            Mock.Of<IUAuthClientEvents>(),
+            Mock.Of<IClientDeviceProvider>(),
+            Mock.Of<IReturnUrlProvider>(),
+            options,
+            new UAuthClientDiagnostics());
+
+        Func<Task> act = async () => await client.CompletePkceLoginAsync(new PkceCompleteRequest
+        {
+            AuthorizationCode = "code",
+            CodeVerifier = "verifier",
+            ReturnUrl = "/home",
+            Identifier = "user",
+            Secret = "pass"});
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task LogoutUserDevice_Should_Call_Admin_Endpoint()
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = JsonSerializer.SerializeToElement(new RevokeResult())
+            });
+
+        var client = CreateFlowClient(mock);
+        var userKey = UserKey.FromString("user-1");
+        await client.LogoutUserDeviceAsync(userKey, new LogoutDeviceRequest() { ChainId = SessionChainId.New() });
+        mock.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/logout-device", It.IsAny<object>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LogoutMyOtherDevices_Should_Call_Correct_Endpoint()
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateFlowClient(mock);
+        await client.LogoutMyOtherDevicesAsync();
+        mock.Verify(x => x.SendJsonAsync("/auth/me/logout-others", null), Times.Once);
+    }
+
+    [Fact]
+    public async Task LogoutUserOtherDevices_Should_Call_Admin_Endpoint()
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateFlowClient(mock);
+        var userKey = UserKey.FromString("user-1");
+        await client.LogoutUserOtherDevicesAsync(userKey, new LogoutOtherDevicesRequest() { CurrentChainId = SessionChainId.New() });
+        mock.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/logout-others", It.IsAny<object>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LogoutAllUserDevices_Should_Call_Admin_Endpoint()
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateFlowClient(mock);
+        var userKey = UserKey.FromString("user-1");
+        await client.LogoutAllUserDevicesAsync(userKey);
+        mock.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/logout-all", null), Times.Once);
+    }
+
+    [Fact]
+    public void UAuthClient_Should_Expose_FlowClient()
+    {
+        var flow = Mock.Of<IFlowClient>();
+
+        var client = new UAuthClient(
+            flow,
+            Mock.Of<ISessionClient>(),
+            Mock.Of<IUserClient>(),
+            Mock.Of<IUserIdentifierClient>(),
+            Mock.Of<ICredentialClient>(),
+            Mock.Of<IAuthorizationClient>());
+
+        client.Flows.Should().Be(flow);
+    }
 }
