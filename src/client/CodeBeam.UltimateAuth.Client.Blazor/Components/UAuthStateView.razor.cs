@@ -98,10 +98,18 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
         var results = new List<bool>();
 
         if (roles.Count > 0)
-            results.Add(roles.Any(AuthState.IsInRole));
+        {
+            results.Add(MatchAll
+                ? roles.All(AuthState.IsInRole)
+                : roles.Any(AuthState.IsInRole));
+        }
 
         if (permissions.Count > 0)
-            results.Add(permissions.Any(AuthState.HasPermission));
+        {
+            results.Add(MatchAll
+                ? permissions.All(AuthState.HasPermission)
+                : permissions.Any(AuthState.HasPermission));
+        }
 
         if (!string.IsNullOrWhiteSpace(Policy))
             results.Add(await EvaluatePolicyAsync());
