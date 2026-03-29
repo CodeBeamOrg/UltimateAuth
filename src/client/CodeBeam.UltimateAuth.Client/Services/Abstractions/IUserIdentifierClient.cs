@@ -6,19 +6,19 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 
 public interface IUserIdentifierClient
 {
-    Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyIdentifiersAsync(PageRequest? request = null);
-    Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request);
-    Task<UAuthResult> UpdateSelfAsync(UpdateUserIdentifierRequest request);
-    Task<UAuthResult> SetPrimarySelfAsync(SetPrimaryUserIdentifierRequest request);
-    Task<UAuthResult> UnsetPrimarySelfAsync(UnsetPrimaryUserIdentifierRequest request);
-    Task<UAuthResult> VerifySelfAsync(VerifyUserIdentifierRequest request);
-    Task<UAuthResult> DeleteSelfAsync(DeleteUserIdentifierRequest request);
+    Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyAsync(PageRequest? request = null);
+    Task<UAuthResult> AddMyAsync(AddUserIdentifierRequest request);
+    Task<UAuthResult> UpdateMyAsync(UpdateUserIdentifierRequest request);
+    Task<UAuthResult> SetMyPrimaryAsync(SetPrimaryUserIdentifierRequest request);
+    Task<UAuthResult> UnsetMyPrimaryAsync(UnsetPrimaryUserIdentifierRequest request);
+    Task<UAuthResult> VerifyMyAsync(VerifyUserIdentifierRequest request);
+    Task<UAuthResult> DeleteMyAsync(DeleteUserIdentifierRequest request);
 
-    Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserIdentifiersAsync(UserKey userKey, PageRequest? request = null);
-    Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request);
-    Task<UAuthResult> UpdateAdminAsync(UserKey userKey, UpdateUserIdentifierRequest request);
-    Task<UAuthResult> SetPrimaryAdminAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request);
-    Task<UAuthResult> UnsetPrimaryAdminAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request);
-    Task<UAuthResult> VerifyAdminAsync(UserKey userKey, VerifyUserIdentifierRequest request);
-    Task<UAuthResult> DeleteAdminAsync(UserKey userKey, DeleteUserIdentifierRequest request);
+    Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserAsync(UserKey userKey, PageRequest? request = null);
+    Task<UAuthResult> AddUserAsync(UserKey userKey, AddUserIdentifierRequest request);
+    Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateUserIdentifierRequest request);
+    Task<UAuthResult> SetUserPrimaryAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request);
+    Task<UAuthResult> UnsetUserPrimaryAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request);
+    Task<UAuthResult> VerifyUserAsync(UserKey userKey, VerifyUserIdentifierRequest request);
+    Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteUserIdentifierRequest request);
 }

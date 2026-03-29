@@ -42,9 +42,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         {
             var request = new LogoutRequest
             {
-                Tenant = authFlow.Tenant,
-                SessionId = session.SessionId,
-                At = _clock.UtcNow,
+                SessionId = session.SessionId
             };
 
             await _flow.LogoutAsync(request, ctx.RequestAborted);
@@ -128,7 +126,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var request = await ctx.ReadJsonAsync<LogoutOtherDevicesAdminRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<LogoutOtherDevicesRequest>(ctx.RequestAborted);
 
         var access = await _accessContextFactory.CreateAsync(
             flow,

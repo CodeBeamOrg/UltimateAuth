@@ -2,7 +2,7 @@
 
 public enum LoginContinuationType
 {
-    Mfa,
-    Pkce,
-    External
+    Mfa = 0,
+    Pkce = 10,
+    External = 20
 }

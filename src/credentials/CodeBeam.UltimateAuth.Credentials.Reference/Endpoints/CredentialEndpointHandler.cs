@@ -92,7 +92,7 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         // Don't call TryGetSelf here, as the user might be locked out and thus not authenticated.
         var flow = _authFlow.Current;
 
-        var request = await ctx.ReadJsonAsync<BeginCredentialResetRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<BeginResetCredentialRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -109,7 +109,7 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         // Don't call TryGetSelf here, as the user might be locked out and thus not authenticated.
         var flow = _authFlow.Current;
 
-        var request = await ctx.ReadJsonAsync<CompleteCredentialResetRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<CompleteResetCredentialRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -216,7 +216,7 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         if (!TryGetSelf(out var flow, out var error))
             return error!;
 
-        var request = await ctx.ReadJsonAsync<BeginCredentialResetRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<BeginResetCredentialRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -233,7 +233,7 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         if (!TryGetSelf(out var flow, out var error))
             return error!;
 
-        var request = await ctx.ReadJsonAsync<CompleteCredentialResetRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<CompleteResetCredentialRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,

@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public class PageRequest
+public record PageRequest
 {
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 250;

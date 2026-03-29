@@ -49,7 +49,7 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult<PagedResult<UserSummary>>> QueryUsersAsync(UserQuery query)
+    public async Task<UAuthResult<PagedResult<UserSummary>>> QueryAsync(UserQuery query)
     {
         query ??= new UserQuery();
         var raw = await _request.SendJsonAsync(Url("/admin/users/query"), query);
@@ -62,13 +62,13 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
-    public async Task<UAuthResult<UserCreateResult>> CreateAdminAsync(CreateUserRequest request)
+    public async Task<UAuthResult<UserCreateResult>> CreateAsAdminAsync(CreateUserRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/admin/users/create"), request);
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
-    public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusSelfAsync(ChangeUserStatusSelfRequest request)
+    public async Task<UAuthResult<UserStatusChangeResult>> ChangeMyStatusAsync(ChangeUserStatusSelfRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/status"), request);
         if (raw.Ok)
@@ -78,7 +78,7 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
     }
 
-    public async Task<UAuthResult<UserStatusChangeResult>> ChangeStatusAdminAsync(UserKey userKey, ChangeUserStatusAdminRequest request)
+    public async Task<UAuthResult<UserStatusChangeResult>> ChangeUserStatusAsync(UserKey userKey, ChangeUserStatusAdminRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/status"), request);
         return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
@@ -90,13 +90,13 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserDeleteResult>(raw);
     }
 
-    public async Task<UAuthResult<UserView>> GetProfileAsync(UserKey userKey)
+    public async Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey)
     {
         var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/profile/get"));
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
-    public async Task<UAuthResult> UpdateProfileAsync(UserKey userKey, UpdateProfileRequest request)
+    public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request);
         return UAuthResultMapper.From(raw);

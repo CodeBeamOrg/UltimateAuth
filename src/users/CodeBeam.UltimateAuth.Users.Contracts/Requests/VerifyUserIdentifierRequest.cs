@@ -2,5 +2,5 @@
 
 public sealed record VerifyUserIdentifierRequest
 {
-    public Guid IdentifierId { get; init; }
+    public Guid Id { get; init; }
 }

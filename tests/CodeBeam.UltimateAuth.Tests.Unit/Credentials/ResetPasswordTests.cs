@@ -18,7 +18,7 @@ public class ResetPasswordTests
         var context = TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous);
 
         var result = await service.BeginResetAsync(context,
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -39,7 +39,7 @@ public class ResetPasswordTests
         var context = TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous);
 
         var result = await service.BeginResetAsync(context,
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -59,7 +59,7 @@ public class ResetPasswordTests
         var context = TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous);
 
         var result = await service.BeginResetAsync(context,
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "unknown@test.com",
                 CredentialType = CredentialType.Password,
@@ -77,7 +77,7 @@ public class ResetPasswordTests
 
         var begin = await service.BeginResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous),
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -86,7 +86,7 @@ public class ResetPasswordTests
 
         var result = await service.CompleteResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-            new CompleteCredentialResetRequest
+            new CompleteResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -105,7 +105,7 @@ public class ResetPasswordTests
 
         var begin = await service.BeginResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous),
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -115,7 +115,7 @@ public class ResetPasswordTests
         Func<Task> act = async () =>
             await service.CompleteResetAsync(
                 TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-                new CompleteCredentialResetRequest
+                new CompleteResetCredentialRequest
                 {
                     Identifier = "admin",
                     CredentialType = CredentialType.Password,
@@ -134,7 +134,7 @@ public class ResetPasswordTests
 
         var begin = await service.BeginResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous),
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -147,7 +147,7 @@ public class ResetPasswordTests
             {
                 await service.CompleteResetAsync(
                     TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-                    new CompleteCredentialResetRequest
+                    new CompleteResetCredentialRequest
                     {
                         Identifier = "admin",
                         CredentialType = CredentialType.Password,
@@ -161,7 +161,7 @@ public class ResetPasswordTests
         Func<Task> act = async () =>
             await service.CompleteResetAsync(
                 TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-                new CompleteCredentialResetRequest
+                new CompleteResetCredentialRequest
                 {
                     Identifier = "admin",
                     CredentialType = CredentialType.Password,
@@ -180,7 +180,7 @@ public class ResetPasswordTests
 
         var begin = await service.BeginResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous),
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -189,7 +189,7 @@ public class ResetPasswordTests
 
         await service.CompleteResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-            new CompleteCredentialResetRequest
+            new CompleteResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -200,7 +200,7 @@ public class ResetPasswordTests
         Func<Task> act = async () =>
             await service.CompleteResetAsync(
                 TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-                new CompleteCredentialResetRequest
+                new CompleteResetCredentialRequest
                 {
                     Identifier = "admin",
                     CredentialType = CredentialType.Password,
@@ -220,7 +220,7 @@ public class ResetPasswordTests
 
         var begin = await service.BeginResetAsync(
             TestAccessContext.WithAction(UAuthActions.Credentials.BeginResetAnonymous),
-            new BeginCredentialResetRequest
+            new BeginResetCredentialRequest
             {
                 Identifier = "admin",
                 CredentialType = CredentialType.Password,
@@ -232,7 +232,7 @@ public class ResetPasswordTests
         Func<Task> act = async () =>
             await service.CompleteResetAsync(
                 TestAccessContext.WithAction(UAuthActions.Credentials.CompleteResetAnonymous),
-                new CompleteCredentialResetRequest
+                new CompleteResetCredentialRequest
                 {
                     Identifier = "admin",
                     CredentialType = CredentialType.Password,

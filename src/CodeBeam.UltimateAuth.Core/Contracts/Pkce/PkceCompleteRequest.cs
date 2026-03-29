@@ -2,21 +2,21 @@
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed class PkceCompleteRequest
+public sealed record PkceCompleteRequest
 {
     [JsonPropertyName("authorization_code")]
-    public string AuthorizationCode { get; init; } = default!;
+    public required string AuthorizationCode { get; init; }
 
     [JsonPropertyName("code_verifier")]
-    public string CodeVerifier { get; init; } = default!;
+    public required string CodeVerifier { get; init; }
 
 
-    public string Identifier { get; init; } = default!;
-    public string Secret { get; init; } = default!;
+    public required string Identifier { get; init; }
+    public required string Secret { get; init; }
 
     [JsonPropertyName("return_url")]
-    public string ReturnUrl { get; init; } = default!;
+    public string ReturnUrl { get; init; }
 
     [JsonPropertyName("hub_session_id")]
-    public string HubSessionId { get; init; } = default!;
+    public string HubSessionId { get; init; }
 }

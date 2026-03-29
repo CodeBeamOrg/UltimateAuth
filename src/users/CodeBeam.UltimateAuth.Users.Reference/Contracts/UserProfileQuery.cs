@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-public sealed class UserProfileQuery : PageRequest
+public sealed record UserProfileQuery : PageRequest
 {
     public bool IncludeDeleted { get; init; }
 }

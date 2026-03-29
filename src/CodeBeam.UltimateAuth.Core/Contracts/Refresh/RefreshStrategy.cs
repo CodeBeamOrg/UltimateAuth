@@ -2,9 +2,9 @@
 
 public enum RefreshStrategy
 {
-    NotSupported,
-    SessionOnly,           // PureOpaque
-    TokenOnly,             // PureJwt
-    TokenWithSessionCheck, // SemiHybrid
-    SessionAndToken        // Hybrid
+    NotSupported = 0,
+    SessionOnly = 10,           // PureOpaque
+    TokenOnly = 20,             // PureJwt
+    TokenWithSessionCheck = 30, // SemiHybrid
+    SessionAndToken = 40        // Hybrid
 }

@@ -36,7 +36,7 @@ public partial class UsersDialog
             Descending = sort?.Descending ?? false
         };
 
-        var res = await UAuthClient.Users.QueryUsersAsync(req);
+        var res = await UAuthClient.Users.QueryAsync(req);
 
         if (!res.IsSuccess || res.Value == null)
         {

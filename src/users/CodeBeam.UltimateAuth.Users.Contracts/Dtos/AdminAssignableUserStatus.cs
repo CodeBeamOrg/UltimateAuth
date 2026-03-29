@@ -1,11 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public enum UserStatus
+public enum AdminAssignableUserStatus
 {
-
     Active = 0,
-
-    SelfSuspended = 10,
 
     Disabled = 20,
     Suspended = 30,

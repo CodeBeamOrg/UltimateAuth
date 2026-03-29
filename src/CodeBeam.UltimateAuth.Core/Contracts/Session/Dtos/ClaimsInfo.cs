@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed class ClaimsDto
+public sealed class ClaimsInfo
 {
     public Dictionary<string, string[]> Claims { get; set; } = new();
 

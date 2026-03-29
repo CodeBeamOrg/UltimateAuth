@@ -31,7 +31,7 @@ public partial class IdentifierDialog
 
         if (firstRender)
         {
-            var result = await UAuthClient.Identifiers.GetMyIdentifiersAsync();
+            var result = await UAuthClient.Identifiers.GetMyAsync();
             if (result != null && result.IsSuccess && result.Value != null)
             {
                 await ReloadAsync();
@@ -56,11 +56,11 @@ public partial class IdentifierDialog
 
         if (UserKey is null)
         {
-            res = await UAuthClient.Identifiers.GetMyIdentifiersAsync(req);
+            res = await UAuthClient.Identifiers.GetMyAsync(req);
         }
         else
         {
-            res = await UAuthClient.Identifiers.GetUserIdentifiersAsync(UserKey.Value, req);
+            res = await UAuthClient.Identifiers.GetUserAsync(UserKey.Value, req);
         }
 
         if (!res.IsSuccess || res.Value is null)
@@ -126,20 +126,20 @@ public partial class IdentifierDialog
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.UpdateSelfAsync(updateRequest);
+            result = await UAuthClient.Identifiers.UpdateMyAsync(updateRequest);
         }
         else
         {
-            result = await UAuthClient.Identifiers.UpdateAdminAsync(UserKey.Value, updateRequest);
+            result = await UAuthClient.Identifiers.UpdateUserAsync(UserKey.Value, updateRequest);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Identifier updated successfully", Severity.Success);
+            Snackbar.Add("Identifier updated successfully.", Severity.Success);
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to update identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to update identifier.", Severity.Error);
         }
 
         await ReloadAsync();
@@ -165,29 +165,29 @@ public partial class IdentifierDialog
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.AddSelfAsync(request);
+            result = await UAuthClient.Identifiers.AddMyAsync(request);
         }
         else
         {
-            result = await UAuthClient.Identifiers.AddAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Identifiers.AddUserAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Identifier added successfully", Severity.Success);
+            Snackbar.Add("Identifier added successfully.", Severity.Success);
             await ReloadAsync();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to add identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to add identifier.", Severity.Error);
         }
     }
 
     private async Task VerifyAsync(Guid id)
     {
         var demoInfo = await DialogService.ShowMessageBoxAsync(
-            title: "Demo verification",
+            title: "Demo Verification",
             markupMessage: (MarkupString)
                 """
             This is a <b>demo</b> action.<br/><br/>
@@ -203,105 +203,105 @@ public partial class IdentifierDialog
             return;
         }
 
-        VerifyUserIdentifierRequest request = new() { IdentifierId = id };
+        VerifyUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.VerifySelfAsync(request);
+            result = await UAuthClient.Identifiers.VerifyMyAsync(request);
         }
         else
         {
-            result = await UAuthClient.Identifiers.VerifyAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Identifiers.VerifyUserAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Identifier verified successfully", Severity.Success);
+            Snackbar.Add("Identifier verified successfully.", Severity.Success);
             await ReloadAsync();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to verify primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to verify primary identifier.", Severity.Error);
         }
     }
 
     private async Task SetPrimaryAsync(Guid id)
     {
-        SetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        SetPrimaryUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.SetPrimarySelfAsync(request);
+            result = await UAuthClient.Identifiers.SetMyPrimaryAsync(request);
         }
         else
         {
-            result = await UAuthClient.Identifiers.SetPrimaryAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Identifiers.SetUserPrimaryAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Primary identifier set successfully", Severity.Success);
+            Snackbar.Add("Primary identifier set successfully.", Severity.Success);
             await ReloadAsync();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to set primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to set primary identifier.", Severity.Error);
         }
     }
 
     private async Task UnsetPrimaryAsync(Guid id)
     {
-        UnsetPrimaryUserIdentifierRequest request = new() { IdentifierId = id };
+        UnsetPrimaryUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.UnsetPrimarySelfAsync(request);
+            result = await UAuthClient.Identifiers.UnsetMyPrimaryAsync(request);
         }
         else
         {
-            result = await UAuthClient.Identifiers.UnsetPrimaryAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Identifiers.UnsetUserPrimaryAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Primary identifier unset successfully", Severity.Success);
+            Snackbar.Add("Primary identifier unset successfully.", Severity.Success);
             await ReloadAsync();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to unset primary identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to unset primary identifier.", Severity.Error);
         }
     }
 
     private async Task DeleteIdentifier(Guid id)
     {
-        DeleteUserIdentifierRequest request = new() { IdentifierId = id };
+        DeleteUserIdentifierRequest request = new() { Id = id };
         UAuthResult result;
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Identifiers.DeleteSelfAsync(request);
+            result = await UAuthClient.Identifiers.DeleteMyAsync(request);
         }
         else
         {
-            result = await UAuthClient.Identifiers.DeleteAdminAsync(UserKey.Value, request);
+            result = await UAuthClient.Identifiers.DeleteUserAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)
         {
-            Snackbar.Add("Identifier deleted successfully", Severity.Success);
+            Snackbar.Add("Identifier deleted successfully.", Severity.Success);
             await ReloadAsync();
             StateHasChanged();
         }
         else
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to delete identifier", Severity.Error);
+            Snackbar.Add(result?.ErrorText ?? "Failed to delete identifier.", Severity.Error);
         }
     }
 

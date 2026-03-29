@@ -2,6 +2,6 @@
 
 public enum DeleteMode
 {
-    Soft,
-    Hard
+    Soft = 0,
+    Hard = 10
 }

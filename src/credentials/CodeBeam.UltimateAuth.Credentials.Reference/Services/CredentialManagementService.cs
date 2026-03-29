@@ -193,7 +193,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<BeginCredentialResetResult> BeginResetAsync(AccessContext context, BeginCredentialResetRequest request, CancellationToken ct = default)
+    public async Task<BeginCredentialResetResult> BeginResetAsync(AccessContext context, BeginResetCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -249,7 +249,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<CredentialActionResult> CompleteResetAsync(AccessContext context, CompleteCredentialResetRequest request, CancellationToken ct = default)
+    public async Task<CredentialActionResult> CompleteResetAsync(AccessContext context, CompleteResetCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 

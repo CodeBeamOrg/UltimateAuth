@@ -20,7 +20,7 @@ public partial class ResetDialog
 
     private async Task RequestResetAsync()
     {
-        var request = new BeginCredentialResetRequest
+        var request = new BeginResetCredentialRequest
         {
             CredentialType = CredentialType.Password,
             ResetCodeType = ResetCodeType.Code,

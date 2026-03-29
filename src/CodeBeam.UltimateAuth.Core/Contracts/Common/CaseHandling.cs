@@ -2,7 +2,7 @@
 
 public enum CaseHandling
 {
-    Preserve,
-    ToLower,
-    ToUpper
+    Preserve = 0,
+    ToLower = 10,
+    ToUpper = 20
 }

@@ -203,7 +203,7 @@ public class UserIdentifierApplicationServiceTests
             await service.UnsetPrimaryUserIdentifierAsync(context,
                 new UnsetPrimaryUserIdentifierRequest
                 {
-                    IdentifierId = email.Id
+                    Id = email.Id
                 });
 
         await act.Should().ThrowAsync<UAuthIdentifierConflictException>();

@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
 public static class SessionValidationMapper
 {
-    public static SessionValidationResult ToDomain(SessionValidationDto dto)
+    public static SessionValidationResult ToDomain(SessionValidationInfo dto)
     {
         var state = (SessionState)dto.State;
 

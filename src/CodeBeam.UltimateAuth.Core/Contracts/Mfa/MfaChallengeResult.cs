@@ -2,6 +2,6 @@
 
 public sealed record MfaChallengeResult
 {
-    public string ChallengeId { get; init; } = default!;
-    public string Method { get; init; } = default!; // totp, sms, email etc.
+    public required string ChallengeId { get; init; }
+    public required string Method { get; init; } // totp, sms, email etc.
 }

@@ -23,7 +23,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         _options = options.Value;
     }
 
-    public async Task<IssuedSession> IssueSessionAsync(AuthenticatedSessionContext context, CancellationToken ct = default)
+    public async Task<IssuedSession> IssueSessionAsync(SessionIssuanceContext context, CancellationToken ct = default)
     {
         // Defensive guard — enforcement belongs to Authority
         if (context.Mode == UAuthMode.PureJwt)

@@ -6,8 +6,8 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record PkceAuthorizeCommand
 {
-    public string CodeChallenge { get; init; } = default!;
-    public string ChallengeMethod { get; init; } = "S256";
+    public required string CodeChallenge { get; init; }
+    public required string ChallengeMethod { get; init; } = "S256";
     public required DeviceContext Device { get; init; }
     public string? RedirectUri { get; init; }
 

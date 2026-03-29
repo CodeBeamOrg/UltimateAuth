@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed record AssignRoleRequest
+public sealed record RemoveRoleRequest
 {
     public required UserKey UserKey { get; init; }
     public required string RoleName { get; init; }

@@ -49,7 +49,13 @@ public partial class UserRoleDialog
         if (string.IsNullOrWhiteSpace(_selectedRole))
             return;
 
-        var result = await UAuthClient.Authorization.AssignRoleToUserAsync(UserKey, _selectedRole);
+        var request = new AssignRoleRequest
+        {
+            UserKey = UserKey,
+            RoleName = _selectedRole
+        };
+
+        var result = await UAuthClient.Authorization.AssignRoleToUserAsync(request);
 
         if (result.IsSuccess)
         {
@@ -95,7 +101,13 @@ public partial class UserRoleDialog
             }
         }
 
-        var result = await UAuthClient.Authorization.RemoveRoleFromUserAsync(UserKey, role);
+        var request = new RemoveRoleRequest
+        {
+            UserKey = UserKey,
+            RoleName = role
+        };
+
+        var result = await UAuthClient.Authorization.RemoveRoleFromUserAsync(request);
 
         if (result.IsSuccess)
         {

@@ -44,8 +44,8 @@
                         <MudText Typo="Typo.subtitle2">Status</MudText>
                         <MudChip T="string" Color="@GetStatusColor(_user?.Status)" Variant="Variant.Filled">@_user?.Status</MudChip>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudSelect T="UserStatus" @bind-Value="_status" Dense="true" Variant="Variant.Outlined">
-                                @foreach (var s in Enum.GetValues<UserStatus>())
+                            <MudSelect T="AdminAssignableUserStatus" @bind-Value="_status" Dense="true" Variant="Variant.Outlined">
+                                @foreach (var s in Enum.GetValues<AdminAssignableUserStatus>())
                                 {
                                     <MudSelectItem Value="@s">@s</MudSelectItem>
                                 }

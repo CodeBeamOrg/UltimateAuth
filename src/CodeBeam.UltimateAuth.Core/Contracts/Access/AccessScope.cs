@@ -2,8 +2,8 @@
 
 public enum ActionScope
 {
-    Anonymous,
-    Self,
-    Admin,
-    System
+    Anonymous = 0,
+    Self = 10,
+    Admin = 20,
+    System = 30
 }

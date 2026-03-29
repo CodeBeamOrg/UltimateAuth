@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Users.Contracts;
 /// <summary>
 /// Request to register a new user with credentials.
 /// </summary>
-public sealed class RegisterUserRequest
+public sealed record RegisterUserRequest
 {
     /// <summary>
     /// Unique user identifier (username, email, or external id).

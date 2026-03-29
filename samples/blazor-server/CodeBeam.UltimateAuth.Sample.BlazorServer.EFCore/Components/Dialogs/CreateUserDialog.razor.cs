@@ -37,7 +37,7 @@ public partial class CreateUserDialog
             Password = _password
         };
 
-        var result = await UAuthClient.Users.CreateAdminAsync(request);
+        var result = await UAuthClient.Users.CreateAsAdminAsync(request);
 
         if (!result.IsSuccess)
         {

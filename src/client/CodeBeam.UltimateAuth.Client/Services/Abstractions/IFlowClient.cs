@@ -20,10 +20,10 @@ public interface IFlowClient
     Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode);
     Task CompletePkceLoginAsync(PkceCompleteRequest request);
 
-    Task<UAuthResult<RevokeResult>> LogoutDeviceSelfAsync(LogoutDeviceRequest request);
-    Task<UAuthResult> LogoutOtherDevicesSelfAsync();
-    Task<UAuthResult> LogoutAllDevicesSelfAsync();
-    Task<UAuthResult<RevokeResult>> LogoutDeviceAdminAsync(UserKey userKey, LogoutDeviceRequest request);
-    Task<UAuthResult> LogoutOtherDevicesAdminAsync(UserKey userKey, LogoutOtherDevicesAdminRequest request);
-    Task<UAuthResult> LogoutAllDevicesAdminAsync(UserKey userKey);
+    Task<UAuthResult<RevokeResult>> LogoutMyDeviceAsync(LogoutDeviceRequest request);
+    Task<UAuthResult> LogoutMyOtherDevicesAsync();
+    Task<UAuthResult> LogoutAllMyDevicesAsync();
+    Task<UAuthResult<RevokeResult>> LogoutUserDeviceAsync(UserKey userKey, LogoutDeviceRequest request);
+    Task<UAuthResult> LogoutUserOtherDevicesAsync(UserKey userKey, LogoutOtherDevicesRequest request);
+    Task<UAuthResult> LogoutAllUserDevicesAsync(UserKey userKey);
 }

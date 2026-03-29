@@ -2,6 +2,6 @@
 
 public sealed class PkceAuthorizeResponse
 {
-    public string AuthorizationCode { get; init; } = default!;
+    public required string AuthorizationCode { get; init; }
     public int ExpiresIn { get; init; }
 }

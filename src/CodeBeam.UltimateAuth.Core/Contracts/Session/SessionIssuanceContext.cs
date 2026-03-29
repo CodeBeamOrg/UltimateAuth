@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 /// Represents the context in which a session is issued
 /// (login, refresh, reauthentication).
 /// </summary>
-public sealed class AuthenticatedSessionContext
+public sealed class SessionIssuanceContext
 {
     public TenantKey Tenant { get; init; }
     public required UserKey UserKey { get; init; }
