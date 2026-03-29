@@ -1,14 +1,5 @@
 ![UltimateAuth Banner](https://github.com/user-attachments/assets/4204666e-b57a-4cb5-8846-dc7e4f16bfe9)
 
-⚠️ **UltimateAuth is under active development.**
-
-The core architecture and public APIs are now implemented and validated through the sample application.
-
-We are currently polishing the developer experience, reviewing the public client API surface, and preparing the EF Core integration packages.
-
-The first preview release (**v 0.1.0-preview**) is planned within the next week.
-
-
 ![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
 ![Last Commit](https://img.shields.io/github/last-commit/CodeBeamOrg/UltimateAuth?branch=dev&logo=github)
@@ -37,9 +28,9 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
-| First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | Last check   |
-| First Release*          | 0.1.0         | Fully Documented & Quality Tested         | 🟡 In Progress  | Q2 2026      |
-| Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress  | Q2 2026      |
+| First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
+| First Release*          | 0.1.0         | Fully Documented & Quality Tested         | 🟡 In Progress | Q2 2026       |
+| Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q2 2026       |
 | Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🔜 Planned     | Q2 2026       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q2 2026       |
 | Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                   | 🔜 Planned     | Q3 2026       |
@@ -71,7 +62,8 @@ We keep it up-to-date with current priorities, planned features, and progress. F
 
 ---
 
-## 🌟 Why UltimateAuth: The Six-Point Principles
+## 🌟 Why UltimateAuth
+The Six-Point Principles
 
 ### 1) Unified Authentication System
 
@@ -230,7 +222,7 @@ Add this in `_Imports.razor`
 
 ---
 
-## Usage
+## 💡 Usage
 
 Inject IUAuthClient and simply call methods.
 
