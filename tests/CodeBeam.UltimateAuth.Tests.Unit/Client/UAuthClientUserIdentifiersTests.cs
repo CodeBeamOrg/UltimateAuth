@@ -152,4 +152,59 @@ public class UAuthClientUserIdentifiersTests : UAuthClientTestBase
         await client.Identifiers.DeleteUserAsync(userKey, new DeleteUserIdentifierRequest());
         Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey}/identifiers/delete", It.IsAny<object>()), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateUser_Should_Call_Admin_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateIdentifierClient();
+        await client.Identifiers.UpdateUserAsync(userKey, new UpdateUserIdentifierRequest() { NewValue = "uauth" });
+        Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/identifiers/update", It.IsAny<object>()), Times.Once);
+        Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetUserPrimary_Should_Call_Admin_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateIdentifierClient();
+        await client.Identifiers.SetUserPrimaryAsync(userKey, new SetPrimaryUserIdentifierRequest());
+        Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/identifiers/set-primary", It.IsAny<object>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UnsetUserPrimary_Should_Call_Admin_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateIdentifierClient();
+        await client.Identifiers.UnsetUserPrimaryAsync(userKey, new UnsetPrimaryUserIdentifierRequest());
+        Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/identifiers/unset-primary", It.IsAny<object>()), Times.Once);
+        Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyUser_Should_Call_Admin_Endpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateIdentifierClient();
+        await client.Identifiers.VerifyUserAsync(userKey, new VerifyUserIdentifierRequest());
+        Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/identifiers/verify", It.IsAny<object>()), Times.Once);
+        Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+    }
 }

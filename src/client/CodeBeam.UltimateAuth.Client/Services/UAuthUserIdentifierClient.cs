@@ -111,7 +111,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> SetUserPrimaryAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/set-primary"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/set-primary"), request);
         return UAuthResultMapper.From(raw);
     }
 

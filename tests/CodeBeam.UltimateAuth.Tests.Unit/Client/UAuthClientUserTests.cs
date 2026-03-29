@@ -175,4 +175,34 @@ public class UAuthClientUserTests : UAuthClientTestBase
         await client.Users.UpdateUserAsync(userKey, new UpdateProfileRequest());
         Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/profile/update", It.IsAny<object>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Query_Should_Create_Default_Query_When_Null()
+    {
+        var response = new PagedResult<UserSummary>(
+            new List<UserSummary>(),
+            0, 1, 10, null, false);
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateUserClient();
+        await client.Users.QueryAsync(null!);
+        Request.Verify(x => x.SendJsonAsync("/auth/admin/users/query", It.Is<object>(o => o is UserQuery)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Query_Should_Use_Given_Query()
+    {
+        var query = new UserQuery
+        {
+        };
+
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(Success());
+
+        var client = CreateUserClient();
+        await client.Users.QueryAsync(query);
+        Request.Verify(x => x.SendJsonAsync("/auth/admin/users/query", It.Is<object>(o => ReferenceEquals(o, query))), Times.Once);
+    }
 }
