@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Components.Dialogs;
 public partial class UserDetailDialog
 {
     private UserView? _user;
-    private UserStatus _status;
+    private AdminAssignableUserStatus _status;
 
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; } = default!;
@@ -25,12 +25,12 @@ public partial class UserDetailDialog
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        var result = await UAuthClient.Users.GetProfileAsync(UserKey);
+        var result = await UAuthClient.Users.GetUserAsync(UserKey);
 
         if (result.IsSuccess)
         {
             _user = result.Value;
-            _status = _user?.Status ?? UserStatus.Unknown;
+            _status = _user?.Status.ToAdminAssignableUserStatus() ?? AdminAssignableUserStatus.Unknown;
         }
     }
 
@@ -66,15 +66,15 @@ public partial class UserDetailDialog
 
         ChangeUserStatusAdminRequest request = new()
         {
-            NewStatus = _status
+            NewStatus = _status,
         };
 
-        var result = await UAuthClient.Users.ChangeStatusAdminAsync(_user.UserKey, request);
+        var result = await UAuthClient.Users.ChangeUserStatusAsync(_user.UserKey, request);
 
         if (result.IsSuccess)
         {
             Snackbar.Add("User status updated", Severity.Success);
-            _user = _user with { Status = _status };
+            _user = _user with { Status = _status.ToUserStatus() };
         }
         else
         {

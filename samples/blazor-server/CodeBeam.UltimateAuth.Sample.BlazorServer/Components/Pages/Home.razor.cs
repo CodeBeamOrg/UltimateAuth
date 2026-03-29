@@ -200,8 +200,8 @@ public partial class Home : UAuthFlowPageBase
 
     private async Task SetAccountActiveAsync()
     {
-        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfUserStatus.Active };
-        var result = await UAuthClient.Users.ChangeStatusSelfAsync(request);
+        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfAssignableUserStatus.Active };
+        var result = await UAuthClient.Users.ChangeMyStatusAsync(request);
 
         if (result.IsSuccess)
         {

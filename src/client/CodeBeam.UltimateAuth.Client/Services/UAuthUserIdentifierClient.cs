@@ -23,14 +23,14 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyIdentifiersAsync(PageRequest? request = null)
+    public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/get"), request);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 
-    public async Task<UAuthResult> AddSelfAsync(AddUserIdentifierRequest request)
+    public async Task<UAuthResult> AddMyAsync(AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/add"), request);
         if (raw.Ok)
@@ -40,7 +40,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> UpdateSelfAsync(UpdateUserIdentifierRequest request)
+    public async Task<UAuthResult> UpdateMyAsync(UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/update"), request);
         if (raw.Ok)
@@ -50,7 +50,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> SetPrimarySelfAsync(SetPrimaryUserIdentifierRequest request)
+    public async Task<UAuthResult> SetMyPrimaryAsync(SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/set-primary"), request);
         if (raw.Ok)
@@ -60,7 +60,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> UnsetPrimarySelfAsync(UnsetPrimaryUserIdentifierRequest request)
+    public async Task<UAuthResult> UnsetMyPrimaryAsync(UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/unset-primary"), request);
         if (raw.Ok)
@@ -70,7 +70,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> VerifySelfAsync(VerifyUserIdentifierRequest request)
+    public async Task<UAuthResult> VerifyMyAsync(VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/verify"), request);
         if (raw.Ok)
@@ -80,7 +80,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> DeleteSelfAsync(DeleteUserIdentifierRequest request)
+    public async Task<UAuthResult> DeleteMyAsync(DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/delete"), request);
         if (raw.Ok)
@@ -90,44 +90,44 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserIdentifiersAsync(UserKey userKey, PageRequest? request = null)
+    public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 
-    public async Task<UAuthResult> AddAdminAsync(UserKey userKey, AddUserIdentifierRequest request)
+    public async Task<UAuthResult> AddUserAsync(UserKey userKey, AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/add"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> UpdateAdminAsync(UserKey userKey, UpdateUserIdentifierRequest request)
+    public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/update"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> SetPrimaryAdminAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
+    public async Task<UAuthResult> SetUserPrimaryAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/set-primary"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> UnsetPrimaryAdminAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request)
+    public async Task<UAuthResult> UnsetUserPrimaryAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/unset-primary"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> VerifyAdminAsync(UserKey userKey, VerifyUserIdentifierRequest request)
+    public async Task<UAuthResult> VerifyUserAsync(UserKey userKey, VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/verify"), request);
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult> DeleteAdminAsync(UserKey userKey, DeleteUserIdentifierRequest request)
+    public async Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey}/identifiers/delete"), request);
         return UAuthResultMapper.From(raw);

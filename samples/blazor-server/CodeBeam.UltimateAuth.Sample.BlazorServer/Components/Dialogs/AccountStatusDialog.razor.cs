@@ -31,8 +31,8 @@ public partial class AccountStatusDialog
             return;
         }
 
-        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfUserStatus.SelfSuspended };
-        var result = await UAuthClient.Users.ChangeStatusSelfAsync(request);
+        ChangeUserStatusSelfRequest request = new() { NewStatus = SelfAssignableUserStatus.SelfSuspended };
+        var result = await UAuthClient.Users.ChangeMyStatusAsync(request);
         if (result.IsSuccess)
         {
             Snackbar.Add("Your account suspended successfully.", Severity.Success);

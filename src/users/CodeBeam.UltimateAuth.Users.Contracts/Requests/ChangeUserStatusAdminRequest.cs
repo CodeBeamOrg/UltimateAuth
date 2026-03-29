@@ -1,8 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
-
-namespace CodeBeam.UltimateAuth.Users.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record ChangeUserStatusAdminRequest
 {
-    public required UserStatus NewStatus { get; init; }
+    public required AdminAssignableUserStatus NewStatus { get; init; }
 }

@@ -40,7 +40,7 @@ public partial class ProfileDialog
         }
         else
         {
-            result = await UAuthClient.Users.GetProfileAsync(UserKey.Value);
+            result = await UAuthClient.Users.GetUserAsync(UserKey.Value);
         }
 
         if (result.IsSuccess && result.Value is not null)
@@ -98,7 +98,7 @@ public partial class ProfileDialog
         }
         else
         {
-            result = await UAuthClient.Users.UpdateProfileAsync(UserKey.Value, request);
+            result = await UAuthClient.Users.UpdateUserAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)

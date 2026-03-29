@@ -2,5 +2,5 @@
 
 public sealed record ChangeUserStatusSelfRequest
 {
-    public required SelfUserStatus NewStatus { get; init; }
+    public required SelfAssignableUserStatus NewStatus { get; init; }
 }

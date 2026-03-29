@@ -151,7 +151,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var newStatus = request switch
             {
                 ChangeUserStatusSelfRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
-                ChangeUserStatusAdminRequest r => r.NewStatus,
+                ChangeUserStatusAdminRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
                 _ => throw new InvalidOperationException("invalid_request")
             };
 

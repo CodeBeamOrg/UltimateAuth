@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public enum SelfUserStatus
+public enum SelfAssignableUserStatus
 {
     Active = 0,
     SelfSuspended = 10,
