@@ -1,206 +1,118 @@
-\# 🚀 Getting Started
+# 🚀 Getting Started
 
+Welcome to **UltimateAuth** — the modern authentication framework for .NET.
 
+UltimateAuth is designed to make authentication **simple to use**, while still being **powerful, flexible, and deeply secure** enough for real-world applications.
 
-Welcome to \*\*UltimateAuth\*\* — the modern authentication framework for .NET.
+## What is UltimateAuth?
 
-
-
-UltimateAuth is designed to make authentication \*\*simple to use\*\*, while still being \*\*powerful, flexible, and secure\*\* enough for real-world applications.
-
-
-
-\---
-
-
-
-\## What is UltimateAuth?
-
-
-
-UltimateAuth is a \*\*flow-driven authentication framework\*\* for modern .NET applications.
-
-
+UltimateAuth is a **flow-driven authentication framework** that reimagines how authentication works in modern .NET applications.
 
 It unifies:
 
-
-
-\- Session-based authentication
-
-\- Token-based authentication (JWT)
-
-\- PKCE flows for public clients
-
-\- Multi-client environments (Blazor Server, WASM, MAUI, APIs)
-
-
+- Session-based authentication
+- Token-based authentication (JWT)
+- PKCE flows for public clients
+- Multi-client environments (Blazor Server, WASM, MAUI, APIs)
 
 into a single, consistent system.
 
+Instead of choosing between cookies, sessions, or tokens, UltimateAuth allows you to use **the right model for each scenario — automatically**.
 
+## What Makes UltimateAuth Different?
 
-Instead of choosing between cookies, sessions, or tokens,  
+### 🔹 Session is a First-Class Concept
 
-UltimateAuth allows you to use \*\*the right model for each scenario — automatically\*\*.
+Unlike traditional systems, UltimateAuth treats sessions as a **core domain**, not a side effect.
 
+- Root → global security authority  
+- Chain → device context  
+- Session → actual authentication instance  
 
+This allows:
 
-\---
+- Instant revocation  
+- Multi-device control  
+- Secure session lifecycle management
 
+### 🔹 Flow-Based, Not Token-Based
 
+UltimateAuth is not cookie-based or token-based.
 
-\## Why UltimateAuth Exists
+It is **flow-based**:
 
+- Login is a flow  
+- Refresh is a flow  
+- Re-authentication is a flow  
 
+👉 Authentication becomes **explicit, predictable, and controllable**
 
-Authentication in modern .NET applications is fragmented:
+### 🔹 Built for Blazor and Modern Clients
 
+UltimateAuth is designed from the ground up for:
 
+- Blazor Server  
+- Blazor WASM  
+- .NET MAUI  
 
-\- ASP.NET Identity → user-focused but limited in flow flexibility  
+With:
 
-\- JWT-based systems → stateless but hard to control and revoke  
+- Native PKCE support  
+- Built-in Blazor components (`UAuthLoginForm`, `UAuthApp`)  
+- Automatic client profile detection  
 
-\- OAuth solutions → powerful but complex and heavy  
+👉 No hacks. No manual glue code.
 
+### 🔹 Runtime-Aware Authentication
 
+Authentication behavior is not static.
 
-UltimateAuth exists to solve this by providing:
+UltimateAuth adapts based on:
 
+- Client type  
+- Auth mode  
+- Request context  
 
+👉 Same system, different optimized behavior.
 
-\- A \*\*unified mental model\*\*
+## What Problems It Solves
 
-\- A \*\*consistent developer experience\*\*
+UltimateAuth addresses real-world challenges:
 
-\- A \*\*secure and extensible architecture\*\*
-
-
-
-\---
-
-
-
-\## What Problems It Solves
-
-
-
-UltimateAuth addresses common real-world challenges:
-
-
-
-\### 🔹 Multiple Client Types
-
-
+### 🔹 Multiple Client Types
 
 Blazor Server, WASM, MAUI, and APIs all behave differently.  
 
-UltimateAuth handles these differences automatically using \*\*Client Profiles\*\*.
+UltimateAuth handles these differences automatically using **Client Profiles**.
 
-
-
-\---
-
-
-
-\### 🔹 Session vs Token Confusion
-
-
+### 🔹 Session vs Token Confusion
 
 Should you use cookies, sessions, or JWT?
 
+UltimateAuth removes this decision by supporting multiple auth modes and selecting the correct behavior at runtime.
 
-
-UltimateAuth removes this decision by supporting \*\*multiple auth modes\*\* and selecting the correct behavior at runtime.
-
-
-
-\---
-
-
-
-\### 🔹 Secure Session Management
-
-
-
-\- Device-aware sessions  
-
-\- Session revocation  
-
-\- Refresh token rotation  
-
-\- Replay protection  
-
-
+### 🔹 Secure Session Management
+- Device-aware sessions  
+- Session revocation  
+- Refresh token rotation  
+- Replay protection  
 
 All built-in — no custom implementation required.
 
-
-
-\---
-
-
-
-\### 🔹 Complex Auth Flows
-
-
-
+### 🔹 Complex Auth Flows
 Login, logout, refresh, PKCE, multi-device control etc.
 
+All exposed as **simple application-level APIs**.
 
-
-UltimateAuth turns these into \*\*simple application-level operations\*\*.
-
-
-
-\---
-
-
-
-\## When to Use UltimateAuth
-
-
-
+## When to Use UltimateAuth
 Use UltimateAuth if:
 
+- You are building a modern .NET application **Blazor Server, WASM or MAUI**
+- You need **session + token hybrid authentication**
+- You want **full control over authentication flows**
+- You are building a **multi-client system (web + mobile + API)**
+- You need **strong security with extensibility**
 
 
-\- You are building a \*\*Blazor Server or WASM application\*\*
-
-\- You need \*\*session + token hybrid authentication\*\*
-
-\- You want \*\*full control over authentication flows\*\*
-
-\- You are building a \*\*multi-client system (web + mobile + API)\*\*
-
-\- You need \*\*strong security with extensibility\*\*
-
-
-
-\---
-
-
-
-\## When NOT to Use UltimateAuth
-
-
-
-UltimateAuth may not be the right choice if:
-
-
-
-\- You only need a \*\*very simple, stateless JWT-only API\*\*
-
-\- You do not need session control, revocation, or device awareness
-
-\- You prefer a fully external identity provider (Auth0, Azure AD, etc.)
-
-
-
-\---
-
-
-
-👉 Continue to \*\*Quick Start\*\* to build your first UltimateAuth application.
+👉 Continue to **Quick Start** to build your first UltimateAuth application.
 
