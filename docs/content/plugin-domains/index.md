@@ -29,8 +29,6 @@ Defines the server needed bridge interfaces:
 
 👉 This package provides required minimal info for server package.
 
-<br>
-
 ### 🔹 Contracts Package
 
 Shared models between:
