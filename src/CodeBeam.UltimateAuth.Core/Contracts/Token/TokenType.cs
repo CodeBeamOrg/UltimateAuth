@@ -2,7 +2,7 @@
 
 public enum TokenType
 {
-    Opaque,
-    Jwt,
-    Unknown
+    Opaque = 0,
+    Jwt = 10,
+    Unknown = 100
 }
