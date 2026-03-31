@@ -54,7 +54,7 @@ var result = await UAuthClient.Flows.TryLoginAsync(
 | TryAndCommit | Validate then login if success |
 
 👉 Use `DirectCommit` when:
-- You need maximum performance with sacrifice interactive SPA capabilities.
+- You need maximum performance while sacrificing interactive SPA capabilities.
 
 👉 Use `TryOnly` when:
 
@@ -64,7 +64,14 @@ var result = await UAuthClient.Flows.TryLoginAsync(
 👉 Use `TryAndCommit` when:
 
 - You need completely interactive SPA experience.
-- UltimateAuth suggests to use TryAndCommit.
+
+👉 `TryAndCommit` is the recommended mode for most applications.
+
+It provides:
+
+- Validation feedback
+- Automatic redirect on success
+- Smooth SPA experience
 
 <br>
 
