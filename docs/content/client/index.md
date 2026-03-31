@@ -33,6 +33,21 @@ The client is split into multiple specialized services:
 
 <br>
 
+## 🧩 Client Entry Point
+
+UltimateAuth exposes a single entry point:
+
+👉 `UAuthClient`
+
+```csharp
+[Inject] IUAuthClient UAuthClient { get; set; } = null!;
+
+await UAuthClient.Flows.LoginAsync(...);
+await UAuthClient.Users.GetMeAsync();
+await UAuthClient.Sessions.GetMyChainsAsync();
+```
+
+
 ## 🔑 Core Concept: Flow-Based Design
 
 UltimateAuth is **flow-oriented**, not endpoint-oriented.
