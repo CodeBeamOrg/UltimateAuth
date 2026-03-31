@@ -90,6 +90,38 @@ Instead:
 
 <br>
 
+## 🔌 Domain Isolation
+
+Plugin domains are designed to be **fully isolated** from each other.
+
+👉 A plugin domain does NOT reference another plugin domain  
+👉 There are no direct dependencies between domains
+
+### 🧠 Why?
+
+This ensures:
+
+- Loose coupling  
+- Independent evolution  
+- Replaceability  
+- Clear boundaries
+
+## 🔄 Communication via Hooks
+
+Plugin domains communicate **only through integration hooks**.
+
+For example:
+
+- User domain triggers → `OnUserCreated`
+- Credential domain listens → creates password credential
+
+👉 This is implemented via abstractions such as:
+
+- `IUserLifecycleIntegration`
+- domain events / integration points
+
+<br>
+
 ## 🧠 Mental Model
 
 If you remember one thing:
