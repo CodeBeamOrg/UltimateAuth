@@ -79,6 +79,12 @@ builder.Services.AddUltimateAuthServer()
     .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130")); // WASM application's URL
 ```
 
+UAuthHub Pipeline Configuration
+```csharp
+app.MapUltimateAuthEndpoints();
+app.MapUAuthHub();
+```
+
 > ℹ️ UltimateAuth automatically selects the appropriate authentication mode (PureOpaque, Hybrid, etc.) based on the client type.
 
 ## ResourceApi Setup
