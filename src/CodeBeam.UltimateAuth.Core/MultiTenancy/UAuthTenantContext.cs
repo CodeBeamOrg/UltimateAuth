@@ -20,5 +20,6 @@ public sealed class UAuthTenantContext
 
     public static UAuthTenantContext SingleTenant() => new(TenantKey.Single);
     public static UAuthTenantContext System() => new(TenantKey.System);
+    public static UAuthTenantContext Unresolved() => new(TenantKey.Unresolved);
     public static UAuthTenantContext Resolved(TenantKey tenant) => new(tenant);
 }

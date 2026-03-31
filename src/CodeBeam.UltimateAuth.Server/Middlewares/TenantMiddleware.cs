@@ -30,17 +30,12 @@ public sealed class TenantMiddleware
 
         resolution = await resolver.ResolveAsync(context);
 
+        // Middleware must allow unresolved tenants for non-auth requests.
+        // Exception should be handled only in AuthFlowContextFactory, where we can check if the request is for auth endpoints or not.
         if (!resolution.IsResolved)
         {
-            //if (opts.RequireTenant)
-            //{
-            //    context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            //    await context.Response.WriteAsync("Tenant is required.");
-            //    return;
-            //}
-
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsync("Tenant could not be resolved.");
+            context.Items[UAuthConstants.HttpItems.TenantContextKey] = UAuthTenantContext.Unresolved();
+            await _next(context);
             return;
         }
 
