@@ -141,6 +141,16 @@ HTTP Request
 
 <br>
 
+## 🔐 Flow Execution Boundary
+Authentication flows are only executed for endpoints explicitly marked with flow metadata.
+
+- Regular requests do not create an AuthFlowContext  
+- AuthFlowContext is only created during flow execution  
+
+👉 This ensures that authentication logic does not interfere with normal application behavior.
+
+<br>
+
 ## 🧠 Mental Model
 👉 Middleware prepares the request  
 👉 Flows change the state
