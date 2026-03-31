@@ -62,7 +62,7 @@ Instead of calling endpoints:
 ## ⚡ Example
 
 ```csharp
-await flowClient.LoginAsync(new LoginRequest
+await UAuthClient.Flows.LoginAsync(new LoginRequest
 {
     Identifier = "user@ultimateauth.com",
     Secret = "password"
