@@ -1,6 +1,5 @@
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
@@ -22,7 +21,6 @@ builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-builder.Services.AddUltimateAuth();
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     o.Endpoints.BasePath = "https://localhost:6110/auth"; // UAuthHub URL

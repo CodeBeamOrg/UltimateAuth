@@ -2,8 +2,8 @@
 
 public enum TokenResponseMode
 {
-    None,
-    Cookie,
-    Header,
-    Body
+    None = 0,
+    Cookie = 10,
+    Header = 20,
+    Body = 30
 }

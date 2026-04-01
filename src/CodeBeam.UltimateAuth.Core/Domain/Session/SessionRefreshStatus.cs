@@ -2,8 +2,8 @@
 
 public enum SessionRefreshStatus
 {
-    Success,
-    ReauthRequired,
-    InvalidRequest,
-    Failed
+    Success = 0,
+    ReauthRequired = 10,
+    InvalidRequest = 20,
+    Failed = 30
 }

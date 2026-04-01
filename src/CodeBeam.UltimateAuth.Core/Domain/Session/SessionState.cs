@@ -6,12 +6,12 @@
 /// </summary>
 public enum SessionState
 {
-    Active,
-    Expired,
-    Revoked,
-    NotFound,
-    Invalid,
-    SecurityMismatch,
-    DeviceMismatch,
-    Unsupported
+    Active = 0,
+    Expired = 10,
+    Revoked = 20,
+    NotFound = 30,
+    Invalid = 40,
+    SecurityMismatch = 50,
+    DeviceMismatch = 60,
+    Unsupported = 100
 }
