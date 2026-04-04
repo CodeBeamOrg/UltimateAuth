@@ -1,0 +1,51 @@
+﻿@using CodeBeam.UltimateAuth.Docs.Wasm.Client.Brand
+@inherits LayoutComponentBase
+
+@inject NavigationManager Nav
+
+<MudThemeProvider Theme="@_uauthTheme" IsDarkMode="@_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
+        <div class="ua-appbar-grid">
+            <div class="ua-left">
+                <div class="ua-mobile-only">
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+                </div>
+
+                <div class="ua-desktop-only">
+                    <MudButton Variant="Variant.Text">Docs (Preparing)</MudButton>
+                    <MudButton Variant="Variant.Text">Donate</MudButton>
+                </div>
+            </div>
+
+            <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/"))">
+                <UAuthLogo Class="ua-logo mt-4" Color="Color.Primary" Size="64" />
+            </div>
+
+            <div class="ua-right">
+                <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
+                <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
+            </div>
+        </div>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Breakpoint="Breakpoint.None" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Temporary">
+        <MudNavMenu>
+            <MudNavLink Href="/#home" Icon="@Icons.Material.Filled.Home">Preparing</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
