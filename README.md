@@ -1,4 +1,6 @@
-![UltimateAuth Banner](https://github.com/user-attachments/assets/4204666e-b57a-4cb5-8846-dc7e4f16bfe9)
+<img width="5334" height="2668" alt="UltimateAuth Banner" src="https://github.com/user-attachments/assets/57a1e5b5-8082-49f9-b590-b1a544095f10" />
+
+<br /><br />
 
 ![Build](https://github.com/CodeBeamOrg/UltimateAuth/actions/workflows/ultimateauth-ci.yml/badge.svg)
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
@@ -6,8 +8,6 @@
 ![License](https://img.shields.io/github/license/CodeBeamOrg/UltimateAuth)
 [![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
 [![codecov](https://codecov.io/gh/CodeBeamOrg/UltimateAuth/branch/dev/graph/badge.svg)](https://codecov.io/gh/CodeBeamOrg/UltimateAuth)
-
----
 
 ## 📑 Table of Contents
 
