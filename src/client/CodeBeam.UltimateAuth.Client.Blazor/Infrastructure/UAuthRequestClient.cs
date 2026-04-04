@@ -58,8 +58,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         if (result.Status == 0)
             throw new UAuthTransportException("Network error.");
 
-        if (result.Status >= 500)
-            throw new UAuthTransportException($"Server error {result.Status}", (HttpStatusCode)result.Status);
+        //if (result.Status >= 500)
+        //    throw new UAuthTransportException($"Server error {result.Status}", (HttpStatusCode)result.Status);
 
         return result;
     }
