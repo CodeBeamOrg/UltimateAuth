@@ -1,0 +1,54 @@
+﻿@using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi
+@inject ProductApiService Api
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+
+    <TitleContent>
+        <MudText>Resource Api</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Sample demonstration of a resource.</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudButton OnClick="GetProducts">Reload</MudButton>
+
+        <MudDataGrid Items="@_products" Dense="true" Striped="true" Hover="true"
+                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges">
+            <Columns>
+                <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+                <PropertyColumn Property="x => x.Name" Title="Name" />
+                <TemplateColumn Title="Actions" Editable="false">
+                    <CellTemplate>
+                        <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@context.Actions.StartEditingItemAsync" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
+                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteProduct(context.Item.Id))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="SampleProduct" PageSizeOptions="new int[] { 5, 10, 20 }" />
+            </PagerContent>
+        </MudDataGrid>
+
+        <MudExpansionPanels Class="mt-4" Elevation="0">
+            <MudExpansionPanel Style="background: var(--mud-palette-background-gray)" Text="Add New Product" Expanded="false">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_newName" Variant="Variant.Outlined" Label="Name" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton Style="width: fit-content" Color="Color.Primary" Variant="Variant.Outlined" OnClick="CreateProduct">Add</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </DialogContent>
+
+</MudDialog>

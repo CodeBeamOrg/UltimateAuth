@@ -1,0 +1,19 @@
+﻿@namespace CodeBeam.UltimateAuth.Sample
+@inherits ComponentBase
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="@Size" height="@Size" style="@BuildStyle()" class="@Class">
+
+    @if (Variant == UAuthLogoVariant.Brand)
+    {
+        <path fill="@ShieldColor"
+              d="M32.39,14.07H167.61c11.27,0,18,6.76,18,18V133.52c0,22.54-58.59,69.87-85.64,92.41-27-22.54-85.64-69.87-85.64-92.41V32.1C14.36,20.83,21.12,14.07,32.39,14.07Z" />
+
+        <path fill="@KeyColor" fill-rule="evenodd" d="@KeyPath" />
+    }
+    else
+    {
+        <path d="M32.39,14.07H167.61c11.27,0,18,6.76,18,18V133.52c0,22.54-58.59,69.87-85.64,92.41-27-22.54-85.64-69.87-85.64-92.41V32.1C14.36,20.83,21.12,14.07,32.39,14.07Z" />
+
+        <path fill-rule="evenodd" d="@KeyPath" />
+    }
+</svg>

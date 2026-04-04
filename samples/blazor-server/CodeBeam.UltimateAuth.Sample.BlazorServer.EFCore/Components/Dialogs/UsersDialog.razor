@@ -1,0 +1,85 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Common
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">User Management</MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Browse, create and manage users</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_search" @bind-Value:after="@ReloadAsync" Placeholder="Search by user key, username, email or display name"
+                              Variant="Variant.Outlined" Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudSelectExtended T="UserStatus?" ItemCollection="@(Enum.GetValues<UserStatus>().Cast<UserStatus?>().Prepend(null).ToList())"
+                                   Value="_statusFilter" ValueChanged="OnStatusChanged" Label="Status" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+            </MudItem>
+        </MudGrid>
+
+        <MudDataGrid @ref="@_grid" T="UserSummary" ServerData="LoadUsers" Dense="true" Hover="true" Striped="true" Bordered="true" Loading="@_loading" Elevation="0">
+            <ToolBarContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-width-full">
+                    <MudText Typo="Typo.h6">Users</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateUser">New User</MudButton>
+                </MudStack>
+            </ToolBarContent>
+            <Columns>
+                <HierarchyColumn T="UserSummary" />
+                <PropertyColumn Property="x => x.UserName" Title="Username" />
+                <PropertyColumn Property="x => x.DisplayName" Title="Display Name" />
+                <PropertyColumn Property="x => x.PrimaryEmail" Title="Email" />
+                <PropertyColumn Property="x => x.PrimaryPhone" Title="Phone" />
+                <TemplateColumn Title="Status">
+                    <CellTemplate>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(context.Item.Status)">@context.Item.Status</MudChip>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Actions" StickyRight="true">
+                    <CellTemplate>
+                        <MudStack Row="true" Spacing="1">
+                            <MudTooltip Text="Manage" Color="Color.Primary" Delay="300">
+                                <MudIconButton Icon="@Icons.Material.Filled.ViewList" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => OpenUser(context.Item.UserKey))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Delete User" Color="Color.Error" Delay="300">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => DeleteUserAsync(context.Item))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+
+            <ChildRowContent>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Id</MudText>
+                        <MudText>@context.Item.UserKey.Value</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Created At</MudText>
+                        <MudText>@context.Item.CreatedAt</MudText>
+                    </MudItem>
+                </MudGrid>
+
+            </ChildRowContent>
+
+            <PagerContent>
+                <MudDataGridPager T="UserSummary" PageSizeOptions="new int[] { 5, 10, 20, 50 }" />
+            </PagerContent>
+        </MudDataGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>

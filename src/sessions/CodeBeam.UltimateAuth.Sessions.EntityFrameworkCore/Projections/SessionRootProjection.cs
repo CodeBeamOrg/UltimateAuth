@@ -1,0 +1,22 @@
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+
+namespace CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
+
+public sealed class SessionRootProjection
+{
+    public long Id { get; set; }
+    public SessionRootId RootId { get; set; }
+    public TenantKey Tenant { get; set; }
+    public UserKey UserKey { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
+    public DateTimeOffset? RevokedAt { get; set; }
+
+    public long SecurityVersion { get; set; }
+    public long Version { get; set; }
+
+    public bool IsRevoked => RevokedAt != null;
+}

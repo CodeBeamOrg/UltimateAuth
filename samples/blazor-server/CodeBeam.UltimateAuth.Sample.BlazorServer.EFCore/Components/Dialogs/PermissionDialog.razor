@@ -1,0 +1,46 @@
+﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
+@using CodeBeam.UltimateAuth.Core.Defaults
+@using System.Reflection
+
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Role Permissions</MudText>
+        <MudText Typo="Typo.subtitle2">@Role.Name</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @* For Debug *@
+        @* <MudText>Current Permissions: @string.Join(", ", Role.Permissions)</MudText> *@
+        <MudExpansionPanels Dense="true">
+            @foreach (var group in _groups)
+            {
+                <MudExpansionPanel HeaderClass="py-0">
+                    <TitleContent>
+                        <MudStack Class="py-1" Row="true" AlignItems="AlignItems.Center">
+                            <MudCheckBox T="bool?" Color="Color.Primary" Value="@GetGroupState(group)" ValueChanged="@(v => ToggleGroup(group, v ?? false))" />
+                            <MudText Class="ml-2">@group.Name (@group.Items.Count(x => x.Selected)/@group.Items.Count)</MudText>
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudGrid Spacing="0">
+                        @foreach (var perm in group.Items)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudCheckBox T="bool" Class="ml-6" Style="width: fit-content" Color="Color.Primary" Label="@perm.Value" Value="@perm.Selected" ValueChanged="@(v => TogglePermission(perm, v))" />
+                            </MudItem>
+                        }
+                        </MudGrid>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>

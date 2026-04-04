@@ -1,0 +1,60 @@
+﻿@page "/register"
+@inherits UAuthFlowPageBase
+
+@implements IDisposable
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+@inject IUAuthClientProductInfoProvider ClientProductInfoProvider
+@inject IDeviceIdProvider DeviceIdProvider
+@inject IDialogService DialogService
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
+    <MudContainer Class="d-flex align-center justify-center" MaxWidth="MaxWidth.Medium">
+        <MudGrid Spacing="0">
+            <MudItem Class="order-1 order-sm-0" xs="12" sm="6">
+                <MudPaper Class="mud-theme-primary uauth-login-paper pa-8 d-flex flex-column align-center justify-center" Elevation="3">
+                    <MudStack Class="my-4">
+                        <div class="uauth-brand-glow uauth-logo-slide d-flex justify-center">
+                            <UAuthLogo Size="90" ShieldColor="#f6f5ae" KeyColor="var(--mud-palette-primary)" />
+                        </div>
+                        <MudText Style="font-weight: 700" Typo="Typo.h4" Align="Align.Center">UltimateAuth</MudText>
+                        <MudText Align="Align.Center">The Modern Unified Auth Framework for .NET — Reimagined.</MudText>
+                    </MudStack>
+                    <MudDivider />
+
+                    <MudStack Class="mt-4" Wrap="Wrap.Wrap" Spacing="0">
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center"><b>@_productInfo?.ProductName</b> v @_productInfo?.Version</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">Client Profile: @_productInfo?.ClientProfile.ToString()</MudText>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@_productInfo?.FrameworkDescription</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
+                <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
+                    <MudForm @ref="@_form">
+                        <MudStack Class="mud-width-full">
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+                                <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
+                                <MudText Typo="Typo.h5">
+                                    <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Regist<MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">er</MudText></MudText>
+                                </MudText>
+                            </MudStack>
+                            <MudTextField @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" />
+                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
+                            <MudPasswordField @bind-Value="@_passwordCheck" Variant="Variant.Outlined" Label="Password (Again)" Required="true" Immediate="true" />
+                            <MudTextField @bind-Value="@_email" Variant="Variant.Outlined" Label="Email" Required="true" Immediate="true" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRegisterAsync">Sign Up</MudButton>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudStack>
+                                <MudText Align="Align.Center" Typo="Typo.subtitle2">Already have an account? <MudLink Class="cursor-pointer" Href="/login">SignIn</MudLink></MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudForm>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+</MudPage>

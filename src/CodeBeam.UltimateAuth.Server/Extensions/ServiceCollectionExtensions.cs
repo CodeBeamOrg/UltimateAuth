@@ -1,0 +1,492 @@
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Events;
+using CodeBeam.UltimateAuth.Core.Extensions;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Policies.Abstractions;
+using CodeBeam.UltimateAuth.Policies.Defaults;
+using CodeBeam.UltimateAuth.Policies.Registry;
+using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Authentication;
+using CodeBeam.UltimateAuth.Server.Authorization;
+using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
+using CodeBeam.UltimateAuth.Server.Runtime;
+using CodeBeam.UltimateAuth.Server.Security;
+using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Server.Stores;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+
+namespace CodeBeam.UltimateAuth.Server.Extensions;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddUltimateAuthServer(this IServiceCollection services, Action<UAuthServerOptions>? configure = null, Action<AccessPolicyRegistry>? configurePolicies = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddUltimateAuth();
+
+        AddUsersInternal(services);
+        AddCredentialsInternal(services);
+        AddAuthorizationInternal(services);
+
+        services.AddUltimateAuthPolicies(configurePolicies);
+
+        services.AddOptions<UAuthServerOptions>()
+            // Program.cs configuration (lowest precedence)
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            // appsettings.json (highest precedence)
+            .BindConfiguration("UltimateAuth:Server")
+            .PostConfigure(options =>
+            {
+                // Add any default values or adjustments here if needed
+            });
+
+        services.AddUltimateAuthServerInternal();
+
+        return services;
+    }
+
+    public static IServiceCollection AddUltimateAuthResourceApi(this IServiceCollection services, Action<UAuthResourceApiOptions>? configure = null, Action<AccessPolicyRegistry>? configurePolicies = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddUltimateAuth();
+        services.AddUltimateAuthPolicies(configurePolicies, isResourceApp: true);
+
+        services.AddOptions<UAuthResourceApiOptions>()
+            .Configure(options =>
+            {
+                configure?.Invoke(options);
+            })
+            .BindConfiguration("UltimateAuth:ResourceApi");
+
+        services.AddUltimateAuthResourceInternal();
+
+        var temp = new UAuthResourceApiOptions();
+        configure?.Invoke(temp);
+
+        if (temp.AllowedClientOrigins?.Count > 0)
+        {
+            services.AddCors(cors =>
+            {
+                cors.AddPolicy(temp.CorsPolicyName, policy =>
+                {
+                    policy
+                        .WithOrigins(temp.AllowedClientOrigins.ToArray())
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
+        }
+
+        return services;
+    }
+
+    private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
+    {
+        services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
+        services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
+        services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
+        services.TryAddSingleton<INumericCodeGenerator, NumericCodeGenerator>();
+        services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
+
+        services.TryAddScoped<ITokenHasher>(sp =>
+        {
+            var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
+            var key = keyProvider.Resolve(null);
+            return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
+        });
+
+        // -----------------------------
+        // OPTIONS VALIDATION
+        // -----------------------------
+        //services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>());
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerLoginOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, DeviceRequiredInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, ExpiredSessionInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, InvalidOrRevokedSessionInvariant>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, TenantResolvedInvariant>());
+
+        // Events
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            return options.Events.Clone();
+        });
+
+        services.AddSingleton<UAuthEventDispatcher>();
+
+        // Tenant Resolution
+        services.TryAddSingleton<ITenantIdResolver>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+
+            var resolvers = new List<ITenantIdResolver>();
+
+            if (opts.EnableRoute)
+                resolvers.Add(new PathTenantResolver());
+
+            if (opts.EnableHeader)
+                resolvers.Add(new HeaderTenantResolver(opts.HeaderName));
+
+            if (opts.EnableDomain)
+                resolvers.Add(new HostTenantResolver());
+
+            return resolvers.Count switch
+            {
+                0 => new NullTenantResolver(),
+                1 => resolvers[0],
+                _ => new CompositeTenantResolver(resolvers)
+            };
+        });
+
+        services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
+
+        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+
+        services.TryAddScoped<ISessionApplicationService, SessionApplicationService>();
+        services.TryAddScoped<IUAuthFlowService, UAuthFlowService>();
+        services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
+        services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
+        services.TryAddScoped<IPkceService, PkceService>();
+
+        services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
+
+        services.TryAddScoped<ISessionIssuer, UAuthSessionIssuer>();
+        services.TryAddScoped<ITokenIssuer, UAuthTokenIssuer>();
+
+        services.AddHttpContextAccessor();
+        services.TryAddScoped<IUserAccessor<UserKey>, UAuthUserAccessor<UserKey>>();
+        services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<IAuthFlowContextAccessor, AuthFlowContextAccessor>();
+        services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
+
+        services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
+        services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();
+        services.TryAddScoped<IInternalLoginOrchestrator, LoginOrchestrator>();
+        services.TryAddScoped<IAccessOrchestrator, UAuthAccessOrchestrator>();
+        services.TryAddScoped<ILoginAuthority, LoginAuthority>();
+        services.TryAddScoped<IAuthAuthority, AuthAuthority>();
+        services.TryAddScoped<IAccessAuthority, UAuthAccessAuthority>();
+
+        services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
+        services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
+        services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
+        services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
+        services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
+
+        services.AddSingleton<IClientBaseAddressProvider, OriginHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, ConfiguredClientBaseAddressProvider>();
+        services.AddSingleton<IClientBaseAddressProvider, RequestHostBaseAddressProvider>();
+        services.AddSingleton<ClientBaseAddressResolver>();
+
+        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
+        services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
+        services.TryAddScoped<IDeviceResolver, DeviceResolver>();
+        services.TryAddScoped<IValidateCredentialResolver, ValidateCredentialResolver>();
+        services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
+        services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
+        services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();
+        services.TryAddSingleton<IAuthResponseResolver, AuthResponseResolver>();
+        services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
+        services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
+        services.TryAddSingleton<IAuthRedirectResolver, AuthRedirectResolver>();
+
+        services.TryAddScoped<ISessionTouchService, SessionTouchService>();
+        services.TryAddScoped<ISessionQueryService, UAuthSessionQueryService>();
+        services.TryAddScoped<IRefreshTokenRotationService, RefreshTokenRotationService>();
+
+        services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
+        services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
+        services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
+        services.TryAddScoped<IIdentifierValidator, IdentifierValidator>();
+
+        services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
+        services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
+        services.TryAddSingleton<IClientProfileReader, ClientProfileReader>();
+        
+        services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
+        services.TryAddScoped<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
+
+        services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
+        services.TryAddSingleton<IUAuthBodyPolicyBuilder, UAuthBodyPolicyBuilder>();
+        services.TryAddSingleton<IUAuthCookiePolicyBuilder, UAuthCookiePolicyBuilder>();
+        services.TryAddScoped<IAuthenticationSecurityManager, AuthenticationSecurityManager>();
+        services.TryAddScoped<IUAuthCookieManager, UAuthCookieManager>();
+
+        services.TryAddScoped<IAuthFlow, AuthFlow>();
+        services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
+        services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
+        services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
+
+        services.TryAddScoped<IHubCapabilities, HubCapabilities>();
+
+        // Endpoints
+        services.TryAddScoped<AuthFlowEndpointFilter>();
+        services.TryAddSingleton<IAuthEndpointRegistrar, UAuthEndpointRegistrar>();
+
+        services.TryAddScoped<ISessionEndpointHandler, SessionEndpointHandler>();
+        services.TryAddScoped<ILoginEndpointHandler, LoginEndpointHandler>();
+        services.TryAddScoped<IValidateEndpointHandler, ValidateEndpointHandler>();
+        services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
+        services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
+        services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
+
+        // ASP.NET Core Integration
+        services.AddAuthentication();
+
+        services.PostConfigureAll<AuthenticationOptions>(options =>
+        {
+            options.DefaultAuthenticateScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultSignInScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultChallengeScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
+        });
+
+        services.AddAuthentication().AddUAuthCookies();
+        services.AddAuthorization();
+
+        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+
+        services.Configure<UAuthLoginIdentifierOptions>(opt =>
+        {
+            opt.AllowedTypes = new HashSet<UserIdentifierType>
+            {
+                UserIdentifierType.Username,
+                UserIdentifierType.Email
+            };
+
+            opt.EnableCustomResolvers = true;
+            opt.CustomResolversFirst = true;
+        });
+
+        return services;
+    }
+
+    internal static IServiceCollection AddUltimateAuthPolicies(this IServiceCollection services, Action<AccessPolicyRegistry>? configure = null, bool isResourceApp = false)
+    {
+        if (services.Any(d => d.ServiceType == typeof(AccessPolicyRegistry)))
+            throw new InvalidOperationException("UltimateAuth policies already registered.");
+
+        var registry = new AccessPolicyRegistry();
+
+        if (isResourceApp)
+        {
+            DefaultPolicySet.RegisterResource(registry);
+        }
+        else
+        {
+            DefaultPolicySet.RegisterServer(registry);
+        }
+        
+        configure?.Invoke(registry);
+
+        services.AddSingleton(registry);
+
+        services.AddSingleton(sp =>
+        {
+            var r = sp.GetRequiredService<AccessPolicyRegistry>();
+            return r.Build();
+        });
+
+        services.AddScoped<IAccessPolicyProvider, AccessPolicyProvider>();
+
+        services.TryAddScoped<IAccessAuthority>(sp =>
+        {
+            var invariants = sp.GetServices<IAccessInvariant>();
+            var globalPolicies = sp.GetServices<IAccessPolicy>();
+            return new UAuthAccessAuthority(invariants, globalPolicies);
+        });
+
+        return services;
+    }
+
+    // =========================
+    // Users (Framework-Required)
+    // =========================
+    internal static IServiceCollection AddUsersInternal(IServiceCollection services)
+    {
+        services.TryAddScoped(typeof(IUserAccessor<UserKey>), typeof(UAuthUserAccessor<UserKey>));
+        services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<IUserCreateValidator, UserCreateValidator>();
+        return services;
+    }
+
+    // =========================
+    // Credentials (Framework-Required)
+    // =========================
+    internal static IServiceCollection AddCredentialsInternal(IServiceCollection services)
+    {
+        services.TryAddScoped<ICredentialValidator, CredentialValidator>();
+        return services;
+    }
+
+    // =========================
+    // Authorization (Framework-Required)
+    // =========================
+    internal static IServiceCollection AddAuthorizationInternal(IServiceCollection services)
+    {
+        services.TryAddScoped(typeof(IUserClaimsProvider), typeof(AuthorizationClaimsProvider));
+        return services;
+    }
+
+    public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubOptions>? configure = null)
+    {
+        services.PostConfigure<UAuthServerOptions>(options =>
+        {
+            configure?.Invoke(options.Hub);
+        });
+
+        services.TryAddSingleton<IUAuthHubMarker, UAuthHubMarker>();
+
+        services.TryAddScoped<IHubFlowService, HubFlowService>();
+        services.TryAddScoped<IHubFlowReader, HubFlowReader>();
+        services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("UAuthHub", policy =>
+            {
+                var sp = services.BuildServiceProvider();
+                var serverOptions = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+                var origins = serverOptions.Hub.AllowedClientOrigins
+                    .Select(OriginHelper.Normalize)
+                    .ToArray();
+
+                if (origins.Length > 0)
+                {
+                    policy
+                        .WithOrigins(origins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .WithExposedHeaders("X-UAuth-Refresh");
+                }
+            });
+        });
+
+        return services;
+    }
+
+    private static IServiceCollection AddUltimateAuthResourceInternal(this IServiceCollection services)
+    {
+        // Resource API Specific
+        services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        services.AddScoped<ISessionValidator, RemoteSessionValidator>();
+        services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
+        services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
+        services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
+
+        // Server & Resource API Shared
+        services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
+        services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
+        services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
+
+        services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
+        services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
+
+        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+
+        services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
+        services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
+        services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
+        services.TryAddScoped<IDeviceResolver, DeviceResolver>();
+
+        services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
+
+        services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
+        services.TryAddSingleton<ITenantIdResolver>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+
+            var resolvers = new List<ITenantIdResolver>();
+
+            if (opts.EnableRoute)
+                resolvers.Add(new PathTenantResolver());
+
+            if (opts.EnableHeader)
+                resolvers.Add(new HeaderTenantResolver(opts.HeaderName));
+
+            if (opts.EnableDomain)
+                resolvers.Add(new HostTenantResolver());
+
+            return resolvers.Count switch
+            {
+                0 => new NullTenantResolver(),
+                1 => resolvers[0],
+                _ => new CompositeTenantResolver(resolvers)
+            };
+        });
+
+        // ASP.NET Core Integration
+        services.AddHttpContextAccessor();
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = UAuthConstants.SchemeDefaults.GlobalScheme;
+            options.DefaultChallengeScheme = UAuthConstants.SchemeDefaults.GlobalScheme;
+        })
+            .AddUAuthResourceApi();
+        services.AddAuthorization();
+
+        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+
+        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+
+            if (string.IsNullOrWhiteSpace(opts.UAuthHubBaseUrl))
+                throw new InvalidOperationException("UAuthHubBaseUrl is not configured. Add it via UAuthResourceApiOptions.");
+
+            client.BaseAddress = new Uri(opts.UAuthHubBaseUrl);
+        });
+
+        return services;
+    }
+}
+
+internal sealed class NullTenantResolver : ITenantIdResolver
+{
+    public Task<string?> ResolveTenantIdAsync(TenantResolutionContext context) => Task.FromResult<string?>(null);
+}

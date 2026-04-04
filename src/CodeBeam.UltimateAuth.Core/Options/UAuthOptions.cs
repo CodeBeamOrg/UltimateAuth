@@ -1,0 +1,50 @@
+﻿using CodeBeam.UltimateAuth.Core.Events;
+
+namespace CodeBeam.UltimateAuth.Core.Options;
+
+/// <summary>
+/// Top-level configuration container for all UltimateAuth features.
+/// Combines login policies, session lifecycle rules, token behavior, PKCE settings, multi-tenancy behavior, and user-id normalization.
+/// 
+/// All sub-options are resolved from configuration (appsettings.json) or through inline setup in AddUltimateAuth().
+/// </summary>
+public sealed class UAuthOptions
+{
+    public bool AllowDirectCoreConfiguration { get; set; } = false;
+
+    /// <summary>
+    /// Configuration settings for interactive login flows,
+    /// including lockout thresholds and failed-attempt policies.
+    /// </summary>
+    public UAuthLoginOptions Login { get; set; } = new();
+
+    /// <summary>
+    /// Settings that control session creation, refresh behavior,
+    /// sliding expiration, idle timeouts, device limits, and chain rules.
+    /// </summary>
+    public UAuthSessionOptions Session { get; set; } = new();
+
+    /// <summary>
+    /// Token issuance configuration, including JWT and opaque token
+    /// generation, lifetimes, signing keys, and audience/issuer values.
+    /// </summary>
+    public UAuthTokenOptions Token { get; set; } = new();
+
+    /// <summary>
+    /// PKCE (Proof Key for Code Exchange) configuration used for
+    /// browser-based login flows and WASM authentication.
+    /// </summary>
+    public UAuthPkceOptions Pkce { get; set; } = new();
+
+    /// <summary>
+    /// Event hooks raised during authentication lifecycle events
+    /// such as login, logout, session creation, refresh, or revocation.
+    /// </summary>
+    public UAuthEvents Events { get; set; } = new();
+
+    /// <summary>
+    /// Multi-tenancy configuration controlling how tenants are resolved,
+    /// validated, and optionally enforced.
+    /// </summary>
+    public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+}

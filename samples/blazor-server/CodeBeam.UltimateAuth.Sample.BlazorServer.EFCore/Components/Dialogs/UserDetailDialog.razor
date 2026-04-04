@@ -1,0 +1,75 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Common
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">User Management</MudText>
+        <MudText Typo="Typo.subtitle2">@_user?.UserKey.Value</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Display Name</MudText>
+                        <MudText>@_user?.DisplayName</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Username</MudText>
+                        <MudText>@_user?.UserName</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Email</MudText>
+                        <MudText>@_user?.PrimaryEmail</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Phone</MudText>
+                        <MudText>@_user?.PrimaryPhone</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Created</MudText>
+                        <MudText>@_user?.CreatedAt?.ToLocalTime()</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2">Status</MudText>
+                        <MudChip T="string" Color="@GetStatusColor(_user?.Status)" Variant="Variant.Filled">@_user?.Status</MudChip>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudSelect T="AdminAssignableUserStatus" @bind-Value="_status" Dense="true" Variant="Variant.Outlined">
+                                @foreach (var s in Enum.GetValues<AdminAssignableUserStatus>())
+                                {
+                                    <MudSelectItem Value="@s">@s</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeStatusAsync">Change</MudButton>
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">Management</MudText>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenSessions">Sessions</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenProfile">Profile</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenIdentifiers">Identifiers</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCredentials">Credentials</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenRoles">Roles</MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>

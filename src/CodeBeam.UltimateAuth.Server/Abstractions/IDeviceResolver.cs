@@ -1,0 +1,12 @@
+﻿using Microsoft.AspNetCore.Http;
+using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Server.Abstractions;
+
+/// <summary>
+/// Resolves device and client metadata from the current HTTP context.
+/// </summary>
+public interface IDeviceResolver
+{
+    Task<DeviceInfo> ResolveAsync(HttpContext context);
+}

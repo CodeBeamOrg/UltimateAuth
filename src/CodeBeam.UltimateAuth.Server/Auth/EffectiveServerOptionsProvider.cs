@@ -1,0 +1,52 @@
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
+
+namespace CodeBeam.UltimateAuth.Server.Options;
+
+internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsProvider
+{
+    private readonly IOptions<UAuthServerOptions> _baseOptions;
+    private readonly IEffectiveAuthModeResolver _modeResolver;
+
+    public EffectiveServerOptionsProvider(IOptions<UAuthServerOptions> baseOptions, IEffectiveAuthModeResolver modeResolver)
+    {
+        _baseOptions = baseOptions;
+        _modeResolver = modeResolver;
+    }
+
+    public UAuthServerOptions GetOriginal(HttpContext context)
+    {
+        return _baseOptions.Value;
+    }
+
+    public EffectiveUAuthServerOptions GetEffective(HttpContext context, AuthFlowType flowType, UAuthClientProfile clientProfile)
+    {
+        var tenant = context.GetTenant();
+        return GetEffective(tenant, flowType, clientProfile);
+    }
+
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, AuthFlowType flowType, UAuthClientProfile clientProfile)
+    {
+        var original = _baseOptions.Value;
+        var effectiveMode = _modeResolver.Resolve(clientProfile, flowType);
+        var options = original.Clone();
+
+        ConfigureDefaults.ApplyModeDefaults(effectiveMode, options);
+
+        if (original.ModeConfigurations.TryGetValue(effectiveMode, out var configure))
+        {
+            configure(options);
+        }
+
+        return new EffectiveUAuthServerOptions
+        {
+            Mode = effectiveMode,
+            Options = options
+        };
+    }
+}
