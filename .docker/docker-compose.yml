@@ -1,0 +1,15 @@
+services:
+  ultimateauth:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+    container_name: ultimateauth
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - edge
+
+networks:
+  edge:
+    external: true
