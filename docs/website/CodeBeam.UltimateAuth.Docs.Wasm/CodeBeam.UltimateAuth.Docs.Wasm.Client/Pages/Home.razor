@@ -1,9 +1,11 @@
 ﻿@page "/"
+@inject IJSRuntime JS
 
 <MudPage FullScreen="FullScreen.FullWithoutAppbar" Row="1" Column="1">
     <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center">
         <MudStack Spacing="2">
             <MudText Typo="Typo.h3"><b>UltimateAuth</b></MudText>
+            
             <MudText>The
                 <span class="ua-gradient">modern unified Auth framework for .NET – Reimagined.</span>
             </MudText>
@@ -17,6 +19,127 @@
                 <span style="color: var(--mud-palette-text-secondary)">Blazor/Maui-ready</span>
                 client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
             </MudText>
+
+            <MudText Class="ua-signature mt-16">A <MudLink Href="https://codebeam.org" Target="_blank">CodeBeam</MudLink> Product</MudText>
         </MudStack>
     </MudContainer>
 </MudPage>
+
+<div class="ua-separator"></div>
+
+<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center">
+        <MudStack Spacing="0" Class="mb-8">
+            <MudText Typo="Typo.h4"><b>Why UltimateAuth?</b></MudText>
+            <MudText Typo="Typo.body1" Class="text-secondary">
+                Built for modern .NET applications with simplicity, flexibility and security at its core.
+            </MudText>
+        </MudStack>
+
+        <MudGrid>
+            @foreach (var item in Principles)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Outlined="true" Class="pa-6 h-100 ua-card">
+                        <MudStack Spacing="2">
+                            <MudIcon Icon="@item.Icon" Size="Size.Large" Color="Color.Primary" />
+
+                            <MudText Typo="Typo.subtitle1">
+                                <b>@item.Title</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Class="text-secondary">
+                                @item.Description
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudContainer>
+</MudPage>
+
+<div class="ua-separator"></div>
+
+<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center">
+        <MudStack Spacing="3" Class="text-center ua-vision" Justify="Justify.Center" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.subtitle2" Class="ua-vision-highlight">Vision of UltimateAuth</MudText>
+            <MudIcon Class="ua-vision-icon-wrapper mt-n1" Style="width: 72px; height: 72px" Icon="@Icons.Material.Filled.EmojiObjects" 
+                     Color="Color.Primary" @onmouseenter="() => Layout.SetVisionOverlay(true)"
+                     @onmouseleave="() => Layout.SetVisionOverlay(false)" />
+
+            <MudText Typo="Typo.h4" Class="ua-vision-title mt-8">
+                AUTHENTICATION IS COMPLEX.<br />
+                USING IT SHOULDN’T BE.
+            </MudText>
+
+            <MudText Typo="Typo.body1" Class="ua-vision-text">
+                Security is not about a single “correct” flow.
+                It’s about adapting to context — users, devices, environments and risk.
+            </MudText>
+
+            <MudText Typo="Typo.subtitle2" Class="ua-vision-highlight">
+                Flexibility brings real security.
+            </MudText>
+
+            <MudText Typo="Typo.caption" Class="ua-vision-footer">
+                Built from real-world Blazor and .NET application needs — not theoretical models.
+            </MudText>
+        </MudStack>
+    </MudContainer>
+</MudPage>
+
+<div class="ua-separator"></div>
+
+<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center text-center">
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            <MudIcon Class="ua-vision-icon-wrapper mt-n1" Style="width: 72px; height: 72px" Icon="@Icons.Material.Filled.VolunteerActivism" />
+
+            <MudText Typo="Typo.h5"><b>UltimateAuth is and will always forever free.</b></MudText>
+            <MudText Class="ua-donate-text">No licenses. No tiers. No hidden limits. Full features as a self-hosted framework.</MudText>
+            <MudText Class="ua-donate-subtext">
+                But building and maintaining a secure, production-ready Auth framework takes time, effort and care.
+            </MudText>
+            <MudText>While UltimateAuth secures your applications, you can secure its future.</MudText>
+
+            <MudText Class="ua-donate-subtext">If you believe in this vision, consider supporting the project.</MudText>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="https://github.com/sponsors/CodeBeamOrg" Target="_blank">
+                Support the Project
+            </MudButton>
+        </MudStack>
+    </MudContainer>
+</MudPage>
+
+@code {
+    private List<Principle> Principles = new()
+    {
+        new(Icons.Material.Outlined.Diversity2, "Unified Auth Model",
+            "Stop choosing between cookies, tokens or sessions. UltimateAuth unifies them into a single model — no more fragmented authentication logic."),
+
+        new(Icons.Material.Outlined.Adjust, "Zero Auth Boilerplate",
+            "Authentication just works. No manual cookie handling, no token plumbing — UltimateAuth handles it for you."),
+
+        new(Icons.Material.Outlined.Devices, "Device-Aware Sessions",
+            "Understand and control user sessions across devices with a built-in Root, Chain and Session model."),
+
+        new(Icons.Material.Outlined.AddModerator, "Modern Security",
+            "Built-in PKCE, secure flows and extensible validation pipelines — secure by default, not by configuration."),
+
+        new(Icons.Material.Outlined.Assistant, "Flexible Modes",
+            "PureOpaque, Hybrid, SemiHybrid and PureJwt modes allow adapting to different architectures."),
+
+        new(Icons.Material.Outlined.DashboardCustomize, "Extensible",
+            "Override any part of the pipeline without breaking security boundaries."),
+
+        new(Icons.Material.Outlined.Category, "Developer First",
+            "Clean APIs, Blazor native design and seamless integration with .NET ecosystem.")
+    };
+
+    record Principle(string Icon, string Title, string Description);
+
+    [CascadingParameter]
+    public MainLayout Layout { get; set; } = default!;
+}

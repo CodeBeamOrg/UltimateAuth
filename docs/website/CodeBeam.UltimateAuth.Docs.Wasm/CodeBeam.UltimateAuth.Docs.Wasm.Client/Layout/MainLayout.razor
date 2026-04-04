@@ -9,7 +9,7 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Color="Color.Transparent" Dense="true" Elevation="0">
+    <MudAppBar Class="ua-appbar" Color="Color.Transparent" Dense="true" Elevation="0">
         <div class="ua-appbar-grid">
             <div class="ua-left">
                 <div class="ua-mobile-only">
@@ -23,7 +23,7 @@
             </div>
 
             <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/"))">
-                <UAuthLogo Class="ua-logo mt-4" Color="Color.Primary" Size="64" />
+                <UAuthLogo Class="ua-logo mt-4" Size="64" />
             </div>
 
             <div class="ua-right">
@@ -40,9 +40,13 @@
     </MudDrawer>
 
     <MudMainContent>
-        @Body
+        <CascadingValue Value="this" IsFixed="true">
+            @Body
+        </CascadingValue>
     </MudMainContent>
 </MudLayout>
+
+<div class="ua-global-overlay @( _visionOverlay ? "active" : "" )"></div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
