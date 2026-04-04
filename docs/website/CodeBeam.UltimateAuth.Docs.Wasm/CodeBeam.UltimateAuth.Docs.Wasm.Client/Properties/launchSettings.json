@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "CodeBeam.UltimateAuth.Docs.Wasm.Client": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:65365;http://localhost:65366"
+    }
+  }
+}
