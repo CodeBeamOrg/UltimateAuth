@@ -119,12 +119,14 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     {
         var login = await Login();
 
+        var key = ProfileKey.Parse($"business-{Guid.NewGuid()}", null);
+
         var cookie = login.Headers.GetValues("Set-Cookie").First();
         _client.DefaultRequestHeaders.Add("Cookie", cookie);
 
         var request = new CreateProfileRequest
         {
-            ProfileKey = ProfileKey.Parse("business", null)
+            ProfileKey = key
         };
 
         var first = await _client.PostAsJsonAsync("/auth/me/profile/create", request);
