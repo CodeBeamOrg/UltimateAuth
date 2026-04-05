@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ public sealed class UserProfileProjection
     public TenantKey Tenant { get; set; }
 
     public UserKey UserKey { get; set; } = default!;
+
+    public ProfileKey ProfileKey { get; set; } = ProfileKey.Default;
 
     public string? FirstName { get; set; }
 

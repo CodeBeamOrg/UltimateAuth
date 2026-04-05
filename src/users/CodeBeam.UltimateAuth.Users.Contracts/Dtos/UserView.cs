@@ -12,6 +12,7 @@ public sealed record UserView
     public string? PrimaryEmail { get; init; }
     public string? PrimaryPhone { get; init; }
 
+    public ProfileKey ProfileKey { get; set; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
     public string? DisplayName { get; init; }

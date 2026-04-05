@@ -59,11 +59,11 @@ public sealed class UserSeedContributor : ISeedContributor
                 ct);
         }
 
-        var profileKey = new UserProfileKey(tenant, userKey);
+        var profileKey = new UserProfileKey(tenant, userKey, ProfileKey.Default);
         if (!await profileStore.ExistsAsync(profileKey, ct))
         {
             await profileStore.AddAsync(
-                UserProfile.Create(Guid.NewGuid(), tenant, userKey, now, displayName: displayName),
+                UserProfile.Create(Guid.NewGuid(), tenant, userKey, ProfileKey.Default, now, displayName: displayName),
                 ct);
         }
 

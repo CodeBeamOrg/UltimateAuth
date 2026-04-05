@@ -3,6 +3,7 @@ using System;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 {
     [DbContext(typeof(UAuthDbContext))]
-    partial class UAuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405222857_MultiProfile")]
+    partial class MultiProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");

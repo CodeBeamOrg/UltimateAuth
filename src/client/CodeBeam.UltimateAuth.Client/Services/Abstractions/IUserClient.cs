@@ -14,9 +14,13 @@ public interface IUserClient
     Task<UAuthResult> DeleteMeAsync();
     Task<UAuthResult<UserDeleteResult>> DeleteUserAsync(UserKey userKey, DeleteUserRequest request);
 
-    Task<UAuthResult<UserView>> GetMeAsync();
+    Task<UAuthResult<UserView>> GetMeAsync(GetProfileRequest? request = null);
     Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request);
+    Task<UAuthResult> CreateMyProfileAsync(CreateProfileRequest request);
+    Task<UAuthResult> DeleteMyProfileAsync(ProfileKey profileKey);
 
-    Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey);
+    Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey, GetProfileRequest? request = null);
     Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateProfileRequest request);
+    Task<UAuthResult> CreateUserProfileAsync(UserKey userKey, CreateProfileRequest request);
+    Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, ProfileKey profileKey);
 }

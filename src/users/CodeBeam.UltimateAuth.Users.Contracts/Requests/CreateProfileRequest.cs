@@ -1,11 +1,15 @@
 ﻿namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed record UpdateProfileRequest
+public sealed class CreateProfileRequest
 {
-    public ProfileKey? ProfileKey { get; set; }
+    public required ProfileKey ProfileKey { get; init; }
+
+    public ProfileKey? CloneFrom { get; init; }
+
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
     public string? DisplayName { get; init; }
+
     public DateOnly? BirthDate { get; init; }
     public string? Gender { get; init; }
     public string? Bio { get; init; }
@@ -14,5 +18,5 @@ public sealed record UpdateProfileRequest
     public string? TimeZone { get; init; }
     public string? Culture { get; init; }
 
-    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+    public Dictionary<string, string>? Metadata { get; init; }
 }

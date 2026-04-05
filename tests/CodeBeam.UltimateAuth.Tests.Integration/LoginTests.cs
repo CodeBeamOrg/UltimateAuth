@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using CodeBeam.UltimateAuth.Users.Contracts;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
@@ -83,14 +84,14 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         var cookie = loginResponse.Headers.GetValues("Set-Cookie").First();
         _client.DefaultRequestHeaders.Add("Cookie", cookie);
-        var response = await _client.PostAsync("/auth/me/get", null);
+        var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new GetProfileRequest() { ProfileKey = null });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
     public async Task Anonymous_Should_Not_Access_Me()
     {
-        var response = await _client.PostAsync("/auth/me/get", null);
+        var response = await _client.PostAsync("/auth/me/profile/get", null);
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }
