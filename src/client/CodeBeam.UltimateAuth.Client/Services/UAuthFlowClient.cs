@@ -330,7 +330,7 @@ internal class UAuthFlowClient : IFlowClient
         {
             ["authorization_code"] = request.AuthorizationCode,
             ["code_verifier"] = request.CodeVerifier,
-            ["return_url"] = request.ReturnUrl,
+            ["return_url"] = request.ReturnUrl ?? string.Empty,
 
             ["Identifier"] = request.Identifier ?? string.Empty,
             ["Secret"] = request.Secret ?? string.Empty,

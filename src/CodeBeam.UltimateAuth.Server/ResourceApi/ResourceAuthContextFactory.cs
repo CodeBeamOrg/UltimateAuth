@@ -25,6 +25,10 @@ internal sealed class ResourceAuthContextFactory : IAuthContextFactory
 
         var result = ctx.Items[UAuthConstants.HttpItems.SessionValidationResult] as SessionValidationResult;
 
+        DeviceContext device = result?.BoundDeviceId is { } deviceId
+            ? DeviceContext.Create(DeviceId.Create(deviceId.Value))
+            : DeviceContext.Anonymous();
+
         if (result is null || !result.IsValid)
         {
             return new AuthContext
@@ -33,7 +37,7 @@ internal sealed class ResourceAuthContextFactory : IAuthContextFactory
                 Operation = AuthOperation.ResourceAccess,
                 Mode = UAuthMode.PureOpaque,
                 ClientProfile = UAuthClientProfile.Api,
-                Device = DeviceContext.Create(DeviceId.Create(result.BoundDeviceId.Value.Value)),
+                Device = device,
                 At = at ?? _clock.UtcNow,
                 Session = null
             };
@@ -43,15 +47,15 @@ internal sealed class ResourceAuthContextFactory : IAuthContextFactory
         {
             Tenant = result.Tenant,
             Operation = AuthOperation.ResourceAccess,
-            Mode = UAuthMode.PureOpaque, // sonra resolver yapılabilir
+            Mode = UAuthMode.PureOpaque, // TODO: Think about resolver.
             ClientProfile = UAuthClientProfile.Api,
-            Device = DeviceContext.Create(DeviceId.Create(result.BoundDeviceId.Value.Value)),
+            Device = device,
             At = at ?? _clock.UtcNow,
 
             Session = new SessionSecurityContext
             {
                 UserKey = result.UserKey,
-                SessionId = result.SessionId.Value,
+                SessionId = result.SessionId!.Value,
                 State = result.State,
                 ChainId = result.ChainId,
                 BoundDeviceId = result.BoundDeviceId

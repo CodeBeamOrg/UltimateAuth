@@ -10,7 +10,7 @@ public static class SessionValidationMapper
     {
         var state = (SessionState)dto.State;
 
-        if (!dto.IsValid || dto.Snapshot.Identity is null)
+        if (!dto.IsValid || dto.Snapshot?.Identity is null)
         {
             return SessionValidationResult.Invalid(state);
         }
