@@ -5,7 +5,7 @@ namespace CodeBeam.UltimateAuth.Server.Authentication;
 
 public static class UAuthAuthenticationExtensions
 {
-    public static AuthenticationBuilder AddUAuthCookies(this AuthenticationBuilder builder, Action<UAuthAuthenticationSchemeOptions>? configure = null)
+    public static AuthenticationBuilder AddUAuthScheme(this AuthenticationBuilder builder, Action<UAuthAuthenticationSchemeOptions>? configure = null)
     {
         return builder.AddScheme<UAuthAuthenticationSchemeOptions, UAuthAuthenticationHandler>(UAuthConstants.SchemeDefaults.GlobalScheme,
             options =>

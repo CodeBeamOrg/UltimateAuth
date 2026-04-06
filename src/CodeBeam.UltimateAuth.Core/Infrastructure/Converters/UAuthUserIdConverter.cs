@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -107,5 +106,4 @@ public sealed class UAuthUserIdConverter<TUserId> : IUserIdConverter<TUserId>
             return false;
         }
     }
-
 }

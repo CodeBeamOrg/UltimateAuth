@@ -11,7 +11,7 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
     private readonly TenantKey _tenant;
     private bool _inTransaction;
 
-    public EfCoreRefreshTokenStore(TDbContext db, TenantContext tenant)
+    public EfCoreRefreshTokenStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

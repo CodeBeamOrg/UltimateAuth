@@ -11,7 +11,7 @@ internal sealed class InMemoryUserRoleStore : IUserRoleStore
     private readonly TenantKey _tenant;
     private readonly ConcurrentDictionary<UserKey, List<UserRole>> _assignments = new();
 
-    public InMemoryUserRoleStore(TenantContext tenant)
+    public InMemoryUserRoleStore(TenantExecutionContext tenant)
     {
         _tenant = tenant.Tenant;
     }

@@ -15,8 +15,8 @@ public sealed record PkceCompleteRequest
     public required string Secret { get; init; }
 
     [JsonPropertyName("return_url")]
-    public string ReturnUrl { get; init; }
+    public string? ReturnUrl { get; init; }
 
     [JsonPropertyName("hub_session_id")]
-    public string HubSessionId { get; init; }
+    public string? HubSessionId { get; init; }
 }

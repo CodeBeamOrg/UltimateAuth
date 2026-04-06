@@ -7,5 +7,4 @@ public sealed class IdentityInfo
     public string? UserKey { get; set; }
 
     public DateTimeOffset? AuthenticatedAt { get; set; }
-
 }

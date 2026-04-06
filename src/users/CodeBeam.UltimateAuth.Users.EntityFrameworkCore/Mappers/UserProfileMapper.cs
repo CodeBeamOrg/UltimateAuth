@@ -10,6 +10,7 @@ internal static class UserProfileMapper
             p.Id,
             p.Tenant,
             p.UserKey,
+            p.ProfileKey,
             p.FirstName,
             p.LastName,
             p.DisplayName,
@@ -33,6 +34,7 @@ internal static class UserProfileMapper
             Id = d.Id,
             Tenant = d.Tenant,
             UserKey = d.UserKey,
+            ProfileKey = d.ProfileKey,
             FirstName = d.FirstName,
             LastName = d.LastName,
             DisplayName = d.DisplayName,
@@ -66,7 +68,7 @@ internal static class UserProfileMapper
         target.Culture = source.Culture;
 
         // Version store-owned
-        // Id / Tenant / UserKey / CreatedAt immutable
+        // Id / Tenant / UserKey / ProfileKey / CreatedAt immutable
     }
 
 }

@@ -19,6 +19,12 @@ public interface IUserEndpointHandler
     Task<IResult> GetUserAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> UpdateUserAsync(UserKey userKey, HttpContext ctx);
 
+    Task<IResult> CreateProfileSelfAsync(HttpContext ctx);
+    Task<IResult> DeleteProfileSelfAsync(HttpContext ctx);
+
+    Task<IResult> CreateProfileAdminAsync(UserKey userKey, HttpContext ctx);
+    Task<IResult> DeleteProfileAdminAsync(UserKey userKey, HttpContext ctx);
+
     Task<IResult> GetMyIdentifiersAsync(HttpContext ctx);
     Task<IResult> IdentifierExistsSelfAsync(HttpContext ctx);
     Task<IResult> AddUserIdentifierSelfAsync(HttpContext ctx);

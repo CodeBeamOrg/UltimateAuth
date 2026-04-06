@@ -144,7 +144,7 @@ public partial class UsersDialog
             Mode = DeleteMode.Soft
         };
 
-        var result = await UAuthClient.Users.DeleteUserAsync(UserKey.Parse(user.UserKey, null), req);
+        var result = await UAuthClient.Users.DeleteUserAsync(user.UserKey, req);
 
         if (result.IsSuccess)
         {

@@ -12,12 +12,12 @@ public enum CredentialType
     Totp = 30,
 
     // Modern
-    Passkey = 40,
+    Passkey = 100,
 
     // Machine / system
-    Certificate = 50,
-    ApiKey = 60,
+    Certificate = 200,
+    ApiKey = 210,
 
     // External / Federated // TODO: Add Microsoft, Google, GitHub etc.
-    External = 70
+    External = 1000
 }

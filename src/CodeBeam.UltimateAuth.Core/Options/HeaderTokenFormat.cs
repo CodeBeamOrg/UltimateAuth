@@ -2,6 +2,6 @@
 
 public enum HeaderTokenFormat
 {
-    Bearer,
-    Raw
+    Bearer = 0,
+    Raw = 10
 }

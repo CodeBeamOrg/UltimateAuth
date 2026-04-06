@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
@@ -11,7 +12,7 @@ public sealed class PasswordCredentialProjection
 
     public UserKey UserKey { get; set; }
 
-    public string SecretHash { get; set; } = default!;
+    public PasswordHash SecretHash { get; set; }
 
     public DateTimeOffset? RevokedAt { get; set; }
 

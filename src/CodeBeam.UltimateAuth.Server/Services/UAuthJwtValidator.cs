@@ -27,7 +27,7 @@ internal sealed class UAuthJwtValidator : IJwtValidator
 
         if (!result.IsValid)
         {
-            return TokenValidationResult<TUserId>.Invalid(TokenType.Jwt, MapJwtError(result.Exception));
+            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, MapJwtError(result.Exception));
         }
 
         var jwt = (JsonWebToken)result.SecurityToken;
@@ -38,7 +38,7 @@ internal sealed class UAuthJwtValidator : IJwtValidator
         var userIdString = jwt.GetClaim(ClaimTypes.NameIdentifier)?.Value ?? jwt.GetClaim("sub")?.Value;
         if (string.IsNullOrWhiteSpace(userIdString))
         {
-            return TokenValidationResult<TUserId>.Invalid(TokenType.Jwt, TokenInvalidReason.MissingSubject);
+            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, TokenInvalidReason.MissingSubject);
         }
 
         TUserId userId;
@@ -48,7 +48,7 @@ internal sealed class UAuthJwtValidator : IJwtValidator
         }
         catch
         {
-            return TokenValidationResult<TUserId>.Invalid(TokenType.Jwt, TokenInvalidReason.Malformed);
+            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, TokenInvalidReason.Malformed);
         }
 
         var tenantId = jwt.GetClaim("tenant")?.Value ?? jwt.GetClaim("tid")?.Value;
@@ -60,7 +60,7 @@ internal sealed class UAuthJwtValidator : IJwtValidator
         }
 
         return TokenValidationResult<TUserId>.Valid(
-            type: TokenType.Jwt,
+            format: TokenFormat.Jwt,
             tenant: TenantKey.FromExternal(tenantId),
             userId,
             sessionId: sessionId,

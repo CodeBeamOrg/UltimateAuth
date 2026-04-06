@@ -1,10 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
-// TODO: Multi profile (e.g., public profiles, private profiles, profiles per application, etc. with ProfileKey)
 public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletable<UserProfile>, IEntitySnapshot<UserProfile>
 {
     private UserProfile() { }
@@ -13,6 +13,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
     public TenantKey Tenant { get; private set; }
 
     public UserKey UserKey { get; init; } = default!;
+    public ProfileKey ProfileKey { get; set; } = ProfileKey.Default;
 
     public string? FirstName { get; private set; }
     public string? LastName { get; private set; }
@@ -44,6 +45,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             Id = Id,
             Tenant = Tenant,
             UserKey = UserKey,
+            ProfileKey = ProfileKey,
             FirstName = FirstName,
             LastName = LastName,
             DisplayName = DisplayName,
@@ -65,6 +67,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
         Guid? id,
         TenantKey tenant,
         UserKey userKey,
+        ProfileKey? profileKey,
         DateTimeOffset createdAt,
         string? firstName = null,
         string? lastName = null,
@@ -81,6 +84,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             Id = id ?? Guid.NewGuid(),
             Tenant = tenant,
             UserKey = userKey,
+            ProfileKey = profileKey ?? ProfileKey.Default,
             FirstName = firstName,
             LastName = lastName,
             DisplayName = displayName,
@@ -169,6 +173,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
         Guid id,
         TenantKey tenant,
         UserKey userKey,
+        ProfileKey profileKey,
         string? firstName,
         string? lastName,
         string? displayName,
@@ -189,6 +194,7 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             Id = id,
             Tenant = tenant,
             UserKey = userKey,
+            ProfileKey = profileKey,
             FirstName = firstName,
             LastName = lastName,
             DisplayName = displayName,
@@ -204,5 +210,48 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             DeletedAt = deletedAt,
             Version = version
         };
+    }
+
+    public UserProfile CloneTo(
+        Guid? newId,
+        ProfileKey newProfileKey,
+        DateTimeOffset now,
+        Action<UserProfile>? mutate = null)
+    {
+        if (IsDeleted)
+            throw new InvalidOperationException("cannot_clone_deleted_profile");
+
+        var clone = new UserProfile
+        {
+            Id = newId ?? Guid.NewGuid(),
+            Tenant = Tenant,
+            UserKey = UserKey,
+            ProfileKey = newProfileKey,
+
+            FirstName = FirstName,
+            LastName = LastName,
+            DisplayName = DisplayName,
+
+            BirthDate = BirthDate,
+            Gender = Gender,
+            Bio = Bio,
+
+            Language = Language,
+            TimeZone = TimeZone,
+            Culture = Culture,
+
+            Metadata = Metadata is null
+                ? null
+                : new Dictionary<string, string>(Metadata),
+
+            CreatedAt = now,
+            UpdatedAt = null,
+            DeletedAt = null,
+            Version = 0
+        };
+
+        mutate?.Invoke(clone);
+
+        return clone;
     }
 }

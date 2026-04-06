@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 public sealed record TokenValidationResult<TUserId>
 {
     public bool IsValid { get; init; }
-    public TokenType Type { get; init; }
+    public TokenFormat Format { get; init; }
     public TenantKey? Tenant { get; init; }
     public TUserId? UserId { get; init; }
     public AuthSessionId? SessionId { get; init; }
@@ -17,7 +17,7 @@ public sealed record TokenValidationResult<TUserId>
 
     private TokenValidationResult(
         bool isValid,
-        TokenType type,
+        TokenFormat format,
         TenantKey? tenant,
         TUserId? userId,
         AuthSessionId? sessionId,
@@ -27,6 +27,7 @@ public sealed record TokenValidationResult<TUserId>
         )
     {
         IsValid = isValid;
+        Format = format;
         Tenant = tenant;
         UserId = userId;
         SessionId = sessionId;
@@ -36,7 +37,7 @@ public sealed record TokenValidationResult<TUserId>
     }
 
     public static TokenValidationResult<TUserId> Valid(
-        TokenType type,
+        TokenFormat format,
         TenantKey tenant,
         TUserId userId,
         AuthSessionId? sessionId,
@@ -44,7 +45,7 @@ public sealed record TokenValidationResult<TUserId>
         DateTimeOffset? expiresAt)
         => new(
             isValid: true,
-            type,
+            format,
             tenant,
             userId,
             sessionId,
@@ -53,10 +54,10 @@ public sealed record TokenValidationResult<TUserId>
             expiresAt
             );
 
-    public static TokenValidationResult<TUserId> Invalid(TokenType type, TokenInvalidReason reason)
+    public static TokenValidationResult<TUserId> Invalid(TokenFormat format, TokenInvalidReason reason)
         => new(
             isValid: false,
-            type: type,
+            format: format,
             tenant: null,
             userId: default,
             sessionId: null,

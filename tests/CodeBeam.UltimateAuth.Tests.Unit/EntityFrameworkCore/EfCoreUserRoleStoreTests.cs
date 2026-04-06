@@ -22,7 +22,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
@@ -41,7 +41,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
@@ -58,7 +58,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
@@ -77,7 +77,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
@@ -92,7 +92,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var roleId = RoleId.New();
 
@@ -111,7 +111,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant));
 
         var roleId = RoleId.New();
 
@@ -137,8 +137,8 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var tenant1 = TenantKeys.Single;
         var tenant2 = TenantKey.FromInternal("tenant-2");
 
-        var store1 = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant1));
-        var store2 = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantContext(tenant2));
+        var store1 = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant1));
+        var store2 = new EfCoreUserRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant2));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();

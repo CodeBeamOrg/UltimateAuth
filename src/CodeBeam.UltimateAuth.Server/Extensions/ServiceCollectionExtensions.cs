@@ -279,7 +279,7 @@ public static class ServiceCollectionExtensions
             options.DefaultChallengeScheme ??= UAuthConstants.SchemeDefaults.GlobalScheme;
         });
 
-        services.AddAuthentication().AddUAuthCookies();
+        services.AddAuthentication().AddUAuthScheme();
         services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();

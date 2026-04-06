@@ -15,7 +15,7 @@ public sealed class AccessToken
     /// Token type: "jwt" or "opaque".
     /// Used for diagnostics and middleware behavior.
     /// </summary>
-    public TokenType Type { get; init; }
+    public TokenFormat Format { get; init; }
 
     /// <summary>
     /// Expiration time of the token.

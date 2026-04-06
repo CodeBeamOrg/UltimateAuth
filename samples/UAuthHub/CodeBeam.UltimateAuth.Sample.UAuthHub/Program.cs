@@ -38,6 +38,7 @@ builder.Services.AddUltimateAuthServer(o => {
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
     o.Identifiers.AllowMultipleUsernames = true;
+    o.UserProfile.EnableMultiProfile = true;
 })
     .AddUltimateAuthInMemory()
     .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130")); // Client sample's URL

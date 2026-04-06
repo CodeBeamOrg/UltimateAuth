@@ -13,10 +13,10 @@ internal sealed class UserProfileSnapshotProvider : IUserProfileSnapshotProvider
         _storeFactory = storeFactory;
     }
 
-    public async Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)
+    public async Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, ProfileKey profileKey, CancellationToken ct = default)
     {
         var store = _storeFactory.Create(tenant);
-        var profile = await store.GetAsync(new UserProfileKey(tenant, userKey), ct);
+        var profile = await store.GetAsync(new UserProfileKey(tenant, userKey, profileKey), ct);
 
         if (profile is null || profile.IsDeleted)
             return null;

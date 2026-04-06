@@ -15,6 +15,6 @@ internal sealed class EfCoreSessionStoreFactory<TDbContext> : ISessionStoreFacto
 
     public ISessionStore Create(TenantKey tenant)
     {
-        return new EfCoreSessionStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreSessionStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

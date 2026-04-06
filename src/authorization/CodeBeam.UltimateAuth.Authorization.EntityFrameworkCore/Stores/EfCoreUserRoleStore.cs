@@ -11,7 +11,7 @@ internal sealed class EfCoreUserRoleStore<TDbContext> : IUserRoleStore where TDb
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserRoleStore(TDbContext db, TenantContext tenant)
+    public EfCoreUserRoleStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

@@ -5,15 +5,17 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public interface IUserApplicationService
 {
-    Task<UserView> GetMeAsync(AccessContext context, CancellationToken ct = default);
-    Task<UserView> GetUserProfileAsync(AccessContext context, CancellationToken ct = default);
+    Task<UserView> GetMeAsync(AccessContext context, ProfileKey? profileKey = null, CancellationToken ct = default);
+    Task<UserView> GetUserProfileAsync(AccessContext context, ProfileKey? profileKey = null, CancellationToken ct = default);
 
     Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default);
     Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default);
 
     Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default);
 
+    Task CreateProfileAsync(AccessContext context, CreateProfileRequest request, CancellationToken ct = default);
     Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default);
+    Task DeleteProfileAsync(AccessContext context, ProfileKey profileKey, CancellationToken ct = default);
 
     Task<PagedResult<UserIdentifierInfo>> GetIdentifiersByUserAsync(AccessContext context, UserIdentifierQuery query, CancellationToken ct = default);
 

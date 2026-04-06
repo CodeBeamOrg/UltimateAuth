@@ -24,15 +24,20 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantContext(tenant));
+        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(
+            db,
+            new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+
+        var hasher = new TestPasswordHasher();
+        var passwordHash = hasher.Hash("123456");
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            passwordHash,
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
@@ -42,7 +47,8 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
 
         Assert.NotNull(result);
-        Assert.Equal("hash", result!.SecretHash);
+
+        Assert.True(hasher.Verify(result.SecretHash, "123456"));
     }
 
     [Fact]
@@ -52,63 +58,73 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantContext(tenant));
+        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(
+            db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+
+        var hasher = new TestPasswordHasher();
+        var hash = hasher.Hash("123");
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hash,
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await store.AddAsync(credential);
+
         var exists = await store.ExistsAsync(new CredentialKey(tenant, credential.Id));
 
         Assert.True(exists);
     }
 
     [Fact]
-    public async Task Save_Should_Increment_Version()
+    public async Task Save_Should_Increment_Version_And_Update_Hash()
     {
         using var connection = CreateOpenConnection();
 
         var tenant = TenantKeys.Single;
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+        var hasher = new TestPasswordHasher();
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hasher.Hash("old"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantContext(tenant));
-            await store1.AddAsync(credential);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
+            await store.AddAsync(credential);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantContext(tenant));
-            var existing = await store2.GetAsync(new CredentialKey(tenant, credential.Id));
-            var updated = existing!.ChangeSecret("new_hash", DateTimeOffset.UtcNow);
-            await store2.SaveAsync(updated, expectedVersion: 0);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
+
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+
+            var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
+
+            await store.SaveAsync(updated, expectedVersion: 0);
         }
 
         await using (var db3 = CreateDb(connection))
         {
-            var store3 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantContext(tenant));
-            var result = await store3.GetAsync(new CredentialKey(tenant, credential.Id));
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
+
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
 
             Assert.Equal(1, result!.Version);
-            Assert.Equal("new_hash", result.SecretHash);
+            Assert.True(hasher.Verify(result.SecretHash, "new"));
         }
     }
 
@@ -119,31 +135,32 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
 
         var tenant = TenantKeys.Single;
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+        var hasher = new TestPasswordHasher();
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hasher.Hash("123"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantContext(tenant));
-            await store1.AddAsync(credential);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
+            await store.AddAsync(credential);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantContext(tenant));
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            var existing = await store2.GetAsync(new CredentialKey(tenant, credential.Id));
-            var updated = existing!.ChangeSecret("new_hash", DateTimeOffset.UtcNow);
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
 
             await Assert.ThrowsAsync<UAuthConcurrencyException>(() =>
-                store2.SaveAsync(updated, expectedVersion: 999));
+                store.SaveAsync(updated, expectedVersion: 999));
         }
     }
 
@@ -156,8 +173,10 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         var tenant1 = TenantKeys.Single;
         var tenant2 = TenantKey.FromInternal("tenant-2");
 
-        var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantContext(tenant1));
-        var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantContext(tenant2));
+        var hasher = new TestPasswordHasher();
+
+        var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantExecutionContext(tenant1));
+        var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantExecutionContext(tenant2));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -165,12 +184,13 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             Guid.NewGuid(),
             tenant1,
             userKey,
-            "hash",
+            hasher.Hash("123"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await store1.AddAsync(credential);
+
         var result = await store2.GetAsync(new CredentialKey(tenant2, credential.Id));
 
         Assert.Null(result);
@@ -183,7 +203,9 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantContext(tenant));
+        var hasher = new TestPasswordHasher();
+
+        var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -191,7 +213,7 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hasher.Hash("123"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
@@ -217,34 +239,38 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
 
         var tenant = TenantKeys.Single;
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+        var hasher = new TestPasswordHasher();
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hasher.Hash("123"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantContext(tenant));
-            await store1.AddAsync(credential);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
+            await store.AddAsync(credential);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantContext(tenant));
-            var existing = await store2.GetAsync(new CredentialKey(tenant, credential.Id));
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
+
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
             var revoked = existing!.Revoke(DateTimeOffset.UtcNow);
-            await store2.SaveAsync(revoked, expectedVersion: 0);
+
+            await store.SaveAsync(revoked, expectedVersion: 0);
         }
 
         await using (var db3 = CreateDb(connection))
         {
-            var store3 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantContext(tenant));
-            var result = await store3.GetAsync(new CredentialKey(tenant, credential.Id));
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
+
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
 
             Assert.True(result!.IsRevoked);
         }
@@ -257,37 +283,40 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
 
         var tenant = TenantKeys.Single;
         var userKey = UserKey.FromGuid(Guid.NewGuid());
+        var hasher = new TestPasswordHasher();
 
         var credential = PasswordCredential.Create(
             Guid.NewGuid(),
             tenant,
             userKey,
-            "hash",
+            hasher.Hash("old"),
             CredentialSecurityState.Active(),
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantContext(tenant));
-            await store1.AddAsync(credential);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
+            await store.AddAsync(credential);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantContext(tenant));
-            var existing = await store2.GetAsync(new CredentialKey(tenant, credential.Id));
-            var updated = existing!.ChangeSecret("new_hash", DateTimeOffset.UtcNow);
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            await store2.SaveAsync(updated, expectedVersion: 0);
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
+
+            await store.SaveAsync(updated, expectedVersion: 0);
         }
 
         await using (var db3 = CreateDb(connection))
         {
-            var store3 = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantContext(tenant));
-            var result = await store3.GetAsync(new CredentialKey(tenant, credential.Id));
+            var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
 
-            Assert.Equal("new_hash", result!.SecretHash);
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+
+            Assert.True(hasher.Verify(result!.SecretHash, "new"));
             Assert.NotNull(result.UpdatedAt);
         }
     }

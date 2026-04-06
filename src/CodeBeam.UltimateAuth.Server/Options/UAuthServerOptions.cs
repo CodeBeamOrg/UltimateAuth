@@ -95,6 +95,8 @@ public sealed class UAuthServerOptions
 
     public UAuthLoginIdentifierOptions LoginIdentifiers { get; set; } = new();
 
+    public UAuthUserProfileOptions UserProfile { get; set; } = new();
+
     public UAuthNavigationOptions Navigation { get; set; } = new();
 
 
@@ -148,6 +150,7 @@ public sealed class UAuthServerOptions
             Identifiers = Identifiers.Clone(),
             IdentifierValidation = IdentifierValidation.Clone(),
             LoginIdentifiers = LoginIdentifiers.Clone(),
+            UserProfile = UserProfile.Clone(),
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),
 

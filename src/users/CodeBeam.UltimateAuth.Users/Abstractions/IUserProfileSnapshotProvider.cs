@@ -6,5 +6,5 @@ namespace CodeBeam.UltimateAuth.Users;
 
 public interface IUserProfileSnapshotProvider
 {
-    Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default);
+    Task<UserProfileSnapshot?> GetAsync(TenantKey tenant, UserKey userKey, ProfileKey profileKey, CancellationToken ct = default);
 }

@@ -13,7 +13,7 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
     protected override Guid GetKey(UserIdentifier entity) => entity.Id;
     private readonly object _primaryLock = new();
 
-    public InMemoryUserIdentifierStore(TenantContext tenant) : base(tenant)
+    public InMemoryUserIdentifierStore(TenantExecutionContext tenant) : base(tenant)
     {
 
     }

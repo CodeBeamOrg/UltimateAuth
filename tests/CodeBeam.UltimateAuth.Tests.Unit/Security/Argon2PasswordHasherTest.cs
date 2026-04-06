@@ -1,5 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Errors;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Security.Argon2;
+using FluentAssertions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -13,74 +16,132 @@ public class Argon2PasswordHasherTests
     }
 
     [Fact]
-    public void Hash_ShouldReturn_NonEmptyString()
+    public void Hash_Should_Return_Valid_PasswordHash()
     {
         var hasher = CreateHasher();
+
         var result = hasher.Hash("password123");
 
-        Assert.False(string.IsNullOrWhiteSpace(result));
-        Assert.Contains(".", result);
+        result.Should().NotBeNull();
+        result.Algorithm.Should().Be(PasswordAlgorithms.Argon2);
+        result.Hash.Should().NotBeNullOrWhiteSpace();
+
+        var parts = result.Hash.Split('.');
+        parts.Length.Should().Be(5);
     }
 
     [Fact]
-    public void Verify_ShouldReturn_True_ForValidPassword()
+    public void Verify_Should_Return_True_For_Correct_Password()
     {
         var hasher = CreateHasher();
+
         var hash = hasher.Hash("password123");
+
         var result = hasher.Verify(hash, "password123");
 
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
-    public void Verify_ShouldReturn_False_ForInvalidPassword()
+    public void Verify_Should_Return_False_For_Wrong_Password()
     {
         var hasher = CreateHasher();
+
         var hash = hasher.Hash("password123");
-        var result = hasher.Verify(hash, "wrong-password");
 
-        Assert.False(result);
+        var result = hasher.Verify(hash, "wrong");
+
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void Verify_ShouldReturn_False_ForInvalidFormat()
+    public void Verify_Should_Return_False_For_Invalid_Format()
     {
         var hasher = CreateHasher();
-        var result = hasher.Verify("invalid-format", "password");
 
-        Assert.False(result);
+        var invalid = PasswordHash.Create(PasswordAlgorithms.Argon2, "invalid");
+
+        var result = hasher.Verify(invalid, "password");
+
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void Hash_ShouldThrow_WhenPasswordIsEmpty()
+    public void Hash_Should_Throw_When_Password_Is_Empty()
     {
         var hasher = CreateHasher();
+
         Assert.Throws<UAuthValidationException>(() => hasher.Hash(""));
     }
 
     [Fact]
-    public void Hash_ShouldProduce_DifferentHashes_ForSamePassword()
+    public void Hash_Should_Produce_Different_Hashes_For_Same_Password()
     {
         var hasher = CreateHasher();
+
         var hash1 = hasher.Hash("password123");
         var hash2 = hasher.Hash("password123");
 
-        Assert.NotEqual(hash1, hash2);
+        hash1.Hash.Should().NotBe(hash2.Hash);
     }
 
     [Fact]
-    public void Verify_ShouldUse_SameSalt_FromHash()
+    public void Verify_Should_Use_Embedded_Salt_And_Parameters()
     {
         var hasher = CreateHasher();
+
         var hash = hasher.Hash("password123");
 
-        var parts = hash.Split('.');
-        Assert.Equal(2, parts.Length);
+        // parametreleri değiştir (simulate config drift)
+        var differentOptions = Options.Create(new Argon2Options
+        {
+            Iterations = 999,
+            MemorySizeKb = 999,
+            Parallelism = 1,
+            SaltSize = 16,
+            HashSize = 32
+        });
 
-        var salt1 = parts[0];
-        var hash2 = hasher.Hash("password123");
-        var salt2 = hash2.Split('.')[0];
+        var differentHasher = new Argon2PasswordHasher(differentOptions);
 
-        Assert.NotEqual(salt1, salt2); // random salt doğrulama
+        // 🔥 yine de doğrulamalı
+        var result = differentHasher.Verify(hash, "password123");
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void NeedsRehash_Should_Return_True_When_Parameters_Changed()
+    {
+        var hasher = CreateHasher();
+
+        var hash = hasher.Hash("password123");
+
+        var differentOptions = Options.Create(new Argon2Options
+        {
+            Iterations = 999,
+            MemorySizeKb = 999,
+            Parallelism = 1,
+            SaltSize = 16,
+            HashSize = 32
+        });
+
+        var differentHasher = new Argon2PasswordHasher(differentOptions);
+
+        var result = differentHasher.NeedsRehash(hash);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void NeedsRehash_Should_Return_False_When_Parameters_Match()
+    {
+        var hasher = CreateHasher();
+
+        var hash = hasher.Hash("password123");
+
+        var result = hasher.NeedsRehash(hash);
+
+        result.Should().BeFalse();
     }
 }

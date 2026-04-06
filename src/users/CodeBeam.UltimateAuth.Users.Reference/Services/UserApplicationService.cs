@@ -75,6 +75,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     Guid.NewGuid(),
                     context.ResourceTenant,
                     userKey,
+                    ProfileKey.Default,
                     now,
                     firstName: request.FirstName,
                     lastName: request.LastName,
@@ -195,15 +196,16 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var profileKey = new UserProfileKey(context.ResourceTenant, userKey);
-            var profile = await profileStore.GetAsync(profileKey, innerCt);
 
             await lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, innerCt);
             await identifierStore.DeleteByUserAsync(userKey, DeleteMode.Soft, now, innerCt);
 
-            if (profile is not null)
+            var profiles = await profileStore.GetAllProfilesByUserAsync(userKey, innerCt);
+
+            foreach (var profile in profiles)
             {
-                await profileStore.DeleteAsync(profileKey, profile.Version, DeleteMode.Soft, now, innerCt);
+                var key = new UserProfileKey(context.ResourceTenant, userKey, profile.ProfileKey);
+                await profileStore.DeleteAsync(key, profile.Version, DeleteMode.Soft, now, innerCt);
             }
 
             foreach (var integration in _integrations)
@@ -233,14 +235,15 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var profileKey = new UserProfileKey(context.ResourceTenant, targetUserKey);
-            var profile = await profileStore.GetAsync(profileKey, innerCt);
             await lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
             await identifierStore.DeleteByUserAsync(targetUserKey, request.Mode, now, innerCt);
 
-            if (profile is not null)
+            var profiles = await profileStore.GetAllProfilesByUserAsync(targetUserKey, innerCt);
+
+            foreach (var profile in profiles)
             {
-                await profileStore.DeleteAsync(profileKey, profile.Version, request.Mode, now, innerCt);
+                var key = new UserProfileKey(context.ResourceTenant, profile.UserKey, profile.ProfileKey);
+                await profileStore.DeleteAsync(key, profile.Version, DeleteMode.Soft, now, innerCt);
             }
 
             foreach (var integration in _integrations)
@@ -257,29 +260,97 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region User Profile
 
-    public async Task<UserView> GetMeAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<UserView> GetMeAsync(AccessContext context, ProfileKey? profileKey = null, CancellationToken ct = default)
     {
         var command = new AccessCommand<UserView>(async innerCt =>
         {
+            var effectiveProfileKey = profileKey ?? ProfileKey.Default;
+
             if (context.ActorUserKey is null)
                 throw new UnauthorizedAccessException();
 
-            return await BuildUserViewAsync(context.ResourceTenant, context.ActorUserKey.Value, innerCt);
+            if (!_options.UserProfile.EnableMultiProfile && effectiveProfileKey != ProfileKey.Default)
+                throw new UAuthConflictException("multi_profile_disabled");
+
+            return await BuildUserViewAsync(context.ResourceTenant, context.ActorUserKey.Value, effectiveProfileKey, innerCt);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<UserView> GetUserProfileAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<UserView> GetUserProfileAsync(AccessContext context, ProfileKey? profileKey = null, CancellationToken ct = default)
     {
         var command = new AccessCommand<UserView>(async innerCt =>
         {
+            var effectiveProfileKey = profileKey ?? ProfileKey.Default;
+
+            if (!_options.UserProfile.EnableMultiProfile && effectiveProfileKey != ProfileKey.Default)
+                throw new UAuthConflictException("multi_profile_disabled");
+
             var targetUserKey = context.GetTargetUserKey();
-            return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, innerCt);
+            return await BuildUserViewAsync(context.ResourceTenant, targetUserKey, effectiveProfileKey, innerCt);
 
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task CreateProfileAsync(AccessContext context, CreateProfileRequest request, CancellationToken ct = default)
+    {
+        var command = new AccessCommand(async innerCt =>
+        {
+            var tenant = context.ResourceTenant;
+            var userKey = context.GetTargetUserKey();
+            var now = _clock.UtcNow;
+
+            var profileKey = request.ProfileKey;
+
+            if (!_options.UserProfile.EnableMultiProfile)
+                throw new UAuthConflictException("multi_profile_disabled");
+
+            if (profileKey == ProfileKey.Default)
+                throw new UAuthConflictException("default_profile_already_exists");
+
+            var store = _profileStoreFactory.Create(tenant);
+
+            var exists = await store.ExistsAsync(new UserProfileKey(tenant, userKey, profileKey), innerCt);
+
+            if (exists)
+                throw new UAuthConflictException("profile_already_exists");
+
+            UserProfile profile;
+            if (request.CloneFrom is ProfileKey cloneFromKey)
+            {
+                var source = await store.GetAsync(new UserProfileKey(tenant, userKey, cloneFromKey), innerCt);
+
+                if (source == null)
+                    throw new UAuthNotFoundException("source_profile_not_found");
+
+                profile = source.CloneTo(Guid.NewGuid(), profileKey, now);
+            }
+            else
+            {
+                profile = UserProfile.Create(
+                    Guid.NewGuid(),
+                    tenant,
+                    userKey,
+                    profileKey,
+                    now,
+                    firstName: request.FirstName,
+                    lastName: request.LastName,
+                    displayName: request.DisplayName,
+                    birthDate: request.BirthDate,
+                    gender: request.Gender,
+                    bio: request.Bio,
+                    language: request.Language,
+                    timezone: request.TimeZone,
+                    culture: request.Culture);
+            }
+
+            await store.AddAsync(profile, innerCt);
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
     public async Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default)
@@ -290,12 +361,16 @@ internal sealed class UserApplicationService : IUserApplicationService
             var userKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
 
-            var key = new UserProfileKey(tenant, userKey);
+            var profileKey = request.ProfileKey ?? ProfileKey.Default;
+            var key = new UserProfileKey(tenant, userKey, profileKey);
             var profileStore = _profileStoreFactory.Create(tenant);
             var profile = await profileStore.GetAsync(key, innerCt);
 
             if (profile is null)
                 throw new UAuthNotFoundException();
+
+            if (!_options.UserProfile.EnableMultiProfile && profileKey != ProfileKey.Default)
+                throw new UAuthConflictException("multi_profile_disabled");
 
             var expectedVersion = profile.Version;
 
@@ -306,6 +381,39 @@ internal sealed class UserApplicationService : IUserApplicationService
                 .UpdateMetadata(request.Metadata, now);
 
             await profileStore.SaveAsync(profile, expectedVersion, innerCt);
+        });
+
+        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task DeleteProfileAsync(AccessContext context, ProfileKey profileKey, CancellationToken ct = default)
+    {
+        var command = new AccessCommand(async innerCt =>
+        {
+            var tenant = context.ResourceTenant;
+            var userKey = context.GetTargetUserKey();
+            var now = _clock.UtcNow;
+
+            if (!_options.UserProfile.EnableMultiProfile)
+                throw new UAuthConflictException("multi_profile_disabled");
+
+            if (profileKey == ProfileKey.Default)
+                throw new UAuthConflictException("cannot_delete_default_profile");
+
+            var store = _profileStoreFactory.Create(tenant);
+
+            var key = new UserProfileKey(tenant, userKey, profileKey);
+            var profile = await store.GetAsync(key, innerCt);
+
+            if (profile is null || profile.IsDeleted)
+                throw new UAuthNotFoundException("user_profile_not_found");
+
+            var profiles = await store.GetAllProfilesByUserAsync(userKey, innerCt);
+
+            if (profiles.Count <= 1)
+                throw new UAuthConflictException("cannot_delete_last_profile");
+
+            await store.DeleteAsync(key, profile.Version, DeleteMode.Soft, now, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -658,13 +766,15 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #region Helpers
 
-    private async Task<UserView> BuildUserViewAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
+    private async Task<UserView> BuildUserViewAsync(TenantKey tenant, UserKey userKey, ProfileKey? profileKey, CancellationToken ct)
     {
+        var effectiveProfileKey = profileKey ?? ProfileKey.Default;
+
         var lifecycleStore = _lifecycleStoreFactory.Create(tenant);
         var identifierStore = _identifierStoreFactory.Create(tenant);
         var profileStore = _profileStoreFactory.Create(tenant);
         var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey));
-        var profile = await profileStore.GetAsync(new UserProfileKey(tenant, userKey), ct);
+        var profile = await profileStore.GetAsync(new UserProfileKey(tenant, userKey, effectiveProfileKey), ct);
 
         if (lifecycle is null || lifecycle.IsDeleted)
             throw new UAuthNotFoundException("user_not_found");
@@ -751,6 +861,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         var command = new AccessCommand<PagedResult<UserSummary>>(async innerCt =>
         {
             query ??= new UserQuery();
+            var effectiveProfileKey = query.ProfileKey ?? ProfileKey.Default;
 
             var lifecycleQuery = new UserLifecycleQuery
             {
@@ -778,7 +889,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var userKeys = lifecycles.Select(x => x.UserKey).ToList();
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var profiles = await profileStore.GetByUsersAsync(userKeys, innerCt);
+            var profiles = await profileStore.GetByUsersAsync(userKeys, effectiveProfileKey, innerCt);
             var identifiers = await identifierStore.GetByUsersAsync(userKeys, innerCt);
             var profileMap = profiles.ToDictionary(x => x.UserKey);
             var identifierGroups = identifiers.GroupBy(x => x.UserKey).ToDictionary(x => x.Key, x => x.ToList());

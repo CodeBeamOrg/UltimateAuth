@@ -2,7 +2,7 @@
 
 public enum GrantKind
 {
-    Session,
-    AccessToken,
-    RefreshToken
+    Session = 0,
+    AccessToken = 10,
+    RefreshToken = 20
 }

@@ -2,8 +2,8 @@
 
 public enum TransportCredentialKind
 {
-    Session,
-    AccessToken,
-    RefreshToken,
-    Hub
+    Session = 0,
+    AccessToken = 10,
+    RefreshToken = 20,
+    Hub = 30
 }

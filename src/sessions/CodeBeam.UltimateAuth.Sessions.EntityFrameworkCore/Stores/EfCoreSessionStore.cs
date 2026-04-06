@@ -12,7 +12,7 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreSessionStore(TDbContext db, TenantContext tenant)
+    public EfCoreSessionStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

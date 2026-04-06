@@ -17,7 +17,7 @@ public enum RefreshDecision
     /// No access / refresh token issued.
     /// (PureOpaque)
     /// </summary>
-    SessionTouch = 1,
+    SessionTouch = 10,
 
     /// <summary>
     /// Refresh token is rotated and
@@ -25,5 +25,5 @@ public enum RefreshDecision
     /// Session MAY also be touched depending on policy.
     /// (Hybrid, SemiHybrid, PureJwt)
     /// </summary>
-    TokenRotation = 2
+    TokenRotation = 20
 }

@@ -2,6 +2,7 @@
 
 public sealed record UpdateProfileRequest
 {
+    public ProfileKey? ProfileKey { get; set; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
     public string? DisplayName { get; init; }

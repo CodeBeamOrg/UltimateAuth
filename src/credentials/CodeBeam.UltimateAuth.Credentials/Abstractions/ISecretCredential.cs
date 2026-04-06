@@ -1,6 +1,8 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials;
+﻿using CodeBeam.UltimateAuth.Core;
+
+namespace CodeBeam.UltimateAuth.Credentials;
 
 public interface ISecretCredential : ICredential
 {
-    string SecretHash { get; }
+    PasswordHash SecretHash { get; }
 }

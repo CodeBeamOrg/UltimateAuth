@@ -14,7 +14,7 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
     private readonly ConcurrentDictionary<Guid, AuthenticationSecurityState> _byId = new();
     private readonly ConcurrentDictionary<(UserKey, AuthenticationSecurityScope, CredentialType?), Guid> _index = new();
 
-    public InMemoryAuthenticationSecurityStateStore(TenantContext tenant)
+    public InMemoryAuthenticationSecurityStateStore(TenantExecutionContext tenant)
     {
         _tenant = tenant.Tenant;
     }

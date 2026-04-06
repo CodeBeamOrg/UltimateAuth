@@ -15,6 +15,6 @@ internal sealed class EfCoreUserIdentifierStoreFactory<TDbContext> : IUserIdenti
 
     public IUserIdentifierStore Create(TenantKey tenant)
     {
-        return new EfCoreUserIdentifierStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreUserIdentifierStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

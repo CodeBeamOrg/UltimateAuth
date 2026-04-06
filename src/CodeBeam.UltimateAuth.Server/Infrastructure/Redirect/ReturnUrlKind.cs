@@ -2,7 +2,7 @@
 
 public enum ReturnUrlKind
 {
-    None,
-    Relative,
-    Absolute
+    None = 0,
+    Relative = 10,
+    Absolute = 20
 }

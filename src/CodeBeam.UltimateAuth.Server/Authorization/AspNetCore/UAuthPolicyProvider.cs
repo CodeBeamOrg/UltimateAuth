@@ -12,13 +12,13 @@ public class UAuthPolicyProvider : IAuthorizationPolicyProvider
         _fallback = new DefaultAuthorizationPolicyProvider(options);
     }
 
-    public Task<AuthorizationPolicy> GetPolicyAsync(string policyName)
+    public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
         var policy = new AuthorizationPolicyBuilder()
             .AddRequirements(new UAuthActionRequirement(policyName))
             .Build();
 
-        return Task.FromResult(policy);
+        return Task.FromResult<AuthorizationPolicy?>(policy);
     }
 
     public Task<AuthorizationPolicy> GetDefaultPolicyAsync()

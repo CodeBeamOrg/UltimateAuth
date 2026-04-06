@@ -14,7 +14,6 @@ public sealed class DeviceContextJsonConverter : JsonConverter<DeviceContext>
         using var doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
 
-        // DeviceId
         DeviceId? deviceId = null;
         if (root.TryGetProperty("deviceId", out var deviceIdProp))
         {

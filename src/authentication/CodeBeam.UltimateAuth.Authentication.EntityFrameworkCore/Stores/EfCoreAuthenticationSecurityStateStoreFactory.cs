@@ -15,6 +15,6 @@ internal sealed class EfCoreAuthenticationSecurityStateStoreFactory<TDbContext> 
 
     public IAuthenticationSecurityStateStore Create(TenantKey tenant)
     {
-        return new EfCoreAuthenticationSecurityStateStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreAuthenticationSecurityStateStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

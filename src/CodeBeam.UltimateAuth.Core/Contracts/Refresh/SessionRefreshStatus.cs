@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Domain;
+﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public enum SessionRefreshStatus
 {

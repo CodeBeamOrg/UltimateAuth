@@ -3,5 +3,5 @@
 public enum AuthenticationSecurityScope
 {
     Account = 0,
-    Factor = 1
+    Factor = 10
 }
