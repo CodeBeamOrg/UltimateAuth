@@ -24,7 +24,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -90,7 +90,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
 
@@ -127,7 +127,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var result = await store.GetSessionAsync(sessionId);
 
@@ -167,7 +167,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
 
@@ -204,7 +204,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var result = await store.GetSessionAsync(sessionId);
 
@@ -234,7 +234,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
 
@@ -288,7 +288,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store1 = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant1));
+            var store1 = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant1));
 
             var root = UAuthSessionRoot.Create(tenant1, userKey, DateTimeOffset.UtcNow);
 
@@ -325,7 +325,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store2 = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant2));
+            var store2 = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant2));
 
             var result = await store2.GetSessionAsync(sessionId);
 
@@ -343,7 +343,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             {
@@ -368,7 +368,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
             chainId = SessionChainId.New();
 
@@ -405,7 +405,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var sessions = await store.GetSessionsByChainAsync(chainId);
             Assert.Single(sessions);
         }
@@ -423,7 +423,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -460,7 +460,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var result = await store.GetSessionAsync(sessionId);
 
@@ -480,7 +480,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             {
@@ -516,7 +516,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
 
             chainId = SessionChainId.New();
@@ -554,7 +554,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -564,7 +564,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var sessions = await store.GetSessionsByChainAsync(chainId);
 
             Assert.All(sessions, s => Assert.True(s.IsRevoked));
@@ -584,7 +584,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
 
@@ -612,7 +612,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var active = await store.GetActiveSessionIdAsync(chainId);
 
             Assert.Equal(sessionId, active);
@@ -648,7 +648,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
             chainId = SessionChainId.New();
@@ -686,7 +686,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -699,7 +699,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var result = await store.GetSessionAsync(sessionId);
 
             Assert.Equal(1, result!.Version);
@@ -719,7 +719,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
             chainId = SessionChainId.New();
@@ -757,7 +757,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await Assert.ThrowsAsync<UAuthConcurrencyException>(async () =>
             {
@@ -784,7 +784,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(tenant, userKey, DateTimeOffset.UtcNow);
             chainId = SessionChainId.New();
@@ -809,7 +809,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -822,7 +822,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var result = await store.GetChainAsync(chainId);
 
             Assert.Equal(1, result!.Version);
@@ -839,7 +839,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(
                 tenant,
@@ -854,7 +854,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
@@ -867,7 +867,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
             var result = await store.GetRootByUserAsync(userKey);
 
             Assert.Equal(1, result!.Version);

@@ -32,5 +32,4 @@ public sealed class CompositeTenantResolver : ITenantIdResolver
 
         return null;
     }
-
 }

@@ -14,7 +14,7 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserProfileStore(TDbContext db, TenantContext tenant)
+    public EfCoreUserProfileStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

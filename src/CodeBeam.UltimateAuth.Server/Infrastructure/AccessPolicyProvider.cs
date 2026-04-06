@@ -17,5 +17,4 @@ internal sealed class AccessPolicyProvider : IAccessPolicyProvider
     }
 
     public IReadOnlyCollection<IAccessPolicy> GetPolicies(AccessContext context) => _set.Resolve(context, _services);
-
 }

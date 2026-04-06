@@ -95,7 +95,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         return new AccessToken
         {
             Token = token,
-            Type = TokenType.Opaque,
+            Format = TokenFormat.Opaque,
             ExpiresAt = expires,
             SessionId = sessionId
         };
@@ -135,7 +135,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         return new AccessToken
         {
             Token = jwt,
-            Type = TokenType.Jwt,
+            Format = TokenFormat.Jwt,
             ExpiresAt = expires,
             SessionId = context.SessionId.ToString()
         };

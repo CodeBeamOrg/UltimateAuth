@@ -46,7 +46,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             );
         }
 
-        if (credential.Kind == PrimaryGrantKind.Stateful)
+        if (credential.Kind == PrimaryTokenKind.Session)
         {
             if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
             {

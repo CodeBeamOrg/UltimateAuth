@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Options;
+﻿using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 

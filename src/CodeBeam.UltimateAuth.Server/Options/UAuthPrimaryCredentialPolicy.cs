@@ -7,12 +7,12 @@ public sealed class UAuthPrimaryCredentialPolicy
     /// <summary>
     /// Default primary credential for UI-style requests.
     /// </summary>
-    public PrimaryGrantKind Ui { get; set; } = PrimaryGrantKind.Stateful;
+    public PrimaryTokenKind Ui { get; set; } = PrimaryTokenKind.Session;
 
     /// <summary>
     /// Default primary credential for API requests.
     /// </summary>
-    public PrimaryGrantKind Api { get; set; } = PrimaryGrantKind.Stateless;
+    public PrimaryTokenKind Api { get; set; } = PrimaryTokenKind.AccessToken;
 
     internal UAuthPrimaryCredentialPolicy Clone() => new()
     {

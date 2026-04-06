@@ -11,7 +11,7 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserLifecycleStore(TDbContext db, TenantContext tenant)
+    public EfCoreUserLifecycleStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

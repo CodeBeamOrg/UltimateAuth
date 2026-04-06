@@ -10,6 +10,6 @@ internal sealed class InMemoryAuthenticationSecurityStateStoreFactory : IAuthent
 
     public IAuthenticationSecurityStateStore Create(TenantKey tenant)
     {
-        return _stores.GetOrAdd(tenant, t => new InMemoryAuthenticationSecurityStateStore(new TenantContext(t)));
+        return _stores.GetOrAdd(tenant, t => new InMemoryAuthenticationSecurityStateStore(new TenantExecutionContext(t)));
     }
 }

@@ -2,10 +2,10 @@
 
 public enum PkceValidationFailureReason
 {
-    None,
-    ArtifactExpired,
-    MaxAttemptsExceeded,
-    UnsupportedChallengeMethod,
-    InvalidVerifier,
-    ContextMismatch
+    None = 0,
+    ArtifactExpired = 10,
+    MaxAttemptsExceeded = 20,
+    UnsupportedChallengeMethod = 30,
+    InvalidVerifier = 40,
+    ContextMismatch = 50
 }

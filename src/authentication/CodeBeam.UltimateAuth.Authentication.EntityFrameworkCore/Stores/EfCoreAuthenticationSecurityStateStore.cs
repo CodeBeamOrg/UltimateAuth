@@ -12,7 +12,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreAuthenticationSecurityStateStore(TDbContext db, TenantContext tenant)
+    public EfCoreAuthenticationSecurityStateStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

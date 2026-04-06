@@ -21,12 +21,6 @@ internal sealed class ClientProfileReader : IClientProfileReader
             return formProfile;
         }
 
-        //if (context.Request.HasFormContentType && context.Request.Form.TryGetValue(UAuthConstants.Form.ClientProfile, out var formValue) &&
-        //    TryParse(formValue, out var formProfile))
-        //{
-        //    return formProfile;
-        //}
-
         return UAuthClientProfile.NotSpecified;
     }
 

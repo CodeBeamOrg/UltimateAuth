@@ -33,5 +33,4 @@ public sealed class HeaderTenantResolver : ITenantIdResolver
 
         return Task.FromResult<string?>(null);
     }
-
 }

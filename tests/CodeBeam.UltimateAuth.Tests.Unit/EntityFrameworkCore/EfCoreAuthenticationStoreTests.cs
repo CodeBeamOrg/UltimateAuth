@@ -22,7 +22,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -50,13 +50,13 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
             await store.AddAsync(state);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
             var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
 
             var updated = existing!.RegisterFailure(
@@ -69,7 +69,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db3 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
             var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
 
             Assert.Equal(1, result!.SecurityVersion);
@@ -84,7 +84,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var state = AuthenticationSecurityState.CreateAccount(tenant, userKey);
@@ -107,13 +107,13 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
             await store.AddAsync(state);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
             var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
             var updated = existing!.RegisterSuccess();
             await store.UpdateAsync(updated, expectedVersion: 1);
@@ -121,7 +121,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db3 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
             var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
 
             Assert.Equal(0, result!.FailedAttempts);
@@ -140,7 +140,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
             await store.AddAsync(state);
         }
 
@@ -148,7 +148,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db2 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
             var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
             var updated = existing!.BeginReset("hash", now, TimeSpan.FromMinutes(10));
             await store.UpdateAsync(updated, expectedVersion: 0);
@@ -156,7 +156,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db3 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
             var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
             var consumed = existing!.ConsumeReset(DateTimeOffset.UtcNow);
             await store.UpdateAsync(consumed, expectedVersion: 1);
@@ -164,7 +164,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         await using (var db4 = CreateDb(connection))
         {
-            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db4, new TenantContext(tenant));
+            var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db4, new TenantExecutionContext(tenant));
             var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
             Assert.NotNull(result!.ResetConsumedAt);
         }
@@ -177,7 +177,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantContext(tenant));
+        var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantExecutionContext(tenant));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -201,8 +201,8 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         var tenant1 = TenantKeys.Single;
         var tenant2 = TenantKey.FromInternal("tenant-2");
 
-        var store1 = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantContext(tenant1));
-        var store2 = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantContext(tenant2));
+        var store1 = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantExecutionContext(tenant1));
+        var store2 = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db, new TenantExecutionContext(tenant2));
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var state = AuthenticationSecurityState.CreateAccount(tenant1, userKey);

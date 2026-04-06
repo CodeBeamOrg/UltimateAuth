@@ -13,7 +13,7 @@ public sealed class InMemoryUserProfileStore : InMemoryTenantVersionedStore<User
     protected override UserProfileKey GetKey(UserProfile entity)
         => new(entity.Tenant, entity.UserKey, entity.ProfileKey);
 
-    public InMemoryUserProfileStore(TenantContext tenant) : base(tenant)
+    public InMemoryUserProfileStore(TenantExecutionContext tenant) : base(tenant)
     {
     }
 

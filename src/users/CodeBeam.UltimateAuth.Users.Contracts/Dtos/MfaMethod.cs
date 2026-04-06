@@ -2,8 +2,8 @@
 
 public enum MfaMethod
 {
-    Totp = 10,
-    Sms = 20,
-    Email = 30,
-    Passkey = 40
+    Totp = 0,
+    Sms = 10,
+    Email = 20,
+    Passkey = 30
 }

@@ -13,7 +13,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserIdentifierStore(TDbContext db, TenantContext tenant)
+    public EfCoreUserIdentifierStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Core.Domain;
 
 public enum PrimaryTokenKind
 {

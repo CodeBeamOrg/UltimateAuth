@@ -16,7 +16,7 @@ internal sealed class PrimaryCredentialResolver : IPrimaryCredentialResolver
         _options = options.Value;
     }
 
-    public PrimaryGrantKind Resolve(HttpContext context)
+    public PrimaryTokenKind Resolve(HttpContext context)
     {
         if (IsApiRequest(context))
             return _options.PrimaryCredential.Api;
