@@ -8,6 +8,9 @@
 ![License](https://img.shields.io/github/license/CodeBeamOrg/UltimateAuth)
 [![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
 [![codecov](https://codecov.io/gh/CodeBeamOrg/UltimateAuth/branch/dev/graph/badge.svg)](https://codecov.io/gh/CodeBeamOrg/UltimateAuth)
+[![NuGet version](https://img.shields.io/nuget/v/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20version&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth)
+
+[![NuGet downloads](https://img.shields.io/nuget/dt/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20downloads&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth)
 
 ## 📑 Table of Contents
 
@@ -121,7 +124,7 @@ Traditional auth solutions struggle here — UltimateAuth embraces it.
 # 🚀 Quick Start
 > ⏱ Takes ~2 minutes to get started
 
-### 1) Install packages (Will be available soon)
+### 1) Install packages
 
 1.1 Core Packages
 ```bash
@@ -288,12 +291,12 @@ UltimateAuth turns Auth into a simple application service — not a separate sys
 
 ## 📘 Documentation
 
-Two documentation experiences will be provided:
+Two documentation experiences are provided:
 
 ### **1) Classic Documentation**
-Guides, API reference, tutorials  
+Guides, API reference, tutorials - https://ultimateauth.com
 
-### **2) Interactive Identity Sandbox**
+### **2) Interactive Identity Sandbox** (Available Soon)
 Create accounts, simulate devices, test auth flows, and observe UltimateAuth in action.  
 
 ---
