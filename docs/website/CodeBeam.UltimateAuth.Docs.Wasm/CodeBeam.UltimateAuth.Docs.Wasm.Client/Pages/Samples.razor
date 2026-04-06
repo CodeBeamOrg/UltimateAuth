@@ -1,0 +1,73 @@
+﻿@page "/samples"
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center">
+        <MudStack Spacing="4" Class="text-center">
+            <MudText Typo="Typo.h3"><b>Samples</b></MudText>
+            <MudText Typo="Typo.subtitle2">Explore working examples and see UltimateAuth in action.</MudText>
+            <MudText Typo="Typo.caption">Interactive online samples are coming soon.</MudText>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.body2">
+                All samples are available on GitHub. Clone the repository, open the solution
+                and run the projects to play with real-world UltimateAuth implementation.
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">Blazor Server (EF Core)</MudText>
+                        <MudText Typo="Typo.subtitle2">Full-featured sample with persistent storage using EF Core.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">Blazor Server (InMemory)</MudText>
+                        <MudText Typo="Typo.subtitle2">Lightweight sample for quick setup without persistence.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">Blazor WASM (Standalone)</MudText>
+                        <MudText Typo="Typo.subtitle2">Client-side sample using Hybrid authentication model.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">UAuthHub</MudText>
+                        <MudText Typo="Typo.subtitle2">Complete Auth server with UI, working together with WASM client.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">Resource API</MudText>
+                        <MudText Typo="Typo.subtitle2">Example of securing application APIs using UltimateAuth.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/resource-api/CodeBeam.UltimateAuth.Sample.ResourceApi" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>   
+
+            <MudAlert Severity="Severity.Info" Class="mt-6" ContentAlignment="HorizontalAlignment.Center">
+                <b>WASM Sample Setup:</b><br />
+                Start the following projects together:<br />
+                (1) UAuthHub<br />
+                (2) ResourceApi<br />
+                (3) BlazorStandaloneWasm<br />
+                After opening the solution, configure multiple startup projects in Visual Studio.
+            </MudAlert>
+
+            <MudAlert Severity="Severity.Info" Class="my-6">
+                Each sample refreshes (clear + seed) it's data on each restart. When you close application it will be reset.
+            </MudAlert>
+        </MudStack>
+    </MudContainer>
+</MudPage>

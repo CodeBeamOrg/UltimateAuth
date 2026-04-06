@@ -92,12 +92,13 @@
 
 <div class="ua-separator"></div>
 
+<a id="donate" />
 <MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
     <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center text-center">
         <MudStack Spacing="4" AlignItems="AlignItems.Center">
             <MudIcon Class="ua-vision-icon-wrapper mt-n1" Style="width: 72px; height: 72px" Icon="@Icons.Material.Filled.VolunteerActivism" />
 
-            <MudText Typo="Typo.h5"><b>UltimateAuth is and will always forever free.</b></MudText>
+            <MudText Typo="Typo.h5"><b>UltimateAuth is, and will always remain free.</b></MudText>
             <MudText Class="ua-donate-text">No licenses. No tiers. No hidden limits. Full features as a self-hosted framework.</MudText>
             <MudText Class="ua-donate-subtext">
                 But building and maintaining a secure, production-ready Auth framework takes time, effort and care.
@@ -135,7 +136,13 @@
             "Override any part of the pipeline without breaking security boundaries."),
 
         new(Icons.Material.Outlined.Category, "Developer First",
-            "Clean APIs, Blazor native design and seamless integration with .NET ecosystem.")
+            "Clean APIs, Blazor native design and seamless integration with .NET ecosystem."),
+
+        new(Icons.Material.Outlined.AccountTree, "Enterprise-Ready Foundations",
+            "Built-in multi-tenancy, soft delete and optimistic concurrency support. Designed with real-world data integrity and scalability in mind."),
+
+        new(Icons.Material.Outlined.Groups, "Advanced User Management",
+            "Support for multi-profile and multi-identifier users with a full lifecycle model. Go beyond basic identity systems with flexible, real-world user modeling.")
     };
 
     record Principle(string Icon, string Title, string Description);
