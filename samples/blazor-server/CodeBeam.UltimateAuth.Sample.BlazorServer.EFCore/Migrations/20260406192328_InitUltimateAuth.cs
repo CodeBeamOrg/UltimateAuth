@@ -182,6 +182,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Tenant = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
                     UserKey = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    ProfileKey = table.Column<string>(type: "TEXT", maxLength: 64, nullable: false),
                     FirstName = table.Column<string>(type: "TEXT", nullable: true),
                     LastName = table.Column<string>(type: "TEXT", nullable: true),
                     DisplayName = table.Column<string>(type: "TEXT", nullable: true),
@@ -498,9 +499,10 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_UAuth_UserProfiles_Tenant_UserKey",
+                name: "IX_UAuth_UserProfiles_Tenant_UserKey_ProfileKey",
                 table: "UAuth_UserProfiles",
-                columns: new[] { "Tenant", "UserKey" });
+                columns: new[] { "Tenant", "UserKey", "ProfileKey" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UAuth_UserRoles_Tenant_RoleId",
