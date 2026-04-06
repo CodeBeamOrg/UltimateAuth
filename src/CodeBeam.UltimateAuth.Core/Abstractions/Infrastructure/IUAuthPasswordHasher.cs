@@ -7,6 +7,7 @@
 /// </summary>
 public interface IUAuthPasswordHasher
 {
-    string Hash(string password);
-    bool Verify(string hash, string secret);
+    PasswordHash Hash(string password);
+    bool Verify(PasswordHash hash, string secret);
+    bool NeedsRehash(PasswordHash hash);
 }

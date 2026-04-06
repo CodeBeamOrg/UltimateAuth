@@ -1,8 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
@@ -13,8 +15,8 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
     public UserKey UserKey { get; init; }
     public CredentialType Type => CredentialType.Password;
 
-    // TODO: Add hash algorithm (PasswordHash object with hash and algorithm properties)
-    public string SecretHash { get; private set; } = default!;
+    [JsonConverter(typeof(PasswordHashJsonConverter))]
+    public PasswordHash SecretHash { get; private set; }
     public CredentialSecurityState Security { get; private set; } = CredentialSecurityState.Active();
     public CredentialMetadata Metadata { get; private set; } = new CredentialMetadata();
 
@@ -34,7 +36,7 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
         Guid id,
         TenantKey tenant,
         UserKey userKey,
-        string secretHash,
+        PasswordHash secretHash,
         CredentialSecurityState security,
         CredentialMetadata metadata,
         DateTimeOffset createdAt,
@@ -80,7 +82,7 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
          Guid? id,
          TenantKey tenant,
          UserKey userKey,
-         string secretHash,
+         PasswordHash secretHash,
          CredentialSecurityState security,
          CredentialMetadata metadata,
          DateTimeOffset now)
@@ -98,7 +100,7 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
             0);
     }
 
-    public PasswordCredential ChangeSecret(string newSecretHash, DateTimeOffset now)
+    public PasswordCredential ChangeSecret(PasswordHash newSecretHash, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(newSecretHash))
             throw new UAuthValidationException("credential_secret_required");
@@ -156,7 +158,7 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
         Guid id,
         TenantKey tenant,
         UserKey userKey,
-        string secretHash,
+        PasswordHash secretHash,
         CredentialSecurityState security,
         CredentialMetadata metadata,
         DateTimeOffset createdAt,

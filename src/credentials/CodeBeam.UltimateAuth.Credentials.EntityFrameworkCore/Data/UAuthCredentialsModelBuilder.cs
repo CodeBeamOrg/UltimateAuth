@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,9 @@ public static class UAuthCredentialsModelBuilder
                 .IsRequired();
 
             e.Property(x => x.SecretHash)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => PasswordHash.Parse(v, null))
                 .HasMaxLength(512)
                 .IsRequired();
 
