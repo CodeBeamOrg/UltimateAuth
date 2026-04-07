@@ -1,13 +1,13 @@
 <Project>
 	<PropertyGroup>
-		<Version>0.1.0-preview.1</Version>
+		<Version>0.1.0-preview.2</Version>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 		
 		<Authors>CodeBeam</Authors>
 		<Company>CodeBeam</Company>
 
 		<RepositoryUrl>https://github.com/CodeBeamOrg/UltimateAuth</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/CodeBeamOrg/UltimateAuth</PackageProjectUrl>
+		<PackageProjectUrl>https://ultimateauth.com</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
