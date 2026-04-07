@@ -5,15 +5,15 @@ public enum IdentifierExistenceScope
     /// <summary>
     /// Checks only within the same user.
     /// </summary>
-    WithinUser,
+    WithinUser = 0,
 
     /// <summary>
     /// Checks within tenant but only primary identifiers.
     /// </summary>
-    TenantPrimaryOnly,
+    TenantPrimaryOnly = 10,
 
     /// <summary>
     /// Checks within tenant regardless of primary flag.
     /// </summary>
-    TenantAny
+    TenantAny = 20
 }

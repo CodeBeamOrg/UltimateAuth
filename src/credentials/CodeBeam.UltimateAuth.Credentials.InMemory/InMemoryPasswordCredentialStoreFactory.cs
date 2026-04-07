@@ -10,6 +10,6 @@ public sealed class InMemoryPasswordCredentialStoreFactory : IPasswordCredential
 
     public IPasswordCredentialStore Create(TenantKey tenant)
     {
-        return _stores.GetOrAdd(tenant, t => new InMemoryPasswordCredentialStore(new TenantContext(t)));
+        return _stores.GetOrAdd(tenant, t => new InMemoryPasswordCredentialStore(new TenantExecutionContext(t)));
     }
 }

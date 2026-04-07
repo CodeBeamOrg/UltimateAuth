@@ -13,7 +13,7 @@ internal sealed class InMemoryPasswordCredentialStore : InMemoryTenantVersionedS
     protected override CredentialKey GetKey(PasswordCredential entity)
         => new(entity.Tenant, entity.Id);
 
-    public InMemoryPasswordCredentialStore(TenantContext tenant) : base(tenant)
+    public InMemoryPasswordCredentialStore(TenantExecutionContext tenant) : base(tenant)
     {
     }
 

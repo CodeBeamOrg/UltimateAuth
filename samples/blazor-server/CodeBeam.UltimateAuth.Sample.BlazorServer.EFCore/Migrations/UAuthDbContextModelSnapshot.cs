@@ -655,6 +655,11 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ProfileKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Tenant")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -677,7 +682,8 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tenant", "UserKey");
+                    b.HasIndex("Tenant", "UserKey", "ProfileKey")
+                        .IsUnique();
 
                     b.ToTable("UAuth_UserProfiles", (string)null);
                 });

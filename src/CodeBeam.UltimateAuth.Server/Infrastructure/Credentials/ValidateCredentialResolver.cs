@@ -23,8 +23,8 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
 
         return kind switch
         {
-            PrimaryGrantKind.Stateful => await ResolveSession(context, response),
-            PrimaryGrantKind.Stateless => await ResolveAccessToken(context, response),
+            PrimaryTokenKind.Session => await ResolveSession(context, response),
+            PrimaryTokenKind.AccessToken => await ResolveAccessToken(context, response),
 
             _ => null
         };
@@ -49,7 +49,7 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
 
         return new ResolvedCredential
         {
-            Kind = PrimaryGrantKind.Stateful,
+            Kind = PrimaryTokenKind.Session,
             Value = raw.Trim(),
             Tenant = context.GetTenant(),
             Device = await context.GetDeviceAsync()
@@ -81,7 +81,7 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
 
         return new ResolvedCredential
         {
-            Kind = PrimaryGrantKind.Stateless,
+            Kind = PrimaryTokenKind.AccessToken,
             Value = value,
             Tenant = context.GetTenant(),
             Device = await context.GetDeviceAsync()

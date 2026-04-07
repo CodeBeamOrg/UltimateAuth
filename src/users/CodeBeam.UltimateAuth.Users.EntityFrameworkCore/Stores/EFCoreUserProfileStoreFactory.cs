@@ -15,6 +15,6 @@ internal sealed class EfCoreUserProfileStoreFactory<TDbContext> : IUserProfileSt
 
     public IUserProfileStore Create(TenantKey tenant)
     {
-        return new EfCoreUserProfileStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreUserProfileStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

@@ -7,4 +7,5 @@ public sealed record UserQuery : PageRequest
     public string? Search { get; set; }
     public UserStatus? Status { get; set; }
     public bool IncludeDeleted { get; set; }
+    public ProfileKey? ProfileKey { get; set; }
 }

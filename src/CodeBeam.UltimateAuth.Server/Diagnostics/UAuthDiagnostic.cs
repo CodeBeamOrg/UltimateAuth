@@ -4,7 +4,7 @@ public sealed record UAuthDiagnostic(string code, string message, UAuthDiagnosti
 
 public enum UAuthDiagnosticSeverity
 {
-    Info,
-    Warning,
-    Error
+    Info = 0,
+    Warning = 10,
+    Error = 20
 }

@@ -2,8 +2,10 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 
@@ -12,7 +14,7 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCoreUserProfileStore(TDbContext db, TenantContext tenant)
+    public EfCoreUserProfileStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;
@@ -28,7 +30,8 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
             .AsNoTracking()
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
-                x.UserKey == key.UserKey,
+                x.UserKey == key.UserKey &&
+                x.ProfileKey == key.ProfileKey.Value,
                 ct);
 
         return projection?.ToDomain();
@@ -41,7 +44,8 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
         return await DbSet
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
-                x.UserKey == key.UserKey,
+                x.UserKey == key.UserKey &&
+                x.ProfileKey == key.ProfileKey.Value,
                 ct);
     }
 
@@ -53,6 +57,16 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
 
         if (entity.Version != 0)
             throw new InvalidOperationException("New profile must have version 0.");
+
+        var exists = await DbSet
+        .AnyAsync(x =>
+            x.Tenant == entity.Tenant.Value &&
+            x.UserKey == entity.UserKey.Value &&
+            x.ProfileKey == entity.ProfileKey.Value,
+            ct);
+
+        if (exists)
+            throw new UAuthConflictException("profile_already_exists");
 
         DbSet.Add(projection);
 
@@ -66,7 +80,8 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
         var existing = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
-                x.UserKey == entity.UserKey,
+                x.UserKey == entity.UserKey &&
+                x.ProfileKey == entity.ProfileKey.Value,
                 ct);
 
         if (existing is null)
@@ -88,7 +103,8 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
         var projection = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
-                x.UserKey == key.UserKey,
+                x.UserKey == key.UserKey &&
+                x.ProfileKey == key.ProfileKey.Value,
                 ct);
 
         if (projection is null)
@@ -119,6 +135,11 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
         var baseQuery = DbSet
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant);
+
+        if (query.ProfileKey != null)
+        {
+            baseQuery = baseQuery.Where(x => x.ProfileKey == query.ProfileKey.Value);
+        }
 
         if (!query.IncludeDeleted)
             baseQuery = baseQuery.Where(x => x.DeletedAt == null);
@@ -164,7 +185,7 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
             query.Descending);
     }
 
-    public async Task<IReadOnlyList<UserProfile>> GetByUsersAsync(IReadOnlyList<UserKey> userKeys, CancellationToken ct = default)
+    public async Task<IReadOnlyList<UserProfile>> GetByUsersAsync(IReadOnlyList<UserKey> userKeys, ProfileKey profileKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -172,9 +193,22 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
             .AsNoTracking()
             .Where(x => x.Tenant == _tenant)
             .Where(x => userKeys.Contains(x.UserKey))
+            .Where(x => x.ProfileKey == profileKey.Value)
             .Where(x => x.DeletedAt == null)
             .ToListAsync(ct);
 
+        return projections.Select(x => x.ToDomain()).ToList();
+    }
+
+    public async Task<IReadOnlyList<UserProfile>> GetAllProfilesByUserAsync(UserKey userKey, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var projections = await DbSet
+            .AsNoTracking()
+            .Where(x => x.Tenant == _tenant)
+            .Where(x => x.UserKey == userKey)
+            .ToListAsync(ct);
         return projections.Select(x => x.ToDomain()).ToList();
     }
 }

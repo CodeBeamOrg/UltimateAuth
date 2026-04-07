@@ -9,6 +9,6 @@ public sealed class InMemoryRoleStoreFactory : IRoleStoreFactory
 
     public IRoleStore Create(TenantKey tenant)
     {
-        return _stores.GetOrAdd(tenant, t => new InMemoryRoleStore(new TenantContext(t)));
+        return _stores.GetOrAdd(tenant, t => new InMemoryRoleStore(new TenantExecutionContext(t)));
     }
 }

@@ -14,6 +14,6 @@ internal sealed class EfCoreUserRoleStoreFactory<TDbContext> : IUserRoleStoreFac
 
     public IUserRoleStore Create(TenantKey tenant)
     {
-        return new EfCoreUserRoleStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreUserRoleStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

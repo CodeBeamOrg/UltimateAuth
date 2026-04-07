@@ -9,9 +9,9 @@ public abstract class InMemoryTenantVersionedStore<TEntity, TKey> : InMemoryVers
     where TEntity : class, IVersionedEntity, IEntitySnapshot<TEntity>, ITenantEntity
     where TKey : notnull, IEquatable<TKey>
 {
-    private readonly TenantContext _tenant;
+    private readonly TenantExecutionContext _tenant;
 
-    protected InMemoryTenantVersionedStore(TenantContext tenant)
+    protected InMemoryTenantVersionedStore(TenantExecutionContext tenant)
     {
         _tenant = tenant;
     }

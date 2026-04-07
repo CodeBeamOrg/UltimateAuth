@@ -19,7 +19,7 @@ internal sealed class InMemoryUserProfileStoreFactory : IUserProfileStoreFactory
     {
         return _stores.GetOrAdd(tenant, t =>
         {
-            var tenantContext = new TenantContext(t);
+            var tenantContext = new TenantExecutionContext(t);
             return ActivatorUtilities.CreateInstance<InMemoryUserProfileStore>(_provider, tenantContext);
         });
     }

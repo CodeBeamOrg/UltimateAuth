@@ -120,13 +120,15 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
+        var request = await ctx.ReadJsonAsync<GetProfileRequest>(ctx.RequestAborted);
+
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.GetSelf,
             resource: "users",
             resourceId: flow?.UserKey?.Value);
 
-        var profile = await _users.GetMeAsync(accessContext, ctx.RequestAborted);
+        var profile = await _users.GetMeAsync(accessContext, request?.ProfileKey, ctx.RequestAborted);
         return Results.Ok(profile);
     }
 
@@ -136,13 +138,15 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
+        var request = await ctx.ReadJsonAsync<GetProfileRequest>(ctx.RequestAborted);
+
         var accessContext = await _accessContextFactory.CreateAsync(
             authFlow: flow,
             action: UAuthActions.UserProfiles.GetAdmin,
             resource: "users",
             resourceId: userKey.Value);
 
-        var profile = await _users.GetUserProfileAsync(accessContext, ctx.RequestAborted);
+        var profile = await _users.GetUserProfileAsync(accessContext, request?.ProfileKey, ctx.RequestAborted);
         return Results.Ok(profile);
     }
 
@@ -217,6 +221,78 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             });
 
         await _users.DeleteUserAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> CreateProfileSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<CreateProfileRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserProfiles.CreateSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.CreateProfileAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> CreateProfileAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<CreateProfileRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserProfiles.CreateAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.CreateProfileAsync(accessContext, request, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> DeleteProfileSelfAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<DeleteProfileRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserProfiles.DeleteSelf,
+            resource: "users",
+            resourceId: flow.UserKey!.Value);
+
+        await _users.DeleteProfileAsync(accessContext, request.ProfileKey, ctx.RequestAborted);
+        return Results.Ok();
+    }
+
+    public async Task<IResult> DeleteProfileAdminAsync(UserKey userKey, HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<DeleteProfileRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserProfiles.DeleteAdmin,
+            resource: "users",
+            resourceId: userKey.Value);
+
+        await _users.DeleteProfileAsync(accessContext, request.ProfileKey, ctx.RequestAborted);
         return Results.Ok();
     }
 

@@ -19,7 +19,7 @@ internal sealed class InMemoryUserLifecycleStoreFactory : IUserLifecycleStoreFac
     {
         return _stores.GetOrAdd(tenant, t =>
         {
-            var tenantContext = new TenantContext(tenant);
+            var tenantContext = new TenantExecutionContext(tenant);
             return ActivatorUtilities.CreateInstance<InMemoryUserLifecycleStore>(_provider, tenantContext);
         });
     }

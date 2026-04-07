@@ -13,7 +13,7 @@ internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCrede
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
 
-    public EfCorePasswordCredentialStore(TDbContext db, TenantContext tenant)
+    public EfCorePasswordCredentialStore(TDbContext db, TenantExecutionContext tenant)
     {
         _db = db;
         _tenant = tenant.Tenant;

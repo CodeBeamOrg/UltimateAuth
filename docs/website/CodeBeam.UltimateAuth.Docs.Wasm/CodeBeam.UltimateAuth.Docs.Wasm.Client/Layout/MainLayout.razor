@@ -8,6 +8,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+<a id="uauth" />
 <MudLayout>
     <MudAppBar Class="ua-appbar" Color="Color.Transparent" Dense="true" Elevation="0">
         <div class="ua-appbar-grid">
@@ -17,16 +18,18 @@
                 </div>
 
                 <div class="ua-desktop-only">
-                    <MudButton Variant="Variant.Text">Docs (Preparing)</MudButton>
-                    <MudButton Variant="Variant.Text">Donate</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/docs">Docs</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/samples">Samples</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/#donate">Donate</MudButton>
                 </div>
             </div>
 
-            <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/"))">
+            <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/#uauth"))">
                 <UAuthLogo Class="ua-logo mt-4" Size="64" />
             </div>
 
             <div class="ua-right">
+                <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Href="https://discord.gg/ENhTkHWcwY" Target="_blank" />
                 <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
                 <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
             </div>
@@ -35,7 +38,10 @@
 
     <MudDrawer @bind-Open="_drawerOpen" Breakpoint="Breakpoint.None" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Temporary">
         <MudNavMenu>
-            <MudNavLink Href="/#home" Icon="@Icons.Material.Filled.Home">Preparing</MudNavLink>
+            <MudNavLink Href="/#uauth" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+            <MudNavLink Href="/docs" Icon="@Icons.Material.Filled.Book">Docs</MudNavLink>
+            <MudNavLink Href="/docs" Icon="@Icons.Material.Filled.Apps">Samples</MudNavLink>
+            <MudNavLink Href="/#donate" Icon="@Icons.Material.Filled.VolunteerActivism">Donate</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
 

@@ -1,0 +1,65 @@
+name: Publish NuGet Packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build -c Release --no-restore
+
+      - name: Pack (nupkg + snupkg)
+        run: |
+          dotnet pack -c Release \
+            --no-build \
+            -o ./nupkgs \
+            /p:IncludeSymbols=true \
+            /p:SymbolPackageFormat=snupkg
+
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: CodeBeam
+
+      - name: List packages
+        run: ls -la ./nupkgs
+
+      - name: Publish packages
+        run: |
+          echo "🚀 Publishing..."
+
+          for f in ./nupkgs/*.nupkg; do
+            echo "📦 $f"
+
+            dotnet nuget push "$f" \
+              --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate \
+              || echo "❌ Failed: $f"
+          done
+
+      - name: Done
+        run: echo "✅ Publish process completed"

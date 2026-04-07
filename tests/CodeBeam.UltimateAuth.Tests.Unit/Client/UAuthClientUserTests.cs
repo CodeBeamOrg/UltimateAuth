@@ -18,12 +18,15 @@ public class UAuthClientUserTests : UAuthClientTestBase
             UserKey = UserKey.FromString("user-1")
         };
 
-        Request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
             .ReturnsAsync(SuccessJson(response));
 
         var client = CreateUserClient();
         await client.Users.GetMeAsync();
-        Request.Verify(x => x.SendFormAsync("/auth/me/get"), Times.Once);
+
+        Request.Verify(x => x.SendJsonAsync(
+            "/auth/me/profile/get",
+            It.Is<object>(o => o is GetProfileRequest && ((GetProfileRequest)o).ProfileKey == null)), Times.Once);
     }
 
     [Fact]
@@ -155,12 +158,15 @@ public class UAuthClientUserTests : UAuthClientTestBase
             UserKey = userKey
         };
 
-        Request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
             .ReturnsAsync(SuccessJson(response));
 
         var client = CreateUserClient();
         await client.Users.GetUserAsync(userKey);
-        Request.Verify(x => x.SendFormAsync($"/auth/admin/users/{userKey.Value}/profile/get"), Times.Once);
+
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/users/{userKey.Value}/profile/get",
+            It.Is<object>(o => o is GetProfileRequest && ((GetProfileRequest)o).ProfileKey == null)), Times.Once);
     }
 
     [Fact]

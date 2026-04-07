@@ -8,6 +8,7 @@ internal static class UserProfileMapper
         => new()
         {
             UserKey = profile.UserKey,
+            ProfileKey = profile.ProfileKey,
             FirstName = profile.FirstName,
             LastName = profile.LastName,
             DisplayName = profile.DisplayName,

@@ -2,13 +2,13 @@
 
 public enum AuthArtifactType
 {
-    PkceAuthorizationCode,
-    HubFlow,
-    LoginPreview,
-    HubLogin,
-    MfaChallenge,
-    PasswordReset,
-    MagicLink,
-    OAuthState,
+    PkceAuthorizationCode = 0,
+    HubFlow = 10,
+    LoginPreview = 20,
+    HubLogin = 30,
+    MfaChallenge = 40,
+    PasswordReset = 50,
+    MagicLink = 60,
+    OAuthState = 100,
     Custom = 1000
 }

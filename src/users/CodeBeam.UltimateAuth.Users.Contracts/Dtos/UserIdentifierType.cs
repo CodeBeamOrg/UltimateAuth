@@ -2,8 +2,8 @@
 
 public enum UserIdentifierType
 {
-    Username,
-    Email,
-    Phone,
-    Custom
+    Username = 0,
+    Email = 10,
+    Phone = 20,
+    Custom = 100
 }

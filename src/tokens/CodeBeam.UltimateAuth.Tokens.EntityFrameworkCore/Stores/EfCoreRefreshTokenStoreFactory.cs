@@ -15,6 +15,6 @@ internal sealed class EfCoreRefreshTokenStoreFactory<TDbContext> : IRefreshToken
 
     public IRefreshTokenStore Create(TenantKey tenant)
     {
-        return new EfCoreRefreshTokenStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreRefreshTokenStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

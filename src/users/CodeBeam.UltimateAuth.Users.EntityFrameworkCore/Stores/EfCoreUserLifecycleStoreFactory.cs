@@ -15,6 +15,6 @@ internal sealed class EfCoreUserLifecycleStoreFactory<TDbContext> : IUserLifecyc
 
     public IUserLifecycleStore Create(TenantKey tenant)
     {
-        return new EfCoreUserLifecycleStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCoreUserLifecycleStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

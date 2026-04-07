@@ -2,5 +2,5 @@
 
 public enum PkceChallengeMethod
 {
-    S256
+    S256 = 0
 }

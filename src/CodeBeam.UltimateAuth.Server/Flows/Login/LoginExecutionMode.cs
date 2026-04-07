@@ -3,5 +3,5 @@
 internal enum LoginExecutionMode
 {
     Preview = 0,
-    Commit = 1
+    Commit = 10
 }

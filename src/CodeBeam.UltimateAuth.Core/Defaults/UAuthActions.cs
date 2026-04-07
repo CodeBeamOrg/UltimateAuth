@@ -68,8 +68,12 @@ public static class UAuthActions
 
         public const string GetSelf = "users.profile.get.self";
         public const string UpdateSelf = "users.profile.update.self";
+        public const string CreateSelf = "users.profile.add.self";
+        public const string CreateAdmin = "users.profile.add.admin";
         public const string GetAdmin = "users.profile.get.admin";
         public const string UpdateAdmin = "users.profile.update.admin";
+        public const string DeleteSelf = "users.profile.delete.self";
+        public const string DeleteAdmin = "users.profile.delete.admin";
     }
 
     public static class UserIdentifiers

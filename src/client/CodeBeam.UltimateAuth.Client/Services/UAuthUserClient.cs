@@ -23,15 +23,16 @@ internal sealed class UAuthUserClient : IUserClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task<UAuthResult<UserView>> GetMeAsync()
+    public async Task<UAuthResult<UserView>> GetMeAsync(GetProfileRequest? request = null)
     {
-        var raw = await _request.SendFormAsync(Url("/me/get"));
+        request ??= new GetProfileRequest();
+        var raw = await _request.SendJsonAsync(Url("/me/profile/get"), request);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
     public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/update"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/update"), request);
         if (raw.Ok)
         {
             await _events.PublishAsync(new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
@@ -56,10 +57,67 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<PagedResult<UserSummary>>(raw);
     }
 
+    public async Task<UAuthResult> CreateMyProfileAsync(CreateProfileRequest request)
+    {
+        var raw = await _request.SendJsonAsync(Url("/me/profile/create"), request);
+
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(
+                new UAuthStateEventArgs<CreateProfileRequest>(
+                    UAuthStateEvent.ProfileChanged,
+                    _options.StateEvents.HandlingMode,
+                    request));
+        }
+
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> CreateUserProfileAsync(UserKey userKey, CreateProfileRequest request)
+    {
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/create"), request);
+        return UAuthResultMapper.From(raw);
+    }
+
     public async Task<UAuthResult<UserCreateResult>> CreateAsync(CreateUserRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/users/create"), request);
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
+    }
+
+    public async Task<UAuthResult> DeleteMyProfileAsync(ProfileKey profileKey)
+    {
+        var request = new DeleteProfileRequest
+        {
+            ProfileKey = profileKey
+        };
+
+        var raw = await _request.SendJsonAsync(Url("/me/profile/delete"), request);
+
+        if (raw.Ok)
+        {
+            await _events.PublishAsync(
+                new UAuthStateEventArgs<ProfileKey>(
+                    UAuthStateEvent.ProfileChanged,
+                    _options.StateEvents.HandlingMode,
+                    profileKey));
+        }
+
+        return UAuthResultMapper.From(raw);
+    }
+
+    public async Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, ProfileKey profileKey)
+    {
+        var request = new DeleteProfileRequest
+        {
+            ProfileKey = profileKey
+        };
+
+        var raw = await _request.SendJsonAsync(
+            Url($"/admin/users/{userKey.Value}/profile/delete"),
+            request);
+
+        return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<UserCreateResult>> CreateAsAdminAsync(CreateUserRequest request)
@@ -90,9 +148,10 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserDeleteResult>(raw);
     }
 
-    public async Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey)
+    public async Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey, GetProfileRequest? request = null)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/profile/get"));
+        request = request ?? new GetProfileRequest();
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/get"), request);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 

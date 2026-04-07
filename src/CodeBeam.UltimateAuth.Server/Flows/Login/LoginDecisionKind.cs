@@ -2,7 +2,7 @@
 
 public enum LoginDecisionKind
 {
-    Allow = 1,
-    Deny = 2,
-    Challenge = 3
+    Allow = 0,
+    Deny = 10,
+    Challenge = 20
 }

@@ -10,12 +10,10 @@ namespace CodeBeam.UltimateAuth.Server.Security;
 internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityManager
 {
     private readonly IAuthenticationSecurityStateStoreFactory _storeFactory;
-    private readonly UAuthServerOptions _options;
 
-    public AuthenticationSecurityManager(IAuthenticationSecurityStateStoreFactory storeFactory, IOptions<UAuthServerOptions> options)
+    public AuthenticationSecurityManager(IAuthenticationSecurityStateStoreFactory storeFactory)
     {
         _storeFactory = storeFactory;
-        _options = options.Value;
     }
 
     public async Task<AuthenticationSecurityState> GetOrCreateAccountAsync(TenantKey tenant, UserKey userKey, CancellationToken ct = default)

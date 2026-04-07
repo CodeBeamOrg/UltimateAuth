@@ -1,6 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
@@ -108,6 +110,11 @@ public static class UAuthUsersModelBuilder
                 .HasMaxLength(128)
                 .IsRequired();
 
+            e.Property(x => x.ProfileKey)
+                .HasConversion(v => v.Value, v => ProfileKey.Parse(v, null))
+                .HasMaxLength(64)
+                .IsRequired();
+
             e.Property(x => x.Metadata)
                 .HasConversion(new NullableJsonValueConverter<Dictionary<string, string>>())
                 .Metadata.SetValueComparer(JsonValueComparers.Create<Dictionary<string, string>>());
@@ -116,7 +123,7 @@ public static class UAuthUsersModelBuilder
             e.Property(x => x.UpdatedAt).HasNullableUtcDateTimeOffsetConverter();
             e.Property(x => x.DeletedAt).HasNullableUtcDateTimeOffsetConverter();
 
-            e.HasIndex(x => new { x.Tenant, x.UserKey });
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.ProfileKey }).IsUnique();
         });
     }
 }

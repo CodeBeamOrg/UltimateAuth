@@ -2,13 +2,13 @@
 
 public enum AuthFailureReason
 {
-    InvalidCredentials,
-    LockedOut,
-    RequiresMfa,
-    SessionExpired,
-    SessionRevoked,
-    TenantDisabled,
-    Unauthorized,
-    ReauthenticationRequired,
-    Unknown
+    InvalidCredentials = 0,
+    LockedOut = 10,
+    RequiresMfa = 20,
+    ReauthenticationRequired = 30,
+    Unauthorized = 40,
+    SessionExpired = 100,
+    SessionRevoked = 110,
+    TenantDisabled = 120,
+    Unknown = 1000
 }

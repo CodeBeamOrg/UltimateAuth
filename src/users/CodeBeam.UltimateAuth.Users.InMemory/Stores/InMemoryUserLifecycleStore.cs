@@ -10,7 +10,7 @@ public sealed class InMemoryUserLifecycleStore : InMemoryTenantVersionedStore<Us
     protected override UserLifecycleKey GetKey(UserLifecycle entity)
         => new(entity.Tenant, entity.UserKey);
 
-    public InMemoryUserLifecycleStore(TenantContext tenant) : base(tenant)
+    public InMemoryUserLifecycleStore(TenantExecutionContext tenant) : base(tenant)
     {
     }
 

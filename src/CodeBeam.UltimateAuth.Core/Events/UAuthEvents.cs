@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Options;
-
-namespace CodeBeam.UltimateAuth.Core.Events;
+﻿namespace CodeBeam.UltimateAuth.Core.Events;
 
 /// <summary>
 /// Provides an optional, application-wide event hook system for UltimateAuth.

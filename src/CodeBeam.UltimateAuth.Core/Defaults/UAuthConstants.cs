@@ -31,6 +31,7 @@ public static class UAuthConstants
         public const string ReturnUrl = "return_url";
         public const string Device = "__uauth_device";
         public const string ClientProfile = "__uauth_client_profile";
+        public const string FormCacheKey = "__uauth_form";
     }
 
     public static class Query

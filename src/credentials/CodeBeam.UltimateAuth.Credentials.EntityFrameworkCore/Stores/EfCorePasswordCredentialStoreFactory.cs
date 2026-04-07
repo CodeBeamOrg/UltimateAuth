@@ -15,6 +15,6 @@ internal sealed class EfCorePasswordCredentialStoreFactory<TDbContext> : IPasswo
 
     public IPasswordCredentialStore Create(TenantKey tenant)
     {
-        return new EfCorePasswordCredentialStore<TDbContext>(_db, new TenantContext(tenant));
+        return new EfCorePasswordCredentialStore<TDbContext>(_db, new TenantExecutionContext(tenant));
     }
 }

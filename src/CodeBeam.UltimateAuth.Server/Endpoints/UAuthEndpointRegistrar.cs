@@ -220,21 +220,37 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         if (options.Endpoints.UserProfile != false)
         {
             if (Enabled(UAuthActions.UserProfiles.GetSelf))
-                self.MapPost("/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                self.MapPost("/profile/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
 
+            if (Enabled(UAuthActions.UserProfiles.CreateSelf))
+                self.MapPost("/profile/create", async (IUserEndpointHandler h, HttpContext ctx)
+                => await h.CreateProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+
             if (Enabled(UAuthActions.UserProfiles.UpdateSelf))
-                self.MapPost("/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                self.MapPost("/profile/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+
+            if (Enabled(UAuthActions.UserProfiles.DeleteSelf))
+                self.MapPost("/profile/delete", async (IUserEndpointHandler h, HttpContext ctx)
+                => await h.DeleteProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
 
 
             if (Enabled(UAuthActions.UserProfiles.GetAdmin))
                 adminUsers.MapPost("/{userKey}/profile/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.GetUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
 
+            if (Enabled(UAuthActions.UserProfiles.CreateAdmin))
+                adminUsers.MapPost("/{userKey}/profile/create", async (IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.CreateProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+
             if (Enabled(UAuthActions.UserProfiles.UpdateAdmin))
                 adminUsers.MapPost("/{userKey}/profile/update", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.UpdateUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+
+            if (Enabled(UAuthActions.UserProfiles.DeleteAdmin))
+                adminUsers.MapPost("/{userKey}/profile/delete", async (IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
+                => await h.DeleteProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
         }
 
         if (options.Endpoints.UserIdentifier != false)
