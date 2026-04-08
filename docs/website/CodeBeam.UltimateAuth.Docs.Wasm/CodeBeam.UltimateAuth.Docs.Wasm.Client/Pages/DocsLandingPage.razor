@@ -1,30 +1,178 @@
 ﻿@page "/docs"
+@layout DocsLayout
 
 <MudPage FullScreen="FullScreen.FullWithoutAppbar" Row="1" Column="1">
-    <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center">
-        <MudStack Spacing="3" Class="text-center">
-            <MudText Typo="Typo.h3"><b>UltimateAuth Docs</b></MudText>
-            <MudText Typo="Typo.subtitle2">The modern way to understand authentication — unified, simple and powerful.</MudText>
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-12">
+        <MudStack Spacing="4">
 
-            <MudDivider Class="my-2" />
-            
-            <MudText>This page is preparing.</MudText>
+            <MudStack Spacing="1" Class="text-center">
+                <MudText Typo="Typo.h3"><b>UltimateAuth Docs</b></MudText>
+                <MudText Typo="Typo.subtitle2">The modern way to understand authentication — unified, simple and powerful.</MudText>
 
-            <MudText Typo="Typo.body2" Class="mt-2">
-                But the documentation is currently available in markdown format and covers core concepts, architecture, flows and integration guides.
-            </MudText>
+                <MudText>
+                    Learn the architecture, flows, client APIs, security model, and integration patterns of UltimateAuth:
+                </MudText>
+            </MudStack>
 
-            <MudText Typo="Typo.body2">
-                Start exploring the docs to understand how UltimateAuth simplifies authentication across sessions, cookies and tokens.
-            </MudText>
+            <MudPaper Outlined="true" Class="pa-6" Style="background: transparent">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h5">
+                        Start Here
+                    </MudText>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/docs/content" Target="_blank" StartIcon="@Icons.Material.Outlined.MenuBook" Class="mt-4">
-                Read Documentation
-            </MudButton>
+                    <MudText Typo="Typo.body1">
+                        If you are new to UltimateAuth, start with <b>Getting Started</b> and
+                        <b>Fundamentals</b>. If you care about usage, continue with <b>Client & API</b>.
+                        If you are evaluating architecture or enterprise adoption,
+                        continue with <b>Auth Flows</b>, <b>Security</b>, and <b>Plugin Domains</b>.
+                    </MudText>
+                </MudStack>
+            </MudPaper>
 
-            <MudText Typo="Typo.caption" Class="mt-6">
-                Full documentation site is coming soon.
-            </MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">Getting Started</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Set up UltimateAuth quickly, understand the first login flow,
+                                and move into real-world application setup.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/docs/getting-started/index">
+                                Open Getting Started
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">Fundamentals</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Understand the authentication model, flow-based execution,
+                                auth modes, client profiles, and runtime architecture.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/docs/fundamentals/index">
+                                Open Fundamentals
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">Auth Flows</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Explore login, refresh, logout, session lifecycle,
+                                token behavior, and device-aware authentication flows.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/docs/auth-flows/index">
+                                Open Auth Flows
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">Client & API</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Explore the usage, the service client layer of UltimateAuth.
+                                Everything from basic login/logout to advanced session management should call with client.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/docs/client/index">
+                                Open Client & API
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">Plugin Domains</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Explore the user, credential, and authorization modules that not required for core Auth, but essential.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/docs/plugin-domains/index">
+                                Open Plugin Domains
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Class="pa-5" Style="background: transparent">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6">
+                                Security
+                            </MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Review the session security model, token behavior,
+                                refresh rotation, and the policy pipeline.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Href="/docs/security/session-security-model">
+                                Open Security Docs
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Outlined="true" Class="pa-6" Style="background: transparent">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h5">
+                        Coming Next
+                    </MudText>
+
+                    <MudText Typo="Typo.body1">
+                        The documentation experience will continue to expand with richer navigation,
+                        improved code rendering, and dedicated reference surfaces.
+                    </MudText>
+
+                    <MudList T="string" Dense="true">
+                        <MudListItem>API Reference</MudListItem>
+                        <MudListItem>Interactive authentication sandbox</MudListItem>
+                        <MudListItem>Sample-driven guides</MudListItem>
+                        <MudListItem>Integration recipes for Blazor, WASM, MAUI, MVC, and APIs</MudListItem>
+                    </MudList>
+                </MudStack>
+            </MudPaper>
+
+            <MudStack Row="true" Justify="Justify.Center" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Href="/docs/getting-started/index"
+                           StartIcon="@Icons.Material.Outlined.MenuBook">
+                    Browse Documentation
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/docs/content"
+                           Target="_blank"
+                           StartIcon="@Icons.Material.Outlined.Code">
+                    View Markdown Source
+                </MudButton>
+            </MudStack>
+
         </MudStack>
     </MudContainer>
 </MudPage>

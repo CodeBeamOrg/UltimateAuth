@@ -25,6 +25,9 @@
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration/CodeBeam.UltimateAuth.Tests.Integration.csproj" Id="fe34a0b1-8038-400d-b8ab-02dad7051f2d" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Unit/CodeBeam.UltimateAuth.Tests.Unit.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />
   </Folder>
+  <Folder Name="/Utilities/">
+    <Project Path="src/utilities/CodeBeam.UltimateAuth.DocsBuilder/CodeBeam.UltimateAuth.DocsBuilder.csproj" Id="07c6062a-96c8-40b7-972b-ad27ac11725b" />
+  </Folder>
   <Project Path="src/authentication/CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore/CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.csproj" Id="a8d758ad-052e-4331-9bf7-280ea9a55981" />
   <Project Path="src/authentication/CodeBeam.UltimateAuth.Authentication.InMemory/CodeBeam.UltimateAuth.Authentication.InMemory.csproj" Id="bd87e254-0565-4fc5-950d-ee5bbb416079" />
   <Project Path="src/authorization/CodeBeam.UltimateAuth.Authorization.Contracts/CodeBeam.UltimateAuth.Authorization.Contracts.csproj" Id="40a23002-f885-42a8-bdd9-fd962ab28742" />

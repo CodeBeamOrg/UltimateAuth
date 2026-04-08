@@ -197,3 +197,60 @@ h1:focus {
     position: relative;
     z-index: 9999;
 }
+
+
+
+
+.docs-container {
+    padding-top: 32px;
+    padding-bottom: 64px;
+}
+
+.docs-title {
+    font-weight: 600;
+}
+
+.docs-content {
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+    .docs-content h1,
+    .docs-content h2,
+    .docs-content h3 {
+        margin-top: 2rem;
+        font-weight: 600;
+    }
+
+    .docs-content p {
+        margin: 1rem 0;
+    }
+
+    .docs-content ul {
+        padding-left: 1.5rem;
+    }
+
+    .docs-content pre {
+        background: #0d1117;
+        padding: 1rem;
+        border-radius: 10px;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+    }
+
+    .docs-content code {
+        font-family: Consolas, monospace;
+        font-size: 0.9rem;
+    }
+
+    .docs-content p code {
+        background: rgba(135,131,120,0.15);
+        padding: 2px 6px;
+        border-radius: 6px;
+    }
+
+.docs-loading {
+    display: flex;
+    justify-content: center;
+    margin-top: 100px;
+}

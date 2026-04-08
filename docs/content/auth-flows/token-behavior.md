@@ -1,3 +1,10 @@
+---
+title: Token Behavior
+order: 6
+group: auth-flows
+---
+
+
 # 🎟 Token Behavior
 In UltimateAuth, tokens are not the foundation of authentication.
 

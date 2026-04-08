@@ -1,3 +1,10 @@
+---
+title: Configuration Sources
+order: 5
+group: configuration
+---
+
+
 # ⚙️ Configuration Sources
 
 UltimateAuth supports multiple configuration sources.

@@ -1,3 +1,10 @@
+---
+title: Auth Flows
+order: 1
+group: auth-flows
+---
+
+
 # 🔐 Auth Flows
 
 Authentication in UltimateAuth is not a single operation.

@@ -1,3 +1,10 @@
+---
+title: Request Lifecycle
+order: 7
+group: fundamentals
+---
+
+
 # 🔄 Request Lifecycle
 This section explains what happens when a request enters UltimateAuth.
 

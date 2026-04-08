@@ -1,3 +1,10 @@
+---
+title: Advanced Configuration
+order: 6
+group: configuration
+---
+
+
 # 🧠 Advanced Configuration
 
 UltimateAuth is designed to be flexible — but not fragile.

@@ -1,3 +1,9 @@
+---
+title: QuickStart
+order: 2
+group: getting-started
+---
+
 # ⚡ Quick Start
 
 In this guide, you will set up UltimateAuth in a few minutes and perform your **first login**.

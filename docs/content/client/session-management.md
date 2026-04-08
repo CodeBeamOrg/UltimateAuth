@@ -1,3 +1,10 @@
+---
+title: Session Management
+order: 3
+group: client
+---
+
+
 # 📱 Session Management Guide
 
 This section explains how to manage sessions and devices using the UltimateAuth client.

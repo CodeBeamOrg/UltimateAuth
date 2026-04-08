@@ -1,0 +1,78 @@
+﻿@using System.Net.Http.Json
+@inject HttpClient Http
+
+@if (_loading || !RendererInfo.IsInteractive)
+{
+    <div class="docs-loading">
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" />
+    </div>
+    return;
+}
+else if (_notFound)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium">
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            Document not found.
+        </MudAlert>
+    </MudContainer>
+}
+else if (_doc is not null)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="docs-container">
+        <MudText Typo="Typo.h3" Class="docs-title">@_doc.Title</MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <div class="docs-content" @ref="_contentRef">@((MarkupString)_doc.Html)</div>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public string? Slug { get; set; }
+
+    private DocPage? _doc;
+    private bool _loading = true;
+    private bool _notFound;
+    private ElementReference _contentRef;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _notFound = false;
+        _doc = null;
+
+        var slug = string.IsNullOrWhiteSpace(Slug)
+            ? "index"
+            : Slug!.Trim('/');
+
+        try
+        {
+            _doc = await Http.GetFromJsonAsync<DocPage>($"docs/{slug}.json");
+
+            if (_doc == null)
+                _notFound = true;
+        }
+        catch
+        {
+            _notFound = true;
+        }
+
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loading && _doc != null)
+        {
+            // await JS.InvokeVoidAsync("docsEnhance", _contentRef);
+        }
+    }
+
+    private sealed class DocPage
+    {
+        public string Slug { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Html { get; set; } = "";
+    }
+}

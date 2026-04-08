@@ -1,3 +1,10 @@
+---
+title: Runtime Architecture
+order: 6
+group: fundamentals
+---
+
+
 # 🏗 Runtime Architecture
 
 UltimateAuth processes authentication through a structured execution pipeline.

@@ -1,3 +1,10 @@
+---
+title: Users
+order: 2
+group: plugin-domains
+---
+
+
 # 👤 Users Domain
 
 Users in UltimateAuth are not a single entity.

@@ -1,3 +1,10 @@
+---
+title: Client & API
+order: 1
+group: client
+---
+
+
 # 🚀 Client Usage Guide
 
 UltimateAuth Client is a **high-level SDK** designed to simplify authentication flows.

@@ -1,3 +1,10 @@
+---
+title: Client Options
+order: 4
+group: configuration
+---
+
+
 # 🧩 Client Options
 
 Client Options define how UltimateAuth behaves on the **client side**.

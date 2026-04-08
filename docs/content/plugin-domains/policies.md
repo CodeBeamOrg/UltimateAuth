@@ -1,3 +1,10 @@
+---
+title: Policies
+order: 5
+group: plugin-domains
+---
+
+
 # 🛡 Policies & Access Control
 
 UltimateAuth uses a **policy-driven authorization model**.

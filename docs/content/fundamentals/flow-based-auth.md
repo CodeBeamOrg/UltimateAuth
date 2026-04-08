@@ -1,3 +1,10 @@
+---
+title: Flow Based Authentication
+order: 3
+group: fundamentals
+---
+
+
 # 🔄 Flow-Based Authentication
 UltimateAuth is not cookie-based or token-based.
 

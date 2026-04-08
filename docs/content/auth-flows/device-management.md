@@ -1,3 +1,10 @@
+---
+title: Device Management
+order: 7
+group: auth-flows
+---
+
+
 # 📱 Device Management
 
 In UltimateAuth, devices are not an afterthought.

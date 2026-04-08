@@ -1,3 +1,10 @@
+---
+title: Credentials
+order: 6
+group: client
+---
+
+
 # 🔑 Credential Management Guide
 
 This section explains how to manage user credentials (such as passwords) using the UltimateAuth client.

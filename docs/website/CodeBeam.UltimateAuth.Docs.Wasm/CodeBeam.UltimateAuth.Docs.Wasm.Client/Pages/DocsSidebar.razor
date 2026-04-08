@@ -1,0 +1,79 @@
+﻿@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div>
+    <MudText Typo="Typo.h6" Class="mb-2 px-2">
+        Documentation
+    </MudText>
+
+    <MudDivider Class="mb-2" />
+
+    @if (_groups == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudNavMenu Color="Color.Primary">
+            @foreach (var group in _groups)
+            {
+                <MudNavGroup Title="@FormatGroup(group.Key)" Expanded="true">
+                    @foreach (var item in group.Value)
+                    {
+                        <MudNavLink Match="NavLinkMatch.Prefix" Href="@($"/docs/{item.Slug}")">@item.Title</MudNavLink>
+                    }
+                </MudNavGroup>
+            }
+        </MudNavMenu>
+    }
+</div>
+
+@code {
+    private Dictionary<string, List<DocIndexItem>>? _groups;
+    private DocIndexItem? _selectedValue;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var items = await Http.GetFromJsonAsync<List<DocIndexItem>>("/docs/docs-index.json") ?? [];
+
+        _groups = items
+            .GroupBy(x => x.Group)
+             .OrderBy(g => g.Min(x => x.GroupOrder))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(x => x.Order).ToList()
+            );
+
+        StateHasChanged();
+    }
+
+    private string GetItemClass(DocIndexItem item)
+    {
+        var current = Nav.ToBaseRelativePath(Nav.Uri);
+
+        return current == $"docs/{item.Slug}"
+            ? "mud-selected-item"
+            : "";
+    }
+
+    private string FormatGroup(string group)
+    {
+        if (string.IsNullOrWhiteSpace(group))
+            return "General";
+
+        return System.Globalization.CultureInfo.CurrentCulture.TextInfo
+            .ToTitleCase(group.Replace("-", " "));
+    }
+
+    private class DocIndexItem
+    {
+        public string Title { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public int Order { get; set; }
+        public string Group { get; set; } = "";
+        public int GroupOrder { get; set; } = 999;
+    }
+}

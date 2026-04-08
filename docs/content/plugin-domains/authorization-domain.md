@@ -1,3 +1,10 @@
+---
+title: Authorization
+order: 4
+group: plugin-domains
+---
+
+
 # 🔐 Authorization & Policies
 
 UltimateAuth provides a flexible and extensible authorization system based on:
