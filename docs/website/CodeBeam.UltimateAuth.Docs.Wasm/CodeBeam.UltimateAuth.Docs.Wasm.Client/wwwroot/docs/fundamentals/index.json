@@ -1,6 +1,6 @@
 {
   "Slug": "fundamentals/index",
-  "Title": "index",
-  "Html": "\u003Cp\u003E---\u003C/p\u003E\n\u003Cp\u003Etitle: Fundamental Overview\u003C/p\u003E\n\u003Cp\u003Eorder: 1\u003C/p\u003E\n\u003Cp\u003Egroup: fundamentals\u003C/p\u003E\n\u003Cp\u003E---\u003C/p\u003E\n\u003Cp\u003E# \uD83E\uDDE0 Fundamental Overview\u003C/p\u003E\n\u003Cp\u003EThis section explains how UltimateAuth works internally.\u003C/p\u003E\n\u003Cp\u003E## Section Order\u003C/p\u003E\n\u003Cp\u003EIf you are new, follow this order:\u003C/p\u003E\n\u003Cp\u003E- Authentication Model\u003C/p\u003E\n\u003Cp\u003E- Flow-Based Authentication\u003C/p\u003E\n\u003Cp\u003E- Authentication Modes\u003C/p\u003E\n\u003Cp\u003E- Client Profiles\u003C/p\u003E\n\u003Cp\u003E- Runtime Architecture\u003C/p\u003E\n\u003Cp\u003E- Request Lifecycle\u003C/p\u003E\n",
+  "Title": "Fundamental Overview",
+  "Html": "\n\u003Cp\u003EThis section explains how UltimateAuth works internally.\u003C/p\u003E\n\u003Ch1 id=\u0022section-order\u0022\u003ESection Order\u003C/h1\u003E\n\u003Cp\u003EIf you are new, follow this order:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAuthentication Model\u003C/li\u003E\n\u003Cli\u003EFlow-Based Authentication\u003C/li\u003E\n\u003Cli\u003EAuthentication Modes\u003C/li\u003E\n\u003Cli\u003EClient Profiles\u003C/li\u003E\n\u003Cli\u003ERuntime Architecture\u003C/li\u003E\n\u003Cli\u003ERequest Lifecycle\u003C/li\u003E\n\u003C/ul\u003E\n",
   "Headings": []
 }

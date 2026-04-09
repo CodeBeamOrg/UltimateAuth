@@ -20,5 +20,7 @@
 	<Target Name="BuildDocs" BeforeTargets="Build">
 		<Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\..\..\..\src\utilities\CodeBeam.UltimateAuth.DocsBuilder\CodeBeam.UltimateAuth.DocsBuilder.csproj&quot; --solutionDir &quot;$(MSBuildProjectDirectory)\..\..\..\..\&quot;" ConsoleToMSBuild="true" />
 	</Target>
+
+	<ProjectExtensions><VisualStudio><UserProperties wwwroot_4docs_4docs-index_1json__JsonSchema="https://www.schemastore.org/aspire-8.0.json" /></VisualStudio></ProjectExtensions>
 	
 </Project>

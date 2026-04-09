@@ -101,7 +101,6 @@ foreach (var file in markdownFiles)
 
     Console.WriteLine($"⚙ Processing: {relativePath}");
 
-    //var headings = ExtractHeadings(content);
     var html = Markdown.ToHtml(content, pipeline);
     html = RemoveFirstH1(html);
 
@@ -148,13 +147,12 @@ Console.WriteLine("✅ Docs build completed.");
 static string? ExtractTitle(string markdown)
 {
     using var reader = new StringReader(markdown);
-
     while (reader.ReadLine() is { } line)
     {
-        if (line.StartsWith("# "))
-            return line[2..].Trim();
+        var trimmed = line.Trim();
+        if (trimmed.StartsWith("# "))
+            return trimmed[2..].Trim();
     }
-
     return null;
 }
 
@@ -197,43 +195,34 @@ static string FindSolutionRootFallback()
 
 static (Dictionary<string, string> meta, string content) ParseFrontmatter(string markdown)
 {
-    if (string.IsNullOrWhiteSpace(markdown))
-        return (new(), string.Empty);
-
-    markdown = markdown.TrimStart('\uFEFF');
-    markdown = markdown.Replace("\r\n", "\n").Replace("\r", "\n");
-    markdown = markdown.TrimStart();
-
-    if (!markdown.StartsWith("---"))
-        return (new(), markdown);
-
-    var firstLineEnd = markdown.IndexOf('\n');
-    if (firstLineEnd == -1)
-        return (new(), markdown);
-
-    var firstLine = markdown.Substring(0, firstLineEnd).Trim();
-    if (firstLine != "---")
-        return (new(), markdown);
-
-    var end = markdown.IndexOf("\n---\n", firstLineEnd + 1);
-    if (end == -1)
-        return (new(), markdown);
-
-    var rawMeta = markdown.Substring(firstLineEnd + 1, end - firstLineEnd - 1);
-    var content = markdown[(end + 5)..];
-
     var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    if (string.IsNullOrWhiteSpace(markdown)) return (dict, string.Empty);
 
-    foreach (var line in rawMeta.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+    var lines = markdown.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+
+    if (lines.Length == 0 || lines[0].Trim() != "---")
+        return (dict, markdown);
+
+    int closingIndex = -1;
+    for (int i = 1; i < lines.Length; i++)
     {
-        var parts = line.Split(':', 2, StringSplitOptions.TrimEntries);
+        if (lines[i].Trim() == "---")
+        {
+            closingIndex = i;
+            break;
+        }
 
-        if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
+        var parts = lines[i].Split(':', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length == 2)
         {
             dict[parts[0]] = parts[1];
         }
     }
 
+    if (closingIndex == -1)
+        return (new(), markdown);
+
+    var content = string.Join("\n", lines.Skip(closingIndex + 1));
     return (dict, content);
 }
 
@@ -246,41 +235,6 @@ static string RemoveFirstH1(string html)
     if (end == -1) return html;
 
     return html.Remove(start, end + 5 - start);
-}
-
-static List<DocsHeadingItem> ExtractHeadings(string markdown)
-{
-    var result = new List<DocsHeadingItem>();
-    using var reader = new StringReader(markdown);
-
-    string? line;
-    while ((line = reader.ReadLine()) is not null)
-    {
-        var trimmed = line.Trim();
-
-        if (trimmed.StartsWith("## "))
-        {
-            var text = trimmed[3..].Trim();
-            result.Add(new DocsHeadingItem
-            {
-                Text = text,
-                Id = Slugify(text),
-                Level = 0
-            });
-        }
-        else if (trimmed.StartsWith("### "))
-        {
-            var text = trimmed[4..].Trim();
-            result.Add(new DocsHeadingItem
-            {
-                Text = text,
-                Id = Slugify(text),
-                Level = 1
-            });
-        }
-    }
-
-    return result;
 }
 
 static List<DocsHeadingItem> ExtractHeadingsFromHtml(string html)
@@ -296,7 +250,7 @@ static List<DocsHeadingItem> ExtractHeadingsFromHtml(string html)
 
     foreach (var node in nodes)
     {
-        var id = node.GetAttributeValue("id", null);
+        var id = node.GetAttributeValue("id", string.Empty);
 
         if (string.IsNullOrWhiteSpace(id))
             continue;
@@ -310,20 +264,6 @@ static List<DocsHeadingItem> ExtractHeadingsFromHtml(string html)
     }
 
     return result;
-}
-
-static string Slugify(string text)
-{
-    var chars = text
-        .ToLowerInvariant()
-        .Select(c => char.IsLetterOrDigit(c) ? c : '-')
-        .ToArray();
-
-    var slug = new string(chars);
-    while (slug.Contains("--"))
-        slug = slug.Replace("--", "-");
-
-    return slug.Trim('-');
 }
 
 internal sealed record DocOutput(string Slug, string Title, string Html, List<DocsHeadingItem> Headings);

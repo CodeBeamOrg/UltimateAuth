@@ -13,7 +13,7 @@
     <MudNavMenu Dense="true">
         @foreach (var item in PageState.Headings)
         {
-            <MudNavLink Class="@GetClass(item)" Style="@($"padding-left:{item.Level * 12}px")"
+            <MudNavLink Class="@GetClass(item)" Style=@($"padding-left:{item.Level * 12}px")
                         OnClick="@(() => OnClick(item.Id))" Match="NavLinkMatch.Prefix">
                 @item.Text
             </MudNavLink>
@@ -31,12 +31,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Console.WriteLine($"OnAfterRender - Headings: {PageState.Headings.Count}");
-
         if (_ref == null && PageState.Headings.Count > 0)
         {
-            Console.WriteLine("Starting ScrollSpy");
-
             _ref = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("uaDocsScrollSpy.start", _ref);
         }

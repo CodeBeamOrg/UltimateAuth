@@ -1,7 +1,7 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager Nav
 
-<div>
+<div style="min-height: 20vh; max-height: 90vh; overflow-y: auto;">
     @if (!Inline)
     {
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -18,7 +18,7 @@
     }
     else
     {
-        <MudNavMenu Color="Color.Primary">
+        <MudNavMenu Color="Color.Primary" Rounded="true">
             <MudNavLink Match="NavLinkMatch.All" Href="/docs">Overview</MudNavLink>
             @foreach (var group in _groups)
             {

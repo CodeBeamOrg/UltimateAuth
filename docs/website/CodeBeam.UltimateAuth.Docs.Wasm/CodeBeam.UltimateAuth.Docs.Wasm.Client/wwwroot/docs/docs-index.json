@@ -21,6 +21,13 @@
     "GroupOrder": 1
   },
   {
+    "Title": "Fundamental Overview",
+    "Slug": "fundamentals/index",
+    "Order": 1,
+    "Group": "fundamentals",
+    "GroupOrder": 2
+  },
+  {
     "Title": "Authentication Model",
     "Slug": "fundamentals/auth-model",
     "Order": 2,
@@ -268,13 +275,6 @@
   {
     "Title": "\uD83D\uDD10 UltimateAuth Docs",
     "Slug": "readme",
-    "Order": 999,
-    "Group": "",
-    "GroupOrder": 999
-  },
-  {
-    "Title": "index",
-    "Slug": "fundamentals/index",
     "Order": 999,
     "Group": "",
     "GroupOrder": 999
