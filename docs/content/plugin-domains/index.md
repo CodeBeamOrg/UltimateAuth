@@ -1,3 +1,10 @@
+---
+title: Plugin Domains
+order: 1
+group: plugin-domains
+---
+
+
 # 🧩 Plugin Domains
 
 Authentication alone is not enough.

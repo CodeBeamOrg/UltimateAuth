@@ -1,0 +1,88 @@
+﻿@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div style="min-height: 20vh; max-height: 90vh; overflow-y: auto;">
+    @if (!Inline)
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6" Class="mb-2 px-2">UAuth Docs</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.CloseFullscreen" Color="Color.Primary" OnClick="@(() => _expanded = !_expanded)" />
+        </MudStack>
+    }
+
+    <MudDivider Class="mb-2" />
+
+    @if (_groups == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudNavMenu Color="Color.Primary" Rounded="true">
+            <MudNavLink Match="NavLinkMatch.All" Href="/docs">Overview</MudNavLink>
+            @foreach (var group in _groups)
+            {
+                <MudNavGroup Title="@FormatGroup(group.Key)" Expanded="_expanded">
+                    @foreach (var item in group.Value)
+                    {
+                        <MudNavLink Match="NavLinkMatch.Prefix" Href="@($"/docs/{item.Slug}")">@item.Title</MudNavLink>
+                    }
+                </MudNavGroup>
+            }
+        </MudNavMenu>
+    }
+</div>
+
+@code {
+    private Dictionary<string, List<DocIndexItem>>? _groups;
+    private DocIndexItem? _selectedValue;
+    private bool _expanded = true;
+
+    [Parameter]
+    public bool Inline { get; set; }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var items = await Http.GetFromJsonAsync<List<DocIndexItem>>("/docs/docs-index.json") ?? [];
+
+        _groups = items
+            .GroupBy(x => x.Group)
+             .OrderBy(g => g.Min(x => x.GroupOrder))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(x => x.Order).ToList()
+            );
+
+        StateHasChanged();
+    }
+
+    private string GetItemClass(DocIndexItem item)
+    {
+        var current = Nav.ToBaseRelativePath(Nav.Uri);
+
+        return current == $"docs/{item.Slug}"
+            ? "mud-selected-item"
+            : "";
+    }
+
+    private string FormatGroup(string group)
+    {
+        if (string.IsNullOrWhiteSpace(group))
+            return "General";
+
+        return System.Globalization.CultureInfo.CurrentCulture.TextInfo
+            .ToTitleCase(group.Replace("-", " "));
+    }
+
+    private class DocIndexItem
+    {
+        public string Title { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public int Order { get; set; }
+        public string Group { get; set; } = "";
+        public int GroupOrder { get; set; } = 999;
+    }
+}

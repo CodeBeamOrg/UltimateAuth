@@ -1,0 +1,47 @@
+{
+  "Slug": "plugin-domains/users-domain",
+  "Title": "Users",
+  "Html": "\n\u003Cp\u003EUsers in UltimateAuth are not a single entity.\u003C/p\u003E\n\u003Cp\u003EInstead, they are composed of multiple parts that together define identity.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022core-concept\u0022\u003E\uD83E\uDDE0 Core Concept\u003C/h2\u003E\n\u003Cp\u003EA user is represented by three main components:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELifecycle (security \u0026amp; state)\u003C/li\u003E\n\u003Cli\u003EIdentifiers (login surface)\u003C/li\u003E\n\u003Cli\u003EProfile (user data)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022lifecycle-security-anchor\u0022\u003E\uD83D\uDD10 Lifecycle (Security Anchor)\u003C/h2\u003E\n\u003Cp\u003ELifecycle defines:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EWhen a user created\u003C/li\u003E\n\u003Cli\u003EWhether a user is active, suspended, or deleted\u003C/li\u003E\n\u003Cli\u003ESecurity version (used for invalidating sessions/tokens)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This is the core of authentication security.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022identifiers-login-system\u0022\u003E\uD83D\uDD11 Identifiers (Login System)\u003C/h2\u003E\n\u003Cp\u003EIdentifiers represent how a user logs in:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEmail\u003C/li\u003E\n\u003Cli\u003EUsername\u003C/li\u003E\n\u003Cli\u003EPhone\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EEach identifier has:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ENormalized value\u003C/li\u003E\n\u003Cli\u003EPrimary flag\u003C/li\u003E\n\u003Cli\u003EVerification state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022login-identifiers\u0022\u003E\u2B50 Login Identifiers\u003C/h3\u003E\n\u003Cp\u003ENot all identifiers are used for login.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Only \u003Cstrong\u003Eprimary identifiers\u003C/strong\u003E are considered login identifiers.\u003C/p\u003E\n\u003Ch4 id=\u0022configurable-behavior\u0022\u003E\u2699\uFE0F Configurable Behavior\u003C/h4\u003E\n\u003Cp\u003EDevelopers can control:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EWhich identifier types are allowed for login\u003C/li\u003E\n\u003Cli\u003EWhether email/phone must be verified\u003C/li\u003E\n\u003Cli\u003EWhether multiple identifiers are allowed\u003C/li\u003E\n\u003Cli\u003EGlobal uniqueness rules\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022custom-login-logic\u0022\u003E\uD83D\uDD0C Custom Login Logic\u003C/h4\u003E\n\u003Cp\u003EUltimateAuth allows custom login identifier resolution.\u003C/p\u003E\n\u003Cp\u003EYou can:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAdd custom identifier types\u003C/li\u003E\n\u003Cli\u003EOverride resolution logic\u003C/li\u003E\n\u003Cli\u003EImplement your own resolver\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This means login is fully extensible.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022profile-user-data\u0022\u003E\uD83E\uDDFE Profile (User Data)\u003C/h2\u003E\n\u003Cp\u003EProfile contains non-auth data:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EName\u003C/li\u003E\n\u003Cli\u003EBio\u003C/li\u003E\n\u003Cli\u003ELocalization\u003C/li\u003E\n\u003Cli\u003EMetadata\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This is not used for authentication.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022application-service\u0022\u003E\u2699\uFE0F Application Service\u003C/h2\u003E\n\u003Cp\u003EUser operations are handled by an orchestration layer.\u003C/p\u003E\n\u003Cp\u003EIt is responsible for:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECreating users\u003C/li\u003E\n\u003Cli\u003EManaging identifiers\u003C/li\u003E\n\u003Cli\u003EApplying validation rules\u003C/li\u003E\n\u003Cli\u003ETriggering integrations\u003C/li\u003E\n\u003Cli\u003ERevoking sessions when needed\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83D\uDD01 Mental Model\u003C/h2\u003E\n\u003Cp\u003EAuthentication answers:\u003C/p\u003E\n\u003Cp\u003E\u2192 Who are you?\u003C/p\u003E\n\u003Cp\u003EUsers domain answers:\u003C/p\u003E\n\u003Cp\u003E\u2192 What is this user?\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EUsers are composed, not singular\u003C/li\u003E\n\u003Cli\u003ELogin is based on identifiers\u003C/li\u003E\n\u003Cli\u003ELogin identifiers are configurable\u003C/li\u003E\n\u003Cli\u003ESystem is extensible by design\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "core-concept",
+      "Text": "\uD83E\uDDE0 Core Concept",
+      "Level": 0
+    },
+    {
+      "Id": "lifecycle-security-anchor",
+      "Text": "\uD83D\uDD10 Lifecycle (Security Anchor)",
+      "Level": 0
+    },
+    {
+      "Id": "identifiers-login-system",
+      "Text": "\uD83D\uDD11 Identifiers (Login System)",
+      "Level": 0
+    },
+    {
+      "Id": "login-identifiers",
+      "Text": "\u2B50 Login Identifiers",
+      "Level": 1
+    },
+    {
+      "Id": "profile-user-data",
+      "Text": "\uD83E\uDDFE Profile (User Data)",
+      "Level": 0
+    },
+    {
+      "Id": "application-service",
+      "Text": "\u2699\uFE0F Application Service",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83D\uDD01 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\uD83C\uDFAF Summary",
+      "Level": 0
+    }
+  ]
+}

@@ -1,3 +1,10 @@
+---
+title: Authentication Model
+order: 2
+group: fundamentals
+---
+
+
 # 🧠 Authentication Model
 
 UltimateAuth is built around a simple but powerful idea:

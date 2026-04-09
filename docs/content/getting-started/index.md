@@ -1,3 +1,9 @@
+---
+title: Getting Started
+order: 1
+group: getting-started
+---
+
 # 🚀 Getting Started
 
 Welcome to **UltimateAuth** — the modern authentication framework for .NET.

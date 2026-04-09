@@ -1,3 +1,10 @@
+---
+title: Configuration
+order: 1
+group: configuration
+---
+
+
 # ⚙️ Configuration & Extensibility
 
 UltimateAuth is designed to be flexible.

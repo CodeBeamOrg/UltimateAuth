@@ -1,3 +1,10 @@
+---
+title: Authentication
+order: 2
+group: client
+---
+
+
 # 🔐 Authentication Guide
 
 This section explains how to use the UltimateAuth client for authentication flows.

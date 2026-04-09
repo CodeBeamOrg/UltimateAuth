@@ -1,3 +1,10 @@
+---
+title: Policy Pipeline
+order: 4
+group: security
+---
+
+
 # 🧠 Policy Pipeline Deep Dive
 
 UltimateAuth does not rely on simple role checks.

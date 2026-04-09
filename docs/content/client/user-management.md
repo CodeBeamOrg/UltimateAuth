@@ -1,3 +1,10 @@
+---
+title: User Management
+order: 4
+group: client
+---
+
+
 # 👤 User Management Guide
 
 This section explains how to manage users using the UltimateAuth client.

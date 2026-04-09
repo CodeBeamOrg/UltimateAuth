@@ -1,3 +1,10 @@
+---
+title: Access Token Behavior
+order: 2
+group: security
+---
+
+
 # 🎯 Access Token Behavior
 
 Access tokens in UltimateAuth are intentionally **short-lived and mode-aware**.

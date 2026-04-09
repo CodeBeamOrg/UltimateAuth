@@ -12,7 +12,7 @@
 		</Description>
 
 		<PackageTags>authorization;roles;claims;rbac;policy;security;auth-framework</PackageTags>
-		<PackageIcon>logo.png</PackageIcon>
+		<PackageIcon>uauthlogo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="uauthlogo.png" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 

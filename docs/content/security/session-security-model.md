@@ -1,3 +1,10 @@
+---
+title: Session Security Model
+order: 1
+group: security
+---
+
+
 # 🔐 Session Security Model
 
 UltimateAuth is built around a **hierarchical session model**.

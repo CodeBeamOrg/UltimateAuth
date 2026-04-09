@@ -1,3 +1,10 @@
+---
+title: Refresh Rotation
+order: 3
+group: security
+---
+
+
 # 🔄 Refresh Token Rotation
 
 Refresh tokens in UltimateAuth are not simple long-lived tokens.

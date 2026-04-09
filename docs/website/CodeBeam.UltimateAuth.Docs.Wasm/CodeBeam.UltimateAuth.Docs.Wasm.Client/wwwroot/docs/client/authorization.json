@@ -1,0 +1,72 @@
+{
+  "Slug": "client/authorization",
+  "Title": "Authorization",
+  "Html": "\n\u003Cp\u003EThis section explains how to manage roles, permissions, and access control using the UltimateAuth client.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EAuthorization in UltimateAuth is policy-driven and role-based.\u003C/p\u003E\n\u003Cp\u003EOn the client, you interact with:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EUAuthClient.Authorization\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022core-concepts\u0022\u003E\uD83D\uDD11 Core Concepts\u003C/h2\u003E\n\u003Cp\u003ERoles\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ENamed groups of permissions\u003C/li\u003E\n\u003Cli\u003EAssigned to users\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EPermissions\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EFine-grained access definitions\u003C/li\u003E\n\u003Cli\u003EExample: users.create.anonymous, users.delete.self, authorization.roles.admin\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EPolicies\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERuntime decision rules\u003C/li\u003E\n\u003Cli\u003EEnforced automatically on server\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022query-roles\u0022\u003E\uD83D\uDCCB Query Roles\u003C/h3\u003E\n\u003Cp\u003Evar result = await UAuthClient.Authorization.QueryRolesAsync(new RoleQuery\n);\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022create-role\u0022\u003E\u2795 Create Role\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.CreateRoleAsync(new CreateRoleRequest\n);\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022rename-role\u0022\u003E\u270F\uFE0F Rename Role\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.RenameRoleAsync(new RenameRoleRequest\n);\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022set-permissions\u0022\u003E\uD83E\uDDE9 Set Permissions\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.SetRolePermissionsAsync(new SetRolePermissionsRequest\n{\nRoleId = roleId,\nPermissions = new[]\n{\nPermission.From(\u0026quot;users.read\u0026quot;),\nPermission.From(\u0026quot;users.update\u0026quot;)\n}\n});\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Permissions support:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EExact match \u2192 users.create\u003C/li\u003E\n\u003Cli\u003EPrefix \u2192 users.*\u003C/li\u003E\n\u003Cli\u003EWildcard \u2192 *\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022delete-role\u0022\u003E\u274C Delete Role\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.DeleteRoleAsync(new DeleteRoleRequest\n);\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Automatically removes role assignments from users\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022assign-role-to-user\u0022\u003E\uD83D\uDC64 Assign Role to User\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.AssignRoleToUserAsync(new AssignRoleRequest\n);\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022remove-role\u0022\u003E\u2796 Remove Role\u003C/h3\u003E\n\u003Cp\u003Eawait UAuthClient.Authorization.RemoveRoleFromUserAsync(new RemoveRoleRequest\n);\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-user-roles\u0022\u003E\uD83D\uDCCB Get User Roles\u003C/h3\u003E\n\u003Cp\u003Evar roles = await UAuthClient.Authorization.GetUserRolesAsync(userKey);\n\uD83D\uDD0D Check Authorization\nvar result = await UAuthClient.Authorization.CheckAsync(new AuthorizationCheckRequest\n);\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Returns:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAllow / Deny\u003C/li\u003E\n\u003Cli\u003EReason (if denied)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022permission-model\u0022\u003E\uD83E\uDDE0 Permission Model\u003C/h2\u003E\n\u003Cp\u003EPermissions are normalized and optimized:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EFull access \u2192 *\u003C/li\u003E\n\u003Cli\u003EGroup access \u2192 users.*\u003C/li\u003E\n\u003Cli\u003ESpecific \u2192 users.create\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Internally compiled for fast evaluation\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-notes\u0022\u003E\uD83D\uDD10 Security Notes\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EAuthorization is enforced server-side\u003C/li\u003E\n\u003Cli\u003EClient only requests actions\u003C/li\u003E\n\u003Cli\u003EPolicies may override permissions\u003C/li\u003E\n\u003Cli\u003ECross-tenant access is denied by default\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003EAuthorization in UltimateAuth:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Ecombines roles \u002B permissions \u002B policies\u003C/li\u003E\n\u003Cli\u003Eis evaluated through a decision pipeline\u003C/li\u003E\n\u003Cli\u003Esupports fine-grained and scalable access control\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "overview",
+      "Text": "\uD83E\uDDE0 Overview",
+      "Level": 0
+    },
+    {
+      "Id": "core-concepts",
+      "Text": "\uD83D\uDD11 Core Concepts",
+      "Level": 0
+    },
+    {
+      "Id": "query-roles",
+      "Text": "\uD83D\uDCCB Query Roles",
+      "Level": 1
+    },
+    {
+      "Id": "create-role",
+      "Text": "\u2795 Create Role",
+      "Level": 1
+    },
+    {
+      "Id": "rename-role",
+      "Text": "\u270F\uFE0F Rename Role",
+      "Level": 1
+    },
+    {
+      "Id": "set-permissions",
+      "Text": "\uD83E\uDDE9 Set Permissions",
+      "Level": 1
+    },
+    {
+      "Id": "delete-role",
+      "Text": "\u274C Delete Role",
+      "Level": 1
+    },
+    {
+      "Id": "assign-role-to-user",
+      "Text": "\uD83D\uDC64 Assign Role to User",
+      "Level": 1
+    },
+    {
+      "Id": "remove-role",
+      "Text": "\u2796 Remove Role",
+      "Level": 1
+    },
+    {
+      "Id": "get-user-roles",
+      "Text": "\uD83D\uDCCB Get User Roles",
+      "Level": 1
+    },
+    {
+      "Id": "permission-model",
+      "Text": "\uD83E\uDDE0 Permission Model",
+      "Level": 0
+    },
+    {
+      "Id": "security-notes",
+      "Text": "\uD83D\uDD10 Security Notes",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\uD83C\uDFAF Summary",
+      "Level": 0
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "Slug": "client/session-management",
+  "Title": "Session Management",
+  "Html": "\n\u003Cp\u003EThis section explains how to manage sessions and devices using the UltimateAuth client.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth, sessions are \u003Cstrong\u003Enot just tokens\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThey are structured as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERoot \u2192 user-level security\u003C/li\u003E\n\u003Cli\u003EChain \u2192 device (browser / mobile / app)\u003C/li\u003E\n\u003Cli\u003ESession \u2192 individual authentication instance\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 On the client, you interact with:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003E[Inject] IUAuthClient UAuthClient { get; set; } = null!;\n\nawait UAuthClient.Sessions...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-active-sessions-devices\u0022\u003E\uD83D\uDCCB Get Active Sessions (Devices)\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar result = await UAuthClient.Sessions.GetMyChainsAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Returns:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActive devices\u003C/li\u003E\n\u003Cli\u003ESession chains\u003C/li\u003E\n\u003Cli\u003EMetadata (device, timestamps)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-session-detail\u0022\u003E\uD83D\uDD0D Get Session Detail\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar detail = await UAuthClient.Sessions.GetMyChainDetailAsync(chainId);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Use this to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInspect a specific device\u003C/li\u003E\n\u003Cli\u003EView session history\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-vs-revoke-important\u0022\u003E\uD83D\uDEAA Logout vs Revoke (Important)\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth distinguishes between:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout\u0022\u003ELogout\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Flows.LogoutAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnds \u003Cstrong\u003Ecurrent session\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EUser can login again normally\u003C/li\u003E\n\u003Cli\u003EDoes NOT affect other devices\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-session-control\u0022\u003ERevoke (Session Control)\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeMyChainAsync(chainId);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvalidates entire \u003Cstrong\u003Edevice chain\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EAll sessions under that device are revoked\u003C/li\u003E\n\u003Cli\u003ECannot be restored\u003C/li\u003E\n\u003Cli\u003ENew login creates a new chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Key difference:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogout = end current session\u003C/li\u003E\n\u003Cli\u003ERevoke = destroy device identity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EFor standard auth process, use \u003Ccode\u003EUAuthClient.Flows.LogoutMyDeviceAsync(chainId)\u003C/code\u003E instead of \u003Ccode\u003EUAuthClient.Sessions.RevokeMyChainAsync(chainId)\u003C/code\u003E\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-other-devices\u0022\u003E\uD83D\uDCF1 Revoke Other Devices\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeMyOtherChainsAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EKeeps current device active\u003C/li\u003E\n\u003Cli\u003ELogs out all other devices\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-all-sessions\u0022\u003E\uD83D\uDCA5 Revoke All Sessions\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeAllMyChainsAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogs out ALL devices (including current)\u003C/li\u003E\n\u003Cli\u003EForces full reauthentication everywhere\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022admin-session-management\u0022\u003E\uD83D\uDC64 Admin Session Management\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-user-devices\u0022\u003EGet User Devices\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.GetUserChainsAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-specific-session\u0022\u003ERevoke Specific Session\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeUserSessionAsync(userKey, sessionId);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-device-chain\u0022\u003ERevoke Device (Chain)\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeUserChainAsync(userKey, chainId);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-all-user-sessions\u0022\u003ERevoke All User Sessions\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Sessions.RevokeAllUserChainsAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-model\u0022\u003E\uD83E\uDDE0 Device Model\u003C/h2\u003E\n\u003Cp\u003EEach chain represents a \u003Cstrong\u003Edevice identity\u003C/strong\u003E:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EBrowser instance\u003C/li\u003E\n\u003Cli\u003EMobile device\u003C/li\u003E\n\u003Cli\u003EApplication instance\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Sessions are grouped under chains.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-implications\u0022\u003E\uD83D\uDD10 Security Implications\u003C/h2\u003E\n\u003Cp\u003ESession operations are security-critical:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERevoke is irreversible\u003C/li\u003E\n\u003Cli\u003EDevice isolation is enforced\u003C/li\u003E\n\u003Cli\u003ECross-device attacks are contained\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003ESession management in UltimateAuth:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eis device-aware\u003C/li\u003E\n\u003Cli\u003Eseparates logout vs revoke\u003C/li\u003E\n\u003Cli\u003Egives full control over user sessions\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "overview",
+      "Text": "\uD83E\uDDE0 Overview",
+      "Level": 0
+    },
+    {
+      "Id": "get-active-sessions-devices",
+      "Text": "\uD83D\uDCCB Get Active Sessions (Devices)",
+      "Level": 0
+    },
+    {
+      "Id": "get-session-detail",
+      "Text": "\uD83D\uDD0D Get Session Detail",
+      "Level": 0
+    },
+    {
+      "Id": "logout-vs-revoke-important",
+      "Text": "\uD83D\uDEAA Logout vs Revoke (Important)",
+      "Level": 0
+    },
+    {
+      "Id": "logout",
+      "Text": "Logout",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-session-control",
+      "Text": "Revoke (Session Control)",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-other-devices",
+      "Text": "\uD83D\uDCF1 Revoke Other Devices",
+      "Level": 0
+    },
+    {
+      "Id": "revoke-all-sessions",
+      "Text": "\uD83D\uDCA5 Revoke All Sessions",
+      "Level": 0
+    },
+    {
+      "Id": "admin-session-management",
+      "Text": "\uD83D\uDC64 Admin Session Management",
+      "Level": 0
+    },
+    {
+      "Id": "get-user-devices",
+      "Text": "Get User Devices",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-specific-session",
+      "Text": "Revoke Specific Session",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-device-chain",
+      "Text": "Revoke Device (Chain)",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-all-user-sessions",
+      "Text": "Revoke All User Sessions",
+      "Level": 1
+    },
+    {
+      "Id": "device-model",
+      "Text": "\uD83E\uDDE0 Device Model",
+      "Level": 0
+    },
+    {
+      "Id": "security-implications",
+      "Text": "\uD83D\uDD10 Security Implications",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\uD83C\uDFAF Summary",
+      "Level": 0
+    }
+  ]
+}

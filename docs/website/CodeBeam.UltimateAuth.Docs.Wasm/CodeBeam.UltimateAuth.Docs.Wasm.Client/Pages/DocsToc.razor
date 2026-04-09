@@ -1,0 +1,74 @@
+﻿@inject DocsPageState PageState
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (PageState.Headings.Count == 0)
+{
+    return;
+}
+
+<MudPaper Class="pa-3" Style="background: transparent" Outlined="true" Elevation="0">
+    <MudText Typo="Typo.subtitle2" Class="mb-2">On this page</MudText>
+
+    <MudNavMenu Dense="true">
+        @foreach (var item in PageState.Headings)
+        {
+            <MudNavLink Class="@GetClass(item)" Style=@($"padding-left:{item.Level * 12}px")
+                        OnClick="@(() => OnClick(item.Id))" Match="NavLinkMatch.Prefix">
+                @item.Text
+            </MudNavLink>
+        }
+    </MudNavMenu>
+</MudPaper>
+
+@code {
+    private DotNetObjectReference<DocsToc>? _ref;
+
+    protected override void OnInitialized()
+    {
+        PageState.Changed += OnStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_ref == null && PageState.Headings.Count > 0)
+        {
+            _ref = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("uaDocsScrollSpy.start", _ref);
+        }
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetHref(string id)
+    {
+        return $"{Nav.Uri.Split('#')[0]}#{id}";
+    }
+
+    [JSInvokable]
+    public Task SetActiveHeading(string id)
+    {
+        PageState.SetActiveHeading(id);
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClick(string id)
+    {
+        PageState.SetActiveHeading(id);
+        await JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id);
+    }
+
+    private string GetClass(DocsHeadingItem item)
+     => item.Id == PageState.ActiveHeadingId ? "active toc-active" : "";
+
+    private Task ScrollTo(string id)
+        => JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id).AsTask();
+
+    public void Dispose()
+    {
+        PageState.Changed -= OnStateChanged;
+    }
+}

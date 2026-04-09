@@ -1,0 +1,77 @@
+{
+  "Slug": "plugin-domains/policies",
+  "Title": "Policies",
+  "Html": "\n\u003Cp\u003EUltimateAuth uses a \u003Cstrong\u003Epolicy-driven authorization model\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EPolicies are not simple checks \u2014\u003Cbr /\u003E\nthey are \u003Cstrong\u003Ecomposable decision units\u003C/strong\u003E evaluated at runtime.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EAuthorization in UltimateAuth is:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Context-based\u003Cbr /\u003E\n\uD83D\uDC49 Policy-driven\u003Cbr /\u003E\n\uD83D\uDC49 Orchestrated\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022flow\u0022\u003EFlow\u003C/h3\u003E\n\u003Col\u003E\n\u003Cli\u003EBuild \u003Ccode\u003EAccessContext\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003EResolve policies\u003C/li\u003E\n\u003Cli\u003EExecute authority\u003C/li\u003E\n\u003Cli\u003EAllow / Deny / Reauth\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022accesscontext\u0022\u003E\u2699\uFE0F AccessContext\u003C/h2\u003E\n\u003Cp\u003EEvery authorization decision is based on:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActor (who is calling)\u003C/li\u003E\n\u003Cli\u003ETarget (what is being accessed)\u003C/li\u003E\n\u003Cli\u003EAction (what is being done)\u003C/li\u003E\n\u003Cli\u003ETenant\u003C/li\u003E\n\u003Cli\u003EClaims / permissions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022policy-resolution\u0022\u003E\uD83D\uDD0C Policy Resolution\u003C/h2\u003E\n\u003Cp\u003EPolicies are resolved using:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAction prefix matching\u003C/li\u003E\n\u003Cli\u003ERuntime filtering (\u003Ccode\u003EAppliesTo\u003C/code\u003E)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EExample:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ccode\u003Eusers.create.admin\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003Eusers.*\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003Eauthorization.roles.*\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022policy-types\u0022\u003E\uD83E\uDDE9 Policy Types\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022global-policies\u0022\u003EGlobal Policies\u003C/h3\u003E\n\u003Cp\u003EAlways evaluated:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERequireAuthenticated\u003C/li\u003E\n\u003Cli\u003EDenyCrossTenant\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022runtime-policies\u0022\u003ERuntime Policies\u003C/h3\u003E\n\u003Cp\u003EResolved dynamically:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERequireActiveUser\u003C/li\u003E\n\u003Cli\u003EMustHavePermission\u003C/li\u003E\n\u003Cli\u003ERequireSelf\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022invariants\u0022\u003EInvariants\u003C/h3\u003E\n\u003Cp\u003EExecuted first:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECannot be bypassed\u003C/li\u003E\n\u003Cli\u003EHard security rules\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022policy-evaluation\u0022\u003E\u2696\uFE0F Policy Evaluation\u003C/h2\u003E\n\u003Cp\u003EEvaluation order:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EInvariants\u003C/li\u003E\n\u003Cli\u003EGlobal policies\u003C/li\u003E\n\u003Cli\u003ERuntime policies\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003E\uD83D\uDC49 First deny wins\u003Cbr /\u003E\n\uD83D\uDC49 Allow means \u201Cno objection\u201D\u003Cbr /\u003E\n\uD83D\uDC49 Reauth can be requested\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022example-policy\u0022\u003E\uD83D\uDD10 Example Policy\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022deny-admin-self-modification\u0022\u003EDeny Admin Self Modification\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EBlocks admin modifying own account\u003C/li\u003E\n\u003Cli\u003EApplies only to \u003Ccode\u003E.admin\u003C/code\u003E actions\u003C/li\u003E\n\u003Cli\u003EIgnores read operations\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022require-active-user\u0022\u003ERequire Active User\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnsures user exists\u003C/li\u003E\n\u003Cli\u003EEnsures user is active\u003C/li\u003E\n\u003Cli\u003ESkips anonymous actions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022access-orchestrator\u0022\u003E\uD83D\uDE80 Access Orchestrator\u003C/h2\u003E\n\u003Cp\u003EThe orchestrator is the entry point:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnriches context (claims, permissions)\u003C/li\u003E\n\u003Cli\u003EResolves policies\u003C/li\u003E\n\u003Cli\u003EExecutes authority\u003C/li\u003E\n\u003Cli\u003ERuns command if allowed\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-principles\u0022\u003E\uD83C\uDFAF Key Principles\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EPolicies are composable\u003C/li\u003E\n\u003Cli\u003EAuthorization is deterministic\u003C/li\u003E\n\u003Cli\u003ENo hidden magic\u003C/li\u003E\n\u003Cli\u003EFully extensible\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cp\u003E\uD83D\uDC49 Authorization is not a single check\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Epipeline of decisions\u003C/strong\u003E\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "flow",
+      "Text": "Flow",
+      "Level": 1
+    },
+    {
+      "Id": "accesscontext",
+      "Text": "\u2699\uFE0F AccessContext",
+      "Level": 0
+    },
+    {
+      "Id": "policy-resolution",
+      "Text": "\uD83D\uDD0C Policy Resolution",
+      "Level": 0
+    },
+    {
+      "Id": "policy-types",
+      "Text": "\uD83E\uDDE9 Policy Types",
+      "Level": 0
+    },
+    {
+      "Id": "global-policies",
+      "Text": "Global Policies",
+      "Level": 1
+    },
+    {
+      "Id": "runtime-policies",
+      "Text": "Runtime Policies",
+      "Level": 1
+    },
+    {
+      "Id": "invariants",
+      "Text": "Invariants",
+      "Level": 1
+    },
+    {
+      "Id": "policy-evaluation",
+      "Text": "\u2696\uFE0F Policy Evaluation",
+      "Level": 0
+    },
+    {
+      "Id": "example-policy",
+      "Text": "\uD83D\uDD10 Example Policy",
+      "Level": 0
+    },
+    {
+      "Id": "deny-admin-self-modification",
+      "Text": "Deny Admin Self Modification",
+      "Level": 1
+    },
+    {
+      "Id": "require-active-user",
+      "Text": "Require Active User",
+      "Level": 1
+    },
+    {
+      "Id": "access-orchestrator",
+      "Text": "\uD83D\uDE80 Access Orchestrator",
+      "Level": 0
+    },
+    {
+      "Id": "key-principles",
+      "Text": "\uD83C\uDFAF Key Principles",
+      "Level": 0
+    }
+  ]
+}

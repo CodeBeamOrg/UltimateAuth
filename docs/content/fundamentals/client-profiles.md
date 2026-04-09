@@ -1,3 +1,10 @@
+---
+title: Client Profiles
+order: 5
+group: fundamentals
+---
+
+
 # 🧩 Client Profiles
 UltimateAuth adapts its authentication behavior based on the client.
 

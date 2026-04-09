@@ -1,0 +1,77 @@
+{
+  "Slug": "security/policy-pipeline",
+  "Title": "Policy Pipeline",
+  "Html": "\n\u003Cp\u003EUltimateAuth does not rely on simple role checks.\u003C/p\u003E\n\u003Cp\u003EAuthorization is executed through a \u003Cstrong\u003Emulti-stage policy pipeline\u003C/strong\u003E that evaluates:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Einvariants (always enforced rules)\u003C/li\u003E\n\u003Cli\u003Eglobal policies\u003C/li\u003E\n\u003Cli\u003Eruntime (action-based) policies\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022core-principle\u0022\u003E\uD83E\uDDE0 Core Principle\u003C/h2\u003E\n\u003Cp\u003E\uD83D\uDC49 Authorization is not a single check\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Edecision pipeline\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022high-level-flow\u0022\u003E\uD83D\uDD01 High-Level Flow\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAccessContext\n   \u2193\nEnrichment (claims, permissions)\n   \u2193\nInvariants\n   \u2193\nGlobal Policies\n   \u2193\nRuntime Policies (action-based)\n   \u2193\nFinal Decision\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022accesscontext\u0022\u003E\uD83E\uDDE9 AccessContext\u003C/h2\u003E\n\u003Cp\u003EEvery authorization decision is based on an \u003Ccode\u003EAccessContext\u003C/code\u003E.\u003C/p\u003E\n\u003Cp\u003EIt contains:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eactor (who is making the request)\u003C/li\u003E\n\u003Cli\u003Etarget (resource / user)\u003C/li\u003E\n\u003Cli\u003Etenant\u003C/li\u003E\n\u003Cli\u003Eaction (string-based, e.g. \u0026quot;users.delete\u0026quot;)\u003C/li\u003E\n\u003Cli\u003Eattributes (claims, permissions, etc.)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Everything in the pipeline reads from this context\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-1-context-enrichment\u0022\u003E\uD83D\uDD04 Step 1: Context Enrichment\u003C/h2\u003E\n\u003Cp\u003EBefore policies run, context is enriched:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Epermissions are loaded\u003C/li\u003E\n\u003Cli\u003Ecompiled into \u003Ccode\u003ECompiledPermissionSet\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003Eattached to context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This allows policies to run without hitting storage repeatedly\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-2-invariants\u0022\u003E\uD83D\uDEE1 Step 2: Invariants\u003C/h2\u003E\n\u003Cp\u003EInvariants are \u003Cstrong\u003Ealways enforced rules\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThey run first and cannot be bypassed.\u003C/p\u003E\n\u003Cp\u003EExamples:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Euser must be authenticated\u003C/li\u003E\n\u003Cli\u003Ecross-tenant access is denied\u003C/li\u003E\n\u003Cli\u003Erequest must be valid\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 If an invariant fails:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003E\u2192 DENY immediately\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-3-global-policies\u0022\u003E\uD83C\uDF10 Step 3: Global Policies\u003C/h2\u003E\n\u003Cp\u003EGlobal policies apply to all requests but are conditional.\u003C/p\u003E\n\u003Cp\u003EExamples:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERequireActiveUserPolicy\u003C/li\u003E\n\u003Cli\u003EDenyAdminSelfModificationPolicy\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EEach policy:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Edecides if it applies (\u003Ccode\u003EAppliesTo\u003C/code\u003E)\u003C/li\u003E\n\u003Cli\u003Eevaluates (\u003Ccode\u003EDecide\u003C/code\u003E)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Important:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u201CAllow\u201D means \u003Cem\u003Eno objection\u003C/em\u003E\u003C/li\u003E\n\u003Cli\u003Enot final approval\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-4-runtime-policies\u0022\u003E\uD83C\uDFAF Step 4: Runtime Policies\u003C/h2\u003E\n\u003Cp\u003ERuntime policies are:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eaction-based\u003C/li\u003E\n\u003Cli\u003Edynamically resolved\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThey come from:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAccessPolicyRegistry \u2192 CompiledAccessPolicySet\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EPolicies are selected by:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003Econtext.Action.StartsWith(prefix)\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EExample:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAction: users.delete.admin\n\nMatches:\n- users.*\n- users.delete.*\n- users.delete.admin\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-5-decision-engine\u0022\u003E\u2696\uFE0F Step 5: Decision Engine\u003C/h2\u003E\n\u003Cp\u003EAll policies are evaluated by:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Ccode\u003EIAccessAuthority\u003C/code\u003E\u003C/p\u003E\n\u003Cp\u003EEvaluation order:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EInvariants\u003C/li\u003E\n\u003Cli\u003EGlobal policies\u003C/li\u003E\n\u003Cli\u003ERuntime policies\u003C/li\u003E\n\u003C/ol\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022decision-rules\u0022\u003EDecision Rules\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EFirst \u003Cstrong\u003Edeny\u003C/strong\u003E \u2192 stops execution\u003C/li\u003E\n\u003Cli\u003E\u201CAllow\u201D \u2192 continue\u003C/li\u003E\n\u003Cli\u003E\u201CRequiresReauthentication\u201D \u2192 tracked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EFinal result:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAllow\nDeny(reason)\nReauthenticationRequired\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022permission-integration\u0022\u003E\uD83D\uDD10 Permission Integration\u003C/h2\u003E\n\u003Cp\u003EPermissions are not directly checked in services.\u003C/p\u003E\n\u003Cp\u003EInstead:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Epermissions are compiled\u003C/li\u003E\n\u003Cli\u003Epolicies use them\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EExample policy:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EMustHavePermissionPolicy\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EChecks:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ECompiledPermissionSet.IsAllowed(action)\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This decouples:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Epermission storage\u003C/li\u003E\n\u003Cli\u003Eauthorization logic\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-this-matters\u0022\u003E\uD83D\uDD25 Why This Matters\u003C/h2\u003E\n\u003Cp\u003EThis pipeline enables:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Ecomposable security rules\u003C/li\u003E\n\u003Cli\u003Econsistent enforcement\u003C/li\u003E\n\u003Cli\u003Eseparation of concerns\u003C/li\u003E\n\u003Cli\u003Eextensibility\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ECompared to typical systems:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFeature\u003C/th\u003E\n\u003Cth\u003ETraditional\u003C/th\u003E\n\u003Cth\u003EUltimateAuth\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EInline checks\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ECentral pipeline\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPolicy composition\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAction-based rules\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022design-tradeoff\u0022\u003E\u26A0\uFE0F Design Tradeoff\u003C/h2\u003E\n\u003Cp\u003EThis model introduces:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Emore abstraction\u003C/li\u003E\n\u003Cli\u003Emore components\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 But gives:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Epredictability\u003C/li\u003E\n\u003Cli\u003Eauditability\u003C/li\u003E\n\u003Cli\u003Eflexibility\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Authorization is not \u201Cif (role == admin)\u201D\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Epipeline of decisions\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\u27A1\uFE0F Summary\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth authorization:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eis policy-driven\u003C/li\u003E\n\u003Cli\u003Eruns through a structured pipeline\u003C/li\u003E\n\u003Cli\u003Eseparates invariants, global rules, and action rules\u003C/li\u003E\n\u003Cli\u003Eproduces deterministic decisions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This makes it suitable for complex, multi-tenant, security-sensitive systems\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "core-principle",
+      "Text": "\uD83E\uDDE0 Core Principle",
+      "Level": 0
+    },
+    {
+      "Id": "high-level-flow",
+      "Text": "\uD83D\uDD01 High-Level Flow",
+      "Level": 0
+    },
+    {
+      "Id": "accesscontext",
+      "Text": "\uD83E\uDDE9 AccessContext",
+      "Level": 0
+    },
+    {
+      "Id": "step-1-context-enrichment",
+      "Text": "\uD83D\uDD04 Step 1: Context Enrichment",
+      "Level": 0
+    },
+    {
+      "Id": "step-2-invariants",
+      "Text": "\uD83D\uDEE1 Step 2: Invariants",
+      "Level": 0
+    },
+    {
+      "Id": "step-3-global-policies",
+      "Text": "\uD83C\uDF10 Step 3: Global Policies",
+      "Level": 0
+    },
+    {
+      "Id": "step-4-runtime-policies",
+      "Text": "\uD83C\uDFAF Step 4: Runtime Policies",
+      "Level": 0
+    },
+    {
+      "Id": "step-5-decision-engine",
+      "Text": "\u2696\uFE0F Step 5: Decision Engine",
+      "Level": 0
+    },
+    {
+      "Id": "decision-rules",
+      "Text": "Decision Rules",
+      "Level": 1
+    },
+    {
+      "Id": "permission-integration",
+      "Text": "\uD83D\uDD10 Permission Integration",
+      "Level": 0
+    },
+    {
+      "Id": "why-this-matters",
+      "Text": "\uD83D\uDD25 Why This Matters",
+      "Level": 0
+    },
+    {
+      "Id": "design-tradeoff",
+      "Text": "\u26A0\uFE0F Design Tradeoff",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\u27A1\uFE0F Summary",
+      "Level": 0
+    }
+  ]
+}

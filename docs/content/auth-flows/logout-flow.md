@@ -1,3 +1,10 @@
+---
+title: Logout
+order: 4
+group: auth-flows
+---
+
+
 # 🚪 Logout Flow
 The logout flow in UltimateAuth is not a single action.
 

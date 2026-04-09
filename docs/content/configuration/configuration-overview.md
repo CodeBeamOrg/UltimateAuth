@@ -1,3 +1,10 @@
+---
+title: Configuration Overview
+order: 2
+group: configuration
+---
+
+
 # 🧠 Configuration Overview
 
 UltimateAuth is not configured as a static system.
@@ -161,6 +168,5 @@ If you remember one thing:
 
 ## ➡️ Next Step
 
-- Deep dive into behavior → Core Options  
 - Control runtime → Server Options  
 - Configure clients → Client Options  
