@@ -10,4 +10,9 @@
     <MudMainContent Class="docs-main">
         @Body
     </MudMainContent>
+
+    <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
+        <DocsToc />
+        <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
+    </MudDrawer>
 </MudLayout>

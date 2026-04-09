@@ -1,5 +1,72 @@
 {
   "Slug": "configuration/advanced-configuration",
   "Title": "Advanced Configuration",
-  "Html": "\n\u003Cp\u003EUltimateAuth is designed to be flexible \u2014 but not fragile.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You can customize almost every part of the system\u003Cbr /\u003E\n\uD83D\uDC49 Without breaking its security guarantees\u003C/p\u003E\n\u003Ch2 id=\u0022philosophy\u0022\u003E\u26A0\uFE0F Philosophy\u003C/h2\u003E\n\u003Cp\u003ECustomization in UltimateAuth follows one rule:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You can extend behavior\u003Cbr /\u003E\n\uD83D\uDC49 You should not bypass security\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022extension-points\u0022\u003E\uD83E\uDDE9 Extension Points\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth exposes multiple extension points:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EResolvers\u003C/li\u003E\n\u003Cli\u003EValidators\u003C/li\u003E\n\u003Cli\u003EAuthorities\u003C/li\u003E\n\u003Cli\u003EOrchestrators\u003C/li\u003E\n\u003Cli\u003EStores\u003C/li\u003E\n\u003Cli\u003EEvents\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 You don\u2019t replace the system\u003Cbr /\u003E\n\uD83D\uDC49 You plug into it\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022replacing-services\u0022\u003E\uD83D\uDD0C Replacing Services\u003C/h2\u003E\n\u003Cp\u003EAll core services can be overridden using DI:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eservices.AddScoped\u0026lt;ISessionValidator, CustomSessionValidator\u0026gt;();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This allows deep customization\u003Cbr /\u003E\n\uD83D\uDC49 While preserving the pipeline\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022authorities-decisions\u0022\u003E\uD83E\uDDE0 Authorities \u0026amp; Decisions\u003C/h2\u003E\n\u003Cp\u003EAuthorities are responsible for decisions:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELoginAuthority\u003C/li\u003E\n\u003Cli\u003EAccessAuthority\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cp\u003EYou can override them:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eservices.AddScoped\u0026lt;ILoginAuthority, CustomLoginAuthority\u0026gt;();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This changes decision logic\u003Cbr /\u003E\n\uD83D\uDC49 Without touching flows\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022orchestrators\u0022\u003E\uD83D\uDD04 Orchestrators\u003C/h2\u003E\n\u003Cp\u003EOrchestrators coordinate execution:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidate\u003C/li\u003E\n\u003Cli\u003EAuthorize\u003C/li\u003E\n\u003Cli\u003EExecute command\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 They enforce invariants\u003Cbr /\u003E\n\uD83D\uDC49 Do not bypass them, unless you exact know what you are doing\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022store-customization\u0022\u003E\uD83D\uDDC4 Store Customization\u003C/h2\u003E\n\u003Cp\u003EYou can provide custom stores:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession store\u003C/li\u003E\n\u003Cli\u003ERefresh token store\u003C/li\u003E\n\u003Cli\u003EUser store\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Supports EF Core, in-memory, or custom implementations\u003C/p\u003E\n\u003Ch2 id=\u0022events\u0022\u003E\uD83D\uDCE1 Events\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth provides event hooks:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin\u003C/li\u003E\n\u003Cli\u003ELogout\u003C/li\u003E\n\u003Cli\u003ERefresh\u003C/li\u003E\n\u003Cli\u003ERevoke\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eo.Events.OnUserLoggedIn = ctx =\u0026gt;\n{\n    // custom logic\n    return Task.CompletedTask;\n};\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Use events for side-effects\u003Cbr /\u003E\n\uD83D\uDC49 Not for core logic\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022mode-configuration-overrides\u0022\u003E\u2699\uFE0F Mode Configuration Overrides\u003C/h2\u003E\n\u003Cp\u003EYou can customize behavior per mode:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eo.ModeConfigurations[UAuthMode.Hybrid] = options =\u0026gt;\n{\n    options.Token.AccessTokenLifetime = TimeSpan.FromMinutes(5);\n};\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Runs after defaults\u003Cbr /\u003E\n\uD83D\uDC49 Allows fine-grained control\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022custom-resolvers\u0022\u003E\uD83D\uDD10 Custom Resolvers\u003C/h2\u003E\n\u003Cp\u003EYou can override how data is resolved:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ETenant resolver\u003C/li\u003E\n\u003Cli\u003ESession resolver\u003C/li\u003E\n\u003Cli\u003EDevice resolver\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Enables full control over request interpretation\u003C/p\u003E\n\u003Ch2 id=\u0022safety-boundaries\u0022\u003E\uD83D\uDEE1 Safety Boundaries\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth enforces:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvariants\u003C/li\u003E\n\u003Cli\u003EValidation\u003C/li\u003E\n\u003Cli\u003EFail-fast behavior\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Unsafe overrides will fail early\u003C/p\u003E\n\u003Ch2 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Extend the system\u003Cbr /\u003E\n\uD83D\uDC49 Don\u2019t fight the system\u003C/p\u003E\n\u003Chr /\u003E\n\u003Ch2 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EEverything is replaceable via DI\u003C/li\u003E\n\u003Cli\u003EAuthorities control decisions\u003C/li\u003E\n\u003Cli\u003EOrchestrators enforce flow\u003C/li\u003E\n\u003Cli\u003EEvents are for side-effects\u003C/li\u003E\n\u003Cli\u003ESecurity boundaries are protected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Ch2 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EReturn to \u003Cstrong\u003EAuth Flows\u003C/strong\u003E or explore \u003Cstrong\u003EPlugin Domains\u003C/strong\u003E\u003C/p\u003E\n"
+  "Html": "\n\u003Cp\u003EUltimateAuth is designed to be flexible \u2014 but not fragile.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You can customize almost every part of the system\u003Cbr /\u003E\n\uD83D\uDC49 Without breaking its security guarantees\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022philosophy\u0022\u003E\u26A0\uFE0F Philosophy\u003C/h2\u003E\n\u003Cp\u003ECustomization in UltimateAuth follows one rule:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You can extend behavior\u003Cbr /\u003E\n\uD83D\uDC49 You should not bypass security\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022extension-points\u0022\u003E\uD83E\uDDE9 Extension Points\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth exposes multiple extension points:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EResolvers\u003C/li\u003E\n\u003Cli\u003EValidators\u003C/li\u003E\n\u003Cli\u003EAuthorities\u003C/li\u003E\n\u003Cli\u003EOrchestrators\u003C/li\u003E\n\u003Cli\u003EStores\u003C/li\u003E\n\u003Cli\u003EEvents\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 You don\u2019t replace the system\u003Cbr /\u003E\n\uD83D\uDC49 You plug into it\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022replacing-services\u0022\u003E\uD83D\uDD0C Replacing Services\u003C/h2\u003E\n\u003Cp\u003EAll core services can be overridden using DI:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eservices.AddScoped\u0026lt;ISessionValidator, CustomSessionValidator\u0026gt;();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This allows deep customization\u003Cbr /\u003E\n\uD83D\uDC49 While preserving the pipeline\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authorities-decisions\u0022\u003E\uD83E\uDDE0 Authorities \u0026amp; Decisions\u003C/h2\u003E\n\u003Cp\u003EAuthorities are responsible for decisions:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELoginAuthority\u003C/li\u003E\n\u003Cli\u003EAccessAuthority\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cp\u003EYou can override them:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eservices.AddScoped\u0026lt;ILoginAuthority, CustomLoginAuthority\u0026gt;();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This changes decision logic\u003Cbr /\u003E\n\uD83D\uDC49 Without touching flows\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022orchestrators\u0022\u003E\uD83D\uDD04 Orchestrators\u003C/h2\u003E\n\u003Cp\u003EOrchestrators coordinate execution:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidate\u003C/li\u003E\n\u003Cli\u003EAuthorize\u003C/li\u003E\n\u003Cli\u003EExecute command\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 They enforce invariants\u003Cbr /\u003E\n\uD83D\uDC49 Do not bypass them, unless you exact know what you are doing\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022store-customization\u0022\u003E\uD83D\uDDC4 Store Customization\u003C/h2\u003E\n\u003Cp\u003EYou can provide custom stores:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession store\u003C/li\u003E\n\u003Cli\u003ERefresh token store\u003C/li\u003E\n\u003Cli\u003EUser store\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Supports EF Core, in-memory, or custom implementations\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022events\u0022\u003E\uD83D\uDCE1 Events\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth provides event hooks:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin\u003C/li\u003E\n\u003Cli\u003ELogout\u003C/li\u003E\n\u003Cli\u003ERefresh\u003C/li\u003E\n\u003Cli\u003ERevoke\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eo.Events.OnUserLoggedIn = ctx =\u0026gt;\n{\n    // custom logic\n    return Task.CompletedTask;\n};\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Use events for side-effects\u003Cbr /\u003E\n\uD83D\uDC49 Not for core logic\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mode-configuration-overrides\u0022\u003E\u2699\uFE0F Mode Configuration Overrides\u003C/h2\u003E\n\u003Cp\u003EYou can customize behavior per mode:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eo.ModeConfigurations[UAuthMode.Hybrid] = options =\u0026gt;\n{\n    options.Token.AccessTokenLifetime = TimeSpan.FromMinutes(5);\n};\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Runs after defaults\u003Cbr /\u003E\n\uD83D\uDC49 Allows fine-grained control\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022custom-resolvers\u0022\u003E\uD83D\uDD10 Custom Resolvers\u003C/h2\u003E\n\u003Cp\u003EYou can override how data is resolved:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ETenant resolver\u003C/li\u003E\n\u003Cli\u003ESession resolver\u003C/li\u003E\n\u003Cli\u003EDevice resolver\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Enables full control over request interpretation\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022safety-boundaries\u0022\u003E\uD83D\uDEE1 Safety Boundaries\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth enforces:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvariants\u003C/li\u003E\n\u003Cli\u003EValidation\u003C/li\u003E\n\u003Cli\u003EFail-fast behavior\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Unsafe overrides will fail early\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Extend the system\u003Cbr /\u003E\n\uD83D\uDC49 Don\u2019t fight the system\u003C/p\u003E\n\u003Chr /\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EEverything is replaceable via DI\u003C/li\u003E\n\u003Cli\u003EAuthorities control decisions\u003C/li\u003E\n\u003Cli\u003EOrchestrators enforce flow\u003C/li\u003E\n\u003Cli\u003EEvents are for side-effects\u003C/li\u003E\n\u003Cli\u003ESecurity boundaries are protected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EReturn to \u003Cstrong\u003EAuth Flows\u003C/strong\u003E or explore \u003Cstrong\u003EPlugin Domains\u003C/strong\u003E\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "philosophy",
+      "Text": "\u26A0\uFE0F Philosophy",
+      "Level": 0
+    },
+    {
+      "Id": "extension-points",
+      "Text": "\uD83E\uDDE9 Extension Points",
+      "Level": 0
+    },
+    {
+      "Id": "replacing-services",
+      "Text": "\uD83D\uDD0C Replacing Services",
+      "Level": 0
+    },
+    {
+      "Id": "authorities-decisions",
+      "Text": "\uD83E\uDDE0 Authorities \u0026 Decisions",
+      "Level": 0
+    },
+    {
+      "Id": "orchestrators",
+      "Text": "\uD83D\uDD04 Orchestrators",
+      "Level": 0
+    },
+    {
+      "Id": "store-customization",
+      "Text": "\uD83D\uDDC4 Store Customization",
+      "Level": 0
+    },
+    {
+      "Id": "events",
+      "Text": "\uD83D\uDCE1 Events",
+      "Level": 0
+    },
+    {
+      "Id": "mode-configuration-overrides",
+      "Text": "\u2699\uFE0F Mode Configuration Overrides",
+      "Level": 0
+    },
+    {
+      "Id": "custom-resolvers",
+      "Text": "\uD83D\uDD10 Custom Resolvers",
+      "Level": 0
+    },
+    {
+      "Id": "safety-boundaries",
+      "Text": "\uD83D\uDEE1 Safety Boundaries",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "key-takeaways",
+      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
 }

@@ -1,5 +1,87 @@
 {
   "Slug": "client/user-management",
   "Title": "User Management",
-  "Html": "\n\u003Cp\u003EThis section explains how to manage users using the UltimateAuth client.\u003C/p\u003E\n\u003Ch2 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EUser operations are handled via:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUAuthClient.Users...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EThis includes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EProfile management\u003C/li\u003E\n\u003Cli\u003EUser lifecycle\u003C/li\u003E\n\u003Cli\u003EAdmin operations\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022get-current-user\u0022\u003E\uD83D\uDE4B Get Current User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar me = await UAuthClient.Users.GetMeAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Returns:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser profile\u003C/li\u003E\n\u003Cli\u003EStatus\u003C/li\u003E\n\u003Cli\u003EBasic identity data\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022update-profile\u0022\u003E\u270F\uFE0F Update Profile\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.UpdateMeAsync(new UpdateProfileRequest\n{\n    DisplayName = \u0026quot;John Doe\u0026quot;\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Triggers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EProfile update\u003C/li\u003E\n\u003Cli\u003EState event (ProfileChanged)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022delete-current-user\u0022\u003E\u274C Delete Current User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.DeleteMeAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDeletes user (based on configured mode)\u003C/li\u003E\n\u003Cli\u003EEnds session\u003C/li\u003E\n\u003Cli\u003ETriggers state update\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022admin-query-users\u0022\u003E\uD83D\uDC51 Admin: Query Users\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar result = await UAuthClient.Users.QueryAsync(new UserQuery\n{\n    Search = \u0026quot;john\u0026quot;,\n    PageNumber = 1,\n    PageSize = 10\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Supports:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Esearch\u003C/li\u003E\n\u003Cli\u003Epagination\u003C/li\u003E\n\u003Cli\u003Efiltering (status, etc.)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022create-user\u0022\u003E\u2795 Create User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.CreateAsync(new CreateUserRequest\n{\n    UserName = \u0026quot;john\u0026quot;,\n    Email = \u0026quot;john@mail.com\u0026quot;,\n    Password = \u0026quot;123456\u0026quot;\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022admin-create\u0022\u003E\uD83D\uDEE0 Admin Create\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.CreateAsAdminAsync(request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022change-status\u0022\u003E\uD83D\uDD04 Change Status\u003C/h2\u003E\n\u003Ch3 id=\u0022self\u0022\u003ESelf\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.ChangeMyStatusAsync(new ChangeUserStatusSelfRequest\n{\n    Status = UserStatus.SelfSuspended\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022admin\u0022\u003EAdmin\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.ChangeUserStatusAsync(userKey, new ChangeUserStatusAdminRequest\n{\n    Status = UserStatus.Suspended\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022delete-user-admin\u0022\u003E\u274C Delete User (Admin)\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.DeleteUserAsync(userKey, new DeleteUserRequest\n{\n    Mode = DeleteMode.Soft\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022get-user\u0022\u003E\uD83D\uDD0D Get User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar user = await UAuthClient.Users.GetUserAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022update-user-admin\u0022\u003E\u270F\uFE0F Update User (Admin)\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.UpdateUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022lifecycle-model\u0022\u003E\uD83E\uDDE0 Lifecycle Model\u003C/h2\u003E\n\u003Cp\u003EUsers have a lifecycle:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActive\u003C/li\u003E\n\u003Cli\u003ESuspended\u003C/li\u003E\n\u003Cli\u003EDisabled\u003C/li\u003E\n\u003Cli\u003EDeleted (soft/hard)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Status impacts:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Elogin ability\u003C/li\u003E\n\u003Cli\u003Esession validity\u003C/li\u003E\n\u003Cli\u003Eauthorization\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022security-notes\u0022\u003E\uD83D\uDD10 Security Notes\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EStatus changes may invalidate sessions\u003C/li\u003E\n\u003Cli\u003EDelete may trigger cleanup across domains\u003C/li\u003E\n\u003Cli\u003EAdmin actions are policy-protected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003EUser management in UltimateAuth:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eis lifecycle-aware\u003C/li\u003E\n\u003Cli\u003Esupports self \u002B admin flows\u003C/li\u003E\n\u003Cli\u003Eintegrates with session \u0026amp; security model\u003C/li\u003E\n\u003C/ul\u003E\n"
+  "Html": "\n\u003Cp\u003EThis section explains how to manage users using the UltimateAuth client.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EUser operations are handled via:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUAuthClient.Users...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EThis includes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EProfile management\u003C/li\u003E\n\u003Cli\u003EUser lifecycle\u003C/li\u003E\n\u003Cli\u003EAdmin operations\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-current-user\u0022\u003E\uD83D\uDE4B Get Current User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar me = await UAuthClient.Users.GetMeAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Returns:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser profile\u003C/li\u003E\n\u003Cli\u003EStatus\u003C/li\u003E\n\u003Cli\u003EBasic identity data\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022update-profile\u0022\u003E\u270F\uFE0F Update Profile\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.UpdateMeAsync(new UpdateProfileRequest\n{\n    DisplayName = \u0026quot;John Doe\u0026quot;\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Triggers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EProfile update\u003C/li\u003E\n\u003Cli\u003EState event (ProfileChanged)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022delete-current-user\u0022\u003E\u274C Delete Current User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.DeleteMeAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDeletes user (based on configured mode)\u003C/li\u003E\n\u003Cli\u003EEnds session\u003C/li\u003E\n\u003Cli\u003ETriggers state update\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022admin-query-users\u0022\u003E\uD83D\uDC51 Admin: Query Users\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar result = await UAuthClient.Users.QueryAsync(new UserQuery\n{\n    Search = \u0026quot;john\u0026quot;,\n    PageNumber = 1,\n    PageSize = 10\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Supports:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Esearch\u003C/li\u003E\n\u003Cli\u003Epagination\u003C/li\u003E\n\u003Cli\u003Efiltering (status, etc.)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022create-user\u0022\u003E\u2795 Create User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.CreateAsync(new CreateUserRequest\n{\n    UserName = \u0026quot;john\u0026quot;,\n    Email = \u0026quot;john@mail.com\u0026quot;,\n    Password = \u0026quot;123456\u0026quot;\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022admin-create\u0022\u003E\uD83D\uDEE0 Admin Create\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.CreateAsAdminAsync(request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022change-status\u0022\u003E\uD83D\uDD04 Change Status\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022self\u0022\u003ESelf\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.ChangeMyStatusAsync(new ChangeUserStatusSelfRequest\n{\n    Status = UserStatus.SelfSuspended\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022admin\u0022\u003EAdmin\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.ChangeUserStatusAsync(userKey, new ChangeUserStatusAdminRequest\n{\n    Status = UserStatus.Suspended\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022delete-user-admin\u0022\u003E\u274C Delete User (Admin)\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.DeleteUserAsync(userKey, new DeleteUserRequest\n{\n    Mode = DeleteMode.Soft\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-user\u0022\u003E\uD83D\uDD0D Get User\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar user = await UAuthClient.Users.GetUserAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022update-user-admin\u0022\u003E\u270F\uFE0F Update User (Admin)\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Users.UpdateUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022lifecycle-model\u0022\u003E\uD83E\uDDE0 Lifecycle Model\u003C/h2\u003E\n\u003Cp\u003EUsers have a lifecycle:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActive\u003C/li\u003E\n\u003Cli\u003ESuspended\u003C/li\u003E\n\u003Cli\u003EDisabled\u003C/li\u003E\n\u003Cli\u003EDeleted (soft/hard)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Status impacts:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Elogin ability\u003C/li\u003E\n\u003Cli\u003Esession validity\u003C/li\u003E\n\u003Cli\u003Eauthorization\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-notes\u0022\u003E\uD83D\uDD10 Security Notes\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EStatus changes may invalidate sessions\u003C/li\u003E\n\u003Cli\u003EDelete may trigger cleanup across domains\u003C/li\u003E\n\u003Cli\u003EAdmin actions are policy-protected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003EUser management in UltimateAuth:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eis lifecycle-aware\u003C/li\u003E\n\u003Cli\u003Esupports self \u002B admin flows\u003C/li\u003E\n\u003Cli\u003Eintegrates with session \u0026amp; security model\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "overview",
+      "Text": "\uD83E\uDDE0 Overview",
+      "Level": 0
+    },
+    {
+      "Id": "get-current-user",
+      "Text": "\uD83D\uDE4B Get Current User",
+      "Level": 0
+    },
+    {
+      "Id": "update-profile",
+      "Text": "\u270F\uFE0F Update Profile",
+      "Level": 0
+    },
+    {
+      "Id": "delete-current-user",
+      "Text": "\u274C Delete Current User",
+      "Level": 0
+    },
+    {
+      "Id": "admin-query-users",
+      "Text": "\uD83D\uDC51 Admin: Query Users",
+      "Level": 0
+    },
+    {
+      "Id": "create-user",
+      "Text": "\u2795 Create User",
+      "Level": 0
+    },
+    {
+      "Id": "admin-create",
+      "Text": "\uD83D\uDEE0 Admin Create",
+      "Level": 0
+    },
+    {
+      "Id": "change-status",
+      "Text": "\uD83D\uDD04 Change Status",
+      "Level": 0
+    },
+    {
+      "Id": "self",
+      "Text": "Self",
+      "Level": 1
+    },
+    {
+      "Id": "admin",
+      "Text": "Admin",
+      "Level": 1
+    },
+    {
+      "Id": "delete-user-admin",
+      "Text": "\u274C Delete User (Admin)",
+      "Level": 0
+    },
+    {
+      "Id": "get-user",
+      "Text": "\uD83D\uDD0D Get User",
+      "Level": 0
+    },
+    {
+      "Id": "update-user-admin",
+      "Text": "\u270F\uFE0F Update User (Admin)",
+      "Level": 0
+    },
+    {
+      "Id": "lifecycle-model",
+      "Text": "\uD83E\uDDE0 Lifecycle Model",
+      "Level": 0
+    },
+    {
+      "Id": "security-notes",
+      "Text": "\uD83D\uDD10 Security Notes",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\uD83C\uDFAF Summary",
+      "Level": 0
+    }
+  ]
 }

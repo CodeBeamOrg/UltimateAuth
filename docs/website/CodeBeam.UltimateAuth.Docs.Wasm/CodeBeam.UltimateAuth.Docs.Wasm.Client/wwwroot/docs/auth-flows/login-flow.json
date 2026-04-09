@@ -1,5 +1,102 @@
 {
   "Slug": "auth-flows/login-flow",
   "Title": "Login",
-  "Html": "\n\u003Cp\u003EThe login flow in UltimateAuth is not just credential validation.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It is a \u003Cstrong\u003Econtrolled session establishment process\u003C/strong\u003E.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022what-is-login\u0022\u003E\uD83E\uDDE0 What is Login?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidate credentials\u003C/li\u003E\n\u003Cli\u003EIssue a token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Login creates a \u003Cstrong\u003Esession hierarchy\u003C/strong\u003E\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ERoot \u2192 Chain \u2192 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ELogin does not create a token\u003Cbr /\u003E\n\u2192 It creates a session\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cp\u003ETokens are optional outputs derived from the session.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022step-by-step-execution\u0022\u003E\uD83D\uDD04 Step-by-Step Execution\u003C/h2\u003E\n\u003Cp\u003EThe login flow follows a structured pipeline:\u003C/p\u003E\n\u003Ch3 id=\u0022identifier-resolution\u0022\u003E1\uFE0F\u20E3 Identifier Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system resolves the user identity:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUsername / email / phone \u2192 \u003Ccode\u003EUserKey\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022user-security-state\u0022\u003E2\uFE0F\u20E3 User \u0026amp; Security State\u003C/h3\u003E\n\u003Cp\u003EThe system loads:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser existence\u003C/li\u003E\n\u003Cli\u003EAccount state\u003C/li\u003E\n\u003Cli\u003EFactor (credential) state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EChecks include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIs the account locked?\u003C/li\u003E\n\u003Cli\u003EIs reauthentication required?\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022credential-validation\u0022\u003E3\uFE0F\u20E3 Credential Validation\u003C/h3\u003E\n\u003Cp\u003ECredentials are validated using providers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EPassword\u003C/li\u003E\n\u003Cli\u003E(Extensible: OTP, external providers, etc.)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022authority-decision\u0022\u003E4\uFE0F\u20E3 Authority Decision\u003C/h3\u003E\n\u003Cp\u003EThe \u003Cstrong\u003ELoginAuthority\u003C/strong\u003E evaluates the attempt.\u003C/p\u003E\n\u003Cp\u003EPossible outcomes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u2705 Allow\u003C/li\u003E\n\u003Cli\u003E\u274C Deny\u003C/li\u003E\n\u003Cli\u003E\u26A0\uFE0F Challenge (e.g. MFA)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 No session is created before this decision.\u003C/p\u003E\n\u003Ch3 id=\u0022device-chain-resolution\u0022\u003E5\uFE0F\u20E3 Device \u0026amp; Chain Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system checks if the device is known:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EExisting device \u2192 reuse chain\u003C/li\u003E\n\u003Cli\u003ENew device \u2192 create new chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A \u003Cstrong\u003EChain represents a device\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 id=\u0022session-creation\u0022\u003E6\uFE0F\u20E3 Session Creation\u003C/h3\u003E\n\u003Cp\u003EA new session is issued:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELinked to user\u003C/li\u003E\n\u003Cli\u003ELinked to device (chain)\u003C/li\u003E\n\u003Cli\u003EBound to tenant\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ESession hierarchy:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EUser \u2192 Root \u2192 Chain \u2192 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022token-issuance-optional\u0022\u003E7\uFE0F\u20E3 Token Issuance (Optional)\u003C/h3\u003E\n\u003Cp\u003EDepending on the mode and request:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAccess token may be issued\u003C/li\u003E\n\u003Cli\u003ERefresh token may be issued\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Tokens are derived from the session\u003Cbr /\u003E\n\uD83D\uDC49 Not the source of truth\u003C/p\u003E\n\u003Ch3 id=\u0022event-dispatch\u0022\u003E8\uFE0F\u20E3 Event Dispatch\u003C/h3\u003E\n\u003Cp\u003EThe system emits:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin events\u003C/li\u003E\n\u003Cli\u003EAudit information\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022what-gets-created\u0022\u003E\uD83E\uDDE9 What Gets Created?\u003C/h2\u003E\n\u003Cp\u003EA successful login creates:\u003C/p\u003E\n\u003Ch3 id=\u0022root\u0022\u003E\uD83D\uDD39 Root\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per user\u003C/li\u003E\n\u003Cli\u003ERepresents global authentication state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022chain\u0022\u003E\uD83D\uDD39 Chain\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per device\u003C/li\u003E\n\u003Cli\u003EManages device lifecycle\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022session\u0022\u003E\uD83D\uDD39 Session\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EIndividual authentication instance\u003C/li\u003E\n\u003Cli\u003ERepresents a single login\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022device-awareness\u0022\u003E\uD83D\uDCF1 Device Awareness\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth is device-aware by design:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEach device gets its own chain\u003C/li\u003E\n\u003Cli\u003ESessions are grouped by device\u003C/li\u003E\n\u003Cli\u003ELogout can target device or all sessions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022security-considerations\u0022\u003E\uD83D\uDD10 Security Considerations\u003C/h2\u003E\n\u003Cp\u003EThe login flow includes built-in protections:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAccount lockout\u003C/li\u003E\n\u003Cli\u003EFailed attempt tracking\u003C/li\u003E\n\u003Cli\u003EDevice binding\u003C/li\u003E\n\u003Cli\u003ESecurity version validation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Security decisions are centralized in the Authority\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Login = session creation\u003Cbr /\u003E\n\uD83D\uDC49 Not token issuance\u003C/p\u003E\n\u003Ch2 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin is a flow, not a function\u003C/li\u003E\n\u003Cli\u003EAuthority decides before any state change\u003C/li\u003E\n\u003Cli\u003ESessions are the source of truth\u003C/li\u003E\n\u003Cli\u003ETokens are optional representations\u003C/li\u003E\n\u003Cli\u003EDevice context is always considered\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ERefresh Flow\u003C/strong\u003E\u003C/p\u003E\n"
+  "Html": "\n\u003Cp\u003EThe login flow in UltimateAuth is not just credential validation.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It is a \u003Cstrong\u003Econtrolled session establishment process\u003C/strong\u003E.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-is-login\u0022\u003E\uD83E\uDDE0 What is Login?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidate credentials\u003C/li\u003E\n\u003Cli\u003EIssue a token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Login creates a \u003Cstrong\u003Esession hierarchy\u003C/strong\u003E\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ERoot \u2192 Chain \u2192 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ELogin does not create a token\u003Cbr /\u003E\n\u2192 It creates a session\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cp\u003ETokens are optional outputs derived from the session.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-by-step-execution\u0022\u003E\uD83D\uDD04 Step-by-Step Execution\u003C/h2\u003E\n\u003Cp\u003EThe login flow follows a structured pipeline:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022identifier-resolution\u0022\u003E1\uFE0F\u20E3 Identifier Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system resolves the user identity:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUsername / email / phone \u2192 \u003Ccode\u003EUserKey\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022user-security-state\u0022\u003E2\uFE0F\u20E3 User \u0026amp; Security State\u003C/h3\u003E\n\u003Cp\u003EThe system loads:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser existence\u003C/li\u003E\n\u003Cli\u003EAccount state\u003C/li\u003E\n\u003Cli\u003EFactor (credential) state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EChecks include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIs the account locked?\u003C/li\u003E\n\u003Cli\u003EIs reauthentication required?\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022credential-validation\u0022\u003E3\uFE0F\u20E3 Credential Validation\u003C/h3\u003E\n\u003Cp\u003ECredentials are validated using providers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EPassword\u003C/li\u003E\n\u003Cli\u003E(Extensible: OTP, external providers, etc.)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authority-decision\u0022\u003E4\uFE0F\u20E3 Authority Decision\u003C/h3\u003E\n\u003Cp\u003EThe \u003Cstrong\u003ELoginAuthority\u003C/strong\u003E evaluates the attempt.\u003C/p\u003E\n\u003Cp\u003EPossible outcomes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u2705 Allow\u003C/li\u003E\n\u003Cli\u003E\u274C Deny\u003C/li\u003E\n\u003Cli\u003E\u26A0\uFE0F Challenge (e.g. MFA)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 No session is created before this decision.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-chain-resolution\u0022\u003E5\uFE0F\u20E3 Device \u0026amp; Chain Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system checks if the device is known:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EExisting device \u2192 reuse chain\u003C/li\u003E\n\u003Cli\u003ENew device \u2192 create new chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A \u003Cstrong\u003EChain represents a device\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-creation\u0022\u003E6\uFE0F\u20E3 Session Creation\u003C/h3\u003E\n\u003Cp\u003EA new session is issued:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELinked to user\u003C/li\u003E\n\u003Cli\u003ELinked to device (chain)\u003C/li\u003E\n\u003Cli\u003EBound to tenant\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ESession hierarchy:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EUser \u2192 Root \u2192 Chain \u2192 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-issuance-optional\u0022\u003E7\uFE0F\u20E3 Token Issuance (Optional)\u003C/h3\u003E\n\u003Cp\u003EDepending on the mode and request:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAccess token may be issued\u003C/li\u003E\n\u003Cli\u003ERefresh token may be issued\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Tokens are derived from the session\u003Cbr /\u003E\n\uD83D\uDC49 Not the source of truth\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022event-dispatch\u0022\u003E8\uFE0F\u20E3 Event Dispatch\u003C/h3\u003E\n\u003Cp\u003EThe system emits:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin events\u003C/li\u003E\n\u003Cli\u003EAudit information\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-gets-created\u0022\u003E\uD83E\uDDE9 What Gets Created?\u003C/h2\u003E\n\u003Cp\u003EA successful login creates:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root\u0022\u003E\uD83D\uDD39 Root\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per user\u003C/li\u003E\n\u003Cli\u003ERepresents global authentication state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain\u0022\u003E\uD83D\uDD39 Chain\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per device\u003C/li\u003E\n\u003Cli\u003EManages device lifecycle\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session\u0022\u003E\uD83D\uDD39 Session\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EIndividual authentication instance\u003C/li\u003E\n\u003Cli\u003ERepresents a single login\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-awareness\u0022\u003E\uD83D\uDCF1 Device Awareness\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth is device-aware by design:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEach device gets its own chain\u003C/li\u003E\n\u003Cli\u003ESessions are grouped by device\u003C/li\u003E\n\u003Cli\u003ELogout can target device or all sessions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-considerations\u0022\u003E\uD83D\uDD10 Security Considerations\u003C/h2\u003E\n\u003Cp\u003EThe login flow includes built-in protections:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAccount lockout\u003C/li\u003E\n\u003Cli\u003EFailed attempt tracking\u003C/li\u003E\n\u003Cli\u003EDevice binding\u003C/li\u003E\n\u003Cli\u003ESecurity version validation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Security decisions are centralized in the Authority\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Login = session creation\u003Cbr /\u003E\n\uD83D\uDC49 Not token issuance\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogin is a flow, not a function\u003C/li\u003E\n\u003Cli\u003EAuthority decides before any state change\u003C/li\u003E\n\u003Cli\u003ESessions are the source of truth\u003C/li\u003E\n\u003Cli\u003ETokens are optional representations\u003C/li\u003E\n\u003Cli\u003EDevice context is always considered\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ERefresh Flow\u003C/strong\u003E\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "what-is-login",
+      "Text": "\uD83E\uDDE0 What is Login?",
+      "Level": 0
+    },
+    {
+      "Id": "step-by-step-execution",
+      "Text": "\uD83D\uDD04 Step-by-Step Execution",
+      "Level": 0
+    },
+    {
+      "Id": "identifier-resolution",
+      "Text": "1\uFE0F\u20E3 Identifier Resolution",
+      "Level": 1
+    },
+    {
+      "Id": "user-security-state",
+      "Text": "2\uFE0F\u20E3 User \u0026 Security State",
+      "Level": 1
+    },
+    {
+      "Id": "credential-validation",
+      "Text": "3\uFE0F\u20E3 Credential Validation",
+      "Level": 1
+    },
+    {
+      "Id": "authority-decision",
+      "Text": "4\uFE0F\u20E3 Authority Decision",
+      "Level": 1
+    },
+    {
+      "Id": "device-chain-resolution",
+      "Text": "5\uFE0F\u20E3 Device \u0026 Chain Resolution",
+      "Level": 1
+    },
+    {
+      "Id": "session-creation",
+      "Text": "6\uFE0F\u20E3 Session Creation",
+      "Level": 1
+    },
+    {
+      "Id": "token-issuance-optional",
+      "Text": "7\uFE0F\u20E3 Token Issuance (Optional)",
+      "Level": 1
+    },
+    {
+      "Id": "event-dispatch",
+      "Text": "8\uFE0F\u20E3 Event Dispatch",
+      "Level": 1
+    },
+    {
+      "Id": "what-gets-created",
+      "Text": "\uD83E\uDDE9 What Gets Created?",
+      "Level": 0
+    },
+    {
+      "Id": "root",
+      "Text": "\uD83D\uDD39 Root",
+      "Level": 1
+    },
+    {
+      "Id": "chain",
+      "Text": "\uD83D\uDD39 Chain",
+      "Level": 1
+    },
+    {
+      "Id": "session",
+      "Text": "\uD83D\uDD39 Session",
+      "Level": 1
+    },
+    {
+      "Id": "device-awareness",
+      "Text": "\uD83D\uDCF1 Device Awareness",
+      "Level": 0
+    },
+    {
+      "Id": "security-considerations",
+      "Text": "\uD83D\uDD10 Security Considerations",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "key-takeaways",
+      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
 }

@@ -1,5 +1,87 @@
 {
   "Slug": "security/refresh-rotation",
   "Title": "Refresh Rotation",
-  "Html": "\n\u003Cp\u003ERefresh tokens in UltimateAuth are not simple long-lived tokens.\u003C/p\u003E\n\u003Cp\u003EThey are part of a \u003Cstrong\u003Erotation-based security system\u003C/strong\u003E designed to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eprevent token replay\u003C/li\u003E\n\u003Cli\u003Edetect token theft\u003C/li\u003E\n\u003Cli\u003Eenforce forward-only session progression\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022why-rotation\u0022\u003E\uD83E\uDDE0 Why Rotation?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Erefresh tokens are long-lived\u003C/li\u003E\n\u003Cli\u003Ethey can be reused multiple times\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 If stolen, an attacker can:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Esilently keep refreshing access tokens\u003C/li\u003E\n\u003Cli\u003Estay undetected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EUltimateAuth solves this with:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003Esingle-use refresh tokens (rotation)\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 id=\u0022rotation-model\u0022\u003E\uD83D\uDD01 Rotation Model\u003C/h2\u003E\n\u003Cp\u003EEach refresh token is:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eused exactly once\u003C/li\u003E\n\u003Cli\u003Ereplaced with a new token\u003C/li\u003E\n\u003Cli\u003Elinked to a chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken A \u2192 Token B \u2192 Token C \u2192 ...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EWhen a refresh happens:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EToken A is validated\u003C/li\u003E\n\u003Cli\u003EToken A is \u003Cstrong\u003Erevoked\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EToken B is issued\u003C/li\u003E\n\u003Cli\u003EToken A is marked as replaced by B\u003C/li\u003E\n\u003C/ol\u003E\n\u003Ch2 id=\u0022token-state\u0022\u003E\uD83D\uDD10 Token State\u003C/h2\u003E\n\u003Cp\u003EA refresh token can be:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActive \u2192 valid and usable\u003C/li\u003E\n\u003Cli\u003ERevoked \u2192 already used or manually revoked\u003C/li\u003E\n\u003Cli\u003EExpired \u2192 lifetime exceeded\u003C/li\u003E\n\u003Cli\u003EReplaced \u2192 already rotated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Only \u003Cstrong\u003Eactive tokens\u003C/strong\u003E are valid\u003C/p\u003E\n\u003Ch2 id=\u0022reuse-detection\u0022\u003E\uD83D\uDEA8 Reuse Detection\u003C/h2\u003E\n\u003Cp\u003EThis is the most critical security feature.\u003C/p\u003E\n\u003Cp\u003EIf a refresh token is used \u003Cstrong\u003Eafter it has already been rotated\u003C/strong\u003E, it means:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 The token was reused\u003Cbr /\u003E\n\uD83D\uDC49 Likely stolen\u003C/p\u003E\n\u003Ch3 id=\u0022what-happens\u0022\u003EWhat happens?\u003C/h3\u003E\n\u003Cp\u003EWhen reuse is detected:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Ethe system identifies the session chain\u003C/li\u003E\n\u003Cli\u003Ethe entire chain can be revoked\u003C/li\u003E\n\u003Cli\u003Eall related sessions become invalid\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This immediately cuts off both:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eattacker\u003C/li\u003E\n\u003Cli\u003Elegitimate user (forcing reauthentication)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022chain-awareness\u0022\u003E\uD83D\uDD17 Chain Awareness\u003C/h2\u003E\n\u003Cp\u003ERefresh tokens belong to a \u003Cstrong\u003Esession chain\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThis enables:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Etracking rotation history\u003C/li\u003E\n\u003Cli\u003Edetecting anomalies\u003C/li\u003E\n\u003Cli\u003Eapplying revocation at the correct scope\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EWithout chains:\u003C/p\u003E\n\u003Cp\u003E\u274C You cannot safely detect reuse\u003Cbr /\u003E\n\u274C You cannot know which tokens belong together\u003C/p\u003E\n\u003Ch2 id=\u0022rotation-flow\u0022\u003E\uD83D\uDD04 Rotation Flow\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EClient \u2192 Refresh(Token A)\n        \u2192 Validate A\n        \u2192 Revoke A\n        \u2192 Issue B\n        \u2192 Return new tokens\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022invalid-scenarios\u0022\u003E\u26A0\uFE0F Invalid Scenarios\u003C/h2\u003E\n\u003Ch3 id=\u0022expired-token\u0022\u003E1. Expired Token\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken expired \u2192 reject\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022revoked-token\u0022\u003E2. Revoked Token\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken already used \u2192 reuse detected\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022session-mismatch\u0022\u003E3. Session Mismatch\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken does not belong to expected session \u2192 reject\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022security-guarantees\u0022\u003E\uD83E\uDDE0 Security Guarantees\u003C/h2\u003E\n\u003Cp\u003ERotation ensures:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Erefresh tokens are forward-only\u003C/li\u003E\n\u003Cli\u003Eold tokens cannot be reused safely\u003C/li\u003E\n\u003Cli\u003Estolen tokens are detectable\u003C/li\u003E\n\u003Cli\u003Ecompromise triggers containment\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022why-this-matters\u0022\u003E\uD83D\uDD25 Why This Matters\u003C/h2\u003E\n\u003Cp\u003ECompared to traditional refresh tokens:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFeature\u003C/th\u003E\n\u003Cth\u003ETraditional\u003C/th\u003E\n\u003Cth\u003EUltimateAuth\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EReusable tokens\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EReuse detection\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EChain awareness\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAutomatic containment\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Ch2 id=\u0022design-tradeoff\u0022\u003E\u26A0\uFE0F Design Tradeoff\u003C/h2\u003E\n\u003Cp\u003ERotation requires:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Etoken storage\u003C/li\u003E\n\u003Cli\u003Estate tracking\u003C/li\u003E\n\u003Cli\u003Eadditional validation logic\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth chooses security over simplicity.\u003C/p\u003E\n\u003Ch2 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 A refresh token is not a reusable key\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Eone-time step in a chain\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003EAccess Token Behavior\u003C/strong\u003E to understand how short-lived tokens interact with rotation.\u003C/p\u003E\n"
+  "Html": "\n\u003Cp\u003ERefresh tokens in UltimateAuth are not simple long-lived tokens.\u003C/p\u003E\n\u003Cp\u003EThey are part of a \u003Cstrong\u003Erotation-based security system\u003C/strong\u003E designed to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eprevent token replay\u003C/li\u003E\n\u003Cli\u003Edetect token theft\u003C/li\u003E\n\u003Cli\u003Eenforce forward-only session progression\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-rotation\u0022\u003E\uD83E\uDDE0 Why Rotation?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Erefresh tokens are long-lived\u003C/li\u003E\n\u003Cli\u003Ethey can be reused multiple times\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 If stolen, an attacker can:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Esilently keep refreshing access tokens\u003C/li\u003E\n\u003Cli\u003Estay undetected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EUltimateAuth solves this with:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003Esingle-use refresh tokens (rotation)\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022rotation-model\u0022\u003E\uD83D\uDD01 Rotation Model\u003C/h2\u003E\n\u003Cp\u003EEach refresh token is:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eused exactly once\u003C/li\u003E\n\u003Cli\u003Ereplaced with a new token\u003C/li\u003E\n\u003Cli\u003Elinked to a chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken A \u2192 Token B \u2192 Token C \u2192 ...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EWhen a refresh happens:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EToken A is validated\u003C/li\u003E\n\u003Cli\u003EToken A is \u003Cstrong\u003Erevoked\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EToken B is issued\u003C/li\u003E\n\u003Cli\u003EToken A is marked as replaced by B\u003C/li\u003E\n\u003C/ol\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-state\u0022\u003E\uD83D\uDD10 Token State\u003C/h2\u003E\n\u003Cp\u003EA refresh token can be:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EActive \u2192 valid and usable\u003C/li\u003E\n\u003Cli\u003ERevoked \u2192 already used or manually revoked\u003C/li\u003E\n\u003Cli\u003EExpired \u2192 lifetime exceeded\u003C/li\u003E\n\u003Cli\u003EReplaced \u2192 already rotated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Only \u003Cstrong\u003Eactive tokens\u003C/strong\u003E are valid\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022reuse-detection\u0022\u003E\uD83D\uDEA8 Reuse Detection\u003C/h2\u003E\n\u003Cp\u003EThis is the most critical security feature.\u003C/p\u003E\n\u003Cp\u003EIf a refresh token is used \u003Cstrong\u003Eafter it has already been rotated\u003C/strong\u003E, it means:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 The token was reused\u003Cbr /\u003E\n\uD83D\uDC49 Likely stolen\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-happens\u0022\u003EWhat happens?\u003C/h3\u003E\n\u003Cp\u003EWhen reuse is detected:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Ethe system identifies the session chain\u003C/li\u003E\n\u003Cli\u003Ethe entire chain can be revoked\u003C/li\u003E\n\u003Cli\u003Eall related sessions become invalid\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This immediately cuts off both:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eattacker\u003C/li\u003E\n\u003Cli\u003Elegitimate user (forcing reauthentication)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-awareness\u0022\u003E\uD83D\uDD17 Chain Awareness\u003C/h2\u003E\n\u003Cp\u003ERefresh tokens belong to a \u003Cstrong\u003Esession chain\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThis enables:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Etracking rotation history\u003C/li\u003E\n\u003Cli\u003Edetecting anomalies\u003C/li\u003E\n\u003Cli\u003Eapplying revocation at the correct scope\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EWithout chains:\u003C/p\u003E\n\u003Cp\u003E\u274C You cannot safely detect reuse\u003Cbr /\u003E\n\u274C You cannot know which tokens belong together\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022rotation-flow\u0022\u003E\uD83D\uDD04 Rotation Flow\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EClient \u2192 Refresh(Token A)\n        \u2192 Validate A\n        \u2192 Revoke A\n        \u2192 Issue B\n        \u2192 Return new tokens\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022invalid-scenarios\u0022\u003E\u26A0\uFE0F Invalid Scenarios\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022expired-token\u0022\u003E1. Expired Token\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken expired \u2192 reject\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoked-token\u0022\u003E2. Revoked Token\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken already used \u2192 reuse detected\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-mismatch\u0022\u003E3. Session Mismatch\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EToken does not belong to expected session \u2192 reject\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-guarantees\u0022\u003E\uD83E\uDDE0 Security Guarantees\u003C/h2\u003E\n\u003Cp\u003ERotation ensures:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Erefresh tokens are forward-only\u003C/li\u003E\n\u003Cli\u003Eold tokens cannot be reused safely\u003C/li\u003E\n\u003Cli\u003Estolen tokens are detectable\u003C/li\u003E\n\u003Cli\u003Ecompromise triggers containment\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-this-matters\u0022\u003E\uD83D\uDD25 Why This Matters\u003C/h2\u003E\n\u003Cp\u003ECompared to traditional refresh tokens:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EFeature\u003C/th\u003E\n\u003Cth\u003ETraditional\u003C/th\u003E\n\u003Cth\u003EUltimateAuth\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EReusable tokens\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EReuse detection\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EChain awareness\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAutomatic containment\u003C/td\u003E\n\u003Ctd\u003E\u274C\u003C/td\u003E\n\u003Ctd\u003E\u2705\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022design-tradeoff\u0022\u003E\u26A0\uFE0F Design Tradeoff\u003C/h2\u003E\n\u003Cp\u003ERotation requires:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Etoken storage\u003C/li\u003E\n\u003Cli\u003Estate tracking\u003C/li\u003E\n\u003Cli\u003Eadditional validation logic\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth chooses security over simplicity.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 A refresh token is not a reusable key\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Eone-time step in a chain\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003EAccess Token Behavior\u003C/strong\u003E to understand how short-lived tokens interact with rotation.\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "why-rotation",
+      "Text": "\uD83E\uDDE0 Why Rotation?",
+      "Level": 0
+    },
+    {
+      "Id": "rotation-model",
+      "Text": "\uD83D\uDD01 Rotation Model",
+      "Level": 0
+    },
+    {
+      "Id": "token-state",
+      "Text": "\uD83D\uDD10 Token State",
+      "Level": 0
+    },
+    {
+      "Id": "reuse-detection",
+      "Text": "\uD83D\uDEA8 Reuse Detection",
+      "Level": 0
+    },
+    {
+      "Id": "what-happens",
+      "Text": "What happens?",
+      "Level": 1
+    },
+    {
+      "Id": "chain-awareness",
+      "Text": "\uD83D\uDD17 Chain Awareness",
+      "Level": 0
+    },
+    {
+      "Id": "rotation-flow",
+      "Text": "\uD83D\uDD04 Rotation Flow",
+      "Level": 0
+    },
+    {
+      "Id": "invalid-scenarios",
+      "Text": "\u26A0\uFE0F Invalid Scenarios",
+      "Level": 0
+    },
+    {
+      "Id": "expired-token",
+      "Text": "1. Expired Token",
+      "Level": 1
+    },
+    {
+      "Id": "revoked-token",
+      "Text": "2. Revoked Token",
+      "Level": 1
+    },
+    {
+      "Id": "session-mismatch",
+      "Text": "3. Session Mismatch",
+      "Level": 1
+    },
+    {
+      "Id": "security-guarantees",
+      "Text": "\uD83E\uDDE0 Security Guarantees",
+      "Level": 0
+    },
+    {
+      "Id": "why-this-matters",
+      "Text": "\uD83D\uDD25 Why This Matters",
+      "Level": 0
+    },
+    {
+      "Id": "design-tradeoff",
+      "Text": "\u26A0\uFE0F Design Tradeoff",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
 }

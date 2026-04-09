@@ -12,13 +12,15 @@ group: fundamentals
 
 
 
-\# 🧠 Fundamentals
+\# 🧠 Fundamental Overview
 
 
 
 This section explains how UltimateAuth works internally.
 
 
+
+\## Section Order
 
 If you are new, follow this order:
 

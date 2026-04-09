@@ -1,5 +1,92 @@
 {
   "Slug": "client/identifiers",
   "Title": "Identifiers",
-  "Html": "\n\u003Cp\u003EThis section explains how UltimateAuth manages user identifiers such as email, username, and phone.\u003C/p\u003E\n\u003Ch2 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth, identifiers are \u003Cstrong\u003Efirst-class entities\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThey are NOT just fields on the user.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 On the client, you interact with:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUAuthClient.Identifiers...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022what-is-an-identifier\u0022\u003E\uD83D\uDD11 What is an Identifier?\u003C/h2\u003E\n\u003Cp\u003EAn identifier represents a way to identify a user:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEmail\u003C/li\u003E\n\u003Cli\u003EUsername\u003C/li\u003E\n\u003Cli\u003EPhone number\u003C/li\u003E\n\u003Cli\u003ECustom identifiers\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Each identifier has:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValue (e.g. user@ultimateauth.com)\u003C/li\u003E\n\u003Cli\u003EType (email, username, etc.)\u003C/li\u003E\n\u003Cli\u003EVerification state\u003C/li\u003E\n\u003Cli\u003EPrimary flag\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022primary-identifier\u0022\u003E\u2B50 Primary Identifier\u003C/h2\u003E\n\u003Cp\u003EA user can have multiple identifiers, but only one can be \u003Cstrong\u003Eprimary\u003C/strong\u003E. Setting an identifier to primary automatically unset the current primary identifier if exists.\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.SetMyPrimaryAsync(new SetPrimaryUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Primary identifier is typically:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUsed for display\u003C/li\u003E\n\u003Cli\u003EPreferred for communication\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022login-identifiers\u0022\u003E\uD83D\uDD10 Login Identifiers\u003C/h2\u003E\n\u003Cp\u003ENot all identifiers are used for login.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003ELogin identifiers are a subset of identifiers\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 This is configurable:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnable/disable per type\u003C/li\u003E\n\u003Cli\u003ECustom logic can be applied\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022get-my-identifiers\u0022\u003E\uD83D\uDCCB Get My Identifiers\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar result = await UAuthClient.Identifiers.GetMyAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022add-identifier\u0022\u003E\u2795 Add Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.AddMyAsync(new AddUserIdentifierRequest\n{\n    Identifier = \u0026quot;new@ultimateauth.com\u0026quot;,\n    Type = UserIdentifierType.Email,\n    IsPrimary = true\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022update-identifier\u0022\u003E\u270F\uFE0F Update Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUpdateUserIdentifierRequest updateRequest = new()\n{\n    Id = item.Id,\n    NewValue = item.Value\n};\n\nawait UAuthClient.Identifiers.UpdateMyAsync(updateRequest);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022verify-identifier\u0022\u003E\u2705 Verify Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.VerifyMyAsync(new VerifyUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022delete-identifier\u0022\u003E\u274C Delete Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.DeleteMyAsync(new DeleteUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022admin-operations\u0022\u003E\uD83D\uDC64 Admin Operations\u003C/h2\u003E\n\u003Ch3 id=\u0022get-user-identifiers\u0022\u003EGet User Identifiers\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.GetUserAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022add-identifier-to-user\u0022\u003EAdd Identifier to User\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.AddUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022update-identifier-1\u0022\u003EUpdate Identifier\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.UpdateUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 id=\u0022delete-identifier-1\u0022\u003EDelete Identifier\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.DeleteUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 id=\u0022state-events\u0022\u003E\uD83D\uDD04 State Events\u003C/h2\u003E\n\u003Cp\u003EIdentifier changes trigger events:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIdentifiersChanged\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Useful for:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUI updates\u003C/li\u003E\n\u003Cli\u003ECache invalidation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022security-considerations\u0022\u003E\uD83D\uDD10 Security Considerations\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EIdentifiers may require verification\u003C/li\u003E\n\u003Cli\u003ELogin identifiers can be restricted\u003C/li\u003E\n\u003Cli\u003EPrimary identifier can be controlled\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth identifiers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eare independent entities\u003C/li\u003E\n\u003Cli\u003Esupport multiple types\u003C/li\u003E\n\u003Cli\u003Eseparate login vs non-login identifiers\u003C/li\u003E\n\u003Cli\u003Eare fully manageable via client\u003C/li\u003E\n\u003C/ul\u003E\n"
+  "Html": "\n\u003Cp\u003EThis section explains how UltimateAuth manages user identifiers such as email, username, and phone.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022overview\u0022\u003E\uD83E\uDDE0 Overview\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth, identifiers are \u003Cstrong\u003Efirst-class entities\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThey are NOT just fields on the user.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 On the client, you interact with:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUAuthClient.Identifiers...\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-is-an-identifier\u0022\u003E\uD83D\uDD11 What is an Identifier?\u003C/h2\u003E\n\u003Cp\u003EAn identifier represents a way to identify a user:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEmail\u003C/li\u003E\n\u003Cli\u003EUsername\u003C/li\u003E\n\u003Cli\u003EPhone number\u003C/li\u003E\n\u003Cli\u003ECustom identifiers\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Each identifier has:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EValue (e.g. user@ultimateauth.com)\u003C/li\u003E\n\u003Cli\u003EType (email, username, etc.)\u003C/li\u003E\n\u003Cli\u003EVerification state\u003C/li\u003E\n\u003Cli\u003EPrimary flag\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022primary-identifier\u0022\u003E\u2B50 Primary Identifier\u003C/h2\u003E\n\u003Cp\u003EA user can have multiple identifiers, but only one can be \u003Cstrong\u003Eprimary\u003C/strong\u003E. Setting an identifier to primary automatically unset the current primary identifier if exists.\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.SetMyPrimaryAsync(new SetPrimaryUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Primary identifier is typically:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUsed for display\u003C/li\u003E\n\u003Cli\u003EPreferred for communication\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022login-identifiers\u0022\u003E\uD83D\uDD10 Login Identifiers\u003C/h2\u003E\n\u003Cp\u003ENot all identifiers are used for login.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003ELogin identifiers are a subset of identifiers\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 This is configurable:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnable/disable per type\u003C/li\u003E\n\u003Cli\u003ECustom logic can be applied\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-my-identifiers\u0022\u003E\uD83D\uDCCB Get My Identifiers\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar result = await UAuthClient.Identifiers.GetMyAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022add-identifier\u0022\u003E\u2795 Add Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.AddMyAsync(new AddUserIdentifierRequest\n{\n    Identifier = \u0026quot;new@ultimateauth.com\u0026quot;,\n    Type = UserIdentifierType.Email,\n    IsPrimary = true\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022update-identifier\u0022\u003E\u270F\uFE0F Update Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003EUpdateUserIdentifierRequest updateRequest = new()\n{\n    Id = item.Id,\n    NewValue = item.Value\n};\n\nawait UAuthClient.Identifiers.UpdateMyAsync(updateRequest);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022verify-identifier\u0022\u003E\u2705 Verify Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.VerifyMyAsync(new VerifyUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022delete-identifier\u0022\u003E\u274C Delete Identifier\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.DeleteMyAsync(new DeleteUserIdentifierRequest\n{\n    Id = identifierId\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022admin-operations\u0022\u003E\uD83D\uDC64 Admin Operations\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022get-user-identifiers\u0022\u003EGet User Identifiers\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.GetUserAsync(userKey);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022add-identifier-to-user\u0022\u003EAdd Identifier to User\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.AddUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022update-identifier-1\u0022\u003EUpdate Identifier\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.UpdateUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022delete-identifier-1\u0022\u003EDelete Identifier\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Identifiers.DeleteUserAsync(userKey, request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022state-events\u0022\u003E\uD83D\uDD04 State Events\u003C/h2\u003E\n\u003Cp\u003EIdentifier changes trigger events:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIdentifiersChanged\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Useful for:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUI updates\u003C/li\u003E\n\u003Cli\u003ECache invalidation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-considerations\u0022\u003E\uD83D\uDD10 Security Considerations\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EIdentifiers may require verification\u003C/li\u003E\n\u003Cli\u003ELogin identifiers can be restricted\u003C/li\u003E\n\u003Cli\u003EPrimary identifier can be controlled\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003E\uD83C\uDFAF Summary\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth identifiers:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Eare independent entities\u003C/li\u003E\n\u003Cli\u003Esupport multiple types\u003C/li\u003E\n\u003Cli\u003Eseparate login vs non-login identifiers\u003C/li\u003E\n\u003Cli\u003Eare fully manageable via client\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "overview",
+      "Text": "\uD83E\uDDE0 Overview",
+      "Level": 0
+    },
+    {
+      "Id": "what-is-an-identifier",
+      "Text": "\uD83D\uDD11 What is an Identifier?",
+      "Level": 0
+    },
+    {
+      "Id": "primary-identifier",
+      "Text": "\u2B50 Primary Identifier",
+      "Level": 0
+    },
+    {
+      "Id": "login-identifiers",
+      "Text": "\uD83D\uDD10 Login Identifiers",
+      "Level": 0
+    },
+    {
+      "Id": "get-my-identifiers",
+      "Text": "\uD83D\uDCCB Get My Identifiers",
+      "Level": 0
+    },
+    {
+      "Id": "add-identifier",
+      "Text": "\u2795 Add Identifier",
+      "Level": 0
+    },
+    {
+      "Id": "update-identifier",
+      "Text": "\u270F\uFE0F Update Identifier",
+      "Level": 0
+    },
+    {
+      "Id": "verify-identifier",
+      "Text": "\u2705 Verify Identifier",
+      "Level": 0
+    },
+    {
+      "Id": "delete-identifier",
+      "Text": "\u274C Delete Identifier",
+      "Level": 0
+    },
+    {
+      "Id": "admin-operations",
+      "Text": "\uD83D\uDC64 Admin Operations",
+      "Level": 0
+    },
+    {
+      "Id": "get-user-identifiers",
+      "Text": "Get User Identifiers",
+      "Level": 1
+    },
+    {
+      "Id": "add-identifier-to-user",
+      "Text": "Add Identifier to User",
+      "Level": 1
+    },
+    {
+      "Id": "update-identifier-1",
+      "Text": "Update Identifier",
+      "Level": 1
+    },
+    {
+      "Id": "delete-identifier-1",
+      "Text": "Delete Identifier",
+      "Level": 1
+    },
+    {
+      "Id": "state-events",
+      "Text": "\uD83D\uDD04 State Events",
+      "Level": 0
+    },
+    {
+      "Id": "security-considerations",
+      "Text": "\uD83D\uDD10 Security Considerations",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "\uD83C\uDFAF Summary",
+      "Level": 0
+    }
+  ]
 }

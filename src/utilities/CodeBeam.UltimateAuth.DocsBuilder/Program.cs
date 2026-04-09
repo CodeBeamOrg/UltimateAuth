@@ -1,5 +1,8 @@
-﻿using System.Text.Json;
+﻿using HtmlAgilityPack;
 using Markdig;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml;
 
 Console.WriteLine("=== DocsBuilder START ===");
 
@@ -39,6 +42,7 @@ Directory.CreateDirectory(websiteDocsOutputDir);
 
 var pipeline = new MarkdownPipelineBuilder()
     .UseAdvancedExtensions()
+    .UseAutoIdentifiers()
     .Build();
 
 var markdownFiles = Directory.GetFiles(sourceDocsDir, "*.md", SearchOption.AllDirectories);
@@ -97,14 +101,20 @@ foreach (var file in markdownFiles)
 
     Console.WriteLine($"⚙ Processing: {relativePath}");
 
+    //var headings = ExtractHeadings(content);
     var html = Markdown.ToHtml(content, pipeline);
     html = RemoveFirstH1(html);
+
+    var headings = ExtractHeadingsFromHtml(html);
+
+    html = Regex.Replace(html, "<h2", "<h2 class=\"mud-scrollspy-section\"");
+    html = Regex.Replace(html, "<h3", "<h3 class=\"mud-scrollspy-section\"");
 
     var outputFolder = Path.GetDirectoryName(outputPath);
     if (!string.IsNullOrWhiteSpace(outputFolder))
         Directory.CreateDirectory(outputFolder);
 
-    var doc = new DocOutput(slug, title, html);
+    var doc = new DocOutput(slug, title, html, headings);
 
     var json = JsonSerializer.Serialize(doc, new JsonSerializerOptions
     {
@@ -238,7 +248,85 @@ static string RemoveFirstH1(string html)
     return html.Remove(start, end + 5 - start);
 }
 
-internal sealed record DocOutput(string Slug, string Title, string Html);
+static List<DocsHeadingItem> ExtractHeadings(string markdown)
+{
+    var result = new List<DocsHeadingItem>();
+    using var reader = new StringReader(markdown);
+
+    string? line;
+    while ((line = reader.ReadLine()) is not null)
+    {
+        var trimmed = line.Trim();
+
+        if (trimmed.StartsWith("## "))
+        {
+            var text = trimmed[3..].Trim();
+            result.Add(new DocsHeadingItem
+            {
+                Text = text,
+                Id = Slugify(text),
+                Level = 0
+            });
+        }
+        else if (trimmed.StartsWith("### "))
+        {
+            var text = trimmed[4..].Trim();
+            result.Add(new DocsHeadingItem
+            {
+                Text = text,
+                Id = Slugify(text),
+                Level = 1
+            });
+        }
+    }
+
+    return result;
+}
+
+static List<DocsHeadingItem> ExtractHeadingsFromHtml(string html)
+{
+    var result = new List<DocsHeadingItem>();
+
+    var doc = new HtmlDocument();
+    doc.LoadHtml(html);
+
+    var nodes = doc.DocumentNode.SelectNodes("//h2 | //h3");
+    if (nodes == null)
+        return result;
+
+    foreach (var node in nodes)
+    {
+        var id = node.GetAttributeValue("id", null);
+
+        if (string.IsNullOrWhiteSpace(id))
+            continue;
+
+        result.Add(new DocsHeadingItem
+        {
+            Id = id,
+            Text = HtmlEntity.DeEntitize(node.InnerText),
+            Level = node.Name == "h2" ? 0 : 1
+        });
+    }
+
+    return result;
+}
+
+static string Slugify(string text)
+{
+    var chars = text
+        .ToLowerInvariant()
+        .Select(c => char.IsLetterOrDigit(c) ? c : '-')
+        .ToArray();
+
+    var slug = new string(chars);
+    while (slug.Contains("--"))
+        slug = slug.Replace("--", "-");
+
+    return slug.Trim('-');
+}
+
+internal sealed record DocOutput(string Slug, string Title, string Html, List<DocsHeadingItem> Headings);
 
 internal sealed class DocIndexItem
 {
@@ -247,4 +335,11 @@ internal sealed class DocIndexItem
     public int Order { get; set; }
     public string Group { get; set; } = "";
     public int GroupOrder { get; set; } = 999;
+}
+
+internal sealed class DocsHeadingItem
+{
+    public string Id { get; set; } = "";
+    public string Text { get; set; } = "";
+    public int Level { get; set; }
 }

@@ -1,5 +1,97 @@
 {
   "Slug": "auth-flows/device-management",
   "Title": "Device Management",
-  "Html": "\n\u003Cp\u003EIn UltimateAuth, devices are not an afterthought.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 They are a \u003Cstrong\u003Efirst-class concept\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 id=\u0022why-device-matters\u0022\u003E\uD83E\uDDE0 Why Device Matters\u003C/h2\u003E\n\u003Cp\u003EMost authentication systems ignore devices.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EA user logs in\u003C/li\u003E\n\u003Cli\u003EA token is issued\u003C/li\u003E\n\u003Cli\u003EEverything is treated the same\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This breaks down when you need:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMulti-device control\u003C/li\u003E\n\u003Cli\u003ESession visibility\u003C/li\u003E\n\u003Cli\u003ESecurity enforcement\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth solves this with \u003Cstrong\u003Edevice-aware authentication\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 id=\u0022core-concept-chain-device\u0022\u003E\uD83E\uDDE9 Core Concept: Chain = Device\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 A \u003Cstrong\u003ESessionChain represents a device\u003C/strong\u003E\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EDevice \u2192 Chain \u2192 Sessions\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EEach chain:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIs bound to a device\u003C/li\u003E\n\u003Cli\u003EGroups sessions\u003C/li\u003E\n\u003Cli\u003ETracks activity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A device is not inferred \u2014 it is explicitly modeled\u003C/p\u003E\n\u003Ch2 id=\u0022what-defines-a-device\u0022\u003E\uD83D\uDD17 What Defines a Device?\u003C/h2\u003E\n\u003Cp\u003EA chain includes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDeviceId\u003C/li\u003E\n\u003Cli\u003EPlatform (web, mobile, etc.)\u003C/li\u003E\n\u003Cli\u003EOperating System\u003C/li\u003E\n\u003Cli\u003EBrowser\u003C/li\u003E\n\u003Cli\u003EIP (optional binding)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This forms a \u003Cstrong\u003Edevice fingerprint\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 id=\u0022device-lifecycle\u0022\u003E\uD83D\uDD04 Device Lifecycle\u003C/h2\u003E\n\u003Ch3 id=\u0022first-login\u0022\u003E1\uFE0F\u20E3 First Login\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ENew device detected\u003C/li\u003E\n\u003Cli\u003ENew chain is created\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022subsequent-logins\u0022\u003E2\uFE0F\u20E3 Subsequent Logins\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESame device \u2192 reuse chain\u003C/li\u003E\n\u003Cli\u003ENew device \u2192 new chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device continuity is preserved\u003C/p\u003E\n\u003Ch3 id=\u0022activity-touch\u0022\u003E3\uFE0F\u20E3 Activity (Touch)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain \u003Ccode\u003ELastSeenAt\u003C/code\u003E updated\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003ETouchCount\u003C/code\u003E increases\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Tracks real usage\u003C/p\u003E\n\u003Ch3 id=\u0022token-rotation\u0022\u003E4\uFE0F\u20E3 Token Rotation\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession changes\u003C/li\u003E\n\u003Cli\u003EChain remains\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003ERotationCount\u003C/code\u003E increases\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device identity stays stable\u003C/p\u003E\n\u003Ch3 id=\u0022logout\u0022\u003E5\uFE0F\u20E3 Logout\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession removed\u003C/li\u003E\n\u003Cli\u003EChain remains\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device still trusted\u003C/p\u003E\n\u003Ch3 id=\u0022revoke\u0022\u003E6\uFE0F\u20E3 Revoke\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain invalidated\u003C/li\u003E\n\u003Cli\u003EAll sessions removed\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device trust is reset\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Ch3 id=\u0022device-binding\u0022\u003E\uD83D\uDD17 Device Binding\u003C/h3\u003E\n\u003Cp\u003ESessions and tokens are tied to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain\u003C/li\u003E\n\u003Cli\u003EDevice context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents cross-device reuse\u003C/p\u003E\n\u003Ch3 id=\u0022rotation-tracking\u0022\u003E\uD83D\uDD01 Rotation Tracking\u003C/h3\u003E\n\u003Cp\u003EChains track:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERotationCount\u003C/li\u003E\n\u003Cli\u003ETouchCount\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Enables anomaly detection\u003C/p\u003E\n\u003Ch3 id=\u0022revoke-cascade\u0022\u003E\uD83D\uDEA8 Revoke Cascade\u003C/h3\u003E\n\u003Cp\u003EIf a device is compromised:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEntire chain can be revoked\u003C/li\u003E\n\u003Cli\u003EAll sessions invalidated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Immediate containment\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022configuration\u0022\u003E\u2699\uFE0F Configuration\u003C/h2\u003E\n\u003Cp\u003EDevice behavior is configurable via session options:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMax chains per user\u003C/li\u003E\n\u003Cli\u003EMax sessions per chain\u003C/li\u003E\n\u003Cli\u003EPlatform-based limits\u003C/li\u003E\n\u003Cli\u003EDevice mismatch behavior\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Fine-grained control for enterprise scenarios\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Device = Chain\u003Cbr /\u003E\n\uD83D\uDC49 Not just metadata\u003C/p\u003E\n\u003Ch2 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EDevices are explicitly modeled\u003C/li\u003E\n\u003Cli\u003EEach device has its own chain\u003C/li\u003E\n\u003Cli\u003ESessions belong to chains\u003C/li\u003E\n\u003Cli\u003ESecurity is enforced per device\u003C/li\u003E\n\u003Cli\u003ELogout and revoke operate on device scope\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003EConfiguration \u0026amp; Extensibility\u003C/strong\u003E\u003C/p\u003E\n"
+  "Html": "\n\u003Cp\u003EIn UltimateAuth, devices are not an afterthought.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 They are a \u003Cstrong\u003Efirst-class concept\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-device-matters\u0022\u003E\uD83E\uDDE0 Why Device Matters\u003C/h2\u003E\n\u003Cp\u003EMost authentication systems ignore devices.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EA user logs in\u003C/li\u003E\n\u003Cli\u003EA token is issued\u003C/li\u003E\n\u003Cli\u003EEverything is treated the same\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This breaks down when you need:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMulti-device control\u003C/li\u003E\n\u003Cli\u003ESession visibility\u003C/li\u003E\n\u003Cli\u003ESecurity enforcement\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth solves this with \u003Cstrong\u003Edevice-aware authentication\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022core-concept-chain-device\u0022\u003E\uD83E\uDDE9 Core Concept: Chain = Device\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 A \u003Cstrong\u003ESessionChain represents a device\u003C/strong\u003E\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EDevice \u2192 Chain \u2192 Sessions\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EEach chain:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIs bound to a device\u003C/li\u003E\n\u003Cli\u003EGroups sessions\u003C/li\u003E\n\u003Cli\u003ETracks activity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A device is not inferred \u2014 it is explicitly modeled\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-defines-a-device\u0022\u003E\uD83D\uDD17 What Defines a Device?\u003C/h2\u003E\n\u003Cp\u003EA chain includes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDeviceId\u003C/li\u003E\n\u003Cli\u003EPlatform (web, mobile, etc.)\u003C/li\u003E\n\u003Cli\u003EOperating System\u003C/li\u003E\n\u003Cli\u003EBrowser\u003C/li\u003E\n\u003Cli\u003EIP (optional binding)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This forms a \u003Cstrong\u003Edevice fingerprint\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-lifecycle\u0022\u003E\uD83D\uDD04 Device Lifecycle\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022first-login\u0022\u003E1\uFE0F\u20E3 First Login\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ENew device detected\u003C/li\u003E\n\u003Cli\u003ENew chain is created\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022subsequent-logins\u0022\u003E2\uFE0F\u20E3 Subsequent Logins\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESame device \u2192 reuse chain\u003C/li\u003E\n\u003Cli\u003ENew device \u2192 new chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device continuity is preserved\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022activity-touch\u0022\u003E3\uFE0F\u20E3 Activity (Touch)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain \u003Ccode\u003ELastSeenAt\u003C/code\u003E updated\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003ETouchCount\u003C/code\u003E increases\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Tracks real usage\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-rotation\u0022\u003E4\uFE0F\u20E3 Token Rotation\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession changes\u003C/li\u003E\n\u003Cli\u003EChain remains\u003C/li\u003E\n\u003Cli\u003E\u003Ccode\u003ERotationCount\u003C/code\u003E increases\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device identity stays stable\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout\u0022\u003E5\uFE0F\u20E3 Logout\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession removed\u003C/li\u003E\n\u003Cli\u003EChain remains\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device still trusted\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke\u0022\u003E6\uFE0F\u20E3 Revoke\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain invalidated\u003C/li\u003E\n\u003Cli\u003EAll sessions removed\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Device trust is reset\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-binding\u0022\u003E\uD83D\uDD17 Device Binding\u003C/h3\u003E\n\u003Cp\u003ESessions and tokens are tied to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain\u003C/li\u003E\n\u003Cli\u003EDevice context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents cross-device reuse\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022rotation-tracking\u0022\u003E\uD83D\uDD01 Rotation Tracking\u003C/h3\u003E\n\u003Cp\u003EChains track:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERotationCount\u003C/li\u003E\n\u003Cli\u003ETouchCount\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Enables anomaly detection\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-cascade\u0022\u003E\uD83D\uDEA8 Revoke Cascade\u003C/h3\u003E\n\u003Cp\u003EIf a device is compromised:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEntire chain can be revoked\u003C/li\u003E\n\u003Cli\u003EAll sessions invalidated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Immediate containment\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022configuration\u0022\u003E\u2699\uFE0F Configuration\u003C/h2\u003E\n\u003Cp\u003EDevice behavior is configurable via session options:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMax chains per user\u003C/li\u003E\n\u003Cli\u003EMax sessions per chain\u003C/li\u003E\n\u003Cli\u003EPlatform-based limits\u003C/li\u003E\n\u003Cli\u003EDevice mismatch behavior\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Fine-grained control for enterprise scenarios\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Device = Chain\u003Cbr /\u003E\n\uD83D\uDC49 Not just metadata\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EDevices are explicitly modeled\u003C/li\u003E\n\u003Cli\u003EEach device has its own chain\u003C/li\u003E\n\u003Cli\u003ESessions belong to chains\u003C/li\u003E\n\u003Cli\u003ESecurity is enforced per device\u003C/li\u003E\n\u003Cli\u003ELogout and revoke operate on device scope\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003EConfiguration \u0026amp; Extensibility\u003C/strong\u003E\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "why-device-matters",
+      "Text": "\uD83E\uDDE0 Why Device Matters",
+      "Level": 0
+    },
+    {
+      "Id": "core-concept-chain-device",
+      "Text": "\uD83E\uDDE9 Core Concept: Chain = Device",
+      "Level": 0
+    },
+    {
+      "Id": "what-defines-a-device",
+      "Text": "\uD83D\uDD17 What Defines a Device?",
+      "Level": 0
+    },
+    {
+      "Id": "device-lifecycle",
+      "Text": "\uD83D\uDD04 Device Lifecycle",
+      "Level": 0
+    },
+    {
+      "Id": "first-login",
+      "Text": "1\uFE0F\u20E3 First Login",
+      "Level": 1
+    },
+    {
+      "Id": "subsequent-logins",
+      "Text": "2\uFE0F\u20E3 Subsequent Logins",
+      "Level": 1
+    },
+    {
+      "Id": "activity-touch",
+      "Text": "3\uFE0F\u20E3 Activity (Touch)",
+      "Level": 1
+    },
+    {
+      "Id": "token-rotation",
+      "Text": "4\uFE0F\u20E3 Token Rotation",
+      "Level": 1
+    },
+    {
+      "Id": "logout",
+      "Text": "5\uFE0F\u20E3 Logout",
+      "Level": 1
+    },
+    {
+      "Id": "revoke",
+      "Text": "6\uFE0F\u20E3 Revoke",
+      "Level": 1
+    },
+    {
+      "Id": "security-model",
+      "Text": "\uD83D\uDD10 Security Model",
+      "Level": 0
+    },
+    {
+      "Id": "device-binding",
+      "Text": "\uD83D\uDD17 Device Binding",
+      "Level": 1
+    },
+    {
+      "Id": "rotation-tracking",
+      "Text": "\uD83D\uDD01 Rotation Tracking",
+      "Level": 1
+    },
+    {
+      "Id": "revoke-cascade",
+      "Text": "\uD83D\uDEA8 Revoke Cascade",
+      "Level": 1
+    },
+    {
+      "Id": "configuration",
+      "Text": "\u2699\uFE0F Configuration",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "key-takeaways",
+      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
 }

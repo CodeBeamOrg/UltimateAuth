@@ -254,3 +254,21 @@ h1:focus {
     justify-content: center;
     margin-top: 100px;
 }
+
+.docs-toc-container {
+    position: sticky;
+    top: 80px;
+    height: fit-content;
+}
+
+.toc-active {
+    font-weight: 600;
+    color: var(--mud-palette-primary);
+    border-left: 2px solid var(--mud-palette-primary);
+    background: var(--mud-palette-background-gray);
+}
+
+.docs-content h2,
+.docs-content h3 {
+    scroll-margin-top: 240px;
+}

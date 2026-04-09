@@ -1,5 +1,107 @@
 {
   "Slug": "auth-flows/refresh-flow",
   "Title": "Refresh",
-  "Html": "\n\u003Cp\u003EThe refresh flow in UltimateAuth is not a single fixed operation.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It is a \u003Cstrong\u003Emode-dependent continuation strategy\u003C/strong\u003E.\u003C/p\u003E\n\u003Ch2 id=\u0022what-is-refresh\u0022\u003E\uD83E\uDDE0 What is Refresh?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh = get a new access token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Refresh continues an existing authentication state\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ERefresh is not re-authentication\u003Cbr /\u003E\n\u2192 It is session continuation\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch2 id=\u0022two-refresh-strategies\u0022\u003E\uD83D\uDD00 Two Refresh Strategies\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth supports two fundamentally different refresh behaviors:\u003C/p\u003E\n\u003Ch3 id=\u0022session-touch-stateful\u0022\u003E\uD83D\uDD39 Session Touch (Stateful)\u003C/h3\u003E\n\u003Cp\u003EUsed in \u003Cstrong\u003EPureOpaque mode\u003C/strong\u003E\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ENo tokens involved\u003C/li\u003E\n\u003Cli\u003ENo new session created\u003C/li\u003E\n\u003Cli\u003EExisting session is extended\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003ESession \u2192 Validate \u2192 Touch \u2192 Continue\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This updates activity without changing identity\u003C/p\u003E\n\u003Ch3 id=\u0022token-rotation-stateless-hybrid\u0022\u003E\uD83D\uDD39 Token Rotation (Stateless / Hybrid)\u003C/h3\u003E\n\u003Cp\u003EUsed in:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cp\u003EHybrid\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ESemiHybrid\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EPureJwt\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ERefresh token is validated\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EOld token is revoked\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ENew tokens are issued\u003C/p\u003E\n\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003ERefreshToken \u2192 Validate \u2192 Revoke \u2192 Issue New Tokens\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This ensures forward security\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022mode-based-behavior\u0022\u003E\u2696\uFE0F Mode-Based Behavior\u003C/h2\u003E\n\u003Cp\u003ERefresh behavior is determined by the authentication mode:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EMode\u003C/th\u003E\n\u003Cth\u003EBehavior\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureOpaque\u003C/td\u003E\n\u003Ctd\u003ESession Touch\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EHybrid\u003C/td\u003E\n\u003Ctd\u003ERotation \u002B Touch\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESemiHybrid\u003C/td\u003E\n\u003Ctd\u003ERotation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureJwt\u003C/td\u003E\n\u003Ctd\u003ERotation\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth automatically selects the correct strategy.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022step-by-step-execution\u0022\u003E\uD83D\uDD04 Step-by-Step Execution\u003C/h2\u003E\n\u003Ch3 id=\u0022input-resolution\u0022\u003E1\uFE0F\u20E3 Input Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system resolves:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessionId (if present)\u003C/li\u003E\n\u003Cli\u003ERefreshToken (if present)\u003C/li\u003E\n\u003Cli\u003EDevice context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022mode-based-branching\u0022\u003E2\uFE0F\u20E3 Mode-Based Branching\u003C/h3\u003E\n\u003Cp\u003EThe system determines the refresh strategy:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession-based \u2192 Touch\u003C/li\u003E\n\u003Cli\u003EToken-based \u2192 Rotation\u003C/li\u003E\n\u003Cli\u003EHybrid \u2192 Both\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022session-validation\u0022\u003E3\uFE0F\u20E3 Session Validation\u003C/h3\u003E\n\u003Cp\u003EIf session is involved:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession is validated\u003C/li\u003E\n\u003Cli\u003EDevice binding is checked\u003C/li\u003E\n\u003Cli\u003EExpiration is evaluated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022token-validation-if-applicable\u0022\u003E4\uFE0F\u20E3 Token Validation (if applicable)\u003C/h3\u003E\n\u003Cp\u003EIf refresh token is used:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EToken is validated\u003C/li\u003E\n\u003Cli\u003ESession and chain are verified\u003C/li\u003E\n\u003Cli\u003EDevice consistency is checked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022security-checks\u0022\u003E5\uFE0F\u20E3 Security Checks\u003C/h3\u003E\n\u003Cp\u003EThe system enforces:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EToken reuse detection\u003C/li\u003E\n\u003Cli\u003ESession validity\u003C/li\u003E\n\u003Cli\u003EChain integrity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 If validation fails \u2192 reauthentication required\u003C/p\u003E\n\u003Ch3 id=\u0022execution\u0022\u003E6\uFE0F\u20E3 Execution\u003C/h3\u003E\n\u003Cp\u003EDepending on the strategy:\u003C/p\u003E\n\u003Ch4 id=\u0022session-touch\u0022\u003ESession Touch\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EUpdates \u003Ccode\u003ELastSeenAt\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003EApplies sliding expiration\u003C/li\u003E\n\u003Cli\u003ENo new tokens issued\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022token-rotation\u0022\u003EToken Rotation\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ERevokes old refresh token\u003C/li\u003E\n\u003Cli\u003EIssues new access token\u003C/li\u003E\n\u003Cli\u003EIssues new refresh token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022hybrid-mode\u0022\u003EHybrid Mode\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidates session\u003C/li\u003E\n\u003Cli\u003ERotates tokens\u003C/li\u003E\n\u003Cli\u003EUpdates session activity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 id=\u0022response-generation\u0022\u003E7\uFE0F\u20E3 Response Generation\u003C/h3\u003E\n\u003Cp\u003EThe response may include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessionId\u003C/li\u003E\n\u003Cli\u003EAccess token\u003C/li\u003E\n\u003Cli\u003ERefresh token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Output depends on mode and client\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Cp\u003EThe refresh flow includes strong protections:\u003C/p\u003E\n\u003Ch3 id=\u0022token-reuse-detection\u0022\u003E\uD83D\uDD01 Token Reuse Detection\u003C/h3\u003E\n\u003Cp\u003EIf a refresh token is reused:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain may be revoked\u003C/li\u003E\n\u003Cli\u003ESession may be revoked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This prevents replay attacks\u003C/p\u003E\n\u003Ch3 id=\u0022session-binding\u0022\u003E\uD83D\uDD17 Session Binding\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETokens are bound to session\u003C/li\u003E\n\u003Cli\u003ESession is bound to device\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents token misuse across devices\u003C/p\u003E\n\u003Ch3 id=\u0022chain-integrity\u0022\u003E\uD83E\uDDEC Chain Integrity\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh operates within a chain\u003C/li\u003E\n\u003Cli\u003ECross-device usage is rejected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Refresh = continuation\u003Cbr /\u003E\n\uD83D\uDC49 Not new authentication\u003C/p\u003E\n\u003Ch2 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh behavior depends on auth mode\u003C/li\u003E\n\u003Cli\u003EStateful systems use session touch\u003C/li\u003E\n\u003Cli\u003EStateless systems use token rotation\u003C/li\u003E\n\u003Cli\u003EHybrid systems combine both\u003C/li\u003E\n\u003Cli\u003ESecurity is enforced at every step\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ELogout Flow\u003C/strong\u003E\u003C/p\u003E\n"
+  "Html": "\n\u003Cp\u003EThe refresh flow in UltimateAuth is not a single fixed operation.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It is a \u003Cstrong\u003Emode-dependent continuation strategy\u003C/strong\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-is-refresh\u0022\u003E\uD83E\uDDE0 What is Refresh?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh = get a new access token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Refresh continues an existing authentication state\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ERefresh is not re-authentication\u003Cbr /\u003E\n\u2192 It is session continuation\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022two-refresh-strategies\u0022\u003E\uD83D\uDD00 Two Refresh Strategies\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth supports two fundamentally different refresh behaviors:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-touch-stateful\u0022\u003E\uD83D\uDD39 Session Touch (Stateful)\u003C/h3\u003E\n\u003Cp\u003EUsed in \u003Cstrong\u003EPureOpaque mode\u003C/strong\u003E\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ENo tokens involved\u003C/li\u003E\n\u003Cli\u003ENo new session created\u003C/li\u003E\n\u003Cli\u003EExisting session is extended\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003ESession \u2192 Validate \u2192 Touch \u2192 Continue\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This updates activity without changing identity\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-rotation-stateless-hybrid\u0022\u003E\uD83D\uDD39 Token Rotation (Stateless / Hybrid)\u003C/h3\u003E\n\u003Cp\u003EUsed in:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cp\u003EHybrid\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ESemiHybrid\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EPureJwt\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ERefresh token is validated\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EOld token is revoked\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003ENew tokens are issued\u003C/p\u003E\n\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003ERefreshToken \u2192 Validate \u2192 Revoke \u2192 Issue New Tokens\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 This ensures forward security\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mode-based-behavior\u0022\u003E\u2696\uFE0F Mode-Based Behavior\u003C/h2\u003E\n\u003Cp\u003ERefresh behavior is determined by the authentication mode:\u003C/p\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EMode\u003C/th\u003E\n\u003Cth\u003EBehavior\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureOpaque\u003C/td\u003E\n\u003Ctd\u003ESession Touch\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EHybrid\u003C/td\u003E\n\u003Ctd\u003ERotation \u002B Touch\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESemiHybrid\u003C/td\u003E\n\u003Ctd\u003ERotation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureJwt\u003C/td\u003E\n\u003Ctd\u003ERotation\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth automatically selects the correct strategy.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-by-step-execution\u0022\u003E\uD83D\uDD04 Step-by-Step Execution\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022input-resolution\u0022\u003E1\uFE0F\u20E3 Input Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system resolves:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessionId (if present)\u003C/li\u003E\n\u003Cli\u003ERefreshToken (if present)\u003C/li\u003E\n\u003Cli\u003EDevice context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022mode-based-branching\u0022\u003E2\uFE0F\u20E3 Mode-Based Branching\u003C/h3\u003E\n\u003Cp\u003EThe system determines the refresh strategy:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession-based \u2192 Touch\u003C/li\u003E\n\u003Cli\u003EToken-based \u2192 Rotation\u003C/li\u003E\n\u003Cli\u003EHybrid \u2192 Both\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-validation\u0022\u003E3\uFE0F\u20E3 Session Validation\u003C/h3\u003E\n\u003Cp\u003EIf session is involved:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession is validated\u003C/li\u003E\n\u003Cli\u003EDevice binding is checked\u003C/li\u003E\n\u003Cli\u003EExpiration is evaluated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-validation-if-applicable\u0022\u003E4\uFE0F\u20E3 Token Validation (if applicable)\u003C/h3\u003E\n\u003Cp\u003EIf refresh token is used:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EToken is validated\u003C/li\u003E\n\u003Cli\u003ESession and chain are verified\u003C/li\u003E\n\u003Cli\u003EDevice consistency is checked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-checks\u0022\u003E5\uFE0F\u20E3 Security Checks\u003C/h3\u003E\n\u003Cp\u003EThe system enforces:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EToken reuse detection\u003C/li\u003E\n\u003Cli\u003ESession validity\u003C/li\u003E\n\u003Cli\u003EChain integrity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 If validation fails \u2192 reauthentication required\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022execution\u0022\u003E6\uFE0F\u20E3 Execution\u003C/h3\u003E\n\u003Cp\u003EDepending on the strategy:\u003C/p\u003E\n\u003Ch4 id=\u0022session-touch\u0022\u003ESession Touch\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EUpdates \u003Ccode\u003ELastSeenAt\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003EApplies sliding expiration\u003C/li\u003E\n\u003Cli\u003ENo new tokens issued\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022token-rotation\u0022\u003EToken Rotation\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ERevokes old refresh token\u003C/li\u003E\n\u003Cli\u003EIssues new access token\u003C/li\u003E\n\u003Cli\u003EIssues new refresh token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022hybrid-mode\u0022\u003EHybrid Mode\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EValidates session\u003C/li\u003E\n\u003Cli\u003ERotates tokens\u003C/li\u003E\n\u003Cli\u003EUpdates session activity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022response-generation\u0022\u003E7\uFE0F\u20E3 Response Generation\u003C/h3\u003E\n\u003Cp\u003EThe response may include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessionId\u003C/li\u003E\n\u003Cli\u003EAccess token\u003C/li\u003E\n\u003Cli\u003ERefresh token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Output depends on mode and client\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Cp\u003EThe refresh flow includes strong protections:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-reuse-detection\u0022\u003E\uD83D\uDD01 Token Reuse Detection\u003C/h3\u003E\n\u003Cp\u003EIf a refresh token is reused:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EChain may be revoked\u003C/li\u003E\n\u003Cli\u003ESession may be revoked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This prevents replay attacks\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-binding\u0022\u003E\uD83D\uDD17 Session Binding\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETokens are bound to session\u003C/li\u003E\n\u003Cli\u003ESession is bound to device\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents token misuse across devices\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-integrity\u0022\u003E\uD83E\uDDEC Chain Integrity\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh operates within a chain\u003C/li\u003E\n\u003Cli\u003ECross-device usage is rejected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Refresh = continuation\u003Cbr /\u003E\n\uD83D\uDC49 Not new authentication\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ERefresh behavior depends on auth mode\u003C/li\u003E\n\u003Cli\u003EStateful systems use session touch\u003C/li\u003E\n\u003Cli\u003EStateless systems use token rotation\u003C/li\u003E\n\u003Cli\u003EHybrid systems combine both\u003C/li\u003E\n\u003Cli\u003ESecurity is enforced at every step\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ELogout Flow\u003C/strong\u003E\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "what-is-refresh",
+      "Text": "\uD83E\uDDE0 What is Refresh?",
+      "Level": 0
+    },
+    {
+      "Id": "two-refresh-strategies",
+      "Text": "\uD83D\uDD00 Two Refresh Strategies",
+      "Level": 0
+    },
+    {
+      "Id": "session-touch-stateful",
+      "Text": "\uD83D\uDD39 Session Touch (Stateful)",
+      "Level": 1
+    },
+    {
+      "Id": "token-rotation-stateless-hybrid",
+      "Text": "\uD83D\uDD39 Token Rotation (Stateless / Hybrid)",
+      "Level": 1
+    },
+    {
+      "Id": "mode-based-behavior",
+      "Text": "\u2696\uFE0F Mode-Based Behavior",
+      "Level": 0
+    },
+    {
+      "Id": "step-by-step-execution",
+      "Text": "\uD83D\uDD04 Step-by-Step Execution",
+      "Level": 0
+    },
+    {
+      "Id": "input-resolution",
+      "Text": "1\uFE0F\u20E3 Input Resolution",
+      "Level": 1
+    },
+    {
+      "Id": "mode-based-branching",
+      "Text": "2\uFE0F\u20E3 Mode-Based Branching",
+      "Level": 1
+    },
+    {
+      "Id": "session-validation",
+      "Text": "3\uFE0F\u20E3 Session Validation",
+      "Level": 1
+    },
+    {
+      "Id": "token-validation-if-applicable",
+      "Text": "4\uFE0F\u20E3 Token Validation (if applicable)",
+      "Level": 1
+    },
+    {
+      "Id": "security-checks",
+      "Text": "5\uFE0F\u20E3 Security Checks",
+      "Level": 1
+    },
+    {
+      "Id": "execution",
+      "Text": "6\uFE0F\u20E3 Execution",
+      "Level": 1
+    },
+    {
+      "Id": "response-generation",
+      "Text": "7\uFE0F\u20E3 Response Generation",
+      "Level": 1
+    },
+    {
+      "Id": "security-model",
+      "Text": "\uD83D\uDD10 Security Model",
+      "Level": 0
+    },
+    {
+      "Id": "token-reuse-detection",
+      "Text": "\uD83D\uDD01 Token Reuse Detection",
+      "Level": 1
+    },
+    {
+      "Id": "session-binding",
+      "Text": "\uD83D\uDD17 Session Binding",
+      "Level": 1
+    },
+    {
+      "Id": "chain-integrity",
+      "Text": "\uD83E\uDDEC Chain Integrity",
+      "Level": 1
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "key-takeaways",
+      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
 }

@@ -1,5 +1,8 @@
 ﻿@using System.Net.Http.Json
+@inject DocsPageState PageState
 @inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
 @if (_loading || !RendererInfo.IsInteractive)
 {
@@ -24,6 +27,44 @@ else if (_doc is not null)
         <MudDivider Class="mb-4" />
 
         <div class="docs-content" @ref="_contentRef">@((MarkupString)_doc.Html)</div>
+
+        <MudDivider Class="my-6" />
+
+        <MudGrid>
+            <MudItem xs="6" Class="d-flex justify-start">
+                @if (_prev != null)
+                {
+                    <MudPaper Class="pa-3 nav-card" Style="background: transparent" Outlined="true">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                Previous
+                            </MudText>
+
+                            <MudButton Href="@($"/docs/{_prev.Slug}")" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">
+                                @_prev.Title
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudItem>
+
+            <MudItem xs="6" Class="d-flex justify-end">
+                @if (_next != null)
+                {
+                    <MudPaper Class="pa-3 nav-card" Style="background: transparent" Outlined="true">
+                        <MudStack Spacing="1" AlignItems="AlignItems.End">
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                Next
+                            </MudText>
+
+                            <MudButton Href="@($"/docs/{_next.Slug}")" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowForward">
+                                @_next.Title
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudItem>
+        </MudGrid>
     </MudContainer>
 }
 
@@ -41,6 +82,9 @@ else if (_doc is not null)
         _loading = true;
         _notFound = false;
         _doc = null;
+        _prev = null;
+        _next = null;
+        PageState.Clear();
 
         var slug = string.IsNullOrWhiteSpace(Slug)
             ? "index"
@@ -51,7 +95,15 @@ else if (_doc is not null)
             _doc = await Http.GetFromJsonAsync<DocPage>($"docs/{slug}.json");
 
             if (_doc == null)
+            {
                 _notFound = true;
+            }
+            else
+            {
+                PageState.SetPage(slug, _doc.Title, _doc.Headings);
+                await EnsureNavLoaded();
+                ComputePrevNext();
+            }
         }
         catch
         {
@@ -74,5 +126,72 @@ else if (_doc is not null)
         public string Slug { get; set; } = "";
         public string Title { get; set; } = "";
         public string Html { get; set; } = "";
+        public List<DocsHeadingItem> Headings { get; set; } = [];
+    }
+
+    private List<DocNavItem> _nav = [];
+    private List<DocNavItem>? _navCache;
+    private DocNavItem? _prev;
+    private DocNavItem? _next;
+
+    private class DocNavItem
+    {
+        public string Title { get; set; } = "";
+        public string Slug { get; set; } = "";
+    }
+
+    private async Task EnsureNavLoaded()
+    {
+        if (_navCache is not null)
+            return;
+
+        _navCache = await Http.GetFromJsonAsync<List<DocNavItem>>("docs/docs-index.json") ?? [];
+    }
+
+    private void ComputePrevNext()
+    {
+        _prev = null;
+        _next = null;
+
+        if (_navCache is null)
+            return;
+
+        var currentPath = Nav.ToBaseRelativePath(Nav.Uri);
+
+        var currentSlug = currentPath.StartsWith("docs/")
+            ? currentPath.Substring(5)
+            : currentPath;
+
+        currentSlug = currentSlug.Trim('/');
+
+        var index = _navCache.FindIndex(x =>
+            x.Slug.Trim('/').Equals(currentSlug, StringComparison.OrdinalIgnoreCase));
+
+        if (index > 0)
+            _prev = _navCache[index - 1];
+
+        if (index >= 0 && index < _navCache.Count - 1)
+            _next = _navCache[index + 1];
+    }
+
+    private async Task LoadNavAsync()
+    {
+        _nav = await Http.GetFromJsonAsync<List<DocNavItem>>("docs/docs-index.json") ?? [];
+
+        var currentPath = Nav.ToBaseRelativePath(Nav.Uri);
+
+        var currentSlug = currentPath.StartsWith("docs/")
+            ? currentPath.Substring(5)
+            : currentPath;
+
+        var index = _nav.FindIndex(x => x.Slug == currentSlug);
+
+        Console.WriteLine($"Slug: {currentSlug}, Index: {index}");
+
+        if (index > 0)
+            _prev = _nav[index - 1];
+
+        if (index >= 0 && index < _nav.Count - 1)
+            _next = _nav[index + 1];
     }
 }
