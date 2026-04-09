@@ -1,0 +1,57 @@
+{
+  "Slug": "configuration/index",
+  "Title": "Configuration",
+  "Html": "\n\u003Cp\u003EUltimateAuth is designed to be flexible.\u003C/p\u003E\n\u003Cp\u003EBut flexibility without structure leads to chaos.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Configuration in UltimateAuth is structured, layered, and safe by default.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-you-configure\u0022\u003E\uD83E\uDDE0 What You Configure\u003C/h2\u003E\n\u003Cp\u003EIn UltimateAuth, you don\u2019t just configure values.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You configure behavior.\u003C/p\u003E\n\u003Cp\u003EThis includes:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EHow sessions are created and managed\u003C/li\u003E\n\u003Cli\u003EHow tokens are issued and refreshed\u003C/li\u003E\n\u003Cli\u003EHow tenants are resolved\u003C/li\u003E\n\u003Cli\u003EHow clients interact with the system\u003C/li\u003E\n\u003Cli\u003EWhich features are enabled or restricted\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022configuration-layers\u0022\u003E\uD83E\uDDE9 Configuration Layers\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth separates configuration into three layers:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022core\u0022\u003E\uD83D\uDD39 Core\u003C/h3\u003E\n\u003Cp\u003EDefines authentication behavior:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession lifecycle\u003C/li\u003E\n\u003Cli\u003EToken policies\u003C/li\u003E\n\u003Cli\u003EPKCE flows\u003C/li\u003E\n\u003Cli\u003EMulti-tenancy\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server\u0022\u003E\uD83D\uDD39 Server\u003C/h3\u003E\n\u003Cp\u003EDefines runtime behavior:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAllowed authentication modes\u003C/li\u003E\n\u003Cli\u003EEndpoint exposure\u003C/li\u003E\n\u003Cli\u003ECookie and transport behavior\u003C/li\u003E\n\u003Cli\u003EHub deployment\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022client\u0022\u003E\uD83D\uDD39 Client\u003C/h3\u003E\n\u003Cp\u003EDefines client-side behavior:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EClient profile\u003C/li\u003E\n\u003Cli\u003EPKCE configuration\u003C/li\u003E\n\u003Cli\u003EAuto-refresh and re-authentication\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 These layers are independent but work together.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022configuration-sources\u0022\u003E\u2699\uFE0F Configuration Sources\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth supports two configuration styles:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022code-based-program.cs\u0022\u003ECode-based (Program.cs)\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Ebuilder.Services.AddUltimateAuthServer(o =\u0026gt;\n{\n    o.Login.MaxFailedAttempts = 5;\n});\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022configuration-based-appsettings.json\u0022\u003EConfiguration-based (appsettings.json)\u003C/h3\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003E{\n  \u0026quot;UltimateAuth\u0026quot;: {\n    \u0026quot;Server\u0026quot;: {\n      \u0026quot;Login\u0026quot;: {\n        \u0026quot;MaxFailedAttempts\u0026quot;: 5\n      }\n    }\n  }\n}\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 appsettings.json overrides Program.cs\u003C/p\u003E\n\u003Cp\u003EThis allows:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnvironment-based configuration\u003C/li\u003E\n\u003Cli\u003ECentralized management\u003C/li\u003E\n\u003Cli\u003EProduction-safe overrides\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022safety-by-design\u0022\u003E\uD83D\uDEE1 Safety by Design\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth does not allow unsafe configurations silently.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvalid combinations fail at startup\u003C/li\u003E\n\u003Cli\u003EUnsupported modes are rejected\u003C/li\u003E\n\u003Cli\u003ESecurity invariants are enforced\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Flexibility is allowed\n\uD83D\uDC49 Unsafe behavior is not\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022whats-next\u0022\u003E\uD83C\uDFAF What\u2019s Next?\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EUnderstand configuration layers \u2192 Configuration Overview\u003C/li\u003E\n\u003Cli\u003ELearn Core behavior \u2192 Core Options\u003C/li\u003E\n\u003Cli\u003ECustomize server \u2192 Server Options\u003C/li\u003E\n\u003Cli\u003EControl clients \u2192 Client Options\u003C/li\u003E\n\u003Cli\u003EGo deeper \u2192 Advanced Configuration\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "what-you-configure",
+      "Text": "\uD83E\uDDE0 What You Configure",
+      "Level": 0
+    },
+    {
+      "Id": "configuration-layers",
+      "Text": "\uD83E\uDDE9 Configuration Layers",
+      "Level": 0
+    },
+    {
+      "Id": "core",
+      "Text": "\uD83D\uDD39 Core",
+      "Level": 1
+    },
+    {
+      "Id": "server",
+      "Text": "\uD83D\uDD39 Server",
+      "Level": 1
+    },
+    {
+      "Id": "client",
+      "Text": "\uD83D\uDD39 Client",
+      "Level": 1
+    },
+    {
+      "Id": "configuration-sources",
+      "Text": "\u2699\uFE0F Configuration Sources",
+      "Level": 0
+    },
+    {
+      "Id": "code-based-program.cs",
+      "Text": "Code-based (Program.cs)",
+      "Level": 1
+    },
+    {
+      "Id": "configuration-based-appsettings.json",
+      "Text": "Configuration-based (appsettings.json)",
+      "Level": 1
+    },
+    {
+      "Id": "safety-by-design",
+      "Text": "\uD83D\uDEE1 Safety by Design",
+      "Level": 0
+    },
+    {
+      "Id": "whats-next",
+      "Text": "\uD83C\uDFAF What\u2019s Next?",
+      "Level": 0
+    }
+  ]
+}

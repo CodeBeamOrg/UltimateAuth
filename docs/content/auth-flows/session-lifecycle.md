@@ -1,3 +1,10 @@
+---
+title: Session Lifecycle
+order: 5
+group: auth-flows
+---
+
+
 # 🧬 Session Lifecycle
 UltimateAuth is built around a structured session model.
 

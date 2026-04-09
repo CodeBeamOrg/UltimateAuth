@@ -1,3 +1,10 @@
+---
+title: Authorization
+order: 7
+group: client
+---
+
+
 # 🛡 Authorization Guide
 
 This section explains how to manage roles, permissions, and access control using the UltimateAuth client.

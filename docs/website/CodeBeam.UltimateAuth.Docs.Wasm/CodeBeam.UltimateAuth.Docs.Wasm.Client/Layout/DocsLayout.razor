@@ -1,0 +1,18 @@
+﻿@using CodeBeam.UltimateAuth.Docs.Wasm.Client.Pages
+@inherits LayoutComponentBase
+@layout MainLayout
+
+<MudLayout>
+    <MudDrawer Open="true" Elevation="1" Class="pa-2" Style="width:260px; background: transparent">
+        <DocsSidebar />
+    </MudDrawer>
+
+    <MudMainContent Class="docs-main">
+        @Body
+    </MudMainContent>
+
+    <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
+        <DocsToc />
+        <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
+    </MudDrawer>
+</MudLayout>

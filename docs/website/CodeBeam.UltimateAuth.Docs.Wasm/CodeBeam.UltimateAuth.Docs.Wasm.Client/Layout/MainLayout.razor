@@ -1,4 +1,5 @@
 ﻿@using CodeBeam.UltimateAuth.Docs.Wasm.Client.Brand
+@using CodeBeam.UltimateAuth.Docs.Wasm.Client.Pages
 @inherits LayoutComponentBase
 
 @inject NavigationManager Nav
@@ -18,7 +19,7 @@
                 </div>
 
                 <div class="ua-desktop-only">
-                    <MudButton Variant="Variant.Text" Href="/docs">Docs</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/docs" Style="min-width: fit-content">Docs</MudButton>
                     <MudButton Variant="Variant.Text" Href="/samples">Samples</MudButton>
                     <MudButton Variant="Variant.Text" Href="/#donate">Donate</MudButton>
                 </div>
@@ -39,8 +40,10 @@
     <MudDrawer @bind-Open="_drawerOpen" Breakpoint="Breakpoint.None" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Temporary">
         <MudNavMenu>
             <MudNavLink Href="/#uauth" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-            <MudNavLink Href="/docs" Icon="@Icons.Material.Filled.Book">Docs</MudNavLink>
-            <MudNavLink Href="/docs" Icon="@Icons.Material.Filled.Apps">Samples</MudNavLink>
+            <MudNavGroup Icon="@Icons.Material.Filled.Book" Title="Docs" Expanded="false">
+                <DocsSidebar Inline="true" />
+            </MudNavGroup>
+            <MudNavLink Href="/samples" Icon="@Icons.Material.Filled.Apps">Samples</MudNavLink>
             <MudNavLink Href="/#donate" Icon="@Icons.Material.Filled.VolunteerActivism">Donate</MudNavLink>
         </MudNavMenu>
     </MudDrawer>

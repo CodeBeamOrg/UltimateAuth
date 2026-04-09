@@ -1,0 +1,97 @@
+{
+  "Slug": "fundamentals/flow-based-auth",
+  "Title": "Flow Based Authentication",
+  "Html": "\n\u003Cp\u003EUltimateAuth is not cookie-based or token-based.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It is \u003Cstrong\u003Eflow-based\u003C/strong\u003E.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-does-flow-based-mean\u0022\u003E\uD83D\uDD11 What Does \u201CFlow-Based\u201D Mean?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems, authentication is treated as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EA cookie\u003C/li\u003E\n\u003Cli\u003EA JWT token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EOnce issued, the system simply checks:\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u201CIs this token valid?\u201D\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cbr\u003E\n\u003Cp\u003EUltimateAuth takes a different approach:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Authentication is a \u003Cstrong\u003Eseries of controlled flows\u003C/strong\u003E, not a static artifact.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-as-flows\u0022\u003E\uD83E\uDDED Authentication as Flows\u003C/h2\u003E\n\u003Cp\u003EEvery authentication operation is an explicit flow:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ELogin\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ELogout\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EValidate\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERefresh\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERe-authentication\u003C/strong\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EEach flow:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIs initiated intentionally\u003C/li\u003E\n\u003Cli\u003EIs processed on the server\u003C/li\u003E\n\u003Cli\u003EProduces a controlled result\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022example-login-flow\u0022\u003E\uD83D\uDD01 Example: Login Flow\u003C/h2\u003E\n\u003Cp\u003EInstead of:\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u201CGenerate a token and store it\u201D\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cp\u003EUltimateAuth does:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ELogin Request\n\u2192 Validate credentials\n\u2192 Resolve Root\n\u2192 Resolve or create Chain\n\u2192 Create Session\n\u2192 Issue authentication grant\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Login is not a single step \u2014 it is a \u003Cstrong\u003Emanaged process\u003C/strong\u003E\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022example-refresh-flow\u0022\u003E\uD83D\uDD04 Example: Refresh Flow\u003C/h2\u003E\n\u003Cp\u003ETraditional systems:\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ERefresh = issue new token\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cp\u003EUltimateAuth:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ERefresh Request\n\u2192 Validate session\n\u2192 Check security constraints\n\u2192 Apply policies (if any)\n\u2192 Optionally rotate tokens\n\u2192 Update session state (if needed)\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 The server decides what actually happens\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022example-validate-flow\u0022\u003E\uD83D\uDD0D Example: Validate Flow\u003C/h2\u003E\n\u003Cp\u003EOn each request:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003EIncoming Request\n\u2192 Extract session/token\n\u2192 Validate session\n\u2192 Check chain (device context)\n\u2192 Verify root security version\n\u2192 Build auth state\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Validation is not just \u201Ctoken valid?\u201D\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-token-based-thinking-falls-short\u0022\u003E\u26A0\uFE0F Why Token-Based Thinking Falls Short\u003C/h2\u003E\n\u003Cp\u003EToken-based systems assume:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe token contains truth\u003C/li\u003E\n\u003Cli\u003EThe server trusts the token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThis leads to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EWeak revocation\u003C/li\u003E\n\u003Cli\u003ENo device awareness\u003C/li\u003E\n\u003Cli\u003ELimited control\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022ultimateauth-approach\u0022\u003E\u2705 UltimateAuth Approach\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth treats tokens as:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003Etransport artifacts\u003C/strong\u003E, not sources of truth\u003C/p\u003E\n\u003Cp\u003EThe real authority is:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERoot\u003C/li\u003E\n\u003Cli\u003EChain\u003C/li\u003E\n\u003Cli\u003ESession\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-idea\u0022\u003E\uD83E\uDDE0 Key Idea\u003C/h2\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ETokens carry data\u003Cbr /\u003E\nFlows enforce rules\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-controlled-by-design\u0022\u003E\uD83D\uDD10 Server-Controlled by Design\u003C/h2\u003E\n\u003Cp\u003EAll flows are:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EExecuted on the server\u003C/li\u003E\n\u003Cli\u003EEvaluated against policies\u003C/li\u003E\n\u003Cli\u003ESubject to security constraints\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 The client does not control authentication state\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022flow-examples-in-code\u0022\u003E\u2699\uFE0F Flow Examples in Code\u003C/h2\u003E\n\u003Cp\u003EUsing \u003Ccode\u003EIUAuthClient\u003C/code\u003E:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Eawait UAuthClient.Flows.LoginAsync(request);\nawait UAuthClient.Flows.RefreshAsync();\nawait UAuthClient.Flows.LogoutAsync();\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Each method represents a server-driven flow\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022how-this-changes-development\u0022\u003E\uD83E\uDDE9 How This Changes Development\u003C/h2\u003E\n\u003Cp\u003EInstead of thinking:\u003C/p\u003E\n\u003Cp\u003E\u274C \u201CI need to manage tokens\u201D\u003C/p\u003E\n\u003Cp\u003EYou think:\u003C/p\u003E\n\u003Cp\u003E\u2705 \u201CI need to trigger flows\u201D\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022benefits-of-flow-based-authentication\u0022\u003E\uD83D\uDCCC Benefits of Flow-Based Authentication\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022predictable-behavior\u0022\u003E\u2714 Predictable Behavior\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EEvery action is explicit and controlled.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022better-security\u0022\u003E\u2714 Better Security\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ENo blind token trust\u003C/li\u003E\n\u003Cli\u003EServer-side validation\u003C/li\u003E\n\u003Cli\u003EPolicy-driven decisions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022extensibility\u0022\u003E\u2714 Extensibility\u003C/h3\u003E\n\u003Cp\u003EFlows can be extended with:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMFA\u003C/li\u003E\n\u003Cli\u003ERisk-based checks\u003C/li\u003E\n\u003Cli\u003ECustom policies\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022consistent-across-clients\u0022\u003E\u2714 Consistent Across Clients\u003C/h3\u003E\n\u003Cp\u003ESame flows work for:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EBlazor Server\u003C/li\u003E\n\u003Cli\u003EWASM (PKCE)\u003C/li\u003E\n\u003Cli\u003EAPIs\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Authentication is not a token \u2014 it is a process\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003ENow that you understand flows:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Continue to Auth Modes\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "what-does-flow-based-mean",
+      "Text": "\uD83D\uDD11 What Does \u201CFlow-Based\u201D Mean?",
+      "Level": 0
+    },
+    {
+      "Id": "authentication-as-flows",
+      "Text": "\uD83E\uDDED Authentication as Flows",
+      "Level": 0
+    },
+    {
+      "Id": "example-login-flow",
+      "Text": "\uD83D\uDD01 Example: Login Flow",
+      "Level": 0
+    },
+    {
+      "Id": "example-refresh-flow",
+      "Text": "\uD83D\uDD04 Example: Refresh Flow",
+      "Level": 0
+    },
+    {
+      "Id": "example-validate-flow",
+      "Text": "\uD83D\uDD0D Example: Validate Flow",
+      "Level": 0
+    },
+    {
+      "Id": "why-token-based-thinking-falls-short",
+      "Text": "\u26A0\uFE0F Why Token-Based Thinking Falls Short",
+      "Level": 0
+    },
+    {
+      "Id": "ultimateauth-approach",
+      "Text": "\u2705 UltimateAuth Approach",
+      "Level": 0
+    },
+    {
+      "Id": "key-idea",
+      "Text": "\uD83E\uDDE0 Key Idea",
+      "Level": 0
+    },
+    {
+      "Id": "server-controlled-by-design",
+      "Text": "\uD83D\uDD10 Server-Controlled by Design",
+      "Level": 0
+    },
+    {
+      "Id": "flow-examples-in-code",
+      "Text": "\u2699\uFE0F Flow Examples in Code",
+      "Level": 0
+    },
+    {
+      "Id": "how-this-changes-development",
+      "Text": "\uD83E\uDDE9 How This Changes Development",
+      "Level": 0
+    },
+    {
+      "Id": "benefits-of-flow-based-authentication",
+      "Text": "\uD83D\uDCCC Benefits of Flow-Based Authentication",
+      "Level": 0
+    },
+    {
+      "Id": "predictable-behavior",
+      "Text": "\u2714 Predictable Behavior",
+      "Level": 1
+    },
+    {
+      "Id": "better-security",
+      "Text": "\u2714 Better Security",
+      "Level": 1
+    },
+    {
+      "Id": "extensibility",
+      "Text": "\u2714 Extensibility",
+      "Level": 1
+    },
+    {
+      "Id": "consistent-across-clients",
+      "Text": "\u2714 Consistent Across Clients",
+      "Level": 1
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
+}

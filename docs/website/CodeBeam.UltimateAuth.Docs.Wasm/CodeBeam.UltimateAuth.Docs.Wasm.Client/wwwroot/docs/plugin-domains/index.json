@@ -1,0 +1,77 @@
+{
+  "Slug": "plugin-domains/index",
+  "Title": "Plugin Domains",
+  "Html": "\n\u003Cp\u003EAuthentication alone is not enough.\u003C/p\u003E\n\u003Cp\u003EReal-world systems also require:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser management\u003C/li\u003E\n\u003Cli\u003ECredential handling\u003C/li\u003E\n\u003Cli\u003EAuthorization rules\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 UltimateAuth provides these as \u003Cstrong\u003Eplugin domains\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-is-a-plugin-domain\u0022\u003E\uD83E\uDDE0 What Is a Plugin Domain?\u003C/h2\u003E\n\u003Cp\u003EA plugin domain is a \u003Cstrong\u003Emodular business layer\u003C/strong\u003E built on top of UltimateAuth.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Core handles authentication\u003Cbr /\u003E\n\uD83D\uDC49 Plugin domains handle identity and access logic\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022architecture\u0022\u003E\uD83C\uDFD7 Architecture\u003C/h2\u003E\n\u003Cp\u003EEach plugin domain is composed of multiple layers:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022bridge-package\u0022\u003E\uD83D\uDD39 Bridge Package\u003C/h3\u003E\n\u003Cp\u003EDefines the server needed bridge interfaces:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 This package provides required minimal info for server package.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022contracts-package\u0022\u003E\uD83D\uDD39 Contracts Package\u003C/h3\u003E\n\u003Cp\u003EShared models between:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EServer\u003C/li\u003E\n\u003Cli\u003EClient\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Includes DTOs, requests, responses\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022reference-implementation\u0022\u003E\uD83D\uDD39 Reference Implementation\u003C/h3\u003E\n\u003Cp\u003EProvides default behavior:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EApplication services\u003C/li\u003E\n\u003Cli\u003EStore interfaces\u003C/li\u003E\n\u003Cli\u003EDefault implementations\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Acts as a production-ready baseline\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022persistence-layer\u0022\u003E\uD83D\uDD39 Persistence Layer\u003C/h3\u003E\n\u003Cp\u003EProvides storage implementations:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInMemory\u003C/li\u003E\n\u003Cli\u003EEntity Framework Core\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Additional providers (Redis, etc.) can be added\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022extensibility-model\u0022\u003E\uD83D\uDD04 Extensibility Model\u003C/h2\u003E\n\u003Cp\u003EPlugin domains are designed to be:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EReplaceable\u003C/li\u003E\n\u003Cli\u003EExtendable\u003C/li\u003E\n\u003Cli\u003EComposable\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 You can implement your own persistence\u003Cbr /\u003E\n\uD83D\uDC49 You can extend behavior\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022recommended-approach\u0022\u003E\u26A0\uFE0F Recommended Approach\u003C/h2\u003E\n\u003Cp\u003EIn most cases:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 You should NOT replace a plugin domain entirely\u003C/p\u003E\n\u003Cp\u003EInstead:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUse provided implementations\u003C/li\u003E\n\u003Cli\u003EExtend via interfaces\u003C/li\u003E\n\u003Cli\u003ECustomize behavior where needed\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This ensures compatibility with the framework\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022domain-isolation\u0022\u003E\uD83D\uDD0C Domain Isolation\u003C/h2\u003E\n\u003Cp\u003EPlugin domains are designed to be \u003Cstrong\u003Efully isolated\u003C/strong\u003E from each other.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 A plugin domain does NOT reference another plugin domain\u003Cbr /\u003E\n\uD83D\uDC49 There are no direct dependencies between domains\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022why\u0022\u003E\uD83E\uDDE0 Why?\u003C/h3\u003E\n\u003Cp\u003EThis ensures:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELoose coupling\u003C/li\u003E\n\u003Cli\u003EIndependent evolution\u003C/li\u003E\n\u003Cli\u003EReplaceability\u003C/li\u003E\n\u003Cli\u003EClear boundaries\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022communication-via-hooks\u0022\u003E\uD83D\uDD04 Communication via Hooks\u003C/h2\u003E\n\u003Cp\u003EPlugin domains communicate \u003Cstrong\u003Eonly through integration hooks\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EFor example:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EUser domain triggers \u2192 \u003Ccode\u003EOnUserCreated\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003ECredential domain listens \u2192 creates password credential\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This is implemented via abstractions such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ccode\u003EIUserLifecycleIntegration\u003C/code\u003E\u003C/li\u003E\n\u003Cli\u003Edomain events / integration points\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Core = authentication engine\u003Cbr /\u003E\n\uD83D\uDC49 Plugin domains = business logic\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-this-matters\u0022\u003E\uD83C\uDFAF Why This Matters\u003C/h2\u003E\n\u003Cp\u003EThis architecture allows UltimateAuth to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EStay modular\u003C/li\u003E\n\u003Cli\u003ESupport multiple domains\u003C/li\u003E\n\u003Cli\u003EEnable enterprise customization\u003C/li\u003E\n\u003Cli\u003EAvoid monolithic identity systems\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 You don\u2019t build everything from scratch\u003Cbr /\u003E\n\uD83D\uDC49 You assemble what you need\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EManage users \u2192 Users\u003C/li\u003E\n\u003Cli\u003EHandle credentials \u2192 Credentials\u003C/li\u003E\n\u003Cli\u003EControl access \u2192 Authorization\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "what-is-a-plugin-domain",
+      "Text": "\uD83E\uDDE0 What Is a Plugin Domain?",
+      "Level": 0
+    },
+    {
+      "Id": "architecture",
+      "Text": "\uD83C\uDFD7 Architecture",
+      "Level": 0
+    },
+    {
+      "Id": "bridge-package",
+      "Text": "\uD83D\uDD39 Bridge Package",
+      "Level": 1
+    },
+    {
+      "Id": "contracts-package",
+      "Text": "\uD83D\uDD39 Contracts Package",
+      "Level": 1
+    },
+    {
+      "Id": "reference-implementation",
+      "Text": "\uD83D\uDD39 Reference Implementation",
+      "Level": 1
+    },
+    {
+      "Id": "persistence-layer",
+      "Text": "\uD83D\uDD39 Persistence Layer",
+      "Level": 1
+    },
+    {
+      "Id": "extensibility-model",
+      "Text": "\uD83D\uDD04 Extensibility Model",
+      "Level": 0
+    },
+    {
+      "Id": "recommended-approach",
+      "Text": "\u26A0\uFE0F Recommended Approach",
+      "Level": 0
+    },
+    {
+      "Id": "domain-isolation",
+      "Text": "\uD83D\uDD0C Domain Isolation",
+      "Level": 0
+    },
+    {
+      "Id": "why",
+      "Text": "\uD83E\uDDE0 Why?",
+      "Level": 1
+    },
+    {
+      "Id": "communication-via-hooks",
+      "Text": "\uD83D\uDD04 Communication via Hooks",
+      "Level": 0
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "why-this-matters",
+      "Text": "\uD83C\uDFAF Why This Matters",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
+}

@@ -12,7 +12,7 @@
 		</Description>
 
 		<PackageTags>authentication;authorization;identity;blazor;wasm;aspnetcore;client;auth;oauth;pkce;jwt;auth-framework</PackageTags>
-		<PackageIcon>logo.png</PackageIcon>
+		<PackageIcon>uauthlogo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
@@ -57,7 +57,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="uauthlogo.png" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 

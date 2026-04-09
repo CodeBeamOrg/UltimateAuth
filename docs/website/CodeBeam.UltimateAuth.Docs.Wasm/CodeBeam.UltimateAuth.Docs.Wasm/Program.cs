@@ -11,6 +11,9 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<DocsPageState>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

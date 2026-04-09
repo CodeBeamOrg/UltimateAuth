@@ -1,3 +1,10 @@
+---
+title: Refresh
+order: 3
+group: auth-flows
+---
+
+
 # 🔄 Refresh Flow
 The refresh flow in UltimateAuth is not a single fixed operation.
 

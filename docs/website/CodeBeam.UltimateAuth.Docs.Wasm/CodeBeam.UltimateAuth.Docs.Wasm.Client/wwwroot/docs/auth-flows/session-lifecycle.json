@@ -1,0 +1,102 @@
+{
+  "Slug": "auth-flows/session-lifecycle",
+  "Title": "Session Lifecycle",
+  "Html": "\n\u003Cp\u003EUltimateAuth is built around a structured session model.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Authentication is not a token\u003Cbr /\u003E\n\uD83D\uDC49 It is a \u003Cstrong\u003Ehierarchical session system\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022core-model\u0022\u003E\uD83E\uDDE0 Core Model\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth defines three core entities:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ERoot \u2192 Chain \u2192 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-identity-authority\u0022\u003E\uD83D\uDD39 Root (Identity Authority)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per user\u003C/li\u003E\n\u003Cli\u003ERepresents global authentication state\u003C/li\u003E\n\u003Cli\u003EHolds security version\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Root defines \u003Cstrong\u003Ewho the user is\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-device-context\u0022\u003E\uD83D\uDCF1 Chain (Device Context)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EOne per device\u003C/li\u003E\n\u003Cli\u003ERepresents a device-bound identity context\u003C/li\u003E\n\u003Cli\u003ETracks activity (LastSeenAt)\u003C/li\u003E\n\u003Cli\u003EManages session rotation and touch\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A chain is a \u003Cstrong\u003Etrusted device boundary\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-authentication-instance\u0022\u003E\uD83D\uDD11 Session (Authentication Instance)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ECreated on login\u003C/li\u003E\n\u003Cli\u003ERepresents a single authentication event\u003C/li\u003E\n\u003Cli\u003EHas expiration and revocation state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 A session is a \u003Cstrong\u003Eproof of authentication\u003C/strong\u003E\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022relationship\u0022\u003E\uD83D\uDD17 Relationship\u003C/h2\u003E\n\u003Cpre\u003E\u003Ccode\u003EUser\n\u2514\u2500\u2500 Root\n\u2514\u2500\u2500 Chain (Device)\n\u2514\u2500\u2500 Session (Instance)\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Each level adds more specificity:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERoot \u2192 identity\u003C/li\u003E\n\u003Cli\u003EChain \u2192 device\u003C/li\u003E\n\u003Cli\u003ESession \u2192 login instance\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022lifecycle-overview\u0022\u003E\uD83D\uDD04 Lifecycle Overview\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022creation-login\u0022\u003E1\uFE0F\u20E3 Creation (Login)\u003C/h3\u003E\n\u003Cp\u003EWhen a user logs in:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERoot is created (if not exists)\u003C/li\u003E\n\u003Cli\u003EChain is resolved or created\u003C/li\u003E\n\u003Cli\u003ESession is issued\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022active-usage\u0022\u003E2\uFE0F\u20E3 Active Usage\u003C/h3\u003E\n\u003Cp\u003EDuring normal operation:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession is validated\u003C/li\u003E\n\u003Cli\u003EChain \u003Ccode\u003ELastSeenAt\u003C/code\u003E is updated (touch)\u003C/li\u003E\n\u003Cli\u003ESliding expiration may apply\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Activity updates the \u003Cstrong\u003Echain\u003C/strong\u003E, not just the session\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh\u0022\u003E3\uFE0F\u20E3 Refresh\u003C/h3\u003E\n\u003Cp\u003EDepending on mode:\u003C/p\u003E\n\u003Ch4 id=\u0022session-based-pureopaque\u0022\u003ESession-Based (PureOpaque)\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession remains\u003C/li\u003E\n\u003Cli\u003EChain is touched\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022token-based-hybrid-jwt\u0022\u003EToken-Based (Hybrid / JWT)\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession continues\u003C/li\u003E\n\u003Cli\u003ETokens are rotated\u003C/li\u003E\n\u003Cli\u003EChain rotation count increases\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Chain tracks behavior:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERotationCount\u003C/li\u003E\n\u003Cli\u003ETouchCount\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022expiration\u0022\u003E4\uFE0F\u20E3 Expiration\u003C/h3\u003E\n\u003Cp\u003EA session may expire due to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELifetime expiration\u003C/li\u003E\n\u003Cli\u003EIdle timeout\u003C/li\u003E\n\u003Cli\u003EAbsolute expiration\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Expired \u2260 revoked\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revocation\u0022\u003E5\uFE0F\u20E3 Revocation\u003C/h3\u003E\n\u003Cp\u003ERevocation can occur at multiple levels:\u003C/p\u003E\n\u003Ch4 id=\u0022session-revocation\u0022\u003ESession Revocation\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ESingle session invalidated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022chain-revocation\u0022\u003EChain Revocation\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EAll sessions on device invalidated\u003C/li\u003E\n\u003Cli\u003EDevice trust reset\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Ch4 id=\u0022root-revocation\u0022\u003ERoot Revocation\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EAll chains and sessions invalidated\u003C/li\u003E\n\u003Cli\u003ESecurity version increased\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Revocation is irreversible\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-versioning\u0022\u003E\uD83D\uDD12 Security Versioning\u003C/h3\u003E\n\u003Cp\u003EEach root has:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ccode\u003ESecurityVersion\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EEach session stores:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ccode\u003ESecurityVersionAtCreation\u003C/code\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cp\u003E\uD83D\uDC49 If mismatch:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ESession becomes invalid\n\u003C/code\u003E\u003C/pre\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-binding\u0022\u003E\uD83D\uDD17 Device Binding\u003C/h3\u003E\n\u003Cp\u003EEach chain is tied to:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDeviceId\u003C/li\u003E\n\u003Cli\u003EPlatform\u003C/li\u003E\n\u003Cli\u003EOS\u003C/li\u003E\n\u003Cli\u003EBrowser\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents cross-device misuse\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022rotation-tracking\u0022\u003E\uD83D\uDD01 Rotation Tracking\u003C/h3\u003E\n\u003Cp\u003EChains track:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERotationCount\u003C/li\u003E\n\u003Cli\u003ETouchCount\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Enables:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003Ereplay detection\u003C/li\u003E\n\u003Cli\u003Eanomaly tracking\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022lifecycle-configuration\u0022\u003E\u2699\uFE0F Lifecycle Configuration\u003C/h3\u003E\n\u003Cp\u003ESession behavior is configurable:\u003C/p\u003E\n\u003Cp\u003E\u23F1 Lifetime\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EDefault session duration\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDD04 Sliding Expiration\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EExtends session on activity\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDCA4 Idle Timeout\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvalidates inactive sessions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDCF1 Device Limits\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EMax chains per user\u003C/li\u003E\n\u003Cli\u003EMax sessions per chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 These are defined via UAuthSessionOptions\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Authentication is a living structure\n\uD83D\uDC49 Not a static token\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessions are part of a hierarchy\u003C/li\u003E\n\u003Cli\u003EDevice (chain) is a first-class concept\u003C/li\u003E\n\u003Cli\u003ERoot controls global security\u003C/li\u003E\n\u003Cli\u003ESessions are short-lived proofs\u003C/li\u003E\n\u003Cli\u003EChains manage lifecycle and activity\u003C/li\u003E\n\u003Cli\u003ERevocation operates at multiple levels\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to Token Behavior\u003C/p\u003E\n",
+  "Headings": [
+    {
+      "Id": "core-model",
+      "Text": "\uD83E\uDDE0 Core Model",
+      "Level": 0
+    },
+    {
+      "Id": "root-identity-authority",
+      "Text": "\uD83D\uDD39 Root (Identity Authority)",
+      "Level": 1
+    },
+    {
+      "Id": "chain-device-context",
+      "Text": "\uD83D\uDCF1 Chain (Device Context)",
+      "Level": 1
+    },
+    {
+      "Id": "session-authentication-instance",
+      "Text": "\uD83D\uDD11 Session (Authentication Instance)",
+      "Level": 1
+    },
+    {
+      "Id": "relationship",
+      "Text": "\uD83D\uDD17 Relationship",
+      "Level": 0
+    },
+    {
+      "Id": "lifecycle-overview",
+      "Text": "\uD83D\uDD04 Lifecycle Overview",
+      "Level": 0
+    },
+    {
+      "Id": "creation-login",
+      "Text": "1\uFE0F\u20E3 Creation (Login)",
+      "Level": 1
+    },
+    {
+      "Id": "active-usage",
+      "Text": "2\uFE0F\u20E3 Active Usage",
+      "Level": 1
+    },
+    {
+      "Id": "refresh",
+      "Text": "3\uFE0F\u20E3 Refresh",
+      "Level": 1
+    },
+    {
+      "Id": "expiration",
+      "Text": "4\uFE0F\u20E3 Expiration",
+      "Level": 1
+    },
+    {
+      "Id": "revocation",
+      "Text": "5\uFE0F\u20E3 Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "security-model",
+      "Text": "\uD83D\uDD10 Security Model",
+      "Level": 0
+    },
+    {
+      "Id": "security-versioning",
+      "Text": "\uD83D\uDD12 Security Versioning",
+      "Level": 1
+    },
+    {
+      "Id": "device-binding",
+      "Text": "\uD83D\uDD17 Device Binding",
+      "Level": 1
+    },
+    {
+      "Id": "rotation-tracking",
+      "Text": "\uD83D\uDD01 Rotation Tracking",
+      "Level": 1
+    },
+    {
+      "Id": "lifecycle-configuration",
+      "Text": "\u2699\uFE0F Lifecycle Configuration",
+      "Level": 1
+    },
+    {
+      "Id": "mental-model",
+      "Text": "\uD83E\uDDE0 Mental Model",
+      "Level": 0
+    },
+    {
+      "Id": "key-takeaways",
+      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Level": 0
+    },
+    {
+      "Id": "next-step",
+      "Text": "\u27A1\uFE0F Next Step",
+      "Level": 0
+    }
+  ]
+}

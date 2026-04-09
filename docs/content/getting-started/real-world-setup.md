@@ -1,3 +1,9 @@
+---
+title: Real World Setup
+order: 3
+group: getting-started
+---
+
 # 🏗 Real-World Setup
 
 The Quick Start uses an in-memory setup for simplicity.

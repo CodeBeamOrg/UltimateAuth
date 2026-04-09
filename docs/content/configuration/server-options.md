@@ -1,3 +1,10 @@
+---
+title: Server Options
+order: 3
+group: configuration
+---
+
+
 # 🧩 Server Options
 
 UltimateAuth is configured primarily through **Server Options**.

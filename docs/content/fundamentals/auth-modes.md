@@ -1,3 +1,10 @@
+---
+title: Authentication Modes
+order: 4
+group: fundamentals
+---
+
+
 > Note: SemiHybrid and PureJwt modes will be available on future releases. For now you can safely use PureOpaque and Hybrid modes.
 
 # 🔐 Authentication Modes

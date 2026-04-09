@@ -1,3 +1,10 @@
+---
+title: Credentials
+order: 3
+group: plugin-domains
+---
+
+
 # 🔐 Credentials Domain
 
 Credentials in UltimateAuth define how a user proves their identity.

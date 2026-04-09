@@ -1,0 +1,9 @@
+﻿@page "/docs/{**slug}"
+@layout DocsLayout
+
+<DocsContent Slug="@slug" />
+
+@code {
+    [Parameter]
+    public string? slug { get; set; }
+}

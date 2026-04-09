@@ -8,7 +8,7 @@
 
 		<Description>Core client engine for UltimateAuth. Provides platform-agnostic authentication features. This package does NOT include transport, storage or UI integration. For complete experience, use a platform adapter such as CodeBeam.UltimateAuth.Client.Blazor</Description>
 		<PackageTags>authentication;authorization;identity;aspnetcore;auth;oauth;pkce;jwt;auth-framework</PackageTags>
-		<PackageIcon>logo.png</PackageIcon>
+		<PackageIcon>uauthlogo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
@@ -20,7 +20,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="logo.png" Pack="true" PackagePath="\" />
+		<None Include="uauthlogo.png" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
