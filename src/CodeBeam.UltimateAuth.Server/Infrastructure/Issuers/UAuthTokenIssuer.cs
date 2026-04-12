@@ -77,7 +77,10 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         if (persistence == RefreshTokenPersistence.Persist)
         {
             var store = _storeFactory.Create(flow.Tenant);
-            await store.StoreAsync(stored, ct);
+            await store.ExecuteAsync(async ct =>
+            {
+                await store.StoreAsync(stored, ct);
+            });
         }
 
         return new RefreshTokenInfo
