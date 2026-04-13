@@ -214,9 +214,7 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
         return result.AsReadOnly();
     }
 
-    public async Task<PagedResult<Role>> QueryAsync(
-        RoleQuery query,
-        CancellationToken ct = default)
+    public async Task<PagedResult<Role>> QueryAsync(RoleQuery query, CancellationToken ct = default)
     {
         var normalized = query.Normalize();
 
@@ -257,8 +255,25 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
             .Take(normalized.PageSize)
             .ToListAsync(ct);
 
+        var roleIds = items.Select(x => x.Id).ToList();
+
+        var permissions = await DbSetPermission
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == _tenant &&
+                roleIds.Contains(x.RoleId))
+            .ToListAsync(ct);
+
+        var lookup = permissions
+            .GroupBy(x => x.RoleId)
+            .ToDictionary(x => x.Key);
+
         var result = items
-            .Select(x => RoleMapper.ToDomain(x, Enumerable.Empty<RolePermissionProjection>()))
+            .Select(x =>
+            {
+                lookup.TryGetValue(x.Id, out var perms);
+                return RoleMapper.ToDomain(x, perms ?? Enumerable.Empty<RolePermissionProjection>());
+            })
             .ToList()
             .AsReadOnly();
 

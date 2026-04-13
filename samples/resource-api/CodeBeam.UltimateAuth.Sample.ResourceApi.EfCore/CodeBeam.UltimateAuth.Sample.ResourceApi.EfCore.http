@@ -1,0 +1,6 @@
+@CodeBeam.UltimateAuth.Sample.ResourceApi.EfCore_HostAddress = http://localhost:5151
+
+GET {{CodeBeam.UltimateAuth.Sample.ResourceApi.EfCore_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
