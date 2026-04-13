@@ -19,10 +19,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
-		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
-		<ProjectReference Include="..\..\src\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
-		<ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
+		<ProjectReference Include="..\..\authorization\CodeBeam.UltimateAuth.Authorization.Reference\CodeBeam.UltimateAuth.Authorization.Reference.csproj" />
+		<ProjectReference Include="..\..\credentials\CodeBeam.UltimateAuth.Credentials.Reference\CodeBeam.UltimateAuth.Credentials.Reference.csproj" />
+		<ProjectReference Include="..\..\security\CodeBeam.UltimateAuth.Security.Argon2\CodeBeam.UltimateAuth.Security.Argon2.csproj" />
+		<ProjectReference Include="..\..\users\CodeBeam.UltimateAuth.Users.Reference\CodeBeam.UltimateAuth.Users.Reference.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

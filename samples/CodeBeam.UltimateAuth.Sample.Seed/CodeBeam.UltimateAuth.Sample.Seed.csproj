@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\nuget\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
+    <ProjectReference Include="..\..\src\bundle\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
   </ItemGroup>
 
 </Project>

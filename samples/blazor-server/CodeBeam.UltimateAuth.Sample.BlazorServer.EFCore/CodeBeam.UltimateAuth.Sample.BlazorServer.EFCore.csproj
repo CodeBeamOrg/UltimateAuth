@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,13 +19,13 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="MudBlazor" Version="9.0.0" />
-		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.1" />
+		<PackageReference Include="MudBlazor" Version="9.3.0" />
+		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.0.4" />
 		<PackageReference Include="Scalar.AspNetCore" Version="2.12.46" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\nuget\CodeBeam.UltimateAuth.EntityFrameworkCore\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" />
+	  <ProjectReference Include="..\..\..\src\bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" />
 	  <ProjectReference Include="..\..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
 	</ItemGroup>
