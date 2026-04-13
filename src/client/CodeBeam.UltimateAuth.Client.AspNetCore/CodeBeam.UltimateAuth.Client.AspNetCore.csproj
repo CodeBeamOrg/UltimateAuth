@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+
+		<PackageId>CodeBeam.UltimateAuth.Client.AspNetCore</PackageId>
+
+		<Description>
+			Provides ASP.NET Core compatibility layer for UltimateAuth client applications.
+			This package enables integration with ASP.NET Core authentication and authorization infrastructure without introducing server-side authentication overhead. It allows applications to use features like [Authorize] without requiring a full server-side auth pipeline.
+			Designed for Blazor Web App (Interactive WASM) and similar hybrid hosting scenarios.
+			This package does NOT implement authentication. It only provides a lightweight compatibility layer.
+		</Description>
+		<PackageTags>authentication;authorization;identity;aspnetcore;auth;jwt;auth-framework</PackageTags>
+		<PackageIcon>uauthlogo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="uauthlogo.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+</Project>

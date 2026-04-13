@@ -1,0 +1,49 @@
+﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
+@inject IUAuthClient UAuthClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">User Roles</MudText>
+        <MudText Typo="Typo.subtitle2">UserKey: @UserKey.Value</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle1">Assigned Roles</MudText>
+
+            @if (_roles.Count == 0)
+            {
+                <MudText Color="Color.Secondary">No roles assigned</MudText>
+            }
+
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                @foreach (var role in _roles)
+                {
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" OnClose="(() => RemoveRole(role))">@role</MudChip>
+                }
+            </MudStack>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1">Add Role</MudText>
+            <MudStack Row="true" Spacing="2">
+
+                <MudSelect T="string" @bind-Value="_selectedRole" Label="Role" Dense="true">
+                    @foreach (var role in _allRoles)
+                    {
+                        <MudSelectItem Value="@role.Name">@role.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddRole">Add</MudButton>
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>

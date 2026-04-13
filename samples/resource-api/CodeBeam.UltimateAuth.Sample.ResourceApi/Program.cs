@@ -7,6 +7,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddUltimateAuthResourceApi(o =>
     {
+        // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.
         o.UAuthHubBaseUrl = "https://localhost:6110";
         o.AllowedClientOrigins.Add("https://localhost:6130");
     });
