@@ -72,7 +72,7 @@ public partial class ProfileDialog
 
         if (_form is not null)
         {
-            await _form.Validate();
+            await _form.ValidateAsync();
             if (!_form.IsValid)
                 return;
         }

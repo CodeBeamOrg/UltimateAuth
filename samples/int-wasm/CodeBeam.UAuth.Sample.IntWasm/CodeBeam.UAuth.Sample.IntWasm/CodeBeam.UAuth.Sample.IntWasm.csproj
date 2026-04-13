@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\client\CodeBeam.UltimateAuth.Client.AspNetCore\CodeBeam.UltimateAuth.Client.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
     <ProjectReference Include="..\CodeBeam.UAuth.Sample.IntWasm.Client\CodeBeam.UAuth.Sample.IntWasm.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
   </ItemGroup>

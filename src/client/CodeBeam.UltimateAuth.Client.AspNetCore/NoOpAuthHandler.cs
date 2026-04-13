@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Encodings.Web;
 
-namespace CodeBeam.UAuth.Sample.IntWasm;
+namespace CodeBeam.UltimateAuth.Client.AspNetCore;
 
 public class NoopAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {

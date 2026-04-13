@@ -1,5 +1,6 @@
 ﻿@page "/home"
-@* @attribute [Authorize] *@ @* Do not use this in interactive web apps while using external UAuthHub. *@
+@* To make Authorize attribute to work, add ResourceApi in Program.cs, but it affects performance significantly *@
+@* @attribute [Authorize] *@
 @inherits UAuthFlowPageBase
 
 @inject IUAuthClient UAuthClient

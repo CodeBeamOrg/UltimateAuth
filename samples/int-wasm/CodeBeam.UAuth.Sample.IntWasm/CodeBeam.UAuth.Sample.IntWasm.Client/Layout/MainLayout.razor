@@ -3,6 +3,13 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
+@if (!RendererInfo.IsInteractive)
+{
+    <MudOverlay Class="d-flex align-center justify-center" Style="width: 100vw; height: 100vh" Visible="true" DarkBackground="true" ZIndex="9999">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </MudOverlay>
+}
+
 <MudLayout>
     <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
         <UAuthLogo />

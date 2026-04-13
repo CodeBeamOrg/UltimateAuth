@@ -1,11 +1,10 @@
-using CodeBeam.UAuth.Sample.IntWasm;
 using CodeBeam.UAuth.Sample.IntWasm.Client.Infrastructure;
 using CodeBeam.UAuth.Sample.IntWasm.Client.ResourceApi;
 using CodeBeam.UAuth.Sample.IntWasm.Components;
+using CodeBeam.UltimateAuth.Client.AspNetCore;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.AspNetCore.Authentication;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
@@ -29,9 +28,10 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 
 builder.Services.AddScoped<DarkModeManager>();
 
-builder.Services.AddAuthentication("Noop")
-    .AddScheme<AuthenticationSchemeOptions, NoopAuthHandler>("Noop", _ => { });
-builder.Services.AddAuthorization();
+builder.Services.AddUltimateAuthAspNetCoreCompatibility();
+// If you want to use the UltimateAuthClientBlazor without the AspNetCore compatibility layer, you can register the services like this instead:
+// It gives full AspNetCore compatibility but affects performance significantly.
+//builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6112/auth");
 
 builder.Services.AddScoped<ProductApiService>();
 
@@ -54,6 +54,7 @@ else
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+//app.UseUltimateAuthResourceApiWithAspNetCore();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
