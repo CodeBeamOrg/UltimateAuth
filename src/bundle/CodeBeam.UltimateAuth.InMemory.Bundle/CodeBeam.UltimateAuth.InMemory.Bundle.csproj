@@ -20,12 +20,12 @@
 
   <ItemGroup>
 		<ProjectReference Include="..\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
-		<ProjectReference Include="..\..\src\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
-		<ProjectReference Include="..\..\src\users\CodeBeam.UltimateAuth.Users.InMemory\CodeBeam.UltimateAuth.Users.InMemory.csproj" />
+		<ProjectReference Include="..\..\authentication\CodeBeam.UltimateAuth.Authentication.InMemory\CodeBeam.UltimateAuth.Authentication.InMemory.csproj" />
+		<ProjectReference Include="..\..\authorization\CodeBeam.UltimateAuth.Authorization.InMemory\CodeBeam.UltimateAuth.Authorization.InMemory.csproj" />
+		<ProjectReference Include="..\..\credentials\CodeBeam.UltimateAuth.Credentials.InMemory\CodeBeam.UltimateAuth.Credentials.InMemory.csproj" />
+		<ProjectReference Include="..\..\sessions\CodeBeam.UltimateAuth.Sessions.InMemory\CodeBeam.UltimateAuth.Sessions.InMemory.csproj" />
+		<ProjectReference Include="..\..\tokens\CodeBeam.UltimateAuth.Tokens.InMemory\CodeBeam.UltimateAuth.Tokens.InMemory.csproj" />
+		<ProjectReference Include="..\..\users\CodeBeam.UltimateAuth.Users.InMemory\CodeBeam.UltimateAuth.Users.InMemory.csproj" />
   </ItemGroup>
 
 	<ItemGroup>
