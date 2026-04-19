@@ -261,6 +261,8 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 ClaimsSnapshot.Empty,
                 SessionMetadata.Empty);
 
+            bool revoked = false;
+
             await store.ExecuteAsync(async ct =>
             {
                 await store.CreateRootAsync(root, ct);
@@ -268,7 +270,10 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateSessionAsync(session, ct);
             });
 
-            var revoked = await store.RevokeSessionAsync(sessionId, DateTimeOffset.UtcNow);
+            await store.ExecuteAsync(async ct =>
+            {
+                revoked = await store.RevokeSessionAsync(sessionId, DateTimeOffset.UtcNow);
+            });
 
             Assert.True(revoked);
         }

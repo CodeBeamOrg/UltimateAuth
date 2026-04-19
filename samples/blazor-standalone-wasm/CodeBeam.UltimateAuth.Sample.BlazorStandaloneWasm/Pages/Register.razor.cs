@@ -20,7 +20,7 @@ public partial class Register
 
     private async Task HandleRegisterAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         
         if (!_form.IsValid)
             return;
