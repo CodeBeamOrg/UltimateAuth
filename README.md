@@ -1,4 +1,6 @@
-<img width="5334" height="2668" alt="UltimateAuth Banner" src="https://github.com/user-attachments/assets/57a1e5b5-8082-49f9-b590-b1a544095f10" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c8f3e1bc-3a85-432f-b48a-fda9984d3967" style="width: 800px; max-width: 100%;" />
+</p>
 
 <br /><br />
 

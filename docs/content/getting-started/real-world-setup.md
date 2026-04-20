@@ -65,7 +65,7 @@ builder.Services.AddUltimateAuthServer(o => {
 });
 ```
 
-## Blazor WASM Setup
+## Blazor Standalone WASM Setup
 Blazor WASM applications run entirely on the client and cannot securely handle credentials.
 For this reason, UltimateAuth uses a dedicated Auth server called **UAuthHub**.
 
@@ -90,6 +90,42 @@ UAuthHub Pipeline Configuration
 app.MapUltimateAuthEndpoints();
 app.MapUAuthHub();
 ```
+
+## Blazor Web App Setup
+A blazor web app contains two projects that includes host and client. You need to arrange them both.
+
+In the host project:
+```csharp
+builder.Services.AddUltimateAuthClientBlazor(o =>
+{
+    o.Endpoints.BasePath = "https://localhost:6112/auth"; // UAuthHub URL
+    o.Pkce.ReturnUrl = "https://localhost:6132/home"; // Current application domain + path
+});
+
+// In pipeline configuration
+app.MapRazorComponents<App>()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(UAuthAssemblies.BlazorClient().First());
+```
+
+In the client project:
+```csharp
+builder.Services.AddUltimateAuthClientBlazor(o =>
+{
+    o.Endpoints.BasePath = "https://localhost:6112/auth"; // UAuthHub URL
+    o.Pkce.ReturnUrl = "https://localhost:6132/home"; // Current application domain + path
+});
+
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+// Optional if you use external API calls in your client project.
+builder.Services.AddHttpClient("resourceApi", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:6122");
+});
+```
+
+> If you want to use embedded UAuthHub in host project, you can register server services as shown in quickstart.
 
 > ℹ️ UltimateAuth automatically selects the appropriate authentication mode (PureOpaque, Hybrid, etc.) based on the client type.
 

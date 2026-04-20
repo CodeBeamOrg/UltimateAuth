@@ -12,7 +12,7 @@ public partial class ResetCredential
 
     private async Task ResetPasswordAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid)
         {
             Snackbar.Add("Please fix the validation errors.", Severity.Error);

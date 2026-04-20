@@ -11,6 +11,7 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
 {
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
+    private bool _inExecution;
 
     public EfCoreSessionStore(TDbContext db, TenantExecutionContext tenant)
     {
@@ -32,6 +33,7 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
 
             try
             {
+                _inExecution = true;
                 await action(ct);
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
@@ -46,6 +48,10 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
                 await tx.RollbackAsync(ct);
                 throw;
             }
+            finally 
+            {
+                _inExecution = false; 
+            }
         });
     }
 
@@ -59,6 +65,7 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
 
             try
             {
+                _inExecution = true;
                 var result = await action(ct);
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
@@ -73,6 +80,10 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
             {
                 await tx.RollbackAsync(ct);
                 throw;
+            }
+            finally
+            {
+                _inExecution = false;
             }
         });
     }
@@ -96,6 +107,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var projection = DbSetSession.Local.FirstOrDefault(x => x.Tenant == _tenant && x.SessionId == session.SessionId);
 
@@ -122,6 +136,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = session.ToProjection();
 
         if (session.Version != 0)
@@ -135,6 +152,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var projection = await DbSetSession.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
 
@@ -151,6 +171,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeAllSessionsAsync(UserKey user, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var chains = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == user)
@@ -187,6 +210,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeOtherSessionsAsync(UserKey user, SessionChainId keepChain, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var chains = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == user && x.ChainId != keepChain)
@@ -267,6 +293,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = DbSetChain.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chain.ChainId);
 
         if (projection is null)
@@ -289,6 +318,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         if (chain.Version != 0)
             throw new InvalidOperationException("New chain must have version 0.");
 
@@ -304,6 +336,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
 
@@ -318,6 +353,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var chainProjection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
@@ -352,6 +390,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projections = await DbSetChain
             .Where(x =>
                 x.Tenant == _tenant &&
@@ -371,6 +412,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeAllChainsAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var projections = await DbSetChain
             .Where(x =>
@@ -402,6 +446,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = DbSetChain.Local.FirstOrDefault(x => x.Tenant == _tenant && x.ChainId == chainId);
 
         if (projection is null)
@@ -428,6 +475,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = await DbSetRoot
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
@@ -448,6 +498,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         if (root.Version != 0)
             throw new InvalidOperationException("New root must have version 0.");
 
@@ -461,6 +514,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeRootAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var projection = await DbSetRoot
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
@@ -540,6 +596,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+
         var projection = await DbSetSession.SingleOrDefaultAsync(x => x.Tenant == _tenant && x.SessionId == sessionId, ct);
 
         if (projection is null)
@@ -551,6 +610,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var chainProjection = await DbSetChain
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.ChainId == chainId, ct);
@@ -580,6 +642,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     public async Task RevokeRootCascadeAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_inExecution)
+            throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         var rootProjection = await DbSetRoot
             .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);

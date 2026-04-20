@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using System.Text.Json;
@@ -8,8 +7,6 @@ namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
 {
-    [Inject] protected NavigationManager Nav { get; set; } = default!;
-
     protected AuthFlowPayload? UAuthPayload { get; private set; }
     protected string? ReturnUrl { get; private set; }
     protected bool ShouldFocus { get; private set; }
