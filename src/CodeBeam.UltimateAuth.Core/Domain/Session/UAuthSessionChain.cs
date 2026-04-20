@@ -24,6 +24,7 @@ public sealed class UAuthSessionChain : IVersionedEntity
     public long Version { get; set; }
 
 
+    public bool IsActive => ActiveSessionId is not null;
     public bool IsRevoked => RevokedAt is not null;
     public SessionChainState State => IsRevoked ? SessionChainState.Revoked : ActiveSessionId is null ? SessionChainState.Passive : SessionChainState.Active;
 
