@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using System.Text.Json;
