@@ -164,7 +164,9 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var expected = session.Version;
             var revoked = session.Revoke(now);
 
-            await store.SaveSessionAsync(revoked, expected);
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.SaveSessionAsync(revoked, expected);
+            });
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -176,7 +178,10 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         {
             var isCurrent = context.ActorChainId == chainId;
             var store = _storeFactory.Create(context.ResourceTenant);
-            await store.RevokeChainCascadeAsync(chainId, _clock.UtcNow);
+
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.RevokeChainCascadeAsync(chainId, _clock.UtcNow);
+            });
 
             return new RevokeResult
             {
@@ -198,15 +203,18 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         var command = new AccessCommand(async innerCt =>
         {
             var store = _storeFactory.Create(context.ResourceTenant);
-            var chains = await store.GetChainsByUserAsync(userKey);
 
-            foreach (var chain in chains)
-            {
-                if (exceptChainId.HasValue && chain.ChainId == exceptChainId.Value)
-                    continue;
+            await store.ExecuteAsync(async innerCt2 => {
+                var chains = await store.GetChainsByUserAsync(userKey);
 
-                await store.RevokeChainCascadeAsync(chain.ChainId, _clock.UtcNow);
-            }
+                foreach (var chain in chains)
+                {
+                    if (exceptChainId.HasValue && chain.ChainId == exceptChainId.Value)
+                        continue;
+
+                    await store.RevokeChainCascadeAsync(chain.ChainId, _clock.UtcNow);
+                }
+            });
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -220,7 +228,9 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var store = _storeFactory.Create(context.ResourceTenant);
             var now = _clock.UtcNow;
 
-            await store.LogoutChainAsync(currentChainId, now, innerCt);
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.LogoutChainAsync(currentChainId, now, innerCt2);
+            });
 
             return new RevokeResult
             {
@@ -239,7 +249,10 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var store = _storeFactory.Create(context.ResourceTenant);
             var now = _clock.UtcNow;
 
-            await store.RevokeOtherSessionsAsync(userKey, currentChainId, now, innerCt);
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.RevokeOtherSessionsAsync(userKey, currentChainId, now, innerCt2);
+            });
+            
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -252,7 +265,9 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var store = _storeFactory.Create(context.ResourceTenant);
             var now = _clock.UtcNow;
 
-            await store.RevokeAllSessionsAsync(userKey, now, innerCt);
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.RevokeAllSessionsAsync(userKey, now, innerCt2);
+            });
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -263,7 +278,10 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         var command = new AccessCommand(async innerCt =>
         {
             var store = _storeFactory.Create(context.ResourceTenant);
-            await store.RevokeRootCascadeAsync(userKey, _clock.UtcNow);
+
+            await store.ExecuteAsync(async innerCt2 => {
+                await store.RevokeRootCascadeAsync(userKey, _clock.UtcNow);
+            });
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);

@@ -31,7 +31,7 @@ public partial class CredentialDialog
         if (_form is null)
             return;
 
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid)
         {
             Snackbar.Add("Form is not valid.", Severity.Error);

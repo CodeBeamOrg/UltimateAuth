@@ -18,7 +18,7 @@ public partial class CreateUserDialog
 
     private async Task CreateUserAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
 
         if (!_form.IsValid)
             return;
