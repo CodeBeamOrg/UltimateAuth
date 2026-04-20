@@ -1,13 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+	  <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+	  <NoWarn>$(NoWarn);1591</NoWarn>
+	  <PackageId>CodeBeam.UltimateAuth.Sample.Seed</PackageId>
+
+	  <Description>Minimal seeded data for UltimateAuth samples and quickstart projects.</Description>
+
+	  <PackageTags>authentication;session;identity;auth-framework;seed;data</PackageTags>
+	  <PackageIcon>uauthlogo.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\bundle\CodeBeam.UltimateAuth.Reference.Bundle\CodeBeam.UltimateAuth.Reference.Bundle.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<None Include="uauthlogo.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 </Project>

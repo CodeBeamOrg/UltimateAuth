@@ -12,7 +12,7 @@ In this guide, you will set up UltimateAuth in a few minutes and perform your **
 
 ## 1. Create a Project
 
-Create a new Blazor Server web app:
+Start by creating a new Blazor app:
 
 ```bash
 dotnet new blazorserver -n UltimateAuthDemo
@@ -21,7 +21,7 @@ cd UltimateAuthDemo
 
 ## 2. Install Packages
 
-Add UltimateAuth packages:
+Install the required UltimateAuth packages:
 
 ```csharp
 dotnet add package CodeBeam.UltimateAuth.Server
@@ -69,7 +69,46 @@ Replace `Routes.razor` with this code:
 <UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.MainLayout)" />
 ```
 
-## 8. Perform Your First Login
+## 8. Recommended Setup (Optional)
+Add these for better experience:
+
+For login page (Use this only once in your application)
+```csharp
+@attribute [UAuthLoginPage]
+```
+
+For protected pages
+```csharp
+@attribute [UAuthAuthorize]
+```
+
+For any page that you use UltimateAuth features like AuthState etc.
+```csharp
+@inherits UAuthFlowPageBase
+```
+
+## 9. Seed Data For QuickStart (Optional)
+This code creates admin and user users with same password and admin role.
+
+For in memory
+```csharp
+builder.Services.AddUltimateAuthSampleSeed();
+```
+
+For entity framework core:
+```csharp
+builder.Services.AddScopedUltimateAuthSampleSeed();
+```
+
+In pipeline configuration
+```csharp
+if (app.Environment.IsDevelopment())
+{
+    await app.SeedUltimateAuthAsync();
+}
+```
+
+## 10. Perform Your First Login
 Example using IUAuthClient:
 ```csharp
 [Inject] IUAuthClient UAuthClient { get; set; } = null!;
@@ -78,8 +117,8 @@ private async Task Login()
 {
     await UAuthClient.Flows.LoginAsync(new LoginRequest
     {
-        Identifier = "demo",
-        Secret = "password"
+        Identifier = "admin",
+        Secret = "admin"
     });
 }
 ```
