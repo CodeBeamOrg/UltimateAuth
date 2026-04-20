@@ -82,9 +82,7 @@ else
     app.MapOpenApi();
     app.MapScalarApiReference();
 
-    using var scope = app.Services.CreateScope();
-    var seedRunner = scope.ServiceProvider.GetRequiredService<SeedRunner>();
-    await seedRunner.RunAsync(null);
+    await app.SeedUltimateAuthAsync();
 }
 
 app.UseForwardedHeaders();
