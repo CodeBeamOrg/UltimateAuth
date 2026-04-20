@@ -8,8 +8,6 @@ namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 public abstract class UAuthFlowPageBase : UAuthReactiveComponentBase
 {
-    [Inject] protected NavigationManager Nav { get; set; } = default!;
-
     protected AuthFlowPayload? UAuthPayload { get; private set; }
     protected string? ReturnUrl { get; private set; }
     protected bool ShouldFocus { get; private set; }

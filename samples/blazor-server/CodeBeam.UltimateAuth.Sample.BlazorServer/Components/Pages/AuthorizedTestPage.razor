@@ -1,5 +1,6 @@
 ﻿@page "/authorized-test"
-@attribute [Authorize]
+@attribute [UAuthAuthorize]
+@inherits UAuthFlowPageBase
 
 <MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudPaper Class="pa-8" Style="max-width: 520px; width: 100%;" Elevation="0" Outlined="true">
@@ -13,7 +14,7 @@
             </MudText>
 
             <MudStack Row="true" Spacing="2" Class="mt-2">
-                <MudButton Href="/home" Color="Color.Primary" Variant="Variant.Filled">Go Profile</MudButton>
+                <MudButton Href="/home" Color="Color.Primary" Variant="Variant.Filled">Go Home Page</MudButton>
             </MudStack>
 
             <MudDivider Class="my-2" />
