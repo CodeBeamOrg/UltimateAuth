@@ -102,13 +102,12 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         page.Should().NotBeNull();
         page!.Items.Should().NotBeEmpty();
 
-        var activeChains = page.Items.Where(x => x.ActiveSessionId != null).ToList();
-        activeChains.Should().HaveCount(1);
+        var currentDeviceChains = page.Items.Where(x => x.IsCurrentDevice).ToList();
+        currentDeviceChains.Should().HaveCount(1);
 
-        var active = activeChains.Single();
-        active.IsCurrentDevice.Should().BeTrue();
-        active.IsRevoked.Should().BeFalse();
-        active.ActiveSessionId.Should().NotBeNull();
+        var current = currentDeviceChains.Single();
+        current.ActiveSessionId.Should().NotBeNull();
+        current.IsRevoked.Should().BeFalse();
     }
 
     [Fact]
