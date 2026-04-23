@@ -17,4 +17,8 @@ public interface ISessionIssuer
     Task RevokeAllChainsAsync(TenantKey tenant, UserKey userKey, SessionChainId? exceptChainId, DateTimeOffset at, CancellationToken ct = default);
 
     Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at,CancellationToken ct = default);
+
+    Task<SessionChainId?> GetChainIdBySessionAsync(TenantKey tenant, AuthSessionId sessionId, CancellationToken ct = default);
+
+    Task<bool> LogoutChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
 }

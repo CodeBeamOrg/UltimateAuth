@@ -293,4 +293,27 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             await kernel.RevokeRootCascadeAsync(userKey, at);
         }, ct);
     }
+
+    public async Task<SessionChainId?> GetChainIdBySessionAsync(TenantKey tenant, AuthSessionId sessionId, CancellationToken ct = default)
+    {
+        var kernel = _storeFactory.Create(tenant);
+        return await kernel.ExecuteAsync(innerCt => kernel.GetChainIdBySessionAsync(sessionId, innerCt), ct);
+    }
+
+    public async Task<bool> LogoutChainAsync(TenantKey tenant, SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
+    {
+        var kernel = _storeFactory.Create(tenant);
+
+        return await kernel.ExecuteAsync(async innerCt =>
+        {
+            var chain = await kernel.GetChainAsync(chainId, innerCt);
+
+            if (chain is null || chain.IsRevoked)
+                return false;
+
+            await kernel.LogoutChainAsync(chainId, at, innerCt);
+
+            return true;
+        }, ct);
+    }
 }
