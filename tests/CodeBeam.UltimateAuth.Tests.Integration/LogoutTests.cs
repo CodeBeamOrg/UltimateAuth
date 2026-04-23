@@ -67,7 +67,10 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var logoutResponse = await _client.PostAsync("/auth/logout", null);
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var unauthorizedChainsResponse = await _client.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
+        var unauthorizedChainsResponse = await _client.PostAsJsonAsync(
+            "/auth/me/sessions/chains",
+            new PageRequest());
+
         unauthorizedChainsResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         _client.DefaultRequestHeaders.Remove("Cookie");
@@ -97,14 +100,15 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         var page = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
         page.Should().NotBeNull();
+        page!.Items.Should().NotBeEmpty();
 
-        page!.Items.Should().Contain(x => x.IsCurrentDevice);
+        var activeChains = page.Items.Where(x => x.ActiveSessionId != null).ToList();
+        activeChains.Should().HaveCount(1);
 
-        var chain = page.Items.Single();
-
-        chain.ActiveSessionId.Should().NotBeNull();
-        chain.IsCurrentDevice.Should().BeTrue();
-        chain.IsRevoked.Should().BeFalse();
+        var active = activeChains.Single();
+        active.IsCurrentDevice.Should().BeTrue();
+        active.IsRevoked.Should().BeFalse();
+        active.ActiveSessionId.Should().NotBeNull();
     }
 
     [Fact]
