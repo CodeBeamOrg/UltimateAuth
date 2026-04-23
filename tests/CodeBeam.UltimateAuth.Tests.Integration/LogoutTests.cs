@@ -98,7 +98,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var page = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
         page.Should().NotBeNull();
 
-        page!.Items.Should().HaveCount(1);
+        page!.Items.Should().Contain(x => x.IsCurrentDevice);
 
         var chain = page.Items.Single();
 
@@ -169,7 +169,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await _client.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
         var page = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
 
-        page!.Items.Should().HaveCount(1);
+        page!.Items.Should().Contain(x => x.IsCurrentDevice);
 
         var chain = page.Items.Single();
 
@@ -193,7 +193,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await client2.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
         var page = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
 
-        page!.Items.Should().HaveCount(2);
+        page!.Items.Count(x => x.ActiveSessionId != null).Should().Be(1);
 
         var device2Chain = page.Items.First(x => x.IsCurrentDevice);
 
