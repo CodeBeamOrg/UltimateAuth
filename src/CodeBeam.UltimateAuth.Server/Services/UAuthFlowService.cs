@@ -76,7 +76,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
         var now = _clock.UtcNow;
         var authContext = authFlow.ToAuthContext(now);
 
-        var revoked = await _orchestrator.ExecuteAsync(authContext, new RevokeSessionCommand(request.SessionId), ct);
+        var revoked = await _orchestrator.ExecuteAsync(authContext, new LogoutChainBySessionCommand(request.SessionId), ct);
 
         if (!revoked)
             return;
