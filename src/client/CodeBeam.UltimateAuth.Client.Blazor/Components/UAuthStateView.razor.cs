@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 
@@ -40,11 +41,29 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
     public string? Policy { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether all set conditions must be matched for the operation to succeed.
-    /// Null parameters don't count as condition.
+    /// Determines how authorization conditions are evaluated.
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.Any"/>:
+    /// Any configured condition may succeed.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.All"/>:
+    /// All configured conditions and values must succeed.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.Category"/>:
+    /// At least one value from each configured category must succeed.
+    /// For example:
+    /// one matching role AND one matching permission.
+    /// </para>
+    ///
+    /// Null or empty parameters are ignored.
     /// </summary>
     [Parameter]
-    public bool MatchAll { get; set; } = true;
+    public AuthorizationMatchMode MatchMode { get; set; } = AuthorizationMatchMode.Category;
 
     [Parameter]
     public bool RequireActive { get; set; } = true;
@@ -92,34 +111,67 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
         if (!AuthState.IsAuthenticated)
             return false;
 
-        var roles = _rolesParsed;
-        var permissions = _permissionsParsed;
+        var roleResults = _rolesParsed
+            .Select(AuthState.IsInRole)
+            .ToList();
 
-        var results = new List<bool>();
+        var permissionResults = _permissionsParsed
+            .Select(AuthState.HasPermission)
+            .ToList();
 
-        if (roles.Count > 0)
-        {
-            results.Add(MatchAll
-                ? roles.All(AuthState.IsInRole)
-                : roles.Any(AuthState.IsInRole));
-        }
-
-        if (permissions.Count > 0)
-        {
-            results.Add(MatchAll
-                ? permissions.All(AuthState.HasPermission)
-                : permissions.Any(AuthState.HasPermission));
-        }
+        bool? policyResult = null;
 
         if (!string.IsNullOrWhiteSpace(Policy))
-            results.Add(await EvaluatePolicyAsync());
+        {
+            policyResult = await EvaluatePolicyAsync();
+        }
 
-        if (results.Count == 0)
-            return true;
+        return MatchMode switch
+        {
+            AuthorizationMatchMode.Any
+                => EvaluateAny(roleResults, permissionResults, policyResult),
 
-        return MatchAll
-            ? results.All(x => x)
-            : results.Any(x => x);
+            AuthorizationMatchMode.All
+                => EvaluateAll(roleResults, permissionResults, policyResult),
+
+            AuthorizationMatchMode.Category
+                => EvaluateCategory(roleResults, permissionResults, policyResult),
+
+            _ => false
+        };
+    }
+
+    private static bool EvaluateAny(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        return roles.Any(x => x) || permissions.Any(x => x) || policy == true;
+    }
+
+    private static bool EvaluateAll(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        if (roles.Count > 0 && roles.Any(x => !x))
+            return false;
+
+        if (permissions.Count > 0 && permissions.Any(x => !x))
+            return false;
+
+        if (policy.HasValue && !policy.Value)
+            return false;
+
+        return true;
+    }
+
+    private static bool EvaluateCategory(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        if (roles.Count > 0 && !roles.Any(x => x))
+            return false;
+
+        if (permissions.Count > 0 && !permissions.Any(x => x))
+            return false;
+
+        if (policy.HasValue && !policy.Value)
+            return false;
+
+        return true;
     }
 
     private void EvaluateSessionState()
@@ -171,6 +223,6 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
 
     private string BuildAuthKey()
     {
-        return $"{Roles}|{Permissions}|{Policy}|{MatchAll}";
+        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}";
     }
 }

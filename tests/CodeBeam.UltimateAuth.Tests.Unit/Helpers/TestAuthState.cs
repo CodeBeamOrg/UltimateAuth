@@ -68,10 +68,7 @@ public static class TestAuthState
         return state;
     }
 
-    public static UAuthState Full(
-        string userId,
-        string[] roles,
-        string[] permissions)
+    public static UAuthState Full(string userId, string[] roles, string[] permissions)
     {
         var claims = new List<(string, string)>();
 
@@ -79,5 +76,40 @@ public static class TestAuthState
         claims.AddRange(permissions.Select(p => ("uauth:permission", p)));
 
         return Authenticated(userId, claims.ToArray());
+    }
+
+    public static UAuthState Create(string userId = "user-1", string[]? roles = null, string[]? permissions = null, SessionState sessionState = SessionState.Active, UserStatus userStatus = UserStatus.Active)
+    {
+        var claims = new List<(string Type, string Value)>();
+
+        if (roles is not null)
+        {
+            claims.AddRange(
+                roles.Select(x => (ClaimTypes.Role, x)));
+        }
+
+        if (permissions is not null)
+        {
+            claims.AddRange(
+                permissions.Select(x => ("uauth:permission", x)));
+        }
+
+        var state = Authenticated(userId, claims.ToArray());
+
+        var identity = state.Identity! with
+        {
+            SessionState = sessionState,
+            UserStatus = userStatus
+        };
+
+        var snapshot = new AuthStateSnapshot
+        {
+            Identity = identity,
+            Claims = state.Claims
+        };
+
+        state.ApplySnapshot(snapshot, DateTimeOffset.UtcNow);
+
+        return state;
     }
 }
