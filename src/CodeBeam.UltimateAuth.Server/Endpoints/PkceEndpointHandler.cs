@@ -163,6 +163,11 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         if (request is null)
             return Results.BadRequest("Invalid PKCE payload.");
 
+        if (string.IsNullOrWhiteSpace(request.AuthorizationCode) || string.IsNullOrWhiteSpace(request.CodeVerifier))
+        {
+            return Results.BadRequest("authorization_code and code_verifier are required.");
+        }
+
         var result = await _pkceService.CompleteAsync(
             auth,
             new PkceCompleteRequest

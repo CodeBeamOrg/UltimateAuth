@@ -5,7 +5,7 @@ public sealed class RedirectDecision
     public bool Enabled { get; }
     public string? TargetUrl { get; }
 
-    private RedirectDecision(bool enabled, string? targetUrl)
+    internal RedirectDecision(bool enabled, string? targetUrl)
     {
         Enabled = enabled;
         TargetUrl = targetUrl;
