@@ -33,12 +33,12 @@ internal sealed class SessionApplicationService : ISessionApplicationService
                 chains = request.SortBy switch
                 {
                     nameof(SessionChainSummary.ChainId) => request.Descending
-                        ? chains.OrderByDescending(x => x.ChainId).ToList()
-                        : chains.OrderBy(x => x.Version).ToList(),
+                        ? chains.OrderByDescending(x => x.ChainId.Value).ToList()
+                        : chains.OrderBy(x => x.ChainId.Value).ToList(),
 
                     nameof(SessionChainSummary.CreatedAt) => request.Descending
                         ? chains.OrderByDescending(x => x.CreatedAt).ToList()
-                        : chains.OrderBy(x => x.Version).ToList(),
+                        : chains.OrderBy(x => x.CreatedAt).ToList(),
 
                     nameof(SessionChainSummary.LastSeenAt) => request.Descending
                         ? chains.OrderByDescending(x => x.LastSeenAt).ToList()
@@ -178,6 +178,12 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         {
             var isCurrent = context.ActorChainId == chainId;
             var store = _storeFactory.Create(context.ResourceTenant);
+
+            var chain = await store.GetChainAsync(chainId, innerCt)
+                ?? throw new UAuthNotFoundException("chain_not_found");
+
+            if (chain.UserKey != userKey)
+                throw new UAuthValidationException("User conflict.");
 
             await store.ExecuteAsync(async innerCt2 => {
                 await store.RevokeChainCascadeAsync(chainId, _clock.UtcNow);

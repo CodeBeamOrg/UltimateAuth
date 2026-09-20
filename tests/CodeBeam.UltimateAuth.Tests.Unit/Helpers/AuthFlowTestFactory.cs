@@ -34,4 +34,35 @@ internal static class AuthFlowTestFactory
             returnUrlInfo: returnUrlInfo ?? ReturnUrlInfo.None()
         );
     }
+
+    public static AuthFlowContext New(
+        ReturnUrlInfo? returnUrlInfo = null,
+        EffectiveRedirectResponse? redirect = null,
+        TenantKey? tenant = null)
+    {
+        return new AuthFlowContext(
+            flowType: AuthFlowType.Login,
+            clientProfile: UAuthClientProfile.BlazorServer,
+            effectiveMode: UAuthMode.PureOpaque,
+            device: TestDevice.Default(),
+            tenantKey: tenant ?? TenantKey.Single,
+            isAuthenticated: true,
+            userKey: UserKey.New(),
+            session: null,
+            originalOptions: TestServerOptions.Default(),
+            effectiveOptions: TestServerOptions.Effective(),
+            response: new EffectiveAuthResponse(
+                sessionIdDelivery:
+                    CredentialResponseOptions.Disabled(GrantKind.Session),
+                accessTokenDelivery:
+                    CredentialResponseOptions.Disabled(GrantKind.AccessToken),
+                refreshTokenDelivery:
+                    CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
+                redirect:
+                    redirect ?? EffectiveRedirectResponse.Disabled
+            ),
+            primaryTokenKind: PrimaryTokenKind.Session,
+            returnUrlInfo: returnUrlInfo ?? ReturnUrlInfo.None()
+        );
+    }
 }
