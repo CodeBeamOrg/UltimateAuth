@@ -337,40 +337,6 @@ public sealed class UserApplicationServiceTests
             Times.Never);
     }
 
-    [Fact]
-    public async Task ChangeUserStatusAsync_Admin_CannotSetSelfSuspended()
-    {
-        var f = CreateFixture();
-
-        var actor = UserKey.New();
-        var target = UserKey.New();
-
-        var context = CreateContext(
-            actorUserKey: actor,
-            targetUserKey: target,
-            action: UAuthActions.Users.ChangeStatusAdmin);
-
-        var lifecycle = UserLifecycle.Create(
-            context.ResourceTenant,
-            target,
-            Now.AddDays(-1));
-
-        f.LifecycleStore
-            .Setup(x => x.GetAsync(
-                It.IsAny<UserLifecycleKey>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(lifecycle);
-
-        /*
-         * Use the AdminAssignableUserStatus value which maps to
-         * UserStatus.SelfSuspended if the enum exposes one.
-         *
-         * If AdminAssignableUserStatus intentionally cannot express
-         * SelfSuspended, this branch is unreachable by design and this
-         * test should be removed rather than fabricating a value.
-         */
-    }
-
     // ============================================================
     // Delete self
     // ============================================================
@@ -580,6 +546,13 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<UserProfile>());
 
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                target,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         var request = new DeleteUserRequest
         {
             Mode = mode
@@ -761,50 +734,6 @@ public sealed class UserApplicationServiceTests
         await act.Should()
             .ThrowAsync<UAuthIdentifierNotFoundException>();
     }
-
-
-    // ============================================================
-    // Identifiers - SetPrimary invariants
-    // ============================================================
-
-    [Fact]
-    public async Task SetPrimaryUserIdentifierAsync_WhenAlreadyPrimary_ThrowsValidation()
-    {
-        var f = CreateFixture();
-        var context = CreateContext();
-
-        var identifier = CreateIdentifier(
-            context.GetTargetUserKey(),
-            isPrimary: true,
-            isVerified: true);
-
-        f.IdentifierStore
-            .Setup(x => x.GetByIdAsync(
-                identifier.Id,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(identifier);
-
-        var request = new SetPrimaryUserIdentifierRequest
-        {
-            Id = identifier.Id
-        };
-
-        var act = () => f.Sut.SetPrimaryUserIdentifierAsync(
-            context,
-            request);
-
-        await act.Should()
-            .ThrowAsync<UAuthIdentifierValidationException>()
-            .WithMessage("*identifier_already_primary*");
-
-        f.IdentifierStore.Verify(
-            x => x.SaveAsync(
-                It.IsAny<UserIdentifier>(),
-                It.IsAny<long>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
 
     // ============================================================
     // Identifiers - UnsetPrimary invariants
@@ -1172,6 +1101,332 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserIdentifierAsync_ValidatesNewValue_NotExistingValue()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var identifier = CreateIdentifier(
+            context.GetTargetUserKey(),
+            type: UserIdentifierType.Email,
+            value: "old@example.com",
+            normalizedValue: "old@example.com",
+            version: 4);
+
+        f.IdentifierStore
+            .Setup(x => x.GetByIdAsync(
+                identifier.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifier);
+
+        f.IdentifierValidator
+            .Setup(x => x.ValidateAsync(
+                context,
+                It.Is<UserIdentifierInfo>(x =>
+                    x.Value == "new@example.com"),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(IdentifierValidationResult.Success());
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Email,
+                "new@example.com"))
+            .Returns(new NormalizedIdentifier(
+                "new@example.com",
+                "new@example.com",
+                true,
+                null));
+
+        f.IdentifierStore
+            .Setup(x => x.GetAsync(
+                UserIdentifierType.Email,
+                "new@example.com",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentifier?)null);
+
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Email &&
+                    q.NormalizedValue == "new@example.com" &&
+                    q.Scope == IdentifierExistenceScope.WithinUser &&
+                    q.UserKey == identifier.UserKey &&
+                    q.ExcludeIdentifierId == identifier.Id),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(
+                Exists: false));
+
+        f.IdentifierStore
+            .Setup(x => x.SaveAsync(
+                identifier,
+                4,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.UpdateUserIdentifierAsync(
+            context,
+            new UpdateUserIdentifierRequest
+            {
+                Id = identifier.Id,
+                NewValue = "new@example.com"
+            });
+
+        identifier.Value.Should().Be("new@example.com");
+        identifier.NormalizedValue.Should().Be("new@example.com");
+
+        f.IdentifierValidator.Verify(x => x.ValidateAsync(
+            context,
+            It.Is<UserIdentifierInfo>(i =>
+                i.Value == "new@example.com"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.IdentifierStore.Verify(x => x.SaveAsync(
+            identifier,
+            4,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SetPrimaryUserIdentifierAsync_WhenValid_SetsPrimaryAndSavesExpectedVersion()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var identifier = CreateIdentifier(
+            context.GetTargetUserKey(),
+            isPrimary: false,
+            isVerified: true,
+            version: 5);
+
+        f.IdentifierStore
+            .Setup(x => x.GetByIdAsync(
+                identifier.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifier);
+
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Email &&
+                    q.NormalizedValue == "alice@example.com" &&
+                    q.Scope == IdentifierExistenceScope.TenantPrimaryOnly &&
+                    q.UserKey == null &&
+                    q.ExcludeIdentifierId == identifier.Id),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(
+                Exists: false));
+
+        f.IdentifierStore
+            .Setup(x => x.SaveAsync(
+                identifier,
+                5,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.SetPrimaryUserIdentifierAsync(
+            context,
+            new SetPrimaryUserIdentifierRequest
+            {
+                Id = identifier.Id
+            });
+
+        identifier.IsPrimary.Should().BeTrue();
+        identifier.UpdatedAt.Should().Be(Now);
+
+        f.IdentifierStore.Verify(x => x.SaveAsync(
+            identifier,
+            5,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SetPrimaryUserIdentifierAsync_WhenAlreadyPrimary_ThrowsValidation()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var identifier = CreateIdentifier(
+            context.GetTargetUserKey(),
+            isPrimary: true,
+            isVerified: true);
+
+        f.IdentifierStore
+            .Setup(x => x.GetByIdAsync(
+                identifier.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifier);
+
+        var request = new SetPrimaryUserIdentifierRequest
+        {
+            Id = identifier.Id
+        };
+
+        var act = () => f.Sut.SetPrimaryUserIdentifierAsync(
+            context,
+            request);
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_already_primary*");
+
+        f.IdentifierStore.Verify(
+            x => x.SaveAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UnsetPrimaryUserIdentifierAsync_WhenValid_UnsetsPrimaryAndSavesExpectedVersion()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var target = CreateIdentifier(
+            context.GetTargetUserKey(),
+            type: UserIdentifierType.Email,
+            isPrimary: true,
+            isVerified: true,
+            version: 6);
+
+        var remaining = CreateIdentifier(
+            context.GetTargetUserKey(),
+            type: UserIdentifierType.Username,
+            isPrimary: true,
+            isVerified: true);
+
+        f.IdentifierStore
+            .Setup(x => x.GetByIdAsync(
+                target.Id,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(target);
+
+        f.IdentifierStore
+            .Setup(x => x.GetByUserAsync(
+                target.UserKey,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { target, remaining });
+
+        f.IdentifierStore
+            .Setup(x => x.SaveAsync(
+                target,
+                6,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.UnsetPrimaryUserIdentifierAsync(
+            context,
+            new UnsetPrimaryUserIdentifierRequest
+            {
+                Id = target.Id
+            });
+
+        target.IsPrimary.Should().BeFalse();
+        target.UpdatedAt.Should().Be(Now);
+
+        f.IdentifierStore.Verify(x => x.SaveAsync(
+            target,
+            6,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(DeleteMode.Soft)]
+    [InlineData(DeleteMode.Hard)]
+    public async Task DeleteUserAsync_RevokesAllChains(DeleteMode mode)
+    {
+        var f = CreateFixture();
+
+        var actor = UserKey.New();
+        var target = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: actor,
+            targetUserKey: target,
+            action: UAuthActions.Users.DeleteAdmin);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            target,
+            Now.AddDays(-1));
+
+        f.LifecycleStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserLifecycleKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lifecycle);
+
+        f.LifecycleStore
+            .Setup(x => x.DeleteAsync(
+                It.IsAny<UserLifecycleKey>(),
+                lifecycle.Version,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.IdentifierStore
+            .Setup(x => x.DeleteByUserAsync(
+                target,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.ProfileStore
+            .Setup(x => x.GetAllProfilesByUserAsync(
+                target,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserProfile>());
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                target,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.DeleteUserAsync(
+            context,
+            new DeleteUserRequest
+            {
+                Mode = mode
+            });
+
+        f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
+            target,
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(DeleteMode.Soft)]
+    [InlineData(DeleteMode.Hard)]
+    public async Task DeleteUserAsync_DeletesProfilesUsingRequestedDeleteMode(DeleteMode mode)
+    {
+        var f = CreateFixture();
+
+        var actor = UserKey.New();
+        var target = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: actor,
+            targetUserKey: target,
+            action: UAuthActions.Users.DeleteAdmin);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            target,
+            Now.AddDays(-1));
     }
 
     // ============================================================
