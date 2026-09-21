@@ -214,6 +214,8 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
         return result.AsReadOnly();
     }
 
+
+    // TODO: Add UltimateAuth standard: tiebreaker for sorting fields that are not unique.
     public async Task<PagedResult<Role>> QueryAsync(RoleQuery query, CancellationToken ct = default)
     {
         var normalized = query.Normalize();

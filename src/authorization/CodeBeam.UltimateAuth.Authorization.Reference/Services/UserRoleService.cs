@@ -94,7 +94,32 @@ internal sealed class UserRoleService : IUserRoleService
 
             var total = joined.Count;
 
-            var pageItems = joined.Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize).ToList();
+            IEnumerable<UserRoleInfo> ordered = request.SortBy switch
+            {
+                nameof(UserRoleInfo.Name) =>
+                    request.Descending
+                        ? joined
+                            .OrderByDescending(x => x.Name)
+                            .ThenBy(x => x.RoleId.Value)
+                        : joined
+                            .OrderBy(x => x.Name)
+                            .ThenBy(x => x.RoleId.Value),
+
+                nameof(UserRoleInfo.AssignedAt) =>
+                    request.Descending
+                        ? joined
+                            .OrderByDescending(x => x.AssignedAt)
+                            .ThenBy(x => x.RoleId.Value)
+                        : joined
+                            .OrderBy(x => x.AssignedAt)
+                            .ThenBy(x => x.RoleId.Value),
+
+                _ => joined
+                    .OrderBy(x => x.Name)
+                    .ThenBy(x => x.RoleId.Value)
+            };
+
+            var pageItems = ordered.Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize).ToList();
 
             return new PagedResult<UserRoleInfo>(
                 pageItems,
