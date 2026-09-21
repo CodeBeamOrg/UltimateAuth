@@ -82,7 +82,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 );
             }
 
-            var snapshot = await _snapshotFactory.CreateAsync(result);
+            var snapshot = await _snapshotFactory.CreateAsync(result, ct);
 
             return Results.Ok(new AuthValidationResult
             {
