@@ -504,7 +504,7 @@ public sealed class RoleServiceTests
             long version = 0,
             IEnumerable<Permission>? permissions = null)
         {
-            var role = Authorization.Role.Create(
+            var role = global::CodeBeam.UltimateAuth.Authorization.Role.Create(
                 RoleId.New(),
                 TenantKey.Single,
                 name,

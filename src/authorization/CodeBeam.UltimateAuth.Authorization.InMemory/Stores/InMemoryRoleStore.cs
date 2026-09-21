@@ -17,8 +17,7 @@ internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, Rol
     protected override void BeforeAdd(Role entity)
     {
         if (TenantValues().Any(r =>
-                r.NormalizedName == entity.NormalizedName &&
-                !r.IsDeleted))
+                r.NormalizedName == entity.NormalizedName))
         {
             throw new UAuthConflictException("role_already_exists");
         }
@@ -30,8 +29,7 @@ internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, Rol
         {
             if (TenantValues().Any(r =>
                     r.NormalizedName == entity.NormalizedName &&
-                    r.Id != entity.Id &&
-                    !r.IsDeleted))
+                    r.Id != entity.Id))
             {
                 throw new UAuthConflictException("role_name_already_exists");
             }

@@ -34,8 +34,7 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
         var exists = await DbSetRole
             .AnyAsync(x =>
                 x.Tenant == _tenant &&
-                x.NormalizedName == role.NormalizedName &&
-                x.DeletedAt == null,
+                x.NormalizedName == role.NormalizedName,
                 ct);
 
         if (exists)
@@ -186,7 +185,8 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
             .AsNoTracking()
             .Where(x =>
                 x.Tenant == _tenant &&
-                roleIds.Contains(x.Id))
+                roleIds.Contains(x.Id) &&
+                x.DeletedAt == null)
             .ToListAsync(ct);
 
         var roleIdsSet = entities.Select(x => x.Id).ToList();

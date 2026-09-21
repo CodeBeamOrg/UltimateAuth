@@ -954,7 +954,7 @@ public sealed class UserRoleServiceTests
             => TestAccessContext.WithAction(action);
 
         public Role Role(string name)
-            => Authorization.Role.Create(
+            => global::CodeBeam.UltimateAuth.Authorization.Role.Create(
                 RoleId.New(),
                 TenantKey.Single,
                 name,
