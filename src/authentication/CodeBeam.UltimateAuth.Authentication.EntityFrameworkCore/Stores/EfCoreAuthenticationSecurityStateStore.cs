@@ -38,6 +38,21 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
 
     public async Task AddAsync(AuthenticationSecurityState state, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        if (state.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
+        var exists = await DbSet.AnyAsync(x =>
+            x.Tenant == _tenant &&
+            x.UserKey == state.UserKey &&
+            x.Scope == state.Scope &&
+            x.CredentialType == state.CredentialType,
+            ct);
+
+        if (exists)
+            throw new UAuthConflictException("security_state_already_exists");
+
         var entity = AuthenticationSecurityStateMapper.ToProjection(state);
 
         DbSet.Add(entity);
@@ -47,6 +62,11 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
 
     public async Task UpdateAsync(AuthenticationSecurityState state, long expectedVersion, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        if (state.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
         var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Tenant == _tenant &&
