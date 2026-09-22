@@ -145,6 +145,9 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
     {
         ct.ThrowIfCancellationRequested();
 
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
+
         if (entity.Version != 0)
             throw new UAuthValidationException("New identifier must have version 0.");
 
@@ -175,6 +178,9 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
     public async Task SaveAsync(UserIdentifier entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
 
         using var tx = await _db.Database.BeginTransactionAsync(ct);
 
@@ -322,10 +328,25 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
                     ? baseQuery.OrderByDescending(x => x.CreatedAt)
                     : baseQuery.OrderBy(x => x.CreatedAt),
 
+            nameof(UserIdentifier.UpdatedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.UpdatedAt)
+                    : baseQuery.OrderBy(x => x.UpdatedAt),
+
+            nameof(UserIdentifier.DeletedAt) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.DeletedAt)
+                    : baseQuery.OrderBy(x => x.DeletedAt),
+
             nameof(UserIdentifier.Value) =>
                 query.Descending
                     ? baseQuery.OrderByDescending(x => x.Value)
                     : baseQuery.OrderBy(x => x.Value),
+
+            nameof(UserIdentifier.NormalizedValue) =>
+                query.Descending
+                    ? baseQuery.OrderByDescending(x => x.NormalizedValue)
+                    : baseQuery.OrderBy(x => x.NormalizedValue),
 
             _ => baseQuery.OrderBy(x => x.CreatedAt)
         };
