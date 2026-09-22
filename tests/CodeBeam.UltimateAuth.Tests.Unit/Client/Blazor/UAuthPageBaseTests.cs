@@ -430,6 +430,36 @@ public sealed class UAuthPageBaseTests : BunitContext
         });
     }
 
+    [Fact]
+    public void WithoutQueryCleanup_ParsedReturnUrlIsPreserved()
+    {
+        var state = UAuthState.Anonymous();
+
+        Navigate("/login?uauth_return_url=%2Fhome");
+
+        var cut = RenderPage<PersistentQueryPage>(state);
+
+        var page = cut
+            .FindComponent<PersistentQueryPage>()
+            .Instance;
+
+        page.ParsedReturnUrl.Should().Be("/home");
+
+        Nav.Uri.Should()
+            .Be("http://localhost/login?uauth_return_url=%2Fhome");
+
+        cut.Render(parameters =>
+            parameters
+                .Add(x => x.Value, state)
+                .AddChildContent<PersistentQueryPage>());
+
+        page = cut
+            .FindComponent<PersistentQueryPage>()
+            .Instance;
+
+        page.ParsedReturnUrl.Should().Be("/home");
+    }
+
     private void Navigate(string relativeUri)
     {
         Nav.NavigateTo(relativeUri);

@@ -53,7 +53,7 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
         if (firstRender)
         {
             _rendered = true;
-            EvaluateAuthorization();
+            // Never call EvaluateAuthorization() here, because it breaks UAuthAuthorize attribute behavior.
         }
     }
 

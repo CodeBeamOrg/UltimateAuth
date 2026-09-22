@@ -55,48 +55,21 @@ public sealed class UAuthComponentBaseTests : BunitContext
     }
 
     [Fact]
-    public void Render_WithAuthorizeAttribute_WhenAnonymous_CallsUnauthorized()
+    public void AuthStateCleared_WithRoleRequirement_WhenAnonymous_CallsUnauthorized_NotForbidden()
     {
         var state = UAuthState.Anonymous();
 
-        var cut =
-            RenderWithState<AuthenticationRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<AuthenticationRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(1);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Render_WithRoleRequirement_WhenAnonymous_CallsUnauthorized_NotForbidden()
-    {
-        var state = UAuthState.Anonymous();
-
-        var cut =
-            RenderWithState<AdminRequiredComponent>(state);
+        var cut = RenderWithState<AdminRequiredComponent>(state);
 
         var component = cut
             .FindComponent<AdminRequiredComponent>()
             .Instance;
 
-        component.UnauthorizedCount.Should().Be(1);
+        // Initial render must not make a premature authorization decision.
+        component.UnauthorizedCount.Should().Be(0);
         component.ForbiddenCount.Should().Be(0);
-    }
 
-    [Fact]
-    public void Render_WithPermissionRequirement_WhenAnonymous_CallsUnauthorized_NotForbidden()
-    {
-        var state = UAuthState.Anonymous();
-
-        var cut =
-            RenderWithState<ReadUsersRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<ReadUsersRequiredComponent>()
-            .Instance;
+        state.Clear();
 
         component.UnauthorizedCount.Should().Be(1);
         component.ForbiddenCount.Should().Be(0);
@@ -146,16 +119,21 @@ public sealed class UAuthComponentBaseTests : BunitContext
     }
 
     [Fact]
-    public void Render_WithRequiredRole_WhenUserDoesNotHaveRole_CallsForbidden()
+    public void AuthStateChanged_WithRequiredRole_WhenUserDoesNotHaveRole_CallsForbidden()
     {
         var state = AuthenticatedState(
-            roles: ["member"]);
+            roles: ["User"]);
 
         var cut = RenderWithState<AdminRequiredComponent>(state);
 
         var component = cut
             .FindComponent<AdminRequiredComponent>()
             .Instance;
+
+        component.UnauthorizedCount.Should().Be(0);
+        component.ForbiddenCount.Should().Be(0);
+
+        state.MarkStale();
 
         component.UnauthorizedCount.Should().Be(0);
         component.ForbiddenCount.Should().Be(1);
@@ -178,7 +156,7 @@ public sealed class UAuthComponentBaseTests : BunitContext
     }
 
     [Fact]
-    public void Render_WithRequiredPermission_WhenUserDoesNotHavePermission_CallsForbidden()
+    public void AuthStateChanged_WithRequiredPermission_WhenUserDoesNotHavePermission_CallsForbidden()
     {
         var state = AuthenticatedState(
             permissions: ["users.list"]);
@@ -188,6 +166,12 @@ public sealed class UAuthComponentBaseTests : BunitContext
         var component = cut
             .FindComponent<ReadUsersRequiredComponent>()
             .Instance;
+
+        // No premature decision during initial render.
+        component.UnauthorizedCount.Should().Be(0);
+        component.ForbiddenCount.Should().Be(0);
+
+        state.MarkStale();
 
         component.UnauthorizedCount.Should().Be(0);
         component.ForbiddenCount.Should().Be(1);
@@ -284,6 +268,39 @@ public sealed class UAuthComponentBaseTests : BunitContext
         component.StateChangedCount.Should().Be(1);
         component.LastChangeReason
             .Should().Be(UAuthStateChangeReason.MarkedStale);
+    }
+
+    [Fact]
+    public void AuthStateCleared_WithAuthorizeAttribute_CallsUnauthorized()
+    {
+        var state = AuthenticatedState();
+
+        var cut = RenderWithState<AuthenticationRequiredComponent>(state);
+
+        var component = cut
+            .FindComponent<AuthenticationRequiredComponent>()
+            .Instance;
+
+        component.UnauthorizedCount.Should().Be(0);
+
+        state.Clear();
+
+        component.UnauthorizedCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void InitialRender_WithAuthorizeAttribute_DoesNotEvaluateAuthorizationPrematurely()
+    {
+        var state = UAuthState.Anonymous();
+
+        var cut = RenderWithState<AuthenticationRequiredComponent>(state);
+
+        var component = cut
+            .FindComponent<AuthenticationRequiredComponent>()
+            .Instance;
+
+        component.UnauthorizedCount.Should().Be(0);
+        component.ForbiddenCount.Should().Be(0);
     }
 
     private IRenderedComponent<CascadingValue<UAuthState>> RenderWithState<TComponent>(UAuthState state) where TComponent : IComponent
