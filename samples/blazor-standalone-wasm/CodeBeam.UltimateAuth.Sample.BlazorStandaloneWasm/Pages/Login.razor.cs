@@ -8,7 +8,7 @@ using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages;
 
-public partial class Login : UAuthFlowPageBase
+public partial class Login : UAuthPageBase
 {
     private string? _username;
     private string? _password;

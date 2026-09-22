@@ -553,7 +553,7 @@ public sealed class PkceEndpointHandlerTests
         var hubKey = hub.HubSessionId.Value;
 
         fixture.HttpContext.Request.QueryString =
-            new QueryString($"?hub={Uri.EscapeDataString(hubKey)}");
+            new QueryString($"?uauth_hub={Uri.EscapeDataString(hubKey)}");
 
         SetCompleteJson(fixture, "code", "verifier");
 

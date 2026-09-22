@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public partial class UAuthStateView : UAuthReactiveComponentBase
+public partial class UAuthStateView : UAuthComponentBase
 {
     private IReadOnlyList<string> _rolesParsed = Array.Empty<string>();
     private IReadOnlyList<string> _permissionsParsed = Array.Empty<string>();

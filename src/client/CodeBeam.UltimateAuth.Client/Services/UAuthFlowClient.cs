@@ -7,6 +7,7 @@ using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -279,7 +280,7 @@ internal class UAuthFlowClient : IFlowClient
 
         if (!string.IsNullOrWhiteSpace(request.ReturnUrl))
         {
-            payload["return_url"] = request.ReturnUrl;
+            payload[UAuthConstants.Form.ReturnUrl] = request.ReturnUrl;
         }
 
         switch (mode)
@@ -330,7 +331,7 @@ internal class UAuthFlowClient : IFlowClient
         {
             ["authorization_code"] = request.AuthorizationCode,
             ["code_verifier"] = request.CodeVerifier,
-            ["return_url"] = request.ReturnUrl ?? string.Empty,
+            [UAuthConstants.Form.ReturnUrl] = request.ReturnUrl ?? string.Empty,
 
             ["Identifier"] = request.Identifier ?? string.Empty,
             ["Secret"] = request.Secret ?? string.Empty,
@@ -419,7 +420,7 @@ internal class UAuthFlowClient : IFlowClient
 
         if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
         {
-            payload["return_url"] = resolvedReturnUrl;
+            payload[UAuthConstants.Form.ReturnUrl] = resolvedReturnUrl;
         }
 
         return payload;
@@ -436,7 +437,7 @@ internal class UAuthFlowClient : IFlowClient
         {
             ["authorization_code"] = authorizationCode,
             ["code_verifier"] = codeVerifier,
-            ["return_url"] = returnUrl,
+            [UAuthConstants.Form.ReturnUrl] = returnUrl,
             ["client_profile"] = _options.ClientProfile.ToString(),
             ["device"] = deviceEncoded
         };

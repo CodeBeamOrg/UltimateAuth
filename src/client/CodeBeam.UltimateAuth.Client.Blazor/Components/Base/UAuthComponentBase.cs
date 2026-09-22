@@ -2,19 +2,27 @@
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
+/// <summary>
+/// Base class for Blazor components that participate in UltimateAuth authentication state and authorization lifecycle.
+/// </summary>
+public abstract class UAuthComponentBase : ComponentBase, IDisposable
 {
     private UAuthState? _previousState;
     private bool _rendered;
 
+    /// <summary>
+    /// Gets the current UltimateAuth authentication state supplied by <c>UAuthApp</c>.
+    /// </summary>
     [CascadingParameter]
     protected UAuthState AuthState { get; set; } = default!;
 
+    /// <summary>
+    /// Gets the Blazor navigation service.
+    /// </summary>
     [Inject] protected NavigationManager Nav { get; set; } = default!;
 
     /// <summary>
-    /// Automatically re-render when UAuthState changes.
-    /// Can be overridden to disable.
+    /// Automatically re-render when UAuthState changes. Can be overridden to disable.
     /// </summary>
     protected virtual bool AutoRefreshOnAuthStateChanged => true;
 
@@ -23,7 +31,7 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
         base.OnParametersSet();
 
         if (AuthState is null)
-            throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(AuthState)}. " +
+            throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(UAuthState)}. " +
                 $"Make sure it is used inside <UAuthApp>.");
 
         if (!ReferenceEquals(_previousState, AuthState))
@@ -43,7 +51,10 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
         await base.OnAfterRenderAsync(firstRender);
         
         if (firstRender)
+        {
             _rendered = true;
+            EvaluateAuthorization();
+        }
     }
 
     private void OnAuthStateChanged(UAuthStateChangeReason reason)
@@ -101,11 +112,17 @@ public abstract class UAuthReactiveComponentBase : ComponentBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Called when the component requires authentication but the current user is not authenticated.
+    /// </summary>
     protected virtual void OnUnauthorized()
     {
         Nav.NavigateTo("/");
     }
 
+    /// <summary>
+    /// Called when the current user is authenticated but does not satisfy the authorization requirements of the component.
+    /// </summary>
     protected virtual void OnForbidden()
     {
         Nav.NavigateTo("/forbidden");

@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public abstract class UAuthHubPageBase : UAuthReactiveComponentBase
+public abstract class UAuthHubPageBase : UAuthComponentBase
 {
     [Inject] protected IHubFlowReader HubFlowReader { get; set; } = default!;
-    [Inject] protected NavigationManager Nav { get; set; } = default!;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = UAuthConstants.Query.Hub)]
@@ -16,7 +15,7 @@ public abstract class UAuthHubPageBase : UAuthReactiveComponentBase
 
     protected HubFlowState? HubState { get; private set; }
 
-    protected bool IsHubAuthorized => HubState is { Exists: true, IsActive: true };
+    protected bool IsHubActive => HubState is { Exists: true, IsActive: true };
 
     protected override async Task OnParametersSetAsync()
     {

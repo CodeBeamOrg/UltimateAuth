@@ -7,7 +7,7 @@ using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Pages;
 
-public partial class Login : UAuthFlowPageBase
+public partial class Login : UAuthPageBase
 {
     private string? _username;
     private string? _password;

@@ -274,7 +274,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             var codeVerifier = form?["code_verifier"].FirstOrDefault();
             var identifier = form?["Identifier"].FirstOrDefault();
             var secret = form?["Secret"].FirstOrDefault();
-            var returnUrl = form?["return_url"].FirstOrDefault();
+            var returnUrl = form?[UAuthConstants.Form.ReturnUrl].FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(authorizationCode))
                 throw new UAuthValidationException("authorization_code is required");

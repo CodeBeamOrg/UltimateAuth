@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Stores;
 using MudBlazor;
@@ -143,10 +144,10 @@ public partial class Home
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
-        if (query.TryGetValue("return_url", out var ru) && !string.IsNullOrWhiteSpace(ru))
+        if (query.TryGetValue(UAuthConstants.Query.ReturnUrl, out var ru) && !string.IsNullOrWhiteSpace(ru))
             return ru!;
 
-        if (query.TryGetValue("hub", out var hubKey) && !string.IsNullOrWhiteSpace(hubKey))
+        if (query.TryGetValue(UAuthConstants.Query.Hub, out var hubKey) && !string.IsNullOrWhiteSpace(hubKey))
         {
             var artifact = await AuthStore.GetAsync(new AuthArtifactKey(hubKey!));
             if (artifact is HubFlowArtifact flow && !string.IsNullOrWhiteSpace(flow.ReturnUrl))

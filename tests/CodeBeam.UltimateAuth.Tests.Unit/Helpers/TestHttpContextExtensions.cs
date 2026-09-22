@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
+using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -32,7 +33,7 @@ internal static class TestHttpContextExtensions
     {
         return ctx.WithForm(new Dictionary<string, string>
         {
-            ["return_url"] = returnUrl
+            [UAuthConstants.Form.ReturnUrl] = returnUrl
         });
     }
 }
