@@ -91,6 +91,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
     public async Task<TTryResult> TryAndCommitAsync<TTryResult>(string tryEndpoint, string commitEndpoint, object request, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         await _bootstrapper.EnsureStartedAsync();
 
         var response = await _js.InvokeAsync<TTryResult>(

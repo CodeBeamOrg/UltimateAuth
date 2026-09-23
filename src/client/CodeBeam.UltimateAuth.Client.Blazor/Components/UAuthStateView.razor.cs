@@ -111,6 +111,15 @@ public partial class UAuthStateView : UAuthComponentBase
         if (!AuthState.IsAuthenticated)
             return false;
 
+        var hasRoles = _rolesParsed.Count > 0;
+        var hasPermissions = _permissionsParsed.Count > 0;
+        var hasPolicy = !string.IsNullOrWhiteSpace(Policy);
+
+        // No explicit authorization requirements:
+        // authentication itself is sufficient.
+        if (!hasRoles && !hasPermissions && !hasPolicy)
+            return true;
+
         var roleResults = _rolesParsed
             .Select(AuthState.IsInRole)
             .ToList();
@@ -223,6 +232,6 @@ public partial class UAuthStateView : UAuthComponentBase
 
     private string BuildAuthKey()
     {
-        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}";
+        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}{RequireActive}";
     }
 }
