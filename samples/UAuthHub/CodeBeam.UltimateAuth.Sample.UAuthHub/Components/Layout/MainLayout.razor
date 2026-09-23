@@ -1,9 +1,9 @@
-﻿@inherits UAuthHubLayoutComponentBase
+﻿@inherits UAuthHubLayoutBase
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
-@if (!IsHubAuthorized)
+@if (!IsHubActive)
 {
     <MudAppBar Class="uauth-blur" Color="Color.Transparent" Dense="true" Elevation="0">
         <UAuthLogo />

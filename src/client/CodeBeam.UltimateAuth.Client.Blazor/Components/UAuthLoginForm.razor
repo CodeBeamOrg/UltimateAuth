@@ -27,7 +27,7 @@
 
     @if (SubmitMode == UAuthSubmitMode.DirectCommit)
     {
-        <input type="hidden" name="return_url" value="@EffectiveReturnUrl" />
+        <input type="hidden" name="@UAuthConstants.Form.ReturnUrl" value="@EffectiveReturnUrl" />
     }
 
     @ChildContent

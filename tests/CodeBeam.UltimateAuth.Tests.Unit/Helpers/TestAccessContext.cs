@@ -22,7 +22,12 @@ internal static class TestAccessContext
         );
     }
 
-    public static AccessContext ForUser(UserKey userKey, string action, TenantKey? tenant = null)
+    public static AccessContext ForUser(
+        UserKey userKey,
+        string action,
+        TenantKey? tenant = null,
+        SessionChainId? actorChainId = null,
+        string resource = "identifier")
     {
         var t = tenant ?? TenantKey.Single;
 
@@ -31,9 +36,33 @@ internal static class TestAccessContext
             actorTenant: t,
             isAuthenticated: true,
             isSystemActor: false,
-            actorChainId: null,
-            resource: "identifier",
+            actorChainId: actorChainId,
+            resource: resource,
             targetUserKey: userKey,
+            resourceTenant: t,
+            action: action,
+            attributes: EmptyAttributes.Instance
+        );
+    }
+
+    public static AccessContext ForTargetUser(
+        UserKey actorUserKey,
+        UserKey targetUserKey,
+        string action,
+        TenantKey? tenant = null,
+        SessionChainId? actorChainId = null,
+        string resource = "identifier")
+    {
+        var t = tenant ?? TenantKey.Single;
+
+        return new AccessContext(
+            actorUserKey: actorUserKey,
+            actorTenant: t,
+            isAuthenticated: true,
+            isSystemActor: false,
+            actorChainId: actorChainId,
+            resource: resource,
+            targetUserKey: targetUserKey,
             resourceTenant: t,
             action: action,
             attributes: EmptyAttributes.Instance

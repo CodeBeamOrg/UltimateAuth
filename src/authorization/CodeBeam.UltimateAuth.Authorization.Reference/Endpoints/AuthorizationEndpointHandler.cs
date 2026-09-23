@@ -136,7 +136,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var req = await ctx.ReadJsonAsync<AssignRoleRequest>(ctx.RequestAborted);
+        var req = await ctx.ReadJsonAsync<RemoveRoleRequest>(ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,

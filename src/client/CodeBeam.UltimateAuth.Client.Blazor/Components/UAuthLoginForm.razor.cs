@@ -286,7 +286,9 @@ public partial class UAuthLoginForm
 
             if (_credentials != null && EffectiveHubSessionId is not null)
             {
-                query.Add($"hub={EffectiveHubSessionId}");
+                query.Add(
+                    $"{UAuthConstants.Query.Hub}=" +
+                    $"{Uri.EscapeDataString(EffectiveHubSessionId.Value.Value)}");
             }
 
             if (!string.IsNullOrWhiteSpace(returnUrl))

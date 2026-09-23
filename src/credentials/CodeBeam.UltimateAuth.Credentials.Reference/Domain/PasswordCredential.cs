@@ -74,6 +74,7 @@ public sealed class PasswordCredential : ISecretCredential, ITenantEntity, IVers
             Metadata = Metadata,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
+            DeletedAt = DeletedAt,
             Version = Version
         };
     }

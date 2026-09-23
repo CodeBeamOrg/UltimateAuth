@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public partial class UAuthStateView : UAuthReactiveComponentBase
+public partial class UAuthStateView : UAuthComponentBase
 {
     private IReadOnlyList<string> _rolesParsed = Array.Empty<string>();
     private IReadOnlyList<string> _permissionsParsed = Array.Empty<string>();
@@ -110,6 +110,15 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
     {
         if (!AuthState.IsAuthenticated)
             return false;
+
+        var hasRoles = _rolesParsed.Count > 0;
+        var hasPermissions = _permissionsParsed.Count > 0;
+        var hasPolicy = !string.IsNullOrWhiteSpace(Policy);
+
+        // No explicit authorization requirements:
+        // authentication itself is sufficient.
+        if (!hasRoles && !hasPermissions && !hasPolicy)
+            return true;
 
         var roleResults = _rolesParsed
             .Select(AuthState.IsInRole)
@@ -223,6 +232,6 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
 
     private string BuildAuthKey()
     {
-        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}";
+        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}{RequireActive}";
     }
 }

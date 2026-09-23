@@ -27,7 +27,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
         var kernel = _storeFactory.Create(context.Tenant);
-        var session = await kernel.GetSessionAsync(context.SessionId);
+        var session = await kernel.GetSessionAsync(context.SessionId, ct);
 
         if (session is null)
             return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
@@ -36,7 +36,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (state != SessionState.Active)
             return SessionValidationResult.Invalid(state, session.UserKey, session.SessionId, session.ChainId);
 
-        var chain = await kernel.GetChainAsync(session.ChainId);
+        var chain = await kernel.GetChainAsync(session.ChainId, ct);
         if (chain is null || chain.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId);
 
@@ -53,7 +53,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (chain.Tenant != context.Tenant)
             return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId);
 
-        var root = await kernel.GetRootByUserAsync(session.UserKey);
+        var root = await kernel.GetRootByUserAsync(session.UserKey, ct);
         if (root is null || root.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, chain.UserKey, session.SessionId, chain.ChainId, root?.RootId);
 

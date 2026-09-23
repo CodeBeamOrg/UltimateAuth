@@ -132,21 +132,31 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         projection.Version++;
     }
 
-    public Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default)
+    public async Task CreateSessionAsync(UAuthSession session, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (session.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
 
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
-        var projection = session.ToProjection();
-
         if (session.Version != 0)
             throw new InvalidOperationException("New session must have version 0.");
 
-        DbSetSession.Add(projection);
+        var exists = await _db.Set<SessionProjection>()
+        .AnyAsync(
+            x => x.Tenant == _tenant &&
+                 x.SessionId == session.SessionId,
+            ct);
 
-        return Task.CompletedTask;
+        if (exists)
+            throw new UAuthConcurrencyException(
+                "session_already_exists");
+
+        var projection = session.ToProjection();
+        DbSetSession.Add(projection);
     }
 
     public async Task<bool> RevokeSessionAsync(AuthSessionId sessionId, DateTimeOffset at, CancellationToken ct = default)
@@ -164,6 +174,19 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         var domain = projection.ToDomain().Revoke(at);
         domain.UpdateProjection(projection);
         projection.Version++;
+
+        var chain = await DbSetChain
+            .SingleOrDefaultAsync(
+                x => x.Tenant == _tenant &&
+                     x.ChainId == projection.ChainId,
+                ct);
+
+        if (chain?.ActiveSessionId == sessionId)
+        {
+            chain.ActiveSessionId = null;
+            chain.LastSeenAt = at;
+            chain.Version++;
+        }
 
         return true;
     }
@@ -314,9 +337,12 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         projection.Version++;
     }
 
-    public Task CreateChainAsync(UAuthSessionChain chain, CancellationToken ct = default)
+    public async Task CreateChainAsync(UAuthSessionChain chain, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (chain.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
 
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
@@ -324,12 +350,25 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         if (chain.Version != 0)
             throw new InvalidOperationException("New chain must have version 0.");
 
-        var projection = chain.ToProjection();
+        var exists =
+            DbSetChain.Local.Any(x =>
+                x.Tenant == _tenant &&
+                x.ChainId == chain.ChainId);
 
-        DbSetChain.Add(projection);
-        _db.Entry(projection).State = EntityState.Added;
+        if (!exists)
+        {
+            exists = await DbSetChain
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Tenant == _tenant &&
+                         x.ChainId == chain.ChainId,
+                    ct);
+        }
 
-        return Task.CompletedTask;
+        if (exists)
+            throw new UAuthConcurrencyException("chain_already_exists");
+
+        DbSetChain.Add(chain.ToProjection());
     }
 
     public async Task RevokeChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default)
@@ -475,6 +514,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     {
         ct.ThrowIfCancellationRequested();
 
+        if (root.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
@@ -494,9 +536,12 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         projection.Version++;
     }
 
-    public Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default)
+    public async Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (root.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
 
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
@@ -504,11 +549,27 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         if (root.Version != 0)
             throw new InvalidOperationException("New root must have version 0.");
 
+        var exists = DbSetRoot.Local.Any(x =>
+            x.Tenant == _tenant &&
+            x.UserKey == root.UserKey);
+
+        if (!exists)
+        {
+            exists = await DbSetRoot
+                .AsNoTracking()
+                .AnyAsync(
+                    x =>
+                        x.Tenant == _tenant &&
+                        x.UserKey == root.UserKey,
+                    ct);
+        }
+
+        if (exists)
+            throw new UAuthConcurrencyException("root_already_exists");
+
         var projection = root.ToProjection();
 
         DbSetRoot.Add(projection);
-
-        return Task.CompletedTask;
     }
 
     public async Task RevokeRootAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
@@ -603,6 +664,21 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
 
         if (projection is null)
             return;
+
+        var chain = await DbSetChain
+            .SingleOrDefaultAsync(
+                x => x.Tenant == _tenant &&
+                     x.ChainId == projection.ChainId,
+                ct);
+
+        if (chain?.ActiveSessionId == sessionId)
+        {
+            chain.ActiveSessionId = null;
+
+            // Remove has no DateTimeOffset parameter.
+            // Don't introduce DateTimeOffset.UtcNow here merely to update LastSeenAt.
+            chain.Version++;
+        }
 
         DbSetSession.Remove(projection);
     }

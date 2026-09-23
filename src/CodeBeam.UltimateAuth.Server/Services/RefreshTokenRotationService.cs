@@ -13,14 +13,12 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
     private readonly IRefreshTokenValidator _validator;
     private readonly IRefreshTokenStoreFactory _storeFactory;
     private readonly ITokenIssuer _tokenIssuer;
-    private readonly IClock _clock;
 
-    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer, IClock clock)
+    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer)
     {
         _validator = validator;
         _storeFactory = storeFactory;
         _tokenIssuer = tokenIssuer;
-        _clock = clock;
     }
 
     // TODO: Handle reuse detection and make flow knows situation, but don't make security branch.
@@ -37,24 +35,26 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             },
             ct);
 
-        if (!validation.IsValid)
-            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
-
-        var store = _storeFactory.Create(validation.Tenant);
-
         if (validation.IsReuseDetected)
         {
+            var store1 = _storeFactory.Create(validation.Tenant);
+
             if (validation.ChainId is not null)
             {
-                await store.RevokeByChainAsync(validation.ChainId.Value, context.Now, ct);
+                await store1.RevokeByChainAsync(validation.ChainId.Value, context.Now, ct);
             }
             else if (validation.SessionId is not null)
             {
-                await store.RevokeBySessionAsync(validation.SessionId.Value, context.Now, ct);
+                await store1.RevokeBySessionAsync(validation.SessionId.Value, context.Now, ct);
             }
 
             return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
         }
+
+        if (!validation.IsValid)
+            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
+
+        var store = _storeFactory.Create(validation.Tenant);
 
         if (validation.UserKey is not UserKey userKey)
             throw new UAuthValidationException("Validated refresh token does not contain a UserKey.");
@@ -85,7 +85,8 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
                 Result = RefreshTokenRotationResult.Failed()
             };
 
-        // Never issue new refresh token before revoke old. Upperline doesn't persist token currently.
+        // Generate the replacement token without persisting it.
+        // Revoke the current token and persist its replacement atomically.
         await store.ExecuteAsync(async ct2 =>
         {
             await store.RevokeAsync(validation.TokenHash, context.Now, refreshToken.TokenHash, ct2);
@@ -97,7 +98,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
                 userKey: userKey,
                 sessionId: sessionId,
                 chainId: validation.ChainId,
-                createdAt: _clock.UtcNow,
+                createdAt: context.Now,
                 expiresAt: refreshToken.ExpiresAt
             );
 

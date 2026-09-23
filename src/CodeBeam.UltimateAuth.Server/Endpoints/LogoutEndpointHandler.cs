@@ -19,17 +19,15 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
     private readonly IUAuthFlowService _flow;
     private readonly IAccessContextFactory _accessContextFactory;
     private readonly ISessionApplicationService _sessionApplicationService;
-    private readonly IClock _clock;
     private readonly IUAuthCookieManager _cookieManager;
     private readonly IAuthRedirectResolver _redirectResolver;
 
-    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IClock clock, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
+    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
     {
         _authContext = authContext;
         _flow = flow;
         _accessContextFactory = accessContextFactory;
         _sessionApplicationService = sessionApplicationService;
-        _clock = clock;
         _cookieManager = cookieManager;
         _redirectResolver = redirectResolver;
     }
@@ -151,7 +149,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
             flow,
             UAuthActions.Flows.LogoutAllSelf,
             resource: "flows",
-            resourceId: userKey);
+            resourceId: userKey.Value);
 
         await _sessionApplicationService.LogoutAllDevicesAsync(access, userKey, ctx.RequestAborted);
         return Results.Ok();

@@ -10,8 +10,8 @@ public sealed record PkceCompleteRequest
     [JsonPropertyName("code_verifier")]
     public required string CodeVerifier { get; init; }
 
-
     public required string Identifier { get; init; }
+
     public required string Secret { get; init; }
 
     [JsonPropertyName("return_url")]

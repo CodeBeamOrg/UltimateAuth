@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public abstract class UAuthHubLayoutComponentBase : LayoutComponentBase
+public abstract class UAuthHubLayoutBase : LayoutComponentBase
 {
     [Inject] protected NavigationManager Navigation { get; set; } = default!;
     [Inject] protected IHubFlowReader HubFlowReader { get; set; } = default!;
@@ -13,7 +13,7 @@ public abstract class UAuthHubLayoutComponentBase : LayoutComponentBase
     protected HubFlowState? HubState { get; private set; }
 
     protected bool HasHub => HubState?.Exists == true;
-    protected bool IsHubAuthorized => HasHub && HubState?.IsActive == true;
+    protected bool IsHubActive => HasHub && HubState?.IsActive == true;
     protected bool IsExpired => HubState?.IsExpired == true;
     protected HubErrorCode? Error => HubState?.Error;
 

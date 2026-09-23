@@ -52,7 +52,7 @@ public partial class MainLayout
 
         if (uri.AbsolutePath.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
         {
-            Nav.NavigateTo("/login?focus=1", replace: true, forceLoad: true);
+            Nav.NavigateTo("/login?uauth_focus=1", replace: true, forceLoad: true);
             return;
         }
 

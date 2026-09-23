@@ -9,9 +9,7 @@ public sealed class UAuthSessionQueryService : ISessionQueryService
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthFlowContextAccessor _authFlow;
 
-    public UAuthSessionQueryService(
-        ISessionStoreFactory storeFactory,
-        IAuthFlowContextAccessor authFlow)
+    public UAuthSessionQueryService(ISessionStoreFactory storeFactory, IAuthFlowContextAccessor authFlow)
     {
         _storeFactory = storeFactory;
         _authFlow = authFlow;
@@ -19,22 +17,22 @@ public sealed class UAuthSessionQueryService : ISessionQueryService
 
     public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
-        return CreateKernel().GetSessionAsync(sessionId);
+        return CreateKernel().GetSessionAsync(sessionId, ct);
     }
 
     public Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default)
     {
-        return CreateKernel().GetSessionsByChainAsync(chainId);
+        return CreateKernel().GetSessionsByChainAsync(chainId, ct);
     }
 
     public Task<IReadOnlyList<UAuthSessionChain>> GetChainsByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
-        return CreateKernel().GetChainsByUserAsync(userKey);
+        return CreateKernel().GetChainsByUserAsync(userKey, ct: ct);
     }
 
     public Task<SessionChainId?> ResolveChainIdAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
-        return CreateKernel().GetChainIdBySessionAsync(sessionId);
+        return CreateKernel().GetChainIdBySessionAsync(sessionId, ct);
     }
 
     private ISessionStore CreateKernel()
