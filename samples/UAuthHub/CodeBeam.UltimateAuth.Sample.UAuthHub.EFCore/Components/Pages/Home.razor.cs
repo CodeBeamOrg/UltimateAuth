@@ -57,7 +57,7 @@ public partial class Home
 
             if (HubSessionId.TryParse(HubKey, out var hubSessionId))
             {
-                await ReloadState();
+                await ReloadStateAsync();
             }
 
             await _loginForm.ReloadAsync();

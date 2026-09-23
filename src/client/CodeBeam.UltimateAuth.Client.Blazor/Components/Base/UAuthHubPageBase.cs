@@ -20,10 +20,10 @@ public abstract class UAuthHubPageBase : UAuthComponentBase
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
-        await ReloadState();
+        await ReloadStateAsync();
     }
 
-    public async Task ReloadState()
+    public async Task ReloadStateAsync()
     {
         if (string.IsNullOrWhiteSpace(HubKey))
         {
