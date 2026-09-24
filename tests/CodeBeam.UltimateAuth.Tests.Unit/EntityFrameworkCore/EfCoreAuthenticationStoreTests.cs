@@ -62,6 +62,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
             var updated = existing!.RegisterFailure(
                 DateTimeOffset.UtcNow,
                 threshold: 3,
+                failureWindow: TimeSpan.FromMinutes(5),
                 lockoutDuration: TimeSpan.FromMinutes(5));
 
             await store.UpdateAsync(updated, expectedVersion: 0);
@@ -89,7 +90,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var state = AuthenticationSecurityState.CreateAccount(tenant, userKey);
         await store.AddAsync(state);
-        var updated = state.RegisterFailure(DateTimeOffset.UtcNow, 3, TimeSpan.FromMinutes(5));
+        var updated = state.RegisterFailure(DateTimeOffset.UtcNow, 3, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         await Assert.ThrowsAsync<UAuthConflictException>(() => store.UpdateAsync(updated, expectedVersion: 999));
     }
@@ -103,7 +104,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
         var state = AuthenticationSecurityState.CreateAccount(tenant, userKey)
-            .RegisterFailure(DateTimeOffset.UtcNow, 3, TimeSpan.FromMinutes(5));
+            .RegisterFailure(DateTimeOffset.UtcNow, 3, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         await using (var db1 = CreateDb(connection))
         {
