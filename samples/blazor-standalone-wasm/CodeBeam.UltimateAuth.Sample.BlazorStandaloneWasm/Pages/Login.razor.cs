@@ -83,7 +83,7 @@ public partial class Login : UAuthPageBase
     {
         string? returnUrl = null;
         if (!string.IsNullOrEmpty(ReturnUrl))
-            returnUrl = Nav.BaseUri + ReturnUrl.TrimStart('/');
+            returnUrl = Navigation.BaseUri + ReturnUrl.TrimStart('/');
 
         await UAuthClient.Flows.BeginPkceAsync(returnUrl);
     }

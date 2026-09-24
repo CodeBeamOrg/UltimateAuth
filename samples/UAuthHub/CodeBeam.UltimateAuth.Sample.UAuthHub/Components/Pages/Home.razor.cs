@@ -141,7 +141,7 @@ public partial class Home
         if (!string.IsNullOrWhiteSpace(fromContext))
             return fromContext;
 
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
         if (query.TryGetValue(UAuthConstants.Query.ReturnUrl, out var ru) && !string.IsNullOrWhiteSpace(ru))
@@ -154,7 +154,7 @@ public partial class Home
                 return flow.ReturnUrl!;
         }
 
-        return Nav.Uri;
+        return Navigation.Uri;
     }
 
     private async void StartCountdown()
