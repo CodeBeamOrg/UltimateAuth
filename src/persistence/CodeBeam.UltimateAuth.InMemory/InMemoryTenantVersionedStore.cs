@@ -43,6 +43,18 @@ public abstract class InMemoryTenantVersionedStore<TEntity, TKey> : InMemoryVers
             .AsReadOnly();
     }
 
+    protected override void ValidateAdd(TEntity entity)
+    {
+        EnsureTenant(entity);
+        base.ValidateAdd(entity);
+    }
+
+    protected override void ValidateSave(TEntity entity, long expectedVersion)
+    {
+        EnsureTenant(entity);
+        base.ValidateSave(entity, expectedVersion);
+    }
+
     private void EnsureTenant(TEntity entity)
     {
         if (!_tenant.IsGlobal && entity.Tenant != _tenant.Tenant)

@@ -70,11 +70,14 @@ internal sealed class InMemoryAuthenticationSecurityStateStore : IAuthentication
 
         var key = (state.UserKey, state.Scope, state.CredentialType);
 
-        if (!_index.TryGetValue(key, out var id) || id != state.Id)
+        if (!_index.TryGetValue(key, out var id))
+            throw new UAuthNotFoundException("security_state_not_found");
+
+        if (id != state.Id)
             throw new UAuthConflictException("security_state_index_corrupted");
 
         if (!_byId.TryGetValue(state.Id, out var current))
-            throw new UAuthNotFoundException("security_state_not_found");
+            throw new UAuthConflictException("security_state_index_corrupted");
 
         if (current.SecurityVersion != expectedVersion)
             throw new UAuthConflictException("security_state_version_conflict");

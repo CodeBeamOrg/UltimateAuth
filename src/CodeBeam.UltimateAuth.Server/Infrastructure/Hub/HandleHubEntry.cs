@@ -25,7 +25,7 @@ internal class HandleHub
         var authorizationCode = form["authorization_code"].ToString();
         var codeVerifier = form["code_verifier"].ToString();
         var deviceId = form["device_id"].ToString();
-        var returnUrl = form["return_url"].ToString();
+        var returnUrl = form[UAuthConstants.Form.ReturnUrl].ToString();
 
         if (!Enum.TryParse<UAuthClientProfile>(form["__uauth_client_profile"], ignoreCase: true, out var clientProfile))
         {

@@ -32,6 +32,24 @@ internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCrede
 
     public async Task AddAsync(PasswordCredential credential, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        if (credential.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
+
+        var exists = await DbSet
+            .AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == credential.UserKey &&
+                    x.DeletedAt == null,
+                ct);
+
+        if (exists)
+            throw new UAuthConflictException("password_credential_exists");
+
+
         var entity = credential.ToProjection();
 
         DbSet.Add(entity);
@@ -73,6 +91,8 @@ internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCrede
 
     public async Task RevokeAsync(CredentialKey key, DateTimeOffset revokedAt, long expectedVersion, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == key.Id &&
@@ -95,6 +115,8 @@ internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCrede
 
     public async Task DeleteAsync(CredentialKey key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var entity = await DbSet
             .SingleOrDefaultAsync(x =>
                 x.Id == key.Id &&
@@ -123,6 +145,8 @@ internal sealed class EfCorePasswordCredentialStore<TDbContext> : IPasswordCrede
 
     public async Task<IReadOnlyCollection<PasswordCredential>> GetByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var entities = await DbSet
             .AsNoTracking()
             .Where(x =>

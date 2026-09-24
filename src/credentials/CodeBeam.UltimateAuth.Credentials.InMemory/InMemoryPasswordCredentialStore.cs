@@ -19,6 +19,8 @@ internal sealed class InMemoryPasswordCredentialStore : InMemoryTenantVersionedS
 
     protected override void BeforeAdd(PasswordCredential entity)
     {
+        base.BeforeAdd(entity);
+
         var exists = TenantValues()
             .Any(x =>
                 x.Tenant == entity.Tenant &&

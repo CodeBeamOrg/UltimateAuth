@@ -1,10 +1,14 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-public partial class UAuthStateView : UAuthReactiveComponentBase
+/// <summary>
+/// A Blazor component that conditionally renders content based on the current UltimateAuth authentication state and authorization requirements.
+/// </summary>
+public partial class UAuthStateView : UAuthComponentBase
 {
     private IReadOnlyList<string> _rolesParsed = Array.Empty<string>();
     private IReadOnlyList<string> _permissionsParsed = Array.Empty<string>();
@@ -15,40 +19,87 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
     private string? _rolesRaw;
     private string? _permissionsRaw;
 
+    /// <summary>
+    /// Gets or sets the content to render when the user is authorized. The content receives the current <see cref="UAuthState"/> as a parameter.
+    /// </summary>
     [Parameter]
     public RenderFragment<UAuthState>? Authorized { get; set; }
 
+    /// <summary>
+    /// Gets or sets the content to render when the user is not authorized. This content is displayed when the user does not meet the specified authorization requirements.
+    /// </summary>
     [Parameter]
     public RenderFragment? NotAuthorized { get; set; }
 
+    /// <summary>
+    /// Gets or sets the content to render when the user is inactive. This content is displayed when the user's session state is not active, and the <see cref="RequireActive"/> parameter is set to true.
+    /// </summary>
     [Parameter]
     public RenderFragment<UAuthState>? Inactive { get; set; }
 
+    /// <summary>
+    /// Gets or sets the content to render while the authorization evaluation is in progress. This content is displayed when the component is determining whether the user meets the specified authorization requirements.
+    /// </summary>
     [Parameter]
     public RenderFragment? Authorizing { get; set; }
 
+    /// <summary>
+    /// Gets or sets the content to render regardless of the user's authorization state. This content is always displayed, and it receives the current <see cref="UAuthState"/> as a parameter.
+    /// </summary>
     [Parameter]
     public RenderFragment<UAuthState>? ChildContent { get; set; }
 
+    /// <summary>
+    /// Gets or sets a comma-separated list of roles that the user must have to be considered authorized. The roles are evaluated based on the specified <see cref="MatchMode"/>.
+    /// </summary>
     [Parameter]
     public string? Roles { get; set; }
 
+    /// <summary>
+    /// Gets or sets a comma-separated list of permissions that the user must have to be considered authorized. The permissions are evaluated based on the specified <see cref="MatchMode"/>.
+    /// </summary>
     [Parameter]
     public string? Permissions { get; set; }
 
+    /// <summary>
+    /// Gets or sets the name of a policy that the user must satisfy to be considered authorized. The policy is evaluated based on the specified <see cref="MatchMode"/>.
+    /// </summary>
     [Parameter]
     public string? Policy { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether all set conditions must be matched for the operation to succeed.
-    /// Null parameters don't count as condition.
+    /// Determines how authorization conditions are evaluated.
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.Any"/>:
+    /// Any configured condition may succeed.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.All"/>:
+    /// All configured conditions and values must succeed.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuthorizationMatchMode.Category"/>:
+    /// At least one value from each configured category must succeed.
+    /// For example:
+    /// one matching role AND one matching permission.
+    /// </para>
+    ///
+    /// Null or empty parameters are ignored.
     /// </summary>
     [Parameter]
-    public bool MatchAll { get; set; } = true;
+    public AuthorizationMatchMode MatchMode { get; set; } = AuthorizationMatchMode.Category;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the user's session state must be active for the user to be considered authorized.
+    /// If set to true, the component will evaluate the user's session state and render the <see cref="Inactive"/> content if the session is not active.
+    /// </summary>
     [Parameter]
     public bool RequireActive { get; set; } = true;
 
+    /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
@@ -78,6 +129,11 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
         _authorizing = false;
     }
 
+    /// <summary>
+    /// Handles changes in the authentication state.
+    /// This method is called when the authentication state changes, and it evaluates the current session state and authorization requirements.
+    /// </summary>
+    /// <param name="reason"></param>
     protected override async void HandleAuthStateChanged(UAuthStateChangeReason reason)
     {
         EvaluateSessionState();
@@ -92,34 +148,76 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
         if (!AuthState.IsAuthenticated)
             return false;
 
-        var roles = _rolesParsed;
-        var permissions = _permissionsParsed;
+        var hasRoles = _rolesParsed.Count > 0;
+        var hasPermissions = _permissionsParsed.Count > 0;
+        var hasPolicy = !string.IsNullOrWhiteSpace(Policy);
 
-        var results = new List<bool>();
-
-        if (roles.Count > 0)
-        {
-            results.Add(MatchAll
-                ? roles.All(AuthState.IsInRole)
-                : roles.Any(AuthState.IsInRole));
-        }
-
-        if (permissions.Count > 0)
-        {
-            results.Add(MatchAll
-                ? permissions.All(AuthState.HasPermission)
-                : permissions.Any(AuthState.HasPermission));
-        }
-
-        if (!string.IsNullOrWhiteSpace(Policy))
-            results.Add(await EvaluatePolicyAsync());
-
-        if (results.Count == 0)
+        // No explicit authorization requirements:
+        // authentication itself is sufficient.
+        if (!hasRoles && !hasPermissions && !hasPolicy)
             return true;
 
-        return MatchAll
-            ? results.All(x => x)
-            : results.Any(x => x);
+        var roleResults = _rolesParsed
+            .Select(AuthState.IsInRole)
+            .ToList();
+
+        var permissionResults = _permissionsParsed
+            .Select(AuthState.HasPermission)
+            .ToList();
+
+        bool? policyResult = null;
+
+        if (!string.IsNullOrWhiteSpace(Policy))
+        {
+            policyResult = await EvaluatePolicyAsync();
+        }
+
+        return MatchMode switch
+        {
+            AuthorizationMatchMode.Any
+                => EvaluateAny(roleResults, permissionResults, policyResult),
+
+            AuthorizationMatchMode.All
+                => EvaluateAll(roleResults, permissionResults, policyResult),
+
+            AuthorizationMatchMode.Category
+                => EvaluateCategory(roleResults, permissionResults, policyResult),
+
+            _ => false
+        };
+    }
+
+    private static bool EvaluateAny(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        return roles.Any(x => x) || permissions.Any(x => x) || policy == true;
+    }
+
+    private static bool EvaluateAll(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        if (roles.Count > 0 && roles.Any(x => !x))
+            return false;
+
+        if (permissions.Count > 0 && permissions.Any(x => !x))
+            return false;
+
+        if (policy.HasValue && !policy.Value)
+            return false;
+
+        return true;
+    }
+
+    private static bool EvaluateCategory(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
+    {
+        if (roles.Count > 0 && !roles.Any(x => x))
+            return false;
+
+        if (permissions.Count > 0 && !permissions.Any(x => x))
+            return false;
+
+        if (policy.HasValue && !policy.Value)
+            return false;
+
+        return true;
     }
 
     private void EvaluateSessionState()
@@ -171,6 +269,6 @@ public partial class UAuthStateView : UAuthReactiveComponentBase
 
     private string BuildAuthKey()
     {
-        return $"{Roles}|{Permissions}|{Policy}|{MatchAll}";
+        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}{RequireActive}";
     }
 }

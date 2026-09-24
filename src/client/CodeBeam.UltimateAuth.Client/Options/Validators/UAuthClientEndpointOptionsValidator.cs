@@ -2,8 +2,17 @@
 
 namespace CodeBeam.UltimateAuth.Client.Options;
 
+/// <summary>
+/// Validates the <see cref="UAuthClientOptions"/> to ensure that all required endpoint paths are specified and not empty.
+/// </summary>
 public sealed class UAuthClientEndpointOptionsValidator : IValidateOptions<UAuthClientOptions>
 {
+    /// <summary>
+    /// Validates the specified <see cref="UAuthClientOptions"/> instance.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="options"></param>
+    /// <returns></returns>
     public ValidateOptionsResult Validate(string? name, UAuthClientOptions options)
     {
         var e = options.Endpoints;

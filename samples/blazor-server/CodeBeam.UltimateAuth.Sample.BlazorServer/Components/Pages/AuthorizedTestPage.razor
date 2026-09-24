@@ -1,6 +1,7 @@
 ﻿@page "/authorized-test"
+@using CodeBeam.UltimateAuth.Core.Defaults
 @attribute [UAuthAuthorize]
-@inherits UAuthFlowPageBase
+@inherits UAuthPageBase
 
 <MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
     <MudPaper Class="pa-8" Style="max-width: 520px; width: 100%;" Elevation="0" Outlined="true">
@@ -18,6 +19,10 @@
             </MudStack>
 
             <MudDivider Class="my-2" />
+
+            <UAuthStateView Roles="Admin" Permissions="@UAuthActions.Sessions.GetChainAdmin">
+                <MudText>This is admin view content.</MudText>
+            </UAuthStateView>
 
             <MudText Typo="Typo.caption" Color="Color.Primary">
                 UltimateAuth protects this resource based on your session and permissions.

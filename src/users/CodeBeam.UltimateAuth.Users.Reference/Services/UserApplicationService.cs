@@ -243,13 +243,16 @@ internal sealed class UserApplicationService : IUserApplicationService
             foreach (var profile in profiles)
             {
                 var key = new UserProfileKey(context.ResourceTenant, profile.UserKey, profile.ProfileKey);
-                await profileStore.DeleteAsync(key, profile.Version, DeleteMode.Soft, now, innerCt);
+                await profileStore.DeleteAsync(key, profile.Version, request.Mode, now, innerCt);
             }
 
             foreach (var integration in _integrations)
             {
                 await integration.OnUserDeletedAsync(context.ResourceTenant, targetUserKey, request.Mode, innerCt);
             }
+
+            var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
+            await sessionStore.RevokeAllChainsAsync(targetUserKey, now, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
@@ -572,19 +575,23 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthIdentifierValidationException("username_change_not_allowed");
             }
 
-            var validationDto = identifier.ToDto();
-            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
-            if (validationResult.IsValid != true)
-            {
-                throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
-            }
-
             var normalized = _identifierNormalizer.Normalize(identifier.Type, request.NewValue);
             if (!normalized.IsValid)
                 throw new UAuthIdentifierValidationException(normalized.ErrorCode ?? "identifier_invalid");
 
             if (string.Equals(identifier.NormalizedValue, normalized.Normalized, StringComparison.Ordinal))
                 throw new UAuthIdentifierValidationException("identifier_value_unchanged");
+
+            var validationDto = identifier.ToDto();
+            validationDto.Value = request.NewValue;
+            validationDto.NormalizedValue = normalized.Normalized;
+
+            var validationResult = await _identifierValidator.ValidateAsync(context, validationDto, innerCt);
+
+            if (!validationResult.IsValid)
+            {
+                throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
+            }
 
             var withinUserResult = await identifierStore.ExistsAsync(
                 new IdentifierExistenceQuery(

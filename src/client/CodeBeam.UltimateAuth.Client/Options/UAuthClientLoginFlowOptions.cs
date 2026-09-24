@@ -1,5 +1,8 @@
 ﻿namespace CodeBeam.UltimateAuth.Client.Options;
 
+/// <summary>
+/// Options for configuring the login flow behavior of the UAuth client.
+/// </summary>
 public sealed class UAuthClientLoginFlowOptions
 {
     /// <summary>

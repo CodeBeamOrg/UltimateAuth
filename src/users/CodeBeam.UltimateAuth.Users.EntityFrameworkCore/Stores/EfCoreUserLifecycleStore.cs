@@ -48,8 +48,22 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
+
         if (entity.Version != 0)
             throw new InvalidOperationException("New lifecycle must have version 0.");
+
+        var exists = await DbSet
+            .AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == entity.UserKey,
+                ct);
+
+        if (exists)
+            throw new UAuthConflictException("user_lifecycle_exists");
 
         var projection = entity.ToProjection();
 
@@ -61,6 +75,9 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
     public async Task SaveAsync(UserLifecycle entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
 
         var existing = await DbSet
             .SingleOrDefaultAsync(x =>
@@ -132,6 +149,12 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
 
             nameof(UserLifecycle.CreatedAt) =>
                 query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt) : baseQuery.OrderBy(x => x.CreatedAt),
+
+            nameof(UserLifecycle.UpdatedAt) =>
+                query.Descending ? baseQuery.OrderByDescending(x => x.UpdatedAt) : baseQuery.OrderBy(x => x.UpdatedAt),
+
+            nameof(UserLifecycle.DeletedAt) =>
+                query.Descending ? baseQuery.OrderByDescending(x => x.DeletedAt) : baseQuery.OrderBy(x => x.DeletedAt),
 
             nameof(UserLifecycle.Status) =>
                 query.Descending ? baseQuery.OrderByDescending(x => x.Status) : baseQuery.OrderBy(x => x.Status),

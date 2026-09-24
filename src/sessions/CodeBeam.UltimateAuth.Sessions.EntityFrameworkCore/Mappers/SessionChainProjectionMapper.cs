@@ -53,16 +53,27 @@ internal static class SessionChainProjectionMapper
 
     public static void UpdateProjection(this UAuthSessionChain source, SessionChainProjection target)
     {
-        DeviceId.TryCreate(source.Device.DeviceId?.Value, out var deviceId);
+        if (source.Device.DeviceId is not DeviceId deviceId)
+            throw new ArgumentException("Device id required.");
 
         target.ActiveSessionId = source.ActiveSessionId;
         target.RevokedAt = source.RevokedAt;
+
         target.DeviceId = deviceId;
         target.Device = source.Device;
+
         target.ClaimsSnapshot = source.ClaimsSnapshot;
-        target.SecurityVersionAtCreation = source.SecurityVersionAtCreation;
+
+        target.SecurityVersionAtCreation =
+            source.SecurityVersionAtCreation;
+
         target.LastSeenAt = source.LastSeenAt;
         target.AbsoluteExpiresAt = source.AbsoluteExpiresAt;
-        // Version store-owned
+
+        target.RotationCount = source.RotationCount;
+        target.TouchCount = source.TouchCount;
+
+        // Version intentionally omitted:
+        // optimistic concurrency/version is store-owned.
     }
 }

@@ -131,8 +131,15 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         {
             var chain = await sessionStore.GetChainByDeviceAsync(userKey.Value, deviceId, ct);
 
-            if (chain is not null && !chain.IsRevoked)
-                chainId = chain.ChainId;
+            if (chain is not null)
+            {
+                var chainState = chain.GetState(now, _options.Session.IdleTimeout);
+
+                if (chainState == SessionState.Active)
+                {
+                    chainId = chain.ChainId;
+                }
+            }
         }
 
         // TODO: Add accountState here, currently it only checks factor state

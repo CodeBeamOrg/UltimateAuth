@@ -73,6 +73,9 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         lock (_lock)
         {
+            if (session.Tenant != _tenant)
+                throw new InvalidOperationException("Tenant mismatch.");
+
             if (_sessions.ContainsKey(session.SessionId))
                 throw new UAuthConcurrencyException("session_already_exists");
 
@@ -203,6 +206,9 @@ internal sealed class InMemorySessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
+        if (chain.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
         lock (_lock)
         {
             if (_chains.ContainsKey(chain.ChainId))
@@ -285,6 +291,9 @@ internal sealed class InMemorySessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
+        if (root.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
+
         if (!_roots.TryGetValue((_tenant, root.UserKey), out var current))
             throw new UAuthNotFoundException("root_not_found");
 
@@ -298,6 +307,9 @@ internal sealed class InMemorySessionStore : ISessionStore
     public Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (root.Tenant != _tenant)
+            throw new InvalidOperationException("Tenant mismatch.");
 
         lock (_lock)
         {

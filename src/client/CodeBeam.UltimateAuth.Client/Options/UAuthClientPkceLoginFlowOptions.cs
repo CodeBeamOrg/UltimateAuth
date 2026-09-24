@@ -2,6 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Client.Options;
 
+/// <summary>
+/// Options for configuring the PKCE login flow in the UAuth client.
+/// </summary>
 public sealed class UAuthClientPkceLoginFlowOptions
 {
     /// <summary>
@@ -9,6 +12,9 @@ public sealed class UAuthClientPkceLoginFlowOptions
     /// </summary>
     public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// The URL to redirect to after successful login.
+    /// </summary>
     public string? ReturnUrl { get; set; }
 
     /// <summary>

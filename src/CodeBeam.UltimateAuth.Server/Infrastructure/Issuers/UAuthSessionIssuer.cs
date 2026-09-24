@@ -92,8 +92,13 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 //chain = await kernel.GetChainAsync(context.ChainId.Value)
                 //    ?? throw new UAuthNotFoundException("Chain not found.");
 
-                if (chain.IsRevoked)
-                    throw new UAuthValidationException("Chain revoked.");
+                var chainState = chain.GetState(now, _options.Session.IdleTimeout);
+
+                if (chainState != SessionState.Active)
+                    throw new UAuthValidationException("Chain is not active.");
+
+                //if (chain.IsRevoked)
+                //    throw new UAuthValidationException("Chain revoked.");
 
                 if (chain.UserKey != context.UserKey || chain.Tenant != context.Tenant)
                     throw new UAuthValidationException("Invalid chain ownership.");

@@ -36,8 +36,11 @@ public static class UAuthConstants
 
     public static class Query
     {
-        public const string ReturnUrl = "return_url";
-        public const string Hub = "hub";
+        public const string Payload = "uauth";
+        public const string Focus = "uauth_focus";
+        public const string ReturnUrl = "uauth_return_url";
+        public const string Identifier = "uauth_identifier";
+        public const string Hub = "uauth_hub";
     }
 
     public static class Headers

@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -6,4 +7,6 @@ internal static class TestDevice
 {
     public static DeviceContext Default() => DeviceContext.Create(DeviceId.Create("test-device-000-000-000-000-01"), null, null, null, null, null);
     public static DeviceContext Alternative() => DeviceContext.Create(DeviceId.Create("test-device-000-000-000-000-alternative"), null, null, null, null, null);
+    public static DeviceInfo DefaultDeviceInfo() => new DeviceInfo() { DeviceId = DeviceId.Create("test-device-info-000-000-000-000-01") };
+
 }

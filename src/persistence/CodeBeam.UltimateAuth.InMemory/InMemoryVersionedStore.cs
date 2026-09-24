@@ -16,6 +16,8 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
     protected virtual void BeforeAdd(TEntity entity) { }
     protected virtual void BeforeSave(TEntity entity, TEntity current, long expectedVersion) { }
     protected virtual void BeforeDelete(TEntity current, long expectedVersion, DeleteMode mode, DateTimeOffset now) { }
+    protected virtual void ValidateAdd(TEntity entity) { }
+    protected virtual void ValidateSave(TEntity entity, long expectedVersion) { }
 
     public Task<TEntity?> GetAsync(TKey key, CancellationToken ct = default)
     {
@@ -38,6 +40,11 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
     {
         ct.ThrowIfCancellationRequested();
 
+        ValidateAdd(entity);
+
+        if (entity.Version != 0)
+            throw new InvalidOperationException($"New {typeof(TEntity).Name} must have version 0.");
+
         var key = GetKey(entity);
         var snapshot = Snapshot(entity);
 
@@ -52,6 +59,8 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
     public virtual Task SaveAsync(TEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        ValidateSave(entity, expectedVersion);
 
         var key = GetKey(entity);
 

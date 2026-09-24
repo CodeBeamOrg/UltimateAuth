@@ -8,7 +8,7 @@ using MudBlazor;
 
 namespace CodeBeam.UAuth.Sample.IntWasm.Client.Pages;
 
-public partial class Login : UAuthFlowPageBase
+public partial class Login : UAuthPageBase
 {
     private string? _username;
     private string? _password;
@@ -83,7 +83,7 @@ public partial class Login : UAuthFlowPageBase
     {
         string? returnUrl = null;
         if (!string.IsNullOrEmpty(ReturnUrl))
-            returnUrl = Nav.BaseUri + ReturnUrl.TrimStart('/');
+            returnUrl = Navigation.BaseUri + ReturnUrl.TrimStart('/');
 
         await UAuthClient.Flows.BeginPkceAsync(returnUrl);
     }

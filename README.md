@@ -33,15 +33,15 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
 | First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Fully Documented & Quality Tested         | 🟡 In Progress | Q2 2026       |
-| Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q2 2026       |
-| Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🔜 Planned     | Q2 2026       |
-| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q2 2026       |
-| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                   | 🔜 Planned     | Q3 2026       |
-| Extensibility Expansion | 0.6.0         | Audit, events, hooks                      | 🔜 Planned     | Q3 2026       |
-| Performance Expansion   | 0.7.0         | Benchmarks, caching                       | 🔜 Planned     | Q3 2026       |
-| Ecosystem Expansion     | 0.8.0         | Migration tools                           | 🔜 Planned     | Q4 2026       |
-| v1.0                    | 1.0.0         | Locked API, align with .NET 11            | 🔜 Planned     | Q4 2026       |
+| First Release*          | 0.1.0         | Fully Documented & Quality Tested         | ✅ Completed   | 04.10.2026    |
+| Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q4 2026       |
+| Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🟡 In Progress | Q4 2026       |
+| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
+| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                   | 🔜 Planned     | Q1 2027       |
+| Extensibility Expansion | 0.6.0         | Audit, events, hooks                      | 🔜 Planned     | Q1 2027       |
+| Performance Expansion   | 0.7.0         | Benchmarks, caching                       | 🔜 Planned     | Q1 2027       |
+| Ecosystem Expansion     | 0.8.0         | Migration tools                           | 🔜 Planned     | Q2 2027       |
+| v1.0                    | 1.0.0         | Locked API, align with .NET 11            | 🔜 Planned     | Q2 2027       |
 
 *v 0.1.0 already provides a skeleton of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
 
@@ -50,19 +50,6 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 👉 https://github.com/CodeBeamOrg/UltimateAuth/issues/8
 
 We keep it up-to-date with current priorities, planned features, and progress. Feel free to follow, comment, or contribute ideas.
-
-<details>
-
-> UltimateAuth is currently in the final stage of the first preview release (v 0.1.0-preview).
-
-> Core architecture is complete and validated through working samples.
-
-> Ongoing work:
-> - Final API surface review
-> - Developer experience improvements
-> - EF Core integration polishing
-> - Documentation refinement
-</details>
 
 ---
 
@@ -99,7 +86,7 @@ Modern security built-in by default:
 - Session reuse detection
 - Device tracking
 - Hardened auth flows
-- Safe defaults with extensibility
+- Safe defaults
 
 ### 5) Extensible & Lightweight
 
@@ -115,7 +102,8 @@ Designed specifically for real-world .NET environments:
 
 - Blazor Server
 - Blazor WASM
-- .NET MAUI
+- Blazor Web App
+- .NET MAUI & Hybrid Apps
 - Backend APIs
 
 Traditional auth solutions struggle here — UltimateAuth embraces it.
@@ -124,56 +112,49 @@ Traditional auth solutions struggle here — UltimateAuth embraces it.
 
 # 🚀 Quick Start
 > ⏱ Takes ~2 minutes to get started
+>
+> **This Quick Start uses a Blazor Server application with in-memory persistence.**
+It is intentionally designed as the simplest path to a working UltimateAuth application.
 
-### 1) Install packages
+> For Entity Framework Core, Blazor WebAssembly, Blazor Web App, Resource API, persistent storage, and other real-world configurations, see the [Real-World Setup guide](https://github.com/CodeBeamOrg/UltimateAuth/blob/dev/docs/content/getting-started/real-world-setup.md).
 
-1.1 Core Packages
+### 1) Install UltimateAuth
+
 ```bash
-dotnet add package CodeBeam.UltimateAuth.Server
+dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
 dotnet add package CodeBeam.UltimateAuth.Client.Blazor
 ```
-1.2 Persistence & Reference Packages (Choose One)
-```bash
-dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle (for debug & development)
-dotnet add package CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle (for production)
-```
-### 2) Configure services (in program.cs)
-Server registration:
-```csharp
-builder.Services
-    .AddUltimateAuthServer()
-    .AddUltimateAuthEntityFrameworkCore(db =>
-    {
-        // use with your database provider
-        db.UseSqlite("Data Source=uauth.db");
-    });
 
-// OR
+### 2) Configure UltimateAuth
 
-builder.Services
-    .AddUltimateAuthServer()
-    .AddUltimateAuthInMemory(); // Development
-
-```
-
-Client registration:
+Register UltimateAuth in `Program.cs`:
 
 ```csharp
+// Server registration
+builder.Services
+    .AddUltimateAuthServer()
+    .AddUltimateAuthInMemory();
+
+// Client registration
 builder.Services.AddUltimateAuthClientBlazor();
 ```
+
+
 **Usage by application type:**
 
 - **Blazor Server App** → Use both Server and Client registrations  
 - **Blazor WASM / MAUI** → Use Client only  
-- **Auth Server / Resource API** → Use Server only
+- **UAuthHub (Auth Server) / Resource API** → Use Server only
 
-### 3) Configure pipeline
+### 3) Configure the Application Pipeline
+Add the UltimateAuth middleware and endpoints:
+
 ```csharp
 // app.UseHttpsRedirection();
 // app.UseStaticFiles();
 
 app.UseUltimateAuthWithAspNetCore(); // Includes UseAuthentication() and UseAuthorization()
-// Place Antiforgery or something else needed
+// Place Antiforgery or something else before endpoint registration if needed
 app.MapUltimateAuthEndpoints();
 
 app.MapRazorComponents<App>()
@@ -181,54 +162,89 @@ app.MapRazorComponents<App>()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 ```
 
-### 4) Add UAuth Script
+### 4) Add UAuthApp
+UltimateAuth uses `UAuthApp` as the root integration point for its client authentication state and Blazor lifecycle.
+
+Replace the default router in your `App.razor` or `Routes.razor` with:
+
+```razor
+@using CodeBeam.UltimateAuth.Client.Blazor
+
+<UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.MainLayout)">
+    <ChildContent>
+        @* Add application-wide UI providers or other root components here. *@
+    </ChildContent>
+    
+    <NotAuthorized>
+        <p>Not authorized.</p>
+    </NotAuthorized>
+</UAuthApp>
+```
+
+`UAuthApp` can provide the built-in router, authentication state, and UltimateAuth client lifecycle integration for your component tree.
+
+> Need full control over routing?
+
+> UAuthApp also supports applications that provide their own Blazor Router. See the Blazor Routing guide for advanced routing configuration.
+
+### 5) Add the UltimateAuth Client Script
 Place this in `App.razor` or `index.html` in your Blazor client application:
-```csharp
+```html
 <script src="_content/CodeBeam.UltimateAuth.Client.Blazor/uauth.min.js"></script>
 ```
 
-### 5) 🗄️ Database Setup (EF Core)
-
-After configuring UltimateAuth with Entity Framework Core, you need to create and apply database migrations.
-
-5.1) Install EF Core tools (if not installed)
-```bash
-dotnet tool install --global dotnet-ef
-```
-5.2) Add migration
-```bash
-dotnet ef migrations add InitUAuth
-```
-
-5.3) Update database
-```bash
-dotnet ef database update
-```
-💡 Visual Studio (PMC alternative)
-
-If you are using Visual Studio, you can run these commands in Package Manager Console:
-```bash
-Add-Migration InitUAuth -Context UAuthDbContext
-Update-Database -Context UAuthDbContext
-```
-⚠️ Notes
-- Migrations must be created in your application project, not in the UltimateAuth packages
-- You are responsible for managing migrations in production
-- Automatic database initialization is not enabled by default
-
 ### 6) Optional: Blazor Usings
-Add this in `_Imports.razor`
+Add this in `_Imports.razor`:
 ```csharp
 @using CodeBeam.UltimateAuth.Client.Blazor
 ```
 
-### ✅ Done
+### 7) Optional: Add Sample Data
+For the fastest way to try auth process, install the UltimateAuth sample seed package:
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Sample.Seed
+```
+
+Register the development seed:
+
+```bash
+builder.Services.AddUltimateAuthSampleSeed();
+```
+
+Then seed the application during development:
+
+```csharp
+if (app.Environment.IsDevelopment())
+{
+    await app.SeedUltimateAuthAsync();
+}
+```
+
+The development seed includes ready-to-use accounts:
+
+| Identifier | Secret   |
+|------------|----------|
+| `admin`    | `admin`  |
+| `user`     | `user`   |
+
+You can use these credentials to test the auth flows immediately.
+
+> Development only: Sample users and credentials are intended for evaluation and local development. Do not use them in production.
+
+### ✅ You're Ready
 
 ---
 
 ## 💡 Usage
 
-Inject IUAuthClient and simply call methods.
+**One Client. Your Auth Application API.**
+
+For most application-level authentication and identity operations, start with `IUAuthClient`.
+
+`IUAuthClient` provides a single entry point to UltimateAuth capabilities such as authentication flows, users, sessions, tokens, profiles, credentials, and authorization — without requiring your application code to manage the underlying authentication transport.
+
+> UltimateAuth treats authentication and identity as application services. Your application works with explicit operations and structured results while UltimateAuth handles the underlying authentication flow.
 
 ### Examples
 Login
@@ -239,8 +255,8 @@ private async Task Login()
 {
     var request = new LoginRequest
     {
-        Identifier = "UAuthUser",
-        Secret = "UAuthPassword",
+        Identifier = "admin",
+        Secret = "admin",
     };
     await UAuthClient.Flows.LoginAsync(request);
 }
@@ -254,9 +270,9 @@ private async Task Register()
 {
     var request = new CreateUserRequest
     {
-        UserName = _username,
-        Password = _password,
-        Email = _email,
+        UserName = "NewUser",
+        Password = "NewUserPassword",
+        Email = "newuser@example.com",
     };
 
     var result = await UAuthClient.Users.CreateAsync(request);
@@ -282,11 +298,14 @@ private async Task LogoutOthersAsync()
 }
 ```
 
-UltimateAuth turns Auth into a simple application service — not a separate system you fight against.
-- No manual token handling
-- No custom HTTP plumbing
-- No fragile redirect logic
-- All built-in with extensible options.
+With `IUAuthClient`, common application code doesn't need to manually orchestrate:
+- token handling
+- authentication HTTP calls
+- session operations
+- redirect plumbing
+- client-specific authentication flows
+
+Start with the simple API. Drop down to UltimateAuth's extensibility points when your application needs more control.
 
 ---
 

@@ -1,6 +1,6 @@
 ﻿@page "/login"
 @attribute [UAuthLoginPage]
-@inherits UAuthFlowPageBase
+@inherits UAuthPageBase
 
 @implements IDisposable
 @inject IUAuthClient UAuthClient
@@ -34,7 +34,7 @@
                                 </MudStack>
 
                                 <MudStack Class="mt-2" Row="true" Spacing="2" Justify="Justify.SpaceBetween">
-                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Nav.NavigateTo("/home"))">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo("/home"))">
                                         Continue
                                     </MudButton>
 

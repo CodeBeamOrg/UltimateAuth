@@ -53,6 +53,9 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
     {
         ct.ThrowIfCancellationRequested();
 
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
+
         var projection = entity.ToProjection();
 
         if (entity.Version != 0)
@@ -76,6 +79,9 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
     public async Task SaveAsync(UserProfile entity, long expectedVersion, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (entity.Tenant != _tenant)
+            throw new UAuthConflictException("tenant_mismatch");
 
         var existing = await DbSet
             .SingleOrDefaultAsync(x =>
@@ -206,9 +212,14 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
 
         var projections = await DbSet
             .AsNoTracking()
-            .Where(x => x.Tenant == _tenant)
-            .Where(x => x.UserKey == userKey)
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.DeletedAt == null)
             .ToListAsync(ct);
-        return projections.Select(x => x.ToDomain()).ToList();
+
+        return projections
+            .Select(x => x.ToDomain())
+            .ToList();
     }
 }

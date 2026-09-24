@@ -1,15 +1,14 @@
 ﻿using Bunit;
-using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Authorization.Reference;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -113,7 +112,7 @@ public class UAuthStateViewTests
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
-            .Add(x => x.MatchAll, true)
+            .Add(x => x.MatchMode, AuthorizationMatchMode.All)
             .Add(x => x.NotAuthorized, Html("<div>no</div>"))
         );
 
@@ -129,7 +128,47 @@ public class UAuthStateViewTests
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
-            .Add(x => x.MatchAll, false)
+            .Add(x => x.MatchMode, AuthorizationMatchMode.Any)
+            .Add(x => x.Authorized, s => b => b.AddContent(0, "ok"))
+        );
+
+        cut.Markup.Should().Contain("ok");
+    }
+
+    [Fact]
+    public void Should_Fail_When_One_Category_Does_Not_Match_In_Category_Mode()
+    {
+        using var ctx = new BunitContext();
+
+        var state = TestAuthState.WithRoles("admin");
+
+        ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+
+        var cut = RenderWithAuth(ctx, state, p => p
+            .Add(x => x.Roles, "admin,user")
+            .Add(x => x.Permissions, "write")
+            .Add(x => x.MatchMode, AuthorizationMatchMode.Category)
+            .Add(x => x.NotAuthorized, Html("<div>no</div>"))
+        );
+
+        cut.Markup.Should().Contain("no");
+    }
+
+    [Fact]
+    public void Should_Require_At_Least_One_Match_Per_Category_When_MatchMode_Is_Category()
+    {
+        using var ctx = new BunitContext();
+
+        var state = TestAuthState.Create(
+            roles: ["admin"],
+            permissions: ["write"]);
+
+        ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+
+        var cut = RenderWithAuth(ctx, state, p => p
+            .Add(x => x.Roles, "admin,user")
+            .Add(x => x.Permissions, "write,delete")
+            .Add(x => x.MatchMode, AuthorizationMatchMode.Category)
             .Add(x => x.Authorized, s => b => b.AddContent(0, "ok"))
         );
 

@@ -12,7 +12,7 @@ using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Pages;
 
-public partial class Home : UAuthFlowPageBase
+public partial class Home : UAuthPageBase
 {
     private string _selectedAuthState = "UAuthState";
     private ClaimsPrincipal? _aspNetCoreState;

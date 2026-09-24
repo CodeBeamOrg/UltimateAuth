@@ -2,6 +2,9 @@
 
 namespace CodeBeam.UltimateAuth.Client.Options;
 
+/// <summary>
+/// Options for multi-tenant support in the UAuth client.
+/// </summary>
 public sealed class UAuthClientMultiTenantOptions
 {
     /// <summary>

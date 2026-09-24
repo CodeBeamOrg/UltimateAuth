@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -16,4 +17,7 @@ internal static class TestIds
 
         return id;
     }
+
+    public static TenantKey Tenant(string value)
+        => TenantKey.FromExternal(value);
 }
