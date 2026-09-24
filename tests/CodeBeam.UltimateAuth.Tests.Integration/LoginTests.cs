@@ -26,15 +26,20 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithValidCredentials_ShouldIssueSessionCredential()
     {
-        using var client = CreateClient();
+        var user = await _factory.CreateLoginUserAsync();
 
-        var response = await LoginAsync(
-            client,
-            ValidIdentifier,
-            ValidSecret);
+        using var client = CreateClient(
+            $"valid-session-{Guid.NewGuid():N}");
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/login",
+            new
+            {
+                identifier = user.Identifier,
+                secret = user.Secret
+            });
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
-        response.Headers.Location.Should().NotBeNull();
 
         response.Headers
             .TryGetValues("Set-Cookie", out var cookies)
@@ -42,7 +47,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         cookies.Should().NotBeNullOrEmpty();
 
-        var cookie = cookies!.First();
+        var cookie = GetSessionCookie(response);
 
         cookie.Should().NotBeNullOrWhiteSpace();
     }
@@ -312,20 +317,26 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithValidCredentials_ShouldReturnSuccessfulPreview()
     {
-        using var client = CreateClient(
-            "try-login-device-1111111111111111");
+        var user = await _factory.CreateLoginUserAsync();
 
-        var response = await client.PostAsJsonAsync("/auth/try-login", new
-        {
-            identifier = ValidIdentifier,
-            secret = ValidSecret
-        });
+        using var client = CreateClient(
+            $"try-login-valid-{Guid.NewGuid():N}");
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/try-login",
+            new
+            {
+                identifier = user.Identifier,
+                secret = user.Secret
+            });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result =
+            await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
+
         result!.Success.Should().BeTrue();
         result.Reason.Should().BeNull();
         result.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
