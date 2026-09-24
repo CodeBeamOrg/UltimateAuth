@@ -10,6 +10,9 @@ using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
+/// <summary>
+/// Represents a Blazor component that provides a login form for UltimateAuth authentication.
+/// </summary>
 public partial class UAuthLoginForm
 {
     [Inject]
@@ -98,6 +101,7 @@ public partial class UAuthLoginForm
     private HubFlowState? _flow;
     private DeviceId? _deviceId;
 
+    /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
@@ -113,6 +117,7 @@ public partial class UAuthLoginForm
         }
     }
 
+    /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -122,6 +127,10 @@ public partial class UAuthLoginForm
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Asynchronously reloads the credentials associated with the current hub session, if applicable.
+    /// </summary>
+    /// <returns></returns>
     protected async Task ReloadCredentialsAsync()
     {
         if (LoginType != UAuthLoginType.Pkce)
@@ -133,6 +142,10 @@ public partial class UAuthLoginForm
         _credentials = await HubCredentialResolver.ResolveAsync(EffectiveHubSessionId.Value);
     }
 
+    /// <summary>
+    /// Asynchronously reloads the state associated with the current hub session, if applicable.
+    /// </summary>
+    /// <returns></returns>
     protected async Task ReloadStateAsync()
     {
         if (LoginType != UAuthLoginType.Pkce || EffectiveHubSessionId is null || HubFlowReader is null)

@@ -19,13 +19,18 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
     /// <summary>
     /// Gets the Blazor navigation service.
     /// </summary>
-    [Inject] protected NavigationManager Nav { get; set; } = default!;
+    [Inject] protected NavigationManager Navigation { get; set; } = default!;
 
     /// <summary>
     /// Automatically re-render when UAuthState changes. Can be overridden to disable.
     /// </summary>
     protected virtual bool AutoRefreshOnAuthStateChanged => true;
 
+    /// <summary>
+    /// Called when the component's parameters have been set. This method ensures that the component is properly registered 
+    /// with the current <see cref="UAuthState"/> and evaluates authorization requirements.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -46,6 +51,11 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
         EvaluateAuthorization();
     }
 
+    /// <summary>
+    /// Called after the component has been rendered. This method sets the _rendered flag to true on the first render.
+    /// </summary>
+    /// <param name="firstRender"></param>
+    /// <returns></returns>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -117,7 +127,7 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
     /// </summary>
     protected virtual void OnUnauthorized()
     {
-        Nav.NavigateTo("/");
+        Navigation.NavigateTo("/");
     }
 
     /// <summary>
@@ -125,9 +135,12 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
     /// </summary>
     protected virtual void OnForbidden()
     {
-        Nav.NavigateTo("/forbidden");
+        Navigation.NavigateTo("/forbidden");
     }
 
+    /// <summary>
+    /// Disposes of the component and unsubscribes from the <see cref="UAuthState.Changed"/> event to prevent memory leaks.
+    /// </summary>
     public virtual void Dispose()
     {
         if (_previousState is not null)

@@ -111,11 +111,13 @@ public partial class UAuthApp
     [Parameter]
     public EventCallback OnReauthRequired { get; set; }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         Coordinator.ReauthRequired += HandleReauthRequired;
     }
 
+    /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -190,6 +192,10 @@ public partial class UAuthApp
         return Enumerable.Empty<Assembly>();
     }
 
+    /// <summary>
+    /// Disposes the component and stops the session coordinator if it was started.
+    /// </summary>
+    /// <returns></returns>
     public async ValueTask DisposeAsync()
     {
         StateManager.State.Changed -= OnStateChanged;

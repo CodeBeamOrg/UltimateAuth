@@ -68,7 +68,7 @@ public sealed class ValidateEndpointHandlerTests
             Kind = PrimaryTokenKind.AccessToken,
             Value = "access-token",
             Tenant = fixture.Flow.Tenant,
-            Device = null
+            Device = TestDevice.DefaultDeviceInfo()
         };
 
         fixture.CredentialResolver
@@ -112,7 +112,7 @@ public sealed class ValidateEndpointHandlerTests
             Kind = PrimaryTokenKind.Session,
             Value = "invalid",
             Tenant = fixture.Flow.Tenant,
-            Device = null
+            Device = TestDevice.DefaultDeviceInfo()
         };
 
         fixture.CredentialResolver
@@ -492,7 +492,7 @@ public sealed class ValidateEndpointHandlerTests
                     Kind = PrimaryTokenKind.Session,
                     Value = sessionId.Value,
                     Tenant = fixture.Flow.Tenant,
-                    Device = null
+                    Device = TestDevice.DefaultDeviceInfo()
                 });
     }
 

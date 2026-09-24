@@ -1427,6 +1427,109 @@ public sealed class UserApplicationServiceTests
             context.ResourceTenant,
             target,
             Now.AddDays(-1));
+
+        var defaultProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            context.ResourceTenant,
+            target,
+            ProfileKey.Default,
+            Now.AddDays(-1));
+
+        var secondaryProfileKey = ProfileKey.Parse("secondary", null);
+
+        var secondaryProfile = UserProfile.Create(
+            Guid.NewGuid(),
+            context.ResourceTenant,
+            target,
+            secondaryProfileKey,
+            Now.AddDays(-1));
+
+        f.LifecycleStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserLifecycleKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lifecycle);
+
+        f.LifecycleStore
+            .Setup(x => x.DeleteAsync(
+                It.IsAny<UserLifecycleKey>(),
+                lifecycle.Version,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.IdentifierStore
+            .Setup(x => x.DeleteByUserAsync(
+                target,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.ProfileStore
+            .Setup(x => x.GetAllProfilesByUserAsync(
+                target,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+            defaultProfile,
+            secondaryProfile
+            });
+
+        f.ProfileStore
+            .Setup(x => x.DeleteAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<long>(),
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                target,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.DeleteUserAsync(
+            context,
+            new DeleteUserRequest
+            {
+                Mode = mode
+            });
+
+        f.ProfileStore.Verify(x => x.DeleteAsync(
+            new UserProfileKey(
+                context.ResourceTenant,
+                target,
+                ProfileKey.Default),
+            defaultProfile.Version,
+            mode,
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.ProfileStore.Verify(x => x.DeleteAsync(
+            new UserProfileKey(
+                context.ResourceTenant,
+                target,
+                secondaryProfileKey),
+            secondaryProfile.Version,
+            mode,
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.ProfileStore.Verify(
+            x => x.DeleteAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<long>(),
+                It.IsAny<DeleteMode>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 
     // ============================================================

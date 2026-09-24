@@ -2,10 +2,20 @@
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
+/// <summary>
+/// Discovers the login page route by scanning for a component decorated with the [UAuthLoginPage] attribute. If no such component is found, it defaults to "/login". If multiple components are found, an exception is thrown.
+/// The resolved route is cached for subsequent calls.
+/// </summary>
 public static class UAuthLoginPageDiscovery
 {
     private static string? _cached;
 
+    /// <summary>
+    /// Resolves the login page route by scanning for a component decorated with the [UAuthLoginPage] attribute. If no such component is found, it defaults to "/login".
+    /// If multiple components are found, an exception is thrown.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public static string Resolve()
     {
         if (_cached != null)
