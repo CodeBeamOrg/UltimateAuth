@@ -7,16 +7,23 @@
     "GroupOrder": 1
   },
   {
+    "Title": "UltimateAuth Ecosystem",
+    "Slug": "getting-started/ecosystem",
+    "Order": 2,
+    "Group": "getting-started",
+    "GroupOrder": 1
+  },
+  {
     "Title": "QuickStart",
     "Slug": "getting-started/quickstart",
-    "Order": 2,
+    "Order": 3,
     "Group": "getting-started",
     "GroupOrder": 1
   },
   {
     "Title": "Real World Setup",
     "Slug": "getting-started/real-world-setup",
-    "Order": 3,
+    "Order": 4,
     "Group": "getting-started",
     "GroupOrder": 1
   },
