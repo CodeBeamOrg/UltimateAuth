@@ -45,11 +45,12 @@ public abstract class UAuthPageBase : UAuthComponentBase
     private string? _lastParsedUri;
     private bool _payloadConsumed;
 
+    /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
-        var currentUri = Nav.Uri;
+        var currentUri = Navigation.Uri;
 
         if (string.Equals(_lastParsedUri, currentUri, StringComparison.Ordinal))
             return;
@@ -58,7 +59,7 @@ public abstract class UAuthPageBase : UAuthComponentBase
 
         _payloadConsumed = false;
 
-        var uri = Nav.ToAbsoluteUri(currentUri);
+        var uri = Navigation.ToAbsoluteUri(currentUri);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
         ShouldFocus = query.TryGetValue(UAuthConstants.Query.Focus, out var focus) && focus == "1";
@@ -84,6 +85,7 @@ public abstract class UAuthPageBase : UAuthComponentBase
         _needsClear = ClearUAuthQueryAfterParse && HasUAuthPageQuery(query);
     }
 
+    /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -99,8 +101,8 @@ public abstract class UAuthPageBase : UAuthComponentBase
             _needsClear = false;
             var cleanUri = BuildUriWithoutConsumedUAuthQuery();
 
-            if (!string.Equals(cleanUri, Nav.Uri, StringComparison.Ordinal))
-                Nav.NavigateTo(cleanUri, replace: true);
+            if (!string.Equals(cleanUri, Navigation.Uri, StringComparison.Ordinal))
+                Navigation.NavigateTo(cleanUri, replace: true);
         }
     }
 
@@ -135,12 +137,24 @@ public abstract class UAuthPageBase : UAuthComponentBase
         return true;
     }
 
+    /// <summary>
+    /// Called when a new UltimateAuth flow payload is available for the current page.
+    /// This method is called only once per parsed URL, and only when a valid payload is present.
+    /// </summary>
+    /// <param name="payload"></param>
+    /// <returns></returns>
     protected virtual Task OnUAuthPayloadAsync(AuthFlowPayload payload) => Task.CompletedTask;
+
+    /// <summary>
+    /// Called when a focus request is present for the current page.
+    /// This method is called only once per parsed URL, and only when a focus request is present.
+    /// </summary>
+    /// <returns></returns>
     protected virtual Task OnFocusRequestedAsync() => Task.CompletedTask;
 
     private string BuildUriWithoutConsumedUAuthQuery()
     {
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
         var remaining = query

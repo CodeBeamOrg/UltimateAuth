@@ -37,7 +37,7 @@ public partial class ResetCredential
         if (result.IsSuccess)
         {
             Snackbar.Add("Credential reset successfully. Please log in with your new password.", Severity.Success);
-            Nav.NavigateTo("/login");
+            Navigation.NavigateTo("/login");
         }
         else
         {

@@ -18,8 +18,9 @@ In real applications, you will typically configure:
 This guide shows how to set up UltimateAuth for real-world scenarios.
 
 ## 🗄️ Using Entity Framework Core
+For production, you should use a persistent store. (In-memory provider is volatile and automatically resets on each restart.)
 
-For production, you should use a persistent store. In this setup, you no longer need the `CodeBeam.UltimateAuth.InMemory.Bundle` package.
+In this setup, you no longer need the `CodeBeam.UltimateAuth.InMemory.Bundle` package.
 
 ### Install Packages
 
@@ -34,26 +35,74 @@ builder.Services
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
         db.UseSqlite("Data Source=uauth.db");
-        // or UseSqlServer / UseNpgsql
+        // or UseSqlServer(...) / UseNpgsql(...) / UseMySql(...) etc.
     });
 
 builder.Services
     .AddUltimateAuthClientBlazor();
 ```
 
-### Create Database & Migrations
-```bash
-dotnet ef migrations add InitUAuth
-dotnet ef database update
-```
-or
+### Database Migrations
 
-If you are using Visual Studio, you can run these commands in Package Manager Console*:
+UltimateAuth integrates with Entity Framework Core, but database migrations belong to your application.
+
+UltimateAuth does not automatically create or apply migrations on your behalf. This keeps your database schema lifecycle under your control and allows migrations to follow the same deployment and review process as the rest of your application.
+
+After configuring the Entity Framework Core provider, create the initial migration and update the database using either the .NET CLI or Visual Studio Package Manager Console.
+
+#### Option A — .NET CLI
+
+If you use the .NET CLI:
+
+```bash
+dotnet ef migrations add InitUAuth --context UAuthDbContext
+dotnet ef database update --context UAuthDbContext
+```
+
+If the dotnet ef command is not available, install the EF Core CLI tool:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+Your project also needs the Entity Framework Core design package:
+
+```bash
+dotnet add package Microsoft.EntityFrameworkCore.Design
+```
+
+#### Option B — Visual Studio Package Manager Console
+
+If you use Visual Studio, you can perform the same operation from Tools → NuGet Package Manager → Package Manager Console:
+
 ```bash
 Add-Migration InitUAuth -Context UAuthDbContext
 Update-Database -Context UAuthDbContext
 ```
-*Needs `Microsoft.EntityFrameworkCore.Design` and `Microsoft.EntityFrameworkCore.Tools`
+
+For Package Manager Console tooling, make sure the required EF Core tooling package is available:
+
+```bash
+Install-Package Microsoft.EntityFrameworkCore.Tools
+```
+
+### Who Owns the Migrations?
+
+Your application does.
+
+This is intentional. UltimateAuth provides the authentication and identity model through its Entity Framework Core integration, while your application remains responsible for managing the resulting database schema.
+
+This means you can:
+
+- review migrations before applying them,
+- include UltimateAuth schema changes in your normal deployment process,
+- control when database changes are applied,
+- maintain migration history alongside your application,
+- use the database provider and deployment strategy appropriate for your environment.
+
+When upgrading UltimateAuth, review the release notes for persistence-related schema changes and create a new migration when required.
+
+> **Tip:** Treat UltimateAuth model changes like any other Entity Framework Core model change: upgrade the package, create a migration, review the generated migration, and apply it through your normal deployment process.
 
 ## Configure Services With Options
 UltimateAuth provides rich options for server and client service registration.
