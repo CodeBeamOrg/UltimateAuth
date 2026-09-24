@@ -20,8 +20,9 @@ Link any related issues:
 ## 🛠 Changes
 - [ ] New feature
 - [ ] Bug fix
+- [ ] Refactoring - Improvement
 - [ ] Documentation
-- [ ] Refactoring
+- [ ] Samples
 - [ ] Breaking change
 
 ---

@@ -1,6 +1,6 @@
 ---
 title: QuickStart
-order: 2
+order: 3
 group: getting-started
 ---
 
@@ -24,7 +24,6 @@ cd UltimateAuthDemo
 Install the required UltimateAuth packages:
 
 ```csharp
-dotnet add package CodeBeam.UltimateAuth.Server
 dotnet add package CodeBeam.UltimateAuth.Client.Blazor
 dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
 ```
@@ -84,7 +83,7 @@ For protected pages
 
 For any page that you use UltimateAuth features like AuthState etc.
 ```csharp
-@inherits UAuthFlowPageBase
+@inherits UAuthPageBase
 ```
 
 ## 9. Seed Data For QuickStart (Optional)
