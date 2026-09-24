@@ -86,18 +86,18 @@ foreach (var file in markdownFiles)
         GroupOrder = groupOrder
     });
 
-    //var inputLastWrite = File.GetLastWriteTimeUtc(file);
+    var inputLastWrite = File.GetLastWriteTimeUtc(file);
 
-    //if (File.Exists(outputPath))
-    //{
-    //    var outputLastWrite = File.GetLastWriteTimeUtc(outputPath);
+    if (File.Exists(outputPath))
+    {
+        var outputLastWrite = File.GetLastWriteTimeUtc(outputPath);
 
-    //    if (outputLastWrite >= inputLastWrite)
-    //    {
-    //        Console.WriteLine($"⏩ Skipped: {relativePath}");
-    //        continue;
-    //    }
-    //}
+        if (outputLastWrite >= inputLastWrite)
+        {
+            Console.WriteLine($"⏩ Skipped: {relativePath}");
+            continue;
+        }
+    }
 
     Console.WriteLine($"⚙ Processing: {relativePath}");
 
