@@ -50,31 +50,47 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithValidCredentials_ShouldCreateUsableAuthenticatedSession()
     {
-        using var client = CreateClient();
+        var user = await _factory.CreateLoginUserAsync();
+
+        var deviceId = $"usable-session-{Guid.NewGuid():N}";
+
+        using var client = CreateClient(deviceId);
 
         var loginResponse = await LoginAsync(
             client,
-            ValidIdentifier,
-            ValidSecret);
+            user.Identifier,
+            user.Secret);
 
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Found);
 
         var cookie = GetSessionCookie(loginResponse);
 
-        using var authenticatedClient = CreateClient();
+        using var authenticatedClient = CreateClient(deviceId);
 
         authenticatedClient.DefaultRequestHeaders.Add(
             "Cookie",
             cookie);
 
         var response = await authenticatedClient.PostAsJsonAsync(
-            ProfileEndpoint,
-            new GetProfileRequest
+            "/auth/me/sessions/chains",
+            new PageRequest
             {
-                ProfileKey = null
+                PageNumber = 1,
+                PageSize = 10
             });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result =
+            await response.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+
+        result.Should().NotBeNull();
+        result!.Items.Should().NotBeEmpty();
+
+        var currentChain = result.Items.Single(x => x.IsCurrentDevice);
+
+        currentChain.ActiveSessionId.Should().NotBeNull();
+        currentChain.IsRevoked.Should().BeFalse();
     }
 
     [Fact]
@@ -450,16 +466,20 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithPreviewReceiptFromDifferentDevice_ShouldNotTrustReceipt()
     {
+        var user = await _factory.CreateLoginUserAsync();
+
         using var previewClient = CreateClient(
-            "receipt-device-111111111111111111");
+            $"receipt-owner-{Guid.NewGuid():N}");
 
         var previewResponse = await previewClient.PostAsJsonAsync(
             "/auth/try-login",
             new
             {
-                identifier = ValidIdentifier,
-                secret = ValidSecret
+                identifier = user.Identifier,
+                secret = user.Secret
             });
+
+        previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview = await previewResponse.Content
             .ReadFromJsonAsync<TryLoginResult>();
@@ -468,14 +488,15 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         preview!.Success.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
+        // Attempt to use the valid receipt from another device.
         using var attackerClient = CreateClient(
-            "receipt-device-222222222222222222");
+            $"receipt-attacker-{Guid.NewGuid():N}");
 
         var response = await attackerClient.PostAsJsonAsync(
             "/auth/login",
             new
             {
-                identifier = ValidIdentifier,
+                identifier = user.Identifier,
                 secret = "wrong-password",
                 previewReceipt = preview.PreviewReceipt
             });
@@ -782,16 +803,20 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task PreviewReceipt_WithDifferentSecret_ShouldNotSuppressFailureAccounting()
     {
+        var user = await _factory.CreateLoginUserAsync();
+
         using var client = CreateClient(
-            "receipt-accounting-device-444444444");
+            $"receipt-accounting-{Guid.NewGuid():N}");
 
         var previewResponse = await client.PostAsJsonAsync(
             "/auth/try-login",
             new
             {
-                identifier = ValidIdentifier,
-                secret = ValidSecret
+                identifier = user.Identifier,
+                secret = user.Secret
             });
+
+        previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview =
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
@@ -800,33 +825,42 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         preview!.Success.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-        // Receipt belongs to ValidSecret, not this password.
-        await client.PostAsJsonAsync(
+        // Receipt was created for the correct secret.
+        // Using it with another secret must NOT suppress failure accounting.
+        var firstFailure = await client.PostAsJsonAsync(
             "/auth/login",
             new
             {
-                identifier = ValidIdentifier,
+                identifier = user.Identifier,
                 secret = "wrong-password-1",
                 previewReceipt = preview.PreviewReceipt
             });
 
-        // Second normal failure.
-        await client.PostAsJsonAsync(
+        firstFailure.Headers
+            .TryGetValues("Set-Cookie", out _)
+            .Should().BeFalse();
+
+        // MaxFailedAttempts = 2.
+        // This must therefore be failure #2.
+        var secondFailure = await client.PostAsJsonAsync(
             "/auth/login",
             new
             {
-                identifier = ValidIdentifier,
+                identifier = user.Identifier,
                 secret = "wrong-password-2"
             });
 
-        // If the mismatched receipt suppressed the first failure,
-        // this would incorrectly succeed.
+        secondFailure.Headers
+            .TryGetValues("Set-Cookie", out _)
+            .Should().BeFalse();
+
+        // Account must now be locked. Correct credentials cannot authenticate.
         var correctLogin = await client.PostAsJsonAsync(
             "/auth/login",
             new
             {
-                identifier = ValidIdentifier,
-                secret = ValidSecret
+                identifier = user.Identifier,
+                secret = user.Secret
             });
 
         correctLogin.Headers
@@ -1180,22 +1214,31 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithJsonPropertyNamesUsingDifferentCasing_ShouldAuthenticate()
     {
-        using var client = CreateClient(
-            "json-casing-device-777777777777777");
+        var user = await _factory.CreateLoginUserAsync();
 
-        var response = await client.PostAsJsonAsync(
-            "/auth/login",
-            new
-            {
-                Identifier = ValidIdentifier,
-                Secret = ValidSecret
-            });
+        using var client = CreateClient(
+            $"json-casing-{Guid.NewGuid():N}");
+
+        using var content = JsonContent.Create(new Dictionary<string, string>
+        {
+            ["IDENTIFIER"] = user.Identifier,
+            ["SECRET"] = user.Secret
+        });
+
+        var response = await client.PostAsync(
+            LoginEndpoint,
+            content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
 
         response.Headers
             .TryGetValues("Set-Cookie", out var cookies)
             .Should().BeTrue();
 
         cookies.Should().NotBeNullOrEmpty();
+
+        GetSessionCookie(response)
+            .Should().NotBeNullOrWhiteSpace();
     }
 
     #endregion
