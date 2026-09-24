@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vs
+.vscode
+.idea
+**/*.user
+**/*.suo
+
+# .NET build artifacts
+**/bin
+**/obj
+
+# Test / coverage artifacts
+**/TestResults
+**/coverage
+**/coverage.*
+**/*.trx
+
+# OS files
+.DS_Store
+Thumbs.db

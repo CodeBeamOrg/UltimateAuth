@@ -18,9 +18,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
+
             cd ~/apps/UltimateAuth
-            git pull origin master
+
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "Deploying commit:"
+            git log -1 --oneline
+
             cd .docker
+
             docker compose down
             docker compose up -d --build
-            
