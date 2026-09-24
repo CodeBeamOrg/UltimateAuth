@@ -166,7 +166,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 if (!loginExecution.SuppressFailureAttempt)
                 {
                     var version = factorState.SecurityVersion;
-                    factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.ExtendLockOnFailure);
+                    factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.FailureWindow, _options.Login.ExtendLockOnFailure);
                     await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
                 }
 
@@ -259,8 +259,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
             };
         }
 
-        await _events.DispatchAsync(
-            new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
+        await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
     }
