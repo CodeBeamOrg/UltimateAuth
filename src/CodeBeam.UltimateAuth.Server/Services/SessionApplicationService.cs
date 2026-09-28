@@ -226,16 +226,26 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId currentChainId, CancellationToken ct = default)
+    public async Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId chainId, CancellationToken ct = default)
     {
         var command = new AccessCommand<RevokeResult>(async innerCt =>
         {
-            var isCurrent = context.ActorChainId == currentChainId;
             var store = _storeFactory.Create(context.ResourceTenant);
+
+            var targetUserKey = context.GetTargetUserKey();
+
+            var chain = await store.GetChainAsync(chainId, innerCt)
+                ?? throw new UAuthNotFoundException("chain_not_found");
+
+            if (chain.UserKey != targetUserKey)
+                throw new UAuthNotFoundException("chain_not_found");
+
+            var isCurrent = context.ActorChainId == chainId;
             var now = _clock.UtcNow;
 
-            await store.ExecuteAsync(async innerCt2 => {
-                await store.LogoutChainAsync(currentChainId, now, innerCt2);
+            await store.ExecuteAsync(async innerCt2 =>
+            {
+                await store.LogoutChainAsync(chainId, now, innerCt2);
             });
 
             return new RevokeResult

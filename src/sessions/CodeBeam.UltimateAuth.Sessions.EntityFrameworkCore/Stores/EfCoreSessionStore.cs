@@ -237,6 +237,16 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
+        var preservedChainExists = await DbSetChain.AnyAsync(
+            x =>
+                x.Tenant == _tenant &&
+                x.UserKey == user &&
+                x.ChainId == keepChain,
+            ct);
+
+        if (!preservedChainExists)
+            throw new UAuthNotFoundException("session_chain_not_found");
+
         var chains = await DbSetChain
             .Where(x => x.Tenant == _tenant && x.UserKey == user && x.ChainId != keepChain)
             .ToListAsync(ct);

@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
@@ -108,5 +110,42 @@ public class AuthServerFactory : WebApplicationFactory<Program>
             userKey,
             identifier,
             secret);
+    }
+
+    internal async Task GrantPermissionsAsync(UserKey userKey, IEnumerable<string> permissions, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+
+        var services = scope.ServiceProvider;
+
+        var roleStoreFactory =
+            services.GetRequiredService<IRoleStoreFactory>();
+
+        var userRoleStoreFactory =
+            services.GetRequiredService<IUserRoleStoreFactory>();
+
+        var clock =
+            services.GetRequiredService<IClock>();
+
+        var tenant = TenantKeys.Single;
+        var now = clock.UtcNow;
+
+        var roleStore = roleStoreFactory.Create(tenant);
+        var userRoleStore = userRoleStoreFactory.Create(tenant);
+
+        var role = Role.Create(
+            id: null,
+            tenant: tenant,
+            name: $"integration-test-{Guid.NewGuid():N}",
+            permissions: permissions.Select(Permission.From),
+            now: now);
+
+        await roleStore.AddAsync(role, ct);
+
+        await userRoleStore.AssignAsync(
+            userKey,
+            role.Id,
+            now,
+            ct);
     }
 }

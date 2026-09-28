@@ -152,6 +152,13 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         lock (_lock)
         {
+            if (!_chains.TryGetValue(keepChain, out var preservedChain) ||
+                preservedChain.Tenant != _tenant ||
+                preservedChain.UserKey != user)
+            {
+                throw new UAuthNotFoundException("session_chain_not_found");
+            }
+
             foreach (var (id, chain) in _chains)
             {
                 if (chain.UserKey != user)
