@@ -11,8 +11,6 @@ namespace CodeBeam.UltimateAuth.Tests.Integration;
 public class LoginTests : IClassFixture<AuthServerFactory>
 {
     private const string LoginEndpoint = "/auth/login";
-    private const string ProfileEndpoint = "/auth/me/profile/get";
-
     private const string ValidIdentifier = "admin";
     private const string ValidSecret = "admin";
 
@@ -28,8 +26,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         var user = await _factory.CreateLoginUserAsync();
 
-        using var client = CreateClient(
-            $"valid-session-{Guid.NewGuid():N}");
+        using var client = CreateClient($"valid-session-{Guid.NewGuid():N}");
 
         var response = await client.PostAsJsonAsync(
             "/auth/login",
@@ -41,14 +38,10 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        response.Headers
-            .TryGetValues("Set-Cookie", out var cookies)
-            .Should().BeTrue();
-
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
         cookies.Should().NotBeNullOrEmpty();
 
         var cookie = GetSessionCookie(response);
-
         cookie.Should().NotBeNullOrWhiteSpace();
     }
 
@@ -56,25 +49,15 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     public async Task Login_WithValidCredentials_ShouldCreateUsableAuthenticatedSession()
     {
         var user = await _factory.CreateLoginUserAsync();
-
         var deviceId = $"usable-session-{Guid.NewGuid():N}";
-
         using var client = CreateClient(deviceId);
-
-        var loginResponse = await LoginAsync(
-            client,
-            user.Identifier,
-            user.Secret);
-
+        var loginResponse = await LoginAsync(client, user.Identifier, user.Secret);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Found);
 
         var cookie = GetSessionCookie(loginResponse);
 
         using var authenticatedClient = CreateClient(deviceId);
-
-        authenticatedClient.DefaultRequestHeaders.Add(
-            "Cookie",
-            cookie);
+        authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
         var response = await authenticatedClient.PostAsJsonAsync(
             "/auth/me/sessions/chains",
@@ -86,8 +69,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result =
-            await response.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
 
         result.Should().NotBeNull();
         result!.Items.Should().NotBeEmpty();
@@ -103,18 +85,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         using var client = CreateClient();
 
-        var response = await LoginAsync(
-            client,
-            ValidIdentifier,
-            "wrong-password");
+        var response = await LoginAsync(client, ValidIdentifier, "wrong-password");
 
-        response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.Unauthorized,
-            HttpStatusCode.Found);
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Found);
 
-        response.Headers
-            .TryGetValues("Set-Cookie", out _)
-            .Should().BeFalse();
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -122,18 +97,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         using var client = CreateClient();
 
-        var response = await LoginAsync(
-            client,
-            "unknown-user",
-            ValidSecret);
+        var response = await LoginAsync(client, "unknown-user", ValidSecret);
 
-        response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.Unauthorized,
-            HttpStatusCode.Found);
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Found);
 
-        response.Headers
-            .TryGetValues("Set-Cookie", out _)
-            .Should().BeFalse();
+        response.Headers.TryGetValues("Set-Cookie", out _).Should().BeFalse();
     }
 
     [Theory]
@@ -141,9 +109,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [InlineData(" ", "admin")]
     [InlineData("admin", "")]
     [InlineData("admin", " ")]
-    public async Task Login_WithMissingCredentials_ShouldNotAuthenticateUser(
-        string identifier,
-        string secret)
+    public async Task Login_WithMissingCredentials_ShouldNotAuthenticateUser(string identifier, string secret)
     {
         using var client = CreateClient();
 
@@ -601,6 +567,46 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         GetSessionCookie(loginResponse)
             .Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Login_WithPreviewReceiptFromDifferentIdentifier_ShouldNotBypassCredentialValidation()
+    {
+        var receiptOwner = await _factory.CreateLoginUserAsync();
+        var otherUser = await _factory.CreateLoginUserAsync();
+
+        using var client = CreateClient(
+            $"preview-cross-user-{Guid.NewGuid():N}");
+
+        var previewResponse = await client.PostAsJsonAsync(
+            "/auth/try-login",
+            new
+            {
+                identifier = receiptOwner.Identifier,
+                secret = receiptOwner.Secret
+            });
+
+        var preview =
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+
+        preview.Should().NotBeNull();
+        preview!.Success.Should().BeTrue();
+        preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
+
+        // Receipt belongs to user A.
+        // Attempt user B authentication with INVALID credentials.
+        var loginResponse = await client.PostAsJsonAsync(
+            LoginEndpoint,
+            new
+            {
+                identifier = otherUser.Identifier,
+                secret = "definitely-wrong-password",
+                previewReceipt = preview.PreviewReceipt
+            });
+
+        loginResponse.Headers
+            .TryGetValues("Set-Cookie", out _)
+            .Should().BeFalse();
     }
 
     [Fact]
@@ -1667,163 +1673,182 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         cookies.Should().NotBeNullOrEmpty();
     }
 
-    //[Fact]
-    //public async Task ConcurrentLoginFailures_ShouldNotLoseFailureAttempts()
-    //{
-    //    _factory.Clock.Reset();
+    [Fact]
+    public async Task ConcurrentLoginFailures_ShouldNotLoseFailureAttempts()
+    {
+        _factory.Clock.Reset();
 
-    //    var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync();
 
-    //    using var client1 = CreateClient(
-    //        $"concurrent-failure-1-{Guid.NewGuid():N}");
+        using var client1 = CreateClient(
+            $"concurrent-failure-1-{Guid.NewGuid():N}");
 
-    //    using var client2 = CreateClient(
-    //        $"concurrent-failure-2-{Guid.NewGuid():N}");
+        using var client2 = CreateClient(
+            $"concurrent-failure-2-{Guid.NewGuid():N}");
 
-    //    var task1 = TryLoginAsync(
-    //        client1,
-    //        user.Identifier,
-    //        "wrong-password-1");
+        var task1 = TryLoginAsync(
+            client1,
+            user.Identifier,
+            "wrong-password-1");
 
-    //    var task2 = TryLoginAsync(
-    //        client2,
-    //        user.Identifier,
-    //        "wrong-password-2");
+        var task2 = TryLoginAsync(
+            client2,
+            user.Identifier,
+            "wrong-password-2");
 
-    //    var results = await Task.WhenAll(task1, task2);
+        var results = await Task.WhenAll(task1, task2);
 
-    //    results.Should().OnlyContain(x => !x.Success);
+        results.Should().OnlyContain(x => !x.Success);
 
-    //    using var verificationClient = CreateClient(
-    //        $"concurrent-failure-verification-{Guid.NewGuid():N}");
+        using var verificationClient = CreateClient(
+            $"concurrent-failure-verification-{Guid.NewGuid():N}");
 
-    //    var verification = await TryLoginAsync(
-    //        verificationClient,
-    //        user.Identifier,
-    //        user.Secret);
+        var verification = await TryLoginAsync(
+            verificationClient,
+            user.Identifier,
+            user.Secret);
 
-    //    verification.Success.Should().BeFalse();
-    //    verification.Reason.Should().Be(AuthFailureReason.LockedOut);
-    //    verification.RemainingAttempts.Should().Be(0);
-    //    verification.LockoutUntilUtc.Should().NotBeNull();
-    //}
+        verification.Success.Should().BeFalse();
+        verification.Reason.Should().Be(AuthFailureReason.LockedOut);
+        verification.RemainingAttempts.Should().Be(0);
+        verification.LockoutUntilUtc.Should().NotBeNull();
+    }
 
-    //[Fact]
-    //public async Task ConcurrentSuccessfulLogins_FromDifferentDevices_ShouldCreateUsableSessions()
-    //{
-    //    _factory.Clock.Reset();
+    [Fact]
+    public async Task ConcurrentSuccessfulLogins_FromDifferentDevices_ShouldCreateUsableSessions()
+    {
+        _factory.Clock.Reset();
 
-    //    var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync();
 
-    //    var device1 = $"concurrent-success-1-{Guid.NewGuid():N}";
-    //    var device2 = $"concurrent-success-2-{Guid.NewGuid():N}";
+        var device1 = $"concurrent-success-1-{Guid.NewGuid():N}";
+        var device2 = $"concurrent-success-2-{Guid.NewGuid():N}";
 
-    //    using var client1 = CreateClient(device1);
-    //    using var client2 = CreateClient(device2);
+        using var client1 = CreateClient(device1);
+        using var client2 = CreateClient(device2);
 
-    //    var responses = await Task.WhenAll(
-    //        LoginAsync(client1, user.Identifier, user.Secret),
-    //        LoginAsync(client2, user.Identifier, user.Secret));
+        var responses = await Task.WhenAll(
+            LoginAsync(client1, user.Identifier, user.Secret),
+            LoginAsync(client2, user.Identifier, user.Secret));
 
-    //    responses.Should().OnlyContain(
-    //        x => x.StatusCode == HttpStatusCode.Found);
+        responses.Should().OnlyContain(
+            x => x.StatusCode == HttpStatusCode.Found);
 
-    //    var cookie1 = responses[0]
-    //        .Headers
-    //        .GetValues("Set-Cookie")
-    //        .First();
+        var cookie1 = GetSessionCookie(responses[0]);
+        var cookie2 = GetSessionCookie(responses[1]);
 
-    //    var cookie2 = responses[1]
-    //        .Headers
-    //        .GetValues("Set-Cookie")
-    //        .First();
+        cookie1.Should().NotBe(cookie2);
 
-    //    cookie1.Should().NotBeNullOrWhiteSpace();
-    //    cookie2.Should().NotBeNullOrWhiteSpace();
-    //    cookie1.Should().NotBe(cookie2);
+        using var authenticatedClient1 = CreateClient(device1);
+        using var authenticatedClient2 = CreateClient(device2);
 
-    //    using var authenticatedClient1 = CreateClient(device1);
-    //    using var authenticatedClient2 = CreateClient(device2);
+        authenticatedClient1.DefaultRequestHeaders.Add("Cookie", cookie1);
+        authenticatedClient2.DefaultRequestHeaders.Add("Cookie", cookie2);
 
-    //    authenticatedClient1.DefaultRequestHeaders.Add(
-    //        "Cookie",
-    //        cookie1);
+        var sessionResponses = await Task.WhenAll(
+            authenticatedClient1.PostAsJsonAsync(
+                "/auth/me/sessions/chains",
+                new PageRequest
+                {
+                    PageNumber = 1,
+                    PageSize = 10
+                }),
 
-    //    authenticatedClient2.DefaultRequestHeaders.Add(
-    //        "Cookie",
-    //        cookie2);
+            authenticatedClient2.PostAsJsonAsync(
+                "/auth/me/sessions/chains",
+                new PageRequest
+                {
+                    PageNumber = 1,
+                    PageSize = 10
+                }));
 
-    //    var meResponses = await Task.WhenAll(
-    //        authenticatedClient1.PostAsJsonAsync(
-    //            "/auth/me/profile/get",
-    //            new GetProfileRequest { ProfileKey = null }),
+        sessionResponses.Should().OnlyContain(
+            x => x.StatusCode == HttpStatusCode.OK);
 
-    //        authenticatedClient2.PostAsJsonAsync(
-    //            "/auth/me/profile/get",
-    //            new GetProfileRequest { ProfileKey = null }));
+        var result1 =
+            await sessionResponses[0]
+                .Content
+                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
 
-    //    meResponses.Should().OnlyContain(
-    //        x => x.StatusCode == HttpStatusCode.OK);
-    //}
+        var result2 =
+            await sessionResponses[1]
+                .Content
+                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
 
-    //[Fact]
-    //public async Task ConcurrentLogin_WithSamePreviewReceipt_ShouldNotAllowReceiptToBeConsumedTwice()
-    //{
-    //    _factory.Clock.Reset();
+        result1.Should().NotBeNull();
+        result2.Should().NotBeNull();
 
-    //    var user = await _factory.CreateLoginUserAsync();
+        result1!.Items.Should().Contain(x =>
+            x.IsCurrentDevice &&
+            x.ActiveSessionId != null &&
+            !x.IsRevoked);
 
-    //    var device = $"preview-concurrent-{Guid.NewGuid():N}";
+        result2!.Items.Should().Contain(x =>
+            x.IsCurrentDevice &&
+            x.ActiveSessionId != null &&
+            !x.IsRevoked);
+    }
 
-    //    using var previewClient = CreateClient(device);
+    [Fact]
+    public async Task ConcurrentLogin_WithSamePreviewReceipt_ShouldNotAllowReceiptToBeConsumedTwice()
+    {
+        _factory.Clock.Reset();
 
-    //    var preview = await TryLoginAsync(
-    //        previewClient,
-    //        user.Identifier,
-    //        user.Secret);
+        var user = await _factory.CreateLoginUserAsync();
 
-    //    preview.Success.Should().BeTrue();
-    //    preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
+        var device = $"preview-concurrent-{Guid.NewGuid():N}";
 
-    //    var receipt = preview.PreviewReceipt!;
+        using var previewClient = CreateClient(device);
 
-    //    using var client1 = CreateClient(device);
-    //    using var client2 = CreateClient(device);
+        var preview = await TryLoginAsync(
+            previewClient,
+            user.Identifier,
+            user.Secret);
 
-    //    var responses = await Task.WhenAll(
-    //        LoginWithPreviewReceiptAsync(
-    //            client1,
-    //            user.Identifier,
-    //            user.Secret,
-    //            receipt),
+        preview.Success.Should().BeTrue();
+        preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-    //        LoginWithPreviewReceiptAsync(
-    //            client2,
-    //            user.Identifier,
-    //            user.Secret,
-    //            receipt));
+        var receipt = preview.PreviewReceipt!;
 
-    //    responses.Should().OnlyContain(
-    //        x => x.StatusCode == HttpStatusCode.Found);
+        using var client1 = CreateClient(device);
+        using var client2 = CreateClient(device);
 
-    //    using var replayClient = CreateClient(device);
+        var responses = await Task.WhenAll(
+            LoginWithPreviewReceiptAsync(
+                client1,
+                user.Identifier,
+                user.Secret,
+                receipt),
 
-    //    var replay = await LoginWithPreviewReceiptAsync(
-    //        replayClient,
-    //        user.Identifier,
-    //        "wrong-password",
-    //        receipt);
+            LoginWithPreviewReceiptAsync(
+                client2,
+                user.Identifier,
+                user.Secret,
+                receipt));
 
-    //    replay.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        responses.Should().OnlyContain(
+            x => x.StatusCode == HttpStatusCode.Found);
 
-    //    var failureState = await TryLoginAsync(
-    //        replayClient,
-    //        user.Identifier,
-    //        "another-wrong-password");
+        using var replayClient = CreateClient(device);
 
-    //    failureState.Success.Should().BeFalse();
-    //    failureState.Reason.Should().Be(AuthFailureReason.LockedOut);
-    //}
+        var replay = await LoginWithPreviewReceiptAsync(
+            replayClient,
+            user.Identifier,
+            "wrong-password",
+            receipt);
+
+        replay.Headers
+            .TryGetValues("Set-Cookie", out _)
+            .Should().BeFalse();
+
+        var failureState = await TryLoginAsync(
+            replayClient,
+            user.Identifier,
+            "another-wrong-password");
+
+        failureState.Success.Should().BeFalse();
+        failureState.Reason.Should().Be(AuthFailureReason.LockedOut);
+    }
 
 
     private HttpClient CreateClient(
@@ -1887,25 +1912,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         });
     }
 
-    private static string GetSessionCookie(
-        HttpResponseMessage response)
+    private static string GetSessionCookie(HttpResponseMessage response)
     {
-        response.Headers
-            .TryGetValues("Set-Cookie", out var cookies)
-            .Should().BeTrue();
-
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
         cookies.Should().NotBeNullOrEmpty();
 
         return cookies!.First();
-    }
-
-    private void AdvanceClock(TimeSpan duration)
-    {
-        _factory.Clock.Advance(duration);
-    }
-
-    private DateTimeOffset GetUtcNow()
-    {
-        return _factory.Clock.UtcNow;
     }
 }

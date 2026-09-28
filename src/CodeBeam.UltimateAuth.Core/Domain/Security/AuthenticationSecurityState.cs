@@ -208,7 +208,13 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
     /// Registers a successful authentication: clears failures and lock.
     /// </summary>
     public AuthenticationSecurityState RegisterSuccess()
-        => new AuthenticationSecurityState(
+    {
+        if (FailedAttempts == 0 && LastFailedAt is null && LockedUntil is null)
+        {
+            return this;
+        }
+
+        return new AuthenticationSecurityState(
             Id,
             Tenant,
             UserKey,
@@ -224,6 +230,7 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
             ResetTokenHash,
             ResetAttempts,
             securityVersion: SecurityVersion + 1);
+    }
 
     /// <summary>
     /// Admin/system unlock: clears lock and failures.

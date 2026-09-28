@@ -165,9 +165,17 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                 if (!loginExecution.SuppressFailureAttempt)
                 {
-                    var version = factorState.SecurityVersion;
-                    factorState = factorState.RegisterFailure(now, _options.Login.MaxFailedAttempts, _options.Login.LockoutDuration, _options.Login.FailureWindow, _options.Login.ExtendLockOnFailure);
-                    await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
+                    factorState = await _authenticationSecurityManager.MutateFactorAsync(
+                        flow.Tenant,
+                        userKey.Value,
+                        request.Factor,
+                        state => state.RegisterFailure(
+                            now,
+                            _options.Login.MaxFailedAttempts,
+                            _options.Login.LockoutDuration,
+                            _options.Login.FailureWindow,
+                            _options.Login.ExtendLockOnFailure),
+                        ct);
                 }
 
                 if (_options.Login.IncludeFailureDetails)
@@ -217,9 +225,12 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         if (!loginExecution.SuppressSuccessReset && factorState is not null)
         {
-            var version = factorState.SecurityVersion;
-            factorState = factorState.RegisterSuccess();
-            await _authenticationSecurityManager.UpdateAsync(factorState, version, ct);
+            factorState = await _authenticationSecurityManager.MutateFactorAsync(
+                flow.Tenant,
+                userKey.Value,
+                request.Factor,
+                state => state.RegisterSuccess(),
+                ct);
         }
 
         var claims = await _claimsProvider.GetClaimsAsync(flow.Tenant, userKey.Value, ct);
