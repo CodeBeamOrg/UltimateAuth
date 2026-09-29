@@ -847,18 +847,23 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     }
 
     [Fact]
-    public async Task Refresh_Hybrid_ConcurrentReuse_ShouldLeaveWinningCredentialUsable()
+    public async Task Refresh_Hybrid_ConcurrentDuplicate_ShouldLeaveWinningCredentialUsable()
     {
-        _factory.Clock.Reset();
+        await using var factory = AuthServerFactory.Create(options =>
+        {
+            options.Token.RefreshTokenConcurrentRequestWindow =
+                TimeSpan.FromSeconds(5);
+        });
 
-        var user =
-            await _factory.CreateLoginUserAsync();
+        factory.Clock.Reset();
+
+        var user = await factory.CreateLoginUserAsync();
 
         var deviceId =
-            $"hybrid-race-winner-{Guid.NewGuid():N}";
+            $"hybrid-concurrent-{Guid.NewGuid():N}";
 
         using var loginClient =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         var originalCookies =
             await LoginAsync(
@@ -867,10 +872,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 "BlazorWasm");
 
         using var clientA =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         using var clientB =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         SetClientProfile(clientA, "BlazorWasm");
         SetClientProfile(clientB, "BlazorWasm");
@@ -888,37 +893,39 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 clientA.PostAsync("/auth/refresh", null),
                 clientB.PostAsync("/auth/refresh", null));
 
-        var success =
+        var winner =
             responses.Single(x =>
                 x.StatusCode == HttpStatusCode.NoContent);
 
         responses.Single(x =>
             x.StatusCode == HttpStatusCode.Unauthorized);
 
-        var rotatedCookies = BuildHybridCredentialAfterRefresh(originalCookies, success);
-
-        rotatedCookies.Should().NotBeNullOrWhiteSpace();
+        var winningCredentials =
+            BuildHybridCredentialAfterRefresh(
+                originalCookies,
+                winner);
 
         //
-        // Continue from the winning rotation.
+        // Losing concurrent request must NOT have
+        // revoked the chain.
         //
-        using var continuationClient =
-            CreateClient(deviceId);
+        using var continuation =
+            CreateClient(factory, deviceId);
 
         SetClientProfile(
-            continuationClient,
+            continuation,
             "BlazorWasm");
 
-        continuationClient.DefaultRequestHeaders.Add(
+        continuation.DefaultRequestHeaders.Add(
             "Cookie",
-            rotatedCookies);
+            winningCredentials);
 
-        var continuation =
-            await continuationClient.PostAsync(
+        var result =
+            await continuation.PostAsync(
                 "/auth/refresh",
                 null);
 
-        continuation.StatusCode.Should()
+        result.StatusCode.Should()
             .Be(HttpStatusCode.NoContent);
     }
 
@@ -1260,15 +1267,24 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     }
 
     [Fact]
-    public async Task Refresh_Hybrid_ReusingRotatedToken_ShouldInvalidateReplacementCredential()
+    public async Task Refresh_Hybrid_ReplayAfterConcurrencyWindow_ShouldInvalidateReplacementCredential()
     {
-        _factory.Clock.Reset();
+        await using var factory = AuthServerFactory.Create(options =>
+        {
+            options.Token.RefreshTokenConcurrentRequestWindow =
+                TimeSpan.FromSeconds(2);
+        });
 
-        var user = await _factory.CreateLoginUserAsync();
-        var deviceId = $"refresh-replay-family-{Guid.NewGuid():N}";
+        factory.Clock.Reset();
+
+        var user =
+            await factory.CreateLoginUserAsync();
+
+        var deviceId =
+            $"refresh-replay-family-{Guid.NewGuid():N}";
 
         using var client =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         var originalCookies =
             await LoginAsync(
@@ -1292,14 +1308,17 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 originalCookies,
                 rotation);
 
-        replacementCookies.Should()
-            .NotBeNullOrWhiteSpace();
+        //
+        // Move OUTSIDE the concurrency tolerance window.
+        //
+        factory.Clock.Advance(
+            TimeSpan.FromSeconds(3));
 
         //
         // Replay R0.
         //
         using var attacker =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         SetClientProfile(
             attacker,
@@ -1318,11 +1337,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.Unauthorized);
 
         //
-        // Reuse detection should have invalidated the compromised
-        // chain/token family. R1 must therefore no longer be usable.
+        // Confirmed replay must invalidate the chain.
+        // Therefore R1 must also be dead.
         //
         using var legitimateClient =
-            CreateClient(deviceId);
+            CreateClient(factory, deviceId);
 
         SetClientProfile(
             legitimateClient,
@@ -1339,6 +1358,56 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         legitimateRefresh.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Refresh_Hybrid_DuplicateWithinConcurrencyWindow_ShouldNotInvalidateReplacement()
+    {
+        await using var factory = AuthServerFactory.Create(options =>
+        {
+            options.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromSeconds(2);
+        });
+
+        factory.Clock.Reset();
+
+        var user = await factory.CreateLoginUserAsync();
+
+        var deviceId = $"refresh-duplicate-window-{Guid.NewGuid():N}";
+
+        using var client = CreateClient(factory, deviceId);
+
+        var originalCookies = await LoginAsync(client, user, "BlazorWasm");
+
+        // R0 -> R1
+        var rotation = await client.PostAsync("/auth/refresh", null);
+
+        rotation.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var replacementCookies = BuildHybridCredentialAfterRefresh(originalCookies, rotation);
+
+        // Replay R0 immediately.
+        // Still inside duplicate tolerance window.
+        using var duplicate = CreateClient(factory, deviceId);
+
+        SetClientProfile(duplicate, "BlazorWasm");
+
+        duplicate.DefaultRequestHeaders.Add("Cookie", originalCookies);
+
+        var duplicateResponse = await duplicate.PostAsync("/auth/refresh", null);
+
+        duplicateResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        // Important:
+        // duplicate was rejected but must NOT have destroyed R1.
+        using var legitimate = CreateClient(factory, deviceId);
+
+        SetClientProfile(legitimate, "BlazorWasm");
+
+        legitimate.DefaultRequestHeaders.Add("Cookie", replacementCookies);
+
+        var continuation = await legitimate.PostAsync("/auth/refresh", null);
+
+        continuation.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]

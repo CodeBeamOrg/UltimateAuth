@@ -35,20 +35,24 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             },
             ct);
 
-        if (validation.IsReuseDetected)
+        if (validation.State == RefreshTokenValidationState.Consumed)
         {
-            var reuseStore = _storeFactory.Create(validation.Tenant);
+            var concurrencyWindow = flow.OriginalOptions.Token.RefreshTokenConcurrentRequestWindow;
 
-            if (validation.ChainId is not null)
+            if (IsLikelyConcurrentRequest(validation, context.Now, concurrencyWindow))
             {
-                await reuseStore.RevokeByChainAsync(validation.ChainId.Value, context.Now, ct);
-            }
-            else if (validation.SessionId is not null)
-            {
-                await reuseStore.RevokeBySessionAsync(validation.SessionId.Value, context.Now, ct);
+                return new RefreshTokenRotationExecution
+                {
+                    Result = RefreshTokenRotationResult.Failed()
+                };
             }
 
-            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
+            await HandleReplayAsync(validation, context.Now, ct);
+
+            return new RefreshTokenRotationExecution
+            {
+                Result = RefreshTokenRotationResult.Failed()
+            };
         }
 
         if (!validation.IsValid)
@@ -131,5 +135,44 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
             Result = RefreshTokenRotationResult.Success(accessToken, refreshToken)
         };
+    }
+
+    private async Task HandleReplayAsync(RefreshTokenValidationResult validation, DateTimeOffset now, CancellationToken ct)
+    {
+        var store = _storeFactory.Create(validation.Tenant);
+
+        await store.ExecuteAsync(
+            async ct2 =>
+            {
+                if (validation.ChainId is SessionChainId chainId)
+                {
+                    await store.RevokeByChainAsync(chainId, now, ct2);
+
+                    return;
+                }
+
+                if (validation.SessionId is AuthSessionId sessionId)
+                {
+                    await store.RevokeBySessionAsync(sessionId, now, ct2);
+                }
+            },
+            ct);
+    }
+
+    private static bool IsLikelyConcurrentRequest(RefreshTokenValidationResult validation, DateTimeOffset now, TimeSpan window)
+    {
+        if (validation.State != RefreshTokenValidationState.Consumed)
+            return false;
+
+        if (validation.ConsumedAt is not DateTimeOffset consumedAt)
+            return false;
+
+        if (validation.ReplacedByTokenHash is null)
+            return false;
+
+        var elapsed = now - consumedAt;
+
+        return elapsed >= TimeSpan.Zero &&
+               elapsed <= window;
     }
 }
