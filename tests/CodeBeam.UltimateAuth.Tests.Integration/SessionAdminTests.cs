@@ -1386,28 +1386,16 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
                 actor.Identifier,
                 actor.Secret));
 
-        var targetCookie = GetSessionCookie(
-            await LoginAsync(
-                targetClient,
-                target.Identifier,
-                target.Secret));
+        var targetCookie = GetSessionCookie(await LoginAsync(targetClient, target.Identifier, target.Secret));
 
         actorClient.DefaultRequestHeaders.Add("Cookie", actorCookie);
         targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
 
-        var response = await actorClient.PostAsync(
-            $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
-            null);
+        var response = await actorClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
 
-        response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.Forbidden,
-            HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized);
 
-        //
-        // Authorization must occur before destructive cascade.
-        //
-        (await GetChainsAsync(targetClient))
-            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await GetChainsAsync(targetClient)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -1417,31 +1405,16 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var target = await _factory.CreateLoginUserAsync();
 
-        using var anonymousClient = CreateClient(
-            $"root-anonymous-{Guid.NewGuid():N}");
+        using var anonymousClient = CreateClient($"root-anonymous-{Guid.NewGuid():N}");
+        using var targetClient = CreateClient($"root-anonymous-target-{Guid.NewGuid():N}");
 
-        using var targetClient = CreateClient(
-            $"root-anonymous-target-{Guid.NewGuid():N}");
+        var targetCookie = GetSessionCookie(await LoginAsync(targetClient, target.Identifier, target.Secret));
+        targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
 
-        var targetCookie = GetSessionCookie(
-            await LoginAsync(
-                targetClient,
-                target.Identifier,
-                target.Secret));
+        var response = await anonymousClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
 
-        targetClient.DefaultRequestHeaders.Add(
-            "Cookie",
-            targetCookie);
-
-        var response = await anonymousClient.PostAsync(
-            $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
-            null);
-
-        response.StatusCode.Should()
-            .Be(HttpStatusCode.Unauthorized);
-
-        (await GetChainsAsync(targetClient))
-            .StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await GetChainsAsync(targetClient)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -1452,21 +1425,84 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var admin = await _factory.CreateLoginUserAsync();
         var target = await _factory.CreateLoginUserAsync();
 
-        await _factory.GrantPermissionsAsync(
-            admin.UserKey,
-            [UAuthActions.Sessions.RevokeRootAdmin]);
+        await _factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Sessions.RevokeRootAdmin]);
 
-        var adminDevice =
-            $"root-recreate-admin-{Guid.NewGuid():N}";
+        var adminDevice = $"root-recreate-admin-{Guid.NewGuid():N}";
 
-        var oldTargetDevice =
-            $"root-recreate-target-old-{Guid.NewGuid():N}";
+        var oldTargetDevice = $"root-recreate-target-old-{Guid.NewGuid():N}";
 
         using var adminClient = CreateClient(adminDevice);
         using var oldTargetClient = CreateClient(oldTargetDevice);
 
+        var adminLogin = await LoginAsync(adminClient, admin.Identifier, admin.Secret);
+
+        adminLogin.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        var adminCookie = GetSessionCookie(adminLogin);
+
+        adminClient.DefaultRequestHeaders.Add("Cookie", adminCookie);
+
+        var oldLogin = await LoginAsync(oldTargetClient, target.Identifier, target.Secret);
+
+        oldLogin.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        var oldCookie = GetSessionCookie(oldLogin);
+
+        oldTargetClient.DefaultRequestHeaders.Add("Cookie", oldCookie);
+
+        var beforeRevoke = await GetChainsAsync(oldTargetClient);
+
+        beforeRevoke.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var revoke = await adminClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
+
+        revoke.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var oldSessionAfterRevoke = await GetChainsAsync(oldTargetClient);
+        oldSessionAfterRevoke.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        using var newTargetClient = CreateClient($"root-recreate-target-new-{Guid.NewGuid():N}");
+
+        var newLogin = await LoginAsync(newTargetClient, target.Identifier, target.Secret);
+        newLogin.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        var newCookie = GetSessionCookie(newLogin);
+
+        newCookie.Should().NotBeNullOrWhiteSpace();
+        newCookie.Should().NotBe(oldCookie);
+
+        newTargetClient.DefaultRequestHeaders.Add("Cookie", newCookie);
+
+        var newSessionVerification = await GetChainsAsync(newTargetClient);
+        newSessionVerification.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var oldSessionVerification = await GetChainsAsync(oldTargetClient);
+        oldSessionVerification.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var adminVerification = await GetChainsAsync(adminClient);
+        adminVerification.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task RevokeRootAdmin_ConcurrentSubsequentLogins_ShouldCreateSingleActiveRoot()
+    {
+        _factory.Clock.Reset();
+
+        var admin = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync();
+
+        await _factory.GrantPermissionsAsync(
+            admin.UserKey,
+            [UAuthActions.Sessions.RevokeRootAdmin]);
+
+        using var adminClient =
+            CreateClient($"root-concurrent-admin-{Guid.NewGuid():N}");
+
+        using var initialTargetClient =
+            CreateClient($"root-concurrent-initial-{Guid.NewGuid():N}");
+
         //
-        // Admin login.
+        // Establish initial authentication root.
         //
         var adminLogin = await LoginAsync(
             adminClient,
@@ -1475,37 +1511,25 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         adminLogin.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var adminCookie = GetSessionCookie(adminLogin);
-
         adminClient.DefaultRequestHeaders.Add(
             "Cookie",
-            adminCookie);
+            GetSessionCookie(adminLogin));
 
-        //
-        // Target establishes its original authentication authority.
-        //
-        var oldLogin = await LoginAsync(
-            oldTargetClient,
+        var initialLogin = await LoginAsync(
+            initialTargetClient,
             target.Identifier,
             target.Secret);
 
-        oldLogin.StatusCode.Should().Be(HttpStatusCode.Found);
+        initialLogin.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var oldCookie = GetSessionCookie(oldLogin);
+        var initialCookie = GetSessionCookie(initialLogin);
 
-        oldTargetClient.DefaultRequestHeaders.Add(
+        initialTargetClient.DefaultRequestHeaders.Add(
             "Cookie",
-            oldCookie);
+            initialCookie);
 
         //
-        // Verify the old session is actually usable before revocation.
-        //
-        var beforeRevoke = await GetChainsAsync(oldTargetClient);
-
-        beforeRevoke.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        //
-        // Admin revokes the entire authentication root.
+        // Revoke the target's current authentication root.
         //
         var revoke = await adminClient.PostAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
@@ -1513,65 +1537,106 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         revoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
-        // Existing authority must be dead.
-        //
-        var oldSessionAfterRevoke =
-            await GetChainsAsync(oldTargetClient);
+        var oldSessionVerification =
+            await GetChainsAsync(initialTargetClient);
 
-        oldSessionAfterRevoke.StatusCode.Should()
-            .Be(HttpStatusCode.Unauthorized);
+        oldSessionVerification.StatusCode
+            .Should().Be(HttpStatusCode.Unauthorized);
 
         //
-        // A legitimate credential authentication after root revocation
-        // starts a new authentication authority generation.
+        // Two devices authenticate concurrently after there is
+        // no active root.
         //
-        using var newTargetClient = CreateClient(
-            $"root-recreate-target-new-{Guid.NewGuid():N}");
+        using var clientA =
+            CreateClient($"root-concurrent-a-{Guid.NewGuid():N}");
 
-        var newLogin = await LoginAsync(
-            newTargetClient,
+        using var clientB =
+            CreateClient($"root-concurrent-b-{Guid.NewGuid():N}");
+
+        var loginTaskA = LoginAsync(
+            clientA,
             target.Identifier,
             target.Secret);
 
-        newLogin.StatusCode.Should().Be(HttpStatusCode.Found);
+        var loginTaskB = LoginAsync(
+            clientB,
+            target.Identifier,
+            target.Secret);
 
-        var newCookie = GetSessionCookie(newLogin);
+        var responses = await Task.WhenAll(
+            loginTaskA,
+            loginTaskB);
 
-        newCookie.Should().NotBeNullOrWhiteSpace();
-        newCookie.Should().NotBe(oldCookie);
+        responses.Should().OnlyContain(
+            x => x.StatusCode == HttpStatusCode.Found);
 
-        newTargetClient.DefaultRequestHeaders.Add(
+        var cookieA = GetSessionCookie(responses[0]);
+        var cookieB = GetSessionCookie(responses[1]);
+
+        cookieA.Should().NotBeNullOrWhiteSpace();
+        cookieB.Should().NotBeNullOrWhiteSpace();
+
+        clientA.DefaultRequestHeaders.Add(
             "Cookie",
-            newCookie);
+            cookieA);
+
+        clientB.DefaultRequestHeaders.Add(
+            "Cookie",
+            cookieB);
 
         //
-        // The newly issued session must be usable.
+        // Both sessions must belong to the surviving active
+        // authentication generation and remain usable.
         //
-        var newSessionVerification =
-            await GetChainsAsync(newTargetClient);
+        var verificationA = await GetChainsAsync(clientA);
+        var verificationB = await GetChainsAsync(clientB);
 
-        newSessionVerification.StatusCode.Should()
-            .Be(HttpStatusCode.OK);
+        verificationA.StatusCode.Should().Be(HttpStatusCode.OK);
+        verificationB.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var chainsA = await verificationA.Content
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+
+        chainsA.Should().NotBeNull();
+
+        chainsA!.Items
+            .Count(x => !x.IsRevoked)
+            .Should().Be(2);
+
+        chainsA.Items
+            .Count(x => x.IsCurrentDevice)
+            .Should().Be(1);
+
+        var chainsB = await verificationB.Content
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+
+        chainsB.Should().NotBeNull();
+
+        chainsB!.Items
+            .Count(x => !x.IsRevoked)
+            .Should().Be(2);
+
+        chainsB.Items
+            .Count(x => x.IsCurrentDevice)
+            .Should().Be(1);
 
         //
-        // Creating a new authority must NEVER resurrect artifacts
-        // belonging to the revoked authority.
+        // Historical authentication material must remain invalid.
         //
-        var oldSessionVerification =
-            await GetChainsAsync(oldTargetClient);
+        var oldVerification =
+            await GetChainsAsync(initialTargetClient);
 
-        oldSessionVerification.StatusCode.Should()
-            .Be(HttpStatusCode.Unauthorized);
+        oldVerification.StatusCode
+            .Should().Be(HttpStatusCode.Unauthorized);
 
         //
-        // Revoking target's root must not affect the admin actor.
+        // Admin session must be unaffected.
         //
         var adminVerification =
             await GetChainsAsync(adminClient);
 
-        adminVerification.StatusCode.Should()
-            .Be(HttpStatusCode.OK);
+        adminVerification.StatusCode
+            .Should().Be(HttpStatusCode.OK);
     }
 
     // ---------------------------------------------------------

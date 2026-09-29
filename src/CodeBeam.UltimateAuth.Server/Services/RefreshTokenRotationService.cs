@@ -37,24 +37,24 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         if (validation.IsReuseDetected)
         {
-            var store1 = _storeFactory.Create(validation.Tenant);
+            var reuseStore = _storeFactory.Create(validation.Tenant);
 
             if (validation.ChainId is not null)
             {
-                await store1.RevokeByChainAsync(validation.ChainId.Value, context.Now, ct);
+                await reuseStore.RevokeByChainAsync(validation.ChainId.Value, context.Now, ct);
             }
             else if (validation.SessionId is not null)
             {
-                await store1.RevokeBySessionAsync(validation.SessionId.Value, context.Now, ct);
+                await reuseStore.RevokeBySessionAsync(validation.SessionId.Value, context.Now, ct);
             }
 
-            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
+            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
         }
 
         if (!validation.IsValid)
-            return new RefreshTokenRotationExecution() { Result = RefreshTokenRotationResult.Failed() };
-
-        var store = _storeFactory.Create(validation.Tenant);
+        {
+            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
+        }
 
         if (validation.UserKey is not UserKey userKey)
             throw new UAuthValidationException("Validated refresh token does not contain a UserKey.");
@@ -62,8 +62,10 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
         if (validation.SessionId is not AuthSessionId sessionId)
             throw new UAuthValidationException("Validated refresh token does not contain a SessionId.");
 
-        if (validation.TokenHash == null)
+        if (validation.TokenHash is null)
             throw new UAuthValidationException("Validated refresh token does not contain a hashed token.");
+
+        var store = _storeFactory.Create(validation.Tenant);
 
         var tokenContext = new TokenIssuanceContext
         {
@@ -72,47 +74,61 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
                 : TenantKey.Single,
 
             UserKey = userKey,
-            SessionId = validation.SessionId,
+            SessionId = sessionId,
             ChainId = validation.ChainId
         };
 
-        var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
+        // Generate candidate replacement refresh token.
+        // Do not persist it yet.
         var refreshToken = await _tokenIssuer.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.DoNotPersist, ct);
 
         if (refreshToken is null)
-            return new RefreshTokenRotationExecution
-            {
-                Result = RefreshTokenRotationResult.Failed()
-            };
-
-        // Generate the replacement token without persisting it.
-        // Revoke the current token and persist its replacement atomically.
-        await store.ExecuteAsync(async ct2 =>
         {
-            await store.RevokeAsync(validation.TokenHash, context.Now, refreshToken.TokenHash, ct2);
+            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
+        }
 
-            var stored = RefreshToken.Create(
-                tokenId: TokenId.New(),
-                tokenHash: refreshToken.TokenHash,
-                tenant: validation.Tenant,
-                userKey: userKey,
-                sessionId: sessionId,
-                chainId: validation.ChainId,
-                createdAt: context.Now,
-                expiresAt: refreshToken.ExpiresAt
-            );
+        // Only one concurrent request is allowed to consume
+        // the current refresh token.
+        var consumed = await store.ExecuteAsync(
+            async ct2 =>
+            {
+                var acquired = await store.TryConsumeAsync(validation.TokenHash, context.Now, refreshToken.TokenHash, ct2);
 
-            await store.StoreAsync(stored, ct2);
+                if (!acquired)
+                    return false;
 
-        }, ct);
+                var stored = RefreshToken.Create(
+                    tokenId: TokenId.New(),
+                    tokenHash: refreshToken.TokenHash,
+                    tenant: validation.Tenant,
+                    userKey: userKey,
+                    sessionId: sessionId,
+                    chainId: validation.ChainId,
+                    createdAt: context.Now,
+                    expiresAt: refreshToken.ExpiresAt);
 
+                await store.StoreAsync(stored, ct2);
+
+                return true;
+            },
+            ct);
+
+        // Another concurrent request consumed this token first.
+        if (!consumed)
+        {
+            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
+        }
+
+        // Only the winning request needs an access token.
+        var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
 
         return new RefreshTokenRotationExecution
         {
             Tenant = validation.Tenant,
-            UserKey = validation.UserKey,
-            SessionId = validation.SessionId,
+            UserKey = userKey,
+            SessionId = sessionId,
             ChainId = validation.ChainId,
+
             Result = RefreshTokenRotationResult.Success(accessToken, refreshToken)
         };
     }

@@ -6,6 +6,8 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Hosting;
@@ -17,7 +19,25 @@ namespace CodeBeam.UltimateAuth.Tests.Integration;
 
 public class AuthServerFactory : WebApplicationFactory<Program>
 {
+    private readonly Action<UAuthServerOptions>? _configureServer;
+
     public IntegrationTestClock Clock { get; } = new();
+
+    public AuthServerFactory()
+    {
+    }
+
+    private AuthServerFactory(Action<UAuthServerOptions> configureServer)
+    {
+        _configureServer = configureServer;
+    }
+
+    public static AuthServerFactory Create(Action<UAuthServerOptions> configureServer)
+    {
+        ArgumentNullException.ThrowIfNull(configureServer);
+
+        return new AuthServerFactory(configureServer);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -27,13 +47,15 @@ public class AuthServerFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IClock>();
             services.AddSingleton<IClock>(Clock);
+
+            if (_configureServer is not null)
+            {
+                services.PostConfigure<UAuthServerOptions>(options => _configureServer(options));
+            }
         });
     }
 
-    internal async Task<IntegrationTestUser> CreateLoginUserAsync(
-        string? identifier = null,
-        string? secret = null,
-        CancellationToken ct = default)
+    internal async Task<IntegrationTestUser> CreateLoginUserAsync(string? identifier = null, string? secret = null, TenantKey? tenant = null, CancellationToken ct = default)
     {
         using var scope = Services.CreateScope();
 
@@ -57,35 +79,48 @@ public class AuthServerFactory : WebApplicationFactory<Program>
         var clock =
             services.GetRequiredService<IClock>();
 
-        var tenant = TenantKeys.Single;
-        var userKey = UserKey.New();
+        var effectiveTenant =
+            tenant ?? TenantKeys.Single;
 
-        identifier ??= $"test-{Guid.NewGuid():N}";
-        secret ??= $"Test-{Guid.NewGuid():N}!";
+        var userKey =
+            UserKey.New();
 
-        var now = clock.UtcNow;
+        identifier ??=
+            $"test-{Guid.NewGuid():N}";
 
-        var lifecycleStore = lifecycleFactory.Create(tenant);
-        var identifierStore = identifierFactory.Create(tenant);
-        var credentialStore = credentialFactory.Create(tenant);
+        secret ??=
+            $"Test-{Guid.NewGuid():N}!";
+
+        var now =
+            clock.UtcNow;
+
+        var lifecycleStore =
+            lifecycleFactory.Create(effectiveTenant);
+
+        var identifierStore =
+            identifierFactory.Create(effectiveTenant);
+
+        var credentialStore =
+            credentialFactory.Create(effectiveTenant);
 
         await lifecycleStore.AddAsync(
             UserLifecycle.Create(
-                tenant,
+                effectiveTenant,
                 userKey,
                 now),
             ct);
 
-        var normalized = normalizer
-            .Normalize(
-                UserIdentifierType.Username,
-                identifier)
-            .Normalized;
+        var normalized =
+            normalizer
+                .Normalize(
+                    UserIdentifierType.Username,
+                    identifier)
+                .Normalized;
 
         await identifierStore.AddAsync(
             UserIdentifier.Create(
                 Guid.NewGuid(),
-                tenant,
+                effectiveTenant,
                 userKey,
                 UserIdentifierType.Username,
                 identifier,
@@ -98,7 +133,7 @@ public class AuthServerFactory : WebApplicationFactory<Program>
         await credentialStore.AddAsync(
             PasswordCredential.Create(
                 Guid.NewGuid(),
-                tenant,
+                effectiveTenant,
                 userKey,
                 hasher.Hash(secret),
                 CredentialSecurityState.Active(),

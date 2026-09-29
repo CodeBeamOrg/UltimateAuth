@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
@@ -78,7 +79,7 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.StoreAsync(token, ct));
 
         await act.Should()
-            .ThrowAsync<InvalidOperationException>();
+            .ThrowAsync<UAuthValidationException>();
     }
 
     [Fact]
@@ -224,6 +225,240 @@ public abstract class RefreshTokenStoreContractTests
 
         persisted.ReplacedByTokenHash
             .Should().Be("replacement-1");
+    }
+
+    // ============================================================
+    // ATOMIC CONSUME / ROTATION
+    // ============================================================
+
+    [Fact]
+    public async Task TryConsumeAsync_WhenTokenIsActive_ConsumesTokenAndReturnsTrue()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var token = CreateToken(
+            TenantA,
+            "consume-active");
+
+        await StoreAsync(store, token);
+
+        var consumedAt = Now.AddMinutes(10);
+
+        var consumed = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                token.TokenHash,
+                consumedAt,
+                "replacement-token",
+                ct));
+
+        consumed.Should().BeTrue();
+
+        var persisted =
+            await store.FindByHashAsync(token.TokenHash);
+
+        persisted.Should().NotBeNull();
+        persisted!.IsRevoked.Should().BeTrue();
+        persisted.RevokedAt.Should().Be(consumedAt);
+
+        persisted.ReplacedByTokenHash
+            .Should().Be("replacement-token");
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_WhenTokenAlreadyConsumed_ReturnsFalseAndDoesNotMutate()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var token = CreateToken(
+            TenantA,
+            "consume-twice");
+
+        await StoreAsync(store, token);
+
+        var firstConsumedAt = Now.AddMinutes(10);
+
+        var first = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                token.TokenHash,
+                firstConsumedAt,
+                "replacement-1",
+                ct));
+
+        first.Should().BeTrue();
+
+        var second = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                token.TokenHash,
+                Now.AddMinutes(20),
+                "replacement-2",
+                ct));
+
+        second.Should().BeFalse();
+
+        var persisted =
+            await store.FindByHashAsync(token.TokenHash);
+
+        persisted.Should().NotBeNull();
+
+        persisted!.RevokedAt
+            .Should().Be(firstConsumedAt);
+
+        persisted.ReplacedByTokenHash
+            .Should().Be("replacement-1");
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_WhenTokenDoesNotExist_ReturnsFalse()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var result = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                "missing-token",
+                Now,
+                "replacement-token",
+                ct));
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_IsTenantIsolated()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var storeA = db.CreateStore(TenantA);
+        var storeB = db.CreateStore(TenantB);
+
+        var tokenA = CreateToken(
+            TenantA,
+            "shared-consume-hash");
+
+        var tokenB = CreateToken(
+            TenantB,
+            "shared-consume-hash");
+
+        await StoreAsync(storeA, tokenA);
+        await StoreAsync(storeB, tokenB);
+
+        var consumed = await storeA.ExecuteAsync(
+            ct => storeA.TryConsumeAsync(
+                tokenA.TokenHash,
+                Now.AddMinutes(10),
+                "replacement-a",
+                ct));
+
+        consumed.Should().BeTrue();
+
+        var persistedA =
+            await storeA.FindByHashAsync(tokenA.TokenHash);
+
+        var persistedB =
+            await storeB.FindByHashAsync(tokenB.TokenHash);
+
+        persistedA!.IsRevoked.Should().BeTrue();
+
+        persistedB!.IsRevoked.Should().BeFalse();
+        persistedB.RevokedAt.Should().BeNull();
+        persistedB.ReplacedByTokenHash.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_WhenCalledConcurrently_AllowsExactlyOneConsumer()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var storeA = db.CreateStore(TenantA);
+        var storeB = db.CreateStore(TenantA);
+
+        var token = CreateToken(
+            TenantA,
+            "concurrent-consume");
+
+        await StoreAsync(storeA, token);
+
+        var consumedAt = Now.AddMinutes(10);
+
+        var taskA = storeA.ExecuteAsync(
+            ct => storeA.TryConsumeAsync(
+                token.TokenHash,
+                consumedAt,
+                "replacement-a",
+                ct));
+
+        var taskB = storeB.ExecuteAsync(
+            ct => storeB.TryConsumeAsync(
+                token.TokenHash,
+                consumedAt,
+                "replacement-b",
+                ct));
+
+        var results = await Task.WhenAll(
+            taskA,
+            taskB);
+
+        results.Count(x => x)
+            .Should().Be(1);
+
+        results.Count(x => !x)
+            .Should().Be(1);
+
+        var persisted =
+            await storeA.FindByHashAsync(
+                token.TokenHash);
+
+        persisted.Should().NotBeNull();
+        persisted!.IsRevoked.Should().BeTrue();
+
+        persisted.ReplacedByTokenHash.Should()
+            .BeOneOf(
+                "replacement-a",
+                "replacement-b");
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_WhenAlreadyConsumed_DoesNotOverwriteWinningReplacement()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var token = CreateToken(
+            TenantA,
+            "winning-replacement");
+
+        await StoreAsync(store, token);
+
+        var winningTime = Now.AddMinutes(10);
+
+        var winner = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                token.TokenHash,
+                winningTime,
+                "winner-replacement",
+                ct));
+
+        winner.Should().BeTrue();
+
+        var loser = await store.ExecuteAsync(
+            ct => store.TryConsumeAsync(
+                token.TokenHash,
+                Now.AddMinutes(20),
+                "loser-replacement",
+                ct));
+
+        loser.Should().BeFalse();
+
+        var persisted =
+            await store.FindByHashAsync(token.TokenHash);
+
+        persisted!.RevokedAt.Should()
+            .Be(winningTime);
+
+        persisted.ReplacedByTokenHash.Should()
+            .Be("winner-replacement");
     }
 
     // ============================================================
