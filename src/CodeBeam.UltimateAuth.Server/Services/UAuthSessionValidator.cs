@@ -53,7 +53,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (chain.Tenant != context.Tenant)
             return SessionValidationResult.Invalid(SessionState.SecurityMismatch, chain.UserKey, session.SessionId, chain.ChainId);
 
-        var root = await kernel.GetRootByUserAsync(session.UserKey, ct);
+        var root = await kernel.GetActiveRootByUserAsync(session.UserKey, ct);
         if (root is null || root.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, chain.UserKey, session.SessionId, chain.ChainId, root?.RootId);
 

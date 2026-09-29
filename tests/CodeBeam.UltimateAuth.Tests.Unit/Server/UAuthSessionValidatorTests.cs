@@ -129,7 +129,7 @@ public sealed class UAuthSessionValidatorTests
         result.ChainId.Should().Be(fixture.Chain.ChainId);
 
         fixture.Store.Verify(
-            x => x.GetRootByUserAsync(
+            x => x.GetActiveRootByUserAsync(
                 It.IsAny<UserKey>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -156,7 +156,7 @@ public sealed class UAuthSessionValidatorTests
         result.State.Should().Be(SessionState.Revoked);
 
         fixture.Store.Verify(
-            x => x.GetRootByUserAsync(
+            x => x.GetActiveRootByUserAsync(
                 It.IsAny<UserKey>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -176,7 +176,7 @@ public sealed class UAuthSessionValidatorTests
         result.State.Should().Be(SessionState.Expired);
 
         fixture.Store.Verify(
-            x => x.GetRootByUserAsync(
+            x => x.GetActiveRootByUserAsync(
                 It.IsAny<UserKey>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -197,7 +197,7 @@ public sealed class UAuthSessionValidatorTests
         result.State.Should().Be(SessionState.Expired);
 
         fixture.Store.Verify(
-            x => x.GetRootByUserAsync(
+            x => x.GetActiveRootByUserAsync(
                 It.IsAny<UserKey>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -215,7 +215,7 @@ public sealed class UAuthSessionValidatorTests
         SetupSessionAndChain(fixture);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((UAuthSessionRoot?)null);
@@ -244,7 +244,7 @@ public sealed class UAuthSessionValidatorTests
         SetupSessionAndChain(fixture);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(revokedRoot);
@@ -276,7 +276,7 @@ public sealed class UAuthSessionValidatorTests
         SetupSessionAndChain(fixture);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(differentRoot);
@@ -306,7 +306,7 @@ public sealed class UAuthSessionValidatorTests
         SetupSessionAndChain(fixture);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRoot);
@@ -438,7 +438,7 @@ public sealed class UAuthSessionValidatorTests
             .ReturnsAsync(fixture.Chain);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 ct))
             .ReturnsAsync(fixture.Root);
@@ -465,7 +465,7 @@ public sealed class UAuthSessionValidatorTests
             Times.Once);
 
         fixture.Store.Verify(
-            x => x.GetRootByUserAsync(fixture.User, ct),
+            x => x.GetActiveRootByUserAsync(fixture.User, ct),
             Times.Once);
 
         fixture.ClaimsProvider.Verify(
@@ -502,7 +502,7 @@ public sealed class UAuthSessionValidatorTests
         SetupSessionAndChain(fixture);
 
         fixture.Store
-            .Setup(x => x.GetRootByUserAsync(
+            .Setup(x => x.GetActiveRootByUserAsync(
                 fixture.User,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(fixture.Root);

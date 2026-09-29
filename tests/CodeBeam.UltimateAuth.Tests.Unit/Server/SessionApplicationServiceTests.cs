@@ -388,12 +388,9 @@ public sealed class SessionApplicationServiceTests
             caller,
             session.SessionId);
 
-        await act.Should()
-            .ThrowAsync<UnauthorizedAccessException>();
+        await act.Should().ThrowAsync<UAuthNotFoundException>();
 
-        var persisted =
-            await store.GetSessionAsync(session.SessionId);
-
+        var persisted = await store.GetSessionAsync(session.SessionId);
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeFalse();
     }
@@ -716,43 +713,34 @@ public sealed class SessionApplicationServiceTests
 
         var root = await CreateRootAsync(store, user);
 
-        var firstChain = CreateChain(
-            root,
-            Now.AddMinutes(-20));
+        var firstChain = CreateChain(root, Now.AddMinutes(-20));
 
-        var secondChain = CreateChain(
-            root,
-            Now.AddMinutes(-10));
+        var secondChain = CreateChain(root, Now.AddMinutes(-10));
 
         await store.CreateChainAsync(firstChain);
         await store.CreateChainAsync(secondChain);
 
-        await sut.RevokeRootAsync(
-            Context(user),
-            user);
+        await sut.RevokeRootAsync(Context(user), user);
 
-        var persistedRoot =
-            await store.GetRootByUserAsync(user);
+        var activeRoot = await store.GetActiveRootByUserAsync(user);
+
+        activeRoot.Should().BeNull();
+
+        var persistedRoot = await store.GetRootByIdAsync(root.RootId);
 
         persistedRoot.Should().NotBeNull();
         persistedRoot!.IsRevoked.Should().BeTrue();
         persistedRoot.RevokedAt.Should().Be(Now);
 
-        (await store.GetChainAsync(firstChain.ChainId))!
-            .IsRevoked.Should().BeTrue();
-
-        (await store.GetChainAsync(secondChain.ChainId))!
-            .IsRevoked.Should().BeTrue();
+        (await store.GetChainAsync(firstChain.ChainId))!.IsRevoked.Should().BeTrue();
+        (await store.GetChainAsync(secondChain.ChainId))!.IsRevoked.Should().BeTrue();
     }
 
     // ---------------------------------------------------------------------
     // Infrastructure / Helpers
     // ---------------------------------------------------------------------
 
-    private static (
-        SessionApplicationService Sut,
-        ISessionStore Store)
-        CreateSut()
+    private static (SessionApplicationService Sut, ISessionStore Store) CreateSut()
     {
         var factory = new InMemorySessionStoreFactory();
 

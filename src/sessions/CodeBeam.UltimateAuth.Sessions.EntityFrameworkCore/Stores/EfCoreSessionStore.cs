@@ -512,12 +512,29 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         projection.Version++;
     }
 
-    public async Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default)
+    public async Task<UAuthSessionRoot?> GetActiveRootByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var rootProjection = await DbSetRoot.AsNoTracking().SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
-        return rootProjection?.ToDomain();
+        var local = DbSetRoot.Local
+            .SingleOrDefault(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null);
+
+        if (local is not null)
+            return local.ToDomain();
+
+        var projection = await DbSetRoot
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == userKey &&
+                    x.RevokedAt == null,
+                ct);
+
+        return projection?.ToDomain();
     }
 
     public async Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
@@ -525,16 +542,25 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         ct.ThrowIfCancellationRequested();
 
         if (root.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
 
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
-        var projection = await DbSetRoot
-            .SingleOrDefaultAsync(x =>
+        var projection = DbSetRoot.Local
+            .SingleOrDefault(x =>
                 x.Tenant == _tenant &&
-                x.UserKey == root.UserKey,
-                ct);
+                x.RootId == root.RootId);
+
+        if (projection is null)
+        {
+            projection = await DbSetRoot
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.Tenant == _tenant &&
+                        x.RootId == root.RootId,
+                    ct);
+        }
 
         if (projection is null)
             throw new UAuthNotFoundException("root_not_found");
@@ -551,35 +577,58 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         ct.ThrowIfCancellationRequested();
 
         if (root.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
 
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
         if (root.Version != 0)
-            throw new InvalidOperationException("New root must have version 0.");
+            throw new UAuthValidationException("New root must have version 0.");
 
-        var exists = DbSetRoot.Local.Any(x =>
-            x.Tenant == _tenant &&
-            x.UserKey == root.UserKey);
+        if (root.IsRevoked)
+            throw new UAuthValidationException("New root cannot already be revoked.");
 
-        if (!exists)
+        var rootIdExists =
+            DbSetRoot.Local.Any(x =>
+                x.Tenant == _tenant &&
+                x.RootId == root.RootId);
+
+        if (!rootIdExists)
         {
-            exists = await DbSetRoot
+            rootIdExists = await DbSetRoot
                 .AsNoTracking()
                 .AnyAsync(
                     x =>
                         x.Tenant == _tenant &&
-                        x.UserKey == root.UserKey,
+                        x.RootId == root.RootId,
                     ct);
         }
 
-        if (exists)
-            throw new UAuthConcurrencyException("root_already_exists");
+        if (rootIdExists)
+            throw new UAuthConflictException("session_root_already_exists");
 
-        var projection = root.ToProjection();
+        var activeRootExists =
+            DbSetRoot.Local.Any(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == root.UserKey &&
+                x.RevokedAt == null);
 
-        DbSetRoot.Add(projection);
+        if (!activeRootExists)
+        {
+            activeRootExists = await DbSetRoot
+                .AsNoTracking()
+                .AnyAsync(
+                    x =>
+                        x.Tenant == _tenant &&
+                        x.UserKey == root.UserKey &&
+                        x.RevokedAt == null,
+                    ct);
+        }
+
+        if (activeRootExists)
+            throw new UAuthConflictException("active_session_root_already_exists");
+
+        DbSetRoot.Add(root.ToProjection());
     }
 
     public async Task RevokeRootAsync(UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
@@ -589,13 +638,28 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         if (!_inExecution)
             throw new InvalidOperationException("Must be called inside ExecuteAsync");
 
-        var projection = await DbSetRoot
-            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
+        var projection = DbSetRoot.Local
+            .SingleOrDefault(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null);
 
-        if (projection is null || projection.RevokedAt is not null)
+        if (projection is null)
+        {
+            projection = await DbSetRoot
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.Tenant == _tenant &&
+                        x.UserKey == userKey &&
+                        x.RevokedAt == null,
+                    ct);
+        }
+
+        if (projection is null)
             return;
 
         var domain = projection.ToDomain().Revoke(at);
+
         domain.UpdateProjection(projection);
         projection.Version++;
     }
@@ -730,50 +794,73 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         ct.ThrowIfCancellationRequested();
 
         if (!_inExecution)
-            throw new InvalidOperationException("Must be called inside ExecuteAsync");
+            throw new InvalidOperationException(
+                "Must be called inside ExecuteAsync");
 
-        var rootProjection = await DbSetRoot
-            .SingleOrDefaultAsync(x => x.Tenant == _tenant && x.UserKey == userKey, ct);
+        var rootProjection = DbSetRoot.Local
+            .SingleOrDefault(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RevokedAt == null);
+
+        if (rootProjection is null)
+        {
+            rootProjection = await DbSetRoot
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.Tenant == _tenant &&
+                        x.UserKey == userKey &&
+                        x.RevokedAt == null,
+                    ct);
+        }
 
         if (rootProjection is null)
             return;
 
         var chainProjections = await DbSetChain
-            .Where(x => x.Tenant == _tenant && x.UserKey == userKey)
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == userKey &&
+                x.RootId == rootProjection.RootId)
             .ToListAsync(ct);
+
+        var chainIds = chainProjections
+            .Select(x => x.ChainId)
+            .ToList();
+
+        var sessionProjections = await DbSetSession
+            .Where(x =>
+                x.Tenant == _tenant &&
+                chainIds.Contains(x.ChainId))
+            .ToListAsync(ct);
+
+        foreach (var sessionProjection in sessionProjections)
+        {
+            if (sessionProjection.RevokedAt is not null)
+                continue;
+
+            var sessionDomain =
+                sessionProjection.ToDomain().Revoke(at);
+
+            sessionDomain.UpdateProjection(sessionProjection);
+            sessionProjection.Version++;
+        }
 
         foreach (var chainProjection in chainProjections)
         {
-            var sessions = await DbSetSession
-                .Where(x => x.Tenant == _tenant && x.ChainId == chainProjection.ChainId)
-                .ToListAsync(ct);
+            if (chainProjection.RevokedAt is not null)
+                continue;
 
-            foreach (var sessionProjection in sessions)
-            {
-                if (sessionProjection.RevokedAt is not null)
-                    continue;
+            var chainDomain =
+                chainProjection.ToDomain().Revoke(at);
 
-                var sessionDomain = sessionProjection.ToDomain().Revoke(at);
-
-                sessionDomain.UpdateProjection(sessionProjection);
-                sessionProjection.Version++;
-            }
-
-            if (chainProjection.RevokedAt is null)
-            {
-                var chainDomain = chainProjection.ToDomain().Revoke(at);
-
-                chainDomain.UpdateProjection(chainProjection);
-                chainProjection.Version++;
-            }
+            chainDomain.UpdateProjection(chainProjection);
+            chainProjection.Version++;
         }
 
-        if (rootProjection.RevokedAt is null)
-        {
-            var rootDomain = rootProjection.ToDomain().Revoke(at);
+        var rootDomain = rootProjection.ToDomain().Revoke(at);
 
-            rootDomain.UpdateProjection(rootProjection);
-            rootProjection.Version++;
-        }
+        rootDomain.UpdateProjection(rootProjection);
+        rootProjection.Version++;
     }
 }

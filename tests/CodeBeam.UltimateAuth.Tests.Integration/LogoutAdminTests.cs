@@ -1428,10 +1428,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
         return client;
     }
 
-    private static async Task<HttpResponseMessage> LoginAsync(
-        HttpClient client,
-        string identifier,
-        string secret)
+    private static async Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
         return await client.PostAsJsonAsync(
             "/auth/login",
@@ -1442,8 +1439,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             });
     }
 
-    private static async Task<HttpResponseMessage> GetChainsAsync(
-        HttpClient client)
+    private static async Task<HttpResponseMessage> GetChainsAsync(HttpClient client)
     {
         return await client.PostAsJsonAsync(
             "/auth/me/sessions/chains",
@@ -1454,26 +1450,13 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             });
     }
 
-    private static string GetSessionCookie(
-        HttpResponseMessage response)
+    private static string GetSessionCookie(HttpResponseMessage response)
     {
-        response.StatusCode.Should()
-            .Be(HttpStatusCode.Found);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+        response.Headers.TryGetValues("Set-Cookie", out var values).Should().BeTrue();
 
-        response.Headers.TryGetValues(
-                "Set-Cookie",
-                out var values)
-            .Should()
-            .BeTrue();
-
-        var cookie = values!
-            .FirstOrDefault(x =>
-                x.StartsWith(
-                    "uas=",
-                    StringComparison.OrdinalIgnoreCase));
-
-        cookie.Should()
-            .NotBeNullOrWhiteSpace();
+        var cookie = values!.FirstOrDefault(x => x.StartsWith("uas=", StringComparison.OrdinalIgnoreCase));
+        cookie.Should().NotBeNullOrWhiteSpace();
 
         return cookie!;
     }

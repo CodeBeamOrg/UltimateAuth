@@ -53,7 +53,7 @@ public abstract class SessionStoreRootContractTests
             ct => store.CreateRootAsync(root, ct));
 
         var result =
-            await store.GetRootByUserAsync(user);
+            await store.GetActiveRootByUserAsync(user);
 
         result.Should().NotBeNull();
 
@@ -80,7 +80,7 @@ public abstract class SessionStoreRootContractTests
         var store = db.CreateStore(Tenant);
 
         var result =
-            await store.GetRootByUserAsync(
+            await store.GetActiveRootByUserAsync(
                 UserKey.New());
 
         result.Should().BeNull();
@@ -149,12 +149,11 @@ public abstract class SessionStoreRootContractTests
                 root,
                 ct));
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<UAuthValidationException>();
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenUserAlreadyHasRoot_ThrowsConcurrency()
+    public async Task CreateRootAsync_WhenUserAlreadyHasActiveRoot_ThrowsConflict()
     {
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(Tenant);
@@ -166,11 +165,10 @@ public abstract class SessionStoreRootContractTests
             Tenant,
             user);
 
-        var secondRoot =
-            UAuthSessionRoot.Create(
-                Tenant,
-                user,
-                Now.AddMinutes(1));
+        var secondRoot = UAuthSessionRoot.Create(
+            Tenant,
+            user,
+            Now.AddMinutes(1));
 
         var act = () => store.ExecuteAsync(
             ct => store.CreateRootAsync(
@@ -178,7 +176,7 @@ public abstract class SessionStoreRootContractTests
                 ct));
 
         await act.Should()
-            .ThrowAsync<UAuthConcurrencyException>();
+            .ThrowAsync<UAuthConflictException>();
     }
 
     // ------------------------------------------------------------
@@ -210,7 +208,7 @@ public abstract class SessionStoreRootContractTests
                 ct));
 
         var result =
-            await store.GetRootByUserAsync(
+            await store.GetActiveRootByUserAsync(
                 root.UserKey);
 
         result.Should().NotBeNull();
@@ -306,9 +304,17 @@ public abstract class SessionStoreRootContractTests
                 revokedAt,
                 ct));
 
-        var result =
-            await store.GetRootByUserAsync(
+        // Revoked root is no longer active.
+        var active =
+            await store.GetActiveRootByUserAsync(
                 root.UserKey);
+
+        active.Should().BeNull();
+
+        // But the historical root must still exist.
+        var result =
+            await store.GetRootByIdAsync(
+                root.RootId);
 
         result.Should().NotBeNull();
 
@@ -361,10 +367,11 @@ public abstract class SessionStoreRootContractTests
                 ct));
 
         var afterFirst =
-            await store.GetRootByUserAsync(
-                root.UserKey);
+            await store.GetRootByIdAsync(
+                root.RootId);
 
         afterFirst.Should().NotBeNull();
+        afterFirst!.IsRevoked.Should().BeTrue();
 
         await store.ExecuteAsync(
             ct => store.RevokeRootAsync(
@@ -373,12 +380,13 @@ public abstract class SessionStoreRootContractTests
                 ct));
 
         var afterSecond =
-            await store.GetRootByUserAsync(
-                root.UserKey);
+            await store.GetRootByIdAsync(
+                root.RootId);
 
         afterSecond.Should().NotBeNull();
+        afterSecond!.IsRevoked.Should().BeTrue();
 
-        afterSecond!.RevokedAt
+        afterSecond.RevokedAt
             .Should().Be(firstRevokedAt);
 
         afterSecond.UpdatedAt
@@ -386,7 +394,7 @@ public abstract class SessionStoreRootContractTests
 
         afterSecond.SecurityVersion
             .Should().Be(
-                afterFirst!.SecurityVersion);
+                afterFirst.SecurityVersion);
 
         afterSecond.Version
             .Should().Be(
@@ -420,10 +428,10 @@ public abstract class SessionStoreRootContractTests
                 user);
 
         var fromA =
-            await storeA.GetRootByUserAsync(user);
+            await storeA.GetActiveRootByUserAsync(user);
 
         var fromB =
-            await storeB.GetRootByUserAsync(user);
+            await storeB.GetActiveRootByUserAsync(user);
 
         fromA.Should().NotBeNull();
         fromA!.RootId.Should().Be(root.RootId);
@@ -490,9 +498,8 @@ public abstract class SessionStoreRootContractTests
                 rootB,
                 ct));
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Tenant mismatch.");
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("Tenant mismatch.");
     }
 
     [Fact]
@@ -524,9 +531,55 @@ public abstract class SessionStoreRootContractTests
                 expectedVersion: rootB.Version,
                 ct));
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Tenant mismatch.");
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("Tenant mismatch.");
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenPreviousRootIsRevoked_AllowsNewRoot()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(Tenant);
+
+        var user = UserKey.New();
+
+        var firstRoot = await CreateRootAsync(
+            store,
+            Tenant,
+            user);
+
+        await store.ExecuteAsync(async ct =>
+        {
+            await store.RevokeRootCascadeAsync(
+                user,
+                Now.AddMinutes(1),
+                ct);
+        });
+
+        var secondRoot = UAuthSessionRoot.Create(
+            Tenant,
+            user,
+            Now.AddMinutes(2));
+
+        await store.ExecuteAsync(async ct =>
+        {
+            await store.CreateRootAsync(
+                secondRoot,
+                ct);
+        });
+
+        var active =
+            await store.GetActiveRootByUserAsync(user);
+
+        active.Should().NotBeNull();
+        active!.RootId.Should().Be(secondRoot.RootId);
+        active.IsRevoked.Should().BeFalse();
+
+        var historical =
+            await store.GetRootByIdAsync(firstRoot.RootId);
+
+        historical.Should().NotBeNull();
+        historical!.IsRevoked.Should().BeTrue();
     }
 
     // ------------------------------------------------------------
@@ -539,17 +592,11 @@ public abstract class SessionStoreRootContractTests
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(Tenant);
 
-        using var cts =
-            new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
 
         cts.Cancel();
 
-        var act = () =>
-            store.GetRootByUserAsync(
-                UserKey.New(),
-                cts.Token);
-
-        await act.Should()
-            .ThrowAsync<OperationCanceledException>();
+        var act = () => store.GetActiveRootByUserAsync(UserKey.New(), cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }

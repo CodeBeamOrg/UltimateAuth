@@ -19,7 +19,7 @@ internal sealed class InMemorySessionStore : ISessionStore
 
     private readonly ConcurrentDictionary<AuthSessionId, UAuthSession> _sessions = new();
     private readonly ConcurrentDictionary<SessionChainId, UAuthSessionChain> _chains = new();
-    private readonly ConcurrentDictionary<(TenantKey, UserKey), UAuthSessionRoot> _roots = new();
+    private readonly ConcurrentDictionary<SessionRootId, UAuthSessionRoot> _roots = new();
 
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
@@ -282,16 +282,31 @@ internal sealed class InMemorySessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
-    public Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default)
+    public Task<UAuthSessionRoot?> GetActiveRootByUserAsync(UserKey userKey, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        return Task.FromResult(_roots.TryGetValue((_tenant, userKey), out var r) ? r : null);
+
+        lock (_lock)
+        {
+            var root = _roots.Values
+                .SingleOrDefault(x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == userKey &&
+                    !x.IsRevoked);
+
+            return Task.FromResult(root);
+        }
     }
 
     public Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        return Task.FromResult(_roots.Values.FirstOrDefault(r => r.RootId == rootId));
+
+        return Task.FromResult(
+            _roots.TryGetValue(rootId, out var root) &&
+            root.Tenant == _tenant
+                ? root
+                : null);
     }
 
     public Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default)
@@ -299,15 +314,20 @@ internal sealed class InMemorySessionStore : ISessionStore
         ct.ThrowIfCancellationRequested();
 
         if (root.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
 
-        if (!_roots.TryGetValue((_tenant, root.UserKey), out var current))
-            throw new UAuthNotFoundException("root_not_found");
+        lock (_lock)
+        {
+            if (!_roots.TryGetValue(root.RootId, out var current))
+                throw new UAuthNotFoundException("root_not_found");
 
-        if (current.Version != expectedVersion)
-            throw new UAuthConcurrencyException("root_concurrency_conflict");
+            if (current.Version != expectedVersion)
+                throw new UAuthConcurrencyException(
+                    "root_concurrency_conflict");
 
-        _roots[(_tenant, root.UserKey)] = root;
+            _roots[root.RootId] = root;
+        }
+
         return Task.CompletedTask;
     }
 
@@ -316,17 +336,28 @@ internal sealed class InMemorySessionStore : ISessionStore
         ct.ThrowIfCancellationRequested();
 
         if (root.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
+
+        if (root.Version != 0)
+            throw new UAuthValidationException("New root must have version 0.");
+
+        if (root.IsRevoked)
+            throw new UAuthValidationException("New root cannot already be revoked.");
 
         lock (_lock)
         {
-            if (_roots.ContainsKey((_tenant, root.UserKey)))
-                throw new UAuthConcurrencyException("root_already_exists");
+            if (_roots.ContainsKey(root.RootId))
+                throw new UAuthConflictException("session_root_already_exists");
 
-            if (root.Version != 0)
-                throw new InvalidOperationException("New root must have version 0.");
+            var activeRootExists = _roots.Values.Any(x =>
+                x.Tenant == _tenant &&
+                x.UserKey == root.UserKey &&
+                !x.IsRevoked);
 
-            _roots[(_tenant, root.UserKey)] = root;
+            if (activeRootExists)
+                throw new UAuthConflictException("active_session_root_already_exists");
+
+            _roots[root.RootId] = root;
         }
 
         return Task.CompletedTask;
@@ -336,10 +367,20 @@ internal sealed class InMemorySessionStore : ISessionStore
     {
         ct.ThrowIfCancellationRequested();
 
-        if (_roots.TryGetValue((_tenant, userKey), out var root))
+        lock (_lock)
         {
-            _roots[(_tenant, userKey)] = root.Revoke(at);
+            var root = _roots.Values
+                .SingleOrDefault(x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == userKey &&
+                    !x.IsRevoked);
+
+            if (root is null)
+                return Task.CompletedTask;
+
+            _roots[root.RootId] = root.Revoke(at);
         }
+
         return Task.CompletedTask;
     }
 
@@ -493,20 +534,26 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         lock (_lock)
         {
-            if (!_roots.TryGetValue((_tenant, userKey), out var root))
+            var root = _roots.Values
+                .SingleOrDefault(x =>
+                    x.Tenant == _tenant &&
+                    x.UserKey == userKey &&
+                    !x.IsRevoked);
+
+            if (root is null)
                 return Task.CompletedTask;
 
             var chains = _chains.Values
-                .Where(c => c.UserKey == userKey && c.Tenant == root.Tenant)
+                .Where(c =>
+                    c.Tenant == _tenant &&
+                    c.UserKey == userKey &&
+                    c.RootId == root.RootId)
                 .ToList();
 
             foreach (var chain in chains)
             {
                 if (!chain.IsRevoked)
-                {
-                    var revokedChain = chain.Revoke(at);
-                    _chains[chain.ChainId] = revokedChain;
-                }
+                    _chains[chain.ChainId] = chain.Revoke(at);
 
                 var sessions = _sessions.Values
                     .Where(s => s.ChainId == chain.ChainId)
@@ -516,17 +563,13 @@ internal sealed class InMemorySessionStore : ISessionStore
                 {
                     if (!session.IsRevoked)
                     {
-                        var revokedSession = session.Revoke(at);
-                        _sessions[session.SessionId] = revokedSession;
+                        _sessions[session.SessionId] =
+                            session.Revoke(at);
                     }
                 }
             }
 
-            if (!root.IsRevoked)
-            {
-                var revokedRoot = root.Revoke(at);
-                _roots[(_tenant, userKey)] = revokedRoot;
-            }
+            _roots[root.RootId] = root.Revoke(at);
         }
 
         return Task.CompletedTask;

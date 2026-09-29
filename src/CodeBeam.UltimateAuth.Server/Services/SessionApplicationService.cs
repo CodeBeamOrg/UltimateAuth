@@ -155,17 +155,16 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var store = _storeFactory.Create(context.ResourceTenant);
             var now = _clock.UtcNow;
 
-            var session = await store.GetSessionAsync(sessionId)
-                ?? throw new InvalidOperationException("session_not_found");
+            var session = await store.GetSessionAsync(sessionId, innerCt);
 
-            if (session.UserKey != userKey)
-                throw new UnauthorizedAccessException();
+            if (session is null || session.UserKey != userKey)
+                throw new UAuthNotFoundException("session_not_found");
 
             var expected = session.Version;
             var revoked = session.Revoke(now);
 
             await store.ExecuteAsync(async innerCt2 => {
-                await store.SaveSessionAsync(revoked, expected);
+                await store.SaveSessionAsync(revoked, expected, innerCt2);
             });
         });
 

@@ -477,7 +477,7 @@ public abstract class SessionStoreSessionContractTests
             ct => store.CreateSessionAsync(a2, ct));
 
         var root =
-            await store.GetRootByUserAsync(user);
+            await store.GetActiveRootByUserAsync(user);
 
         root.Should().NotBeNull();
 

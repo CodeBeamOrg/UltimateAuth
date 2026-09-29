@@ -25,7 +25,8 @@ public interface ISessionStore
     Task RevokeChainCascadeAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
     Task LogoutChainAsync(SessionChainId chainId, DateTimeOffset at, CancellationToken ct = default);
 
-    Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default);
+    //Task<UAuthSessionRoot?> GetRootByUserAsync(UserKey userKey, CancellationToken ct = default);
+    Task<UAuthSessionRoot?> GetActiveRootByUserAsync(UserKey userKey, CancellationToken ct = default);
     Task<UAuthSessionRoot?> GetRootByIdAsync(SessionRootId rootId, CancellationToken ct = default);
     Task SaveRootAsync(UAuthSessionRoot root, long expectedVersion, CancellationToken ct = default);
     Task CreateRootAsync(UAuthSessionRoot root, CancellationToken ct = default);
