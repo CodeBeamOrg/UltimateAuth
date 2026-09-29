@@ -1,12 +1,186 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
 public class AuthServerFactory : WebApplicationFactory<Program>
 {
+    private readonly Action<UAuthServerOptions>? _configureServer;
+
+    public IntegrationTestClock Clock { get; } = new();
+
+    public AuthServerFactory()
+    {
+    }
+
+    private AuthServerFactory(Action<UAuthServerOptions> configureServer)
+    {
+        _configureServer = configureServer;
+    }
+
+    public static AuthServerFactory Create(Action<UAuthServerOptions> configureServer)
+    {
+        ArgumentNullException.ThrowIfNull(configureServer);
+
+        return new AuthServerFactory(configureServer);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IClock>();
+            services.AddSingleton<IClock>(Clock);
+
+            if (_configureServer is not null)
+            {
+                services.PostConfigure<UAuthServerOptions>(options => _configureServer(options));
+            }
+        });
+    }
+
+    internal async Task<IntegrationTestUser> CreateLoginUserAsync(string? identifier = null, string? secret = null, TenantKey? tenant = null, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+
+        var services = scope.ServiceProvider;
+
+        var lifecycleFactory =
+            services.GetRequiredService<IUserLifecycleStoreFactory>();
+
+        var identifierFactory =
+            services.GetRequiredService<IUserIdentifierStoreFactory>();
+
+        var credentialFactory =
+            services.GetRequiredService<IPasswordCredentialStoreFactory>();
+
+        var normalizer =
+            services.GetRequiredService<IIdentifierNormalizer>();
+
+        var hasher =
+            services.GetRequiredService<IUAuthPasswordHasher>();
+
+        var clock =
+            services.GetRequiredService<IClock>();
+
+        var effectiveTenant =
+            tenant ?? TenantKeys.Single;
+
+        var userKey =
+            UserKey.New();
+
+        identifier ??=
+            $"test-{Guid.NewGuid():N}";
+
+        secret ??=
+            $"Test-{Guid.NewGuid():N}!";
+
+        var now =
+            clock.UtcNow;
+
+        var lifecycleStore =
+            lifecycleFactory.Create(effectiveTenant);
+
+        var identifierStore =
+            identifierFactory.Create(effectiveTenant);
+
+        var credentialStore =
+            credentialFactory.Create(effectiveTenant);
+
+        await lifecycleStore.AddAsync(
+            UserLifecycle.Create(
+                effectiveTenant,
+                userKey,
+                now),
+            ct);
+
+        var normalized =
+            normalizer
+                .Normalize(
+                    UserIdentifierType.Username,
+                    identifier)
+                .Normalized;
+
+        await identifierStore.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                effectiveTenant,
+                userKey,
+                UserIdentifierType.Username,
+                identifier,
+                normalized,
+                now,
+                isPrimary: true,
+                verifiedAt: now),
+            ct);
+
+        await credentialStore.AddAsync(
+            PasswordCredential.Create(
+                Guid.NewGuid(),
+                effectiveTenant,
+                userKey,
+                hasher.Hash(secret),
+                CredentialSecurityState.Active(),
+                new CredentialMetadata(),
+                now),
+            ct);
+
+        return new IntegrationTestUser(
+            userKey,
+            identifier,
+            secret);
+    }
+
+    internal async Task GrantPermissionsAsync(UserKey userKey, IEnumerable<string> permissions, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+
+        var services = scope.ServiceProvider;
+
+        var roleStoreFactory =
+            services.GetRequiredService<IRoleStoreFactory>();
+
+        var userRoleStoreFactory =
+            services.GetRequiredService<IUserRoleStoreFactory>();
+
+        var clock =
+            services.GetRequiredService<IClock>();
+
+        var tenant = TenantKeys.Single;
+        var now = clock.UtcNow;
+
+        var roleStore = roleStoreFactory.Create(tenant);
+        var userRoleStore = userRoleStoreFactory.Create(tenant);
+
+        var role = Role.Create(
+            id: null,
+            tenant: tenant,
+            name: $"integration-test-{Guid.NewGuid():N}",
+            permissions: permissions.Select(Permission.From),
+            now: now);
+
+        await roleStore.AddAsync(role, ct);
+
+        await userRoleStore.AssignAsync(
+            userKey,
+            role.Id,
+            now,
+            ct);
     }
 }

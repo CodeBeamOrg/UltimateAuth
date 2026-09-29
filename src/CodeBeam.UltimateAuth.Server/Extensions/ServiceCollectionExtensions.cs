@@ -151,7 +151,8 @@ public static class ServiceCollectionExtensions
         // Tenant Resolution
         services.TryAddSingleton<ITenantIdResolver>(sp =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            var opts = options.MultiTenant;
 
             var resolvers = new List<ITenantIdResolver>();
 
@@ -438,7 +439,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddSingleton<ITenantIdResolver>(sp =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value.MultiTenant;
 
             var resolvers = new List<ITenantIdResolver>();
 

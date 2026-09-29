@@ -6,13 +6,17 @@ using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,6 +74,85 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         return Services.GetRequiredService<IAuthFlowContextFactory>().CreateAsync(httpContext, AuthFlowType.Login);
     }
 
+    public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+        var flowService = scope.ServiceProvider.GetRequiredService<IUAuthFlowService>();
+
+        return await flowService.LoginAsync(flow, execution, request, ct);
+    }
+
+    public async Task<TestLoginUser> CreateLoginUserAsync(string? identifier = null, string? secret = null, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+
+        var services = scope.ServiceProvider;
+
+        var lifecycleFactory =
+            services.GetRequiredService<IUserLifecycleStoreFactory>();
+
+        var identifierFactory =
+            services.GetRequiredService<IUserIdentifierStoreFactory>();
+
+        var credentialFactory =
+            services.GetRequiredService<IPasswordCredentialStoreFactory>();
+
+        var normalizer =
+            services.GetRequiredService<IIdentifierNormalizer>();
+
+        var hasher =
+            services.GetRequiredService<IUAuthPasswordHasher>();
+
+        var tenant = TenantKeys.Single;
+        var userKey = UserKey.New();
+
+        identifier ??= $"unit-{Guid.NewGuid():N}";
+        secret ??= $"Test-{Guid.NewGuid():N}!";
+
+        var now = Clock.UtcNow;
+
+        var lifecycleStore = lifecycleFactory.Create(tenant);
+        var identifierStore = identifierFactory.Create(tenant);
+        var credentialStore = credentialFactory.Create(tenant);
+
+        await lifecycleStore.AddAsync(
+            UserLifecycle.Create(
+                tenant,
+                userKey,
+                now),
+            ct);
+
+        var normalized = normalizer.Normalize(
+            UserIdentifierType.Username,
+            identifier).Normalized;
+
+        await identifierStore.AddAsync(
+            UserIdentifier.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                UserIdentifierType.Username,
+                identifier,
+                normalized,
+                now,
+                isPrimary: true,
+                verifiedAt: now),
+            ct);
+
+        await credentialStore.AddAsync(
+            PasswordCredential.Create(
+                Guid.NewGuid(),
+                tenant,
+                userKey,
+                hasher.Hash(secret),
+                CredentialSecurityState.Active(),
+                new CredentialMetadata(),
+                now),
+            ct);
+
+        return new TestLoginUser(userKey, identifier, secret);
+    }
+
     public IUserApplicationService GetUserApplicationService()
     {
         var scope = Services.CreateScope();
@@ -95,4 +178,6 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
             Secret = "user"
         });
     }
+
+    internal sealed record TestLoginUser(UserKey UserKey, string Identifier, string Secret);
 }

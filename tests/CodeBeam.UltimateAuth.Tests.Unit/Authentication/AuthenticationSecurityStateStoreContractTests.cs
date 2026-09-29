@@ -231,6 +231,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
         var updated = original.RegisterFailure(
             Now,
             threshold: 3,
+            failureWindow: TimeSpan.FromMinutes(5),
             lockoutDuration: TimeSpan.FromMinutes(15));
 
         await store.UpdateAsync(
@@ -266,6 +267,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
         var updated = original.RegisterFailure(
             Now,
             threshold: 3,
+            failureWindow: TimeSpan.FromMinutes(5),
             lockoutDuration: TimeSpan.FromMinutes(15));
 
         var act = () => store.UpdateAsync(

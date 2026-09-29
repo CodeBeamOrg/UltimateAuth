@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -16,12 +17,12 @@ public sealed class TenantMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ITenantResolver resolver, IOptions<UAuthMultiTenantOptions> options)
+    public async Task InvokeAsync(HttpContext context, ITenantResolver resolver, IOptions<UAuthServerOptions> options)
     {
         var opts = options.Value;
         TenantResolutionResult resolution;
 
-        if (!opts.Enabled)
+        if (!opts.MultiTenant.Enabled)
         {
             context.Items[UAuthConstants.HttpItems.TenantContextKey] = UAuthTenantContext.SingleTenant();
             await _next(context);

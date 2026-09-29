@@ -25,6 +25,7 @@ public sealed class CredentialResponseOptions
 
     internal CredentialResponseOptions Clone() => new()
     {
+        Kind = Kind,
         Mode = Mode,
         Name = Name,
         HeaderFormat = HeaderFormat,

@@ -432,4 +432,220 @@ public class LoginOrchestratorTests
 
         result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Concurrent_First_Logins_FromDifferentDevices_ShouldCreateSingleRootAndDifferentChains()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var user = await runtime.CreateLoginUserAsync();
+        var storeFactory = runtime.Services.GetRequiredService<ISessionStoreFactory>();
+        var store = storeFactory.Create(TenantKeys.Single);
+        var rootBefore = await store.GetActiveRootByUserAsync(user.UserKey);
+
+        rootBefore.Should().BeNull();
+
+        var flowA = await runtime.CreateLoginFlowAsync();
+        var flowB = await runtime.CreateLoginFlowAsync();
+
+        var executionA = new AuthExecutionContext
+        {
+            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            Device = TestDevice.Default()
+        };
+
+        var executionB = new AuthExecutionContext
+        {
+            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            Device = TestDevice.Alternative()
+        };
+
+        var requestA = new LoginRequest
+        {
+            Identifier = user.Identifier,
+            Secret = user.Secret
+        };
+
+        var requestB = new LoginRequest
+        {
+            Identifier = user.Identifier,
+            Secret = user.Secret
+        };
+
+        var taskA = runtime.LoginAsync(flowA, executionA, requestA);
+        var taskB = runtime.LoginAsync(flowB, executionB, requestB);
+
+        var results = await Task.WhenAll(taskA, taskB);
+
+        results.Should().OnlyContain(x => x.IsSuccess);
+
+        results[0].SessionId.Should().NotBeNull();
+        results[1].SessionId.Should().NotBeNull();
+
+        results[0].SessionId.Should().NotBe(results[1].SessionId);
+
+        var sessionA =
+            await store.GetSessionAsync(
+                results[0].SessionId!.Value);
+
+        var sessionB =
+            await store.GetSessionAsync(
+                results[1].SessionId!.Value);
+
+        sessionA.Should().NotBeNull();
+        sessionB.Should().NotBeNull();
+
+        sessionA!.ChainId.Should()
+            .NotBe(sessionB!.ChainId);
+
+        var chainA =
+            await store.GetChainAsync(
+                sessionA.ChainId);
+
+        var chainB =
+            await store.GetChainAsync(
+                sessionB.ChainId);
+
+        chainA.Should().NotBeNull();
+        chainB.Should().NotBeNull();
+
+        chainA!.RootId.Should()
+            .Be(chainB!.RootId);
+
+        var activeRoot =
+            await store.GetActiveRootByUserAsync(
+                user.UserKey);
+
+        activeRoot.Should().NotBeNull();
+
+        activeRoot!.RootId.Should()
+            .Be(chainA.RootId);
+
+        activeRoot.RootId.Should()
+            .Be(chainB.RootId);
+    }
+
+    [Fact]
+    public async Task Concurrent_First_Logins_FromSameDevice_ShouldCreateSingleRootAndSingleChain()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+
+        //
+        // Fresh user: no Root, Chain or Session exists.
+        //
+        var user =
+            await runtime.CreateLoginUserAsync();
+
+        var storeFactory =
+            runtime.Services.GetRequiredService<ISessionStoreFactory>();
+
+        var store =
+            storeFactory.Create(TenantKeys.Single);
+
+        var rootBefore =
+            await store.GetActiveRootByUserAsync(
+                user.UserKey);
+
+        rootBefore.Should().BeNull();
+
+        var flowA =
+            await runtime.CreateLoginFlowAsync();
+
+        var flowB =
+            await runtime.CreateLoginFlowAsync();
+
+        //
+        // Exactly the same device identity for both requests.
+        //
+        var device =
+            TestDevice.Default();
+
+        var executionA = new AuthExecutionContext
+        {
+            EffectiveClientProfile =
+                UAuthClientProfile.BlazorWasm,
+
+            Device = device
+        };
+
+        var executionB = new AuthExecutionContext
+        {
+            EffectiveClientProfile =
+                UAuthClientProfile.BlazorWasm,
+
+            Device = device
+        };
+
+        var requestA = new LoginRequest
+        {
+            Identifier = user.Identifier,
+            Secret = user.Secret
+        };
+
+        var requestB = new LoginRequest
+        {
+            Identifier = user.Identifier,
+            Secret = user.Secret
+        };
+
+        //
+        // Separate DI scopes, representing separate requests.
+        //
+        var taskA =
+            runtime.LoginAsync(
+                flowA,
+                executionA,
+                requestA);
+
+        var taskB =
+            runtime.LoginAsync(
+                flowB,
+                executionB,
+                requestB);
+
+        var results =
+            await Task.WhenAll(
+                taskA,
+                taskB);
+
+        results.Should()
+            .OnlyContain(x => x.IsSuccess);
+
+        results[0].SessionId.Should().NotBeNull();
+        results[1].SessionId.Should().NotBeNull();
+
+        var sessionA =
+            await store.GetSessionAsync(
+                results[0].SessionId!.Value);
+
+        var sessionB =
+            await store.GetSessionAsync(
+                results[1].SessionId!.Value);
+
+        sessionA.Should().NotBeNull();
+        sessionB.Should().NotBeNull();
+
+        //
+        // Same device must represent the same device lifecycle.
+        //
+        sessionA!.ChainId.Should()
+            .Be(sessionB!.ChainId);
+
+        var chain =
+            await store.GetChainAsync(
+                sessionA.ChainId);
+
+        chain.Should().NotBeNull();
+
+        //
+        // Only one authentication Root must exist/be active.
+        //
+        var activeRoot =
+            await store.GetActiveRootByUserAsync(
+                user.UserKey);
+
+        activeRoot.Should().NotBeNull();
+
+        chain!.RootId.Should()
+            .Be(activeRoot!.RootId);
+    }
 }

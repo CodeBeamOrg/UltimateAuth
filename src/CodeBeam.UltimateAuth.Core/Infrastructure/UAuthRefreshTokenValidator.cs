@@ -17,39 +17,33 @@ public sealed class UAuthRefreshTokenValidator : IRefreshTokenValidator
     public async Task<RefreshTokenValidationResult> ValidateAsync(RefreshTokenValidationContext context, CancellationToken ct = default)
     {
         var store = _storeFactory.Create(context.Tenant);
+
         var hash = _hasher.Hash(context.RefreshToken);
+
         var stored = await store.FindByHashAsync(hash, ct);
 
         if (stored is null)
-            return RefreshTokenValidationResult.Invalid();
-
-        if (stored.IsRevoked)
-            return RefreshTokenValidationResult.ReuseDetected(
-                tenant: stored.Tenant,
-                sessionId: stored.SessionId,
-                chainId: stored.ChainId,
-                userKey: stored.UserKey);
+            return RefreshTokenValidationResult.NotFound();
 
         if (stored.IsExpired(context.Now))
-        {
-            await store.RevokeAsync(hash, context.Now, null, ct);
-            return RefreshTokenValidationResult.Invalid();
-        }
+            return RefreshTokenValidationResult.Expired(stored);
 
-        if (context.ExpectedSessionId.HasValue && stored.SessionId != context.ExpectedSessionId)
+        if (context.ExpectedSessionId.HasValue &&
+            stored.SessionId != context.ExpectedSessionId.Value)
         {
             return RefreshTokenValidationResult.Invalid();
         }
 
-        // TODO: Add device binding
-        // if (context.Device != null && !stored.MatchesDevice(context.Device))
-        //     return Invalid();
+        if (stored.IsRevoked)
+        {
+            if (stored.ReplacedByTokenHash is not null)
+            {
+                return RefreshTokenValidationResult.Consumed(stored);
+            }
 
-        return RefreshTokenValidationResult.Valid(
-            tenant: stored.Tenant,
-            stored.UserKey,
-            stored.SessionId,
-            hash,
-            stored.ChainId);
+            return RefreshTokenValidationResult.Invalid();
+        }
+
+        return RefreshTokenValidationResult.Valid(stored, hash);
     }
 }
