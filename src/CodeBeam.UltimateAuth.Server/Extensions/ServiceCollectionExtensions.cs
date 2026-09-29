@@ -439,7 +439,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddSingleton<ITenantIdResolver>(sp =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value.MultiTenant;
+            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value.MultiTenant;
 
             var resolvers = new List<ITenantIdResolver>();
 
