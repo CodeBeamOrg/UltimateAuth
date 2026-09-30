@@ -2,21 +2,21 @@
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
-public sealed class IdentifierValidationResult
+public sealed class UserIdentifierValidationResult
 {
     public bool IsValid { get; }
 
     public IReadOnlyList<UAuthValidationError> Errors { get; }
 
-    private IdentifierValidationResult(bool isValid, IReadOnlyList<UAuthValidationError> errors)
+    private UserIdentifierValidationResult(bool isValid, IReadOnlyList<UAuthValidationError> errors)
     {
         IsValid = isValid;
         Errors = errors;
     }
 
-    public static IdentifierValidationResult Success()
+    public static UserIdentifierValidationResult Success()
         => new(true, Array.Empty<UAuthValidationError>());
 
-    public static IdentifierValidationResult Failed(IEnumerable<UAuthValidationError> errors)
+    public static UserIdentifierValidationResult Failed(IEnumerable<UAuthValidationError> errors)
         => new(false, errors.ToList());
 }

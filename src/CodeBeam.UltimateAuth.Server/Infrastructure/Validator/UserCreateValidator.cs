@@ -6,11 +6,13 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UserCreateValidator : IUserCreateValidator
 {
-    private readonly IIdentifierValidator _identifierValidator;
+    private readonly IUserIdentifierValidator _identifierValidator;
+    private readonly IUserProfileValidator _profileValidator;
 
-    public UserCreateValidator(IIdentifierValidator identifierValidator)
+    public UserCreateValidator(IUserIdentifierValidator identifierValidator, IUserProfileValidator profileValidator)
     {
         _identifierValidator = identifierValidator;
+        _profileValidator = profileValidator;
     }
 
     public async Task<UserCreateValidatorResult> ValidateAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
@@ -56,6 +58,30 @@ public sealed class UserCreateValidator : IUserCreateValidator
 
             errors.AddRange(r.Errors);
         }
+
+        var effectiveDisplayName =
+            request.DisplayName
+            ?? request.UserName
+            ?? request.Email
+            ?? request.Phone;
+
+        var profileValidation = await _profileValidator.ValidateAsync(context,
+            new UserProfileInfo
+            {
+                ProfileKey = ProfileKey.Default,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = effectiveDisplayName,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture
+            },
+            ct);
+
+        errors.AddRange(profileValidation.Errors);
 
         if (errors.Count == 0)
             return UserCreateValidatorResult.Success();

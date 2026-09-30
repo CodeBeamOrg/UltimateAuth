@@ -55,7 +55,9 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             Language = Language,
             TimeZone = TimeZone,
             Culture = Culture,
-            Metadata = Metadata,
+            Metadata = Metadata is null
+                ? null
+                : new Dictionary<string, string>(Metadata),
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt,
             DeletedAt = DeletedAt,
@@ -209,6 +211,35 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             UpdatedAt = updatedAt,
             DeletedAt = deletedAt,
             Version = version
+        };
+    }
+
+    public UserProfileInfo ToDto()
+    {
+        return new UserProfileInfo
+        {
+            Id = Id,
+            ProfileKey = ProfileKey,
+
+            FirstName = FirstName,
+            LastName = LastName,
+            DisplayName = DisplayName,
+
+            BirthDate = BirthDate,
+            Gender = Gender,
+            Bio = Bio,
+
+            Language = Language,
+            TimeZone = TimeZone,
+            Culture = Culture,
+
+            Metadata = Metadata is null
+                ? null
+                : new Dictionary<string, string>(Metadata),
+
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt,
+            Version = Version
         };
     }
 

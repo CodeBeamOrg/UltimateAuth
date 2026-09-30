@@ -1128,7 +1128,7 @@ public sealed class UserApplicationServiceTests
                 It.Is<UserIdentifierInfo>(x =>
                     x.Value == "new@example.com"),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(IdentifierValidationResult.Success());
+            .ReturnsAsync(UserIdentifierValidationResult.Success());
 
         f.IdentifierNormalizer
             .Setup(x => x.Normalize(
@@ -1564,7 +1564,7 @@ public sealed class UserApplicationServiceTests
             new Mock<IUserCreateValidator>(MockBehavior.Strict);
 
         var identifierValidator =
-            new Mock<IIdentifierValidator>(MockBehavior.Strict);
+            new Mock<IUserIdentifierValidator>(MockBehavior.Strict);
 
         var normalizer =
             new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
@@ -1805,7 +1805,7 @@ public sealed class UserApplicationServiceTests
         Mock<IUserIdentifierStore> IdentifierStore,
         Mock<IUserProfileStore> ProfileStore,
         Mock<IUserCreateValidator> UserCreateValidator,
-        Mock<IIdentifierValidator> IdentifierValidator,
+        Mock<IUserIdentifierValidator> IdentifierValidator,
         Mock<IIdentifierNormalizer> IdentifierNormalizer,
         Mock<ISessionStore> SessionStore);
 

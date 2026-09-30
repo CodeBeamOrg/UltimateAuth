@@ -236,7 +236,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
         services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
-        services.TryAddScoped<IIdentifierValidator, IdentifierValidator>();
+        services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
+        services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();

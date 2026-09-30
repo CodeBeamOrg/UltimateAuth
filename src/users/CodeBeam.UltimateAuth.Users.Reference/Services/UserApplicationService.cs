@@ -18,7 +18,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserIdentifierStoreFactory _identifierStoreFactory;
     private readonly IUserProfileStoreFactory _profileStoreFactory;
     private readonly IUserCreateValidator _userCreateValidator;
-    private readonly IIdentifierValidator _identifierValidator;
+    private readonly IUserIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
     private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly ISessionStoreFactory _sessionStoreFactory;
@@ -31,7 +31,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserIdentifierStoreFactory identifierStoreFactory,
         IUserProfileStoreFactory profileStoreFactory,
         IUserCreateValidator userCreateValidator,
-        IIdentifierValidator identifierValidator,
+        IUserIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
         IIdentifierNormalizer identifierNormalizer,
         ISessionStoreFactory sessionStoreFactory,
