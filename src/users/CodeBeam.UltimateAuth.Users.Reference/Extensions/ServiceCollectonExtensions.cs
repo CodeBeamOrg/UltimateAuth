@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
         services.TryAddScoped<IUserApplicationService, UserApplicationService>();
+        services.TryAddScoped<IUserIdentifierAvailabilityService, UserIdentifierAvailabilityService>();
         services.TryAddScoped<IUserEndpointHandler, UserEndpointHandler>();
         services.TryAddScoped<IPrimaryUserIdentifierProvider, PrimaryUserIdentifierProvider>();
         services.TryAddScoped<IUserProfileSnapshotProvider, UserProfileSnapshotProvider>();

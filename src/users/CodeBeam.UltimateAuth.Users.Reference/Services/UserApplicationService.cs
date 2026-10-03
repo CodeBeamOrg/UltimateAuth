@@ -21,6 +21,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserIdentifierValidator _identifierValidator;
     private readonly IEnumerable<IUserLifecycleIntegration> _integrations;
     private readonly IIdentifierNormalizer _identifierNormalizer;
+    private readonly IUserIdentifierAvailabilityService _identifierAvailabilityService;
     private readonly ISessionStoreFactory _sessionStoreFactory;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
@@ -34,6 +35,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserIdentifierValidator identifierValidator,
         IEnumerable<IUserLifecycleIntegration> integrations,
         IIdentifierNormalizer identifierNormalizer,
+        IUserIdentifierAvailabilityService identifierAvailabilityService,
         ISessionStoreFactory sessionStoreFactory,
         IOptions<UAuthServerOptions> options,
         IClock clock)
@@ -46,6 +48,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _identifierValidator = identifierValidator;
         _integrations = integrations;
         _identifierNormalizer = identifierNormalizer;
+        _identifierAvailabilityService = identifierAvailabilityService;
         _sessionStoreFactory = sessionStoreFactory;
         _options = options.Value;
         _clock = clock;
@@ -516,25 +519,8 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (userScopeResult.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
 
-            var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
-                (request.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(request.Type));
-
-            if (mustBeUnique)
-            {
-                var scope = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers
-                    ? IdentifierExistenceScope.TenantAny
-                    : IdentifierExistenceScope.TenantPrimaryOnly;
-
-                var globalResult = await identifierStore.ExistsAsync(
-                    new IdentifierExistenceQuery(
-                        request.Type,
-                        normalized.Normalized,
-                        scope),
-                    innerCt);
-
-                if (globalResult.Exists)
-                    throw new UAuthIdentifierConflictException("identifier_already_exists");
-            }
+            // TODO(policy): Move identifier uniqueness decision/enforcement to the Policy layer.
+            await EnsureIdentifierUniquenessAsync(identifierStore, request.Type, normalized.Normalized, userKey, excludeIdentifierId: null, innerCt);
 
             if (request.IsPrimary)
             {
@@ -570,7 +556,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier is null || identifier.IsDeleted)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
-            if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.AllowUsernameChange)
+            if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.Behavior.AllowUsernameChange)
             {
                 throw new UAuthIdentifierValidationException("username_change_not_allowed");
             }
@@ -605,26 +591,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (withinUserResult.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
 
-            var mustBeUnique = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers ||
-                (identifier.IsPrimary && _options.LoginIdentifiers.AllowedTypes.Contains(identifier.Type));
-
-            if (mustBeUnique)
-            {
-                var scope = _options.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers
-                    ? IdentifierExistenceScope.TenantAny
-                    : IdentifierExistenceScope.TenantPrimaryOnly;
-
-                var result = await identifierStore.ExistsAsync(
-                    new IdentifierExistenceQuery(
-                        identifier.Type,
-                        normalized.Normalized,
-                        scope,
-                        ExcludeIdentifierId: identifier.Id),
-                    innerCt);
-
-                if (result.Exists)
-                    throw new UAuthIdentifierConflictException("identifier_already_exists");
-            }
+            await EnsureIdentifierUniquenessAsync(identifierStore, identifier.Type, normalized.Normalized, identifier.UserKey, excludeIdentifierId: identifier.Id, innerCt);
 
             var expectedVersion = identifier.Version;
             identifier.ChangeValue(request.NewValue, normalized.Normalized, _clock.UtcNow);
@@ -643,19 +610,13 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted)
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("identifier_already_primary");
 
             EnsureVerificationRequirements(identifier.Type, identifier.IsVerified);
-
-            var result = await identifierStore.ExistsAsync(
-                new IdentifierExistenceQuery(identifier.Type, identifier.NormalizedValue, IdentifierExistenceScope.TenantPrimaryOnly, ExcludeIdentifierId: identifier.Id), innerCt);
-
-            if (result.Exists)
-                throw new UAuthIdentifierConflictException("identifier_already_exists");
 
             var expectedVersion = identifier.Version;
             identifier.SetPrimary(_clock.UtcNow);
@@ -739,7 +700,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (identifier.IsPrimary)
                 throw new UAuthIdentifierValidationException("cannot_delete_primary_identifier");
 
-            if (_options.Identifiers.RequireUsernameIdentifier && identifier.Type == UserIdentifierType.Username)
+            if (_options.Identifiers.Behavior.RequireUsernameIdentifier && identifier.Type == UserIdentifierType.Username)
             {
                 var activeUsernames = identifiers
                     .Where(i => !i.IsDeleted && i.Type == UserIdentifierType.Username)
@@ -770,41 +731,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<UserIdentifierAvailabilityResult> CheckIdentifierAvailabilityAsync(AccessContext context, CheckUserIdentifierAvailabilityRequest request, CancellationToken ct = default)
     {
-        var command = new AccessCommand<UserIdentifierAvailabilityResult>(
-            async innerCt =>
-            {
-                var identifier = new UserIdentifierInfo
-                {
-                    Type = request.Type,
-                    Value = request.Value
-                };
-
-                var validation = await _identifierValidator.ValidateAsync(context, identifier, innerCt);
-
-                if (!validation.IsValid)
-                {
-                    return UserIdentifierAvailabilityResult.Invalid(validation.Errors);
-                }
-
-                var normalized = _identifierNormalizer.Normalize(request.Type, request.Value);
-
-                if (!normalized.IsValid)
-                {
-                    return UserIdentifierAvailabilityResult.Invalid(
-                        new[]
-                        {
-                            new UAuthValidationError(normalized.ErrorCode ?? "identifier_invalid")
-                        });
-                }
-
-                var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-
-                var existence = await identifierStore.ExistsAsync(new IdentifierExistenceQuery(request.Type, normalized.Normalized, IdentifierExistenceScope.TenantAny), innerCt);
-
-                return existence.Exists
-                    ? UserIdentifierAvailabilityResult.Unavailable(normalized.Normalized)
-                    : UserIdentifierAvailabilityResult.Available(normalized.Normalized);
-            });
+        var command = new AccessCommand<UserIdentifierAvailabilityResult>(innerCt => _identifierAvailabilityService.CheckAsync(context, request, innerCt));
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
@@ -856,24 +783,24 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (!hasSameType)
             return;
 
-        if (type == UserIdentifierType.Username && !_options.Identifiers.AllowMultipleUsernames)
+        if (type == UserIdentifierType.Username && !_options.Identifiers.Behavior.AllowMultipleUsernames)
             throw new UAuthValidationException("multiple_usernames_not_allowed");
 
-        if (type == UserIdentifierType.Email && !_options.Identifiers.AllowMultipleEmail)
+        if (type == UserIdentifierType.Email && !_options.Identifiers.Behavior.AllowMultipleEmail)
             throw new UAuthValidationException("multiple_emails_not_allowed");
 
-        if (type == UserIdentifierType.Phone && !_options.Identifiers.AllowMultiplePhone)
+        if (type == UserIdentifierType.Phone && !_options.Identifiers.Behavior.AllowMultiplePhone)
             throw new UAuthValidationException("multiple_phones_not_allowed");
     }
 
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
     {
-        if (type == UserIdentifierType.Email && _options.Identifiers.RequireEmailVerification && !isVerified)
+        if (type == UserIdentifierType.Email && _options.Identifiers.Behavior.RequireEmailVerification && !isVerified)
         {
             throw new UAuthValidationException("email_verification_required");
         }
 
-        if (type == UserIdentifierType.Phone && _options.Identifiers.RequirePhoneVerification && !isVerified)
+        if (type == UserIdentifierType.Phone && _options.Identifiers.Behavior.RequirePhoneVerification && !isVerified)
         {
             throw new UAuthValidationException("phone_verification_required");
         }
@@ -881,10 +808,10 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     private void EnsureOverrideAllowed(AccessContext context)
     {
-        if (context.IsSelfAction && !_options.Identifiers.AllowUserOverride)
+        if (context.IsSelfAction && !_options.Identifiers.Behavior.AllowUserOverride)
             throw new UAuthConflictException("user_override_not_allowed");
 
-        if (!context.IsSelfAction && !_options.Identifiers.AllowAdminOverride)
+        if (!context.IsSelfAction && !_options.Identifiers.Behavior.AllowAdminOverride)
             throw new UAuthConflictException("admin_override_not_allowed");
     }
 
@@ -1017,5 +944,57 @@ internal sealed class UserApplicationService : IUserApplicationService
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    private async Task EnsureIdentifierUniquenessAsync(
+        IUserIdentifierStore store,
+        UserIdentifierType type,
+        string normalizedValue,
+        UserKey userKey,
+        Guid? excludeIdentifierId,
+        CancellationToken ct)
+    {
+        var scope = GetUniquenessScope(type);
+
+        if (scope == UniquenessScope.None)
+            return;
+
+        var existenceScope = scope switch
+        {
+            UniquenessScope.WithinUser => IdentifierExistenceScope.WithinUser,
+
+            UniquenessScope.Tenant => IdentifierExistenceScope.TenantAny,
+
+            _ => throw new UAuthValidationException("unsupported_identifier_uniqueness_scope")
+        };
+
+        var result = await store.ExistsAsync(
+            new IdentifierExistenceQuery(
+                type,
+                normalizedValue,
+                existenceScope,
+                UserKey: scope == UniquenessScope.WithinUser
+                    ? userKey
+                    : null,
+                ExcludeIdentifierId: excludeIdentifierId),
+            ct);
+
+        if (result.Exists)
+        {
+            throw new UAuthIdentifierConflictException("identifier_already_exists");
+        }
+    }
+
+    private UniquenessScope GetUniquenessScope(UserIdentifierType type)
+    {
+        var uniqueness = _options.Identifiers.Uniqueness;
+
+        return type switch
+        {
+            UserIdentifierType.Username => uniqueness.Username,
+            UserIdentifierType.Email => uniqueness.Email,
+            UserIdentifierType.Phone => uniqueness.Phone,
+            _ => uniqueness.Custom
+        };
     }
 }

@@ -122,64 +122,121 @@ public class UserIdentifierApplicationServiceTests
     }
 
     [Fact]
-    public async Task Non_primary_duplicate_should_be_allowed_when_global_uniqueness_disabled()
-    {
-        var runtime = new TestAuthRuntime<UserKey>();
-        var service = runtime.GetUserApplicationService();
-
-        var user1 = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.AddSelf);
-        var user2 = TestAccessContext.ForUser(TestUsers.Admin, UserIdentifiers.AddSelf);
-
-        await service.AddUserIdentifierAsync(user1,
-            new AddUserIdentifierRequest
-            {
-                Type = UserIdentifierType.Email,
-                Value = "shared@example.com",
-                IsPrimary = false
-            });
-
-        await service.AddUserIdentifierAsync(user2,
-            new AddUserIdentifierRequest
-            {
-                Type = UserIdentifierType.Email,
-                Value = "shared@example.com",
-                IsPrimary = false
-            });
-
-        true.Should().BeTrue(); // no exception
-    }
-
-    [Fact]
-    public async Task Primary_duplicate_should_fail_when_global_uniqueness_enabled()
+    public async Task Duplicate_email_should_be_allowed_when_uniqueness_is_none()
     {
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
-            o.LoginIdentifiers.EnforceGlobalUniquenessForAllIdentifiers = true;
+            o.Identifiers.Uniqueness.Email = UniquenessScope.None;
         });
 
         var service = runtime.GetUserApplicationService();
 
-        var user1 = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.AddSelf);
-        var user2 = TestAccessContext.ForUser(TestUsers.Admin, UserIdentifiers.AddSelf);
+        var user1 = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
 
-        await service.AddUserIdentifierAsync(user1,
+        var user2 = TestAccessContext.ForUser(
+            TestUsers.Admin,
+            UserIdentifiers.AddSelf);
+
+        await service.AddUserIdentifierAsync(
+            user1,
             new AddUserIdentifierRequest
             {
                 Type = UserIdentifierType.Email,
-                Value = "unique@example.com",
-                IsPrimary = true
+                Value = "shared@example.com",
+                IsPrimary = false
             });
 
-        Func<Task> act = async () =>
-            await service.AddUserIdentifierAsync(user2,
+        Func<Task> act = () =>
+            service.AddUserIdentifierAsync(
+                user2,
                 new AddUserIdentifierRequest
                 {
                     Type = UserIdentifierType.Email,
-                    Value = "unique@example.com",
-                    IsPrimary = true
+                    Value = "shared@example.com",
+                    IsPrimary = false
                 });
 
-        await act.Should().ThrowAsync<UAuthIdentifierConflictException>();
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Add_email_should_fail_when_tenant_uniqueness_is_enabled()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Uniqueness.Email = UniquenessScope.Tenant;
+        });
+
+        var service = runtime.GetUserApplicationService();
+
+        var user1 = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var user2 = TestAccessContext.ForUser(
+            TestUsers.Admin,
+            UserIdentifiers.AddSelf);
+
+        await service.AddUserIdentifierAsync(
+            user1,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Email,
+                Value = "unique@example.com"
+            });
+
+        Func<Task> act = () =>
+            service.AddUserIdentifierAsync(
+                user2,
+                new AddUserIdentifierRequest
+                {
+                    Type = UserIdentifierType.Email,
+                    Value = "unique@example.com"
+                });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierConflictException>()
+            .WithMessage("*identifier_already_exists*");
+    }
+
+    [Fact]
+    public async Task Add_email_should_succeed_across_users_when_uniqueness_is_none()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Uniqueness.Email = UniquenessScope.None;
+        });
+
+        var service = runtime.GetUserApplicationService();
+
+        var user1 = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var user2 = TestAccessContext.ForUser(
+            TestUsers.Admin,
+            UserIdentifiers.AddSelf);
+
+        await service.AddUserIdentifierAsync(
+            user1,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Email,
+                Value = "shared@example.com"
+            });
+
+        Func<Task> act = () =>
+            service.AddUserIdentifierAsync(
+                user2,
+                new AddUserIdentifierRequest
+                {
+                    Type = UserIdentifierType.Email,
+                    Value = "shared@example.com"
+                });
+
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
@@ -240,7 +297,7 @@ public class UserIdentifierApplicationServiceTests
     {
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
-            o.Identifiers.AllowMultipleUsernames = true;
+            o.Identifiers.Behavior.AllowMultipleUsernames = true;
         });
 
         var service = runtime.GetUserApplicationService();
@@ -264,8 +321,8 @@ public class UserIdentifierApplicationServiceTests
     {
         var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
         {
-            o.LoginIdentifiers.Normalization.UsernameCase = CaseHandling.ToLower;
-            o.Identifiers.AllowMultipleUsernames = true;
+            o.Identifiers.Normalization.UsernameCase = CaseHandling.ToLower;
+            o.Identifiers.Behavior.AllowMultipleUsernames = true;
         });
 
         var service = runtime.GetUserApplicationService();

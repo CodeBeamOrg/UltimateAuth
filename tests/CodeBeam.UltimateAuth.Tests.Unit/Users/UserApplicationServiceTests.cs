@@ -1122,6 +1122,18 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(identifier);
 
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Email &&
+                    q.NormalizedValue == "new@example.com" &&
+                    q.Scope == IdentifierExistenceScope.TenantAny &&
+                    q.UserKey == null &&
+                    q.ExcludeIdentifierId == identifier.Id),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(
+                Exists: false));
+
         f.IdentifierValidator
             .Setup(x => x.ValidateAsync(
                 context,
@@ -1210,18 +1222,6 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(identifier);
 
         f.IdentifierStore
-            .Setup(x => x.ExistsAsync(
-                It.Is<IdentifierExistenceQuery>(q =>
-                    q.Type == UserIdentifierType.Email &&
-                    q.NormalizedValue == "alice@example.com" &&
-                    q.Scope == IdentifierExistenceScope.TenantPrimaryOnly &&
-                    q.UserKey == null &&
-                    q.ExcludeIdentifierId == identifier.Id),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(
-                Exists: false));
-
-        f.IdentifierStore
             .Setup(x => x.SaveAsync(
                 identifier,
                 5,
@@ -1243,6 +1243,8 @@ public sealed class UserApplicationServiceTests
             5,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.IdentifierStore.Verify(x => x.ExistsAsync(It.IsAny<IdentifierExistenceQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -1536,50 +1538,24 @@ public sealed class UserApplicationServiceTests
     // Helpers
     // ============================================================
 
-    private static Fixture CreateFixture(
-        params IUserLifecycleIntegration[] integrations)
+    private static Fixture CreateFixture(params IUserLifecycleIntegration[] integrations)
     {
-        var access =
-            new Mock<IAccessOrchestrator>(MockBehavior.Strict);
+        var access = new Mock<IAccessOrchestrator>(MockBehavior.Strict);
+        var lifecycleFactory = new Mock<IUserLifecycleStoreFactory>(MockBehavior.Strict);
+        var identifierFactory = new Mock<IUserIdentifierStoreFactory>(MockBehavior.Strict);
+        var profileFactory = new Mock<IUserProfileStoreFactory>(MockBehavior.Strict);
+        var lifecycleStore = new Mock<IUserLifecycleStore>(MockBehavior.Strict);
+        var identifierStore = new Mock<IUserIdentifierStore>(MockBehavior.Strict);
+        var profileStore = new Mock<IUserProfileStore>(MockBehavior.Strict);
+        var validator = new Mock<IUserCreateValidator>(MockBehavior.Strict);
+        var identifierValidator = new Mock<IUserIdentifierValidator>(MockBehavior.Strict);
+        var normalizer = new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
+        var identifierAvailability = new Mock<IUserIdentifierAvailabilityService>(MockBehavior.Strict);
+        var sessionFactory = new Mock<ISessionStoreFactory>(MockBehavior.Strict);
+        var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
+        var clock = new Mock<IClock>(MockBehavior.Strict);
 
-        var lifecycleFactory =
-            new Mock<IUserLifecycleStoreFactory>(MockBehavior.Strict);
-
-        var identifierFactory =
-            new Mock<IUserIdentifierStoreFactory>(MockBehavior.Strict);
-
-        var profileFactory =
-            new Mock<IUserProfileStoreFactory>(MockBehavior.Strict);
-
-        var lifecycleStore =
-            new Mock<IUserLifecycleStore>(MockBehavior.Strict);
-
-        var identifierStore =
-            new Mock<IUserIdentifierStore>(MockBehavior.Strict);
-
-        var profileStore =
-            new Mock<IUserProfileStore>(MockBehavior.Strict);
-
-        var validator =
-            new Mock<IUserCreateValidator>(MockBehavior.Strict);
-
-        var identifierValidator =
-            new Mock<IUserIdentifierValidator>(MockBehavior.Strict);
-
-        var normalizer =
-            new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
-
-        var sessionFactory =
-            new Mock<ISessionStoreFactory>(MockBehavior.Strict);
-
-        var sessionStore =
-            new Mock<ISessionStore>(MockBehavior.Strict);
-
-        var clock =
-            new Mock<IClock>(MockBehavior.Strict);
-
-        clock.SetupGet(x => x.UtcNow)
-            .Returns(Now);
+        clock.SetupGet(x => x.UtcNow).Returns(Now);
 
         lifecycleFactory
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
@@ -1629,6 +1605,7 @@ public sealed class UserApplicationServiceTests
             identifierValidator.Object,
             integrations,
             normalizer.Object,
+            identifierAvailability.Object,
             sessionFactory.Object,
             options,
             clock.Object);

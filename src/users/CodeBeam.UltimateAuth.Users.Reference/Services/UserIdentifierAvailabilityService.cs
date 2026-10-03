@@ -18,35 +18,41 @@ public sealed class UserIdentifierAvailabilityService : IUserIdentifierAvailabil
 
     public async Task<UserIdentifierAvailabilityResult> CheckAsync(AccessContext context, CheckUserIdentifierAvailabilityRequest request, CancellationToken ct = default)
     {
-        var info = new UserIdentifierInfo
+        var identifier = new UserIdentifierInfo
         {
             Type = request.Type,
             Value = request.Value
         };
 
-        var validation = await _validator.ValidateAsync(context, info, ct);
+        var validation = await _validator.ValidateAsync(context, identifier, ct);
 
         if (!validation.IsValid)
         {
-            return new UserIdentifierAvailabilityResult
-            {
-                IsValid = false,
-                IsAvailable = false,
-                Errors = validation.Errors
-            };
+            return UserIdentifierAvailabilityResult.Invalid(validation.Errors);
         }
 
-        var normalized = _normalizer.Normalize(request.Type, request.Value).Normalized;
+        var normalized = _normalizer.Normalize(request.Type, request.Value);
+
+        if (!normalized.IsValid)
+        {
+            return UserIdentifierAvailabilityResult.Invalid(
+                new[]
+                {
+                    new UAuthValidationError(normalized.ErrorCode ?? "identifier_invalid")
+                });
+        }
 
         var store = _storeFactory.Create(context.ResourceTenant);
 
-        var existence = await store.ExistsAsync(new IdentifierExistenceQuery(request.Type, normalized, IdentifierExistenceScope.TenantAny), ct);
+        var existence = await store.ExistsAsync(
+            new IdentifierExistenceQuery(
+                request.Type,
+                normalized.Normalized,
+                IdentifierExistenceScope.TenantAny),
+            ct);
 
-        return new UserIdentifierAvailabilityResult
-        {
-            IsValid = true,
-            IsAvailable = !existence.Exists,
-            NormalizedValue = normalized
-        };
+        return existence.Exists
+            ? UserIdentifierAvailabilityResult.Unavailable(normalized.Normalized)
+            : UserIdentifierAvailabilityResult.Available(normalized.Normalized);
     }
 }
