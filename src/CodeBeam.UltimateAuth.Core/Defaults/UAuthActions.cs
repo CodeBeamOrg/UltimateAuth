@@ -94,6 +94,7 @@ public static class UAuthActions
         public const string VerifyAdmin = "users.identifiers.verify.admin";
         public const string DeleteSelf = "users.identifiers.delete.self";
         public const string DeleteAdmin = "users.identifiers.delete.admin";
+        public const string CheckAvailability = "users.identifiers.check-availability.anonymous";
     }
 
     public static class Credentials

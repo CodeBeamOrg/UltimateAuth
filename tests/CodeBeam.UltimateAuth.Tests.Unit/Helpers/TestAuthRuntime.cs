@@ -179,5 +179,38 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
         });
     }
 
+    public async Task<UserIdentifier> AddIdentifierAsync(UserKey userKey, UserIdentifierType type, string value, TenantKey? tenant = null,
+                                      bool isPrimary = true, bool isVerified = true, CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var identifierFactory = services.GetRequiredService<IUserIdentifierStoreFactory>();
+        var normalizer = services.GetRequiredService<IIdentifierNormalizer>();
+
+        var effectiveTenant = tenant ?? TenantKeys.Single;
+        var now = Clock.UtcNow;
+
+        var normalized = normalizer.Normalize(type, value);
+
+        if (!normalized.IsValid)
+            throw new InvalidOperationException($"Test identifier could not be normalized: {normalized.ErrorCode}");
+
+        var identifier = UserIdentifier.Create(
+            id: Guid.NewGuid(),
+            tenant: effectiveTenant,
+            userKey: userKey,
+            type: type,
+            value: value,
+            normalizedValue: normalized.Normalized,
+            now: now,
+            isPrimary: isPrimary,
+            verifiedAt: isVerified ? now : null);
+
+        var store = identifierFactory.Create(effectiveTenant);
+        await store.AddAsync(identifier, ct);
+
+        return identifier;
+    }
+
     internal sealed record TestLoginUser(UserKey UserKey, string Identifier, string Secret);
 }

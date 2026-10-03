@@ -768,6 +768,47 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
+    public async Task<UserIdentifierAvailabilityResult> CheckIdentifierAvailabilityAsync(AccessContext context, CheckUserIdentifierAvailabilityRequest request, CancellationToken ct = default)
+    {
+        var command = new AccessCommand<UserIdentifierAvailabilityResult>(
+            async innerCt =>
+            {
+                var identifier = new UserIdentifierInfo
+                {
+                    Type = request.Type,
+                    Value = request.Value
+                };
+
+                var validation = await _identifierValidator.ValidateAsync(context, identifier, innerCt);
+
+                if (!validation.IsValid)
+                {
+                    return UserIdentifierAvailabilityResult.Invalid(validation.Errors);
+                }
+
+                var normalized = _identifierNormalizer.Normalize(request.Type, request.Value);
+
+                if (!normalized.IsValid)
+                {
+                    return UserIdentifierAvailabilityResult.Invalid(
+                        new[]
+                        {
+                            new UAuthValidationError(normalized.ErrorCode ?? "identifier_invalid")
+                        });
+                }
+
+                var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+
+                var existence = await identifierStore.ExistsAsync(new IdentifierExistenceQuery(request.Type, normalized.Normalized, IdentifierExistenceScope.TenantAny), innerCt);
+
+                return existence.Exists
+                    ? UserIdentifierAvailabilityResult.Unavailable(normalized.Normalized)
+                    : UserIdentifierAvailabilityResult.Available(normalized.Normalized);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
     #endregion
 
 

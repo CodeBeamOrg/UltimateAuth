@@ -132,4 +132,10 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/delete"), request);
         return UAuthResultMapper.From(raw);
     }
+
+    public async Task<UAuthResult<UserIdentifierAvailabilityResult>> CheckAvailabilityAsync(CheckUserIdentifierAvailabilityRequest request)
+    {
+        var raw = await _request.SendJsonAsync(Url("/users/identifiers/check-availability"), request);
+        return UAuthResultMapper.FromJson<UserIdentifierAvailabilityResult>(raw);
+    }
 }
