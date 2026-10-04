@@ -92,7 +92,6 @@ public class Argon2PasswordHasherTests
 
         var hash = hasher.Hash("password123");
 
-        // parametreleri değiştir (simulate config drift)
         var differentOptions = Options.Create(new Argon2Options
         {
             Iterations = 999,
@@ -104,7 +103,6 @@ public class Argon2PasswordHasherTests
 
         var differentHasher = new Argon2PasswordHasher(differentOptions);
 
-        // 🔥 yine de doğrulamalı
         var result = differentHasher.Verify(hash, "password123");
 
         result.Should().BeTrue();
