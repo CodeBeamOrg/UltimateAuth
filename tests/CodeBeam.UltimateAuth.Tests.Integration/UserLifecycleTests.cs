@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
@@ -392,68 +393,85 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             .BeTrue();
     }
 
-    //[Fact]
-    //public async Task CreateUser_WithDuplicateUsername_ShouldNotCreateSecondUser()
-    //{
-    //    _factory.Clock.Reset();
+    [Fact]
+    public async Task CreateUser_WithExistingUsername_ShouldNotCreateSecondUser()
+    {
+        _factory.Clock.Reset();
 
-    //    using var client = CreateClient();
+        using var client = CreateClient();
 
-    //    var username =
-    //        $"duplicate-{Guid.NewGuid():N}";
+        var username = $"duplicate-{Guid.NewGuid():N}";
 
-    //    var first =
-    //        await CreateUserResponseAsync(
-    //            client,
-    //            username);
+        // First registration succeeds.
+        var firstResponse = await CreateUserResponseAsync(client, username);
 
-    //    first.StatusCode.Should()
-    //        .Be(HttpStatusCode.OK);
+        firstResponse.StatusCode.Should()
+            .Be(HttpStatusCode.OK);
 
-    //    var second =
-    //        await CreateUserResponseAsync(
-    //            client,
-    //            username);
+        var firstResult =
+            await firstResponse.Content
+                .ReadFromJsonAsync<UserCreateResult>();
 
-    //    var secondResult = await second.Content.ReadFromJsonAsync<UserCreateResult>();
+        firstResult.Should().NotBeNull();
+        firstResult!.Succeeded.Should().BeTrue();
 
-    //    secondResult.Should().NotBeNull();
+        var firstUserKey =
+            GetUserKey(firstResult);
 
-    //    secondResult!.Succeeded.Should()
-    //        .BeFalse();
+        //
+        // Second sequential registration with the same username
+        // must be rejected.
+        //
+        var secondResponse =
+            await CreateUserResponseAsync(
+                client,
+                username);
 
-    //    secondResult.FailureReason.Should()
-    //        .NotBeNullOrWhiteSpace();
+        secondResponse.IsSuccessStatusCode.Should().BeFalse("creating a user with an identifier already owned by another user must be rejected");
 
+        ((int)secondResponse.StatusCode).Should().BeInRange(400, 499);
 
-    //    second.IsSuccessStatusCode.Should().BeFalse();
+        var problem = await secondResponse.Content.ReadFromJsonAsync<UAuthProblem>();
 
-    //    // Verify the important invariant:
-    //    // only one active identifier owns this username.
-    //    using var scope = _factory.Services.CreateScope();
+        problem.Should().NotBeNull();
 
-    //    var factory =
-    //        scope.ServiceProvider
-    //            .GetRequiredService<IUserIdentifierStoreFactory>();
+        problem!.Status.Should().Be((int)secondResponse.StatusCode);
 
-    //    var store =
-    //        factory.Create(TenantKeys.Single);
+        //
+        // Verify ownership did not change.
+        //
+        using var scope =
+            _factory.Services.CreateScope();
 
-    //    var normalized =
-    //        scope.ServiceProvider
-    //            .GetRequiredService<IIdentifierNormalizer>()
-    //            .Normalize(
-    //                UserIdentifierType.Username,
-    //                username);
+        var identifierFactory =
+            scope.ServiceProvider
+                .GetRequiredService<IUserIdentifierStoreFactory>();
 
-    //    var identifier =
-    //        await store.GetAsync(
-    //            UserIdentifierType.Username,
-    //            normalized.Normalized);
+        var normalizer =
+            scope.ServiceProvider
+                .GetRequiredService<IIdentifierNormalizer>();
 
-    //    identifier.Should().NotBeNull();
-    //    identifier!.IsDeleted.Should().BeFalse();
-    //}
+        var store =
+            identifierFactory.Create(TenantKeys.Single);
+
+        var normalized =
+            normalizer.Normalize(
+                UserIdentifierType.Username,
+                username);
+
+        var identifier =
+            await store.GetAsync(
+                UserIdentifierType.Username,
+                normalized.Normalized);
+
+        identifier.Should().NotBeNull();
+
+        identifier!.UserKey.Should().Be(
+            firstUserKey,
+            "the original user must remain the owner of the username");
+
+        identifier.IsDeleted.Should().BeFalse();
+    }
 
     [Fact]
     public async Task CreateUser_ResultUserKey_ShouldMatchPersistedAggregate()

@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
-namespace CodeBeam.UltimateAuth.Users.Reference;
+namespace CodeBeam.UltimateAuth.Server.Services;
 
 public interface IUserIdentifierAvailabilityService
 {

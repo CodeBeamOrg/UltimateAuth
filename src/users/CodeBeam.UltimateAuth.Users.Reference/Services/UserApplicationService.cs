@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users;
 using Microsoft.Extensions.Options;
+using CodeBeam.UltimateAuth.Server.Services;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -529,7 +530,6 @@ internal sealed class UserApplicationService : IUserApplicationService
             if (userScopeResult.Exists)
                 throw new UAuthIdentifierConflictException("identifier_already_exists_for_user");
 
-            // TODO(policy): Move identifier uniqueness decision/enforcement to the Policy layer.
             await EnsureIdentifierUniquenessAsync(identifierStore, request.Type, normalized.Normalized, userKey, excludeIdentifierId: null, innerCt);
 
             if (request.IsPrimary)
@@ -995,6 +995,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         }
     }
 
+    // TODO(policy): Move identifier uniqueness decision/enforcement to the Policy layer.
     private UniquenessScope GetUniquenessScope(UserIdentifierType type)
     {
         var uniqueness = _options.Identifiers.Uniqueness;
