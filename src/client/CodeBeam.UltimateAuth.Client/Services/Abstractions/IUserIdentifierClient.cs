@@ -122,4 +122,9 @@ public interface IUserIdentifierClient
     /// Deletes an identifier of a specific user.
     /// </summary>
     Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteUserIdentifierRequest request);
+
+    /// <summary>
+    /// Checks the availability of a user identifier (e.g., email, username, phone) for registration or assignment.
+    /// </summary>
+    Task<UAuthResult<UserIdentifierAvailabilityResult>> CheckAvailabilityAsync(CheckUserIdentifierAvailabilityRequest request);
 }

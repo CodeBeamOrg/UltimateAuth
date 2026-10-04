@@ -39,7 +39,7 @@ builder.Services.AddUltimateAuthServer(o => {
     //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
-    o.Identifiers.AllowMultipleUsernames = true;
+    o.Identifiers.Behavior.AllowMultipleUsernames = true;
     o.UserProfile.EnableMultiProfile = true;
 })
     .AddUltimateAuthEntityFrameworkCore(db =>

@@ -1,15 +1,15 @@
 # 🚀 Pull Request
 
-Thank you for contributing to **UltimateAuth**!  
-Please complete the following checklist to help us review your PR effectively.
+<!-- Thank you for contributing to **UltimateAuth**! -->
+<!-- Please complete the following checklist to help us review your PR effectively.-->
 
 
 ## 📘 Summary
-Describe what this PR does and why it’s needed.
+<!-- Describe what this PR does and why it’s needed. -->
 
 
 ## 🔍 Details
-Explain any important implementation details, design decisions, or considerations.
+<!-- Explain any important implementation details, design decisions, or considerations. -->
 
 
 ## 🧩 Related Issues

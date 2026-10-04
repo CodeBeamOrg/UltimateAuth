@@ -42,4 +42,5 @@ public interface IUserEndpointHandler
     Task<IResult> UnsetPrimaryUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> VerifyUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);
     Task<IResult> DeleteUserIdentifierAdminAsync(UserKey userKey, HttpContext ctx);
+    Task<IResult> CheckIdentifierAvailabilityAsync(HttpContext ctx);
 }

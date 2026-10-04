@@ -13,7 +13,7 @@ public sealed class IdentifierNormalizer : IIdentifierNormalizer
 
     public IdentifierNormalizer(IOptions<UAuthServerOptions> options)
     {
-        _options = options.Value.LoginIdentifiers.Normalization;
+        _options = options.Value.Identifiers.Normalization;
     }
 
     public NormalizedIdentifier Normalize(UserIdentifierType type, string value)

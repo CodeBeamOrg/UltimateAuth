@@ -1,12 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users.Contracts;
 
-public sealed class InMemoryUserProfileStoreContractTests
-    : UserProfileStoreContractTests
+public sealed class InMemoryUserProfileStoreContractTests : UserProfileStoreContractTests
 {
     protected override Task<IUserProfileStoreTestDatabase>
         CreateDatabaseAsync()
@@ -19,13 +18,16 @@ public sealed class InMemoryUserProfileStoreContractTests
     {
         private readonly Dictionary<TenantKey, IUserProfileStore> _stores = [];
 
+        private readonly InMemoryAtomicContextAccessor _atomicContext = new();
+
         public IUserProfileStore CreateStore(TenantKey tenant)
         {
             if (_stores.TryGetValue(tenant, out var existing))
                 return existing;
 
             var store = new InMemoryUserProfileStore(
-                new TenantExecutionContext(tenant));
+                new TenantExecutionContext(tenant),
+                _atomicContext);
 
             _stores.Add(tenant, store);
 

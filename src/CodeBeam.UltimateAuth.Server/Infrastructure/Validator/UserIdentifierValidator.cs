@@ -6,16 +6,16 @@ using System.Text.RegularExpressions;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-public sealed class IdentifierValidator : IIdentifierValidator
+public sealed class UserIdentifierValidator : IUserIdentifierValidator
 {
     private readonly UAuthIdentifierValidationOptions _options;
 
-    public IdentifierValidator(IOptions<UAuthServerOptions> options)
+    public UserIdentifierValidator(IOptions<UAuthServerOptions> options)
     {
         _options = options.Value.IdentifierValidation;
     }
 
-    public Task<IdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierInfo identifier, CancellationToken ct = default)
+    public Task<UserIdentifierValidationResult> ValidateAsync(AccessContext context, UserIdentifierInfo identifier, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -24,7 +24,7 @@ public sealed class IdentifierValidator : IIdentifierValidator
         if (string.IsNullOrWhiteSpace(identifier.Value))
         {
             errors.Add(new("identifier_empty"));
-            return Task.FromResult(IdentifierValidationResult.Failed(errors));
+            return Task.FromResult(UserIdentifierValidationResult.Failed(errors));
         }
 
         identifier.Value = identifier.Value.Trim();
@@ -45,9 +45,9 @@ public sealed class IdentifierValidator : IIdentifierValidator
         }
 
         if (errors.Count == 0)
-            return Task.FromResult(IdentifierValidationResult.Success());
+            return Task.FromResult(UserIdentifierValidationResult.Success());
 
-        return Task.FromResult(IdentifierValidationResult.Failed(errors));
+        return Task.FromResult(UserIdentifierValidationResult.Failed(errors));
     }
 
     private void ValidateUsername(string username, List<UAuthValidationError> errors)

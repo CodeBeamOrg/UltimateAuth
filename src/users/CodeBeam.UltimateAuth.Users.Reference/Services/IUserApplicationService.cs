@@ -34,6 +34,7 @@ public interface IUserApplicationService
     Task VerifyUserIdentifierAsync(AccessContext context, VerifyUserIdentifierRequest request, CancellationToken ct = default);
 
     Task DeleteUserIdentifierAsync(AccessContext context, DeleteUserIdentifierRequest request, CancellationToken ct = default);
+    Task<UserIdentifierAvailabilityResult> CheckIdentifierAvailabilityAsync(AccessContext context, CheckUserIdentifierAvailabilityRequest request, CancellationToken ct = default);
 
     Task DeleteMeAsync(AccessContext context, CancellationToken ct = default);
     Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default);

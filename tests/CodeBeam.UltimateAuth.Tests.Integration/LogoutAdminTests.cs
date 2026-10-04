@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
