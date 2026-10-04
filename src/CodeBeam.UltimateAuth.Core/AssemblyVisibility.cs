@@ -8,3 +8,4 @@
 [assembly: InternalsVisibleTo("CodeBeam.UltimateAuth.Authorization.EntityFrameworkCore")]
 [assembly: InternalsVisibleTo("CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore")]
 [assembly: InternalsVisibleTo("CodeBeam.UltimateAuth.Tests.Unit")]
+[assembly: InternalsVisibleTo("CodeBeam.UltimateAuth.Tests.Integration")]

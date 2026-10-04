@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
+namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 {
     /// <inheritdoc />
-    public partial class InitUltimateAuth : Migration
+    public partial class _001_Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -432,8 +432,12 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_UAuth_SessionRoots_Tenant_UserKey",
                 table: "UAuth_SessionRoots",
-                columns: new[] { "Tenant", "UserKey" },
-                unique: true);
+                columns: new[] { "Tenant", "UserKey" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UAuth_SessionRoots_Tenant_UserKey_RevokedAt",
+                table: "UAuth_SessionRoots",
+                columns: new[] { "Tenant", "UserKey", "RevokedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_UAuth_Sessions_Tenant_ChainId",

@@ -14,6 +14,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 internal sealed class UserApplicationService : IUserApplicationService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
+    private readonly IUAuthAtomicExecutor _atomicExecutor;
     private readonly IUserLifecycleStoreFactory _lifecycleStoreFactory;
     private readonly IUserIdentifierStoreFactory _identifierStoreFactory;
     private readonly IUserProfileStoreFactory _profileStoreFactory;
@@ -28,6 +29,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public UserApplicationService(
         IAccessOrchestrator accessOrchestrator,
+        IUAuthAtomicExecutor atomicExecutor,
         IUserLifecycleStoreFactory lifecycleStoreFactory,
         IUserIdentifierStoreFactory identifierStoreFactory,
         IUserProfileStoreFactory profileStoreFactory,
@@ -41,6 +43,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
+        _atomicExecutor = atomicExecutor;
         _lifecycleStoreFactory = lifecycleStoreFactory;
         _identifierStoreFactory = identifierStoreFactory;
         _profileStoreFactory = profileStoreFactory;
@@ -66,83 +69,90 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
             }
 
-            var now = _clock.UtcNow;
-            var userKey = UserKey.New();
-
-            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
-            await lifecycleStore.AddAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), innerCt);
-
-            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
-            await profileStore.AddAsync(
-                UserProfile.Create(
-                    Guid.NewGuid(),
-                    context.ResourceTenant,
-                    userKey,
-                    ProfileKey.Default,
-                    now,
-                    firstName: request.FirstName,
-                    lastName: request.LastName,
-                    displayName: request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
-                    birthDate: request.BirthDate,
-                    gender: request.Gender,
-                    bio: request.Bio,
-                    language: request.Language,
-                    timezone: request.TimeZone,
-                    culture: request.Culture), innerCt);
-
-            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            if (!string.IsNullOrWhiteSpace(request.UserName))
+            return await _atomicExecutor.ExecuteAsync(
+            async atomicCt =>
             {
-                await identifierStore.AddAsync(
-                    UserIdentifier.Create(
+                var now = _clock.UtcNow;
+                var userKey = UserKey.New();
+
+                var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+                await lifecycleStore.AddAsync(UserLifecycle.Create(context.ResourceTenant, userKey, now), atomicCt);
+
+                var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+                await profileStore.AddAsync(
+                    UserProfile.Create(
                         Guid.NewGuid(),
                         context.ResourceTenant,
                         userKey,
-                        UserIdentifierType.Username,
-                        request.UserName,
-                        _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
+                        ProfileKey.Default,
                         now,
-                        true,
-                        request.UserNameVerified ? now : null), innerCt);
-            }
+                        firstName: request.FirstName,
+                        lastName: request.LastName,
+                        displayName: request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
+                        birthDate: request.BirthDate,
+                        gender: request.Gender,
+                        bio: request.Bio,
+                        language: request.Language,
+                        timezone: request.TimeZone,
+                        culture: request.Culture), atomicCt);
 
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                await identifierStore.AddAsync(
-                    UserIdentifier.Create(
-                        Guid.NewGuid(),
-                        context.ResourceTenant,
-                        userKey,
-                        UserIdentifierType.Email,
-                        request.Email,
-                        _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
-                        now,
-                        true,
-                        request.EmailVerified ? now : null), innerCt);
-            }
+                var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+                if (!string.IsNullOrWhiteSpace(request.UserName))
+                {
+                    await identifierStore.AddAsync(
+                        UserIdentifier.Create(
+                            Guid.NewGuid(),
+                            context.ResourceTenant,
+                            userKey,
+                            UserIdentifierType.Username,
+                            request.UserName,
+                            _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
+                            now,
+                            true,
+                            request.UserNameVerified ? now : null), atomicCt);
+                }
 
-            if (!string.IsNullOrWhiteSpace(request.Phone))
-            {
-                await identifierStore.AddAsync(
-                    UserIdentifier.Create(
-                        Guid.NewGuid(),
-                        context.ResourceTenant,
-                        userKey,
-                        UserIdentifierType.Phone,
-                        request.Phone,
-                        _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
-                        now,
-                        true,
-                        request.PhoneVerified ? now : null), innerCt);
-            }
+                if (!string.IsNullOrWhiteSpace(request.Email))
+                {
+                    await identifierStore.AddAsync(
+                        UserIdentifier.Create(
+                            Guid.NewGuid(),
+                            context.ResourceTenant,
+                            userKey,
+                            UserIdentifierType.Email,
+                            request.Email,
+                            _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
+                            now,
+                            true,
+                            request.EmailVerified ? now : null), atomicCt);
+                }
 
-            foreach (var integration in _integrations)
-            {
-                // Credential creation handle on here
-                await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, innerCt);
-            }
+                if (!string.IsNullOrWhiteSpace(request.Phone))
+                {
+                    await identifierStore.AddAsync(
+                        UserIdentifier.Create(
+                            Guid.NewGuid(),
+                            context.ResourceTenant,
+                            userKey,
+                            UserIdentifierType.Phone,
+                            request.Phone,
+                            _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
+                            now,
+                            true,
+                            request.PhoneVerified ? now : null), atomicCt);
+                }
 
-            return UserCreateResult.Success(userKey);
+                foreach (var integration in _integrations)
+                {
+                    // Credential creation handle on here
+                    await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, atomicCt);
+                }
+
+                return UserCreateResult.Success(userKey);
+            },
+            innerCt);
+
+            
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);

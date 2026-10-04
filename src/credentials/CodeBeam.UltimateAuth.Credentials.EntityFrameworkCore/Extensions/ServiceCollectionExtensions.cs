@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,7 +13,9 @@ public static class ServiceCollectionExtensions
         {
             services.AddDbContext<TDbContext>(configureDb);
         }
-        
+
+        services.AddUltimateAuthEntityFrameworkCore<TDbContext>();
+
         services.AddScoped<IPasswordCredentialStoreFactory, EfCorePasswordCredentialStoreFactory<TDbContext>>();
         return services;
     }

@@ -8,17 +8,17 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
+namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 {
     [DbContext(typeof(UAuthDbContext))]
-    [Migration("20260412205559_InitUltimateAuth")]
-    partial class InitUltimateAuth
+    [Migration("20261004164018_001_Initial")]
+    partial class _001_Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.AuthenticationSecurityStateProjection", b =>
                 {
@@ -434,8 +434,9 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                     b.HasIndex("Tenant", "RootId")
                         .IsUnique();
 
-                    b.HasIndex("Tenant", "UserKey")
-                        .IsUnique();
+                    b.HasIndex("Tenant", "UserKey");
+
+                    b.HasIndex("Tenant", "UserKey", "RevokedAt");
 
                     b.ToTable("UAuth_SessionRoots", (string)null);
                 });

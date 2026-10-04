@@ -11,6 +11,13 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
 {
     private readonly ConcurrentDictionary<TKey, TEntity> _store = new();
 
+    private readonly InMemoryAtomicContextAccessor _atomicContext;
+
+    protected InMemoryVersionedStore(InMemoryAtomicContextAccessor atomicContext)
+    {
+        _atomicContext = atomicContext;
+    }
+
     protected abstract TKey GetKey(TEntity entity);
     protected virtual TEntity Snapshot(TEntity entity) => entity.Snapshot();
     protected virtual void BeforeAdd(TEntity entity) { }
@@ -53,6 +60,14 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
         if (!_store.TryAdd(key, snapshot))
             throw new UAuthConflictException($"{typeof(TEntity).Name} already exists.");
 
+        if (_atomicContext.Current is { } atomic)
+        {
+            atomic.RegisterRollback(() =>
+            {
+                _store.TryRemove(new KeyValuePair<TKey, TEntity>(key, snapshot));
+            });
+        }
+
         return Task.CompletedTask;
     }
 
@@ -78,6 +93,17 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
         if (!_store.TryUpdate(key, next, current))
             throw new UAuthConcurrencyException($"{typeof(TEntity).Name} update conflict.");
 
+        if (_atomicContext.Current is { } atomic)
+        {
+            atomic.RegisterRollback(() =>
+            {
+                if (!_store.TryUpdate(key, current, next))
+                {
+                    throw new UAuthConcurrencyException($"{typeof(TEntity).Name} rollback conflict.");
+                }
+            });
+        }
+
         return Task.CompletedTask;
     }
 
@@ -98,6 +124,18 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
             if (!_store.TryRemove(new KeyValuePair<TKey, TEntity>(key, current)))
                 throw new UAuthConcurrencyException($"{typeof(TEntity).Name} delete conflict.");
 
+            if (_atomicContext.Current is { } atomic)
+            {
+                atomic.RegisterRollback(() =>
+                {
+                    if (!_store.TryAdd(key, current))
+                    {
+                        throw new UAuthConcurrencyException(
+                            $"{typeof(TEntity).Name} rollback conflict.");
+                    }
+                });
+            }
+
             return Task.CompletedTask;
         }
 
@@ -111,6 +149,17 @@ public abstract class InMemoryVersionedStore<TEntity, TKey> : IVersionedStore<TE
 
         if (!_store.TryUpdate(key, next, current))
             throw new UAuthConcurrencyException($"{typeof(TEntity).Name} delete conflict.");
+
+        if (_atomicContext.Current is { } atomicSoft)
+        {
+            atomicSoft.RegisterRollback(() =>
+            {
+                if (!_store.TryUpdate(key, current, next))
+                {
+                    throw new UAuthConcurrencyException($"{typeof(TEntity).Name} rollback conflict.");
+                }
+            });
+        }
 
         return Task.CompletedTask;
     }

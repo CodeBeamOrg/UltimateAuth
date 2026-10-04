@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Hosting;
@@ -15,11 +14,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace CodeBeam.UltimateAuth.Tests.Integration;
+namespace CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 
 public class AuthServerFactory : WebApplicationFactory<Program>
 {
     private readonly Action<UAuthServerOptions>? _configureServer;
+    private readonly Action<IServiceCollection>? _configureServices;
 
     public IntegrationTestClock Clock { get; } = new();
 
@@ -27,16 +27,29 @@ public class AuthServerFactory : WebApplicationFactory<Program>
     {
     }
 
-    private AuthServerFactory(Action<UAuthServerOptions> configureServer)
+    private AuthServerFactory(Action<UAuthServerOptions>? configureServer, Action<IServiceCollection>? configureServices)
     {
         _configureServer = configureServer;
+        _configureServices = configureServices;
+    }
+
+    public static AuthServerFactory CreateWithServices(Action<IServiceCollection> configureServices)
+    {
+        ArgumentNullException.ThrowIfNull(configureServices);
+
+        return new AuthServerFactory(configureServer: null, configureServices);
     }
 
     public static AuthServerFactory Create(Action<UAuthServerOptions> configureServer)
     {
         ArgumentNullException.ThrowIfNull(configureServer);
 
-        return new AuthServerFactory(configureServer);
+        return new AuthServerFactory(configureServer, configureServices: null);
+    }
+
+    public static AuthServerFactory Create(Action<UAuthServerOptions>? configureServer, Action<IServiceCollection>? configureServices)
+    {
+        return new AuthServerFactory(configureServer, configureServices);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -52,6 +65,8 @@ public class AuthServerFactory : WebApplicationFactory<Program>
             {
                 services.PostConfigure<UAuthServerOptions>(options => _configureServer(options));
             }
+
+            _configureServices?.Invoke(services);
         });
     }
 

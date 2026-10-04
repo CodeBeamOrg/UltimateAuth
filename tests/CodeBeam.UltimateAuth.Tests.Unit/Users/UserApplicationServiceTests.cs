@@ -1541,6 +1541,7 @@ public sealed class UserApplicationServiceTests
     private static Fixture CreateFixture(params IUserLifecycleIntegration[] integrations)
     {
         var access = new Mock<IAccessOrchestrator>(MockBehavior.Strict);
+        var atomic = new Mock<IUAuthAtomicExecutor>(MockBehavior.Strict);
         var lifecycleFactory = new Mock<IUserLifecycleStoreFactory>(MockBehavior.Strict);
         var identifierFactory = new Mock<IUserIdentifierStoreFactory>(MockBehavior.Strict);
         var profileFactory = new Mock<IUserProfileStoreFactory>(MockBehavior.Strict);
@@ -1593,11 +1594,19 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<UserCreateResult>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+        atomic
+            .Setup(x => x.ExecuteAsync<UserCreateResult>(
+                It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<UserCreateResult>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
         var options = Options.Create(
             new UAuthServerOptions());
 
         var sut = new UserApplicationService(
             access.Object,
+            atomic.Object,
             lifecycleFactory.Object,
             identifierFactory.Object,
             profileFactory.Object,
@@ -1613,6 +1622,7 @@ public sealed class UserApplicationServiceTests
         return new Fixture(
             sut,
             access,
+            atomic,
             lifecycleStore,
             identifierStore,
             profileStore,
@@ -1778,6 +1788,7 @@ public sealed class UserApplicationServiceTests
     private sealed record Fixture(
         UserApplicationService Sut,
         Mock<IAccessOrchestrator> Access,
+        Mock<IUAuthAtomicExecutor> Atomic,
         Mock<IUserLifecycleStore> LifecycleStore,
         Mock<IUserIdentifierStore> IdentifierStore,
         Mock<IUserProfileStore> ProfileStore,

@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.InMemory;
@@ -13,7 +14,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Save_should_increment_version()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
@@ -34,7 +35,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Delete_should_throw_when_version_conflicts()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
@@ -57,7 +58,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Parallel_SetPrimary_should_conflict_deterministic()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var id = Guid.NewGuid();
 
@@ -103,7 +104,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Update_should_throw_concurrency_when_versions_conflict()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var id = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
@@ -130,7 +131,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Parallel_updates_should_result_in_single_success_deterministic()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
         var id = Guid.NewGuid();
@@ -181,7 +182,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task High_contention_updates_should_allow_only_one_success()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
         var id = Guid.NewGuid();
@@ -227,7 +228,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task High_contention_SetPrimary_should_allow_only_one_deterministic()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
 
@@ -276,7 +277,7 @@ public class IdentifierConcurrencyTests
     [Fact]
     public async Task Two_identifiers_racing_for_primary_should_allow()
     {
-        var store = new InMemoryUserIdentifierStore(new TenantExecutionContext(TenantKeys.Single));
+        var store = CreateStore();
         var now = DateTimeOffset.UtcNow;
         var tenant = TenantKey.Single;
         var user = TestUsers.Admin;
@@ -351,5 +352,12 @@ public class IdentifierConcurrencyTests
             .ToList();
 
         Assert.Single(primaries);
+    }
+
+    private static InMemoryUserIdentifierStore CreateStore()
+    {
+        return new InMemoryUserIdentifierStore(
+            new TenantExecutionContext(TenantKeys.Single),
+            new InMemoryAtomicContextAccessor());
     }
 }

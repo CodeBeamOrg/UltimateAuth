@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Users.Reference;
+﻿using CodeBeam.UltimateAuth.EntityFrameworkCore.Extensions;
+using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,6 +13,8 @@ public static class ServiceCollectionExtensions
         {
             services.AddDbContext<TDbContext>(configureDb);
         }
+
+        services.AddUltimateAuthEntityFrameworkCore<TDbContext>();
 
         services.AddScoped<IUserLifecycleStoreFactory, EfCoreUserLifecycleStoreFactory<TDbContext>>();
         services.AddScoped<IUserIdentifierStoreFactory, EfCoreUserIdentifierStoreFactory<TDbContext>>();

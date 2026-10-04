@@ -153,7 +153,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
 
         var projection = entity.ToProjection();
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        //using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         if (entity.IsPrimary)
         {
@@ -172,7 +172,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
         DbSet.Add(projection);
 
         await _db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        //await tx.CommitAsync(ct);
     }
 
     public async Task SaveAsync(UserIdentifier entity, long expectedVersion, CancellationToken ct = default)
@@ -182,7 +182,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
         if (entity.Tenant != _tenant)
             throw new UAuthConflictException("tenant_mismatch");
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        //using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         if (entity.IsPrimary)
         {
@@ -216,7 +216,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
         existing.Version++;
 
         await _db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        //await tx.CommitAsync(ct);
     }
 
     public async Task DeleteAsync(Guid key, long expectedVersion, DeleteMode mode, DateTimeOffset now, CancellationToken ct = default)
