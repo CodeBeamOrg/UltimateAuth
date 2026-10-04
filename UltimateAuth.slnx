@@ -26,6 +26,7 @@
     <File Path="Roadmap.md" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration.EfCore/CodeBeam.UltimateAuth.Tests.Integration.EfCore.csproj" Id="51652abe-8f77-4150-94ea-976ca41c8b91" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration/CodeBeam.UltimateAuth.Tests.Integration.csproj" Id="fe34a0b1-8038-400d-b8ab-02dad7051f2d" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Unit/CodeBeam.UltimateAuth.Tests.Unit.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />
   </Folder>

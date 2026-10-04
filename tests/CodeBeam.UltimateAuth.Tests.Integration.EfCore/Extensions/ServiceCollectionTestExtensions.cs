@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
+namespace CodeBeam.UltimateAuth.Tests.Integration.EfCore;
 
 internal static class ServiceCollectionTestExtensions
 {
