@@ -1,0 +1,83 @@
+@page "/dashboard"
+@attribute [UAuthAuthorize]
+@inherits UAuthPageBase
+@inject IUAuthClient UAuthClient
+@inject IUAuthClientProductInfoProvider ProductInfoProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Dashboard · Identity Lab</PageTitle>
+<main class="dashboard-shell">
+    <aside class="side-nav">
+        <div><span class="lab-icon">⚗</span><strong>Identity Lab</strong><small>Playground Environment</small></div>
+        <nav><a class="selected">⌂ Dashboard</a><a>♙ My Identity</a><a>▱ Device Chains</a><a>♢ Authorization</a></nav>
+        <div class="side-bottom"><a href="https://ultimateauth.com">Documentation ↗</a><a href="https://github.com/CodeBeamOrg/UltimateAuth">GitHub ↗</a><small>A CodeBeam Product</small></div>
+    </aside>
+    <section class="dashboard-content">
+        <header class="dash-heading"><div><span>DASHBOARD</span><h1>Welcome back, @DisplayName.</h1><p>This is your isolated playground environment for exploring authentication,<br />authorization and session management with UltimateAuth.</p></div><MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">● Playground Environment</MudChip></header>
+        <div class="metric-grid">
+            <article><i>♙</i><div><b>Current user</b><strong>@UserName</strong><small>UltimateAuth identity</small></div></article>
+            <article><i>▱</i><div><b>Device chains</b><strong>@(chains?.TotalCount.ToString() ?? "—")</strong><small>From GetMyChainsAsync</small></div></article>
+            <article><i>✓</i><div><b>Session state</b><strong>@(AuthState?.Identity?.SessionState?.ToString() ?? "—")</strong><small>Server-controlled</small></div></article>
+            <article><i>♢</i><div><b>Authorization</b><strong>@(AuthState?.Claims.Roles.Count ?? 0)</strong><small>Assigned roles</small></div></article>
+        </div>
+        <div class="dashboard-grid">
+            <MudPaper Class="dash-panel chains-panel" Elevation="0">
+                <div class="panel-title"><h2>Your device chains</h2><MudButton Variant="Variant.Text" OnClick="LoadChains">Refresh</MudButton></div>
+                @if (loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" /> }
+                else if (chains?.Items.Count > 0)
+                {
+                    <MudTable Items="chains.Items" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent><MudTh>Device / client</MudTh><MudTh>Last seen</MudTh><MudTh>State</MudTh><MudTh></MudTh></HeaderContent>
+                        <RowTemplate>
+                            <MudTd><b>@DeviceName(context)</b><br /><small>@(context.IsCurrentDevice ? "Current device" : context.Platform)</small></MudTd>
+                            <MudTd>@FormatDate(context.LastSeenAt)</MudTd>
+                            <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsRevoked ? Color.Error : Color.Success)">@context.State</MudChip></MudTd>
+                            <MudTd><MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text" Disabled="context.IsRevoked" OnClick="() => Revoke(context)">Revoke</MudButton></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else { <div class="empty-state"><b>No device chains returned</b><p>UltimateAuth has not exposed an active chain for this account yet.</p></div> }
+            </MudPaper>
+            <MudPaper Class="dash-panel" Elevation="0">
+                <div class="panel-title"><h2>Authentication state</h2></div>
+                <dl class="info-list"><dt>Authenticated</dt><dd>@(AuthState?.IsAuthenticated == true ? "Yes" : "No")</dd><dt>Tenant</dt><dd>@AuthState?.Identity?.Tenant.Value</dd><dt>User key</dt><dd class="truncate">@AuthState?.Identity?.UserKey.Value</dd><dt>Roles</dt><dd>@Roles</dd><dt>Client profile</dt><dd>@product?.ClientProfile</dd></dl>
+            </MudPaper>
+            <MudPaper Class="dash-panel" Elevation="0">
+                <div class="panel-title"><h2>Quick actions</h2></div>
+                <div class="quick-actions"><MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="Validate">Validate session</MudButton><MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Devices" OnClick="LoadChains">Explore chains</MudButton><MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout" OnClick="Logout">Sign out</MudButton></div>
+            </MudPaper>
+            <MudPaper Class="dash-panel" Elevation="0">
+                <div class="panel-title"><h2>Playground info</h2></div>
+                <dl class="info-list"><dt>Environment</dt><dd><span class="green-dot">●</span> Isolated</dd><dt>Storage</dt><dd>In-memory</dd><dt>Started</dt><dd>@product?.StartedAt.ToLocalTime().ToString("g")</dd><dt>UltimateAuth</dt><dd>v@product?.Version</dd></dl>
+            </MudPaper>
+        </div>
+    </section>
+</main>
+
+@code {
+    private PagedResult<SessionChainSummary>? chains;
+    private UAuthClientProductInfo? product;
+    private bool loading;
+    private string DisplayName => AuthState?.Identity?.DisplayName ?? AuthState?.Identity?.PrimaryUserName ?? "Explorer";
+    private string UserName => AuthState?.Identity?.PrimaryUserName ?? "—";
+    private string Roles => AuthState is null || AuthState.Claims.Roles.Count == 0 ? "None" : string.Join(", ", AuthState.Claims.Roles);
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = ProductInfoProvider.Get();
+        if (AuthState.IsAuthenticated)
+            await LoadChains();
+    }
+
+    protected override void HandleAuthStateChanged(UAuthStateChangeReason reason)
+    {
+        if (reason == UAuthStateChangeReason.Authenticated && chains is null)
+            _ = InvokeAsync(async () => { await LoadChains(); StateHasChanged(); });
+    }
+    private async Task LoadChains() { loading = true; var result = await UAuthClient.Sessions.GetMyChainsAsync(); chains = result.Value; loading = false; }
+    private async Task Revoke(SessionChainSummary chain) { var result = await UAuthClient.Sessions.RevokeMyChainAsync(chain.ChainId); Snackbar.Add(result.IsSuccess ? "Device chain revoked." : result.ErrorText ?? "Revocation failed.", result.IsSuccess ? Severity.Success : Severity.Error); await LoadChains(); }
+    private async Task Validate() { var result = await UAuthClient.Flows.ValidateAsync(); Snackbar.Add(result.IsValid ? "Session is valid." : $"Session state: {result.State}", result.IsValid ? Severity.Success : Severity.Warning); }
+    private Task Logout() => UAuthClient.Flows.LogoutAsync();
+    private static string DeviceName(SessionChainSummary chain) => string.Join(" · ", new[] { chain.Browser, chain.OperatingSystem, chain.DeviceType }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    private static string FormatDate(DateTimeOffset? value) => value?.ToLocalTime().ToString("g") ?? "Not reported";
+}
