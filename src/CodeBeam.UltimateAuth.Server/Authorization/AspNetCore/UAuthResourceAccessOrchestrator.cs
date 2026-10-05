@@ -34,11 +34,11 @@ public sealed class UAuthResourceAccessOrchestrator : IAccessOrchestrator
         var policies = _policyProvider.GetPolicies(context);
         var decision = _authority.Decide(context, policies);
 
-        if (!decision.IsAllowed)
-            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
-
         if (decision.RequiresReauthentication)
             throw new InvalidOperationException("Requires reauthentication.");
+
+        if (decision.IsDenied)
+            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
 
         await command.ExecuteAsync(ct);
     }
@@ -52,11 +52,11 @@ public sealed class UAuthResourceAccessOrchestrator : IAccessOrchestrator
         var policies = _policyProvider.GetPolicies(context);
         var decision = _authority.Decide(context, policies);
 
-        if (!decision.IsAllowed)
-            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
-
         if (decision.RequiresReauthentication)
             throw new InvalidOperationException("Requires reauthentication.");
+
+        if (decision.IsDenied)
+            throw new UAuthAuthorizationException(decision.DenyReason ?? "authorization_denied");
 
         return await command.ExecuteAsync(ct);
     }

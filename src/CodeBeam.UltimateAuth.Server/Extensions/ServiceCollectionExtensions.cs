@@ -206,7 +206,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAccessAuthority, UAuthAccessAuthority>();
 
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
-        services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
+        //services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
         services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
@@ -415,7 +415,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
-        services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
+        //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
 
         // Server & Resource API Shared

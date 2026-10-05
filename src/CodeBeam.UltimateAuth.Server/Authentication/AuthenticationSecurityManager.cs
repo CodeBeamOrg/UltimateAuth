@@ -3,8 +3,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Security;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Security;
 
