@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using FluentAssertions;
 

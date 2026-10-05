@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
 /// <summary>
 /// Discovers the login page route from the component decorated with

@@ -1,23 +1,28 @@
 ﻿using Bunit;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
 public sealed class UAuthLoginRedirectTests : BunitContext
 {
-    private NavigationManager Nav =>
-        Services.GetRequiredService<NavigationManager>();
+    private NavigationManager Nav => Services.GetRequiredService<NavigationManager>();
+
+    public UAuthLoginRedirectTests()
+    {
+        Services.AddSingleton<IUAuthLoginPageResolver>(new TestLoginPageResolver("/login"));
+        UseLoginRoute("/login");
+    }
 
     [Fact]
     public void Render_WithoutReturnUrl_NavigatesToLoginPage()
     {
         Navigate(UAuthConstants.Routes.LoginRedirect);
-
-        Render<UAuthLoginDispatch>();
 
         var comp = Render<UAuthLoginDispatch>();
 
@@ -219,6 +224,29 @@ public sealed class UAuthLoginRedirectTests : BunitContext
             .Be("/home");
     }
 
+    [Fact]
+    public void Render_ShouldUseResolvedLoginRoute()
+    {
+        UseLoginRoute("/custom-sign-in");
+
+        Navigate(UAuthConstants.Routes.LoginRedirect);
+
+        Render<UAuthLoginDispatch>();
+
+        Nav.ToAbsoluteUri(Nav.Uri)
+            .AbsolutePath
+            .Should()
+            .Be("/custom-sign-in");
+    }
+
+    private void UseLoginRoute(string route)
+    {
+        Services.RemoveAll<IUAuthLoginPageResolver>();
+
+        Services.AddSingleton<IUAuthLoginPageResolver>(
+            new TestLoginPageResolver(route));
+    }
+
     private void NavigateToRedirect(string returnUrl)
     {
         Nav.NavigateTo(UAuthConstants.Routes.LoginRedirect);
@@ -246,5 +274,20 @@ public sealed class UAuthLoginRedirectTests : BunitContext
             out var value)
                 ? value.ToString()
                 : null;
+    }
+
+    private sealed class TestLoginPageResolver : IUAuthLoginPageResolver
+    {
+        private readonly string _route;
+
+        public TestLoginPageResolver(string route)
+        {
+            _route = route;
+        }
+
+        public string Resolve()
+        {
+            return _route;
+        }
     }
 }
