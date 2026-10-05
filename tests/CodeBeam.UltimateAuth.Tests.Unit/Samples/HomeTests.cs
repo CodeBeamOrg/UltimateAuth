@@ -1,5 +1,6 @@
 ﻿using Bunit;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Layout;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
 using FluentAssertions;
