@@ -33,4 +33,12 @@ internal sealed class ConditionalScopeBuilder : IPolicyScopeBuilder
     public IPolicyScopeBuilder RequirePermission() => Add<MustHavePermissionPolicy>();
     public IPolicyScopeBuilder RequireAuthenticated() => Add<RequireAuthenticatedPolicy>();
     public IPolicyScopeBuilder DenyCrossTenant() => Add<DenyCrossTenantPolicy>();
+
+    public IConditionalPolicyBuilder When(
+    Func<AccessContext, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        return new ConditionalPolicyBuilder(_prefix, context => (_condition(context) == _expected) && predicate(context), _registry, _services);
+    }
 }
