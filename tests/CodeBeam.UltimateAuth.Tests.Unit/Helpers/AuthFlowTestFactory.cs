@@ -25,12 +25,13 @@ internal static class AuthFlowTestFactory
         UserKey? userKey = null,
         SessionSecurityContext? session = null,
         bool isAuthenticated = true,
-        EffectiveAuthResponse? response = null)
+        EffectiveAuthResponse? response = null,
+        UAuthMode mode = UAuthMode.PureOpaque)
     {
         return new AuthFlowContext(
             flowType: AuthFlowType.Login,
             clientProfile: UAuthClientProfile.BlazorServer,
-            effectiveMode: UAuthMode.PureOpaque,
+            effectiveMode: mode,
             device: TestDevice.Default(),
             tenantKey: tenant ?? TenantKey.Single,
             isAuthenticated: isAuthenticated,
