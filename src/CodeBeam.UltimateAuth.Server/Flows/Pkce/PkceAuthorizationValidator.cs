@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -25,17 +26,28 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
 
     private static bool IsContextValid(PkceContextSnapshot original, PkceContextSnapshot completion)
     {
-        if (!original.ClientProfile.Equals(completion.ClientProfile))
-            return false;
-
+        // Tenant is part of the server-side security boundary and must
+        // remain stable throughout the PKCE transaction.
         if (!string.Equals(original.Tenant, completion.Tenant, StringComparison.Ordinal))
             return false;
 
-        if (!string.Equals(original.RedirectUri, completion.RedirectUri, StringComparison.Ordinal))
-            return false;
+        // TODO: Bind the effective client profile rather than the physical
+        // completion request profile. In Hub flows the artifact may represent
+        // BlazorWasm while the completion request is executed by UAuthHub.
+        //if (!original.ClientProfile.Equals(completion.ClientProfile))
+        //    return false;
 
-        if (!Equals(original.Device, completion.Device))
-            return false;
+        // TODO: Add protocol-level redirect/return-url binding once the
+        // relationship between authorization RedirectUri and Hub ReturnUrl
+        // is explicitly defined. They are not currently equivalent concepts.
+        //if (!string.Equals(original.RedirectUri, completion.RedirectUri, StringComparison.Ordinal))
+        //    return false;
+
+        // TODO: Add logical client-device binding. The physical device context
+        // of the Hub completion request is not necessarily the device context
+        // captured from the originating client.
+        //if (!IsDeviceValid(original.Device, completion.Device))
+        //    return false;
 
         return true;
     }
