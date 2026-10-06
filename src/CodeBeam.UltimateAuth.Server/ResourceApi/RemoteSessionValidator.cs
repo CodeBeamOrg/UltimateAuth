@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Server.ResourceApi;
 
+// TODO: Resource API calls make two calls to here. Investigate.
 internal sealed class RemoteSessionValidator : ISessionValidator
 {
     private readonly HttpClient _http;
