@@ -41,11 +41,11 @@ internal sealed class RemoteSessionValidator : ISessionValidator
         if (!response.IsSuccessStatusCode)
             return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
 
-        var dto = await response.Content.ReadFromJsonAsync<SessionValidationInfo>(cancellationToken: ct);
+        var dto = await response.Content.ReadFromJsonAsync<AuthValidationResult>(cancellationToken: ct);
 
         if (dto is null)
             return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
 
-        return SessionValidationMapper.ToDomain(dto);
+        return SessionValidationMapper.ToDomain(dto, context.SessionId);
     }
 }

@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Server;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Endpoints;
-using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
@@ -52,6 +51,7 @@ public sealed class ValidateEndpointHandlerTests
         json.Value!.State.Should()
             .Be(SessionState.NotFound);
 
+        json.Value.IsValid.Should().BeFalse();
         json.Value.Snapshot.Should().BeNull();
 
         fixture.SessionValidator.VerifyNoOtherCalls();
@@ -136,6 +136,7 @@ public sealed class ValidateEndpointHandlerTests
         json.Value!.State.Should()
             .Be(SessionState.Invalid);
 
+        json.Value.IsValid.Should().BeFalse();
         json.Value.Snapshot.Should().BeNull();
 
         fixture.SessionValidator.VerifyNoOtherCalls();
@@ -210,7 +211,7 @@ public sealed class ValidateEndpointHandlerTests
     // =====================================================================
 
     [Fact]
-    public async Task ValidateAsync_WhenValidationHasNoUserKey_ReturnsUnauthorizedInvalid()
+    public async Task ValidateAsync_WhenValidationIsInvalidWithoutUserKey_ReturnsOkInvalid()
     {
         var fixture = CreateFixture();
 
@@ -238,18 +239,18 @@ public sealed class ValidateEndpointHandlerTests
             fixture.HttpContext,
             fixture.CancellationToken);
 
-        var json = result.Should()
-            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+        var ok = result.Should()
+            .BeOfType<Ok<AuthValidationResult>>()
             .Subject;
 
-        json.StatusCode.Should()
-            .Be(StatusCodes.Status401Unauthorized);
+        ok.Value.Should().NotBeNull();
 
-        json.Value.Should().NotBeNull();
-        json.Value!.State.Should()
+        ok.Value!.State.Should()
             .Be(SessionState.Invalid);
 
-        json.Value.Snapshot.Should().BeNull();
+        ok.Value.IsValid.Should().BeFalse();
+
+        ok.Value.Snapshot.Should().BeNull();
 
         fixture.SnapshotFactory.Verify(
             x => x.CreateAsync(
@@ -304,15 +305,26 @@ public sealed class ValidateEndpointHandlerTests
 
         ok.Value.Should().NotBeNull();
 
-        ok.Value!.State.Should()
+        var value = ok.Value!;
+
+        value.State.Should()
             .Be(SessionState.Active);
 
-        ok.Value.Snapshot.Should()
+        value.IsValid.Should().BeTrue();
+
+        value.Snapshot.Should()
             .BeSameAs(snapshot);
 
-        fixture.SnapshotFactory.Verify(x => x.CreateAsync(
-            validation,
-            It.IsAny<CancellationToken>()),
+        value.ChainId.Should()
+            .Be(validation.ChainId!.Value.Value);
+
+        value.RootId.Should()
+            .Be(validation.RootId!.Value.Value);
+
+        fixture.SnapshotFactory.Verify(
+            x => x.CreateAsync(
+                validation,
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -347,12 +359,6 @@ public sealed class ValidateEndpointHandlerTests
                 fixture.CancellationToken))
             .ReturnsAsync(validation);
 
-        fixture.SnapshotFactory
-            .Setup(x => x.CreateAsync(
-                validation,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AuthStateSnapshot?)null);
-
         var result = await fixture.Sut.ValidateAsync(
             fixture.HttpContext,
             fixture.CancellationToken);
@@ -363,15 +369,20 @@ public sealed class ValidateEndpointHandlerTests
 
         ok.Value.Should().NotBeNull();
 
-        ok.Value!.State.Should()
+        var value = ok.Value!;
+
+        value.State.Should()
             .Be(SessionState.Revoked);
 
-        ok.Value.Snapshot.Should().BeNull();
+        value.IsValid.Should().BeFalse();
 
-        fixture.SnapshotFactory.Verify(x => x.CreateAsync(
-            validation,
-            It.IsAny<CancellationToken>()),
-            Times.Once);
+        value.Snapshot.Should().BeNull();
+
+        fixture.SnapshotFactory.Verify(
+            x => x.CreateAsync(
+                It.IsAny<SessionValidationResult>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // =====================================================================
@@ -415,6 +426,60 @@ public sealed class ValidateEndpointHandlerTests
                 It.IsAny<SessionValidationContext>(),
                 fixture.CancellationToken),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenValidationIsActiveButHasNoUserKey_ReturnsUnauthorizedInvalid()
+    {
+        var fixture = CreateFixture();
+
+        var sessionId =
+            TestIds.Session("active-without-user");
+
+        SetupSessionCredential(
+            fixture,
+            sessionId);
+
+        var validation =
+            SessionValidationResult.Active(
+                tenant: fixture.Flow.Tenant,
+                userKey: null,
+                sessionId: sessionId,
+                chainId: SessionChainId.New(),
+                rootId: SessionRootId.New(),
+                claims: ClaimsSnapshot.Empty,
+                authenticatedAt: Now);
+
+        fixture.SessionValidator
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                fixture.CancellationToken))
+            .ReturnsAsync(validation);
+
+        var result = await fixture.Sut.ValidateAsync(
+            fixture.HttpContext,
+            fixture.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should()
+            .Be(StatusCodes.Status401Unauthorized);
+
+        json.Value.Should().NotBeNull();
+
+        json.Value!.State.Should()
+            .Be(SessionState.Invalid);
+
+        json.Value.IsValid.Should().BeFalse();
+        json.Value.Snapshot.Should().BeNull();
+
+        fixture.SnapshotFactory.Verify(
+            x => x.CreateAsync(
+                It.IsAny<SessionValidationResult>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // =====================================================================

@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
-namespace CodeBeam.UltimateAuth.Server.Services;
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class UAuthJwtValidator : IJwtValidator
 {
