@@ -1,5 +1,3 @@
-# 🚀 Pull Request
-
 <!-- Thank you for contributing to **UltimateAuth**! -->
 <!-- Please complete the following checklist to help us review your PR effectively.-->
 
