@@ -49,11 +49,11 @@ internal sealed class Argon2PasswordHasher : IUAuthPasswordHasher
             !int.TryParse(parts[2], out var parallelism))
                     return false;
 
-        var salt = Convert.FromBase64String(parts[3]);
-        var expectedHash = Convert.FromBase64String(parts[4]);
-
         try
         {
+            var salt = Convert.FromBase64String(parts[3]);
+            var expectedHash = Convert.FromBase64String(parts[4]);
+
             var argon2 = new Argon2id(Encoding.UTF8.GetBytes(secret))
             {
                 Salt = salt,

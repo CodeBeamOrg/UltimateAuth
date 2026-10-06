@@ -1,25 +1,35 @@
 ﻿using Bunit;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
 public sealed class UAuthLoginRedirectTests : BunitContext
 {
-    private NavigationManager Nav =>
-        Services.GetRequiredService<NavigationManager>();
+    private NavigationManager Nav => Services.GetRequiredService<NavigationManager>();
+
+    public UAuthLoginRedirectTests()
+    {
+        Services.AddSingleton<IUAuthLoginPageResolver>(new TestLoginPageResolver("/login"));
+        UseLoginRoute("/login");
+    }
 
     [Fact]
     public void Render_WithoutReturnUrl_NavigatesToLoginPage()
     {
         Navigate(UAuthConstants.Routes.LoginRedirect);
 
-        Render<UAuthLoginDispatch>();
+        var comp = Render<UAuthLoginDispatch>();
 
-        Nav.Uri.Should().Be("http://localhost/login");
+        comp.WaitForAssertion(() =>
+        {
+            Nav.Uri.Should().Be("http://localhost/login");
+        });
     }
 
     [Fact]
@@ -27,10 +37,13 @@ public sealed class UAuthLoginRedirectTests : BunitContext
     {
         NavigateToRedirect("/home");
 
-        Render<UAuthLoginDispatch>();
+        var comp = Render<UAuthLoginDispatch>();
 
-        Nav.Uri.Should().Be(
-            "http://localhost/login?uauth_return_url=%2Fhome");
+        comp.WaitForAssertion(() =>
+        {
+            Nav.Uri.Should().Be(
+                "http://localhost/login?uauth_return_url=%2Fhome");
+        });
     }
 
     [Fact]
@@ -38,20 +51,23 @@ public sealed class UAuthLoginRedirectTests : BunitContext
     {
         NavigateToRedirect("/account/security?tab=sessions");
 
-        Render<UAuthLoginDispatch>();
+        var comp = Render<UAuthLoginDispatch>();
 
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        comp.WaitForAssertion(() =>
+        {
+            var uri = Nav.ToAbsoluteUri(Nav.Uri);
 
-        uri.AbsolutePath.Should().Be("/login");
+            uri.AbsolutePath.Should().Be("/login");
 
-        var query =
-            Microsoft.AspNetCore.WebUtilities.QueryHelpers
-                .ParseQuery(uri.Query);
+            var query =
+                Microsoft.AspNetCore.WebUtilities.QueryHelpers
+                    .ParseQuery(uri.Query);
 
-        query[UAuthConstants.Query.ReturnUrl]
-            .ToString()
-            .Should()
-            .Be("/account/security?tab=sessions");
+            query[UAuthConstants.Query.ReturnUrl]
+                .ToString()
+                .Should()
+                .Be("/account/security?tab=sessions");
+        });
     }
 
     [Fact]
@@ -113,20 +129,23 @@ public sealed class UAuthLoginRedirectTests : BunitContext
     [InlineData("ftp://example.com/file")]
     [InlineData("mailto:test@example.com")]
     public void Render_WithUnsupportedAbsoluteScheme_DropsReturnUrl(
-        string returnUrl)
+    string returnUrl)
     {
         NavigateToRedirect(returnUrl);
 
-        Render<UAuthLoginDispatch>();
+        var comp = Render<UAuthLoginDispatch>();
 
-        Nav.ToAbsoluteUri(Nav.Uri)
-            .AbsolutePath
-            .Should()
-            .Be("/login");
+        comp.WaitForAssertion(() =>
+        {
+            Nav.ToAbsoluteUri(Nav.Uri)
+                .AbsolutePath
+                .Should()
+                .Be("/login");
 
-        GetReturnUrlFromCurrentUri()
-            .Should()
-            .BeNull();
+            GetReturnUrlFromCurrentUri()
+                .Should()
+                .BeNull();
+        });
     }
 
     [Fact]
@@ -205,6 +224,29 @@ public sealed class UAuthLoginRedirectTests : BunitContext
             .Be("/home");
     }
 
+    [Fact]
+    public void Render_ShouldUseResolvedLoginRoute()
+    {
+        UseLoginRoute("/custom-sign-in");
+
+        Navigate(UAuthConstants.Routes.LoginRedirect);
+
+        Render<UAuthLoginDispatch>();
+
+        Nav.ToAbsoluteUri(Nav.Uri)
+            .AbsolutePath
+            .Should()
+            .Be("/custom-sign-in");
+    }
+
+    private void UseLoginRoute(string route)
+    {
+        Services.RemoveAll<IUAuthLoginPageResolver>();
+
+        Services.AddSingleton<IUAuthLoginPageResolver>(
+            new TestLoginPageResolver(route));
+    }
+
     private void NavigateToRedirect(string returnUrl)
     {
         Nav.NavigateTo(UAuthConstants.Routes.LoginRedirect);
@@ -232,5 +274,20 @@ public sealed class UAuthLoginRedirectTests : BunitContext
             out var value)
                 ? value.ToString()
                 : null;
+    }
+
+    private sealed class TestLoginPageResolver : IUAuthLoginPageResolver
+    {
+        private readonly string _route;
+
+        public TestLoginPageResolver(string route)
+        {
+            _route = route;
+        }
+
+        public string Resolve()
+        {
+            return _route;
+        }
     }
 }

@@ -47,7 +47,7 @@ public class SessionValidationMiddleware
             Device = device
         });
 
-        context.Items["__UAuth.SessionValidationResult"] = result;
+        context.Items[UAuthConstants.HttpItems.SessionValidationResult] = result;
 
         await _next(context);
     }

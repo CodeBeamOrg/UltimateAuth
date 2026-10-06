@@ -52,6 +52,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReturnUrlProvider, BlazorReturnUrlProvider>();
         services.AddScoped<IClientDeviceProvider, ClientDeviceProvider>();
 
+        services.TryAddSingleton<IUAuthLoginPageResolver, UAuthLoginPageResolver>();
+
         services.AddAuthorizationCore();
 
         return services;

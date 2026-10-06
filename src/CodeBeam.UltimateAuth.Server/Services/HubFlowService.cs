@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Stores;
@@ -13,10 +14,7 @@ internal sealed class HubFlowService : IHubFlowService
     private readonly IClock _clock;
     private readonly UAuthServerOptions _options;
 
-    public HubFlowService(
-        IAuthStore authStore,
-        IClock clock,
-        IOptions<UAuthServerOptions> options)
+    public HubFlowService(IAuthStore authStore, IClock clock, IOptions<UAuthServerOptions> options)
     {
         _authStore = authStore;
         _clock = clock;
@@ -61,7 +59,13 @@ internal sealed class HubFlowService : IHubFlowService
         var artifact = await _authStore.GetAsync(key, ct) as HubFlowArtifact;
 
         if (artifact is null)
-            throw new InvalidOperationException("Hub session not found.");
+            throw new UAuthValidationException("Hub session not found.");
+
+        if (artifact.IsExpired(_clock.UtcNow))
+            throw new UAuthValidationException("Hub session expired.");
+
+        if (artifact.IsCompleted)
+            throw new UAuthValidationException("Hub session already completed.");
 
         artifact.Payload.Set("authorization_code", authorizationCode);
         artifact.Payload.Set("code_verifier", codeVerifier);

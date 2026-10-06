@@ -133,6 +133,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, DeviceRequiredInvariant>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, ExpiredSessionInvariant>());
@@ -206,7 +207,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAccessAuthority, UAuthAccessAuthority>();
 
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
-        services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
+        //services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
         services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
@@ -415,7 +416,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
-        services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
+        //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
 
         // Server & Resource API Shared
@@ -460,6 +461,8 @@ public static class ServiceCollectionExtensions
                 _ => new CompositeTenantResolver(resolvers)
             };
         });
+
+        services.AddScoped<IUAuthMultiTenantOptionsAccessor, ResourceApiMultiTenantOptionsAccessor>();
 
         // ASP.NET Core Integration
         services.AddHttpContextAccessor();

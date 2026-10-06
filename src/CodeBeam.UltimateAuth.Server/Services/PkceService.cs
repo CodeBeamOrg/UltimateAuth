@@ -78,15 +78,13 @@ internal sealed class PkceService : IPkceService
             };
         }
 
-        var validation = _validator.Validate(
-            artifact,
-            request.CodeVerifier,
-            new PkceContextSnapshot(
-                clientProfile: artifact.Context.ClientProfile,
-                tenant: artifact.Context.Tenant,
-                redirectUri: artifact.Context.RedirectUri,
-                device: artifact.Context.Device),
-            _clock.UtcNow);
+        var completionContext = new PkceContextSnapshot(
+            clientProfile: auth.ClientProfile,
+            tenant: auth.Tenant,
+            redirectUri: request.ReturnUrl,
+            device: auth.Device);
+
+        var validation = _validator.Validate(artifact, request.CodeVerifier, completionContext, _clock.UtcNow);
 
         if (!validation.Success)
         {

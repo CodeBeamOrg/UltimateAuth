@@ -1,8 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿//using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Core.Abstractions;
+//namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
-public interface IAuthContextFactory
-{
-    AuthContext Create(DateTimeOffset? at = null);
-}
+//public interface IAuthContextFactory
+//{
+//    AuthContext Create(DateTimeOffset? at = null);
+//}

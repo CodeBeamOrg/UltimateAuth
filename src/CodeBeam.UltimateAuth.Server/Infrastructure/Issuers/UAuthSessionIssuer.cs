@@ -65,6 +65,12 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             {
                 var existing = await kernel.GetChainAsync(context.ChainId.Value);
 
+                // TODO(v0.x): Re-evaluate explicit ChainId semantics.
+                // When the caller explicitly supplies a ChainId but that chain cannot be found,
+                // the current behavior silently creates a new chain with a different ChainId.
+                // Once SemiHybrid/PureJwt and the complete chain lifecycle semantics are finalized,
+                // decide whether this should instead fail closed (e.g. chain-not-found/validation failure).
+                // Do not change without reviewing login, refresh, reauthentication and device-chain flows.
                 if (existing is null)
                 {
                     chain = UAuthSessionChain.Create(
@@ -229,14 +235,14 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 metadata: context.Metadata
             );
 
+            var newSession = newSessionUnbound.WithChain(chain.ChainId);
+
             issued = new IssuedSession
             {
-                Session = newSessionUnbound,
+                Session = newSession,
                 OpaqueSessionId = opaqueSessionId,
                 IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
             };
-
-            var newSession = issued.Session.WithChain(chain.ChainId);
 
             await kernel.CreateSessionAsync(newSession);
             var chainExpected = chain.Version;

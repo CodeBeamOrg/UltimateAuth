@@ -40,7 +40,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             return Results.Json(
                 new AuthValidationResult
                 {
-                    State = SessionState.NotFound
+                    State = SessionState.NotFound,
                 },
                 statusCode: StatusCodes.Status401Unauthorized
             );
@@ -53,7 +53,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 return Results.Json(
                     new AuthValidationResult
                     {
-                        State = SessionState.Invalid
+                        State = SessionState.Invalid,
                     },
                     statusCode: StatusCodes.Status401Unauthorized
                 );
@@ -71,12 +71,26 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 },
                 ct);
 
-            if (result.UserKey is not UserKey userKey)
+            if (!result.IsValid)
+            {
+                return Results.Ok(new AuthValidationResult
+                {
+                    State = result.State,
+                    ChainId = result.ChainId?.Value,
+                    RootId = result.RootId?.Value,
+                    BoundDeviceId = result.BoundDeviceId?.Value
+                });
+            }
+
+            if (result.UserKey is not UserKey)
             {
                 return Results.Json(
                     new AuthValidationResult
                     {
-                        State = SessionState.Invalid
+                        State = SessionState.Invalid,
+                        ChainId = result.ChainId?.Value,
+                        RootId = result.RootId?.Value,
+                        BoundDeviceId = result.BoundDeviceId?.Value
                     },
                     statusCode: StatusCodes.Status401Unauthorized
                 );
@@ -84,9 +98,27 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
 
             var snapshot = await _snapshotFactory.CreateAsync(result, ct);
 
+            if (snapshot is null)
+            {
+                return Results.Json(
+                    new AuthValidationResult
+                    {
+                        State = SessionState.Invalid,
+                        ChainId = result.ChainId?.Value,
+                        RootId = result.RootId?.Value,
+                        BoundDeviceId = result.BoundDeviceId?.Value
+                    },
+                    statusCode:
+                        StatusCodes.Status401Unauthorized);
+            }
+
             return Results.Ok(new AuthValidationResult
             {
-                State = result.IsValid ? SessionState.Active : result.State,
+                State = SessionState.Active,
+                ChainId = result.ChainId?.Value,
+                RootId = result.RootId?.Value,
+                BoundDeviceId = result.BoundDeviceId?.Value,
+
                 Snapshot = snapshot
             });
         }

@@ -77,10 +77,11 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         if (persistence == RefreshTokenPersistence.Persist)
         {
             var store = _storeFactory.Create(flow.Tenant);
-            await store.ExecuteAsync(async ct =>
+
+            await store.ExecuteAsync(async transactionCt =>
             {
-                await store.StoreAsync(stored, ct);
-            });
+                await store.StoreAsync(stored, transactionCt);
+            }, ct);
         }
 
         return new RefreshTokenInfo
@@ -106,17 +107,20 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
     private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, UAuthTokenOptions tokens, DateTimeOffset expires)
     {
-        var claims = new Dictionary<string, object>
-        {
-            ["sub"] = context.UserKey.Value,
-            ["tenant"] = context.Tenant
-        };
+        var claims = new Dictionary<string, object>();
 
+        // Custom/application claims are added first.
+        // Framework-owned security claims below always take precedence.
         foreach (var kv in context.Claims)
             claims[kv.Key] = kv.Value;
 
-        if (context.SessionId != null)
-            claims["sid"] = context.SessionId!;
+        // UltimateAuth-owned identity/security claims must never be overridable
+        // by caller-provided claims.
+        claims["sub"] = context.UserKey.Value;
+        claims["tenant"] = context.Tenant;
+
+        if (context.SessionId is AuthSessionId sessionId)
+            claims["sid"] = sessionId;
 
         if (tokens.AddJwtIdClaim)
             claims["jti"] = _opaqueGenerator.GenerateJwtId();
@@ -140,7 +144,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             Token = jwt,
             Format = TokenFormat.Jwt,
             ExpiresAt = expires,
-            SessionId = context.SessionId.ToString()
+            SessionId = context.SessionId?.ToString()
         };
     }
 }
