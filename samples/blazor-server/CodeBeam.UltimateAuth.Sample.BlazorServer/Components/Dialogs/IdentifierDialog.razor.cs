@@ -190,10 +190,12 @@ public partial class IdentifierDialog
             title: "Demo Verification",
             markupMessage: (MarkupString)
                 """
-            This is a <b>demo</b> action.<br/><br/>
-            In a real app, you should verify identifiers via <b>Email</b>, <b>SMS</b>, or an <b>Authenticator</b> flow.
-            This will only mark the identifier as verified in UltimateAuth.
-            """,
+                This Development sample <b>bypasses ownership verification</b>.<br/><br/>
+                No email or SMS proof is checked. The identifier will be marked
+                as verified for demonstration purposes only.<br/><br/>
+                Production applications must implement a real
+                <b>IUserIdentifierVerifier</b>.
+                """,
             yesText: "Verify", noText: "Cancel",
             options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass = "uauth-blur-slight" });
 
@@ -203,7 +205,12 @@ public partial class IdentifierDialog
             return;
         }
 
-        VerifyUserIdentifierRequest request = new() { Id = id };
+        VerifyUserIdentifierRequest request = new()
+        {
+            Id = id,
+            Proof = UserKey is null ? "demo-verification-bypass" : null
+        };
+
         UAuthResult result;
 
         if (UserKey is null)

@@ -54,6 +54,9 @@ public static class UAuthExceptionHandlingExtensions
             UAuthForbiddenException => StatusCodes.Status403Forbidden,
             UAuthNotFoundException => StatusCodes.Status404NotFound,
             UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
+            UAuthIdentifierNotFoundException => StatusCodes.Status404NotFound,
+            UAuthIdentifierConflictException => StatusCodes.Status409Conflict,
+            UAuthIdentifierValidationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status400BadRequest
         };
 }

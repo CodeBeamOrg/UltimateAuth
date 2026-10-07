@@ -1,14 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Users.Contracts;
-using CodeBeam.UltimateAuth.Users;
-using Microsoft.Extensions.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -25,6 +26,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IUserIdentifierAvailabilityService _identifierAvailabilityService;
     private readonly ISessionStoreFactory _sessionStoreFactory;
+    private readonly IUserIdentifierVerifier _identifierVerifier;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -40,6 +42,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IIdentifierNormalizer identifierNormalizer,
         IUserIdentifierAvailabilityService identifierAvailabilityService,
         ISessionStoreFactory sessionStoreFactory,
+        IUserIdentifierVerifier ıdentifierVerifier,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -54,6 +57,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _identifierNormalizer = identifierNormalizer;
         _identifierAvailabilityService = identifierAvailabilityService;
         _sessionStoreFactory = sessionStoreFactory;
+        _identifierVerifier = ıdentifierVerifier;
         _options = options.Value;
         _clock = clock;
     }
@@ -74,6 +78,12 @@ internal sealed class UserApplicationService : IUserApplicationService
             async atomicCt =>
             {
                 var now = _clock.UtcNow;
+
+                var allowVerifiedContacts = context.IsSystemActor ||
+                    (
+                        context.IsAuthenticated && string.Equals(context.Action, UAuthActions.Users.CreateAdmin, StringComparison.Ordinal)
+                    );
+
                 var userKey = UserKey.New();
 
                 var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
@@ -125,7 +135,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
                             now,
                             true,
-                            request.EmailVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.EmailVerified ? now : null), atomicCt);
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.Phone))
@@ -140,7 +150,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
                             now,
                             true,
-                            request.PhoneVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.PhoneVerified ? now : null), atomicCt);
                 }
 
                 foreach (var integration in _integrations)
@@ -563,7 +573,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
 
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.Behavior.AllowUsernameChange)
@@ -620,7 +630,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.IsPrimary)
@@ -644,7 +654,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (!identifier.IsPrimary)
@@ -676,16 +686,51 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task VerifyUserIdentifierAsync(AccessContext context, VerifyUserIdentifierRequest request, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var command = new AccessCommand(async innerCt =>
         {
+            innerCt.ThrowIfCancellationRequested();
+
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var expectedVersion = identifier.Version;
+
+            if (context.IsSelfAction)
+            {
+                if (_identifierVerifier is NotConfiguredUserIdentifierVerifier)
+                    throw NotConfiguredUserIdentifierVerifier.CreateException();
+
+                if (string.IsNullOrWhiteSpace(request.Proof))
+                    throw new UAuthIdentifierValidationException("identifier_verification_proof_required");
+
+                var verified = await _identifierVerifier.VerifyAsync(
+                    new UserIdentifierVerificationContext(
+                        Tenant: context.ResourceTenant,
+                        UserKey: identifier.UserKey,
+                        IdentifierId: identifier.Id,
+                        Type: identifier.Type,
+                        Value: identifier.Value,
+                        Proof: request.Proof),
+                    innerCt);
+
+                if (!verified)
+                    throw new UAuthIdentifierValidationException("identifier_verification_failed");
+            }
+
+            // TODO: Provide a built-in identifier verification challenge flow:
+            // issuance, hashed storage, expiry, attempt limits and notification.
+            // Bind each challenge to tenant, user, identifier and current value.
+            //
+            // TODO: Coordinate single-use proof consumption with persistence.
+            // A concurrent identifier change must not be marked verified
+            // using proof issued for the previous value.
+
             identifier.MarkVerified(_clock.UtcNow);
             await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
@@ -701,7 +746,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var identifiers = await identifierStore.GetByUserAsync(identifier.UserKey, innerCt);
