@@ -563,7 +563,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
 
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.Behavior.AllowUsernameChange)
@@ -620,7 +620,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.IsPrimary)
@@ -644,7 +644,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (!identifier.IsPrimary)
@@ -682,7 +682,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var expectedVersion = identifier.Version;
@@ -701,7 +701,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var identifiers = await identifierStore.GetByUserAsync(identifier.UserKey, innerCt);
