@@ -45,7 +45,8 @@ public static class UAuthSessionsModelBuilder
             e.Property(x => x.SecurityVersion)
                 .IsRequired();
 
-            e.HasIndex(x => new { x.Tenant, x.UserKey }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.RevokedAt });
+            e.HasIndex(x => new { x.Tenant, x.UserKey });
             e.HasIndex(x => new { x.Tenant, x.RootId }).IsUnique();
         });
     }

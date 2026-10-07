@@ -1,9 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Defaults;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Middlewares;
 
@@ -16,9 +15,9 @@ public sealed class TenantMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ITenantResolver resolver, IOptions<UAuthMultiTenantOptions> options)
+    public async Task InvokeAsync(HttpContext context, ITenantResolver resolver, IUAuthMultiTenantOptionsAccessor options)
     {
-        var opts = options.Value;
+        var opts = options.MultiTenant;
         TenantResolutionResult resolution;
 
         if (!opts.Enabled)

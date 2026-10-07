@@ -1,92 +1,122 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
 public static class SessionValidationMapper
 {
-    public static SessionValidationResult ToDomain(SessionValidationInfo dto)
+    public static SessionValidationResult ToDomain(AuthValidationResult dto, AuthSessionId sessionId)
     {
-        var state = (SessionState)dto.State;
+        ArgumentNullException.ThrowIfNull(dto);
 
-        if (!dto.IsValid || dto.Snapshot?.Identity is null)
+        if (!dto.IsValid)
         {
-            return SessionValidationResult.Invalid(state);
+            return SessionValidationResult.Invalid(
+                dto.State,
+                sessionId: sessionId,
+                chainId: TryParseChainId(dto.ChainId),
+                rootId: TryParseRootId(dto.RootId),
+                boundDeviceId: TryParseDeviceId(dto.BoundDeviceId));
         }
 
-        var tenant = TenantKey.FromInternal(dto.Snapshot.Identity.Tenant);
+        //
+        // Active is a stronger contract than merely receiving
+        // a successful HTTP response. All required security
+        // lineage and identity data must be present.
+        //
 
-        UserKey? userKey = string.IsNullOrWhiteSpace(dto.Snapshot.Identity.UserKey)
-            ? null
-            : UserKey.Parse(dto.Snapshot.Identity.UserKey, null);
-
-        ClaimsSnapshot claims;
-
-        if (dto.Snapshot.Claims is null)
+        if (dto.Snapshot?.Identity is null)
         {
-            claims = ClaimsSnapshot.Empty;
+            return SessionValidationResult.Invalid(
+                SessionState.Invalid,
+                sessionId: sessionId);
         }
-        else
+
+        if (dto.ChainId is not Guid chainGuid ||
+            chainGuid == Guid.Empty)
         {
-            var builder = ClaimsSnapshot.Create();
-
-            foreach (var (type, values) in dto.Snapshot.Claims.Claims)
-            {
-                builder.AddMany(type, values);
-            }
-
-            foreach (var role in dto.Snapshot.Claims.Roles)
-            {
-                builder.AddRole(role);
-            }
-
-            foreach (var permission in dto.Snapshot.Claims.Permissions)
-            {
-                builder.AddPermission(permission);
-            }
-
-            claims = builder.Build();
+            return SessionValidationResult.Invalid(
+                SessionState.Invalid,
+                sessionId: sessionId);
         }
-        
-        AuthSessionId.TryCreate("temp", out AuthSessionId tempSessionId);
+
+        var chainId =
+            SessionChainId.From(chainGuid);
+
+        if (dto.RootId is not Guid rootGuid ||
+            rootGuid == Guid.Empty)
+        {
+            return SessionValidationResult.Invalid(
+                SessionState.Invalid,
+                sessionId: sessionId,
+                chainId: chainId);
+        }
+
+        var rootId =
+            SessionRootId.From(rootGuid);
+
+        var identity =
+            dto.Snapshot.Identity;
+
+        var boundDeviceId =
+            TryParseDeviceId(dto.BoundDeviceId);
 
         return SessionValidationResult.Active(
-            tenant,
-            userKey,
-            tempSessionId,     // TODO: This is TEMP add real
-            SessionChainId.New(),     // TEMP
-            SessionRootId.New(),      // TEMP
-            claims,
-            dto.Snapshot.Identity.AuthenticatedAt ?? DateTimeOffset.UtcNow,
-            null
-        );
+            tenant: identity.Tenant,
+            userKey: identity.UserKey,
+            sessionId: sessionId,
+            chainId: chainId,
+            rootId: rootId,
+            claims: dto.Snapshot.Claims,
+            authenticatedAt:
+                identity.AuthenticatedAt
+                ?? DateTimeOffset.UtcNow,
+            boundDeviceId: boundDeviceId);
     }
 
     public static SessionSecurityContext? ToSecurityContext(SessionValidationResult result)
     {
-        if (!result.IsValid)
-        {
-            if (result?.SessionId is null)
-                return null;
-
-            return new SessionSecurityContext
-            {
-                SessionId = result.SessionId.Value,
-                State = result.State,
-                ChainId = result.ChainId,
-                UserKey = result.UserKey,
-                BoundDeviceId = result.BoundDeviceId
-            };
-        }
+        if (result.SessionId is null)
+            return null;
 
         return new SessionSecurityContext
         {
-            SessionId = result.SessionId!.Value,
-            State = SessionState.Active,
+            SessionId = result.SessionId.Value,
+            State = result.State,
             ChainId = result.ChainId,
             UserKey = result.UserKey,
             BoundDeviceId = result.BoundDeviceId
         };
+    }
+
+    private static SessionChainId? TryParseChainId(Guid? value)
+    {
+        if (value is not Guid guid ||
+            guid == Guid.Empty)
+        {
+            return null;
+        }
+
+        return SessionChainId.From(guid);
+    }
+
+    private static SessionRootId? TryParseRootId(Guid? value)
+    {
+        if (value is not Guid guid ||
+            guid == Guid.Empty)
+        {
+            return null;
+        }
+
+        return SessionRootId.From(guid);
+    }
+
+    private static DeviceId? TryParseDeviceId(string? value)
+    {
+        return DeviceId.TryCreate(
+            value,
+            out var id)
+            ? id
+            : null;
     }
 }

@@ -10,7 +10,7 @@ internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, Rol
 {
     protected override RoleKey GetKey(Role entity) => new(entity.Tenant, entity.Id);
 
-    public InMemoryRoleStore(TenantExecutionContext tenant) : base(tenant)
+    public InMemoryRoleStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(tenant, atomicContext)
     {
     }
 

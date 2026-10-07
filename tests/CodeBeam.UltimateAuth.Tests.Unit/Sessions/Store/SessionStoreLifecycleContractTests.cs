@@ -957,10 +957,18 @@ public abstract class SessionStoreLifecycleContractTests
                 at,
                 ct));
 
-        var root = await store.GetRootByUserAsync(
-            graph.UserA);
+        var activeRoot =
+            await store.GetActiveRootByUserAsync(
+                graph.UserA);
+
+        activeRoot.Should().BeNull();
+
+        var root =
+            await store.GetRootByIdAsync(
+                graph.RootA.RootId);
 
         root.Should().NotBeNull();
+
         root!.IsRevoked.Should().BeTrue();
         root.RevokedAt.Should().Be(at);
     }
@@ -979,8 +987,15 @@ public abstract class SessionStoreLifecycleContractTests
                 Now.AddMinutes(20),
                 ct));
 
-        var root = await store.GetRootByUserAsync(
-            graph.UserA);
+        var activeRoot =
+            await store.GetActiveRootByUserAsync(
+                graph.UserA);
+
+        activeRoot.Should().BeNull();
+
+        var root =
+            await store.GetRootByIdAsync(
+                graph.RootA.RootId);
 
         root.Should().NotBeNull();
 
@@ -1057,7 +1072,7 @@ public abstract class SessionStoreLifecycleContractTests
                 Now.AddMinutes(20),
                 ct));
 
-        var rootB = await store.GetRootByUserAsync(
+        var rootB = await store.GetActiveRootByUserAsync(
             graph.UserB);
 
         var chainB1 = await store.GetChainAsync(

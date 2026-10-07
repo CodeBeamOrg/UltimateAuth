@@ -7,10 +7,12 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 internal sealed class HubCredentialResolver : IHubCredentialResolver
 {
     private readonly IAuthStore _store;
+    private readonly IClock _clock;
 
-    public HubCredentialResolver(IAuthStore store)
+    public HubCredentialResolver(IAuthStore store, IClock clock)
     {
         _store = store;
+        _clock = clock;
     }
 
     public async Task<HubCredentials?> ResolveAsync(HubSessionId hubSessionId, CancellationToken ct = default)
@@ -18,6 +20,9 @@ internal sealed class HubCredentialResolver : IHubCredentialResolver
         var artifact = await _store.GetAsync(new AuthArtifactKey(hubSessionId.Value), ct);
 
         if (artifact is not HubFlowArtifact flow)
+            return null;
+
+        if (flow.IsExpired(_clock.UtcNow))
             return null;
 
         if (flow.IsCompleted)

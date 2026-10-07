@@ -276,7 +276,7 @@ public sealed class PkceEndpointHandlerTests
     }
 
     [Fact]
-    public async Task TryCompleteAsync_WhenPkceIsValid_UsesArtifactContextAndPreviewLogin()
+    public async Task TryCompleteAsync_WhenPkceIsValid_ValidatesCurrentContextAndUsesArtifactContextForPreviewLogin()
     {
         var fixture = CreateFixture();
         var (artifact, verifier) = TestPkceFactory.Create();
@@ -344,19 +344,27 @@ public sealed class PkceEndpointHandlerTests
         ok.Value!.Success.Should().BeTrue();
         ok.Value.RetryWithNewPkce.Should().BeFalse();
 
+        // SECURITY:
+        // PKCE validation must use the CURRENT completion context,
+        // not the context copied from the authorization artifact.
         capturedSnapshot.Should().NotBeNull();
-        capturedSnapshot!.ClientProfile
-            .Should().Be(artifact.Context.ClientProfile);
-        capturedSnapshot.Tenant
-            .Should().Be(artifact.Context.Tenant);
-        capturedSnapshot.RedirectUri
-            .Should().Be(artifact.Context.RedirectUri);
-        capturedSnapshot.Device
-            .Should().BeEquivalentTo(artifact.Context.Device);
 
+        capturedSnapshot!.ClientProfile
+            .Should().Be(fixture.Flow.ClientProfile);
+
+        capturedSnapshot.Tenant
+            .Should().Be(fixture.Flow.Tenant);
+
+        capturedSnapshot.Device
+            .Should().BeEquivalentTo(fixture.Flow.Device);
+
+        // After PKCE validation succeeds, login execution remains bound
+        // to the context captured when the authorization code was issued.
         capturedExecution.Should().NotBeNull();
+
         capturedExecution!.EffectiveClientProfile
             .Should().Be(artifact.Context.ClientProfile);
+
         capturedExecution.Device
             .Should().BeEquivalentTo(artifact.Context.Device);
 
@@ -367,9 +375,14 @@ public sealed class PkceEndpointHandlerTests
             .Should().Be(fixture.Flow.AllowsTokenIssuance);
 
         capturedOptions.Should().NotBeNull();
-        capturedOptions!.Mode.Should().Be(LoginExecutionMode.Preview);
-        capturedOptions.SuppressFailureAttempt.Should().BeFalse();
-        capturedOptions.SuppressSuccessReset.Should().BeTrue();
+        capturedOptions!.Mode
+            .Should().Be(LoginExecutionMode.Preview);
+
+        capturedOptions.SuppressFailureAttempt
+            .Should().BeFalse();
+
+        capturedOptions.SuppressSuccessReset
+            .Should().BeTrue();
     }
 
     [Fact]

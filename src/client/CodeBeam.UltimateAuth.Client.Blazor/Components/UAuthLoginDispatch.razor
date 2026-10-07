@@ -3,6 +3,7 @@
 @namespace CodeBeam.UltimateAuth.Client.Blazor
 @using CodeBeam.UltimateAuth.Core.Defaults
 @using Microsoft.AspNetCore.WebUtilities
+@inject IUAuthLoginPageResolver LoginPageResolver
 @inject NavigationManager Nav
 
 @code {
@@ -20,7 +21,7 @@
             ? value.ToString()
             : null;
 
-        var loginRoute = UAuthLoginPageDiscovery.Resolve();
+        var loginRoute = LoginPageResolver.Resolve();
 
         string target;
         string? safeReturnUrl = null;

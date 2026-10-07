@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using CodeBeam.UltimateAuth.Server.Services;
 namespace CodeBeam.UltimateAuth.Users.Reference.Extensions;
 
 public static class ServiceCollectionExtensions
@@ -15,6 +16,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<IUserRuntimeStateProvider, UserRuntimeStateProvider>();
         services.TryAddScoped<IUserApplicationService, UserApplicationService>();
+        services.TryAddScoped<IUserIdentifierAvailabilityService, UserIdentifierAvailabilityService>();
         services.TryAddScoped<IUserEndpointHandler, UserEndpointHandler>();
         services.TryAddScoped<IPrimaryUserIdentifierProvider, PrimaryUserIdentifierProvider>();
         services.TryAddScoped<IUserProfileSnapshotProvider, UserProfileSnapshotProvider>();

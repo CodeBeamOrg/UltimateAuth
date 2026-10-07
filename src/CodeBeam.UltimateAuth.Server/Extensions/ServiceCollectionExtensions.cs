@@ -133,6 +133,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, DeviceRequiredInvariant>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, ExpiredSessionInvariant>());
@@ -151,7 +152,8 @@ public static class ServiceCollectionExtensions
         // Tenant Resolution
         services.TryAddSingleton<ITenantIdResolver>(sp =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            var opts = options.MultiTenant;
 
             var resolvers = new List<ITenantIdResolver>();
 
@@ -205,7 +207,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAccessAuthority, UAuthAccessAuthority>();
 
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
-        services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
+        //services.TryAddScoped<IAuthContextFactory, AuthContextFactory>();
         services.TryAddScoped<IAuthFlowContextFactory, AuthFlowContextFactory>();
         services.TryAddScoped<IAccessContextFactory, AccessContextFactory>();
         services.TryAddScoped<IAuthStateSnapshotFactory, AuthStateSnapshotFactory>();
@@ -235,7 +237,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ISessionValidator, UAuthSessionValidator>();
         services.TryAddScoped<IRefreshTokenValidator, UAuthRefreshTokenValidator>();
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
-        services.TryAddScoped<IIdentifierValidator, IdentifierValidator>();
+        services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
+        services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
@@ -413,7 +416,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
-        services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
+        //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
 
         // Server & Resource API Shared
@@ -438,7 +441,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddSingleton<ITenantIdResolver>(sp =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthMultiTenantOptions>>().Value;
+            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value.MultiTenant;
 
             var resolvers = new List<ITenantIdResolver>();
 
@@ -458,6 +461,8 @@ public static class ServiceCollectionExtensions
                 _ => new CompositeTenantResolver(resolvers)
             };
         });
+
+        services.AddScoped<IUAuthMultiTenantOptionsAccessor, ResourceApiMultiTenantOptionsAccessor>();
 
         // ASP.NET Core Integration
         services.AddHttpContextAccessor();

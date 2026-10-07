@@ -11,7 +11,7 @@ public abstract class InMemoryTenantVersionedStore<TEntity, TKey> : InMemoryVers
 {
     private readonly TenantExecutionContext _tenant;
 
-    protected InMemoryTenantVersionedStore(TenantExecutionContext tenant)
+    protected InMemoryTenantVersionedStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(atomicContext)
     {
         _tenant = tenant;
     }

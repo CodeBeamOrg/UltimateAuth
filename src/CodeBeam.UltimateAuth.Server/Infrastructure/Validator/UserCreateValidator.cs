@@ -1,16 +1,21 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class UserCreateValidator : IUserCreateValidator
 {
-    private readonly IIdentifierValidator _identifierValidator;
+    private readonly IUserIdentifierValidator _identifierValidator;
+    private readonly IUserIdentifierAvailabilityService _identifierAvailability;
+    private readonly IUserProfileValidator _profileValidator;
 
-    public UserCreateValidator(IIdentifierValidator identifierValidator)
+    public UserCreateValidator(IUserIdentifierValidator identifierValidator, IUserIdentifierAvailabilityService identifierAvailability, IUserProfileValidator profileValidator)
     {
         _identifierValidator = identifierValidator;
+        _identifierAvailability = identifierAvailability;
+        _profileValidator = profileValidator;
     }
 
     public async Task<UserCreateValidatorResult> ValidateAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
@@ -33,6 +38,23 @@ public sealed class UserCreateValidator : IUserCreateValidator
             }, ct);
 
             errors.AddRange(r.Errors);
+
+            if (r.IsValid)
+            {
+                var availability = await _identifierAvailability.CheckAsync(
+                        context,
+                        new CheckUserIdentifierAvailabilityRequest
+                        {
+                            Type = UserIdentifierType.Username,
+                            Value = request.UserName
+                        },
+                        ct);
+
+                if (!availability.IsAvailable)
+                {
+                    errors.Add(new UAuthValidationError("username_unavailable", "username"));
+                }
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Email))
@@ -44,6 +66,23 @@ public sealed class UserCreateValidator : IUserCreateValidator
             }, ct);
 
             errors.AddRange(r.Errors);
+
+            if (r.IsValid)
+            {
+                var availability = await _identifierAvailability.CheckAsync(
+                        context,
+                        new CheckUserIdentifierAvailabilityRequest
+                        {
+                            Type = UserIdentifierType.Email,
+                            Value = request.Email
+                        },
+                        ct);
+
+                if (!availability.IsAvailable)
+                {
+                    errors.Add(new UAuthValidationError("email_unavailable", "email"));
+                }
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Phone))
@@ -55,7 +94,50 @@ public sealed class UserCreateValidator : IUserCreateValidator
             }, ct);
 
             errors.AddRange(r.Errors);
+
+            if (r.IsValid)
+            {
+                // TODO: CheckAsync also validates identifiers, make them effective.
+                // TODO: This guard doesn't work with concurrent requests.
+                var availability = await _identifierAvailability.CheckAsync(context,
+                        new CheckUserIdentifierAvailabilityRequest
+                        {
+                            Type = UserIdentifierType.Phone,
+                            Value = request.Phone
+                        },
+                        ct);
+
+                if (!availability.IsAvailable)
+                {
+                    errors.Add(
+                        new UAuthValidationError("phone_unavailable", "phone"));
+                }
+            }
         }
+
+        var effectiveDisplayName =
+            request.DisplayName
+            ?? request.UserName
+            ?? request.Email
+            ?? request.Phone;
+
+        var profileValidation = await _profileValidator.ValidateAsync(context,
+            new UserProfileInfo
+            {
+                ProfileKey = ProfileKey.Default,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = effectiveDisplayName,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture
+            },
+            ct);
+
+        errors.AddRange(profileValidation.Errors);
 
         if (errors.Count == 0)
             return UserCreateValidatorResult.Success();

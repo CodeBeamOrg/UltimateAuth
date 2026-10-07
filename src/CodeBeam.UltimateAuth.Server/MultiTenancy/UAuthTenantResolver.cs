@@ -1,5 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -8,12 +10,12 @@ namespace CodeBeam.UltimateAuth.Server.MultiTenancy;
 public sealed class UAuthTenantResolver : ITenantResolver
 {
     private readonly ITenantIdResolver _idResolver;
-    private readonly UAuthMultiTenantOptions _options;
+    private readonly IUAuthMultiTenantOptionsAccessor _options;
 
-    public UAuthTenantResolver(ITenantIdResolver idResolver, IOptions<UAuthMultiTenantOptions> options)
+    public UAuthTenantResolver(ITenantIdResolver idResolver, IUAuthMultiTenantOptionsAccessor options)
     {
         _idResolver = idResolver;
-        _options = options.Value;
+        _options = options;
     }
 
     public async Task<TenantResolutionResult> ResolveAsync(HttpContext context)
@@ -25,7 +27,7 @@ public sealed class UAuthTenantResolver : ITenantResolver
         if (string.IsNullOrWhiteSpace(raw))
             return TenantResolutionResult.NotResolved();
 
-        var normalized = _options.NormalizeToLowercase
+        var normalized = _options.MultiTenant.NormalizeToLowercase
             ? raw.Trim().ToLowerInvariant()
             : raw.Trim();
 

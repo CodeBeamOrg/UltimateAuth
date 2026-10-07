@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Tokens.InMemory;
@@ -50,7 +51,7 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         ct.ThrowIfCancellationRequested();
 
         if (token.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
 
         _tokens[(_tenant, token.TokenHash)] = token;
 
@@ -64,6 +65,23 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         _tokens.TryGetValue((_tenant, tokenHash), out var token);
 
         return Task.FromResult(token);
+    }
+
+    public Task<bool> TryConsumeAsync(string tokenHash, DateTimeOffset consumedAt, string replacedByTokenHash, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (!_tokens.TryGetValue((_tenant, tokenHash), out var token))
+        {
+            return Task.FromResult(false);
+        }
+
+        if (token.IsRevoked)
+            return Task.FromResult(false);
+
+        _tokens[(_tenant, tokenHash)] = token.Revoke(consumedAt, replacedByTokenHash);
+
+        return Task.FromResult(true);
     }
 
     public Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)

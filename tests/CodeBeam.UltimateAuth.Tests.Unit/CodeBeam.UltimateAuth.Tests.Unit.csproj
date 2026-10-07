@@ -26,6 +26,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\samples\UAuthHub\CodeBeam.UltimateAuth.Sample.UAuthHub\CodeBeam.UltimateAuth.Sample.UAuthHub.csproj" />
 		<ProjectReference Include="..\..\src\bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" />
 		<ProjectReference Include="..\..\src\bundle\CodeBeam.UltimateAuth.InMemory.Bundle\CodeBeam.UltimateAuth.InMemory.Bundle.csproj" />
 		<ProjectReference Include="..\..\samples\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />

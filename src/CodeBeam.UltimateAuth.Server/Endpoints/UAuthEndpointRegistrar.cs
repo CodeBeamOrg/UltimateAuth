@@ -311,6 +311,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             if (Enabled(UAuthActions.UserIdentifiers.DeleteAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/delete", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
                 => await h.DeleteUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+
+            if (Enabled(UAuthActions.UserIdentifiers.CheckAvailability))
+                self.MapPost("/identifiers/check-availability", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                => await h.CheckIdentifierAvailabilityAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
         }
 
         if (options.Endpoints.Credentials != false)

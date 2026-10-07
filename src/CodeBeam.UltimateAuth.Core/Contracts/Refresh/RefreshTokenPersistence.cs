@@ -3,15 +3,12 @@
 public enum RefreshTokenPersistence
 {
     /// <summary>
-    /// Refresh token store'a yazılır.
-    /// Login, first-issue gibi normal akışlar için.
+    /// Refresh token persists to the store.
     /// </summary>
     Persist = 0,
 
     /// <summary>
-    /// Refresh token store'a yazılmaz.
-    /// Rotation gibi özel akışlarda,
-    /// caller tarafından kontrol edilir.
+    /// Refresh token does not persist to the store.
     /// </summary>
     DoNotPersist = 10
 }

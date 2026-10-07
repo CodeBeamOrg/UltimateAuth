@@ -155,17 +155,16 @@ internal sealed class SessionApplicationService : ISessionApplicationService
             var store = _storeFactory.Create(context.ResourceTenant);
             var now = _clock.UtcNow;
 
-            var session = await store.GetSessionAsync(sessionId)
-                ?? throw new InvalidOperationException("session_not_found");
+            var session = await store.GetSessionAsync(sessionId, innerCt);
 
-            if (session.UserKey != userKey)
-                throw new UnauthorizedAccessException();
+            if (session is null || session.UserKey != userKey)
+                throw new UAuthNotFoundException("session_not_found");
 
             var expected = session.Version;
             var revoked = session.Revoke(now);
 
             await store.ExecuteAsync(async innerCt2 => {
-                await store.SaveSessionAsync(revoked, expected);
+                await store.SaveSessionAsync(revoked, expected, innerCt2);
             });
         });
 
@@ -226,16 +225,26 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId currentChainId, CancellationToken ct = default)
+    public async Task<RevokeResult> LogoutDeviceAsync(AccessContext context, SessionChainId chainId, CancellationToken ct = default)
     {
         var command = new AccessCommand<RevokeResult>(async innerCt =>
         {
-            var isCurrent = context.ActorChainId == currentChainId;
             var store = _storeFactory.Create(context.ResourceTenant);
+
+            var targetUserKey = context.GetTargetUserKey();
+
+            var chain = await store.GetChainAsync(chainId, innerCt)
+                ?? throw new UAuthNotFoundException("chain_not_found");
+
+            if (chain.UserKey != targetUserKey)
+                throw new UAuthNotFoundException("chain_not_found");
+
+            var isCurrent = context.ActorChainId == chainId;
             var now = _clock.UtcNow;
 
-            await store.ExecuteAsync(async innerCt2 => {
-                await store.LogoutChainAsync(currentChainId, now, innerCt2);
+            await store.ExecuteAsync(async innerCt2 =>
+            {
+                await store.LogoutChainAsync(chainId, now, innerCt2);
             });
 
             return new RevokeResult

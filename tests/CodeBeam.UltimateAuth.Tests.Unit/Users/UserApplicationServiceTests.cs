@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -7,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
@@ -1122,13 +1122,25 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(identifier);
 
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Email &&
+                    q.NormalizedValue == "new@example.com" &&
+                    q.Scope == IdentifierExistenceScope.TenantAny &&
+                    q.UserKey == null &&
+                    q.ExcludeIdentifierId == identifier.Id),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(
+                Exists: false));
+
         f.IdentifierValidator
             .Setup(x => x.ValidateAsync(
                 context,
                 It.Is<UserIdentifierInfo>(x =>
                     x.Value == "new@example.com"),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(IdentifierValidationResult.Success());
+            .ReturnsAsync(UserIdentifierValidationResult.Success());
 
         f.IdentifierNormalizer
             .Setup(x => x.Normalize(
@@ -1210,18 +1222,6 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(identifier);
 
         f.IdentifierStore
-            .Setup(x => x.ExistsAsync(
-                It.Is<IdentifierExistenceQuery>(q =>
-                    q.Type == UserIdentifierType.Email &&
-                    q.NormalizedValue == "alice@example.com" &&
-                    q.Scope == IdentifierExistenceScope.TenantPrimaryOnly &&
-                    q.UserKey == null &&
-                    q.ExcludeIdentifierId == identifier.Id),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(
-                Exists: false));
-
-        f.IdentifierStore
             .Setup(x => x.SaveAsync(
                 identifier,
                 5,
@@ -1243,6 +1243,8 @@ public sealed class UserApplicationServiceTests
             5,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.IdentifierStore.Verify(x => x.ExistsAsync(It.IsAny<IdentifierExistenceQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -1536,50 +1538,25 @@ public sealed class UserApplicationServiceTests
     // Helpers
     // ============================================================
 
-    private static Fixture CreateFixture(
-        params IUserLifecycleIntegration[] integrations)
+    private static Fixture CreateFixture(params IUserLifecycleIntegration[] integrations)
     {
-        var access =
-            new Mock<IAccessOrchestrator>(MockBehavior.Strict);
+        var access = new Mock<IAccessOrchestrator>(MockBehavior.Strict);
+        var atomic = new Mock<IUAuthAtomicExecutor>(MockBehavior.Strict);
+        var lifecycleFactory = new Mock<IUserLifecycleStoreFactory>(MockBehavior.Strict);
+        var identifierFactory = new Mock<IUserIdentifierStoreFactory>(MockBehavior.Strict);
+        var profileFactory = new Mock<IUserProfileStoreFactory>(MockBehavior.Strict);
+        var lifecycleStore = new Mock<IUserLifecycleStore>(MockBehavior.Strict);
+        var identifierStore = new Mock<IUserIdentifierStore>(MockBehavior.Strict);
+        var profileStore = new Mock<IUserProfileStore>(MockBehavior.Strict);
+        var validator = new Mock<IUserCreateValidator>(MockBehavior.Strict);
+        var identifierValidator = new Mock<IUserIdentifierValidator>(MockBehavior.Strict);
+        var normalizer = new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
+        var identifierAvailability = new Mock<IUserIdentifierAvailabilityService>(MockBehavior.Strict);
+        var sessionFactory = new Mock<ISessionStoreFactory>(MockBehavior.Strict);
+        var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
+        var clock = new Mock<IClock>(MockBehavior.Strict);
 
-        var lifecycleFactory =
-            new Mock<IUserLifecycleStoreFactory>(MockBehavior.Strict);
-
-        var identifierFactory =
-            new Mock<IUserIdentifierStoreFactory>(MockBehavior.Strict);
-
-        var profileFactory =
-            new Mock<IUserProfileStoreFactory>(MockBehavior.Strict);
-
-        var lifecycleStore =
-            new Mock<IUserLifecycleStore>(MockBehavior.Strict);
-
-        var identifierStore =
-            new Mock<IUserIdentifierStore>(MockBehavior.Strict);
-
-        var profileStore =
-            new Mock<IUserProfileStore>(MockBehavior.Strict);
-
-        var validator =
-            new Mock<IUserCreateValidator>(MockBehavior.Strict);
-
-        var identifierValidator =
-            new Mock<IIdentifierValidator>(MockBehavior.Strict);
-
-        var normalizer =
-            new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
-
-        var sessionFactory =
-            new Mock<ISessionStoreFactory>(MockBehavior.Strict);
-
-        var sessionStore =
-            new Mock<ISessionStore>(MockBehavior.Strict);
-
-        var clock =
-            new Mock<IClock>(MockBehavior.Strict);
-
-        clock.SetupGet(x => x.UtcNow)
-            .Returns(Now);
+        clock.SetupGet(x => x.UtcNow).Returns(Now);
 
         lifecycleFactory
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
@@ -1617,11 +1594,19 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<UserCreateResult>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+        atomic
+            .Setup(x => x.ExecuteAsync<UserCreateResult>(
+                It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<UserCreateResult>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
         var options = Options.Create(
             new UAuthServerOptions());
 
         var sut = new UserApplicationService(
             access.Object,
+            atomic.Object,
             lifecycleFactory.Object,
             identifierFactory.Object,
             profileFactory.Object,
@@ -1629,6 +1614,7 @@ public sealed class UserApplicationServiceTests
             identifierValidator.Object,
             integrations,
             normalizer.Object,
+            identifierAvailability.Object,
             sessionFactory.Object,
             options,
             clock.Object);
@@ -1636,6 +1622,7 @@ public sealed class UserApplicationServiceTests
         return new Fixture(
             sut,
             access,
+            atomic,
             lifecycleStore,
             identifierStore,
             profileStore,
@@ -1801,11 +1788,12 @@ public sealed class UserApplicationServiceTests
     private sealed record Fixture(
         UserApplicationService Sut,
         Mock<IAccessOrchestrator> Access,
+        Mock<IUAuthAtomicExecutor> Atomic,
         Mock<IUserLifecycleStore> LifecycleStore,
         Mock<IUserIdentifierStore> IdentifierStore,
         Mock<IUserProfileStore> ProfileStore,
         Mock<IUserCreateValidator> UserCreateValidator,
-        Mock<IIdentifierValidator> IdentifierValidator,
+        Mock<IUserIdentifierValidator> IdentifierValidator,
         Mock<IIdentifierNormalizer> IdentifierNormalizer,
         Mock<ISessionStore> SessionStore);
 

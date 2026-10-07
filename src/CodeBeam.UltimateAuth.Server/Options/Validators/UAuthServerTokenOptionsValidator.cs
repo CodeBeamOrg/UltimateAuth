@@ -9,6 +9,11 @@ internal sealed class UAuthServerTokenOptionsValidator : IValidateOptions<UAuthS
         var errors = new List<string>();
         var tokens = options.Token;
 
+        if (options.Token.RefreshTokenConcurrentRequestWindow < TimeSpan.Zero)
+        {
+            errors.Add("Token.RefreshTokenConcurrentRequestWindow cannot be negative.");
+        }
+
         if (!tokens.IssueJwt && !tokens.IssueOpaque)
             errors.Add("Token: At least one of IssueJwt or IssueOpaque must be enabled.");
 
@@ -39,7 +44,7 @@ internal sealed class UAuthServerTokenOptionsValidator : IValidateOptions<UAuthS
                 errors.Add("Token.OpaqueIdBytes must be at least 16 bytes (128-bit entropy).");
 
             if (tokens.OpaqueIdBytes > 128)
-                errors.Add("Token.OpaqueIdBytes must not exceed 64 bytes.");
+                errors.Add("Token.OpaqueIdBytes must not exceed 128 bytes.");
         }
 
         return errors.Count == 0

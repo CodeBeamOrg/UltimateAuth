@@ -11,6 +11,8 @@ public interface IRefreshTokenStore
 
     Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken ct = default);
 
+    Task<bool> TryConsumeAsync(string tokenHash, DateTimeOffset consumedAt, string replacedByTokenHash, CancellationToken ct = default);
+
     Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default);
 
     Task RevokeBySessionAsync(AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);

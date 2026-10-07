@@ -39,6 +39,14 @@ public sealed class UAuthTokenOptions
     public int OpaqueIdBytes { get; set; } = 32;
 
     /// <summary>
+    /// Defines the time window after a refresh token has been consumed during which another use of the same token may be treated as a
+    /// concurrent duplicate request rather than a confirmed replay.
+    ///
+    /// The duplicate request is still rejected; this option only controls whether the token family is revoked as a replay response.
+    /// </summary>
+    public TimeSpan RefreshTokenConcurrentRequestWindow { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
     /// Value assigned to the JWT "iss" (issuer) claim.
     /// Identifies the authority that issued the token.
     /// </summary>
@@ -73,6 +81,7 @@ public sealed class UAuthTokenOptions
         Issuer = Issuer,
         Audience = Audience,
         AddJwtIdClaim = AddJwtIdClaim,
-        KeyId = KeyId
+        KeyId = KeyId,
+        RefreshTokenConcurrentRequestWindow = RefreshTokenConcurrentRequestWindow
     };
 }

@@ -6,4 +6,10 @@
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public sealed class UAuthLoginPageAttribute : Attribute
 {
+    public string? PreferredRoute { get; }
+
+    public UAuthLoginPageAttribute(string? preferredRoute = null)
+    {
+        PreferredRoute = preferredRoute;
+    }
 }

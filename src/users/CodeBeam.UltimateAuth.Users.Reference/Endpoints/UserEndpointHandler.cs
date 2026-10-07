@@ -603,4 +603,20 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         await _users.DeleteUserIdentifierAsync(accessContext, request, ctx.RequestAborted);
         return Results.Ok();
     }
+
+    public async Task<IResult> CheckIdentifierAvailabilityAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        var request = await ctx.ReadJsonAsync<CheckUserIdentifierAvailabilityRequest>(ctx.RequestAborted);
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.UserIdentifiers.CheckAvailability,
+            resource: "users");
+
+        var result = await _users.CheckIdentifierAvailabilityAsync(accessContext, request, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
 }

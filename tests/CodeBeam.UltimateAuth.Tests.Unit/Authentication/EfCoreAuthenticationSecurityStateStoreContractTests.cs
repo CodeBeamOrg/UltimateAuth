@@ -72,7 +72,4 @@ public sealed class EfCoreAuthenticationSecurityStateStoreContractTests : Authen
             await _connection.DisposeAsync();
         }
     }
-
-    // Aynı CreateState / MutateState / AssertMutationPersisted
-    // implementation'ı.
 }

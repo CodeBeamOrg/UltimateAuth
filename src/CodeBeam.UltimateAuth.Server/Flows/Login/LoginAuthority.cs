@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -8,6 +9,13 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 /// </summary>
 public sealed class LoginAuthority : ILoginAuthority
 {
+    private readonly IClock _clock;
+
+    public LoginAuthority(IClock clock)
+    {
+        _clock = clock;
+    }
+
     public LoginDecision Decide(LoginDecisionContext context)
     {
         if (!context.UserExists || context.UserKey is null)
@@ -18,7 +26,7 @@ public sealed class LoginAuthority : ILoginAuthority
         var state = context.SecurityState;
         if (state is not null)
         {
-            if (state.IsLocked(DateTimeOffset.UtcNow))
+            if (state.IsLocked(_clock.UtcNow))
                 return LoginDecision.Deny(AuthFailureReason.LockedOut);
 
             if (state.RequiresReauthentication)

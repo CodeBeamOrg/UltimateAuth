@@ -104,15 +104,13 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             });
         }
 
-        var validation = _validator.Validate(
-            artifact,
-            request.CodeVerifier,
-            new PkceContextSnapshot(
-                clientProfile: artifact.Context.ClientProfile,
-                tenant: artifact.Context.Tenant,
-                redirectUri: artifact.Context.RedirectUri,
-                device: artifact.Context.Device),
-            _clock.UtcNow);
+        var completionContext = new PkceContextSnapshot(
+            clientProfile: authContext.ClientProfile,
+            tenant: authContext.Tenant,
+            redirectUri: request.ReturnUrl,
+            device: authContext.Device);
+
+        var validation = _validator.Validate(artifact, request.CodeVerifier, completionContext, _clock.UtcNow);
 
         if (!validation.Success)
         {
@@ -175,7 +173,9 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 AuthorizationCode = request.AuthorizationCode!,
                 CodeVerifier = request.CodeVerifier!,
                 Identifier = request.Identifier,
-                Secret = request.Secret
+                Secret = request.Secret,
+                ReturnUrl = request.ReturnUrl,
+                HubSessionId = request.HubSessionId
             },
             ctx.RequestAborted);
 

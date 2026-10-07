@@ -14,9 +14,9 @@ public sealed class RefreshTokenValidatorTests
 {
     private const string ValidDeviceId = "deviceidshouldbelongandstrongenough!?1234567890";
 
-    private static UAuthRefreshTokenValidator CreateValidator(InMemoryRefreshTokenStoreFactory factory)
+    private static UAuthRefreshTokenValidator CreateValidator(InMemoryRefreshTokenStoreFactory factory, ITokenHasher hasher)
     {
-        return new UAuthRefreshTokenValidator(factory, CreateHasher());
+        return new UAuthRefreshTokenValidator(factory, hasher);
     }
 
     private static ITokenHasher CreateHasher()
@@ -28,7 +28,8 @@ public sealed class RefreshTokenValidatorTests
     public async Task Invalid_When_Token_Not_Found()
     {
         var factory = new InMemoryRefreshTokenStoreFactory();
-        var validator = CreateValidator(factory);
+        var hasher = CreateHasher();
+        var validator = CreateValidator(factory, hasher);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -40,21 +41,21 @@ public sealed class RefreshTokenValidatorTests
             });
 
         Assert.False(result.IsValid);
-        Assert.False(result.IsReuseDetected);
+        Assert.Equal(RefreshTokenValidationState.NotFound, result.State);
     }
 
     [Fact]
-    public async Task Reuse_Detected_When_Token_is_Revoked()
+    public async Task Invalid_When_Token_Is_Revoked_Without_Replacement()
     {
         var factory = new InMemoryRefreshTokenStoreFactory();
         var store = factory.Create(TenantKey.Single);
 
         var hasher = CreateHasher();
-        var validator = CreateValidator(factory);
+        var validator = CreateValidator(factory, hasher);
 
         var now = DateTimeOffset.UtcNow;
 
-        var rawToken = "refresh-token-1";
+        const string rawToken = "refresh-token-1";
         var hash = hasher.Hash(rawToken);
 
         var token = RefreshToken.Create(
@@ -67,9 +68,8 @@ public sealed class RefreshTokenValidatorTests
             now.AddMinutes(-5),
             now.AddMinutes(5));
 
-        var revoked = token.Revoke(now);
-
-        await store.StoreAsync(revoked);
+        await store.StoreAsync(
+            token.Revoke(now));
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -77,26 +77,102 @@ public sealed class RefreshTokenValidatorTests
                 Tenant = TenantKey.Single,
                 RefreshToken = rawToken,
                 Now = now,
-                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
+                Device = DeviceContext.Create(
+                    DeviceId.Create(ValidDeviceId),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)
             });
 
         Assert.False(result.IsValid);
-        Assert.True(result.IsReuseDetected);
+        Assert.Equal(
+            RefreshTokenValidationState.Invalid,
+            result.State);
+    }
+
+    [Fact]
+    public async Task Consumed_When_Token_Was_Replaced_By_Rotation()
+    {
+        var factory = new InMemoryRefreshTokenStoreFactory();
+        var store = factory.Create(TenantKey.Single);
+
+        var hasher = CreateHasher();
+        var validator = CreateValidator(factory, hasher);
+
+        var now = DateTimeOffset.UtcNow;
+
+        const string rawToken = "refresh-token-1";
+        var hash = hasher.Hash(rawToken);
+
+        var token = RefreshToken.Create(
+            TokenId.New(),
+            hash,
+            TenantKey.Single,
+            UserKey.FromString("user-1"),
+            TestIds.Session("session-1-aaaaaaaaaaaaaaaaaaaaaa"),
+            SessionChainId.New(),
+            now.AddMinutes(-5),
+            now.AddMinutes(5));
+
+        await store.StoreAsync(
+            token.Revoke(
+                now,
+                "replacement-refresh-token-hash"));
+
+        var result = await validator.ValidateAsync(
+            new RefreshTokenValidationContext
+            {
+                Tenant = TenantKey.Single,
+                RefreshToken = rawToken,
+                Now = now,
+                Device = DeviceContext.Create(
+                    DeviceId.Create(ValidDeviceId),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)
+            });
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            RefreshTokenValidationState.Consumed,
+            result.State);
+
+        Assert.Equal(
+            "replacement-refresh-token-hash",
+            result.ReplacedByTokenHash);
     }
 
     [Fact]
     public async Task Invalid_When_Expected_Session_Id_Does_Not_Match()
     {
-        var factory = new InMemoryRefreshTokenStoreFactory();
-        var store = factory.Create(TenantKey.Single);
+        var factory =
+            new InMemoryRefreshTokenStoreFactory();
 
-        var validator = CreateValidator(factory);
+        var store =
+            factory.Create(TenantKey.Single);
 
-        var now = DateTimeOffset.UtcNow;
+        var hasher =
+            CreateHasher();
+
+        var validator =
+            CreateValidator(factory, hasher);
+
+        var now =
+            DateTimeOffset.UtcNow;
+
+        const string rawToken =
+            "refresh-token-2";
+
+        var tokenHash =
+            hasher.Hash(rawToken);
 
         var token = RefreshToken.Create(
             TokenId.New(),
-            "hash-2",
+            tokenHash,
             TenantKey.Single,
             UserKey.FromString("user-1"),
             TestIds.Session("session-1-bbbbbbbbbbbbbbbbbbbbbb"),
@@ -110,29 +186,51 @@ public sealed class RefreshTokenValidatorTests
             new RefreshTokenValidationContext
             {
                 Tenant = TenantKey.Single,
-                RefreshToken = "hash-2",
-                ExpectedSessionId = TestIds.Session("session-2-cccccccccccccccccccccc"),
+                RefreshToken = rawToken,
+                ExpectedSessionId =
+                    TestIds.Session(
+                        "session-2-cccccccccccccccccccccc"),
                 Now = now,
-                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
+                Device = DeviceContext.Create(
+                    DeviceId.Create(ValidDeviceId),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null),
             });
 
         Assert.False(result.IsValid);
-        Assert.False(result.IsReuseDetected);
+
+        Assert.Equal(
+            RefreshTokenValidationState.Invalid,
+            result.State);
     }
 
     [Fact]
     public async Task Invalid_When_Token_Is_Expired()
     {
-        var factory = new InMemoryRefreshTokenStoreFactory();
-        var store = factory.Create(TenantKey.Single);
+        var factory =
+            new InMemoryRefreshTokenStoreFactory();
 
-        var validator = CreateValidator(factory);
+        var store =
+            factory.Create(TenantKey.Single);
 
-        var now = DateTimeOffset.UtcNow;
+        var hasher = CreateHasher();
+        var validator = CreateValidator(factory, hasher);
+
+        var now =
+            DateTimeOffset.UtcNow;
+
+        const string rawToken =
+            "expired-refresh-token";
+
+        var tokenHash =
+            hasher.Hash(rawToken);
 
         var token = RefreshToken.Create(
             TokenId.New(),
-            "expired-hash",
+            tokenHash,
             TenantKey.Single,
             UserKey.FromString("user-1"),
             TestIds.Session("session-expired"),
@@ -146,13 +244,22 @@ public sealed class RefreshTokenValidatorTests
             new RefreshTokenValidationContext
             {
                 Tenant = TenantKey.Single,
-                RefreshToken = "expired-hash",
+                RefreshToken = rawToken,
                 Now = now,
-                Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
+                Device = DeviceContext.Create(
+                    DeviceId.Create(ValidDeviceId),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null),
             });
 
         Assert.False(result.IsValid);
-        Assert.False(result.IsReuseDetected);
+
+        Assert.Equal(
+            RefreshTokenValidationState.Expired,
+            result.State);
     }
 
     [Fact]
@@ -161,7 +268,8 @@ public sealed class RefreshTokenValidatorTests
         var factory = new InMemoryRefreshTokenStoreFactory();
         var store = factory.Create(TenantKey.Single);
 
-        var validator = CreateValidator(factory);
+        var hasher = CreateHasher();
+        var validator = CreateValidator(factory, hasher);
 
         var now = DateTimeOffset.UtcNow;
 
@@ -190,7 +298,7 @@ public sealed class RefreshTokenValidatorTests
             });
 
         Assert.True(result.IsValid);
-        Assert.False(result.IsReuseDetected);
+        Assert.Equal(RefreshTokenValidationState.Valid, result.State);
     }
 
     [Fact]
@@ -199,7 +307,8 @@ public sealed class RefreshTokenValidatorTests
         var factory = new InMemoryRefreshTokenStoreFactory();
         var store = factory.Create(TenantKey.Single);
 
-        var validator = CreateValidator(factory);
+        var hasher = CreateHasher();
+        var validator = CreateValidator(factory, hasher);
 
         var now = DateTimeOffset.UtcNow;
 
@@ -228,6 +337,6 @@ public sealed class RefreshTokenValidatorTests
             });
 
         Assert.False(result.IsValid);
-        Assert.True(result.IsReuseDetected);
+        Assert.Equal(RefreshTokenValidationState.Consumed, result.State);
     }
 }

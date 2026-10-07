@@ -35,12 +35,20 @@ public sealed class CompositeSessionIdResolver : ISessionIdResolver
         return null;
     }
 
-    private bool IsEnabled(string name) => name switch
+    private bool IsEnabled(string name)
     {
-        "Bearer" => _options.EnableBearer,
-        "Header" => _options.EnableHeader,
-        "Cookie" => _options.EnableCookie,
-        "Query" => _options.EnableQuery,
-        _ => false
-    };
+        if (name.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
+            return _options.EnableBearer;
+
+        if (name.Equals("Header", StringComparison.OrdinalIgnoreCase))
+            return _options.EnableHeader;
+
+        if (name.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
+            return _options.EnableCookie;
+
+        if (name.Equals("Query", StringComparison.OrdinalIgnoreCase))
+            return _options.EnableQuery;
+
+        return false;
+    }
 }

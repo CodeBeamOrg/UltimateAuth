@@ -149,11 +149,7 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
             securityVersion: SecurityVersion + 1);
     }
 
-    /// <summary>
-    /// Registers a failed authentication attempt. Optionally locks until now + duration when threshold reached.
-    /// If already locked, may extend lock depending on extendLock.
-    /// </summary>
-    public AuthenticationSecurityState RegisterFailure(DateTimeOffset now, int threshold, TimeSpan lockoutDuration, bool extendLock = true)
+    public AuthenticationSecurityState RegisterFailure(DateTimeOffset now, int threshold, TimeSpan lockoutDuration, TimeSpan failureWindow, bool extendLock = true)
     {
         if (threshold < 0)
             throw new UAuthValidationException(nameof(threshold));
@@ -161,10 +157,19 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
         var effectiveFailedAttempts = FailedAttempts;
         var effectiveLockedUntil = LockedUntil;
 
+        // Existing lock expired.
         if (effectiveLockedUntil.HasValue && now >= effectiveLockedUntil.Value)
         {
             effectiveFailedAttempts = 0;
             effectiveLockedUntil = null;
+        }
+
+        // Previous failure sequence expired.
+        if (failureWindow > TimeSpan.Zero &&
+            LastFailedAt is DateTimeOffset lastFailedAt &&
+            now - lastFailedAt > failureWindow)
+        {
+            effectiveFailedAttempts = 0;
         }
 
         var nextCount = effectiveFailedAttempts + 1;
@@ -203,7 +208,13 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
     /// Registers a successful authentication: clears failures and lock.
     /// </summary>
     public AuthenticationSecurityState RegisterSuccess()
-        => new AuthenticationSecurityState(
+    {
+        if (FailedAttempts == 0 && LastFailedAt is null && LockedUntil is null)
+        {
+            return this;
+        }
+
+        return new AuthenticationSecurityState(
             Id,
             Tenant,
             UserKey,
@@ -219,6 +230,7 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
             ResetTokenHash,
             ResetAttempts,
             securityVersion: SecurityVersion + 1);
+    }
 
     /// <summary>
     /// Admin/system unlock: clears lock and failures.

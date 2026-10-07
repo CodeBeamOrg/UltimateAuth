@@ -2,28 +2,19 @@
 
 public sealed class UAuthIdentifierOptions
 {
-    public bool AllowUsernameChange { get; set; } = true;
-    public bool AllowMultipleUsernames { get; set; } = false;
-    public bool AllowMultipleEmail { get; set; } = true;
-    public bool AllowMultiplePhone { get; set; } = true;
+    public UAuthIdentifierBehaviorOptions Behavior { get; set; } = new();
 
-    public bool RequireUsernameIdentifier { get; set; } = false;
-    public bool RequireEmailVerification { get; set; } = false;
-    public bool RequirePhoneVerification { get; set; } = false;
+    public UAuthIdentifierValidationOptions Validation { get; set; } = new();
 
-    public bool AllowAdminOverride { get; set; } = true;
-    public bool AllowUserOverride { get; set; } = true;
+    public UAuthIdentifierNormalizationOptions Normalization { get; set; } = new();
+
+    public UAuthIdentifierUniquenessOptions Uniqueness { get; set; } = new();
 
     internal UAuthIdentifierOptions Clone() => new()
     {
-        AllowUsernameChange = AllowUsernameChange,
-        AllowMultipleUsernames = AllowMultipleUsernames,
-        AllowMultipleEmail = AllowMultipleEmail,
-        AllowMultiplePhone = AllowMultiplePhone,
-        RequireUsernameIdentifier = RequireUsernameIdentifier,
-        RequireEmailVerification = RequireEmailVerification,
-        RequirePhoneVerification = RequirePhoneVerification,
-        AllowAdminOverride = AllowAdminOverride,
-        AllowUserOverride = AllowUserOverride
+        Behavior = Behavior.Clone(),
+        Validation = Validation.Clone(),
+        Normalization = Normalization.Clone(),
+        Uniqueness = Uniqueness.Clone()
     };
 }

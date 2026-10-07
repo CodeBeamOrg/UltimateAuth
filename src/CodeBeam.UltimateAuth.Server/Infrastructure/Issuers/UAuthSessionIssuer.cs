@@ -51,16 +51,12 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
         await kernel.ExecuteAsync(async _ =>
         {
-            var root = await kernel.GetRootByUserAsync(context.UserKey);
+            var root = await kernel.GetActiveRootByUserAsync(context.UserKey);
 
             if (root is null)
             {
                 root = UAuthSessionRoot.Create(context.Tenant, context.UserKey, now);
                 await kernel.CreateRootAsync(root);
-            }
-            else if (root.IsRevoked)
-            {
-                throw new UAuthValidationException("Session root revoked.");
             }
 
             UAuthSessionChain chain;
@@ -69,6 +65,12 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             {
                 var existing = await kernel.GetChainAsync(context.ChainId.Value);
 
+                // TODO(v0.x): Re-evaluate explicit ChainId semantics.
+                // When the caller explicitly supplies a ChainId but that chain cannot be found,
+                // the current behavior silently creates a new chain with a different ChainId.
+                // Once SemiHybrid/PureJwt and the complete chain lifecycle semantics are finalized,
+                // decide whether this should instead fail closed (e.g. chain-not-found/validation failure).
+                // Do not change without reviewing login, refresh, reauthentication and device-chain flows.
                 if (existing is null)
                 {
                     chain = UAuthSessionChain.Create(
@@ -97,11 +99,11 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 if (chainState != SessionState.Active)
                     throw new UAuthValidationException("Chain is not active.");
 
-                //if (chain.IsRevoked)
-                //    throw new UAuthValidationException("Chain revoked.");
-
                 if (chain.UserKey != context.UserKey || chain.Tenant != context.Tenant)
                     throw new UAuthValidationException("Invalid chain ownership.");
+
+                if (chain.RootId != root.RootId)
+                    throw new UAuthValidationException("Chain does not belong to the active session root.");
             }
             else
             {
@@ -164,6 +166,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
         if (issued == null)
             throw new InvalidCastException("Issue failed.");
+
         return issued;
     }
 
@@ -188,18 +191,19 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
         await kernel.ExecuteAsync(async _ =>
         {
-            var root = await kernel.GetRootByUserAsync(context.UserKey);
+            var root = await kernel.GetActiveRootByUserAsync(context.UserKey);
+
             if (root == null)
                 throw new SecurityException("Session root not found");
-
-            if (root.IsRevoked)
-                throw new SecurityException("Session root is revoked");
 
             var oldSession = await kernel.GetSessionAsync(context.CurrentSessionId)
                 ?? throw new SecurityException("Session not found");
 
             if (oldSession.IsRevoked || oldSession.ExpiresAt <= now)
                 throw new SecurityException("Session is not valid");
+
+            if (oldSession.Tenant != context.Tenant || oldSession.UserKey != context.UserKey)
+                throw new SecurityException("Session does not belong to the current user/tenant.");
 
             if (oldSession.SecurityVersionAtCreation != root.SecurityVersion)
                 throw new SecurityException("Security version mismatch");
@@ -212,6 +216,11 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
             if (chain.Tenant != context.Tenant || chain.UserKey != context.UserKey)
                 throw new SecurityException("Chain does not belong to the current user/tenant.");
+
+            if (chain.RootId != root.RootId)
+            {
+                throw new SecurityException("Chain does not belong to the active session root.");
+            }
 
             var newSessionUnbound = UAuthSession.Create(
                 sessionId: newSessionId,
@@ -226,14 +235,14 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 metadata: context.Metadata
             );
 
+            var newSession = newSessionUnbound.WithChain(chain.ChainId);
+
             issued = new IssuedSession
             {
-                Session = newSessionUnbound,
+                Session = newSession,
                 OpaqueSessionId = opaqueSessionId,
                 IsMetadataOnly = context.Mode == UAuthMode.SemiHybrid
             };
-
-            var newSession = issued.Session.WithChain(chain.ChainId);
 
             await kernel.CreateSessionAsync(newSession);
             var chainExpected = chain.Version;
@@ -289,14 +298,10 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
     public async Task RevokeRootAsync(TenantKey tenant, UserKey userKey, DateTimeOffset at, CancellationToken ct = default)
     {
         var kernel = _storeFactory.Create(tenant);
-        await kernel.ExecuteAsync(async _ =>
-        {
-            var root = await kernel.GetRootByUserAsync(userKey);
-            if (root is null)
-                return;
 
-            await kernel.RevokeRootCascadeAsync(userKey, at);
-        }, ct);
+        await kernel.ExecuteAsync(
+            _ => kernel.RevokeRootCascadeAsync(userKey, at),
+            ct);
     }
 
     public async Task<SessionChainId?> GetChainIdBySessionAsync(TenantKey tenant, AuthSessionId sessionId, CancellationToken ct = default)

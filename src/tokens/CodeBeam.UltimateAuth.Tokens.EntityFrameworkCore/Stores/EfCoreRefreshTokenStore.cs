@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -88,7 +89,7 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
         EnsureTransaction();
 
         if (token.Tenant != _tenant)
-            throw new InvalidOperationException("Tenant mismatch.");
+            throw new UAuthValidationException("Tenant mismatch.");
 
         DbSet.Add(token.ToProjection());
 
@@ -107,6 +108,29 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
                 ct);
 
         return p?.ToDomain();
+    }
+
+    public async Task<bool> TryConsumeAsync(string tokenHash, DateTimeOffset consumedAt, string replacedByTokenHash, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
+        var affected = await DbSet
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.TokenHash == tokenHash &&
+                x.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                x => x
+                    .SetProperty(
+                        t => t.RevokedAt,
+                        consumedAt)
+                    .SetProperty(
+                        t => t.ReplacedByTokenHash,
+                        replacedByTokenHash),
+                ct);
+
+        return affected == 1;
     }
 
     public Task RevokeAsync(string tokenHash, DateTimeOffset revokedAt, string? replacedByTokenHash = null, CancellationToken ct = default)

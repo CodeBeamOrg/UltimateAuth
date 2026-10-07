@@ -1,9 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Security;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Security;
 
@@ -27,8 +26,21 @@ internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityMan
             return state;
 
         var created = AuthenticationSecurityState.CreateAccount(tenant, userKey);
-        await store.AddAsync(created, ct);
-        return created;
+
+        try
+        {
+            await store.AddAsync(created, ct);
+            return created;
+        }
+        catch (UAuthConflictException)
+        {
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, credentialType: null, ct);
+
+            if (existing is not null)
+                return existing;
+
+            throw;
+        }
     }
 
     public async Task<AuthenticationSecurityState> GetOrCreateFactorAsync(TenantKey tenant, UserKey userKey, CredentialType type, CancellationToken ct = default)
@@ -42,8 +54,85 @@ internal sealed class AuthenticationSecurityManager : IAuthenticationSecurityMan
             return state;
 
         var created = AuthenticationSecurityState.CreateFactor(tenant, userKey, type);
-        await store.AddAsync(created, ct);
-        return created;
+
+        try
+        {
+            await store.AddAsync(created, ct);
+            return created;
+        }
+        catch (UAuthConflictException)
+        {
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Factor, type, ct);
+
+            if (existing is not null)
+                return existing;
+
+            throw;
+        }
+    }
+
+    public async Task<AuthenticationSecurityState> MutateFactorAsync(TenantKey tenant, UserKey userKey, CredentialType type, Func<AuthenticationSecurityState, AuthenticationSecurityState> mutation, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(mutation);
+
+        const int maxAttempts = 5;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var current = await GetOrCreateFactorAsync(tenant, userKey, type, ct);
+
+            var updated = mutation(current);
+
+            if (ReferenceEquals(updated, current))
+                return current;
+
+            try
+            {
+                await UpdateAsync(updated, current.SecurityVersion, ct);
+
+                return updated;
+            }
+            catch (UAuthConflictException) when (attempt < maxAttempts - 1)
+            {
+                // State changed after it was read.
+                // Reload and reapply the domain mutation.
+            }
+        }
+
+        throw new InvalidOperationException("Unreachable.");
+    }
+
+    public async Task<AuthenticationSecurityState> MutateAccountAsync(TenantKey tenant, UserKey userKey, Func<AuthenticationSecurityState, AuthenticationSecurityState> mutation, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(mutation);
+
+        const int maxAttempts = 5;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var current = await GetOrCreateAccountAsync(tenant, userKey, ct);
+
+            var updated = mutation(current);
+
+            if (ReferenceEquals(updated, current))
+                return current;
+
+            try
+            {
+                await UpdateAsync(updated, current.SecurityVersion, ct);
+
+                return updated;
+            }
+            catch (UAuthConflictException) when (attempt < maxAttempts - 1)
+            {
+            }
+        }
+
+        throw new InvalidOperationException("Unreachable.");
     }
 
     public Task UpdateAsync(AuthenticationSecurityState updated, long expectedVersion, CancellationToken ct = default)

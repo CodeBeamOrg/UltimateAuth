@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
+using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using System.Security.Claims;
 
@@ -842,14 +843,20 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
         var tenant = TenantKeys.Single;
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
+        SessionRootId rootId;
+
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(
+                db,
+                new TenantExecutionContext(tenant));
 
             var root = UAuthSessionRoot.Create(
                 tenant,
                 userKey,
                 DateTimeOffset.UtcNow);
+
+            rootId = root.RootId;
 
             await store.ExecuteAsync(async ct =>
             {
@@ -859,23 +866,39 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(
+                db,
+                new TenantExecutionContext(tenant));
 
             await store.ExecuteAsync(async ct =>
             {
-                var existing = await store.GetRootByUserAsync(userKey, ct);
-                var updated = existing!.Revoke(DateTimeOffset.UtcNow);
+                var existing =
+                    await store.GetActiveRootByUserAsync(userKey, ct);
 
-                await store.SaveRootAsync(updated, expectedVersion: 0, ct);
+                existing.Should().NotBeNull();
+
+                var updated =
+                    existing!.Revoke(DateTimeOffset.UtcNow);
+
+                await store.SaveRootAsync(
+                    updated,
+                    expectedVersion: existing.Version,
+                    ct);
             });
         }
 
         await using (var db = CreateDb(connection))
         {
-            var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var result = await store.GetRootByUserAsync(userKey);
+            var store = new EfCoreSessionStore<UAuthSessionDbContext>(
+                db,
+                new TenantExecutionContext(tenant));
 
-            Assert.Equal(1, result!.Version);
+            var result =
+                await store.GetRootByIdAsync(rootId);
+
+            result.Should().NotBeNull();
+            result!.Version.Should().Be(1);
+            result.IsRevoked.Should().BeTrue();
         }
     }
 }
