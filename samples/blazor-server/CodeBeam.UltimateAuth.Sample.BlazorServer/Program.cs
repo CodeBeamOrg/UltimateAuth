@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
@@ -62,6 +63,11 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 });
 
 builder.Services.AddUltimateAuthSampleSeed();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<ICredentialResetNotifier, DevelopmentCredentialResetNotifier>();
+}
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

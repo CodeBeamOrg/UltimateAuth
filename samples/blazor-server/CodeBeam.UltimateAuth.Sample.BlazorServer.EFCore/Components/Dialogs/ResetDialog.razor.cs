@@ -9,7 +9,6 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Dialogs;
 public partial class ResetDialog
 {
     private bool _resetRequested = false;
-    private string? _resetCode;
     private string? _identifier;
 
     [CascadingParameter]
@@ -34,7 +33,6 @@ public partial class ResetDialog
             return;
         }
 
-        _resetCode = result.Value.Token;
         _resetRequested = true;
     }
 

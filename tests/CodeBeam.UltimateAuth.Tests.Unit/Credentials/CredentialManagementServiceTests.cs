@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
@@ -746,6 +747,9 @@ public sealed class CredentialManagementServiceTests
         public Mock<ILoginIdentifierResolver> IdentifierResolver { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<ICredentialResetNotifier> ResetNotifier { get; }
+            = new(MockBehavior.Strict);
+
         public Mock<ISessionStoreFactory> SessionStoreFactory { get; }
             = new(MockBehavior.Strict);
 
@@ -830,6 +834,7 @@ public sealed class CredentialManagementServiceTests
                 TokenHasher.Object,
                 IdentifierResolver.Object,
                 SessionStoreFactory.Object,
+                ResetNotifier.Object,
                 options,
                 Clock.Object);
         }

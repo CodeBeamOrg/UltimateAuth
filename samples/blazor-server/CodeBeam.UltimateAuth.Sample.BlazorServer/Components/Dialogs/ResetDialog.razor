@@ -1,7 +1,4 @@
-﻿@using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Credentials.Contracts
-@using CodeBeam.UltimateAuth.Users.Contracts
-@inject IUAuthClient UAuthClient
+﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IUAuthStateManager StateManager
@@ -15,8 +12,8 @@
     <DialogContent>
         <MudStack Class="mud-width-full">
             <MudAlert Severity="Severity.Info">
-                This is a demonstration of how to implement a credential reset flow.
-                In a production application, you should use reset token or code in email, SMS etc. verification steps.
+                In this development sample, reset codes are written to the server console by a custom ICredentialResetNotifier.
+                Production applications should send them through a trusted email or SMS channel.
             </MudAlert>
             <MudAlert Severity="Severity.Warning">
                 Reset request always returns ok even with not found users due to security reasons.
@@ -25,9 +22,8 @@
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RequestResetAsync">Request Reset</MudButton>
             @if (_resetRequested)
             {
-                <MudText Align="Align.Center">Your reset code is: (Copy it before next step)</MudText>
-                <MudText Align="Align.Center" Typo="Typo.h6"><b>@_resetCode</b></MudText>
-                <MudText Align="Align.Center"><MudLink Class="cursor-pointer" Href="@($"/reset?identifier={_identifier}")">Use Reset Code</MudLink></MudText>
+                <MudText Align="Align.Center">Your reset code is on the server console.</MudText>
+                <MudText Align="Align.Center"><MudLink Class="cursor-pointer" Href="@($"/reset?uauth_identifier={_identifier}")">Use Reset Code</MudLink></MudText>
             }
         </MudStack>
     </DialogContent>

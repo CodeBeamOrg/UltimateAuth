@@ -24,6 +24,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly ITokenHasher _tokenHasher;
     private readonly ILoginIdentifierResolver _identifierResolver;
     private readonly ISessionStoreFactory _sessionFactory;
+    private readonly ICredentialResetNotifier _resetNotifier;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -37,6 +38,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         ITokenHasher tokenHasher,
         ILoginIdentifierResolver identifierResolver,
         ISessionStoreFactory sessionFactory,
+        ICredentialResetNotifier resetNotifier,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -49,6 +51,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _tokenHasher = tokenHasher;
         _identifierResolver = identifierResolver;
         _sessionFactory = sessionFactory;
+        _resetNotifier = resetNotifier;
         _options = options.Value;
         _clock = clock;
     }
@@ -199,22 +202,28 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
         var cmd = new AccessCommand<BeginCredentialResetResult>(async innerCt =>
         {
+
+            if (_resetNotifier is NotConfiguredCredentialResetNotifier)
+                throw NotConfiguredCredentialResetNotifier.CreateException();
+
             if (string.IsNullOrWhiteSpace(request.Identifier))
                 throw new UAuthValidationException("identifier_required");
 
             var now = _clock.UtcNow;
-            var validity = request.Validity ?? _options.ResetCredential.TokenValidity;
+            // Anonymous callers must not control the proof's lifetime.
+            var validity = _options.ResetCredential.TokenValidity;
+            var expiresAt = now.Add(validity);
+
+            var result = new BeginCredentialResetResult
+            {
+                ExpiresAt = expiresAt
+            };
+
 
             var resolution = await _identifierResolver.ResolveAsync(context.ResourceTenant, request.Identifier, innerCt);
 
             if (resolution?.UserKey is not UserKey userKey)
-            {
-                return new BeginCredentialResetResult
-                {
-                    Token = null,
-                    ExpiresAt = now.Add(validity)
-                };
-            }
+                return result; // Enumeration protection
 
             var state = await _authenticationSecurityManager
                 .GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
@@ -239,11 +248,17 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var updatedState = state.BeginReset(tokenHash, now, validity);
             await _authenticationSecurityManager.UpdateAsync(updatedState, state.SecurityVersion, innerCt);
 
-            return new BeginCredentialResetResult
-            {
-                Token = token,
-                ExpiresAt = now.Add(validity)
-            };
+            await _resetNotifier.NotifyAsync(
+                new CredentialResetNotification(
+                    Tenant: context.ResourceTenant,
+                    UserKey: userKey,
+                    CredentialType: request.CredentialType,
+                    CodeType: request.ResetCodeType,
+                    Token: token,
+                    ExpiresAt: expiresAt),
+                innerCt);
+
+            return result;
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
