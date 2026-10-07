@@ -358,6 +358,7 @@ public static class ServiceCollectionExtensions
     internal static IServiceCollection AddCredentialsInternal(IServiceCollection services)
     {
         services.TryAddScoped<ICredentialValidator, CredentialValidator>();
+        services.TryAddScoped<ICredentialResetNotifier, NotConfiguredCredentialResetNotifier>();
         return services;
     }
 

@@ -25,8 +25,7 @@
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RequestResetAsync">Request Reset</MudButton>
             @if (_resetRequested)
             {
-                <MudText Align="Align.Center">Your reset code is: (Copy it before next step)</MudText>
-                <MudText Align="Align.Center" Typo="Typo.h6"><b>@_resetCode</b></MudText>
+                <MudText Align="Align.Center">Your reset code is on the server console.</MudText>
                 <MudText Align="Align.Center"><MudLink Class="cursor-pointer" Href="@($"/reset?identifier={_identifier}")">Use Reset Code</MudLink></MudText>
             }
         </MudStack>
