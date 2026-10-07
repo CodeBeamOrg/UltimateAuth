@@ -67,6 +67,7 @@ builder.Services.AddUltimateAuthSampleSeed();
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<ICredentialResetNotifier, DevelopmentCredentialResetNotifier>();
+    builder.Services.AddScoped<IUserIdentifierVerifier, DevelopmentBypassUserIdentifierVerifier>();
 }
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

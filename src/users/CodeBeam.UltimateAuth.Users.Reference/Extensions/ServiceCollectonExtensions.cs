@@ -23,6 +23,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserLifecycleSnapshotProvider, UserLifecycleSnapshotProvider>();
         services.AddScoped<ILoginIdentifierResolver, LoginIdentifierResolver>();
 
+        services.TryAddScoped<IUserIdentifierVerifier, NotConfiguredUserIdentifierVerifier>();
+
         return services;
     }
 

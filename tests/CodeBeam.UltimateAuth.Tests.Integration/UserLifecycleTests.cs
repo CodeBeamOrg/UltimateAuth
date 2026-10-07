@@ -210,55 +210,30 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
     }
 
     [Fact]
-    public async Task CreateUser_WithVerifiedEmail_ShouldPersistEmailAsVerified()
+    public async Task CreateUser_WithVerifiedEmail_ShouldNotPersistEmailAsVerified()
     {
         _factory.Clock.Reset();
 
         using var client = CreateClient();
 
-        var username =
-            $"email-user-{Guid.NewGuid():N}";
+        var username = $"email-user-{Guid.NewGuid():N}";
 
-        var email =
-            $"{Guid.NewGuid():N}@example.com";
+        var email = $"{Guid.NewGuid():N}@example.com";
 
-        var result = await CreateUserAsync(
-            client,
-            username,
-            email: email,
-            emailVerified: true);
+        var result = await CreateUserAsync(client, username, email: email, emailVerified: true);
 
         var userKey = GetUserKey(result);
 
-        using var scope =
-            _factory.Services.CreateScope();
-
-        var factory =
-            scope.ServiceProvider
-                .GetRequiredService<IUserIdentifierStoreFactory>();
-
-        var store =
-            factory.Create(TenantKeys.Single);
-
-        var identifiers =
-            await store.GetByUserAsync(
-                userKey);
-
-        var identifier = identifiers
-            .Single(x =>
-                x.Type == UserIdentifierType.Email);
-
-        identifier.Value.Should()
-            .Be(email);
-
-        identifier.IsPrimary.Should()
-            .BeTrue();
-
-        identifier.IsVerified.Should()
-            .BeTrue();
-
-        identifier.VerifiedAt.Should()
-            .Be(_factory.Clock.UtcNow);
+        using var scope = _factory.Services.CreateScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IUserIdentifierStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var identifiers = await store.GetByUserAsync(userKey);
+        var identifier = identifiers.Single(x => x.Type == UserIdentifierType.Email);
+        
+        identifier.Value.Should().Be(email);
+        identifier.IsPrimary.Should().BeTrue();
+        identifier.IsVerified.Should().BeFalse("anonymous registration must ignore client-supplied verification flags");
+        identifier.VerifiedAt.Should().BeNull();
     }
 
     [Fact]

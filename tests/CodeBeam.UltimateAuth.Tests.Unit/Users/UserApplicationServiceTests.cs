@@ -840,6 +840,20 @@ public sealed class UserApplicationServiceTests
 
         var expectedVersion = identifier.Version;
 
+        const string proof = "valid-test-proof";
+
+        f.IdentifierVerifier
+            .Setup(x => x.VerifyAsync(
+                It.Is<UserIdentifierVerificationContext>(c =>
+                    c.Tenant == context.ResourceTenant &&
+                    c.UserKey == identifier.UserKey &&
+                    c.IdentifierId == identifier.Id &&
+                    c.Type == identifier.Type &&
+                    c.Value == identifier.Value &&
+                    c.Proof == proof),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         f.IdentifierStore
             .Setup(x => x.GetByIdAsync(
                 identifier.Id,
@@ -857,7 +871,8 @@ public sealed class UserApplicationServiceTests
             context,
             new VerifyUserIdentifierRequest
             {
-                Id = identifier.Id
+                Id = identifier.Id,
+                Proof = proof
             });
 
         identifier.IsVerified.Should().BeTrue();
@@ -867,6 +882,11 @@ public sealed class UserApplicationServiceTests
         f.IdentifierStore.Verify(x => x.SaveAsync(
             identifier,
             expectedVersion,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.IdentifierVerifier.Verify(x => x.VerifyAsync(
+            It.IsAny<UserIdentifierVerificationContext>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -1552,6 +1572,7 @@ public sealed class UserApplicationServiceTests
         var identifierValidator = new Mock<IUserIdentifierValidator>(MockBehavior.Strict);
         var normalizer = new Mock<IIdentifierNormalizer>(MockBehavior.Strict);
         var identifierAvailability = new Mock<IUserIdentifierAvailabilityService>(MockBehavior.Strict);
+        var identifierVerifier = new Mock<IUserIdentifierVerifier>(MockBehavior.Strict);
         var sessionFactory = new Mock<ISessionStoreFactory>(MockBehavior.Strict);
         var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
         var clock = new Mock<IClock>(MockBehavior.Strict);
@@ -1616,6 +1637,7 @@ public sealed class UserApplicationServiceTests
             normalizer.Object,
             identifierAvailability.Object,
             sessionFactory.Object,
+            identifierVerifier.Object,
             options,
             clock.Object);
 
@@ -1629,6 +1651,7 @@ public sealed class UserApplicationServiceTests
             validator,
             identifierValidator,
             normalizer,
+            identifierVerifier,
             sessionStore);
     }
 
@@ -1795,6 +1818,7 @@ public sealed class UserApplicationServiceTests
         Mock<IUserCreateValidator> UserCreateValidator,
         Mock<IUserIdentifierValidator> IdentifierValidator,
         Mock<IIdentifierNormalizer> IdentifierNormalizer,
+        Mock<IUserIdentifierVerifier> IdentifierVerifier,
         Mock<ISessionStore> SessionStore);
 
     private static UserIdentifier CreateIdentifier(

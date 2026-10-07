@@ -266,30 +266,51 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
     [InlineData("delete")]
     public async Task IdentifierMutation_WhenIdBelongsToSelf_ShouldSucceed(string operation)
     {
-        var owner = await _factory.CreateLoginUserAsync();
-        using var scope = _factory.Services.CreateScope();
+        using var configuredFactory = operation == "verify"
+            ? AuthServerFactory.CreateWithServices(services =>
+                services.AddSingleton<IUserIdentifierVerifier, TestUserIdentifierVerifier>())
+            : null;
+
+        var factory = configuredFactory ?? _factory;
+
+        var owner = await factory.CreateLoginUserAsync();
+        using var scope = factory.Services.CreateScope();
         var services = scope.ServiceProvider;
-        var store = services.GetRequiredService<IUserIdentifierStoreFactory>()
-            .Create(TenantKeys.Single);
+        var store = services.GetRequiredService<IUserIdentifierStoreFactory>().Create(TenantKeys.Single);
         var normalizer = services.GetRequiredService<IIdentifierNormalizer>();
         var value = $"owned-{Guid.NewGuid():N}@example.com";
         var identifier = UserIdentifier.Create(
             Guid.NewGuid(), TenantKeys.Single, owner.UserKey,
             UserIdentifierType.Email, value,
             normalizer.Normalize(UserIdentifierType.Email, value).Normalized,
-            _factory.Clock.UtcNow,
+            factory.Clock.UtcNow,
             isPrimary: operation == "unset-primary",
-            verifiedAt: operation == "verify" ? null : _factory.Clock.UtcNow);
+            verifiedAt: operation == "verify" ? null : factory.Clock.UtcNow);
         await store.AddAsync(identifier);
-        using var client = CreateClient();
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false
+            });
+
+        client.DefaultRequestHeaders.Add(
+            "Origin", "https://localhost:6130");
+
+        client.DefaultRequestHeaders.Add(
+            "X-UDID", $"identifier-owner-{Guid.NewGuid():N}");
         await AuthenticateIdentifierClientAsync(client, owner.Identifier, owner.Secret);
         var newValue = $"updated-{Guid.NewGuid():N}@example.com";
         using var response = await client.PostAsJsonAsync(
-            $"/auth/me/identifiers/{operation}", new
+            $"/auth/me/identifiers/{operation}",
+            new
             {
                 id = identifier.Id,
                 newValue,
-                mode = 0
+                mode = 0,
+                proof = operation == "verify"
+                    ? TestUserIdentifierVerifier.ValidProof
+                    : null
             });
         response.IsSuccessStatusCode.Should().BeTrue(
             $"own identifier operation should succeed: {await response.Content.ReadAsStringAsync()}");
@@ -345,5 +366,17 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
 
         // Send only cookie name/value pairs, not Set-Cookie attributes.
         client.DefaultRequestHeaders.Add("Cookie", string.Join("; ", cookies!.Select(x => x.Split(';')[0])));
+    }
+
+    private sealed class TestUserIdentifierVerifier : IUserIdentifierVerifier
+    {
+        public const string ValidProof = "integration-valid-proof";
+
+        public Task<bool> VerifyAsync(UserIdentifierVerificationContext context, CancellationToken ct = default)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            return Task.FromResult(context.Proof == ValidProof);
+        }
     }
 }
