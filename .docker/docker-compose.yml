@@ -1,10 +1,10 @@
 services:
   ultimateauth:
-    build:
-      context: ..
-      dockerfile: .docker/Dockerfile
+    image: ghcr.io/codebeamorg/ultimateauth:master
     container_name: ultimateauth
-    restart: always
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
     networks:
       - edge
 
