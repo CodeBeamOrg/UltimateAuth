@@ -302,7 +302,8 @@ public sealed class CredentialManagementTests
             token,
             replayPassword);
 
-        replay.IsSuccessStatusCode.Should().BeFalse();
+        // Should be true for enumeration.
+        replay.IsSuccessStatusCode.Should().BeTrue();
 
         await AssertPasswordAsync(factory, user, newPassword);
         await AssertPasswordRejectedAsync(factory, user, replayPassword);
@@ -350,6 +351,53 @@ public sealed class CredentialManagementTests
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         notifier.Notifications.Should().BeEmpty();
+    }
+
+
+    [Fact]
+    public async Task AnonymousCompleteReset_InvalidProof_ShouldNotRevealIdentifierExistence()
+    {
+        var notifier = new TestResetNotifier();
+
+        using var factory = CreateFactory(notifier);
+        factory.Clock.Reset();
+
+        var existingUser = await factory.CreateLoginUserAsync();
+
+        using var client = CreateClient(factory);
+
+        var unknownIdentifier = $"unknown-{Guid.NewGuid():N}";
+        const string invalidToken = "invalid-reset-proof";
+
+        var existingResponse = await CompleteResetAsync(
+            client,
+            "/auth/me/credentials/reset/complete",
+            existingUser.Identifier,
+            invalidToken,
+            "New-Password-123!");
+
+        var unknownResponse = await CompleteResetAsync(
+            client,
+            "/auth/me/credentials/reset/complete",
+            unknownIdentifier,
+            invalidToken,
+            "New-Password-123!");
+
+        // Same observable HTTP status.
+        existingResponse.StatusCode.Should()
+            .Be(unknownResponse.StatusCode);
+
+        // Same observable response body.
+        var existingBody = await existingResponse.Content.ReadAsStringAsync();
+        var unknownBody = await unknownResponse.Content.ReadAsStringAsync();
+
+        existingBody.Should().Be(unknownBody);
+
+        // Existing user's credential must remain unchanged.
+        await AssertPasswordAsync(
+            factory,
+            existingUser,
+            existingUser.Secret);
     }
 
 

@@ -296,9 +296,6 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var state = await _authenticationSecurityManager.GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
 
-            if (!state.HasActiveReset(now))
-                throw new UAuthConflictException("reset_request_not_active");
-
             if (state.IsResetExpired(now))
             {
                 var version2 = state.SecurityVersion;
@@ -307,11 +304,23 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 throw new UAuthConflictException("reset_expired");
             }
 
+            if (!state.HasActiveReset(now))
+            {
+                if (context.IsAnonymousContext)
+                    return CredentialActionResult.Success();
+
+                throw new UAuthConflictException("reset_request_not_active");
+            }
+
             if (!_tokenHasher.Verify(state.ResetTokenHash!, request.ResetToken))
             {
                 var version = state.SecurityVersion;
                 var failed = state.RegisterResetFailure(now, _options.ResetCredential.MaxAttempts);
                 await _authenticationSecurityManager.UpdateAsync(failed, version, innerCt);
+
+                if (context.IsAnonymousContext)
+                    return CredentialActionResult.Success();
+
                 throw new UAuthConflictException("invalid_reset_token");
             }
 
@@ -320,7 +329,12 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var pwd = credentials.OfType<PasswordCredential>().FirstOrDefault(c => c.Security.IsUsable(now));
 
             if (pwd is null)
+            {
+                if (context.IsAnonymousContext)
+                    return CredentialActionResult.Success();
+
                 throw new UAuthNotFoundException("credential_not_found");
+            }
 
             if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
                 throw new UAuthValidationException("credential_secret_same");
@@ -341,28 +355,29 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<CredentialActionResult> CancelResetAsync(AccessContext context, CancellationToken ct = default)
-    {
-        ct.ThrowIfCancellationRequested();
+    // TODO: Implement cancel reset functionality if needed. For now, this method is commented out as it may not be required in the current implementation.
+    //public async Task<CredentialActionResult> CancelResetAsync(AccessContext context, CancellationToken ct = default)
+    //{
+    //    ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<CredentialActionResult>(async innerCt =>
-        {
-            var userKey = context.GetTargetUserKey();
+    //    var cmd = new AccessCommand<CredentialActionResult>(async innerCt =>
+    //    {
+    //        var userKey = context.GetTargetUserKey();
 
-            var state = await _authenticationSecurityManager
-                .GetOrCreateFactorAsync(context.ResourceTenant, userKey, CredentialType.Password, innerCt);
+    //        var state = await _authenticationSecurityManager
+    //            .GetOrCreateFactorAsync(context.ResourceTenant, userKey, CredentialType.Password, innerCt);
 
-            if (!state.HasActiveReset(_clock.UtcNow))
-                return CredentialActionResult.Success();
+    //        if (!state.HasActiveReset(_clock.UtcNow))
+    //            return CredentialActionResult.Success();
 
-            var updated = state.ClearReset();
-            await _authenticationSecurityManager.UpdateAsync(updated, state.SecurityVersion, innerCt);
+    //        var updated = state.ClearReset();
+    //        await _authenticationSecurityManager.UpdateAsync(updated, state.SecurityVersion, innerCt);
 
-            return CredentialActionResult.Success();
-        });
+    //        return CredentialActionResult.Success();
+    //    });
 
-        return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
-    }
+    //    return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    //}
 
     public async Task<CredentialActionResult> DeleteAsync(AccessContext context, DeleteCredentialRequest request, CancellationToken ct = default)
     {
