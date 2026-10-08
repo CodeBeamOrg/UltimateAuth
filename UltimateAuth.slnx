@@ -9,6 +9,7 @@
     <Project Path="src/bundle/CodeBeam.UltimateAuth.Reference.Bundle/CodeBeam.UltimateAuth.Reference.Bundle.csproj" Id="f01dee6a-a60d-40a2-bb6a-9894b03e7122" />
   </Folder>
   <Folder Name="/Samples/">
+    <Project Path="samples/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj" />
     <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore/CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.csproj" Id="84201d45-0298-4bf3-9bd4-0567b373f6a0" />
     <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer/CodeBeam.UltimateAuth.Sample.BlazorServer.csproj" />
     <Project Path="samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />

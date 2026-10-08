@@ -1,0 +1,55 @@
+@page "/access"
+@page "/login"
+@attribute [UAuthLoginPage]
+@inherits UAuthPageBase
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Sign in · Identity Lab</PageTitle>
+<main class="access-shell">
+    <div class="access-heading"><div class="eyebrow">ULTIMATEAUTH</div><h1>Identity Lab</h1><p>Explore authentication, authorization and session management<br />in a live application built with Blazor and UltimateAuth.</p></div>
+    <MudPaper Class="access-card" Elevation="0">
+        <div class="auth-tabs"><button class="@(!create ? "active" : null)" @onclick="() => create = false">Sign In</button><button class="@(create ? "active" : null)" @onclick="() => create = true">Create Account</button></div>
+        @if (!create)
+        {
+            <UAuthLoginForm Identifier="username" Secret="password" ReturnUrl="/dashboard" OnTryResult="HandleLogin">
+                <MudStack Spacing="2">
+                    <MudTextField @bind-Value="username" Label="Username or email" Placeholder="you@example.com" Variant="Variant.Outlined" Required="true" />
+                    <MudPasswordField @bind-Value="password" Label="Password" Placeholder="Your password" Variant="Variant.Outlined" Required="true" />
+                    <MudButton Class="auth-submit" Variant="Variant.Filled" ButtonType="ButtonType.Submit" EndIcon="@Icons.Material.Filled.ArrowForward">Sign In</MudButton>
+                    <MudText Typo="Typo.caption" Align="Align.Center">Try the seeded accounts <b>admin/admin</b> or <b>user/user</b>.</MudText>
+                </MudStack>
+            </UAuthLoginForm>
+        }
+        else
+        {
+            <MudForm @ref="form"><MudStack Spacing="2">
+                <MudTextField @bind-Value="username" Label="Username" Variant="Variant.Outlined" Required="true" />
+                <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Outlined" Required="true" />
+                <MudPasswordField @bind-Value="password" Label="Password" Variant="Variant.Outlined" Required="true" />
+                <MudButton Class="auth-submit" Variant="Variant.Filled" OnClick="Register" EndIcon="@Icons.Material.Filled.ArrowForward">Create Account</MudButton>
+            </MudStack></MudForm>
+        }
+    </MudPaper>
+    <section class="access-features"><span>♙ <b>User Management</b><small>Real UltimateAuth users</small></span><span>⚿ <b>Live Sessions</b><small>Device-aware session chains</small></span><span>♢ <b>Authorization</b><small>Policies and permissions</small></span><span>▥ <b>Honest Data</b><small>No fabricated security events</small></span></section>
+</main>
+
+@code {
+    private bool create;
+    private string? username, email, password;
+    private MudForm form = null!;
+
+    private void HandleLogin(IUAuthTryResult result)
+    {
+        if (!result.Success) Snackbar.Add(result.Reason is null ? "Sign in failed." : $"Sign in failed: {result.Reason}.", Severity.Error);
+    }
+
+    private async Task Register()
+    {
+        await form.ValidateAsync();
+        if (!form.IsValid) return;
+        var result = await UAuthClient.Users.CreateAsync(new CodeBeam.UltimateAuth.Users.Contracts.CreateUserRequest { UserName = username, Email = email, Password = password });
+        if (result.IsSuccess) { Snackbar.Add("Account created. You can now sign in.", Severity.Success); create = false; }
+        else Snackbar.Add(result.ErrorText ?? "Account creation failed.", Severity.Error);
+    }
+}
