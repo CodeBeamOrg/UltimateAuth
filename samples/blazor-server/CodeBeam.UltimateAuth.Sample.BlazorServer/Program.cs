@@ -64,6 +64,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 
 builder.Services.AddUltimateAuthSampleSeed();
 
+// Customize UltimateAuth
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<ICredentialResetNotifier, DevelopmentCredentialResetNotifier>();

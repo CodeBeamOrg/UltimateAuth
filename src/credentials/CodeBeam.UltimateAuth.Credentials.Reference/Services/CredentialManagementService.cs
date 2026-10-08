@@ -219,8 +219,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 ExpiresAt = expiresAt
             };
 
-
             var resolution = await _identifierResolver.ResolveAsync(context.ResourceTenant, request.Identifier, innerCt);
+
+            if (context.IsAdminContext && resolution?.UserKey != context.GetTargetUserKey())
+                throw new UAuthValidationException("credential_target_mismatch");
 
             if (resolution?.UserKey is not UserKey userKey)
                 return result; // Enumeration protection
@@ -283,14 +285,16 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             var resolution = await _identifierResolver.ResolveAsync(context.ResourceTenant, request.Identifier, innerCt);
 
+            if (context.IsAdminContext && resolution?.UserKey != context.GetTargetUserKey())
+                throw new UAuthValidationException("credential_target_mismatch");
+
             if (resolution?.UserKey is not UserKey userKey)
             {
                 // Enumeration protection
                 return CredentialActionResult.Success();
             }
 
-            var state = await _authenticationSecurityManager
-                .GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
+            var state = await _authenticationSecurityManager.GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
 
             if (!state.HasActiveReset(now))
                 throw new UAuthConflictException("reset_request_not_active");
