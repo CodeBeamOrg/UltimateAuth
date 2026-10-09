@@ -113,23 +113,23 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
         }
     }
 
-    public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
+    //public Task<ReauthResult> ReauthenticateAsync(ReauthRequest request, CancellationToken ct = default)
+    //{
+    //    throw new NotImplementedException();
+    //}
 
-    public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
+    //public Task<MfaChallengeResult> BeginMfaAsync(BeginMfaRequest request, CancellationToken ct = default)
+    //{
+    //    throw new NotImplementedException();
+    //}
 
-    public Task<LoginResult> CompleteMfaAsync(CompleteMfaRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
+    //public Task<LoginResult> CompleteMfaAsync(CompleteMfaRequest request, CancellationToken ct = default)
+    //{
+    //    throw new NotImplementedException();
+    //}
 
-    public Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
+    //public Task<LoginResult> ExternalLoginAsync(ExternalLoginRequest request, CancellationToken ct = default)
+    //{
+    //    throw new NotImplementedException();
+    //}
 }
