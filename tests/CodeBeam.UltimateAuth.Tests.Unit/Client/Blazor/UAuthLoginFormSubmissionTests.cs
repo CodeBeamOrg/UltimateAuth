@@ -81,7 +81,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
         var result = new TryLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
 
         _client
@@ -139,7 +139,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
     {
         var result = new TryLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
 
         _client
@@ -174,7 +174,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
         var result = new TryLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
 
         _client
@@ -372,7 +372,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
         var result = new TryPkceLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
 
         _client
@@ -447,7 +447,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
         var result = new TryPkceLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
 
         _client
@@ -675,7 +675,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
     {
         return new TryLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
     }
 
@@ -683,7 +683,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
     {
         return new TryPkceLoginResult
         {
-            Success = true
+            IsSuccess = true
         };
     }
 }

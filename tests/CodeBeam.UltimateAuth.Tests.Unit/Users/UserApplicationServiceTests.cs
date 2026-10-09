@@ -103,7 +103,7 @@ public sealed class UserApplicationServiceTests
             context,
             request);
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         capturedLifecycle.Should().NotBeNull();
         capturedLifecycle!.Tenant.Should().Be(context.ResourceTenant);
@@ -156,7 +156,7 @@ public sealed class UserApplicationServiceTests
             context,
             request);
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         identifiers.Should().HaveCount(3);
 

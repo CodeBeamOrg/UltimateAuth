@@ -51,7 +51,7 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
 
         var result = await _refreshFlow.RefreshAsync(flow, request, ctx.RequestAborted);
 
-        if (!result.Succeeded)
+        if (!result.IsSuccess)
         {
             return Results.Unauthorized();
         }

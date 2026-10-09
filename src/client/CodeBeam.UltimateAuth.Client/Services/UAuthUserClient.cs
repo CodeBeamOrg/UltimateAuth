@@ -30,7 +30,7 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
-    public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
+    public async Task<UAuthResult> UpdateMyProfileAsync(UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/profile/update"), request);
         if (raw.Ok)
@@ -155,7 +155,7 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
-    public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateProfileRequest request)
+    public async Task<UAuthResult> UpdateUserProfileAsync(UserKey userKey, UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request);
         return UAuthResultMapper.From(raw);

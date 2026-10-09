@@ -152,7 +152,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         {
             return Results.Ok(new TryLoginResult
             {
-                Success = false,
+                IsSuccess = false,
                 Reason = AuthFailureReason.InvalidCredentials
             });
         }
@@ -212,7 +212,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         return Results.Ok(new TryLoginResult
         {
-            Success = result.IsSuccess,
+            IsSuccess = result.IsSuccess,
             Reason = result.FailureReason,
             RemainingAttempts = result.RemainingAttempts,
             LockoutUntilUtc = result.LockoutUntilUtc,

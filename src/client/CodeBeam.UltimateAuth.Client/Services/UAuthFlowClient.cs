@@ -89,7 +89,7 @@ internal class UAuthFlowClient : IFlowClient
             case UAuthSubmitMode.DirectCommit:
                 {
                     await _post.NavigateAsync(commitUrl, payload);
-                    return new TryLoginResult { Success = true };
+                    return new TryLoginResult { IsSuccess = true };
                 }
 
             case UAuthSubmitMode.TryAndCommit:
@@ -258,7 +258,7 @@ internal class UAuthFlowClient : IFlowClient
         if (mode == UAuthSubmitMode.DirectCommit)
         {
             await CompletePkceLoginAsync(request);
-            return new TryPkceLoginResult { Success = true };
+            return new TryPkceLoginResult { IsSuccess = true };
         }
 
         if (request is null)

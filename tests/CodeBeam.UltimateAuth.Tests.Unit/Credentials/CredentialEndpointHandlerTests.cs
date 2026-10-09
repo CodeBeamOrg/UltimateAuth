@@ -305,7 +305,7 @@ public sealed class CredentialEndpointHandlerTests
             .BeOfType<Ok<CredentialActionResult>>()
             .Subject;
 
-        ok.Value!.Succeeded.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
     }
 
     // =========================================================

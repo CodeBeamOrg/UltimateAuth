@@ -2,10 +2,10 @@
 
 public sealed record IdentifierChangeResult
 {
-    public bool Succeeded { get; init; }
+    public bool IsSuccess { get; init; }
     public string? FailureReason { get; init; }
 
-    public static IdentifierChangeResult Success() => new() { Succeeded = true };
+    public static IdentifierChangeResult Success() => new() { IsSuccess = true };
 
-    public static IdentifierChangeResult Failed(string reason) => new() { Succeeded = false, FailureReason = reason };
+    public static IdentifierChangeResult Failed(string reason) => new() { IsSuccess = false, FailureReason = reason };
 }

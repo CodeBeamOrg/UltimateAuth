@@ -65,7 +65,7 @@ public class UAuthLoginFormTests
             It.IsAny<LoginRequest>(),
             It.IsAny<UAuthSubmitMode>(),
             It.IsAny<string>()))
-            .ReturnsAsync(new TryLoginResult { Success = true });
+            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
 
         var clientMock = new Mock<IUAuthClient>();
         clientMock.Setup(x => x.Flows).Returns(flowMock.Object);
@@ -117,7 +117,7 @@ public class UAuthLoginFormTests
         flowMock.Setup(x => x.TryCompletePkceLoginAsync(
             It.IsAny<PkceCompleteRequest>(),
             It.IsAny<UAuthSubmitMode>()))
-            .ReturnsAsync(new TryPkceLoginResult { Success = true });
+            .ReturnsAsync(new TryPkceLoginResult { IsSuccess = true });
 
         var clientMock = new Mock<IUAuthClient>();
         clientMock.Setup(x => x.Flows).Returns(flowMock.Object);
@@ -167,7 +167,7 @@ public class UAuthLoginFormTests
             It.IsAny<LoginRequest>(),
             It.IsAny<UAuthSubmitMode>(),
             It.IsAny<string>()))
-            .ReturnsAsync(new TryLoginResult { Success = true });
+            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
 
         var clientMock = new Mock<IUAuthClient>();
         clientMock.Setup(x => x.Flows).Returns(flowMock.Object);

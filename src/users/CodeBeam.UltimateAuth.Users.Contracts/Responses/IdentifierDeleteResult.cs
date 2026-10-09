@@ -2,9 +2,9 @@
 
 public sealed record IdentifierDeleteResult
 {
-    public bool Succeeded { get; init; }
+    public bool IsSuccess { get; init; }
     public string? FailureReason { get; init; }
 
-    public static IdentifierDeleteResult Success() => new() { Succeeded = true };
-    public static IdentifierDeleteResult Fail(string reason) => new() { Succeeded = false, FailureReason = reason };
+    public static IdentifierDeleteResult Success() => new() { IsSuccess = true };
+    public static IdentifierDeleteResult Fail(string reason) => new() { IsSuccess = false, FailureReason = reason };
 }

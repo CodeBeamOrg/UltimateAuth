@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record UserDeleteResult
 {
-    public required bool Succeeded { get; init; }
+    public required bool IsSuccess { get; init; }
 
     public required DeleteMode Mode { get; init; }
 
@@ -13,14 +13,14 @@ public sealed record UserDeleteResult
     public static UserDeleteResult Success(DeleteMode mode)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             Mode = mode
         };
 
     public static UserDeleteResult NotFound()
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             Mode = DeleteMode.Soft,
             FailureReason = "User not found."
         };
@@ -28,14 +28,14 @@ public sealed record UserDeleteResult
     public static UserDeleteResult AlreadyDeleted(DeleteMode mode)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             Mode = mode
         };
 
     public static UserDeleteResult Failed(DeleteMode mode, string reason)
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             Mode = mode,
             FailureReason = reason
         };

@@ -106,7 +106,7 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "newpass123"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class ResetPasswordTests
                 CompleteContext(),
                 CompleteRequest(wrongToken, "newpass123"));
 
-            result.Succeeded.Should().BeTrue();
+            result.IsSuccess.Should().BeTrue();
 
             await AssertPasswordAsync(runtime, userKey, "admin");
         }
@@ -157,7 +157,7 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "newpass123"));
 
-        afterLockout.Succeeded.Should().BeTrue();
+        afterLockout.IsSuccess.Should().BeTrue();
 
         await AssertPasswordAsync(runtime, userKey, "admin");
         await AssertPasswordRejectedAsync(runtime, userKey, "newpass123");
@@ -178,7 +178,7 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "newpass123"));
 
-        first.Succeeded.Should().BeTrue();
+        first.IsSuccess.Should().BeTrue();
 
         await AssertPasswordAsync(runtime, userKey, "newpass123");
 
@@ -186,7 +186,7 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "anotherpass"));
 
-        replay.Succeeded.Should().BeTrue();
+        replay.IsSuccess.Should().BeTrue();
 
         await AssertPasswordAsync(runtime, userKey, "newpass123");
         await AssertPasswordRejectedAsync(runtime, userKey, "anotherpass");

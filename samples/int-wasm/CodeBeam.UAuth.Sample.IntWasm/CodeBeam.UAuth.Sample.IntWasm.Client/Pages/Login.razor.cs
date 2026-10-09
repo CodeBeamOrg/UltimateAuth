@@ -101,7 +101,7 @@ public partial class Login : UAuthPageBase
 
     private async Task HandleLoginResult(IUAuthTryResult result)
     {
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
             {

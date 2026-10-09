@@ -48,7 +48,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             await response.Content.ReadFromJsonAsync<UserCreateResult>();
 
         result.Should().NotBeNull();
-        result!.Succeeded.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
         result.UserKey.Should().NotBe(default);
 
         //
@@ -388,7 +388,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 .ReadFromJsonAsync<UserCreateResult>();
 
         firstResult.Should().NotBeNull();
-        firstResult!.Succeeded.Should().BeTrue();
+        firstResult!.IsSuccess.Should().BeTrue();
 
         var firstUserKey =
             GetUserKey(firstResult);
@@ -569,7 +569,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 .ReadFromJsonAsync<UserCreateResult>();
 
         result.Should().NotBeNull();
-        result!.Succeeded.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
 
         return result;
     }

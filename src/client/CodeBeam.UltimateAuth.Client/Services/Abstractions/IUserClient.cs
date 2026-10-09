@@ -4,6 +4,8 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Client.Services;
 
+// TODO: Add patch semantics for profile updates.
+
 /// <summary>
 /// Provides user management and profile operations for both self-service and administrative scenarios.
 /// </summary>
@@ -95,12 +97,18 @@ public interface IUserClient
     Task<UAuthResult<UserView>> GetMeAsync(GetProfileRequest? request = null);
 
     /// <summary>
-    /// Updates the current user's profile.
+    /// Updates a profile of the currently authenticated user.
     /// </summary>
     /// <remarks>
-    /// The target profile is determined by <see cref="UpdateProfileRequest.ProfileKey"/>.
+    /// This operation replaces all editable profile fields.
+    /// Null values clear the corresponding existing values.
+    /// Omitted JSON properties are treated as null.
+    ///
+    /// The target profile is selected using
+    /// <see cref="UpdateProfileRequest.ProfileKey"/>.
+    /// If no profile key is specified, the default profile is updated.
     /// </remarks>
-    Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request);
+    Task<UAuthResult> UpdateMyProfileAsync(UpdateProfileRequest request);
 
     /// <summary>
     /// Creates a new profile for the current user.
@@ -126,9 +134,17 @@ public interface IUserClient
     Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey, GetProfileRequest? request = null);
 
     /// <summary>
-    /// Updates a profile of a specific user.
+    /// Updates a profile of the specified user.
     /// </summary>
-    Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateProfileRequest request);
+    /// <remarks>
+    /// Requires permission to update the target user.
+    /// This operation replaces all editable profile fields.
+    /// Null values clear existing values, including values omitted
+    /// from the JSON request.
+    ///
+    /// If no profile key is specified, the default profile is updated.
+    /// </remarks>
+    Task<UAuthResult> UpdateUserProfileAsync(UserKey userKey, UpdateProfileRequest request);
 
     /// <summary>
     /// Creates a profile for a specific user.

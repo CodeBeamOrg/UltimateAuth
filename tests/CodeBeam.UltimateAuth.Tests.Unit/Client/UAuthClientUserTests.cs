@@ -38,7 +38,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
             .ReturnsAsync(Success());
 
         var client = CreateUserClient();
-        await client.Users.UpdateMeAsync(request);
+        await client.Users.UpdateMyProfileAsync(request);
         Events.Verify(x =>
             x.PublishAsync(It.Is<UAuthStateEventArgs<UpdateProfileRequest>>(e =>
                 e.Type == UAuthStateEvent.ProfileChanged &&
@@ -53,7 +53,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
             .ReturnsAsync(new UAuthTransportResult { Ok = false, Status = 400 });
 
         var client = CreateUserClient();
-        await client.Users.UpdateMeAsync(new UpdateProfileRequest());
+        await client.Users.UpdateMyProfileAsync(new UpdateProfileRequest());
         Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 
@@ -87,7 +87,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
     public async Task Create_Should_Call_Public_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new UserCreateResult() { Succeeded = true }));
+            .ReturnsAsync(SuccessJson(new UserCreateResult() { IsSuccess = true }));
 
         var client = CreateUserClient();
         await client.Users.CreateAsync(new CreateUserRequest());
@@ -98,7 +98,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
     public async Task CreateAsAdmin_Should_Call_Admin_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new UserCreateResult() { Succeeded = true}));
+            .ReturnsAsync(SuccessJson(new UserCreateResult() { IsSuccess = true}));
 
         var client = CreateUserClient();
         await client.Users.CreateAsAdminAsync(new CreateUserRequest());
@@ -111,7 +111,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
         var request = new ChangeUserStatusSelfRequest() { NewStatus = SelfAssignableUserStatus.Active };
 
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new UserStatusChangeResult() { Succeeded = true }));
+            .ReturnsAsync(SuccessJson(new UserStatusChangeResult() { IsSuccess = true }));
 
         var client = CreateUserClient();
         await client.Users.ChangeMyStatusAsync(request);
@@ -128,7 +128,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
         var userKey = UserKey.FromString("user-1");
 
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new UserStatusChangeResult() { Succeeded = true }));
+            .ReturnsAsync(SuccessJson(new UserStatusChangeResult() { IsSuccess = true }));
 
         var client = CreateUserClient();
         await client.Users.ChangeUserStatusAsync(userKey, new ChangeUserStatusAdminRequest() { NewStatus = AdminAssignableUserStatus.Active });
@@ -141,7 +141,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
         var userKey = UserKey.FromString("user-1");
 
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new UserDeleteResult() { Succeeded = true, Mode = DeleteMode.Soft }));
+            .ReturnsAsync(SuccessJson(new UserDeleteResult() { IsSuccess = true, Mode = DeleteMode.Soft }));
 
         var client = CreateUserClient();
         await client.Users.DeleteUserAsync(userKey, new DeleteUserRequest());
@@ -178,7 +178,7 @@ public class UAuthClientUserTests : UAuthClientTestBase
             .ReturnsAsync(Success());
 
         var client = CreateUserClient();
-        await client.Users.UpdateUserAsync(userKey, new UpdateProfileRequest());
+        await client.Users.UpdateUserProfileAsync(userKey, new UpdateProfileRequest());
         Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/profile/update", It.IsAny<object>()), Times.Once);
     }
 

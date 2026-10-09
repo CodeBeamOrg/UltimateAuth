@@ -2,5 +2,5 @@
 
 public sealed record LogoutResponse
 {
-    public bool Success { get; init; }
+    public bool IsSuccess { get; init; }
 }

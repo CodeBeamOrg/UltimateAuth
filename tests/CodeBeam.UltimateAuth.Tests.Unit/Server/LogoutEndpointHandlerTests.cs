@@ -40,7 +40,7 @@ public sealed class LogoutEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
 
         fixture.FlowService.Verify(
             x => x.LogoutAsync(
@@ -125,7 +125,7 @@ public sealed class LogoutEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
     }
 
     // =====================================================================

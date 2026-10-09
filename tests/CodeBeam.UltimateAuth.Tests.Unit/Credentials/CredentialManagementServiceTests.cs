@@ -94,7 +94,7 @@ public sealed class CredentialManagementServiceTests
                 Secret = "new-password"
             });
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         persisted.Should().NotBeNull();
         persisted!.UserKey.Should().Be(user);
@@ -484,7 +484,7 @@ public sealed class CredentialManagementServiceTests
                 Id = id
             });
 
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
 
         f.CredentialStore.Verify(x => x.SaveAsync(
@@ -534,7 +534,7 @@ public sealed class CredentialManagementServiceTests
                 Id = id
             });
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     // ---------------------------------------------------------
@@ -590,7 +590,7 @@ public sealed class CredentialManagementServiceTests
                 Mode = mode
             });
 
-        result.Succeeded.Should().BeTrue(
+        result.IsSuccess.Should().BeTrue(
             $"delete should succeed but returned '{result.Error}'");
 
         result.Error.Should().BeNull();
@@ -637,7 +637,7 @@ public sealed class CredentialManagementServiceTests
                 Mode = DeleteMode.Hard
             });
 
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
 
         f.CredentialStore.Verify(x => x.DeleteAsync(
@@ -840,7 +840,7 @@ public sealed class CredentialManagementServiceTests
                 NewSecret = "new-password"
             });
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         f.SecurityManager.Verify(
             x => x.GetOrCreateFactorAsync(

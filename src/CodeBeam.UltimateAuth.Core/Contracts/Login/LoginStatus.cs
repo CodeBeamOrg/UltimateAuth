@@ -2,7 +2,8 @@
 
 public enum LoginStatus
 {
-    Success = 0,
-    RequiresContinuation = 10,
-    Failed = 20
+    None = 0,
+    Success = 10,
+    RequiresContinuation = 20,
+    Failed = 30
 }

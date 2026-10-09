@@ -70,7 +70,7 @@ window.uauth.tryAndCommit = async function (options) {
     }
 
     const normalized = {
-        success: result.success ?? false,
+        isSuccess: result.isSuccess ?? false,
         reason: result.reason ?? null,
         remainingAttempts: result.remainingAttempts ?? null,
         lockoutUntilUtc: result.lockoutUntilUtc ?? null,
@@ -79,7 +79,7 @@ window.uauth.tryAndCommit = async function (options) {
         previewReceipt: result.previewReceipt ?? null
     };
 
-    if (normalized.success) {
+    if (normalized.isSuccess) {
         const form = document.createElement("form");
         form.method = "POST";
         form.action = commitUrl;

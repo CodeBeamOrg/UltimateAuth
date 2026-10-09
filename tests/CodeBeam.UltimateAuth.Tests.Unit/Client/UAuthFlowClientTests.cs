@@ -72,7 +72,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Status = 200,
             Body = JsonSerializer.SerializeToElement(new TryLoginResult
             {
-                Success = success,
+                IsSuccess = success,
                 Reason = reason
             })
         };
@@ -103,7 +103,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         var client = CreateClient(mock);
         var result = await client.TryLoginAsync(new LoginRequest { Identifier = "admin", Secret = "admin" }, UAuthSubmitMode.TryOnly);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         var client = CreateClient(mock);
         var result = await client.TryLoginAsync(new LoginRequest { Identifier = "admin", Secret = "wrong" }, UAuthSubmitMode.TryOnly);
 
-        result.Success.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
     }
 
@@ -177,7 +177,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         };
 
         var result = await client.TryLoginAsync(request, UAuthSubmitMode.DirectCommit);
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         mock.Verify(x => x.NavigateAsync("/auth/login",
             It.Is<IDictionary<string, string>>(d => d["Identifier"] == "admin" && d["Secret"] == "admin"), It.IsAny<CancellationToken>()),
@@ -193,12 +193,12 @@ public class UAuthFlowClientTests : UAuthClientTestBase
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<object>()))
-            .ReturnsAsync(new TryLoginResult { Success = true });
+            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
 
         var client = CreateClient(mock);
         var result = await client.TryLoginAsync(new LoginRequest(), UAuthSubmitMode.TryAndCommit);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -582,7 +582,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
                 Status = 200,
                 Body = JsonSerializer.SerializeToElement(new TryPkceLoginResult
                 {
-                    Success = true
+                    IsSuccess = true
                 })
             });
 
@@ -598,7 +598,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             },
             UAuthSubmitMode.TryOnly);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -610,7 +610,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<object>()))
-            .ReturnsAsync(new TryPkceLoginResult { Success = true });
+            .ReturnsAsync(new TryPkceLoginResult { IsSuccess = true });
 
         var client = CreateFlowClient(mock);
 
@@ -624,7 +624,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             },
             UAuthSubmitMode.TryAndCommit);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -650,7 +650,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             },
             UAuthSubmitMode.DirectCommit);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         mock.Verify(x =>
             x.NavigateAsync("/auth/pkce/complete",

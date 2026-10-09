@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record UserStatusChangeResult
 {
-    public required bool Succeeded { get; init; }
+    public required bool IsSuccess { get; init; }
 
     public UserStatus? PreviousStatus { get; init; }
 
@@ -15,7 +15,7 @@ public sealed record UserStatusChangeResult
     public static UserStatusChangeResult Success(UserStatus previous, UserStatus current)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             PreviousStatus = previous,
             CurrentStatus = current
         };
@@ -23,7 +23,7 @@ public sealed record UserStatusChangeResult
     public static UserStatusChangeResult NoChange(UserStatus status)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             PreviousStatus = status,
             CurrentStatus = status
         };
@@ -31,14 +31,14 @@ public sealed record UserStatusChangeResult
     public static UserStatusChangeResult NotFound()
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             FailureReason = "User not found."
         };
 
     public static UserStatusChangeResult Failed(string reason)
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             FailureReason = reason
         };
 }

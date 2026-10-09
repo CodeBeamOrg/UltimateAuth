@@ -53,7 +53,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
 
-        return result.Succeeded
+        return result.IsSuccess
             ? Results.Ok(result)
             : Results.BadRequest(result);
     }
@@ -73,7 +73,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
 
-        return result.Succeeded
+        return result.IsSuccess
             ? Results.Ok(result)
             : Results.BadRequest(result);
     }
