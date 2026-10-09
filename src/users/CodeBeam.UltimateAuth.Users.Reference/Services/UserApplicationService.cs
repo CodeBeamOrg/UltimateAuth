@@ -121,7 +121,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
                             now,
                             true,
-                            request.UserNameVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.UserNameVerified ? now : null), atomicCt);
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.Email))
