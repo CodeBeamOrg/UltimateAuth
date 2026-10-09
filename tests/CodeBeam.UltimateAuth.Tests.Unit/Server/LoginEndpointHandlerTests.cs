@@ -129,7 +129,7 @@ public sealed class LoginEndpointHandlerTests
 
         capturedRequest!.Identifier.Should().Be("alice");
         capturedRequest.Secret.Should().Be("password");
-        capturedRequest.Factor.Should()
+        capturedRequest.CredentialType.Should()
             .Be(CredentialType.Password);
 
         capturedRequest.RequestTokens.Should()
@@ -592,7 +592,7 @@ public sealed class LoginEndpointHandlerTests
             {
                 Identifier = identifier,
                 Secret = secret,
-                Factor = CredentialType.Password,
+                CredentialType = CredentialType.Password,
                 PreviewReceipt = previewReceipt
             });
     }
