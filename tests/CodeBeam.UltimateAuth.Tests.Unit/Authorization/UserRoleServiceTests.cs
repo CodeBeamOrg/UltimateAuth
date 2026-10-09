@@ -9,7 +9,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -27,8 +26,8 @@ public sealed class UserRoleServiceTests
     public async Task AssignAsync_WhenRoleExists_NormalizesRoleNameAndAssignsTargetUser()
     {
         var f = new Fixture();
-        var context = f.Context("roles.assign");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role = f.Role("Administrators");
 
@@ -68,8 +67,8 @@ public sealed class UserRoleServiceTests
     public async Task AssignAsync_WhenRoleDoesNotExist_ThrowsNotFound()
     {
         var f = new Fixture();
-        var context = f.Context("roles.assign");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.RoleStore
             .Setup(x => x.GetByNameAsync(
@@ -100,8 +99,8 @@ public sealed class UserRoleServiceTests
     public async Task AssignAsync_WhenRoleIsDeleted_ThrowsNotFound()
     {
         var f = new Fixture();
-        var context = f.Context("roles.assign");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role = f.Role("Admin");
         role.MarkDeleted(Now.AddMinutes(-1));
@@ -135,8 +134,8 @@ public sealed class UserRoleServiceTests
     public async Task AssignAsync_UsesResourceTenantForBothStores()
     {
         var f = new Fixture();
-        var context = f.Context("roles.assign");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
         var role = f.Role("Admin");
 
         f.RoleStore
@@ -175,8 +174,8 @@ public sealed class UserRoleServiceTests
     public async Task RemoveAsync_WhenRoleExists_NormalizesRoleNameAndRemovesAssignment()
     {
         var f = new Fixture();
-        var context = f.Context("roles.remove");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role = f.Role("Operators");
 
@@ -209,8 +208,8 @@ public sealed class UserRoleServiceTests
     public async Task RemoveAsync_WhenRoleDoesNotExist_IsIdempotent()
     {
         var f = new Fixture();
-        var context = f.Context("roles.remove");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.RoleStore
             .Setup(x => x.GetByNameAsync(
@@ -237,8 +236,8 @@ public sealed class UserRoleServiceTests
     public async Task RemoveAsync_WhenRoleIsDeleted_StillRemovesAssignment()
     {
         var f = new Fixture();
-        var context = f.Context("roles.remove");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role = f.Role("Legacy");
         role.MarkDeleted(Now.AddMinutes(-5));
@@ -276,8 +275,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenAssignmentsExist_JoinsAssignmentsWithRoles()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var admin = f.Role("Admin");
         var auditor = f.Role("Auditor");
@@ -339,8 +338,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenAssignmentReferencesMissingRole_IgnoresOrphanAssignment()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var existingRole = f.Role("Admin");
         var missingRoleId = RoleId.New();
@@ -386,8 +385,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_AppliesPaginationAfterJoin()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role1 = f.Role("Role 1");
         var role2 = f.Role("Role 2");
@@ -435,8 +434,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_NormalizesInvalidPagingValues()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.UserRoleStore
             .Setup(x => x.GetAssignmentsAsync(
@@ -469,8 +468,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenPageSizeExceedsMaximum_ClampsPageSize()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.UserRoleStore
             .Setup(x => x.GetAssignmentsAsync(
@@ -501,8 +500,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_PreservesPagingMetadata()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.UserRoleStore
             .Setup(x => x.GetAssignmentsAsync(
@@ -537,8 +536,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_UsesResourceTenantForBothStores()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         f.UserRoleStore
             .Setup(x => x.GetAssignmentsAsync(
@@ -597,8 +596,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenSortByNameAscending_SortsByName()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var charlie = f.Role("Charlie");
         var alpha = f.Role("Alpha");
@@ -633,8 +632,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenSortByNameDescending_SortsByNameDescending()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var bravo = f.Role("Bravo");
         var charlie = f.Role("Charlie");
@@ -668,8 +667,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenSortByAssignedAtAscending_SortsByAssignedAt()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role1 = f.Role("Role 1");
         var role2 = f.Role("Role 2");
@@ -707,8 +706,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenSortByAssignedAtDescending_SortsByAssignedAtDescending()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var role1 = f.Role("Role 1");
         var role2 = f.Role("Role 2");
@@ -746,8 +745,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenSortByIsNotSpecified_DefaultsToNameAscending()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var zebra = f.Role("Zebra");
         var admin = f.Role("Admin");
@@ -777,8 +776,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_SortsBeforeApplyingPagination()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var charlie = f.Role("Charlie");
         var alpha = f.Role("Alpha");
@@ -833,8 +832,8 @@ public sealed class UserRoleServiceTests
     public async Task GetRolesAsync_WhenNamesAreEqual_UsesRoleIdAsDeterministicTieBreaker()
     {
         var f = new Fixture();
-        var context = f.Context("roles.list");
         var target = UserKey.New();
+        var context = f.Context("roles.assign", target);
 
         var lowerId = Role.FromProjection(
             RoleId.From(Guid.Parse("00000000-0000-0000-0000-000000000001")),
@@ -880,6 +879,56 @@ public sealed class UserRoleServiceTests
         result.Items.Select(x => x.RoleId)
             .Should()
             .ContainInOrder(lowerId.Id, higherId.Id);
+    }
+
+    [Fact]
+    public async Task AssignAsync_WhenTargetDoesNotMatchContext_ThrowsAuthorizationException()
+    {
+        var f = new Fixture();
+
+        var authorizedTarget = UserKey.New();
+        var otherTarget = UserKey.New();
+
+        var context = f.Context("roles.assign", authorizedTarget);
+
+        Func<Task> act = () => f.Sut.AssignAsync(
+            context,
+            otherTarget,
+            "Admin");
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthAuthorizationException>();
+
+        exception.Which.Code.Should().Be("target_user_mismatch");
+
+        f.AccessOrchestrator.VerifyNoOtherCalls();
+        f.RoleFactory.VerifyNoOtherCalls();
+        f.UserRoleFactory.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenTargetDoesNotMatchContext_ThrowsAuthorizationException()
+    {
+        var f = new Fixture();
+
+        var authorizedTarget = UserKey.New();
+        var otherTarget = UserKey.New();
+
+        var context = f.Context("roles.remove", authorizedTarget);
+
+        Func<Task> act = () => f.Sut.RemoveAsync(
+            context,
+            otherTarget,
+            "Admin");
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthAuthorizationException>();
+
+        exception.Which.Code.Should().Be("target_user_mismatch");
+
+        f.AccessOrchestrator.VerifyNoOtherCalls();
+        f.RoleFactory.VerifyNoOtherCalls();
+        f.UserRoleFactory.VerifyNoOtherCalls();
     }
 
     // =========================================================
@@ -952,6 +1001,13 @@ public sealed class UserRoleServiceTests
 
         public AccessContext Context(string action)
             => TestAccessContext.WithAction(action);
+
+        public AccessContext Context(string action, UserKey target)
+            => TestAccessContext.ForTargetUser(
+                actorUserKey: UserKey.New(),
+                targetUserKey: target,
+                action: action,
+                resource: "authorization.roles");
 
         public Role Role(string name)
             => global::CodeBeam.UltimateAuth.Authorization.Role.Create(

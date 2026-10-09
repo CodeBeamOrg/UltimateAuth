@@ -26,6 +26,8 @@ internal sealed class UserRoleService : IUserRoleService
     {
         ct.ThrowIfCancellationRequested();
 
+        ValidateTargetUser(context, targetUserKey);
+
         var now = _clock.UtcNow;
 
         var cmd = new AccessCommand(async innerCt =>
@@ -48,6 +50,8 @@ internal sealed class UserRoleService : IUserRoleService
     {
         ct.ThrowIfCancellationRequested();
 
+        ValidateTargetUser(context, targetUserKey);
+
         var cmd = new AccessCommand(async innerCt =>
         {
             var roleStore = _roleFactory.Create(context.ResourceTenant);
@@ -67,6 +71,8 @@ internal sealed class UserRoleService : IUserRoleService
     public async Task<PagedResult<UserRoleInfo>> GetRolesAsync(AccessContext context, UserKey targetUserKey, PageRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        ValidateTargetUser(context, targetUserKey, allowSelf: true);
 
         var cmd = new AccessCommand<PagedResult<UserRoleInfo>>(async innerCt =>
         {
@@ -131,5 +137,18 @@ internal sealed class UserRoleService : IUserRoleService
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    private static void ValidateTargetUser(AccessContext context, UserKey targetUserKey, bool allowSelf = false)
+    {
+        if (context.TargetUserKey == targetUserKey)
+            return;
+
+        if (allowSelf &&
+            context.TargetUserKey is null &&
+            context.ActorUserKey == targetUserKey)
+            return;
+
+        throw new UAuthAuthorizationException("target_user_mismatch");
     }
 }

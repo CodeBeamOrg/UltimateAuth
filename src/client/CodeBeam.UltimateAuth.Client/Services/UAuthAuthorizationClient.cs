@@ -45,7 +45,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult> AssignRoleToUserAsync(AssignRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/assign"), request.RoleName);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/assign"), request);
 
         var result = UAuthResultMapper.From(raw);
 
@@ -59,7 +59,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult> RemoveRoleFromUserAsync(RemoveRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/remove"), request.RoleName);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/remove"), request);
 
         var result = UAuthResultMapper.From(raw);
 
