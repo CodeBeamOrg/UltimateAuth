@@ -80,7 +80,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
             }));
 
         var client = CreateClient();
-        var result = await client.Authorization.CheckAsync(new AuthorizationCheckRequest() { Action = UAuthActions.Authorization.Roles.CreateAdmin });
+        var result = await client.Authorization.CheckAsync(new AuthorizationCheckRequest() { Action = UAuthActions.Authorization.Roles.CreateAdmin, Resource = "roles" });
         result.IsSuccess.Should().BeTrue();
         result.Value!.IsAllowed.Should().BeTrue();
     }

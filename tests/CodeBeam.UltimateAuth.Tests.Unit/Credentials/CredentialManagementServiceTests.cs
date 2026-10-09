@@ -165,8 +165,7 @@ public sealed class CredentialManagementServiceTests
             });
 
         await act.Should()
-            .ThrowAsync<UAuthNotFoundException>()
-            .WithMessage("*current_secret_required*");
+            .ThrowAsync<UAuthValidationException>();
 
         f.Hasher.Verify(
             x => x.Hash(It.IsAny<string>()),

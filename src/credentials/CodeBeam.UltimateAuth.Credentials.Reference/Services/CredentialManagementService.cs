@@ -135,10 +135,13 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (pwd.UserKey != subjectUser)
                 throw new UAuthNotFoundException("credential_not_found");
 
+            if (string.IsNullOrWhiteSpace(request.NewSecret))
+                throw new UAuthValidationException("new_secret_required");
+
             if (context.IsSelfAction)
             {
                 if (string.IsNullOrWhiteSpace(request.CurrentSecret))
-                    throw new UAuthNotFoundException("current_secret_required");
+                    throw new UAuthValidationException("current_secret_required");
 
                 if (!_hasher.Verify(pwd.SecretHash, request.CurrentSecret))
                     throw new UAuthConflictException("invalid_credentials");

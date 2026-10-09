@@ -39,11 +39,10 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var req = await ctx.ReadJsonAsync<AuthorizationCheckRequest>(ctx.RequestAborted);
 
-        if (string.IsNullOrWhiteSpace(req.Resource))
-            return Results.BadRequest("Resource is required for authorization check.");
-
-        if (string.IsNullOrWhiteSpace(req.Action))
-            return Results.BadRequest("Action is required for authorization check.");
+        if (req is null || string.IsNullOrWhiteSpace(req.Action) || string.IsNullOrWhiteSpace(req.Resource))
+        {
+            return Results.BadRequest("Action and Resource are required.");
+        }
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
