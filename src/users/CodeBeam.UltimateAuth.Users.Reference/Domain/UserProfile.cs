@@ -79,7 +79,8 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
         string? bio = null,
         string? language = null,
         string? timezone = null,
-        string? culture = null)
+        string? culture = null,
+        IReadOnlyDictionary<string, string>? metadata = null)
     {
         return new UserProfile
         {
@@ -96,10 +97,12 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
             Language = language,
             TimeZone = timezone,
             Culture = culture,
+            Metadata = metadata is null
+                ? null
+                : new Dictionary<string, string>(metadata),
             CreatedAt = createdAt,
             UpdatedAt = null,
             DeletedAt = null,
-            Metadata = null,
             Version = 0
         };
     }
@@ -151,10 +154,23 @@ public sealed class UserProfile : ITenantEntity, IVersionedEntity, ISoftDeletabl
 
     public UserProfile UpdateMetadata(IReadOnlyDictionary<string, string>? metadata, DateTimeOffset now)
     {
-        if (Metadata == metadata)
+        if (Metadata is null && metadata is null)
             return this;
 
-        Metadata = metadata;
+        if (Metadata is not null &&
+            metadata is not null &&
+            Metadata.Count == metadata.Count &&
+            Metadata.All(x =>
+                metadata.TryGetValue(x.Key, out var value) &&
+                value == x.Value))
+        {
+            return this;
+        }
+
+        Metadata = metadata is null
+            ? null
+            : new Dictionary<string, string>(metadata);
+
         UpdatedAt = now;
 
         return this;

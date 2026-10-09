@@ -73,6 +73,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     Id = c.Id,
                     Type = c.Type,
                     Status = c.Security.Status(now),
+                    CreatedAt = c.CreatedAt,
                     ExpiresAt = c.Security.ExpiresAt,
                     RevokedAt = c.Security.RevokedAt,
                     LastUsedAt = c.Metadata.LastUsedAt,

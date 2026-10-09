@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using System.Net.NetworkInformation;
 
 namespace CodeBeam.UltimateAuth.Users.Contracts;
 
@@ -13,7 +14,7 @@ public static class UserStatusMapper
             case SelfAssignableUserStatus.SelfSuspended:
                 return UserStatus.SelfSuspended;
             default:
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(selfStatus), selfStatus, "Unsupported user status.");
         }
     }
 
@@ -34,11 +35,11 @@ public static class UserStatusMapper
             case AdminAssignableUserStatus.PendingActivation:
                 return UserStatus.PendingActivation;
             case AdminAssignableUserStatus.PendingVerification:
-                return UserStatus.PendingActivation;
+                return UserStatus.PendingVerification;
             case AdminAssignableUserStatus.Unknown:
                 return UserStatus.Unknown;
             default:
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(status), status, "Unsupported user status.");
         }
     }
 
@@ -59,11 +60,11 @@ public static class UserStatusMapper
             case UserStatus.PendingActivation:
                 return AdminAssignableUserStatus.PendingActivation;
             case UserStatus.PendingVerification:
-                return AdminAssignableUserStatus.PendingActivation;
+                return AdminAssignableUserStatus.PendingVerification;
             case UserStatus.Unknown:
                 return AdminAssignableUserStatus.Unknown;
             default:
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(status), status, "Unsupported user status.");
         }
     }
 }

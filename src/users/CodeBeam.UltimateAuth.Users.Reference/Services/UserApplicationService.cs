@@ -105,7 +105,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                         bio: request.Bio,
                         language: request.Language,
                         timezone: request.TimeZone,
-                        culture: request.Culture), atomicCt);
+                        culture: request.Culture,
+                        metadata: request.Metadata), atomicCt);
 
                 var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
                 if (!string.IsNullOrWhiteSpace(request.UserName))
@@ -371,7 +372,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                     bio: request.Bio,
                     language: request.Language,
                     timezone: request.TimeZone,
-                    culture: request.Culture);
+                    culture: request.Culture,
+                    metadata: request.Metadata);
             }
 
             await store.AddAsync(profile, innerCt);
@@ -940,12 +942,17 @@ internal sealed class UserApplicationService : IUserApplicationService
                     x.Type == UserIdentifierType.Email &&
                     x.IsPrimary);
 
+                var phone = ids?.FirstOrDefault(x =>
+                    x.Type == UserIdentifierType.Phone &&
+                    x.IsPrimary);
+
                 summaries.Add(new UserSummary
                 {
                     UserKey = lifecycle.UserKey,
                     DisplayName = profile?.DisplayName,
                     UserName = username?.Value,
                     PrimaryEmail = email?.Value,
+                    PrimaryPhone = phone?.Value,
                     Status = lifecycle.Status,
                     CreatedAt = lifecycle.CreatedAt
                 });
@@ -960,6 +967,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     .Where(x =>
                         (x.DisplayName?.ToLowerInvariant().Contains(search) ?? false) ||
                         (x.PrimaryEmail?.ToLowerInvariant().Contains(search) ?? false) ||
+                        (x.PrimaryPhone?.ToLowerInvariant().Contains(search) ?? false) ||
                         (x.UserName?.ToLowerInvariant().Contains(search) ?? false) ||
                         x.UserKey.Value.ToLowerInvariant().Contains(search))
                     .ToList();
