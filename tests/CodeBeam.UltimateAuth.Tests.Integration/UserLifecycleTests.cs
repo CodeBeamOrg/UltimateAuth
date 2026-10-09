@@ -8,6 +8,8 @@ using CodeBeam.UltimateAuth.Users.Reference;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -518,6 +520,126 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 x.UserKey == userKey);
     }
 
+    [Fact]
+    public async Task QueryUsersAsync_AppliesConfiguredPaginationAndSorting()
+    {
+        using var factory = AuthServerFactory.Create(
+            configureServer: options =>
+            {
+                options.Pagination.DefaultPageSize = 2;
+                options.Pagination.MaxPageSize = 3;
+            },
+            configureServices: services =>
+            {
+                var access = new Mock<IAccessOrchestrator>();
+
+                access
+                    .Setup(x => x.ExecuteAsync(
+                        It.IsAny<AccessContext>(),
+                        It.IsAny<AccessCommand<PagedResult<UserSummary>>>(),
+                        It.IsAny<CancellationToken>()))
+                    .Returns<
+                        AccessContext,
+                        AccessCommand<PagedResult<UserSummary>>,
+                        CancellationToken>(
+                        (_, command, ct) => command.ExecuteAsync(ct));
+
+                services.RemoveAll<IAccessOrchestrator>();
+                services.AddScoped(_ => access.Object);
+            });
+
+        var prefix = $"pagination-{Guid.NewGuid():N}";
+
+        var names = new[]
+        {
+            "Charlie",
+            "Alice",
+            "Echo",
+            "Bob",
+            "Delta"
+        };
+
+        foreach (var name in names)
+        {
+            var user = await factory.CreateLoginUserAsync();
+
+            using var seedScope = factory.Services.CreateScope();
+
+            var profileFactory = seedScope.ServiceProvider
+                .GetRequiredService<IUserProfileStoreFactory>();
+
+            await profileFactory
+                .Create(TenantKeys.Single)
+                .AddAsync(UserProfile.Create(
+                    Guid.NewGuid(),
+                    TenantKeys.Single,
+                    user.UserKey,
+                    ProfileKey.Default,
+                    factory.Clock.UtcNow,
+                    displayName: $"{prefix}-{name}"));
+        }
+
+        using var scope = factory.Services.CreateScope();
+
+        var service = scope.ServiceProvider
+            .GetRequiredService<IUserApplicationService>();
+
+        var actor = UserKey.New();
+
+        var context = new AccessContext(
+            actorUserKey: actor,
+            actorTenant: TenantKeys.Single,
+            isAuthenticated: true,
+            isSystemActor: false,
+            actorChainId: null,
+            resource: "users",
+            targetUserKey: actor,
+            resourceTenant: TenantKeys.Single,
+            action: "test",
+            attributes: EmptyAttributes.Instance);
+
+        // DefaultPageSize = 2
+        var firstPage = await service.QueryUsersAsync(
+            context,
+            new UserQuery
+            {
+                PageNumber = 1,
+                PageSize = 0,
+                Search = prefix,
+                SortBy = nameof(UserSummary.DisplayName)
+            });
+
+        firstPage.TotalCount.Should().Be(5);
+        firstPage.PageNumber.Should().Be(1);
+        firstPage.PageSize.Should().Be(2);
+        firstPage.Items.Should().HaveCount(2);
+
+        firstPage.Items
+            .Select(x => x.DisplayName)
+            .Should()
+            .Equal($"{prefix}-Alice", $"{prefix}-Bob");
+
+        // Requested 100 -> MaxPageSize = 3
+        var secondPage = await service.QueryUsersAsync(
+            context,
+            new UserQuery
+            {
+                PageNumber = 2,
+                PageSize = 100,
+                Search = prefix,
+                SortBy = nameof(UserSummary.DisplayName)
+            });
+
+        secondPage.TotalCount.Should().Be(5);
+        secondPage.PageNumber.Should().Be(2);
+        secondPage.PageSize.Should().Be(3);
+        secondPage.Items.Should().HaveCount(2);
+
+        secondPage.Items
+            .Select(x => x.DisplayName)
+            .Should()
+            .Equal($"{prefix}-Delta", $"{prefix}-Echo");
+    }
 
     // -------------------------------------------------------
     // Helpers

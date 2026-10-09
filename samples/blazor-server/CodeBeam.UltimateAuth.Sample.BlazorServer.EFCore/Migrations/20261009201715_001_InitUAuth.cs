@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
+namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 {
     /// <inheritdoc />
-    public partial class _001_Initial : Migration
+    public partial class _001_InitUAuth : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -492,9 +492,19 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                 columns: new[] { "Tenant", "UserKey", "IsPrimary" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_UAuth_UserIdentifiers_Tenant_UserKey_Type_IsPrimary",
+                name: "IX_UAuth_UserIdentifiers_Tenant_UserKey_Type_IsPrimary_DeletedAt_CreatedAt_Id",
                 table: "UAuth_UserIdentifiers",
-                columns: new[] { "Tenant", "UserKey", "Type", "IsPrimary" });
+                columns: new[] { "Tenant", "UserKey", "Type", "IsPrimary", "DeletedAt", "CreatedAt", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UAuth_UserLifecycles_Tenant_DeletedAt_CreatedAt_Id",
+                table: "UAuth_UserLifecycles",
+                columns: new[] { "Tenant", "DeletedAt", "CreatedAt", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UAuth_UserLifecycles_Tenant_Status_DeletedAt_CreatedAt_Id",
+                table: "UAuth_UserLifecycles",
+                columns: new[] { "Tenant", "Status", "DeletedAt", "CreatedAt", "Id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_UAuth_UserLifecycles_Tenant_UserKey",

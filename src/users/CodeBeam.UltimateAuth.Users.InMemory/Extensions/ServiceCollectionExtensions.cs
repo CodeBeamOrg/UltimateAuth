@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.InMemory.Extensions;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IUserLifecycleStoreFactory, InMemoryUserLifecycleStoreFactory>();
         services.AddSingleton<IUserIdentifierStoreFactory, InMemoryUserIdentifierStoreFactory>();
         services.AddSingleton<IUserProfileStoreFactory, InMemoryUserProfileStoreFactory>();
+        services.AddSingleton<IUserSummaryQueryStoreFactory, InMemoryUserSummaryQueryStoreFactory>();
 
         return services;
     }

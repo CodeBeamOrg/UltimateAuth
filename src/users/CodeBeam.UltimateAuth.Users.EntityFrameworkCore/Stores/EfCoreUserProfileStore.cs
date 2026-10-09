@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -13,11 +14,13 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
 {
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public EfCoreUserProfileStore(TDbContext db, TenantExecutionContext tenant)
+    public EfCoreUserProfileStore(TDbContext db, TenantExecutionContext tenant, IUAuthPaginationPolicy pagination)
     {
         _db = db;
         _tenant = tenant.Tenant;
+        _pagination = pagination;
     }
 
     private DbSet<UserProfileProjection> DbSet => _db.Set<UserProfileProjection>();
@@ -136,7 +139,7 @@ internal sealed class EfCoreUserProfileStore<TDbContext> : IUserProfileStore whe
     {
         ct.ThrowIfCancellationRequested();
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = DbSet
             .AsNoTracking()

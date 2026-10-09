@@ -12,13 +12,15 @@ internal sealed class UserRoleService : IUserRoleService
     private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly IUserRoleStoreFactory _userRoleFactory;
     private readonly IRoleStoreFactory _roleFactory;
+    private readonly IUAuthPaginationPolicy _pagination;
     private readonly IClock _clock;
 
-    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStoreFactory userRoleFactory, IRoleStoreFactory roleFactory, IClock clock)
+    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStoreFactory userRoleFactory, IRoleStoreFactory roleFactory, IUAuthPaginationPolicy pagination, IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
         _userRoleFactory = userRoleFactory;
         _roleFactory = roleFactory;
+        _pagination = pagination;
         _clock = clock;
     }
 
@@ -76,7 +78,7 @@ internal sealed class UserRoleService : IUserRoleService
 
         var cmd = new AccessCommand<PagedResult<UserRoleInfo>>(async innerCt =>
         {
-            request = request.Normalize();
+            request = request.Normalize(_pagination);
 
             var roleStore = _roleFactory.Create(context.ResourceTenant);
             var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);

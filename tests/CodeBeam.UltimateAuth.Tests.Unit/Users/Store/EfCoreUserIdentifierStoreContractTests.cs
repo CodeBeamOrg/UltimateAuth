@@ -1,17 +1,19 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class EfCoreUserIdentifierStoreContractTests
-    : UserIdentifierStoreContractTests
+public sealed class EfCoreUserIdentifierStoreContractTests : UserIdentifierStoreContractTests
 {
-    protected override async Task<IUserIdentifierStoreTestDatabase>
-        CreateDatabaseAsync()
+    private readonly IUAuthPaginationPolicy _pagination = new UAuthPaginationOptions();
+
+    protected override async Task<IUserIdentifierStoreTestDatabase> CreateDatabaseAsync()
     {
-        var db = new Database();
+        var db = new Database(_pagination);
         await db.InitializeAsync();
         return db;
     }
@@ -20,8 +22,9 @@ public sealed class EfCoreUserIdentifierStoreContractTests
     {
         private readonly SqliteConnection _connection;
         private readonly UAuthUserDbContext _db;
+        private readonly IUAuthPaginationPolicy _pagination;
 
-        public Database()
+        public Database(IUAuthPaginationPolicy pagination)
         {
             _connection = new SqliteConnection("Data Source=:memory:");
 
@@ -31,6 +34,7 @@ public sealed class EfCoreUserIdentifierStoreContractTests
                     .Options;
 
             _db = new UAuthUserDbContext(options);
+            _pagination = pagination;
         }
 
         public async Task InitializeAsync()
@@ -43,7 +47,7 @@ public sealed class EfCoreUserIdentifierStoreContractTests
         {
             return new EfCoreUserIdentifierStore<UAuthUserDbContext>(
                 _db,
-                new TenantExecutionContext(tenant));
+                new TenantExecutionContext(tenant), _pagination);
         }
 
         public async ValueTask DisposeAsync()

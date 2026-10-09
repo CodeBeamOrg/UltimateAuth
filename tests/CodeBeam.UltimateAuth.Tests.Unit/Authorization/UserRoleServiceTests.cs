@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
@@ -489,11 +490,10 @@ public sealed class UserRoleServiceTests
             new PageRequest
             {
                 PageNumber = 1,
-                PageSize = 5000,
-                MaxPageSize = 100
+                PageSize = 5000
             });
 
-        result.PageSize.Should().Be(100);
+        result.PageSize.Should().Be(1000);
     }
 
     [Fact]
@@ -952,6 +952,8 @@ public sealed class UserRoleServiceTests
         public Mock<IRoleStore> RoleStore { get; }
             = new(MockBehavior.Strict);
 
+        public UAuthPaginationOptions PaginationPolicy { get; } = new();
+
         public Mock<IClock> Clock { get; }
             = new(MockBehavior.Strict);
 
@@ -996,6 +998,7 @@ public sealed class UserRoleServiceTests
                 AccessOrchestrator.Object,
                 UserRoleFactory.Object,
                 RoleFactory.Object,
+                PaginationPolicy,
                 Clock.Object);
         }
 

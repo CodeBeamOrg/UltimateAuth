@@ -9,7 +9,7 @@ public sealed class PagedResult<T>
     public string? SortBy { get; init; }
     public bool Descending { get; init; }
 
-    public bool HasNext => PageNumber * PageSize < TotalCount;
+    public bool HasNext => (long)PageNumber * PageSize < TotalCount;
 
     public PagedResult(IReadOnlyList<T> items, int totalCount, int pageNumber, int pageSize, string? sortBy, bool descending)
     {

@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Users.InMemory;
 using CodeBeam.UltimateAuth.Users.Reference;
@@ -17,8 +19,8 @@ public sealed class InMemoryUserProfileStoreContractTests : UserProfileStoreCont
     private sealed class Database : IUserProfileStoreTestDatabase
     {
         private readonly Dictionary<TenantKey, IUserProfileStore> _stores = [];
-
         private readonly InMemoryAtomicContextAccessor _atomicContext = new();
+        private readonly IUAuthPaginationPolicy _pagination = new UAuthPaginationOptions();
 
         public IUserProfileStore CreateStore(TenantKey tenant)
         {
@@ -27,7 +29,7 @@ public sealed class InMemoryUserProfileStoreContractTests : UserProfileStoreCont
 
             var store = new InMemoryUserProfileStore(
                 new TenantExecutionContext(tenant),
-                _atomicContext);
+                _atomicContext, _pagination);
 
             _stores.Add(tenant, store);
 

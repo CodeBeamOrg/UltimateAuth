@@ -27,6 +27,7 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IUserIdentifierAvailabilityService _identifierAvailabilityService;
     private readonly ISessionStoreFactory _sessionStoreFactory;
     private readonly IUserIdentifierVerifier _identifierVerifier;
+    private readonly IUserSummaryQueryStoreFactory _queryStoreFactory;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -43,6 +44,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         IUserIdentifierAvailabilityService identifierAvailabilityService,
         ISessionStoreFactory sessionStoreFactory,
         IUserIdentifierVerifier ıdentifierVerifier,
+        IUserSummaryQueryStoreFactory queryStoreFactory,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -58,6 +60,7 @@ internal sealed class UserApplicationService : IUserApplicationService
         _identifierAvailabilityService = identifierAvailabilityService;
         _sessionStoreFactory = sessionStoreFactory;
         _identifierVerifier = ıdentifierVerifier;
+        _queryStoreFactory = queryStoreFactory;
         _options = options.Value;
         _clock = clock;
     }
@@ -890,124 +893,18 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default)
     {
-        var command = new AccessCommand<PagedResult<UserSummary>>(async innerCt =>
-        {
-            query ??= new UserQuery();
-            var effectiveProfileKey = query.ProfileKey ?? ProfileKey.Default;
-
-            var lifecycleQuery = new UserLifecycleQuery
+        var command = new AccessCommand<PagedResult<UserSummary>>(
+            async innerCt =>
             {
-                PageNumber = 1,
-                PageSize = int.MaxValue,
-                Status = query.Status,
-                IncludeDeleted = query.IncludeDeleted
-            };
+                var normalized = (UserQuery)(query ?? new UserQuery()).Normalize(_options.Pagination);
+                var store = _queryStoreFactory.Create(context.ResourceTenant);
 
-            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
-            var lifecycleResult = await lifecycleStore.QueryAsync(lifecycleQuery, innerCt);
-            var lifecycles = lifecycleResult.Items;
-
-            if (lifecycles.Count == 0)
-            {
-                return new PagedResult<UserSummary>(
-                    Array.Empty<UserSummary>(),
-                    0,
-                    query.PageNumber,
-                    query.PageSize,
-                    query.SortBy,
-                    query.Descending);
-            }
-
-            var userKeys = lifecycles.Select(x => x.UserKey).ToList();
-            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
-            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var profiles = await profileStore.GetByUsersAsync(userKeys, effectiveProfileKey, innerCt);
-            var identifiers = await identifierStore.GetByUsersAsync(userKeys, innerCt);
-            var profileMap = profiles.ToDictionary(x => x.UserKey);
-            var identifierGroups = identifiers.GroupBy(x => x.UserKey).ToDictionary(x => x.Key, x => x.ToList());
-
-            var summaries = new List<UserSummary>();
-
-            foreach (var lifecycle in lifecycles)
-            {
-                profileMap.TryGetValue(lifecycle.UserKey, out var profile);
-
-                identifierGroups.TryGetValue(lifecycle.UserKey, out var ids);
-
-                var username = ids?.FirstOrDefault(x =>
-                    x.Type == UserIdentifierType.Username &&
-                    x.IsPrimary);
-
-                var email = ids?.FirstOrDefault(x =>
-                    x.Type == UserIdentifierType.Email &&
-                    x.IsPrimary);
-
-                var phone = ids?.FirstOrDefault(x =>
-                    x.Type == UserIdentifierType.Phone &&
-                    x.IsPrimary);
-
-                summaries.Add(new UserSummary
-                {
-                    UserKey = lifecycle.UserKey,
-                    DisplayName = profile?.DisplayName,
-                    UserName = username?.Value,
-                    PrimaryEmail = email?.Value,
-                    PrimaryPhone = phone?.Value,
-                    Status = lifecycle.Status,
-                    CreatedAt = lifecycle.CreatedAt
-                });
-            }
-
-            // SEARCH
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                var search = query.Search.Trim().ToLowerInvariant();
-
-                summaries = summaries
-                    .Where(x =>
-                        (x.DisplayName?.ToLowerInvariant().Contains(search) ?? false) ||
-                        (x.PrimaryEmail?.ToLowerInvariant().Contains(search) ?? false) ||
-                        (x.PrimaryPhone?.ToLowerInvariant().Contains(search) ?? false) ||
-                        (x.UserName?.ToLowerInvariant().Contains(search) ?? false) ||
-                        x.UserKey.Value.ToLowerInvariant().Contains(search))
-                    .ToList();
-            }
-
-            // SORT
-            summaries = query.SortBy switch
-            {
-                nameof(UserSummary.DisplayName) =>
-                    query.Descending
-                        ? summaries.OrderByDescending(x => x.DisplayName).ToList()
-                        : summaries.OrderBy(x => x.DisplayName).ToList(),
-
-                nameof(UserSummary.CreatedAt) =>
-                    query.Descending
-                        ? summaries.OrderByDescending(x => x.CreatedAt).ToList()
-                        : summaries.OrderBy(x => x.CreatedAt).ToList(),
-
-                _ => summaries.OrderBy(x => x.CreatedAt).ToList()
-            };
-
-            var total = summaries.Count;
-
-            // PAGINATION
-            var items = summaries
-                .Skip((query.PageNumber - 1) * query.PageSize)
-                .Take(query.PageSize)
-                .ToList();
-
-            return new PagedResult<UserSummary>(
-                items,
-                total,
-                query.PageNumber,
-                query.PageSize,
-                query.SortBy,
-                query.Descending);
-        });
+                return await store.QueryAsync(normalized, innerCt);
+            });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     private async Task EnsureIdentifierUniquenessAsync(
         IUserIdentifierStore store,

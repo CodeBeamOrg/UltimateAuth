@@ -1554,6 +1554,217 @@ public sealed class UserApplicationServiceTests
             Times.Exactly(2));
     }
 
+
+    [Fact]
+    public async Task GetIdentifierAsync_WhenValueInvalid_ReturnsNullWithoutStoreAccess()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(UserIdentifierType.Email, "invalid"))
+            .Returns(new NormalizedIdentifier(
+                "invalid", "", false, "identifier_invalid"));
+
+        var result = await f.Sut.GetIdentifierAsync(
+            context, UserIdentifierType.Email, "invalid");
+
+        result.Should().BeNull();
+
+        f.IdentifierStore.Verify(
+            x => x.GetAsync(
+                It.IsAny<UserIdentifierType>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetIdentifierAsync_WhenNotFound_ReturnsNull()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Email, "ALICE@EXAMPLE.COM"))
+            .Returns(new NormalizedIdentifier(
+                "ALICE@EXAMPLE.COM", "alice@example.com", true, null));
+
+        f.IdentifierStore
+            .Setup(x => x.GetAsync(
+                UserIdentifierType.Email,
+                "alice@example.com",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentifier?)null);
+
+        var result = await f.Sut.GetIdentifierAsync(
+            context, UserIdentifierType.Email, "ALICE@EXAMPLE.COM");
+
+        result.Should().BeNull();
+
+        f.IdentifierStore.Verify(x => x.GetAsync(
+            UserIdentifierType.Email,
+            "alice@example.com",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetIdentifierAsync_WhenFound_ReturnsMappedIdentifier()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var identifier = CreateIdentifier(
+            context.GetTargetUserKey(),
+            type: UserIdentifierType.Email,
+            isPrimary: true,
+            isVerified: true);
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Email, "alice@example.com"))
+            .Returns(new NormalizedIdentifier(
+                "alice@example.com", "alice@example.com", true, null));
+
+        f.IdentifierStore
+            .Setup(x => x.GetAsync(
+                UserIdentifierType.Email,
+                "alice@example.com",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifier);
+
+        var result = await f.Sut.GetIdentifierAsync(
+            context, UserIdentifierType.Email, "alice@example.com");
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(identifier.Id);
+        result.Type.Should().Be(identifier.Type);
+        result.Value.Should().Be(identifier.Value);
+        result.NormalizedValue.Should().Be(identifier.NormalizedValue);
+    }
+
+    [Fact]
+    public async Task UserIdentifierExistsAsync_WhenValueInvalid_ReturnsFalseWithoutStoreAccess()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(UserIdentifierType.Email, "invalid"))
+            .Returns(new NormalizedIdentifier(
+                "invalid", "", false, "identifier_invalid"));
+
+        var result = await f.Sut.UserIdentifierExistsAsync(
+            context, UserIdentifierType.Email, "invalid");
+
+        result.Should().BeFalse();
+
+        f.IdentifierStore.Verify(
+            x => x.ExistsAsync(
+                It.IsAny<IdentifierExistenceQuery>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(IdentifierExistenceScope.TenantPrimaryOnly)]
+    [InlineData(IdentifierExistenceScope.TenantAny)]
+    public async Task UserIdentifierExistsAsync_TenantScope_DoesNotPassUserKey(
+        IdentifierExistenceScope scope)
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Email, "ALICE@EXAMPLE.COM"))
+            .Returns(new NormalizedIdentifier(
+                "ALICE@EXAMPLE.COM", "alice@example.com", true, null));
+
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Email &&
+                    q.NormalizedValue == "alice@example.com" &&
+                    q.Scope == scope &&
+                    q.UserKey == null),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(Exists: true));
+
+        var result = await f.Sut.UserIdentifierExistsAsync(
+            context,
+            UserIdentifierType.Email,
+            "ALICE@EXAMPLE.COM",
+            scope);
+
+        result.Should().BeTrue();
+
+        f.IdentifierStore.Verify(x => x.ExistsAsync(
+            It.IsAny<IdentifierExistenceQuery>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UserIdentifierExistsAsync_WithinUser_PassesTargetUserKey()
+    {
+        var f = CreateFixture();
+        var target = UserKey.New();
+        var context = CreateContext(targetUserKey: target);
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Username, "Alice"))
+            .Returns(new NormalizedIdentifier(
+                "Alice", "alice", true, null));
+
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Username &&
+                    q.NormalizedValue == "alice" &&
+                    q.Scope == IdentifierExistenceScope.WithinUser &&
+                    q.UserKey == target),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(Exists: true));
+
+        var result = await f.Sut.UserIdentifierExistsAsync(
+            context,
+            UserIdentifierType.Username,
+            "Alice",
+            IdentifierExistenceScope.WithinUser);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UserIdentifierExistsAsync_WhenStoreReportsMissing_ReturnsFalse()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        f.IdentifierNormalizer
+            .Setup(x => x.Normalize(
+                UserIdentifierType.Username, "missing"))
+            .Returns(new NormalizedIdentifier(
+                "missing", "missing", true, null));
+
+        f.IdentifierStore
+            .Setup(x => x.ExistsAsync(
+                It.Is<IdentifierExistenceQuery>(q =>
+                    q.Type == UserIdentifierType.Username &&
+                    q.NormalizedValue == "missing" &&
+                    q.Scope == IdentifierExistenceScope.TenantPrimaryOnly &&
+                    q.UserKey == null),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentifierExistenceResult(Exists: false));
+
+        var result = await f.Sut.UserIdentifierExistsAsync(
+            context, UserIdentifierType.Username, "missing");
+
+        result.Should().BeFalse();
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
@@ -1574,6 +1785,7 @@ public sealed class UserApplicationServiceTests
         var identifierAvailability = new Mock<IUserIdentifierAvailabilityService>(MockBehavior.Strict);
         var identifierVerifier = new Mock<IUserIdentifierVerifier>(MockBehavior.Strict);
         var sessionFactory = new Mock<ISessionStoreFactory>(MockBehavior.Strict);
+        var queryStoreFactory = new Mock<IUserSummaryQueryStoreFactory>(MockBehavior.Strict);
         var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
         var clock = new Mock<IClock>(MockBehavior.Strict);
 
@@ -1615,6 +1827,23 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<UserCreateResult>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<UserIdentifierInfo?>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext, AccessCommand<UserIdentifierInfo?>, CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<bool>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext, AccessCommand<bool>, CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
         atomic
             .Setup(x => x.ExecuteAsync<UserCreateResult>(
                 It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
@@ -1638,6 +1867,7 @@ public sealed class UserApplicationServiceTests
             identifierAvailability.Object,
             sessionFactory.Object,
             identifierVerifier.Object,
+            queryStoreFactory.Object,
             options,
             clock.Object);
 

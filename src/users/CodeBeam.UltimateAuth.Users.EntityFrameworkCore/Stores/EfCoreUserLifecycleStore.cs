@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Reference;
@@ -10,11 +11,13 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
 {
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public EfCoreUserLifecycleStore(TDbContext db, TenantExecutionContext tenant)
+    public EfCoreUserLifecycleStore(TDbContext db, TenantExecutionContext tenant, IUAuthPaginationPolicy pagination)
     {
         _db = db;
         _tenant = tenant.Tenant;
+        _pagination = pagination;
     }
 
     private DbSet<UserLifecycleProjection> DbSet => _db.Set<UserLifecycleProjection>();
@@ -130,7 +133,7 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
     {
         ct.ThrowIfCancellationRequested();
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = DbSet
             .AsNoTracking()
@@ -146,6 +149,9 @@ internal sealed class EfCoreUserLifecycleStore<TDbContext> : IUserLifecycleStore
         {
             nameof(UserLifecycle.Id) =>
                 query.Descending ? baseQuery.OrderByDescending(x => x.Id) : baseQuery.OrderBy(x => x.Id),
+
+            nameof(UserLifecycle.UserKey) =>
+                query.Descending ? baseQuery.OrderByDescending(x => x.UserKey) : baseQuery.OrderBy(x => x.UserKey),
 
             nameof(UserLifecycle.CreatedAt) =>
                 query.Descending ? baseQuery.OrderByDescending(x => x.CreatedAt) : baseQuery.OrderBy(x => x.CreatedAt),

@@ -63,7 +63,8 @@ public static class ServiceCollectionExtensions
             .PostConfigure(options =>
             {
                 // Add any default values or adjustments here if needed
-            });
+            })
+            .ValidateOnStart();
 
         services.AddUltimateAuthServerInternal();
 
@@ -81,7 +82,8 @@ public static class ServiceCollectionExtensions
             {
                 configure?.Invoke(options);
             })
-            .BindConfiguration("UltimateAuth:ResourceApi");
+            .BindConfiguration("UltimateAuth:ResourceApi")
+            .ValidateOnStart();
 
         services.AddUltimateAuthResourceInternal();
 
@@ -133,7 +135,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerMultiTenantOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
+
+        services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+            return options.Pagination;
+        });
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, DeviceRequiredInvariant>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthorityInvariant, ExpiredSessionInvariant>());

@@ -569,7 +569,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 
                     b.HasIndex("Tenant", "UserKey", "IsPrimary");
 
-                    b.HasIndex("Tenant", "UserKey", "Type", "IsPrimary");
+                    b.HasIndex("Tenant", "UserKey", "Type", "IsPrimary", "DeletedAt", "CreatedAt", "Id");
 
                     b.ToTable("UAuth_UserIdentifiers", (string)null);
                 });
@@ -613,6 +613,10 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 
                     b.HasIndex("Tenant", "UserKey")
                         .IsUnique();
+
+                    b.HasIndex("Tenant", "DeletedAt", "CreatedAt", "Id");
+
+                    b.HasIndex("Tenant", "Status", "DeletedAt", "CreatedAt", "Id");
 
                     b.ToTable("UAuth_UserLifecycles", (string)null);
                 });

@@ -359,4 +359,137 @@ public class ServerOptionsValidatorTests
         var options = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
         options.SessionResolution.EnableBearer.Should().BeTrue();
     }
+
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Pagination_default_page_size_must_be_positive(int value)
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pagination.DefaultPageSize = value;
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerPaginationOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+        act.Should()
+            .Throw<OptionsValidationException>()
+            .WithMessage("*Pagination.DefaultPageSize*");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Pagination_max_page_size_must_be_positive(int value)
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pagination.MaxPageSize = value;
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerPaginationOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+        act.Should()
+            .Throw<OptionsValidationException>()
+            .WithMessage("*Pagination.MaxPageSize*");
+    }
+
+    [Fact]
+    public void Pagination_default_page_size_exceeding_maximum_should_fail()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pagination.DefaultPageSize = 200;
+                o.Pagination.MaxPageSize = 100;
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerPaginationOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        Action act = () =>
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+        act.Should()
+            .Throw<OptionsValidationException>()
+            .WithMessage("*Pagination.DefaultPageSize*");
+    }
+
+    [Fact]
+    public void Valid_pagination_options_should_pass()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pagination.DefaultPageSize = 50;
+                o.Pagination.MaxPageSize = 100;
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerPaginationOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider
+            .GetRequiredService<IOptions<UAuthServerOptions>>()
+            .Value;
+
+        options.Pagination.DefaultPageSize.Should().Be(50);
+        options.Pagination.MaxPageSize.Should().Be(100);
+    }
+
+    [Fact]
+    public void Pagination_default_page_size_equal_to_maximum_should_pass()
+    {
+        var services = new ServiceCollection();
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Pagination.DefaultPageSize = 100;
+                o.Pagination.MaxPageSize = 100;
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerPaginationOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider
+            .GetRequiredService<IOptions<UAuthServerOptions>>()
+            .Value;
+
+        options.Pagination.DefaultPageSize.Should().Be(100);
+        options.Pagination.MaxPageSize.Should().Be(100);
+    }
 }

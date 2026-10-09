@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
+namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
 {
     [DbContext(typeof(UAuthDbContext))]
-    [Migration("20261004164018_001_Initial")]
-    partial class _001_Initial
+    [Migration("20261009201922_001_InitUAuth")]
+    partial class _001_InitUAuth
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -572,7 +572,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 
                     b.HasIndex("Tenant", "UserKey", "IsPrimary");
 
-                    b.HasIndex("Tenant", "UserKey", "Type", "IsPrimary");
+                    b.HasIndex("Tenant", "UserKey", "Type", "IsPrimary", "DeletedAt", "CreatedAt", "Id");
 
                     b.ToTable("UAuth_UserIdentifiers", (string)null);
                 });
@@ -616,6 +616,10 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
 
                     b.HasIndex("Tenant", "UserKey")
                         .IsUnique();
+
+                    b.HasIndex("Tenant", "DeletedAt", "CreatedAt", "Id");
+
+                    b.HasIndex("Tenant", "Status", "DeletedAt", "CreatedAt", "Id");
 
                     b.ToTable("UAuth_UserLifecycles", (string)null);
                 });

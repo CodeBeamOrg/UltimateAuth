@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Sessions.InMemory;
@@ -749,6 +750,7 @@ public sealed class SessionApplicationServiceTests
         var sut = new SessionApplicationService(
             new PassThroughAccessOrchestrator(),
             factory,
+            new UAuthPaginationOptions(),
             new TestClock(Now));
 
         return (sut, store);
