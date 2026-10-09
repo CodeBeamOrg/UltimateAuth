@@ -91,7 +91,6 @@ public sealed class CredentialManagementServiceTests
             context,
             new AddCredentialRequest
             {
-                Type = CredentialType.Password,
                 Secret = "new-password"
             });
 
