@@ -33,7 +33,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
 | First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Documented & Quality Tested               | ✅ Completed   | 08.10.2026    |
+| First Release*          | 0.1.0         | Documented & Quality Tested               | ✅ Completed   | 12.10.2026    |
 | Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q4 2026       |
 | Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🟡 In Progress | Q4 2026       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
