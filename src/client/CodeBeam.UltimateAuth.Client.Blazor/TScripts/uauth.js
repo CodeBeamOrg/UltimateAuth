@@ -75,7 +75,8 @@ window.uauth.tryAndCommit = async function (options) {
         remainingAttempts: result.remainingAttempts ?? null,
         lockoutUntilUtc: result.lockoutUntilUtc ?? null,
         requiresMfa: result.requiresMfa ?? false,
-        retryWithNewPkce: result.retryWithNewPkce ?? false
+        retryWithNewPkce: result.retryWithNewPkce ?? false,
+        previewReceipt: result.previewReceipt ?? null
     };
 
     if (normalized.success) {
@@ -89,6 +90,14 @@ window.uauth.tryAndCommit = async function (options) {
             input.name = key;
             input.value = data[key] ?? "";
             form.appendChild(input);
+        }
+
+        if (normalized.previewReceipt) {
+            const receipt = document.createElement("input");
+            receipt.type = "hidden";
+            receipt.name = "PreviewReceipt";
+            receipt.value = normalized.previewReceipt;
+            form.appendChild(receipt);
         }
 
         const cp = document.createElement("input");
