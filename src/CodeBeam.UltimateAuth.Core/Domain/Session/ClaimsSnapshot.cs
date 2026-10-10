@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.ObjectModel;
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Core.Domain;
@@ -21,7 +22,25 @@ public sealed class ClaimsSnapshot
     [JsonConstructor]
     public ClaimsSnapshot(IReadOnlyDictionary<string, IReadOnlyCollection<string>> claims)
     {
-        _claims = claims;
+        ArgumentNullException.ThrowIfNull(claims);
+        var copy = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
+
+        foreach (var (type, values) in claims)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(type);
+            ArgumentNullException.ThrowIfNull(values);
+
+            var items = values.ToArray();
+
+            if (items.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new ArgumentException("Claim values cannot be null or whitespace.", nameof(claims));
+            }
+
+            copy.Add(type, Array.AsReadOnly(items));
+        }
+
+        _claims = new ReadOnlyDictionary<string, IReadOnlyCollection<string>>(copy);
     }
 
     public static ClaimsSnapshot Empty { get; } = new(new Dictionary<string, IReadOnlyCollection<string>>());
@@ -99,11 +118,11 @@ public sealed class ClaimsSnapshot
         {
             int hash = 17;
 
-            foreach (var (type, values) in Claims.OrderBy(x => x.Key))
+            foreach (var (type, values) in Claims.OrderBy(x => x.Key, StringComparer.Ordinal))
             {
                 hash = hash * 23 + type.GetHashCode();
 
-                foreach (var value in values.OrderBy(v => v))
+                foreach (var value in values.OrderBy(v => v, StringComparer.Ordinal))
                 {
                     hash = hash * 23 + value.GetHashCode();
                 }

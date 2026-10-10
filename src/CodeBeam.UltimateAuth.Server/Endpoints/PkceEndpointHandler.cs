@@ -99,7 +99,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         {
             return Results.Ok(new TryPkceLoginResult
             {
-                Success = false,
+                IsSuccess = false,
                 RetryWithNewPkce = true
             });
         }
@@ -112,11 +112,11 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         var validation = _validator.Validate(artifact, request.CodeVerifier, completionContext, _clock.UtcNow);
 
-        if (!validation.Success)
+        if (!validation.IsSuccess)
         {
             return Results.Ok(new TryPkceLoginResult
             {
-                Success = false,
+                IsSuccess = false,
                 RetryWithNewPkce = true
             });
         }
@@ -144,7 +144,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         return Results.Ok(new TryPkceLoginResult
         {
-            Success = preview.IsSuccess,
+            IsSuccess = preview.IsSuccess,
             Reason = preview.FailureReason,
             RemainingAttempts = preview.RemainingAttempts,
             LockoutUntilUtc = preview.LockoutUntilUtc,
@@ -182,7 +182,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         if (result.InvalidPkce)
             return Results.Unauthorized();
 
-        if (!result.Success)
+        if (!result.IsSuccess)
             return await RedirectToLoginWithErrorAsync(ctx, auth, "invalid");
 
         var login = result.LoginResult!;

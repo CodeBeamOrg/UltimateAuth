@@ -14,17 +14,7 @@ public readonly record struct AuthSessionId : IParsable<AuthSessionId>
         Value = value;
     }
 
-    public static bool TryCreate(string? raw, out AuthSessionId id)
-    {
-        if (IsValid(raw))
-        {
-            id = new AuthSessionId(raw!);
-            return true;
-        }
-
-        id = default;
-        return false;
-    }
+    public static bool TryCreate(string? raw, out AuthSessionId id) => TryParse(raw, null, out id);
 
     public static AuthSessionId Parse(string s, IFormatProvider? provider)
     {
@@ -33,6 +23,8 @@ public readonly record struct AuthSessionId : IParsable<AuthSessionId>
 
         throw new FormatException("Invalid AuthSessionId.");
     }
+
+    public static AuthSessionId Parse(string value) => Parse(value, null);
 
     public static bool TryParse(string? s, IFormatProvider? provider, out AuthSessionId result)
     {

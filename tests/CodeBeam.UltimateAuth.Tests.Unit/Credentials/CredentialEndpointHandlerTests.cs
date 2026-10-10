@@ -72,7 +72,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "new-password"
         });
 
@@ -92,9 +91,7 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "new-password",
-            Source = "test"
         });
 
         f.SetupAccess(
@@ -110,9 +107,7 @@ public sealed class CredentialEndpointHandlerTests
             .Setup(x => x.AddAsync(
                 access,
                 It.Is<AddCredentialRequest>(r =>
-                    r.Type == CredentialType.Password &&
-                    r.Secret == "new-password" &&
-                    r.Source == "test"),
+                    r.Secret == "new-password"),
                 f.HttpContext.RequestAborted))
             .ReturnsAsync(serviceResult);
 
@@ -310,7 +305,7 @@ public sealed class CredentialEndpointHandlerTests
             .BeOfType<Ok<CredentialActionResult>>()
             .Subject;
 
-        ok.Value!.Succeeded.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
     }
 
     // =========================================================
@@ -382,7 +377,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "admin-set-password"
         });
 

@@ -222,8 +222,8 @@ public sealed class RemoteSessionValidatorTests
         var dto = new AuthValidationResult
         {
             State = SessionState.Active,
-            ChainId = chainId.Value,
-            RootId = rootId.Value,
+            ChainId = chainId,
+            RootId = rootId,
 
             Snapshot = new AuthStateSnapshot
             {
@@ -272,8 +272,8 @@ public sealed class RemoteSessionValidatorTests
         var dto = new AuthValidationResult
         {
             State = SessionState.Active,
-            ChainId = SessionChainId.New().Value,
-            RootId = SessionRootId.New().Value,
+            ChainId = SessionChainId.New(),
+            RootId = SessionRootId.New(),
 
             Snapshot = new AuthStateSnapshot
             {
@@ -304,8 +304,8 @@ public sealed class RemoteSessionValidatorTests
         var dto = new AuthValidationResult
         {
             State = SessionState.Active,
-            ChainId = SessionChainId.New().Value,
-            RootId = SessionRootId.New().Value,
+            ChainId = SessionChainId.New(),
+            RootId = SessionRootId.New(),
 
             Snapshot = null
         };
@@ -346,8 +346,8 @@ public sealed class RemoteSessionValidatorTests
         var dto = new AuthValidationResult
         {
             State = SessionState.Revoked,
-            ChainId = SessionChainId.New().Value,
-            RootId = SessionRootId.New().Value,
+            ChainId = SessionChainId.New(),
+            RootId = SessionRootId.New(),
 
             Snapshot = new AuthStateSnapshot
             {

@@ -86,13 +86,13 @@ internal sealed class PkceService : IPkceService
 
         var validation = _validator.Validate(artifact, request.CodeVerifier, completionContext, _clock.UtcNow);
 
-        if (!validation.Success)
+        if (!validation.IsSuccess)
         {
             artifact.RegisterAttempt();
 
             return new PkceCompleteResult
             {
-                Success = false,
+                IsSuccess = false,
                 FailureReason = AuthFailureReason.InvalidCredentials
             };
         }
@@ -114,7 +114,7 @@ internal sealed class PkceService : IPkceService
 
         return new PkceCompleteResult
         {
-            Success = result.IsSuccess,
+            IsSuccess = result.IsSuccess,
             FailureReason = result.FailureReason,
             LoginResult = result
         };

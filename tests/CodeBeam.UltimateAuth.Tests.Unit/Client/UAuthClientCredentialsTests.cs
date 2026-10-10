@@ -99,7 +99,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
             .ReturnsAsync(SuccessJson(new CredentialActionResult()));
 
         var client = CreateCredentialClient();
-        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.CredentialsChanged)), Times.Once);
     }
 
@@ -110,7 +110,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
             .ReturnsAsync(new UAuthTransportResult { Ok = false, Status = 400 });
 
         var client = CreateCredentialClient();
-        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 
@@ -136,7 +136,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
 
         var client = CreateCredentialClient();
         var userKey = UserKey.FromString("user-1");
-        await client.Credentials.CompleteResetUserAsync(userKey, new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetUserAsync(userKey, new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 

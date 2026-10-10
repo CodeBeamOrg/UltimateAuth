@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record AuthContext
 {
-    public UAuthClientProfile ClientProfile { get; set; }
+    public UAuthClientProfile ClientProfile { get; init; }
 
     public TenantKey Tenant { get; init; }
 

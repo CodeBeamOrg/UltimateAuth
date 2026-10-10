@@ -266,7 +266,7 @@ public sealed class PkceServiceTests
                 AuthFlowTestFactory.New(),
                 CreateCompleteRequest());
 
-        result.Success.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.FailureReason
             .Should().Be(
                 AuthFailureReason.InvalidCredentials);
@@ -609,7 +609,7 @@ public sealed class PkceServiceTests
                 AuthFlowTestFactory.New(),
                 CreateCompleteRequest());
 
-        result.Success.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
 
         result.FailureReason.Should().Be(
             AuthFailureReason.InvalidCredentials);
@@ -644,7 +644,7 @@ public sealed class PkceServiceTests
                 AuthFlowTestFactory.New(),
                 CreateCompleteRequest());
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.FailureReason.Should().BeNull();
         result.LoginResult.Should().BeSameAs(loginResult);
     }

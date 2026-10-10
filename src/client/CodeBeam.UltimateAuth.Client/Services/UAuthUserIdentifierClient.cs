@@ -33,61 +33,75 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult> AddMyAsync(AddUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/add"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<AddUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode, request));
+            await _events.PublishAsync(
+                new UAuthStateEventArgs<AddUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode, request));
         }
-        return UAuthResultMapper.From(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult> UpdateMyAsync(UpdateUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/update"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(new UAuthStateEventArgs<UpdateUserIdentifierRequest>(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode, request));
         }
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult> SetMyPrimaryAsync(SetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/set-primary"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult> UnsetMyPrimaryAsync(UnsetPrimaryUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/unset-primary"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult> VerifyMyAsync(VerifyUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/verify"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult> DeleteMyAsync(DeleteUserIdentifierRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/identifiers/delete"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.IdentifiersChanged, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserAsync(UserKey userKey, PageRequest? request = null)

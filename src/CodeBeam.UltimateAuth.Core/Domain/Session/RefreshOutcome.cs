@@ -2,9 +2,10 @@
 
 public enum RefreshOutcome
 {
-    Success = 0,        // minimal transport
-    NoOp = 10,
-    Touched = 20,
-    Rotated = 30,
+    None = 0,
+    Success = 10,        // minimal transport
+    NoOp = 20,
+    Touched = 30,
+    Rotated = 40,
     ReauthRequired = 100
 }

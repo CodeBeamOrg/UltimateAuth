@@ -30,24 +30,32 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
-    public async Task<UAuthResult> UpdateMeAsync(UpdateProfileRequest request)
+    public async Task<UAuthResult> UpdateMyProfileAsync(UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/profile/update"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
+            await _events.PublishAsync(
+                new UAuthStateEventArgs<UpdateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
         }
-        return UAuthResultMapper.From(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult> DeleteMeAsync()
     {
         var raw = await _request.SendJsonAsync(Url("/me/delete"));
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateEventHandlingMode.Patch));
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateEventHandlingMode.Patch));
         }
-        return UAuthResultMapper.From(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult<PagedResult<UserSummary>>> QueryAsync(UserQuery query)
@@ -61,16 +69,15 @@ internal sealed class UAuthUserClient : IUserClient
     {
         var raw = await _request.SendJsonAsync(Url("/me/profile/create"), request);
 
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(
-                new UAuthStateEventArgs<CreateProfileRequest>(
-                    UAuthStateEvent.ProfileChanged,
-                    _options.StateEvents.HandlingMode,
-                    request));
+                new UAuthStateEventArgs<CreateProfileRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
         }
 
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
     public async Task<UAuthResult> CreateUserProfileAsync(UserKey userKey, CreateProfileRequest request)
@@ -85,38 +92,24 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
-    public async Task<UAuthResult> DeleteMyProfileAsync(ProfileKey profileKey)
+    public async Task<UAuthResult> DeleteMyProfileAsync(DeleteProfileRequest request)
     {
-        var request = new DeleteProfileRequest
-        {
-            ProfileKey = profileKey
-        };
-
         var raw = await _request.SendJsonAsync(Url("/me/profile/delete"), request);
 
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
             await _events.PublishAsync(
-                new UAuthStateEventArgs<ProfileKey>(
-                    UAuthStateEvent.ProfileChanged,
-                    _options.StateEvents.HandlingMode,
-                    profileKey));
+                new UAuthStateEventArgs<ProfileKey>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request.ProfileKey));
         }
 
-        return UAuthResultMapper.From(raw);
+        return result;
     }
 
-    public async Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, ProfileKey profileKey)
+    public async Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, DeleteProfileRequest request)
     {
-        var request = new DeleteProfileRequest
-        {
-            ProfileKey = profileKey
-        };
-
-        var raw = await _request.SendJsonAsync(
-            Url($"/admin/users/{userKey.Value}/profile/delete"),
-            request);
-
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/delete"), request);
         return UAuthResultMapper.From(raw);
     }
 
@@ -129,11 +122,15 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeMyStatusAsync(ChangeUserStatusSelfRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/status"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
+            await _events.PublishAsync(
+                new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(UAuthStateEvent.ProfileChanged, _options.StateEvents.HandlingMode, request));
         }
-        return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeUserStatusAsync(UserKey userKey, ChangeUserStatusAdminRequest request)
@@ -155,7 +152,7 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
-    public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateProfileRequest request)
+    public async Task<UAuthResult> UpdateUserProfileAsync(UserKey userKey, UpdateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request);
         return UAuthResultMapper.From(raw);

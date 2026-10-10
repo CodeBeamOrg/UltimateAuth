@@ -10,12 +10,14 @@ internal sealed class SessionApplicationService : ISessionApplicationService
 {
     private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly ISessionStoreFactory _storeFactory;
+    private readonly IUAuthPaginationPolicy _pagination;
     private readonly IClock _clock;
 
-    public SessionApplicationService(IAccessOrchestrator accessOrchestrator, ISessionStoreFactory storeFactory, IClock clock)
+    public SessionApplicationService(IAccessOrchestrator accessOrchestrator, ISessionStoreFactory storeFactory, IUAuthPaginationPolicy pagination, IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
         _storeFactory = storeFactory;
+        _pagination = pagination;
         _clock = clock;
     }
 
@@ -24,7 +26,7 @@ internal sealed class SessionApplicationService : ISessionApplicationService
         var command = new AccessCommand<PagedResult<SessionChainSummary>>(async innerCt =>
         {
             var store = _storeFactory.Create(context.ResourceTenant);
-            request = request.Normalize();
+            request = request.Normalize(_pagination);
             var chains = await store.GetChainsByUserAsync(userKey);
             var actorChainId = context.ActorChainId;
 

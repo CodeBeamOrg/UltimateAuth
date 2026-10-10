@@ -32,21 +32,29 @@ internal sealed class UAuthCredentialClient : ICredentialClient
     public async Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/credentials/change"), request);
-        if (raw.Ok)
+        var result = UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.StateEvents.HandlingMode));
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChangedSelf, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult> RevokeMyAsync(RevokeCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/me/credentials/revoke"), request);
-        if (raw.Ok)
+        var raw = await _request.SendJsonAsync(Url("/me/credentials/revoke"), request);
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginResetCredentialRequest request)
@@ -57,14 +65,18 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteResetCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/me/credentials/reset/complete"), request);
-        if (raw.Ok)
-        {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
-        }
-        return UAuthResultMapper.FromJson<CredentialActionResult>(raw);
-    }
+        var raw = await _request.SendJsonAsync(Url("/me/credentials/reset/complete"), request);
 
+        var result = UAuthResultMapper.FromJson<CredentialActionResult>(raw);
+
+        if (result.IsSuccess)
+        {
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(UAuthStateEvent.CredentialsChanged, _options.StateEvents.HandlingMode));
+        }
+
+        return result;
+    }
 
     public async Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request)
     {

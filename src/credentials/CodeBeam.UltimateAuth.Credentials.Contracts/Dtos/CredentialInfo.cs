@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public sealed record CredentialInfo
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
     public CredentialType Type { get; init; }
 
     public CredentialSecurityStatus Status { get; init; }

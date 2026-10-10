@@ -1,9 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
@@ -13,12 +14,15 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
     private readonly IRefreshTokenValidator _validator;
     private readonly IRefreshTokenStoreFactory _storeFactory;
     private readonly ITokenIssuer _tokenIssuer;
+    private readonly IUserClaimsProvider _claimsProvider;
 
-    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer)
+
+    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer, IUserClaimsProvider claimsProvider)
     {
         _validator = validator;
         _storeFactory = storeFactory;
         _tokenIssuer = tokenIssuer;
+        _claimsProvider = claimsProvider;
     }
 
     // TODO: Handle reuse detection and make flow knows situation, but don't make security branch.
@@ -71,6 +75,8 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         var store = _storeFactory.Create(validation.Tenant);
 
+        var claims = await _claimsProvider.GetClaimsAsync(validation.Tenant, userKey, ct);
+
         var tokenContext = new TokenIssuanceContext
         {
             Tenant = flow.OriginalOptions.MultiTenant.Enabled
@@ -79,7 +85,8 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
             UserKey = userKey,
             SessionId = sessionId,
-            ChainId = validation.ChainId
+            ChainId = validation.ChainId,
+            Claims = claims
         };
 
         // Generate candidate replacement refresh token.
@@ -125,6 +132,11 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         // Only the winning request needs an access token.
         var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
+        var refreshTokenInfo = new RefreshTokenInfo
+        {
+            Token = refreshToken.Token,
+            ExpiresAt = refreshToken.ExpiresAt
+        };
 
         return new RefreshTokenRotationExecution
         {
@@ -132,8 +144,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             UserKey = userKey,
             SessionId = sessionId,
             ChainId = validation.ChainId,
-
-            Result = RefreshTokenRotationResult.Success(accessToken, refreshToken)
+            Result = RefreshTokenRotationResult.Success(accessToken, refreshTokenInfo)
         };
     }
 

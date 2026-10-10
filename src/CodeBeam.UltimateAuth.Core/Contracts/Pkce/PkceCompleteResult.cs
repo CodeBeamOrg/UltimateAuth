@@ -4,7 +4,7 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed record PkceCompleteResult
 {
-    public bool Success { get; init; }
+    public bool IsSuccess { get; init; }
 
     public AuthFailureReason? FailureReason { get; init; }
 

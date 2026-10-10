@@ -1,5 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -28,5 +30,21 @@ public sealed class RefreshOutcomeParserTests
         var result = RefreshOutcomeParser.Parse(input);
 
         Assert.Equal(RefreshOutcome.Success, result);
+    }
+
+    [Fact]
+    public void TryLoginResult_Should_Serialize_IsSuccess()
+    {
+        var result = new TryLoginResult
+        {
+            IsSuccess = true
+        };
+
+        var json = JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        using var document = JsonDocument.Parse(json);
+
+        Assert.True(document.RootElement.GetProperty("isSuccess").GetBoolean());
+        Assert.False(document.RootElement.TryGetProperty("success", out _));
     }
 }

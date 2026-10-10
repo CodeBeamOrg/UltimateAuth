@@ -57,7 +57,7 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
 
             case TokenResponseMode.Body:
                 // TODO: Implement body writing if needed
-                break;
+                throw new NotSupportedException("Body token delivery is not supported.");
         }
     }
 

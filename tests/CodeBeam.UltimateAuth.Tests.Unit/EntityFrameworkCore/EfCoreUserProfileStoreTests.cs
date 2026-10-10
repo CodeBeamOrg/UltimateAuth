@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
@@ -24,7 +25,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -53,7 +54,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -95,13 +96,13 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant));
+            var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             await store1.AddAsync(profile);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant));
+            var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
             var updated = existing!.UpdateName(existing.FirstName, existing.LastName, "new", DateTimeOffset.UtcNow);
             await store2.SaveAsync(updated, expectedVersion: 0);
@@ -109,7 +110,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
 
         await using (var db3 = CreateDb(connection))
         {
-            var store3 = new EfCoreUserProfileStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant));
+            var store3 = new EfCoreUserProfileStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var result = await store3.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
 
             Assert.Equal(1, result!.Version);
@@ -138,13 +139,13 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
 
         await using (var db1 = CreateDb(connection))
         {
-            var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant));
+            var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             await store1.AddAsync(profile);
         }
 
         await using (var db2 = CreateDb(connection))
         {
-            var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant));
+            var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
             var updated = existing!.UpdateName(existing.FirstName, existing.LastName, "new", DateTimeOffset.UtcNow);
 
@@ -162,8 +163,8 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         var tenant1 = TenantKeys.Single;
         var tenant2 = TenantKey.FromInternal("tenant-2");
 
-        var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant1));
-        var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant2));
+        var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant1), new UAuthPaginationOptions());
+        var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant2), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -191,7 +192,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -227,7 +228,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -265,7 +266,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -298,7 +299,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -333,7 +334,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 
@@ -364,7 +365,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using var db = CreateDb(connection);
 
         var tenant = TenantKeys.Single;
-        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant));
+        var store = new EfCoreUserProfileStore<UAuthUserDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
 

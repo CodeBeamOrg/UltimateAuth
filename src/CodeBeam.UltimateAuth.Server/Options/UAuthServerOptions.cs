@@ -43,6 +43,11 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
 
+    /// <summary>
+    /// Controls the default and maximum page sizes for paginated queries.
+    /// </summary>
+    public UAuthPaginationOptions Pagination { get; set; } = new();
+
     // -------------------------------------------------------
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
@@ -139,9 +144,10 @@ public sealed class UAuthServerOptions
             Pkce = Pkce.Clone(),
             Events = Events.Clone(),
             MultiTenant = MultiTenant.Clone(),
+            Pagination = Pagination.Clone(),
+
             Cookie = Cookie.Clone(),
             Diagnostics = Diagnostics.Clone(),
-
             PrimaryCredential = PrimaryCredential.Clone(),
             AuthResponse = AuthResponse.Clone(),
             ResetCredential = ResetCredential.Clone(),

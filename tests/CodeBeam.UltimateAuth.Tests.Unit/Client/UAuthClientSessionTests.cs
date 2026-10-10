@@ -1,11 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Text.Json;
@@ -246,7 +248,7 @@ public class UAuthClientSessionTests
     }
 
     [Fact]
-    public async Task RevokeMyChain_Should_NOT_Publish_Event_When_Value_Null()
+    public async Task RevokeMyChain_Should_NOT_Publish_Event_When_Response_Body_Missing()
     {
         _request.Setup(x => x.SendJsonAsync(It.IsAny<string>()))
             .ReturnsAsync(new UAuthTransportResult
@@ -258,7 +260,80 @@ public class UAuthClientSessionTests
 
         var client = CreateClient();
         var chainId = SessionChainId.New();
-        await client.Sessions.RevokeMyChainAsync(chainId);
-        _events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
+
+        await FluentActions
+            .Invoking(() => client.Sessions.RevokeMyChainAsync(chainId))
+            .Should()
+            .ThrowAsync<UAuthProtocolException>();
+
+        _events.Verify(
+            x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RevokeMyChain_Should_Not_Publish_Event_On_4xx()
+    {
+        _request.Setup(x => x.SendJsonAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 403
+            });
+
+        var client = CreateClient();
+
+        var result = await client.Sessions.RevokeMyChainAsync(
+            SessionChainId.New());
+
+        result.IsSuccess.Should().BeFalse();
+        result.Status.Should().Be(403);
+
+        _events.Verify(
+            x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RevokeMyChain_Should_Not_Publish_Event_On_5xx()
+    {
+        _request.Setup(x => x.SendJsonAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 500
+            });
+
+        var client = CreateClient();
+
+        Func<Task> act = () =>
+            client.Sessions.RevokeMyChainAsync(SessionChainId.New());
+
+        await act.Should().ThrowAsync<UAuthTransportException>();
+
+        _events.Verify(
+            x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RevokeUserChain_Should_Throw_When_Body_Missing()
+    {
+        _request.Setup(x => x.SendFormAsync(It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = null
+            });
+
+        var client = CreateClient();
+
+        Func<Task> act = () =>
+            client.Sessions.RevokeUserChainAsync(
+                UserKey.FromString("user-1"),
+                SessionChainId.New());
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
     }
 }

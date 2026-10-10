@@ -54,7 +54,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
-            : Results.Ok(new LogoutResponse { Success = true });
+            : Results.Ok(new LogoutResponse { IsSuccess = true });
     }
 
     public async Task<IResult> LogoutDeviceSelfAsync(HttpContext ctx)

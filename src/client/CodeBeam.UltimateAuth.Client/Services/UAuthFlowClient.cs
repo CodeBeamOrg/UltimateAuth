@@ -63,33 +63,40 @@ internal class UAuthFlowClient : IFlowClient
         {
             case UAuthSubmitMode.TryOnly:
                 {
-                    var result = await _post.SendJsonAsync(tryUrl, payload);
+                    var raw = await _post.SendJsonAsync(tryUrl, payload);
 
-                    if (result.Body is null)
-                        throw new UAuthProtocolException("Empty response body.");
+                    EnsureValidHttpStatus(raw);
 
-                    TryLoginResult parsed;
+                    if (raw.Status is >= 400 and < 500)
+                    {
+                        throw new UAuthProtocolException($"Unexpected client error during try-login: {raw.Status}.");
+                    }
+
+                    if (raw.Body is null || raw.Body.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                    {
+                        throw new UAuthProtocolException("Empty try-login response body.");
+                    }
 
                     try
                     {
-                        parsed = result.Body.Value.Deserialize<TryLoginResult>(
-                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+                        var parsed = raw.Body.Value.Deserialize<TryLoginResult>(
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                        return parsed ?? throw new UAuthProtocolException("Invalid try-login result.");
                     }
                     catch (JsonException ex)
                     {
                         throw new UAuthProtocolException("Invalid try-login result.", ex);
                     }
-
-                    if (parsed is null)
-                        throw new UAuthProtocolException("Invalid try-login result.");
-
-                    return parsed;
                 }
 
             case UAuthSubmitMode.DirectCommit:
                 {
                     await _post.NavigateAsync(commitUrl, payload);
-                    return new TryLoginResult { Success = true };
+                    return new TryLoginResult { IsSuccess = true };
                 }
 
             case UAuthSubmitMode.TryAndCommit:
@@ -111,54 +118,122 @@ internal class UAuthFlowClient : IFlowClient
         await _post.NavigateAsync(url);
     }
 
+
     public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
-        if (isAuto == false)
+        if (!isAuto)
         {
             _diagnostics.MarkManualRefresh();
         }
 
-        var url = Url(_options.Endpoints.Refresh);
-        var result = await _post.SendFormAsync(url);
+        var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
 
-        if (result.Status == 401)
+        // 401 is a normal authentication outcome for refresh.
+        if (raw.Status == 401)
         {
             _diagnostics.MarkRefreshReauthRequired();
+
             return new RefreshResult
             {
                 IsSuccess = false,
-                Status = result.Status,
+                Status = 401,
                 Outcome = RefreshOutcome.ReauthRequired
             };
         }
 
-        var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
-        switch (refreshOutcome)
+        EnsureValidHttpStatus(raw);
+
+        var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
+        var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
+
+        // Never record a successful refresh outcome
+        // for a failed HTTP response.
+        if (isSuccess)
         {
-            case RefreshOutcome.NoOp:
-                _diagnostics.MarkRefreshNoOp();
-                break;
-            case RefreshOutcome.Touched:
-                _diagnostics.MarkRefreshTouched();
-                break;
-            case RefreshOutcome.Rotated:
-                _diagnostics.MarkRefreshRotated();
-                break;
-            case RefreshOutcome.ReauthRequired:
-                _diagnostics.MarkRefreshReauthRequired();
-                break;
-            case RefreshOutcome.Success:
-                _diagnostics.MarkRefreshSuccess();
-                break;
+            switch (outcome)
+            {
+                case RefreshOutcome.NoOp:
+                    _diagnostics.MarkRefreshNoOp();
+                    break;
+
+                case RefreshOutcome.Touched:
+                    _diagnostics.MarkRefreshTouched();
+                    break;
+
+                case RefreshOutcome.Rotated:
+                    _diagnostics.MarkRefreshRotated();
+                    break;
+
+                case RefreshOutcome.ReauthRequired:
+                    _diagnostics.MarkRefreshReauthRequired();
+                    break;
+
+                case RefreshOutcome.Success:
+                    _diagnostics.MarkRefreshSuccess();
+                    break;
+            }
+        }
+        else if (outcome == RefreshOutcome.ReauthRequired)
+        {
+            _diagnostics.MarkRefreshReauthRequired();
         }
 
         return new RefreshResult
         {
-            IsSuccess = result.Ok,
-            Status = result.Status,
-            Outcome = refreshOutcome
+            IsSuccess = isSuccess,
+            Status = raw.Status,
+            Outcome = outcome
         };
     }
+
+    //public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
+    //{
+    //    if (isAuto == false)
+    //    {
+    //        _diagnostics.MarkManualRefresh();
+    //    }
+
+    //    var url = Url(_options.Endpoints.Refresh);
+    //    var result = await _post.SendFormAsync(url);
+
+    //    if (result.Status == 401)
+    //    {
+    //        _diagnostics.MarkRefreshReauthRequired();
+    //        return new RefreshResult
+    //        {
+    //            IsSuccess = false,
+    //            Status = result.Status,
+    //            Outcome = RefreshOutcome.ReauthRequired
+    //        };
+    //    }
+
+    //    var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
+    //    switch (refreshOutcome)
+    //    {
+    //        case RefreshOutcome.NoOp:
+    //            _diagnostics.MarkRefreshNoOp();
+    //            break;
+    //        case RefreshOutcome.Touched:
+    //            _diagnostics.MarkRefreshTouched();
+    //            break;
+    //        case RefreshOutcome.Rotated:
+    //            _diagnostics.MarkRefreshRotated();
+    //            break;
+    //        case RefreshOutcome.ReauthRequired:
+    //            _diagnostics.MarkRefreshReauthRequired();
+    //            break;
+    //        case RefreshOutcome.Success:
+    //            _diagnostics.MarkRefreshSuccess();
+    //            break;
+    //    }
+
+    //    return new RefreshResult
+    //    {
+    //        IsSuccess = result.Ok,
+    //        Status = result.Status,
+    //        Outcome = refreshOutcome
+    //    };
+    //}
 
     //public async Task ReauthAsync()
     //{
@@ -258,7 +333,7 @@ internal class UAuthFlowClient : IFlowClient
         if (mode == UAuthSubmitMode.DirectCommit)
         {
             await CompletePkceLoginAsync(request);
-            return new TryPkceLoginResult { Success = true };
+            return new TryPkceLoginResult { IsSuccess = true };
         }
 
         if (request is null)
@@ -289,16 +364,32 @@ internal class UAuthFlowClient : IFlowClient
                 {
                     var raw = await _post.SendJsonAsync(tryUrl, request);
 
-                    if (raw.Body is null)
-                        throw new UAuthProtocolException("Empty response body.");
+                    EnsureValidHttpStatus(raw);
 
-                    var parsed = raw.Body.Value.Deserialize<TryPkceLoginResult>(
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (raw.Status is >= 400 and < 500)
+                    {
+                        throw new UAuthProtocolException($"Unexpected client error during PKCE try-login: {raw.Status}.");
+                    }
 
-                    if (parsed is null)
-                        throw new UAuthProtocolException("Invalid PKCE try result.");
+                    if (raw.Body is null || raw.Body.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                    {
+                        throw new UAuthProtocolException("Empty PKCE try-login response body.");
+                    }
 
-                    return parsed;
+                    try
+                    {
+                        var parsed = raw.Body.Value.Deserialize<TryPkceLoginResult>(
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                        return parsed ?? throw new UAuthProtocolException("Invalid PKCE try-login result.");
+                    }
+                    catch (JsonException ex)
+                    {
+                        throw new UAuthProtocolException("Invalid PKCE try-login result.", ex);
+                    }
                 }
 
             case UAuthSubmitMode.TryAndCommit:
@@ -382,11 +473,15 @@ internal class UAuthFlowClient : IFlowClient
     public async Task<UAuthResult> LogoutAllMyDevicesAsync()
     {
         var raw = await _post.SendJsonAsync(Url("/me/logout-all"));
-        if (raw.Ok)
+        var result = UAuthResultMapper.From(raw);
+
+        if (result.IsSuccess)
         {
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
         }
-        return UAuthResultMapper.From(raw);
+
+        return result;
     }
 
     public async Task<UAuthResult> LogoutAllUserDevicesAsync(UserKey userKey)
@@ -456,5 +551,22 @@ internal class UAuthFlowClient : IFlowClient
         using var sha256 = SHA256.Create();
         var hash = sha256.ComputeHash(Encoding.ASCII.GetBytes(verifier));
         return Base64Url.Encode(hash);
+    }
+
+    private static void EnsureValidHttpStatus(UAuthTransportResult raw)
+    {
+        if (raw is null)
+            throw new UAuthProtocolException("Transport client returned a null response.");
+
+        if (raw.Status == 0)
+            throw new UAuthTransportException("Network error.");
+
+        if (raw.Status >= 500 && raw.Status <= 599)
+            throw new UAuthTransportException($"Server error {raw.Status}.", (HttpStatusCode)raw.Status);
+
+        if (raw.Status < 200 || raw.Status is >= 300 and < 400 || raw.Status >= 600)
+        {
+            throw new UAuthProtocolException($"Unexpected HTTP status code: {raw.Status}.");
+        }
     }
 }

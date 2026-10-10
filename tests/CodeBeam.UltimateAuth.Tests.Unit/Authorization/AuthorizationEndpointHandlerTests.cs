@@ -671,7 +671,7 @@ public sealed class AuthorizationEndpointHandlerTests
     }
 
     [Fact]
-    public async Task RenameRoleAsync_WhenBodyContainsDifferentId_UsesRouteRoleId()
+    public async Task RenameRoleAsync_WhenBodyContainsDifferentId_ReturnsBadRequest()
     {
         var f = new Fixture();
 
@@ -684,38 +684,34 @@ public sealed class AuthorizationEndpointHandlerTests
             Name = "Operators"
         });
 
-        var accessContext = f.AccessContext(
-            UAuthActions.Authorization.Roles.RenameAdmin);
+        var result = await f.Sut.RenameRoleAsync(routeRoleId, ctx);
 
-        f.SetupAccessContext(
-            UAuthActions.Authorization.Roles.RenameAdmin,
-            "authorization.roles",
-            routeRoleId.ToString(),
-            accessContext);
+        result.Should().BeAssignableTo<IStatusCodeHttpResult>();
 
-        f.Roles
-            .Setup(x => x.RenameAsync(
-                accessContext,
-                routeRoleId,
-                "Operators",
-                ctx.RequestAborted))
-            .Returns(Task.CompletedTask);
+        var statusResult = (IStatusCodeHttpResult)result;
 
-        await f.Sut.RenameRoleAsync(routeRoleId, ctx);
-
-        f.Roles.Verify(x => x.RenameAsync(
-            accessContext,
-            routeRoleId,
-            "Operators",
-            ctx.RequestAborted),
-            Times.Once);
+        statusResult.StatusCode.Should().Be(
+            StatusCodes.Status400BadRequest);
 
         f.Roles.Verify(x => x.RenameAsync(
             It.IsAny<AccessContext>(),
-            bodyRoleId,
+            It.IsAny<RoleId>(),
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public void Permission_JsonRoundTrip_ShouldPreserveValue()
+    {
+        var original = Permission.From("users.read");
+
+        var json = JsonSerializer.Serialize(original);
+
+        var restored = JsonSerializer.Deserialize<Permission>(json);
+
+        restored.Should().Be(original);
+        restored.IsValid.Should().BeTrue();
     }
 
     // =========================================================

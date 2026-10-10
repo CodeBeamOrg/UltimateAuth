@@ -90,7 +90,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.PureOpaque),
             CreateRequest(SessionId));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(expectedOutcome);
         result.SessionId.Should().Be(SessionId);
         rotation.VerifyNoOtherCalls();
@@ -159,7 +159,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.PureJwt),
             CreateRequest(refreshToken: "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().BeNull();
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -292,7 +292,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.Hybrid),
             CreateRequest(SessionId, "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().Be(SessionId);
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -378,7 +378,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.SemiHybrid),
             CreateRequest(SessionId, "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().Be(SessionId);
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -464,7 +464,7 @@ public sealed class RefreshFlowServiceTests
             ExpiresAt = Now.AddMinutes(15)
         };
 
-        var refresh = new RefreshTokenInfo
+        var refresh = new RefreshTokenIssuanceResult
         {
             Token = "new-refresh-token",
             TokenHash = "new-refresh-token-hash",
@@ -477,7 +477,7 @@ public sealed class RefreshFlowServiceTests
             UserKey = UserKey.New(),
             SessionId = SessionId,
             ChainId = SessionChainId.New(),
-            Result = RefreshTokenRotationResult.Success(access, refresh)
+            Result = RefreshTokenRotationResult.Success(access, RefreshTokenMapper.ToTransport(refresh))
         };
     }
 
@@ -509,7 +509,7 @@ public sealed class RefreshFlowServiceTests
 
     private static void AssertReauth(RefreshFlowResult result)
     {
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Outcome.Should().Be(RefreshOutcome.ReauthRequired);
         result.SessionId.Should().BeNull();
         result.AccessToken.Should().BeNull();

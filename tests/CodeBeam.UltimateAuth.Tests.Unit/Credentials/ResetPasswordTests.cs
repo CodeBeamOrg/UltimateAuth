@@ -1,9 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core.Defaults;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
+using CodeBeam.UltimateAuth.Users;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
@@ -102,7 +106,7 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "newpass123"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -126,8 +130,11 @@ public class ResetPasswordTests
     public async Task Reset_token_should_lock_after_max_attempts()
     {
         const int maxAttempts = 3;
+
         var (runtime, notifier) = CreateRuntime(maxAttempts);
         var service = runtime.GetCredentialManagementService();
+
+        var userKey = await GetAdminUserKeyAsync(runtime);
 
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Code);
@@ -136,22 +143,24 @@ public class ResetPasswordTests
 
         for (var i = 0; i < maxAttempts; i++)
         {
-            Func<Task> invalidAttempt = async () =>
-                await service.CompleteResetAsync(
-                    CompleteContext(),
-                    CompleteRequest(wrongToken, "newpass123"));
+            var result = await service.CompleteResetAsync(
+                CompleteContext(),
+                CompleteRequest(wrongToken, "newpass123"));
 
-            // Do not swallow unrelated failures.
-            await invalidAttempt.Should()
-                .ThrowAsync<UAuthConflictException>();
+            result.IsSuccess.Should().BeTrue();
+
+            await AssertPasswordAsync(runtime, userKey, "admin");
         }
 
-        Func<Task> act = async () =>
-            await service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "newpass123"));
+        // Even the correct token must no longer work.
+        var afterLockout = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "newpass123"));
 
-        await act.Should().ThrowAsync<UAuthConflictException>();
+        afterLockout.IsSuccess.Should().BeTrue();
+
+        await AssertPasswordAsync(runtime, userKey, "admin");
+        await AssertPasswordRejectedAsync(runtime, userKey, "newpass123");
     }
 
     [Fact]
@@ -160,6 +169,8 @@ public class ResetPasswordTests
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
 
+        var userKey = await GetAdminUserKeyAsync(runtime);
+
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
@@ -167,14 +178,19 @@ public class ResetPasswordTests
             CompleteContext(),
             CompleteRequest(token, "newpass123"));
 
-        first.Succeeded.Should().BeTrue();
+        first.IsSuccess.Should().BeTrue();
 
-        Func<Task> act = async () =>
-            await service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "anotherpass"));
+        await AssertPasswordAsync(runtime, userKey, "newpass123");
 
-        await act.Should().ThrowAsync<UAuthConflictException>();
+        var replay = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "anotherpass"));
+
+        replay.IsSuccess.Should().BeTrue();
+
+        await AssertPasswordAsync(runtime, userKey, "newpass123");
+        await AssertPasswordRejectedAsync(runtime, userKey, "anotherpass");
+        await AssertPasswordRejectedAsync(runtime, userKey, "admin");
     }
 
     [Fact]
@@ -259,8 +275,7 @@ public class ResetPasswordTests
             NewSecret = newSecret
         };
 
-    private sealed class RecordingCredentialResetNotifier
-        : ICredentialResetNotifier
+    private sealed class RecordingCredentialResetNotifier : ICredentialResetNotifier
     {
         public List<CredentialResetNotification> Notifications { get; } = [];
 
@@ -272,5 +287,64 @@ public class ResetPasswordTests
             Notifications.Add(notification);
             return Task.CompletedTask;
         }
+    }
+
+    private static async Task AssertPasswordAsync(TestAuthRuntime<UserKey> runtime, UserKey userKey, string expectedPassword)
+    {
+        using var scope = runtime.Services.CreateScope();
+
+        var storeFactory = scope.ServiceProvider
+            .GetRequiredService<IPasswordCredentialStoreFactory>();
+
+        var hasher = scope.ServiceProvider
+            .GetRequiredService<IUAuthPasswordHasher>();
+
+        var store = storeFactory.Create(TenantKeys.Single);
+
+        var credentials = await store.GetByUserAsync(userKey);
+
+        var credential = credentials.Single();
+
+        hasher.Verify(
+            credential.SecretHash,
+            expectedPassword).Should().BeTrue();
+    }
+
+    private static async Task AssertPasswordRejectedAsync(TestAuthRuntime<UserKey> runtime, UserKey userKey, string rejectedPassword)
+    {
+        using var scope = runtime.Services.CreateScope();
+
+        var storeFactory = scope.ServiceProvider
+            .GetRequiredService<IPasswordCredentialStoreFactory>();
+
+        var hasher = scope.ServiceProvider
+            .GetRequiredService<IUAuthPasswordHasher>();
+
+        var store = storeFactory.Create(TenantKeys.Single);
+
+        var credentials = await store.GetByUserAsync(userKey);
+
+        var credential = credentials.Single();
+
+        hasher.Verify(
+            credential.SecretHash,
+            rejectedPassword).Should().BeFalse();
+    }
+
+
+    private static async Task<UserKey> GetAdminUserKeyAsync(TestAuthRuntime<UserKey> runtime)
+    {
+        using var scope = runtime.Services.CreateScope();
+
+        var resolver = scope.ServiceProvider
+            .GetRequiredService<ILoginIdentifierResolver>();
+
+        var resolution = await resolver.ResolveAsync(
+            TenantKeys.Single,
+            "admin",
+            CancellationToken.None);
+
+        resolution.Should().NotBeNull();
+        return resolution!.UserKey!.Value;
     }
 }

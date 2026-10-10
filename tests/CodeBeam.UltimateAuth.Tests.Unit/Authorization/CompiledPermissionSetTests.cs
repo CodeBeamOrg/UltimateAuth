@@ -1,4 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using FluentAssertions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -109,5 +112,28 @@ public class CompiledPermissionSetTests
         var set = new CompiledPermissionSet(permissions);
 
         Assert.False(set.IsAllowed("usersettings.update.admin"));
+    }
+
+    [Fact]
+    public void SetPermissions_ShouldReplaceExistingPermissions()
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        var permissions = UAuthPermissionCatalog.GetAdminPermissions();
+
+        var oldPermission = Permission.From(permissions[0]);
+        var newPermission = Permission.From(permissions[1]);
+
+        var role = Role.Create(
+            id: null,
+            tenant: TenantKeys.Single,
+            name: "test-role",
+            permissions: [oldPermission],
+            now: now);
+
+        role.SetPermissions([newPermission], now.AddMinutes(1));
+
+        role.Permissions.Should().Contain(newPermission);
+        role.Permissions.Should().NotContain(oldPermission);
     }
 }

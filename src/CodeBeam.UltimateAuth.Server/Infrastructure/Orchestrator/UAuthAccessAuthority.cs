@@ -45,7 +45,7 @@ public sealed class UAuthAccessAuthority : IAccessAuthority
 
             var result = policy.Decide(context);
 
-            if (!result.IsAllowed)
+            if (result.IsDenied)
                 return result;
 
             if (result.RequiresReauthentication)

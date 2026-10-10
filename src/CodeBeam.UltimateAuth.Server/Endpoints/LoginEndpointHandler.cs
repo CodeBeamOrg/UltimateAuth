@@ -92,7 +92,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         {
             Identifier = request.Identifier,
             Secret = request.Secret,
-            Factor = CredentialType.Password,
+            CredentialType = CredentialType.Password,
             PreviewReceipt = request.PreviewReceipt,
             RequestTokens = authFlow.AllowsTokenIssuance,
             Metadata = request.Metadata,
@@ -152,7 +152,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         {
             return Results.Ok(new TryLoginResult
             {
-                Success = false,
+                IsSuccess = false,
                 Reason = AuthFailureReason.InvalidCredentials
             });
         }
@@ -161,7 +161,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         {
             Identifier = request.Identifier,
             Secret = request.Secret,
-            Factor = CredentialType.Password,
+            CredentialType = CredentialType.Password,
             PreviewReceipt = request.PreviewReceipt,
             RequestTokens = authFlow.AllowsTokenIssuance,
             Metadata = request.Metadata
@@ -185,7 +185,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
             var fingerprint = LoginPreviewFingerprint.Create(
                 authFlow.Tenant,
                 request.Identifier,
-                request.Factor,
+                request.CredentialType,
                 request.Secret,
                 deviceId);
 
@@ -199,7 +199,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                 var artifact = new LoginPreviewArtifact(
                     authFlow.Tenant,
                     userKey,
-                    request.Factor,
+                    request.CredentialType,
                     deviceId.Value,
                     request.Identifier,
                     authFlow.ClientProfile,
@@ -212,7 +212,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         return Results.Ok(new TryLoginResult
         {
-            Success = result.IsSuccess,
+            IsSuccess = result.IsSuccess,
             Reason = result.FailureReason,
             RemainingAttempts = result.RemainingAttempts,
             LockoutUntilUtc = result.LockoutUntilUtc,

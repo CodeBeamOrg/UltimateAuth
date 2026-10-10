@@ -43,12 +43,6 @@ public readonly record struct UserKey : IParsable<UserKey>
             return false;
         }
 
-        if (Guid.TryParse(s, out var guid))
-        {
-            result = FromGuid(guid);
-            return true;
-        }
-
         result = FromString(s);
         return true;
     }
@@ -60,6 +54,8 @@ public readonly record struct UserKey : IParsable<UserKey>
 
         return result;
     }
+
+    public static UserKey Parse(string value) => Parse(value, null);
 
     public override string ToString() => Value;
 

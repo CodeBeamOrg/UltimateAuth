@@ -6,9 +6,8 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 public sealed record TokenIssuanceContext
 {
     public required UserKey UserKey { get; init; }
-    public TenantKey Tenant { get; init; }
-    public IReadOnlyDictionary<string, string> Claims { get; set; } = new Dictionary<string, string>();
+    public required TenantKey Tenant { get; init; }
+    public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
     public AuthSessionId? SessionId { get; init; }
     public SessionChainId? ChainId { get; init; }
-    public DateTimeOffset IssuedAt { get; init; }
 }

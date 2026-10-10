@@ -8,11 +8,10 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
-using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -92,11 +91,10 @@ public sealed class CredentialManagementServiceTests
             context,
             new AddCredentialRequest
             {
-                Type = CredentialType.Password,
                 Secret = "new-password"
             });
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
         persisted.Should().NotBeNull();
         persisted!.UserKey.Should().Be(user);
@@ -167,8 +165,7 @@ public sealed class CredentialManagementServiceTests
             });
 
         await act.Should()
-            .ThrowAsync<UAuthNotFoundException>()
-            .WithMessage("*current_secret_required*");
+            .ThrowAsync<UAuthValidationException>();
 
         f.Hasher.Verify(
             x => x.Hash(It.IsAny<string>()),
@@ -487,7 +484,7 @@ public sealed class CredentialManagementServiceTests
                 Id = id
             });
 
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
 
         f.CredentialStore.Verify(x => x.SaveAsync(
@@ -537,7 +534,7 @@ public sealed class CredentialManagementServiceTests
                 Id = id
             });
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     // ---------------------------------------------------------
@@ -593,7 +590,7 @@ public sealed class CredentialManagementServiceTests
                 Mode = mode
             });
 
-        result.Succeeded.Should().BeTrue(
+        result.IsSuccess.Should().BeTrue(
             $"delete should succeed but returned '{result.Error}'");
 
         result.Error.Should().BeNull();
@@ -640,7 +637,7 @@ public sealed class CredentialManagementServiceTests
                 Mode = DeleteMode.Hard
             });
 
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
 
         f.CredentialStore.Verify(x => x.DeleteAsync(
@@ -651,6 +648,225 @@ public sealed class CredentialManagementServiceTests
             It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+
+    // ---------------------------------------------------------
+    // BeginReset / CompleteReset - Target Authorization
+    // ---------------------------------------------------------
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BeginResetAsync_Admin_WhenIdentifierDoesNotMatchTarget_RejectsWithoutMutation(
+        bool identifierExists)
+    {
+        var f = CreateFixture();
+        var actor = UserKey.New();
+        var target = UserKey.New();
+        var other = UserKey.New();
+        const string identifier = "other@example.com";
+
+        var context = TestAccessContext.ForTargetUser(
+            actor,
+            target,
+            UAuthActions.Credentials.BeginResetAdmin);
+
+        f.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifierExists
+                ? CreateResolution(context, identifier, other)
+                : null);
+
+        var act = () => f.Sut.BeginResetAsync(
+            context,
+            new BeginResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetCodeType = ResetCodeType.Token
+            });
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        exception.Which.Code.Should()
+            .Be("credential_target_mismatch");
+
+        f.SecurityManager.Verify(
+            x => x.GetOrCreateFactorAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CredentialType>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.TokenGenerator.Verify(
+            x => x.Generate(),
+            Times.Never);
+
+        f.ResetNotifier.Verify(
+            x => x.NotifyAsync(
+                It.IsAny<CredentialResetNotification>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CompleteResetAsync_Admin_WhenIdentifierDoesNotMatchTarget_RejectsWithoutMutation(
+        bool identifierExists)
+    {
+        var f = CreateFixture();
+        var actor = UserKey.New();
+        var target = UserKey.New();
+        var other = UserKey.New();
+        const string identifier = "other@example.com";
+
+        var context = TestAccessContext.ForTargetUser(
+            actor,
+            target,
+            UAuthActions.Credentials.CompleteResetAdmin);
+
+        f.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifierExists
+                ? CreateResolution(context, identifier, other)
+                : null);
+
+        var act = () => f.Sut.CompleteResetAsync(
+            context,
+            new CompleteResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetToken = "valid-token",
+                NewSecret = "new-password"
+            });
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        exception.Which.Code.Should()
+            .Be("credential_target_mismatch");
+
+        f.SecurityManager.Verify(
+            x => x.GetOrCreateFactorAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CredentialType>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.CredentialStore.Verify(
+            x => x.SaveAsync(
+                It.IsAny<PasswordCredential>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task BeginResetAsync_Anonymous_UnknownIdentifier_DoesNotRequireTarget()
+    {
+        var f = CreateFixture();
+        const string identifier = "unknown@example.com";
+
+        var context = TestAccessContext.WithAction(
+            UAuthActions.Credentials.BeginResetAnonymous);
+
+        f.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoginIdentifierResolution?)null);
+
+        var result = await f.Sut.BeginResetAsync(
+            context,
+            new BeginResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetCodeType = ResetCodeType.Token
+            });
+
+        result.ExpiresAt.Should().BeAfter(Now);
+
+        f.SecurityManager.Verify(
+            x => x.GetOrCreateFactorAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CredentialType>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.ResetNotifier.Verify(
+            x => x.NotifyAsync(
+                It.IsAny<CredentialResetNotification>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteResetAsync_Anonymous_UnknownIdentifier_DoesNotRequireTarget()
+    {
+        var f = CreateFixture();
+        const string identifier = "unknown@example.com";
+
+        var context = TestAccessContext.WithAction(
+            UAuthActions.Credentials.CompleteResetAnonymous);
+
+        f.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LoginIdentifierResolution?)null);
+
+        var result = await f.Sut.CompleteResetAsync(
+            context,
+            new CompleteResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetToken = "some-token",
+                NewSecret = "new-password"
+            });
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.SecurityManager.Verify(
+            x => x.GetOrCreateFactorAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CredentialType>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static LoginIdentifierResolution CreateResolution(
+        AccessContext context,
+        string identifier,
+        UserKey userKey)
+    {
+        return new LoginIdentifierResolution
+        {
+            Tenant = context.ResourceTenant,
+            UserKey = userKey,
+            RawIdentifier = identifier,
+            NormalizedIdentifier = identifier,
+            BuiltInType = UserIdentifierType.Email,
+            IsVerified = true
+        };
+    }
+
 
     // ---------------------------------------------------------
     // Helpers
@@ -810,6 +1026,17 @@ public sealed class CredentialManagementServiceTests
                     It.IsAny<CancellationToken>()))
                 .Returns<AccessContext,
                     AccessCommand<CredentialActionResult>,
+                    CancellationToken>(
+                    (_, command, ct) => command.ExecuteAsync(ct));
+
+
+            AccessOrchestrator
+                .Setup(x => x.ExecuteAsync(
+                    It.IsAny<AccessContext>(),
+                    It.IsAny<AccessCommand<BeginCredentialResetResult>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<AccessContext,
+                    AccessCommand<BeginCredentialResetResult>,
                     CancellationToken>(
                     (_, command, ct) => command.ExecuteAsync(ct));
 

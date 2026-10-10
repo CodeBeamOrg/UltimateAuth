@@ -47,4 +47,9 @@ public sealed class UAuthOptions
     /// validated, and optionally enforced.
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+
+    /// <summary>
+    /// Pagination configuration for user queries, role listings, and other paged endpoints.
+    /// </summary>
+    public UAuthPaginationOptions Pagination { get; set; } = new();
 }

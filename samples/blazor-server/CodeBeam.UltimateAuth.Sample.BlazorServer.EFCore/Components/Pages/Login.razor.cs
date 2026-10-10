@@ -161,7 +161,7 @@ public partial class Login : UAuthPageBase
     {
         if (result is TryLoginResult pkce)
         {
-            if (!result.Success)
+            if (!result.IsSuccess)
             {
                 if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
                 {

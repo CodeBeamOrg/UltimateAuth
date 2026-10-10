@@ -6,7 +6,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Security;
 using CodeBeam.UltimateAuth.Credentials;
-using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -71,6 +71,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         if (flow.Device.DeviceId is not DeviceId deviceId)
             throw new UAuthConflictException("Device id could not resolved.");
 
+        if (request.CredentialType != CredentialType.Password)
+            throw new UAuthValidationException("unsupported_credential_type");
+
         var now = _clock.UtcNow;
         var resolution = await _identifierResolver.ResolveAsync(flow.Tenant, request.Identifier, ct);
         var userKey = resolution?.UserKey;
@@ -94,7 +97,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                     return LoginResult.Failed(AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
-                factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(flow.Tenant, userKey.Value, request.Factor, ct);
+                factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(flow.Tenant, userKey.Value, request.CredentialType, ct);
 
                 if (factorState.IsLocked(now))
                 {
@@ -107,7 +110,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                     foreach (var credential in credentials)
                     {
-                        if (credential.IsDeleted || !credential.Security.IsUsable(now))
+                        if (credential.Type != request.CredentialType || credential.IsDeleted || !credential.Security.IsUsable(now))
                             continue;
 
                         if (await provider.ValidateAsync(credential, request.Secret, ct))
@@ -168,7 +171,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                     factorState = await _authenticationSecurityManager.MutateFactorAsync(
                         flow.Tenant,
                         userKey.Value,
-                        request.Factor,
+                        request.CredentialType,
                         state => state.RegisterFailure(
                             now,
                             _options.Login.MaxFailedAttempts,
@@ -228,7 +231,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
             factorState = await _authenticationSecurityManager.MutateFactorAsync(
                 flow.Tenant,
                 userKey.Value,
-                request.Factor,
+                request.CredentialType,
                 state => state.RegisterSuccess(),
                 ct);
         }
@@ -260,13 +263,17 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
                 ChainId = issuedSession.Session.ChainId,
-                Claims = claims.AsDictionary()
+                Claims = claims
             };
+
+            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+
+            var refreshIssuance = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
 
             tokens = new AuthTokens
             {
-                AccessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct),
-                RefreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct)
+                AccessToken = accessToken,
+                RefreshToken = refreshIssuance is null ? null : new RefreshTokenInfo { Token = refreshIssuance.Token, ExpiresAt = refreshIssuance.ExpiresAt }
             };
         }
 

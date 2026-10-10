@@ -35,7 +35,7 @@ public sealed class AuthFlowContext
         Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
 
     public bool IsSingleTenant => Tenant.IsSingle;
-    public bool IsMultiTenant => !Tenant.IsSingle && !Tenant.IsSystem;
+    public bool IsMultiTenant => Tenant.IsNormal;
 
     internal AuthFlowContext(
         AuthFlowType flowType,
@@ -52,8 +52,8 @@ public sealed class AuthFlowContext
         PrimaryTokenKind primaryTokenKind,
         ReturnUrlInfo returnUrlInfo)
     {
-        if (tenantKey.IsUnresolved)
-            throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
+        if (!tenantKey.IsValid || tenantKey.IsUnresolved)
+            throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         FlowType = flowType;
         ClientProfile = clientProfile;
