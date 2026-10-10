@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -84,8 +85,8 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
         }
 
-        if (tenant.IsUnresolved)
-            throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
+        if (!tenant.IsValid || tenant.IsUnresolved)
+            throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         // TODO: Implement invariant checker
         //_invariantChecker.Validate(flowType, effectiveMode, response, effectiveOptions);

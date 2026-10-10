@@ -1,21 +1,31 @@
-﻿namespace CodeBeam.UltimateAuth.Authorization.Contracts;
+﻿using System.Text.Json.Serialization;
 
-public readonly record struct Permission(string Value)
+namespace CodeBeam.UltimateAuth.Authorization.Contracts;
+
+public readonly record struct Permission
 {
-    public static Permission From(string value)
+    public string Value { get; }
+
+    [JsonConstructor]
+    public Permission(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("permission_required");
+            throw new ArgumentException("permission_required", nameof(value));
 
-        return new Permission(value.Trim().ToLowerInvariant());
+        Value = value.Trim().ToLowerInvariant();
     }
+
+    public static Permission From(string value) => new(value);
 
     public static readonly Permission Wildcard = new("*");
 
     public bool IsWildcard => Value == "*";
-    public bool IsPrefix => Value.EndsWith(".*");
 
-    public override string ToString() => Value;
+    public bool IsPrefix => Value?.EndsWith(".*", StringComparison.Ordinal) == true;
+
+    public bool IsValid => !string.IsNullOrWhiteSpace(Value);
+
+    public override string ToString() => Value ?? string.Empty;
 
     public static implicit operator string(Permission p) => p.Value;
 }

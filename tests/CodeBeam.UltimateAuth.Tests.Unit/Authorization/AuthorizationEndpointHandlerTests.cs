@@ -701,6 +701,19 @@ public sealed class AuthorizationEndpointHandlerTests
             Times.Never);
     }
 
+    [Fact]
+    public void Permission_JsonRoundTrip_ShouldPreserveValue()
+    {
+        var original = Permission.From("users.read");
+
+        var json = JsonSerializer.Serialize(original);
+
+        var restored = JsonSerializer.Deserialize<Permission>(json);
+
+        restored.Should().Be(original);
+        restored.IsValid.Should().BeTrue();
+    }
+
     // =========================================================
     // Fixture
     // =========================================================
