@@ -57,20 +57,45 @@ window.uauth.submitForm = function (form) {
 window.uauth.tryAndCommit = async function (options) {
     const { tryUrl, commitUrl, data, clientProfile } = options;
 
+    const deviceId = window.uauth.deviceId;
+
+    if (!deviceId) {
+        throw new Error("UAuth deviceId is not initialized.");
+    }
+
     const tryResponse = await window.uauth.postJson({
         url: tryUrl,
         payload: data,
-        clientProfile: clientProfile
+        clientProfile
     });
 
-    let result = tryResponse?.body;
+    if (!tryResponse || !Number.isInteger(tryResponse.status)) {
+        throw new Error("Invalid UAuth transport response.");
+    }
 
-    if (!result) {
-        result = {};
+    const status = tryResponse.status;
+    const isHttpSuccess = status >= 200 && status < 300;
+    const isClientError = status >= 400 && status < 500;
+
+    if (!isHttpSuccess && !isClientError) {
+        throw new Error(`Unexpected UAuth try response: HTTP ${status}.`);
+    }
+
+    const result = tryResponse.body;
+
+    if (!result ||
+        typeof result !== "object" ||
+        Array.isArray(result) ||
+        typeof result.isSuccess !== "boolean") {
+        throw new Error("Invalid UAuth try response body.");
+    }
+
+    if (isClientError && result.isSuccess) {
+        throw new Error("Successful authentication result returned with HTTP error.");
     }
 
     const normalized = {
-        isSuccess: result.isSuccess ?? false,
+        isSuccess: result.isSuccess,
         reason: result.reason ?? null,
         remainingAttempts: result.remainingAttempts ?? null,
         lockoutUntilUtc: result.lockoutUntilUtc ?? null,
@@ -84,7 +109,7 @@ window.uauth.tryAndCommit = async function (options) {
         form.method = "POST";
         form.action = commitUrl;
 
-        for (const key in data) {
+        for (const key of Object.keys(data)) {
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = key;
@@ -109,7 +134,7 @@ window.uauth.tryAndCommit = async function (options) {
         const udid = document.createElement("input");
         udid.type = "hidden";
         udid.name = "__uauth_device";
-        udid.value = window.uauth.deviceId;
+        udid.value = deviceId;
         form.appendChild(udid);
 
         document.body.appendChild(form);

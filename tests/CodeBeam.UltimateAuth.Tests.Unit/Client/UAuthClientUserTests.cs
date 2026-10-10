@@ -1,10 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using FluentAssertions;
 using Moq;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -200,15 +203,122 @@ public class UAuthClientUserTests : UAuthClientTestBase
     [Fact]
     public async Task Query_Should_Use_Given_Query()
     {
-        var query = new UserQuery
-        {
-        };
+        var query = new UserQuery();
 
-        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(Success());
+        var response = new PagedResult<UserSummary>(
+            new List<UserSummary>(),
+            0, 1, 10, null, false);
+
+        Request.Setup(x =>
+                x.SendJsonAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(response));
 
         var client = CreateUserClient();
-        await client.Users.QueryAsync(query);
-        Request.Verify(x => x.SendJsonAsync("/auth/admin/users/query", It.Is<object>(o => ReferenceEquals(o, query))), Times.Once);
+
+        var result = await client.Users.QueryAsync(query);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+
+        Request.Verify(x =>
+            x.SendJsonAsync(
+                "/auth/admin/users/query",
+                It.Is<object>(o => ReferenceEquals(o, query))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ChangeMyStatus_Should_Not_Publish_Event_When_Body_Missing()
+    {
+        var request = new ChangeUserStatusSelfRequest
+        {
+            NewStatus = SelfAssignableUserStatus.Active
+        };
+
+        Request.Setup(x =>
+                x.SendJsonAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = null
+            });
+
+        var client = CreateUserClient();
+
+        Func<Task> act = () =>
+            client.Users.ChangeMyStatusAsync(request);
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+
+        Events.Verify(
+            x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task TryLogin_TryOnly_Should_Throw_On_Server_Error()
+    {
+        Request.Setup(x => x.SendJsonAsync(
+                It.IsAny<string>(),
+                It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 500,
+                Body = JsonSerializer.SerializeToElement(
+                    new TryLoginResult { IsSuccess = true })
+            });
+
+        var client = CreateFlowClient();
+
+        Func<Task> act = () => client.TryLoginAsync(
+            new LoginRequest
+            {
+                // Fill required fields according to the contract.
+            },
+            UAuthSubmitMode.TryOnly);
+
+        await act.Should().ThrowAsync<UAuthTransportException>();
+    }
+
+    [Fact]
+    public async Task Refresh_Should_Throw_On_Server_Error()
+    {
+        Request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 503
+            });
+
+        var client = CreateFlowClient();
+
+        Func<Task> act = () => client.RefreshAsync();
+
+        await act.Should().ThrowAsync<UAuthTransportException>();
+    }
+
+    [Fact]
+    public async Task Refresh_Should_Throw_On_Network_Error()
+    {
+        Request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 0
+            });
+
+        var client = CreateFlowClient();
+
+        Func<Task> act = () => client.RefreshAsync();
+
+        await act.Should().ThrowAsync<UAuthTransportException>();
     }
 }

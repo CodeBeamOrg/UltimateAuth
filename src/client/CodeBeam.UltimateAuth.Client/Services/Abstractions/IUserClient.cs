@@ -125,7 +125,7 @@ public interface IUserClient
     /// <remarks>
     /// The default profile cannot be deleted.
     /// </remarks>
-    Task<UAuthResult> DeleteMyProfileAsync(ProfileKey profileKey);
+    Task<UAuthResult> DeleteMyProfileAsync(DeleteProfileRequest request);
 
 
     /// <summary>
@@ -154,5 +154,5 @@ public interface IUserClient
     /// <summary>
     /// Deletes a profile of a specific user.
     /// </summary>
-    Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, ProfileKey profileKey);
+    Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, DeleteProfileRequest request);
 }
