@@ -25,10 +25,16 @@ public partial class ResetCredential
             return;
         }
 
+        if (string.IsNullOrEmpty(_code) || string.IsNullOrEmpty(_newPassword) || string.IsNullOrEmpty(Identifier))
+        {
+            Snackbar.Add("Missing required information. Please ensure you have a valid reset code and new password.", Severity.Error);
+            return;
+        }
+
         var request = new CompleteResetCredentialRequest
         {
             ResetToken = _code,
-            NewSecret = _newPassword ?? string.Empty,
+            NewSecret = _newPassword,
             Identifier = Identifier // Coming from UAuthFlowPageBase automatically if begin reset is successful
         };
 
