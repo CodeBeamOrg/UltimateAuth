@@ -27,20 +27,22 @@ public static class UAuthExceptionHandlingExtensions
 
     private static Task WriteProblemDetails(HttpContext context, UAuthRuntimeException ex)
     {
+        var status = MapStatusCode(ex);
+
         var problem = new ProblemDetails
         {
             Title = ex.Title,
             Detail = ex.Code,
-            Status = MapStatusCode(ex),
+            Status = status,
             Type = $"{ex.TypePrefix}/{ex.Code}"
         };
 
         problem.Extensions["traceId"] = context.TraceIdentifier;
 
-        context.Response.StatusCode = problem.Status ?? 500;
+        context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
 
-        return context.Response.WriteAsJsonAsync(problem);
+        return context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json");
     }
 
     private static int MapStatusCode(UAuthRuntimeException ex) =>

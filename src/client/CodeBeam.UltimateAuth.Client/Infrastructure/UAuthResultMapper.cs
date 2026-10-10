@@ -16,11 +16,14 @@ internal static class UAuthResultMapper
 
         if (!IsSuccessStatus(raw.Status))
         {
+            var problem = CreateProblem(raw);
+
             return new UAuthResult<T>
             {
                 IsSuccess = false,
                 Status = raw.Status,
-                Problem = TryDeserializeProblem(raw)
+                Problem = problem,
+                TraceId = problem?.TraceId
             };
         }
 
@@ -55,14 +58,25 @@ internal static class UAuthResultMapper
     {
         EnsureTransport(raw);
 
+        if (IsSuccessStatus(raw.Status))
+        {
+            return new UAuthResult
+            {
+                IsSuccess = true,
+                Status = raw.Status
+            };
+        }
+
+        var problem = CreateProblem(raw);
+
         return new UAuthResult
         {
-            IsSuccess = IsSuccessStatus(raw.Status),
+            IsSuccess = false,
             Status = raw.Status,
-            Problem = IsSuccessStatus(raw.Status) ? null : TryDeserializeProblem(raw)
+            Problem = problem,
+            TraceId = problem?.TraceId
         };
     }
-    //public static UAuthResult From(UAuthTransportResult raw) => FromJson<object>(raw);
 
     private static bool IsSuccessStatus(int status) => status is >= 200 and < 300;
 
@@ -78,14 +92,44 @@ internal static class UAuthResultMapper
             throw new UAuthTransportException($"Server error {raw.Status}", (HttpStatusCode)raw.Status);
     }
 
+    private static UAuthProblem? CreateProblem(UAuthTransportResult raw)
+    {
+        var parsed = TryDeserializeProblem(raw);
+
+        if (parsed is null)
+            return null;
+
+        return new UAuthProblem
+        {
+            Type = parsed?.Type,
+            Title = string.IsNullOrWhiteSpace(parsed?.Title) ? "HTTP request failed" : parsed.Title,
+            Detail = parsed?.Detail,
+            Status = raw.Status,
+            TraceId = parsed?.TraceId,
+            Extensions = parsed?.Extensions
+        };
+    }
+
     private static UAuthProblem? TryDeserializeProblem(UAuthTransportResult raw)
     {
-        if (raw.Body is null)
+        if (raw.Body is null || raw.Body.Value.ValueKind != JsonValueKind.Object)
+        {
             return null;
+        }
 
         try
         {
-            return raw.Body.Value.Deserialize<UAuthProblem>(_jsonOptions);
+            var problem = raw.Body.Value.Deserialize<UAuthProblem>(_jsonOptions);
+
+            if (problem is null)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(problem.Type) && string.IsNullOrWhiteSpace(problem.Title) && string.IsNullOrWhiteSpace(problem.Detail))
+            {
+                return null;
+            }
+
+            return problem;
         }
         catch (JsonException)
         {

@@ -215,6 +215,111 @@ public class UAuthResultMapperTests
         act.Should().Throw<UAuthProtocolException>();
     }
 
+    [Fact]
+    public void FromJson_WhenProblemStatusDiffers_UsesHttpStatus()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 400,
+            Body = JsonSerializer.SerializeToElement(new
+            {
+                status = 200,
+                title = "Validation failed",
+                traceId = "trace-123"
+            })
+        };
+
+        var result = UAuthResultMapper.FromJson<string>(raw);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(400, result.Status);
+        Assert.NotNull(result.Problem);
+        Assert.Equal(400, result.Problem.Status);
+        Assert.Equal("trace-123", result.TraceId);
+        Assert.Equal("trace-123", result.Problem.TraceId);
+    }
+
+    [Fact]
+    public void FromJson_WhenErrorBodyIsMissing_ReturnsNullProblem()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 403
+        };
+
+        var result = UAuthResultMapper.FromJson<string>(raw);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(403, result.Status);
+        Assert.Null(result.Problem);
+    }
+
+    [Fact]
+    public void From_WhenErrorBodyIsInvalid_ReturnsNullProblem()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 400,
+            Body = JsonSerializer.SerializeToElement("Invalid request")
+        };
+
+        var result = UAuthResultMapper.From(raw);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(400, result.Status);
+        Assert.Null(result.Problem);
+    }
+
+    [Fact]
+    public void From_WhenSuccessfulWithoutBody_ReturnsSuccess()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 204
+        };
+
+        var result = UAuthResultMapper.From(raw);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(204, result.Status);
+        Assert.Null(result.Problem);
+    }
+
+    [Fact]
+    public void FromJson_WhenSuccessfulWithoutBody_ThrowsProtocolException()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 200
+        };
+
+        Assert.Throws<UAuthProtocolException>(
+            () => UAuthResultMapper.FromJson<string>(raw));
+    }
+
+    [Fact]
+    public void FromJson_Should_Use_Http_Status_In_Problem()
+    {
+        var raw = new UAuthTransportResult
+        {
+            Status = 403,
+            Body = JsonSerializer.SerializeToElement(new
+            {
+                title = "Forbidden",
+                status = 200,
+                traceId = "trace-123"
+            })
+        };
+
+        var result = UAuthResultMapper.FromJson<object>(raw);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Status.Should().Be(403);
+        result.Problem.Should().NotBeNull();
+        result.Problem!.Status.Should().Be(403);
+        result.TraceId.Should().Be("trace-123");
+    }
+
 
     private sealed class TestDto
     {
