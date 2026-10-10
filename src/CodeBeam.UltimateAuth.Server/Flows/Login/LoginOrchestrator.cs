@@ -263,7 +263,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
                 ChainId = issuedSession.Session.ChainId,
-                Claims = claims.AsDictionary()
+                Claims = claims
             };
 
             var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);

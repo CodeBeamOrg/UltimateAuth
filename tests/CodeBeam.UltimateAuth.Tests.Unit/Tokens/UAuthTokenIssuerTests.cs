@@ -152,11 +152,10 @@ public sealed class UAuthTokenIssuerTests
             keyId: "key-1");
 
         var context = CreateTokenContext(
-            claims: new Dictionary<string, string>
-            {
-                ["role"] = "admin",
-                ["permission"] = "products.read"
-            });
+            claims: ClaimsSnapshot.From(
+                ("role", "admin"),
+                ("permission", "products.read")
+            ));
 
         UAuthJwtTokenDescriptor? captured = null;
 
@@ -242,7 +241,7 @@ public sealed class UAuthTokenIssuerTests
             .ContainKey("tenant");
 
         captured.Claims["tenant"].Should()
-            .Be(context.Tenant);
+            .Be(context.Tenant.Value);
     }
 
     [Fact]
@@ -277,7 +276,7 @@ public sealed class UAuthTokenIssuerTests
             .ContainKey("sid");
 
         captured.Claims!["sid"].Should()
-            .Be(sessionId);
+            .Be(sessionId.Value);
 
         result.SessionId.Should()
             .Be(sessionId.ToString());
@@ -685,12 +684,12 @@ public sealed class UAuthTokenIssuerTests
         var flow = CreateFlow(UAuthMode.PureJwt);
 
         var context = CreateTokenContext(
-            claims: new Dictionary<string, string>
-            {
-                ["sub"] = "attacker-user",
-                ["tenant"] = "attacker-tenant",
-                ["role"] = "admin"
-            });
+            claims: ClaimsSnapshot.From(
+            
+                ("sub", "attacker-user"),
+                ("tenant", "attacker-tenant"),
+                ("role", "admin")
+            ));
 
         UAuthJwtTokenDescriptor? captured = null;
 
@@ -719,7 +718,7 @@ public sealed class UAuthTokenIssuerTests
             .ContainKey("tenant");
 
         captured.Claims["tenant"].Should()
-            .Be(context.Tenant);
+            .Be(context.Tenant.Value);
 
         // Non-reserved custom claims must still flow through normally.
         captured.Claims.Should()
@@ -820,6 +819,255 @@ public sealed class UAuthTokenIssuerTests
             clock);
     }
 
+    [Theory]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task IssueAccessTokenAsync_WhenMultipleRolesExist_ShouldPreserveAllRoles(
+    UAuthMode mode)
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(mode);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("role", "Admin"),
+                ("role", "Editor"),
+                ("role", "Auditor")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured.Should().NotBeNull();
+        captured!.Claims.Should().ContainKey("role");
+
+        var roles = captured.Claims!["role"]
+            .Should().BeAssignableTo<string[]>().Subject;
+
+        roles.Should().BeEquivalentTo(
+            new[] { "Admin", "Editor", "Auditor" });
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenMultiplePermissionsExist_ShouldPreserveAllPermissions()
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("uauth:permission", "users.read"),
+                ("uauth:permission", "users.write"),
+                ("uauth:permission", "users.delete")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        var permissions = captured!.Claims!["uauth:permission"]
+            .Should().BeAssignableTo<string[]>().Subject;
+
+        permissions.Should().BeEquivalentTo(
+            new[] { "users.read", "users.write", "users.delete" });
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenSingleClaimExists_ShouldUseStringValue()
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("department", "legal")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured!.Claims!["department"]
+            .Should().Be("legal");
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenClaimsAreEmpty_ShouldOnlyIncludeFrameworkClaims()
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(
+            UAuthMode.PureJwt,
+            addJwtIdClaim: false);
+
+        var context = CreateTokenContext(
+            sessionId: null,
+            claims: ClaimsSnapshot.Empty);
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(
+                It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(
+                descriptor => captured = descriptor)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured.Should().NotBeNull();
+
+        captured!.Claims.Should().HaveCount(2);
+
+        captured.Claims!["sub"]
+            .Should().Be(context.UserKey.Value);
+
+        captured.Claims["tenant"]
+            .Should().Be(context.Tenant.Value);
+
+        captured.Claims.Should().NotContainKey("sid");
+        captured.Claims.Should().NotContainKey("jti");
+    }
+
+    [Theory]
+    [InlineData("sid")]
+    [InlineData("jti")]
+    [InlineData("iss")]
+    [InlineData("aud")]
+    [InlineData("exp")]
+    [InlineData("nbf")]
+    [InlineData("iat")]
+    public async Task IssueAccessTokenAsync_WhenCustomClaimIsReserved_ShouldIgnoreIt(string reservedType)
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(
+            UAuthMode.PureJwt,
+            addJwtIdClaim: false);
+
+        var context = CreateTokenContext(
+            sessionId: null,
+            claims: ClaimsSnapshot.From(
+                (reservedType, "attacker-value"),
+                ("department", "legal")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured.Should().NotBeNull();
+
+        captured!.Claims.Should()
+            .NotContainKey(reservedType);
+
+        captured.Claims!["department"]
+            .Should().Be("legal");
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenCustomSidExists_ShouldUseFrameworkSessionId()
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var sessionId = CreateSessionId(
+            "trusted-session-000000000000000000000001");
+
+        var context = CreateTokenContext(
+            sessionId: sessionId,
+            claims: ClaimsSnapshot.From(
+                ("sid", "attacker-session")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured!.Claims!["sid"]
+            .Should().Be(sessionId.Value);
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenCustomJtiExists_ShouldUseGeneratedJti()
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(
+            UAuthMode.PureJwt,
+            addJwtIdClaim: true);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("jti", "attacker-jti")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured!.Claims!["jti"]
+            .Should().Be(JwtId);
+
+        fixture.OpaqueGenerator.Verify(
+            x => x.GenerateJwtId(),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenJwtIdDisabled_ShouldRejectCustomJti()
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(
+            UAuthMode.PureJwt,
+            addJwtIdClaim: false);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("jti", "attacker-jti")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
+            .Returns(Jwt);
+
+        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+
+        captured!.Claims.Should().NotContainKey("jti");
+
+        fixture.OpaqueGenerator.Verify(
+            x => x.GenerateJwtId(),
+            Times.Never);
+    }
+
     // =====================================================================
     // Context helpers
     // =====================================================================
@@ -865,10 +1113,7 @@ public sealed class UAuthTokenIssuerTests
         return flow;
     }
 
-    private static TokenIssuanceContext CreateTokenContext(
-        AuthSessionId? sessionId = null,
-        SessionChainId? chainId = null,
-        IReadOnlyDictionary<string, string>? claims = null)
+    private static TokenIssuanceContext CreateTokenContext(AuthSessionId? sessionId = null, SessionChainId? chainId = null, ClaimsSnapshot? claims = null)
     {
         return new TokenIssuanceContext
         {
@@ -876,20 +1121,13 @@ public sealed class UAuthTokenIssuerTests
             Tenant = Tenant,
             SessionId = sessionId,
             ChainId = chainId,
-            Claims = claims ??
-                new Dictionary<string, string>(),
-            IssuedAt = Now
+            Claims = claims ?? ClaimsSnapshot.Empty
         };
     }
 
-    private static AuthSessionId CreateSessionId(
-        string value)
+    private static AuthSessionId CreateSessionId(string value)
     {
-        AuthSessionId.TryCreate(
-                value,
-                out var id)
-            .Should()
-            .BeTrue();
+        AuthSessionId.TryCreate(value, out var id).Should().BeTrue();
 
         return id;
     }

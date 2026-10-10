@@ -102,26 +102,48 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             Token = token,
             Format = TokenFormat.Opaque,
             ExpiresAt = expires,
-            SessionId = sessionId.ToString()
+            SessionId = sessionId?.Value
         };
     }
 
     private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, UAuthTokenOptions tokens, DateTimeOffset expires)
     {
-        var claims = new Dictionary<string, object>();
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal);
 
         // Custom/application claims are added first.
         // Framework-owned security claims below always take precedence.
-        foreach (var kv in context.Claims)
-            claims[kv.Key] = kv.Value;
+        foreach (var (type, values) in context.Claims.Claims)
+        {
+            if (values.Count == 0)
+                continue;
+
+            // Framework - owned claims cannot be supplied by applications.
+            if (type is
+                "sub" or
+                "tenant" or
+                "sid" or
+                "jti" or
+                "iss" or
+                "aud" or
+                "exp" or
+                "nbf" or
+                "iat")
+                        continue;
+
+            claims[type] = values.Count == 1
+                ? values.First()
+                : values.ToArray();
+        }
 
         // UltimateAuth-owned identity/security claims must never be overridable
         // by caller-provided claims.
         claims["sub"] = context.UserKey.Value;
-        claims["tenant"] = context.Tenant;
+        claims["tenant"] = context.Tenant.Value;
 
         if (context.SessionId is AuthSessionId sessionId)
-            claims["sid"] = sessionId;
+            claims["sid"] = sessionId.Value;
+        else
+            claims.Remove("sid");
 
         if (tokens.AddJwtIdClaim)
             claims["jti"] = _opaqueGenerator.GenerateJwtId();

@@ -27,13 +27,14 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = new Mock<IRefreshTokenValidator>();
         var storeFactory = new Mock<IRefreshTokenStoreFactory>();
         var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
         var clock = new TestClock(Now);
 
         validator
             .Setup(x => x.ValidateAsync(It.IsAny<RefreshTokenValidationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(RefreshTokenValidationResult.Invalid());
 
-        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object);
+        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
         var result = await sut.RotateAsync(CreateFlow(), CreateContext());
 
@@ -63,11 +64,13 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(),
@@ -119,11 +122,13 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
@@ -180,6 +185,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         validator
             .Setup(x => x.ValidateAsync(
@@ -212,7 +218,8 @@ public sealed class RefreshTokenRotationServiceTests
             new RefreshTokenRotationService(
                 validator.Object,
                 storeFactory.Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result =
             await sut.RotateAsync(
@@ -264,6 +271,7 @@ public sealed class RefreshTokenRotationServiceTests
         var store = CreateExecutableStore();
         var storeFactory = CreateStoreFactory(tenant, store);
         var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         issuer
             .Setup(x => x.IssueRefreshTokenAsync(
@@ -276,7 +284,8 @@ public sealed class RefreshTokenRotationServiceTests
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
@@ -313,6 +322,7 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = CreateValidator(validation);
         var store = CreateSuccessfulRotationStore();
         var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var issuer = new Mock<ITokenIssuer>();
 
@@ -334,7 +344,7 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(refreshToken);
 
-        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object);
+        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
         var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId));
 
@@ -389,6 +399,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         TokenIssuanceContext? captured = null;
 
@@ -403,7 +414,8 @@ public sealed class RefreshTokenRotationServiceTests
             new RefreshTokenRotationService(
                 CreateValidator(validation).Object,
                 CreateStoreFactory(tenant, store).Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(
@@ -427,6 +439,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         TokenIssuanceContext? captured = null;
 
@@ -443,7 +456,8 @@ public sealed class RefreshTokenRotationServiceTests
                 CreateStoreFactory(
                     TenantKey.Single,
                     store).Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(
@@ -468,6 +482,7 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = CreateValidator(validation);
         var store = CreateExecutableStore();
         var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var issuer = new Mock<ITokenIssuer>();
 
@@ -500,7 +515,8 @@ public sealed class RefreshTokenRotationServiceTests
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),

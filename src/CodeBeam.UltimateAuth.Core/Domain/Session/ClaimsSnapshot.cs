@@ -99,11 +99,11 @@ public sealed class ClaimsSnapshot
         {
             int hash = 17;
 
-            foreach (var (type, values) in Claims.OrderBy(x => x.Key))
+            foreach (var (type, values) in Claims.OrderBy(x => x.Key, StringComparer.Ordinal))
             {
                 hash = hash * 23 + type.GetHashCode();
 
-                foreach (var value in values.OrderBy(v => v))
+                foreach (var value in values.OrderBy(v => v, StringComparer.Ordinal))
                 {
                     hash = hash * 23 + value.GetHashCode();
                 }
