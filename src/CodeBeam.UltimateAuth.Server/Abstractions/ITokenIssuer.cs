@@ -1,8 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Contracts;
 
-namespace CodeBeam.UltimateAuth.Server.Abstactions;
+namespace CodeBeam.UltimateAuth.Server.Abstractions;
 
 /// <summary>
 /// Issues access and refresh tokens according to the active auth mode.
