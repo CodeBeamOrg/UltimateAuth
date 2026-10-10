@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Extensions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -491,5 +492,439 @@ public class ServerOptionsValidatorTests
 
         options.Pagination.DefaultPageSize.Should().Be(100);
         options.Pagination.MaxPageSize.Should().Be(100);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(-10)]
+    public void Login_negative_max_attempts_fails(int attempts) =>
+        ShouldReject<UAuthServerLoginOptionsValidator>(o => o.Login.MaxFailedAttempts = attempts, "Login.MaxFailedAttempts");
+
+    [Fact]
+    public void Login_negative_lockout_duration_fails() =>
+        ShouldReject<UAuthServerLoginOptionsValidator>(o => o.Login.LockoutDuration = TimeSpan.FromTicks(-1), "Login.LockoutMinutes");
+
+    [Fact]
+    public void Login_zero_limits_are_accepted() =>
+        ShouldAccept<UAuthServerLoginOptionsValidator>(o =>
+        {
+            o.Login.MaxFailedAttempts = 0;
+            o.Login.LockoutDuration = TimeSpan.Zero;
+        });
+
+    [Fact]
+    public void Login_multiple_errors_are_reported() =>
+        ShouldReject<UAuthServerLoginOptionsValidator>(o =>
+        {
+            o.Login.MaxFailedAttempts = -1;
+            o.Login.LockoutDuration = TimeSpan.FromMinutes(-1);
+        }, "Login.LockoutMinutes");
+
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void MultiTenant_disabled_with_any_resolver_fails(bool route, bool header, bool domain) =>
+        ShouldReject<UAuthServerMultiTenantOptionsValidator>(o =>
+        {
+            o.MultiTenant.Enabled = false;
+            o.MultiTenant.EnableRoute = route;
+            o.MultiTenant.EnableHeader = header;
+            o.MultiTenant.EnableDomain = domain;
+        }, "Multi-tenancy is disabled");
+
+    [Fact]
+    public void MultiTenant_disabled_without_resolvers_passes() =>
+        ShouldAccept<UAuthServerMultiTenantOptionsValidator>(o =>
+        {
+            o.MultiTenant.Enabled = false;
+            o.MultiTenant.EnableRoute = false;
+            o.MultiTenant.EnableHeader = false;
+            o.MultiTenant.EnableDomain = false;
+        });
+
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void MultiTenant_enabled_with_any_resolver_passes(bool route, bool header, bool domain) =>
+        ShouldAccept<UAuthServerMultiTenantOptionsValidator>(o =>
+        {
+            o.MultiTenant.Enabled = true;
+            o.MultiTenant.EnableRoute = route;
+            o.MultiTenant.EnableHeader = header;
+            o.MultiTenant.EnableDomain = domain;
+            if (header) o.MultiTenant.HeaderName = "X-Tenant";
+        });
+
+    [Fact]
+    public void MultiTenant_header_whitespace_fails() =>
+        ShouldReject<UAuthServerMultiTenantOptionsValidator>(o =>
+        {
+            o.MultiTenant.Enabled = true;
+            o.MultiTenant.EnableHeader = true;
+            o.MultiTenant.HeaderName = "  ";
+        }, "MultiTenant.HeaderName");
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Pkce_nonpositive_authorization_lifetime_fails(int seconds) =>
+        ShouldReject<UAuthServerPkceOptionsValidator>(o => o.Pkce.AuthorizationCodeLifetimeSeconds = seconds,
+            "Pkce.AuthorizationCodeLifetimeSeconds");
+
+    [Fact]
+    public void Pkce_positive_authorization_lifetime_passes() =>
+        ShouldAccept<UAuthServerPkceOptionsValidator>(o => o.Pkce.AuthorizationCodeLifetimeSeconds = 1);
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Session_nonpositive_lifetime_fails(int ticks) =>
+        ShouldReject<UAuthServerSessionOptionsValidator>(o => o.Session.Lifetime = TimeSpan.FromTicks(ticks),
+            "Session.Lifetime");
+
+    [Fact]
+    public void Session_nonpositive_max_lifetime_fails() =>
+        ShouldReject<UAuthServerSessionOptionsValidator>(o => o.Session.MaxLifetime = TimeSpan.Zero,
+            "Session.MaxLifetime");
+
+    [Fact]
+    public void Session_max_lifetime_less_than_lifetime_fails() =>
+        ShouldReject<UAuthServerSessionOptionsValidator>(o =>
+        {
+            o.Session.Lifetime = TimeSpan.FromMinutes(30);
+            o.Session.MaxLifetime = TimeSpan.FromMinutes(29);
+        }, "Session.MaxLifetime");
+
+    [Fact]
+    public void Session_equal_max_lifetime_passes() =>
+        ShouldAccept<UAuthServerSessionOptionsValidator>(o =>
+        {
+            o.Session.Lifetime = TimeSpan.FromMinutes(30);
+            o.Session.MaxLifetime = TimeSpan.FromMinutes(30);
+            o.Session.IdleTimeout = TimeSpan.Zero;
+        });
+
+    [Fact]
+    public void Session_null_optional_timeouts_pass() =>
+        ShouldAccept<UAuthServerSessionOptionsValidator>(o =>
+        {
+            o.Session.MaxLifetime = null;
+            o.Session.IdleTimeout = null;
+        });
+
+    [Fact]
+    public void Token_negative_concurrent_refresh_window_fails() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+            o.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromTicks(-1),
+            "RefreshTokenConcurrentRequestWindow");
+
+    [Fact]
+    public void Token_no_issuance_fails_under_current_validator() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueJwt = false;
+            o.Token.IssueOpaque = false;
+        }, "IssueJwt or IssueOpaque");
+
+    [Fact]
+    public void Token_nonpositive_access_lifetime_fails() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o => o.Token.AccessTokenLifetime = TimeSpan.Zero,
+            "AccessTokenLifetime");
+
+    [Fact]
+    public void Token_nonpositive_refresh_lifetime_fails_when_enabled() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueRefresh = true;
+            o.Token.RefreshTokenLifetime = TimeSpan.Zero;
+        }, "RefreshTokenLifetime");
+
+    [Fact]
+    public void Token_refresh_lifetime_equal_to_access_lifetime_fails() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueRefresh = true;
+            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
+            o.Token.RefreshTokenLifetime = TimeSpan.FromMinutes(10);
+        }, "RefreshTokenLifetime");
+
+    [Theory]
+    [InlineData(true, " ", "UAuthClient", "Token.Issuer")]
+    [InlineData(true, "ab", "UAuthClient", "Token.Issuer")]
+    [InlineData(true, "UAuth", " ", "Token.Audience")]
+    [InlineData(true, "UAuth", "ab", "Token.Audience")]
+    public void Token_invalid_jwt_identifiers_fail(bool issueJwt, string issuer, string audience, string expected) =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueJwt = issueJwt;
+            o.Token.Issuer = issuer;
+            o.Token.Audience = audience;
+        }, expected);
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(15)]
+    [InlineData(129)]
+    public void Token_opaque_entropy_outside_limits_fails(int bytes) =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueOpaque = true;
+            o.Token.OpaqueIdBytes = bytes;
+        }, "OpaqueIdBytes");
+
+    [Theory]
+    [InlineData(16)]
+    [InlineData(128)]
+    public void Token_opaque_entropy_boundary_values_pass(int bytes) =>
+        ShouldAccept<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueOpaque = true;
+            o.Token.OpaqueIdBytes = bytes;
+        });
+
+    [Fact]
+    public void Token_jwt_fields_are_not_required_when_jwt_disabled() =>
+        ShouldAccept<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueJwt = false;
+            o.Token.IssueOpaque = true;
+            o.Token.Issuer = "";
+            o.Token.Audience = "";
+        });
+
+    [Fact]
+    public void Token_refresh_lifetime_is_not_checked_when_refresh_disabled() =>
+        ShouldAccept<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.IssueRefresh = false;
+            o.Token.RefreshTokenLifetime = TimeSpan.Zero;
+        });
+
+    [Fact]
+    public void Token_multiple_errors_are_reported() =>
+        ShouldReject<UAuthServerTokenOptionsValidator>(o =>
+        {
+            o.Token.AccessTokenLifetime = TimeSpan.Zero;
+            o.Token.OpaqueIdBytes = 1;
+        }, "OpaqueIdBytes");
+
+    [Fact]
+    public void Identifiers_only_user_override_passes() =>
+        ShouldAccept<UAuthServerUserIdentifierOptionsValidator>(o =>
+        {
+            o.Identifiers.Behavior.AllowAdminOverride = false;
+            o.Identifiers.Behavior.AllowUserOverride = true;
+        });
+
+    [Fact]
+    public void Identifiers_both_overrides_enabled_pass() =>
+        ShouldAccept<UAuthServerUserIdentifierOptionsValidator>(o =>
+        {
+            o.Identifiers.Behavior.AllowAdminOverride = true;
+            o.Identifiers.Behavior.AllowUserOverride = true;
+        });
+
+    [Fact]
+    public void SessionResolution_empty_order_fails() =>
+        ShouldReject<UAuthServerSessionResolutionOptionsValidator>(o =>
+        {
+            o.SessionResolution.EnableBearer = true;
+            o.SessionResolution.Order = new();
+        }, "SessionResolution.Order");
+
+    [Fact]
+    public void SessionResolution_unknown_resolver_fails() =>
+        ShouldReject<UAuthServerSessionResolutionOptionsValidator>(o =>
+        {
+            o.SessionResolution.EnableBearer = true;
+            o.SessionResolution.Order = new() { "Bearer", "Unknown" };
+        }, "Unknown session resolver");
+
+    [Fact]
+    public void SessionResolution_query_without_parameter_name_fails() =>
+        ShouldReject<UAuthServerSessionResolutionOptionsValidator>(o =>
+        {
+            o.SessionResolution.EnableBearer = true;
+            o.SessionResolution.EnableQuery = true;
+            o.SessionResolution.Order = new() { "Bearer", "Query" };
+            o.SessionResolution.QueryParameterName = " ";
+        }, "QueryParameterName");
+
+    [Theory]
+    [InlineData("Bearer")]
+    [InlineData("Header")]
+    [InlineData("Cookie")]
+    [InlineData("Query")]
+    public void SessionResolution_enabled_resolver_names_are_case_insensitive(string resolver) =>
+        ShouldAccept<UAuthServerSessionResolutionOptionsValidator>(o =>
+        {
+            o.SessionResolution.EnableBearer = resolver == "Bearer";
+            o.SessionResolution.EnableHeader = resolver == "Header";
+            o.SessionResolution.EnableCookie = resolver == "Cookie";
+            o.SessionResolution.EnableQuery = resolver == "Query";
+            o.SessionResolution.HeaderName = "X-Session";
+            o.SessionResolution.QueryParameterName = "session";
+            o.SessionResolution.Order = new() { resolver.ToLowerInvariant() };
+        });
+
+    [Fact]
+    public void Pagination_null_configuration_fails() =>
+        ShouldReject<UAuthServerPaginationOptionsValidator>(o => o.Pagination = null!,
+            "Pagination configuration cannot be null");
+
+    [Fact]
+    public void Pagination_multiple_errors_are_reported() =>
+        ShouldReject<UAuthServerPaginationOptionsValidator>(o =>
+        {
+            o.Pagination.DefaultPageSize = -1;
+            o.Pagination.MaxPageSize = 0;
+        }, "Pagination.MaxPageSize");
+
+    private static void ConfigureValidCrossOptions(UAuthServerOptions o)
+    {
+        o.AllowedModes = new[] { UAuthMode.Hybrid };
+        o.Session.Lifetime = TimeSpan.FromDays(7);
+        o.Session.MaxLifetime = TimeSpan.FromDays(10);
+        o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
+        o.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
+    }
+
+    [Fact]
+    public void Server_base_path_missing_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Endpoints.BasePath = " ";
+        }, "BasePath must be specified");
+
+    [Fact]
+    public void Server_base_path_double_slash_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Endpoints.BasePath = "/auth//api";
+        }, "BasePath cannot contain");
+
+    [Fact]
+    public void Server_undefined_mode_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.AllowedModes = new[] { (UAuthMode)999 };
+        }, "Invalid UAuthMode");
+
+    [Theory]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public void Server_unimplemented_mode_fails(UAuthMode mode) =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.AllowedModes = new[] { mode };
+        }, "not implemented yet");
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureOpaque)]
+    public void Server_implemented_modes_pass(UAuthMode mode) =>
+        ShouldAccept<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.AllowedModes = new[] { mode };
+        });
+
+    [Fact]
+    public void Server_null_allowed_modes_pass_under_current_rules() =>
+        ShouldAccept<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.AllowedModes = null;
+        });
+
+    [Fact]
+    public void Server_empty_allowed_modes_pass_under_current_rules() =>
+        ShouldAccept<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.AllowedModes = Array.Empty<UAuthMode>();
+        });
+
+    [Fact]
+    public void Server_session_lifetime_nonpositive_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.Lifetime = TimeSpan.Zero;
+        }, "Session.Lifetime");
+
+    [Fact]
+    public void Server_session_max_lifetime_nonpositive_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.MaxLifetime = TimeSpan.Zero;
+        }, "Session.MaxLifetime");
+
+    [Fact]
+    public void Server_access_token_exceeding_session_max_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.MaxLifetime = TimeSpan.FromMinutes(5);
+            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(6);
+            o.Token.RefreshTokenLifetime = TimeSpan.FromMinutes(4);
+        }, "Token.AccessTokenLifetime");
+
+    [Fact]
+    public void Server_refresh_token_exceeding_session_max_fails() =>
+        ShouldReject<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.MaxLifetime = TimeSpan.FromMinutes(5);
+            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(1);
+            o.Token.RefreshTokenLifetime = TimeSpan.FromMinutes(6);
+        }, "Token.RefreshTokenLifetime");
+
+    [Fact]
+    public void Server_token_lifetimes_equal_to_session_max_pass() =>
+        ShouldAccept<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.MaxLifetime = TimeSpan.FromDays(7);
+            o.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
+        });
+
+    [Fact]
+    public void Server_null_session_max_lifetime_passes_under_current_rules() =>
+        ShouldAccept<UAuthServerOptionsValidator>(o =>
+        {
+            ConfigureValidCrossOptions(o);
+            o.Session.MaxLifetime = null;
+        });
+
+
+    private static void ShouldReject<TValidator>(Action<UAuthServerOptions> configure, string expected)
+        where TValidator : class, IValidateOptions<UAuthServerOptions>, new()
+    {
+        var services = new ServiceCollection();
+        services.AddOptions<UAuthServerOptions>().Configure(configure);
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, TValidator>();
+        using var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value);
+        Assert.Contains(expected, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ShouldAccept<TValidator>(Action<UAuthServerOptions> configure)
+        where TValidator : class, IValidateOptions<UAuthServerOptions>, new()
+    {
+        var services = new ServiceCollection();
+        services.AddOptions<UAuthServerOptions>().Configure(configure);
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, TValidator>();
+        using var provider = services.BuildServiceProvider();
+        _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
     }
 }
