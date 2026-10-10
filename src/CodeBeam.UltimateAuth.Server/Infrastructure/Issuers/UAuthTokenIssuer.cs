@@ -41,7 +41,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         {
             // TODO: Discuss, Hybrid token may be JWT.
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
-                Task.FromResult(IssueOpaqueAccessToken(expires, flow?.Session?.SessionId.ToString())),
+                Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
             UAuthMode.SemiHybrid or
             UAuthMode.PureJwt =>
@@ -93,7 +93,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         };
     }
 
-    private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)
+    private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, AuthSessionId? sessionId)
     {
         string token = _opaqueGenerator.Generate();
 
@@ -102,7 +102,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             Token = token,
             Format = TokenFormat.Opaque,
             ExpiresAt = expires,
-            SessionId = sessionId
+            SessionId = sessionId.ToString()
         };
     }
 

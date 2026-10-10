@@ -225,7 +225,7 @@ public sealed class ValidateEndpointHandlerTests
         var validation =
             SessionValidationResult.Invalid(
                 SessionState.Invalid,
-                userId: null,
+                userKey: null,
                 sessionId: sessionId);
 
         fixture.SessionValidator
@@ -316,10 +316,10 @@ public sealed class ValidateEndpointHandlerTests
             .BeSameAs(snapshot);
 
         value.ChainId.Should()
-            .Be(validation.ChainId!.Value.Value);
+            .Be(validation.ChainId!);
 
         value.RootId.Should()
-            .Be(validation.RootId!.Value.Value);
+            .Be(validation.RootId!);
 
         fixture.SnapshotFactory.Verify(
             x => x.CreateAsync(
@@ -350,7 +350,7 @@ public sealed class ValidateEndpointHandlerTests
         var validation =
             SessionValidationResult.Invalid(
                 SessionState.Revoked,
-                userId: userKey,
+                userKey: userKey,
                 sessionId: sessionId);
 
         fixture.SessionValidator

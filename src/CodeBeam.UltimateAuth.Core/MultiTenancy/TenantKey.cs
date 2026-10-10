@@ -38,6 +38,8 @@ public readonly record struct TenantKey : IParsable<TenantKey>
         return result;
     }
 
+    public static TenantKey Parse(string value) => Parse(value, null);
+
     public static bool TryParse(string? s, IFormatProvider? provider, out TenantKey result)
     {
         result = default;
@@ -50,7 +52,11 @@ public readonly record struct TenantKey : IParsable<TenantKey>
             result = FromExternal(s);
             return true;
         }
-        catch
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (SecurityException)
         {
             return false;
         }

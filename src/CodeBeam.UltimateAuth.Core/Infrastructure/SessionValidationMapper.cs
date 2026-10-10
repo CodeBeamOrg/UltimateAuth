@@ -14,52 +14,30 @@ public static class SessionValidationMapper
             return SessionValidationResult.Invalid(
                 dto.State,
                 sessionId: sessionId,
-                chainId: TryParseChainId(dto.ChainId),
-                rootId: TryParseRootId(dto.RootId),
-                boundDeviceId: TryParseDeviceId(dto.BoundDeviceId));
+                chainId: dto.ChainId,
+                rootId: dto.RootId,
+                boundDeviceId: dto.BoundDeviceId);
         }
 
-        //
-        // Active is a stronger contract than merely receiving
-        // a successful HTTP response. All required security
-        // lineage and identity data must be present.
-        //
+        // An active validation result must contain
+        // the required identity and security lineage.
 
         if (dto.Snapshot?.Identity is null)
         {
-            return SessionValidationResult.Invalid(
-                SessionState.Invalid,
-                sessionId: sessionId);
+            return SessionValidationResult.Invalid(SessionState.Invalid, sessionId: sessionId);
         }
 
-        if (dto.ChainId is not Guid chainGuid ||
-            chainGuid == Guid.Empty)
+        if (dto.ChainId is not SessionChainId chainId || chainId.IsUnassigned)
         {
-            return SessionValidationResult.Invalid(
-                SessionState.Invalid,
-                sessionId: sessionId);
+            return SessionValidationResult.Invalid(SessionState.Invalid, sessionId: sessionId);
         }
 
-        var chainId =
-            SessionChainId.From(chainGuid);
-
-        if (dto.RootId is not Guid rootGuid ||
-            rootGuid == Guid.Empty)
+        if (dto.RootId is not SessionRootId rootId || rootId.Value == Guid.Empty)
         {
-            return SessionValidationResult.Invalid(
-                SessionState.Invalid,
-                sessionId: sessionId,
-                chainId: chainId);
+            return SessionValidationResult.Invalid(SessionState.Invalid, sessionId: sessionId, chainId: chainId);
         }
 
-        var rootId =
-            SessionRootId.From(rootGuid);
-
-        var identity =
-            dto.Snapshot.Identity;
-
-        var boundDeviceId =
-            TryParseDeviceId(dto.BoundDeviceId);
+        var identity = dto.Snapshot.Identity;
 
         return SessionValidationResult.Active(
             tenant: identity.Tenant,
@@ -68,10 +46,8 @@ public static class SessionValidationMapper
             chainId: chainId,
             rootId: rootId,
             claims: dto.Snapshot.Claims,
-            authenticatedAt:
-                identity.AuthenticatedAt
-                ?? DateTimeOffset.UtcNow,
-            boundDeviceId: boundDeviceId);
+            authenticatedAt: identity.AuthenticatedAt ?? DateTimeOffset.UtcNow,
+            boundDeviceId: dto.BoundDeviceId);
     }
 
     public static SessionSecurityContext? ToSecurityContext(SessionValidationResult result)
@@ -87,36 +63,5 @@ public static class SessionValidationMapper
             UserKey = result.UserKey,
             BoundDeviceId = result.BoundDeviceId
         };
-    }
-
-    private static SessionChainId? TryParseChainId(Guid? value)
-    {
-        if (value is not Guid guid ||
-            guid == Guid.Empty)
-        {
-            return null;
-        }
-
-        return SessionChainId.From(guid);
-    }
-
-    private static SessionRootId? TryParseRootId(Guid? value)
-    {
-        if (value is not Guid guid ||
-            guid == Guid.Empty)
-        {
-            return null;
-        }
-
-        return SessionRootId.From(guid);
-    }
-
-    private static DeviceId? TryParseDeviceId(string? value)
-    {
-        return DeviceId.TryCreate(
-            value,
-            out var id)
-            ? id
-            : null;
     }
 }

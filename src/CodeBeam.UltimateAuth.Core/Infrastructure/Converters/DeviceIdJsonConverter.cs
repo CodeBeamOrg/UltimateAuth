@@ -8,6 +8,9 @@ public sealed class DeviceIdJsonConverter : JsonConverter<DeviceId>
 {
     public override DeviceId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType != JsonTokenType.String)
+            throw new JsonException("DeviceId must be a string.");
+
         var value = reader.GetString();
 
         if (!DeviceId.TryCreate(value, out var id))

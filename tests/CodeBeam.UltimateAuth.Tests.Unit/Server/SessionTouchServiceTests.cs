@@ -40,7 +40,7 @@ public sealed class SessionTouchServiceTests
         var sut = new SessionTouchService(factory.Object);
         var validation = SessionValidationResult.Invalid(
             SessionState.Active,
-            userId: TestUsers.User,
+            userKey: TestUsers.User,
             sessionId: TestIds.Session("active-session"));
 
         var result = await sut.RefreshAsync(
