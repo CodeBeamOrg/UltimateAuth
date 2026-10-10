@@ -136,7 +136,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.Decide(
                 It.IsAny<AccessContext>(),
                 policies))
-            .Returns(AccessDecision.Deny(string.Empty));
+            .Returns(AccessDecision.Deny(null));
 
         var command = new AccessCommand(_ => Task.CompletedTask);
 
