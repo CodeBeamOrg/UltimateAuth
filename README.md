@@ -53,6 +53,16 @@ We keep it up-to-date with current priorities, planned features, and progress. F
 
 ---
 
+### 💜 Join the UltimateAuth Community
+
+UltimateAuth is more than a framework — it's a growing open-source community.
+
+Join our **[Discord server](https://discord.gg/QscA86dXSR)** to connect with developers, ask questions, share ideas, discuss authentication challenges, and help shape the future of UltimateAuth.
+
+Whether you're using UltimateAuth, exploring the project, or interested in contributing, **you're always welcome!**
+
+---
+
 ## 🌟 Why UltimateAuth
 The Six-Point Principles
 
@@ -321,12 +331,21 @@ Create accounts, simulate devices, test auth flows, and observe UltimateAuth in 
 
 ---
 
-## 🤝 Contributing
+## 🤝 Community & Contributing
 
-UltimateAuth is a community-first framework.  
-We welcome proposals, discussions, architectural insights, and contributions of all sizes.
+UltimateAuth is built by developers, for developers — and everyone is welcome to be part of its journey.
 
-Discussions are open — your ideas matter.
+Whether you're reporting a bug, proposing an idea, improving documentation, or submitting code, your contribution matters.
+
+**You don't need to be an expert to get involved.**
+
+- 💜 **[Join our Discord](https://discord.gg/QscA86dXSR)** — Connect with the community and share ideas.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** — Learn how to contribute.
+- 🛡️ **[Security Policy](SECURITY.md)** — Report security vulnerabilities responsibly.
+- 📜 **[Code of Conduct](CODE_OF_CONDUCT.md)** — Our community values.
+- 🏛️ **[Governance](GOVERNANCE.md)** — How project decisions are made.
+
+Every great open-source project starts with people willing to build something together.
 
 ---
 
