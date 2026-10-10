@@ -266,10 +266,14 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 Claims = claims.AsDictionary()
             };
 
+            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+
+            var refreshIssuance = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
+
             tokens = new AuthTokens
             {
-                AccessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct),
-                RefreshToken = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct)
+                AccessToken = accessToken,
+                RefreshToken = refreshIssuance is null ? null : new RefreshTokenInfo { Token = refreshIssuance.Token, ExpiresAt = refreshIssuance.ExpiresAt }
             };
         }
 

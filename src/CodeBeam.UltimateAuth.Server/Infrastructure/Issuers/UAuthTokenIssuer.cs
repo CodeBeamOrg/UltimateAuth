@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstactions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
@@ -50,7 +51,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         };
     }
 
-    public async Task<RefreshTokenInfo?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
+    public async Task<RefreshTokenIssuanceResult?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque)
             return null;
@@ -84,7 +85,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             }, ct);
         }
 
-        return new RefreshTokenInfo
+        return new RefreshTokenIssuanceResult
         {
             Token = raw,
             TokenHash = hash,

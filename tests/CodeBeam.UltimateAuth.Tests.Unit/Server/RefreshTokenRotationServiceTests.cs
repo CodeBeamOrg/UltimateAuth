@@ -13,6 +13,7 @@ using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
 using Moq;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -270,7 +271,7 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<TokenIssuanceContext>(),
                 RefreshTokenPersistence.DoNotPersist,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((RefreshTokenInfo?)null);
+            .ReturnsAsync((RefreshTokenIssuanceResult?)null);
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
@@ -316,7 +317,7 @@ public sealed class RefreshTokenRotationServiceTests
         var issuer = new Mock<ITokenIssuer>();
 
         var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenInfo();
+        var refreshToken = CreateRefreshTokenIssuanceResult();
 
         issuer
             .Setup(x => x.IssueAccessTokenAsync(
@@ -333,22 +334,16 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(refreshToken);
 
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object);
+        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object);
 
-        var result = await sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId));
+        var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId));
 
         result.Result.IsSuccess.Should().BeTrue();
-
-        result.Result.AccessToken
-            .Should().BeSameAs(accessToken);
-
-        result.Result.RefreshToken
-            .Should().BeSameAs(refreshToken);
+        result.Result.AccessToken.Should().BeSameAs(accessToken);
+        result.Result.RefreshToken.Should().NotBeNull();
+        result.Result.RefreshToken!.Token.Should().Be(refreshToken.Token);
+        result.Result.RefreshToken.ExpiresAt.Should().Be(refreshToken.ExpiresAt);
+        typeof(RefreshTokenInfo).GetProperty(nameof(RefreshTokenIssuanceResult.TokenHash)).Should().BeNull();
 
         result.Tenant.Should().Be(tenant);
         result.UserKey.Should().Be(validation.UserKey);
@@ -477,7 +472,7 @@ public sealed class RefreshTokenRotationServiceTests
         var issuer = new Mock<ITokenIssuer>();
 
         var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenInfo();
+        var refreshToken = CreateRefreshTokenIssuanceResult();
 
         issuer
             .Setup(x => x.IssueAccessTokenAsync(
@@ -531,6 +526,22 @@ public sealed class RefreshTokenRotationServiceTests
             It.IsAny<TokenIssuanceContext>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public void RefreshTokenInfo_DoesNotExposeTokenHash()
+    {
+        var info = new RefreshTokenInfo
+        {
+            Token = "raw-refresh-token",
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(7)
+        };
+
+        var json = JsonSerializer.Serialize(info);
+
+        json.Should().Contain("raw-refresh-token");
+        json.Should().NotContain("TokenHash");
+        typeof(RefreshTokenInfo).GetProperty("TokenHash").Should().BeNull();
     }
 
 
@@ -620,7 +631,7 @@ public sealed class RefreshTokenRotationServiceTests
             ExpiresAt = Now.AddMinutes(15)
         };
 
-    private static RefreshTokenInfo CreateRefreshTokenInfo()
+    private static RefreshTokenIssuanceResult CreateRefreshTokenIssuanceResult()
         => new()
         {
             Token = "new-refresh-token",
@@ -646,7 +657,7 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<TokenIssuanceContext>(),
                 RefreshTokenPersistence.DoNotPersist,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateRefreshTokenInfo());
+            .ReturnsAsync(CreateRefreshTokenIssuanceResult());
     }
 
     private static AuthFlowContext CreateFlow(TenantKey? tenant = null, bool multiTenant = false)

@@ -464,7 +464,7 @@ public sealed class RefreshFlowServiceTests
             ExpiresAt = Now.AddMinutes(15)
         };
 
-        var refresh = new RefreshTokenInfo
+        var refresh = new RefreshTokenIssuanceResult
         {
             Token = "new-refresh-token",
             TokenHash = "new-refresh-token-hash",
@@ -477,7 +477,7 @@ public sealed class RefreshFlowServiceTests
             UserKey = UserKey.New(),
             SessionId = SessionId,
             ChainId = SessionChainId.New(),
-            Result = RefreshTokenRotationResult.Success(access, refresh)
+            Result = RefreshTokenRotationResult.Success(access, RefreshTokenMapper.ToTransport(refresh))
         };
     }
 

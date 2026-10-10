@@ -125,6 +125,11 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         // Only the winning request needs an access token.
         var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
+        var refreshTokenInfo = new RefreshTokenInfo
+        {
+            Token = refreshToken.Token,
+            ExpiresAt = refreshToken.ExpiresAt
+        };
 
         return new RefreshTokenRotationExecution
         {
@@ -132,8 +137,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             UserKey = userKey,
             SessionId = sessionId,
             ChainId = validation.ChainId,
-
-            Result = RefreshTokenRotationResult.Success(accessToken, refreshToken)
+            Result = RefreshTokenRotationResult.Success(accessToken, refreshTokenInfo)
         };
     }
 
