@@ -81,6 +81,11 @@ public sealed class UAuthServerOptions
 
     public UAuthResetOptions ResetCredential { get; init; } = new();
 
+    /// <summary>
+    /// Controls session invalidation after credential changes and recovery.
+    /// </summary>
+    public UAuthCredentialSessionPolicyOptions CredentialSessionPolicy { get; init; } = new();
+
     public UAuthHubOptions Hub { get; set; } = new();
 
     /// <summary>
@@ -151,6 +156,7 @@ public sealed class UAuthServerOptions
             PrimaryCredential = PrimaryCredential.Clone(),
             AuthResponse = AuthResponse.Clone(),
             ResetCredential = ResetCredential.Clone(),
+            CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             Identifiers = Identifiers.Clone(),

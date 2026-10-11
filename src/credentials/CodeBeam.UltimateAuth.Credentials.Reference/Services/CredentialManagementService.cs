@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -25,6 +26,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly ILoginIdentifierResolver _identifierResolver;
     private readonly ISessionStoreFactory _sessionFactory;
     private readonly ICredentialResetNotifier _resetNotifier;
+    private readonly ICredentialSessionPolicy _credentialSessionPolicy;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -39,6 +41,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         ILoginIdentifierResolver identifierResolver,
         ISessionStoreFactory sessionFactory,
         ICredentialResetNotifier resetNotifier,
+        ICredentialSessionPolicy credentialSessionPolicy,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -52,6 +55,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _identifierResolver = identifierResolver;
         _sessionFactory = sessionFactory;
         _resetNotifier = resetNotifier;
+        _credentialSessionPolicy = credentialSessionPolicy;
         _options = options.Value;
         _clock = clock;
     }
@@ -156,15 +160,19 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var updated = pwd.ChangeSecret(newHash, now);
             await store.SaveAsync(updated, oldVersion, innerCt);
 
-            var sessionStore = _sessionFactory.Create(context.ResourceTenant);
-            if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
-            {
-                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
-            }
-            else
-            {
-                await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
-            }
+            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant, subjectUser, context.IsSelfAction 
+                    ? CredentialChangeReason.SelfChange
+                    : CredentialChangeReason.AdminChange,
+                context.ActorChainId, now, innerCt);
+            //var sessionStore = _sessionFactory.Create(context.ResourceTenant);
+            //if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
+            //{
+            //    await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
+            //}
+            //else
+            //{
+            //    await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
+            //}
 
             return ChangeCredentialResult.Success(pwd.Type);
         });
@@ -352,6 +360,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var updated = pwd.ChangeSecret(newHash, now);
 
             await store.SaveAsync(updated, oldVersion, innerCt);
+            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant ,userKey, CredentialChangeReason.Recovery, actorChainId: null, now, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -420,5 +429,36 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         var store = _credentialsFactory.Create(tenant);
         await store.DeleteByUserAsync(userKey, DeleteMode.Soft, _clock.UtcNow, ct);
         return CredentialActionResult.Success();
+    }
+
+    // ----------------------------------------
+    // HELPERS
+    // ----------------------------------------
+    private async Task ApplyCredentialSessionPolicyAsync(TenantKey tenant, UserKey subjectUser, CredentialChangeReason reason,
+                       SessionChainId? actorChainId, DateTimeOffset now, CancellationToken ct)
+    {
+        var behavior = _credentialSessionPolicy.Resolve(reason);
+
+        if (behavior == CredentialSessionBehavior.PreserveAll)
+            return;
+
+        var sessionStore = _sessionFactory.Create(tenant);
+
+        switch (behavior)
+        {
+            case CredentialSessionBehavior.PreserveCurrent
+                when reason == CredentialChangeReason.SelfChange && actorChainId is SessionChainId chainId:
+                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, ct);
+                break;
+
+            case CredentialSessionBehavior.PreserveCurrent:
+            case CredentialSessionBehavior.RevokeAll:
+
+                await sessionStore.RevokeAllChainsAsync(subjectUser, now, ct);
+                break;
+
+            default:
+                throw new InvalidOperationException($"Unsupported credential session behavior: {behavior}");
+        }
     }
 }

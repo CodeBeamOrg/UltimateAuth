@@ -972,6 +972,9 @@ public sealed class CredentialManagementServiceTests
         public Mock<ISessionStore> SessionStore { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<ICredentialSessionPolicy> CredentialSessionPolicy { get; }
+            = new(MockBehavior.Strict);
+
         public Mock<IClock> Clock { get; }
             = new(MockBehavior.Strict);
 
@@ -1062,6 +1065,7 @@ public sealed class CredentialManagementServiceTests
                 IdentifierResolver.Object,
                 SessionStoreFactory.Object,
                 ResetNotifier.Object,
+                CredentialSessionPolicy.Object,
                 options,
                 Clock.Object);
         }
