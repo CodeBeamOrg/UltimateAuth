@@ -212,6 +212,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (string.IsNullOrWhiteSpace(request.Identifier))
                 throw new UAuthValidationException("identifier_required");
 
+            // TODO: Support other credential types in the future (e.g., Totp, Passkey, etc.)
+            if (request.CredentialType != CredentialType.Password)
+                throw new UAuthValidationException("credential_reset_type_not_supported");
+
             if (request.ResetCodeType is not (ResetCodeType.Token or ResetCodeType.Code))
                 throw new UAuthValidationException("invalid_reset_code_type");
 
@@ -286,6 +290,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
             if (string.IsNullOrWhiteSpace(request.NewSecret))
                 throw new UAuthValidationException("new_secret_required");
+
+            // TODO: Support other credential types in the future (e.g., Totp, Passkey, etc.)
+            if (request.CredentialType != CredentialType.Password)
+                throw new UAuthValidationException("credential_reset_type_not_supported");
 
             var now = _clock.UtcNow;
 
