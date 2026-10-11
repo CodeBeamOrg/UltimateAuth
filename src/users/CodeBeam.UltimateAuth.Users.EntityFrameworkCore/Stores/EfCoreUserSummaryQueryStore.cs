@@ -127,37 +127,48 @@ internal sealed class EfCoreUserSummaryQueryStore<TDbContext> : IUserSummaryQuer
         {
             nameof(UserSummary.DisplayName) =>
                 query.Descending
-                    ? summaries.OrderByDescending(x => x.DisplayName).ThenBy(x => x.CreatedAt)
-                    : summaries.OrderBy(x => x.DisplayName).ThenBy(x => x.CreatedAt),
+                    ? summaries.OrderByDescending(x => x.DisplayName)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey)
+                    : summaries.OrderBy(x => x.DisplayName)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey),
 
             nameof(UserSummary.UserName) =>
                 query.Descending
-                    ? summaries.OrderByDescending(x => x.UserName).ThenBy(x => x.CreatedAt)
-                    : summaries.OrderBy(x => x.UserName).ThenBy(x => x.CreatedAt),
+                    ? summaries.OrderByDescending(x => x.UserName)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey)
+                    : summaries.OrderBy(x => x.UserName)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey),
 
             nameof(UserSummary.PrimaryEmail) =>
                 query.Descending
-                    ? summaries.OrderByDescending(x => x.PrimaryEmail).ThenBy(x => x.CreatedAt)
-                    : summaries.OrderBy(x => x.PrimaryEmail).ThenBy(x => x.CreatedAt),
+                    ? summaries.OrderByDescending(x => x.PrimaryEmail)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey)
+                    : summaries.OrderBy(x => x.PrimaryEmail)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey),
 
             nameof(UserSummary.PrimaryPhone) =>
                 query.Descending
-                    ? summaries.OrderByDescending(x => x.PrimaryPhone).ThenBy(x => x.CreatedAt)
-                    : summaries.OrderBy(x => x.PrimaryPhone).ThenBy(x => x.CreatedAt),
-
-            nameof(UserSummary.CreatedAt) =>
-                query.Descending
-                    ? summaries.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.UserKey)
-                    : summaries.OrderBy(x => x.CreatedAt).ThenBy(x => x.UserKey),
+                    ? summaries.OrderByDescending(x => x.PrimaryPhone)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey)
+                    : summaries.OrderBy(x => x.PrimaryPhone)
+                        .ThenBy(x => x.CreatedAt)
+                        .ThenBy(x => x.UserKey),
 
             _ => query.Descending
-                ? summaries.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.UserKey)
-                : summaries.OrderBy(x => x.CreatedAt).ThenBy(x => x.UserKey)
+                ? summaries.OrderByDescending(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey)
+                : summaries.OrderBy(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey)
         };
 
-        var offset =
-            ((long)normalized.PageNumber - 1) *
-            normalized.PageSize;
+        var offset = ((long)normalized.PageNumber - 1) * normalized.PageSize;
 
         if (offset > int.MaxValue)
         {
