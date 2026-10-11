@@ -186,55 +186,6 @@ internal class UAuthFlowClient : IFlowClient
         };
     }
 
-    //public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
-    //{
-    //    if (isAuto == false)
-    //    {
-    //        _diagnostics.MarkManualRefresh();
-    //    }
-
-    //    var url = Url(_options.Endpoints.Refresh);
-    //    var result = await _post.SendFormAsync(url);
-
-    //    if (result.Status == 401)
-    //    {
-    //        _diagnostics.MarkRefreshReauthRequired();
-    //        return new RefreshResult
-    //        {
-    //            IsSuccess = false,
-    //            Status = result.Status,
-    //            Outcome = RefreshOutcome.ReauthRequired
-    //        };
-    //    }
-
-    //    var refreshOutcome = RefreshOutcomeParser.Parse(result.RefreshOutcome);
-    //    switch (refreshOutcome)
-    //    {
-    //        case RefreshOutcome.NoOp:
-    //            _diagnostics.MarkRefreshNoOp();
-    //            break;
-    //        case RefreshOutcome.Touched:
-    //            _diagnostics.MarkRefreshTouched();
-    //            break;
-    //        case RefreshOutcome.Rotated:
-    //            _diagnostics.MarkRefreshRotated();
-    //            break;
-    //        case RefreshOutcome.ReauthRequired:
-    //            _diagnostics.MarkRefreshReauthRequired();
-    //            break;
-    //        case RefreshOutcome.Success:
-    //            _diagnostics.MarkRefreshSuccess();
-    //            break;
-    //    }
-
-    //    return new RefreshResult
-    //    {
-    //        IsSuccess = result.Ok,
-    //        Status = result.Status,
-    //        Outcome = refreshOutcome
-    //    };
-    //}
-
     //public async Task ReauthAsync()
     //{
     //    var url = Url(_options.Endpoints.Reauth);
@@ -304,14 +255,35 @@ internal class UAuthFlowClient : IFlowClient
                 ["challenge_method"] = "S256"
             });
 
-        if (!raw.Ok || raw.Body is null)
-            throw new InvalidOperationException("PKCE authorize failed.");
+        EnsureValidHttpStatus(raw);
 
-        var response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (raw.Status is >= 400 and < 500)
+        {
+            throw new UAuthProtocolException($"PKCE authorize request failed: {raw.Status}.");
+        }
 
-        if (response is null || string.IsNullOrWhiteSpace(response.AuthorizationCode))
-            throw new InvalidOperationException("Invalid PKCE authorize response.");
+        if (raw.Body is null || raw.Body.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            throw new UAuthProtocolException("Missing PKCE authorize response body.");
+        }
+
+        PkceAuthorizeResponse response;
+
+        try
+        {
+            response = raw.Body.Value.Deserialize<PkceAuthorizeResponse>(
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? throw new UAuthProtocolException("Invalid PKCE authorize response.");
+        }
+        catch (JsonException ex)
+        {
+            throw new UAuthProtocolException("Invalid PKCE authorize response format.", ex);
+        }
+
+        if (string.IsNullOrWhiteSpace(response.AuthorizationCode))
+            throw new UAuthProtocolException("PKCE authorize response has no authorization code.");
 
         if (pkce.OnAuthorized is not null)
             await pkce.OnAuthorized(response);
