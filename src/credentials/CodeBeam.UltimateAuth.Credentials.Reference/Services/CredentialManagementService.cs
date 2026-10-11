@@ -164,15 +164,6 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     ? CredentialChangeReason.SelfChange
                     : CredentialChangeReason.AdminChange,
                 context.ActorChainId, now, innerCt);
-            //var sessionStore = _sessionFactory.Create(context.ResourceTenant);
-            //if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
-            //{
-            //    await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
-            //}
-            //else
-            //{
-            //    await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
-            //}
 
             return ChangeCredentialResult.Success(pwd.Type);
         });
@@ -221,6 +212,9 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (string.IsNullOrWhiteSpace(request.Identifier))
                 throw new UAuthValidationException("identifier_required");
 
+            if (request.ResetCodeType is not (ResetCodeType.Token or ResetCodeType.Code))
+                throw new UAuthValidationException("invalid_reset_code_type");
+
             var now = _clock.UtcNow;
             // Anonymous callers must not control the proof's lifetime.
             var validity = _options.ResetCredential.TokenValidity;
@@ -239,23 +233,23 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (resolution?.UserKey is not UserKey userKey)
                 return result; // Enumeration protection
 
-            var state = await _authenticationSecurityManager
-                .GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
+            var state = await _authenticationSecurityManager.GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
 
-            string token;
+            // An existing active reset must not be observable
+            // through the anonymous endpoint.
+            if (state.HasActiveReset(now) && context.IsAnonymousContext)
+                return result;
 
-            if (request.ResetCodeType == ResetCodeType.Token)
+            var token = request.ResetCodeType switch
             {
-                token = _tokenGenerator.Generate();
-            }
-            else if (request.ResetCodeType == ResetCodeType.Code)
-            {
-                token = _numericCodeGenerator.Generate(_options.ResetCredential.CodeLength);
-            }
-            else
-            {
-                throw new UAuthValidationException("invalid_reset_code_type");
-            }
+                ResetCodeType.Token => _tokenGenerator.Generate(),
+
+                ResetCodeType.Code => _numericCodeGenerator.Generate(
+                    _options.ResetCredential.CodeLength),
+
+                _ => throw new UAuthValidationException(
+                    "invalid_reset_code_type")
+            };
 
             var tokenHash = _tokenHasher.Hash(token);
 
@@ -313,6 +307,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 var version2 = state.SecurityVersion;
                 var cleared = state.ClearReset();
                 await _authenticationSecurityManager.UpdateAsync(cleared, version2, innerCt);
+
+                if (context.IsAnonymousContext)
+                    return CredentialActionResult.Success();
+
                 throw new UAuthConflictException("reset_expired");
             }
 

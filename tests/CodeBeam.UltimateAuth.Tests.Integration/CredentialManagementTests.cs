@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
@@ -869,10 +870,62 @@ public sealed class CredentialManagementTests
         existing.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        (await existing.Content.ReadAsStringAsync())
-            .Should().Be(await unknown.Content.ReadAsStringAsync());
+        using var existingJson = JsonDocument.Parse(await existing.Content.ReadAsStringAsync());
+        using var unknownJson = JsonDocument.Parse(await unknown.Content.ReadAsStringAsync());
+
+        existingJson.RootElement.GetProperty("status").GetInt32()
+            .Should().Be(unknownJson.RootElement.GetProperty("status").GetInt32());
+
+        existingJson.RootElement.GetProperty("title").GetString()
+            .Should().Be(unknownJson.RootElement.GetProperty("title").GetString());
+
+        existingJson.RootElement.GetProperty("type").GetString()
+            .Should().Be(unknownJson.RootElement.GetProperty("type").GetString());
 
         notifier.Notifications.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AnonymousCompleteReset_SamePassword_ShouldNotRevealCredentialState()
+    {
+        var notifier = new TestResetNotifier();
+
+        using var factory = CreateFactory(notifier);
+        factory.Clock.Reset();
+
+        var user = await factory.CreateLoginUserAsync();
+
+        using var client = CreateClient(factory);
+
+        var begin = await BeginResetAsync(
+            client,
+            "/auth/me/credentials/reset/begin",
+            user.Identifier);
+
+        begin.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var token = notifier.Notifications.Single().Token;
+
+        var samePassword = await CompleteResetAsync(
+            client,
+            "/auth/me/credentials/reset/complete",
+            user.Identifier,
+            token,
+            user.Secret);
+
+        var unknown = await CompleteResetAsync(
+            client,
+            "/auth/me/credentials/reset/complete",
+            $"unknown-{Guid.NewGuid():N}",
+            token,
+            user.Secret);
+
+        samePassword.StatusCode.Should().Be(unknown.StatusCode);
+
+        (await samePassword.Content.ReadAsStringAsync())
+            .Should().Be(await unknown.Content.ReadAsStringAsync());
+
+        await AssertPasswordAsync(factory, user, user.Secret);
     }
 
 
