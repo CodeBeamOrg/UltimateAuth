@@ -25,6 +25,8 @@ public static class UAuthExceptionHandlingExtensions
         });
     }
 
+    // TODO: Standardize runtime error codes as stable machine-readable identifiers.
+    // Keep human-readable details separate from codes and ProblemDetails.Type.
     private static Task WriteProblemDetails(HttpContext context, UAuthRuntimeException ex)
     {
         var status = ex.StatusCode;
