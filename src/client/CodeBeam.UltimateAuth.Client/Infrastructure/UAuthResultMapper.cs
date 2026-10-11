@@ -110,6 +110,8 @@ internal static class UAuthResultMapper
         };
     }
 
+    // TODO: Preserve flattened ProblemDetails extensions during deserialization.
+    // Ensure custom extensions and traceId survive the server-to-SDK round-trip.
     private static UAuthProblem? TryDeserializeProblem(UAuthTransportResult raw)
     {
         if (raw.Body is null || raw.Body.Value.ValueKind != JsonValueKind.Object)

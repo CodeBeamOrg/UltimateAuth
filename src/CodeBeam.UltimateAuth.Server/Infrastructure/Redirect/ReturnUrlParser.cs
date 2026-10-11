@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Core.Errors;
+
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal static class ReturnUrlParser
 {
@@ -22,8 +24,8 @@ internal static class ReturnUrlParser
         }
 
         if (returnUrl.StartsWith("//", StringComparison.Ordinal))
-            throw new InvalidOperationException("Invalid returnUrl.");
+            throw new UAuthValidationException("return_url_invalid");
 
-        throw new InvalidOperationException("Invalid returnUrl.");
+        throw new UAuthValidationException("return_url_invalid");
     }
 }

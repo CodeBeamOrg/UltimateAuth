@@ -515,8 +515,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         Func<Task> act = async () => await client.BeginPkceAsync();
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Invalid PKCE authorize response*");
+        await act.Should().ThrowAsync<UAuthProtocolException>().WithMessage("*authorization code*");
     }
 
     [Fact]

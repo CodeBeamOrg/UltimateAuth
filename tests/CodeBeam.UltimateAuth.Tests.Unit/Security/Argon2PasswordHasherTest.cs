@@ -291,6 +291,23 @@ public class Argon2PasswordHasherTests
             .BeTrue();
     }
 
+    [Theory]
+    [InlineData("0.65536.1.c2FsdA==.aGFzaA==")]
+    [InlineData("3.0.1.c2FsdA==.aGFzaA==")]
+    [InlineData("3.65536.0.c2FsdA==.aGFzaA==")]
+    [InlineData("3.65536.1..aGFzaA==")]
+    [InlineData("3.65536.1.c2FsdA==.")]
+    public void Verify_ShouldReturnFalse_ForMalformedHash(string encoded)
+    {
+        var hasher = CreateHasher();
+
+        var hash = PasswordHash.Create(
+            PasswordAlgorithms.Argon2,
+            encoded);
+
+        hasher.Verify(hash, "password123").Should().BeFalse();
+    }
+
     private static Argon2PasswordHasher CreateHasher()
     {
         return CreateHasher(new Argon2Options());

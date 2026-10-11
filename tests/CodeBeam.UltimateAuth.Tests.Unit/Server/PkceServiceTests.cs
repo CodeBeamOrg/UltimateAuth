@@ -3,6 +3,7 @@ using System.Text;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -32,19 +33,15 @@ public sealed class PkceServiceTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task AuthorizeAsync_WhenCodeChallengeIsMissing_ShouldReject(
-        string? codeChallenge)
+    public async Task AuthorizeAsync_WhenCodeChallengeIsMissing_ShouldReject(string? codeChallenge)
     {
         var fixture = CreateFixture();
 
-        var command = CreateAuthorizeCommand(
-            codeChallenge: codeChallenge!);
+        var command = CreateAuthorizeCommand(codeChallenge: codeChallenge!);
 
-        var act = () =>
-            fixture.Sut.AuthorizeAsync(command);
+        var act = () => fixture.Sut.AuthorizeAsync(command);
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<UAuthValidationException>();
 
         fixture.Store.Verify(
             x => x.StoreAsync(
@@ -59,19 +56,15 @@ public sealed class PkceServiceTests
     [InlineData("plain")]
     [InlineData("s256")]
     [InlineData("S512")]
-    public async Task AuthorizeAsync_WhenChallengeMethodIsNotExactS256_ShouldReject(
-        string challengeMethod)
+    public async Task AuthorizeAsync_WhenChallengeMethodIsNotExactS256_ShouldReject(string challengeMethod)
     {
         var fixture = CreateFixture();
 
-        var command = CreateAuthorizeCommand(
-            challengeMethod: challengeMethod);
+        var command = CreateAuthorizeCommand(challengeMethod: challengeMethod);
 
-        var act = () =>
-            fixture.Sut.AuthorizeAsync(command);
+        var act = () => fixture.Sut.AuthorizeAsync(command);
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<UAuthValidationException>();
 
         fixture.Store.Verify(
             x => x.StoreAsync(

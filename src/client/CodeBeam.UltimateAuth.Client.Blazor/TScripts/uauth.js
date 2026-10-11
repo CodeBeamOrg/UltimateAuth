@@ -203,12 +203,27 @@ window.uauth.post = async function (options) {
         headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
 
-    const response = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-        headers: headers,
-        body: body
-    });
+    let response;
+
+    try {
+        response = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: headers,
+            body: body
+        });
+    } catch (error) {
+        if (error instanceof TypeError) {
+            return {
+                ok: false,
+                status: 0,
+                refreshOutcome: null,
+                body: null
+            };
+        }
+
+        throw error;
+    }
 
     let responseBody = null;
     try {
@@ -243,12 +258,27 @@ window.uauth.postJson = async function (options) {
         "X-Requested-With": "UAuth"
     };
 
-    const response = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-        headers: headers,
-        body: payload ? JSON.stringify(payload) : null
-    });
+    let response;
+
+    try {
+        response = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: headers,
+            body: payload ? JSON.stringify(payload) : null
+        });
+    } catch (error) {
+        if (error instanceof TypeError) {
+            return {
+                ok: false,
+                status: 0,
+                refreshOutcome: null,
+                body: null
+            };
+        }
+
+        throw error;
+    }
 
     let responseBody = null;
     try {
