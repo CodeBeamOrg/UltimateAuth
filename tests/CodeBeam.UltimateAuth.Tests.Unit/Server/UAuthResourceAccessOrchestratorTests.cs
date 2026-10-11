@@ -173,9 +173,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         var act = () => _sut.ExecuteAsync(context, command);
 
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("*reauthentication*");
+        await act.Should().ThrowAsync<UAuthChallengeRequiredException>();
 
         executed.Should().BeFalse();
     }
@@ -390,6 +388,42 @@ public sealed class UAuthResourceAccessOrchestratorTests
                 It.IsAny<IEnumerable<IAccessPolicy>>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteAsyncOfT_WhenReauthenticationRequired_ShouldNotExecuteCommand()
+    {
+        var policies = Array.Empty<IAccessPolicy>();
+
+        _policyProvider
+            .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
+            .Returns(policies);
+
+        _authority
+            .Setup(x => x.Decide(
+                It.IsAny<AccessContext>(),
+                policies))
+            .Returns(AccessDecision.ReauthenticationRequired());
+
+        var executed = false;
+
+        var command = new AccessCommand<string>(_ =>
+        {
+            executed = true;
+            return Task.FromResult("result");
+        });
+
+        Func<Task> act = async () =>
+            await _sut.ExecuteAsync(CreateContext(), command);
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthChallengeRequiredException>();
+
+        exception.Which.Code.Should().Be("challenge_required");
+        exception.Which.StatusCode.Should().Be(401);
+
+        executed.Should().BeFalse();
+    }
+
 
     private static ClaimsPrincipal CreatePrincipal(
         params (string Type, string Value)[] claims)

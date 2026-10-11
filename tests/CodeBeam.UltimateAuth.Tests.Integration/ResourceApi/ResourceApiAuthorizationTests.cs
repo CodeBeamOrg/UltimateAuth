@@ -7,10 +7,12 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Server;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration.ResourceApi;
 
@@ -320,6 +322,53 @@ public sealed class ResourceApiAuthorizationTests
         captured.Resource.Should()
             .Be("products");
     }
+
+    [Fact]
+    public async Task PolicyEndpoint_WhenReauthenticationRequired_ShouldReturn401ProblemDetails()
+    {
+        var validator = CreateValidValidator(
+            ("uauth:permission", TestResourceController.ProductsRead));
+
+        var authority = new Mock<IAccessAuthority>();
+
+        authority
+            .Setup(x => x.Decide(
+                It.IsAny<AccessContext>(),
+                It.IsAny<IEnumerable<IAccessPolicy>>()))
+            .Returns(AccessDecision.ReauthenticationRequired());
+
+        var policyProvider = CreatePolicyProvider();
+
+        await using var host = await CreateHostAsync(
+            validator.Object,
+            authority.Object,
+            policyProvider.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/products/read");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        response.Content.Headers.ContentType!
+            .MediaType.Should().Be("application/problem+json");
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        problem.Should().NotBeNull();
+        problem!.Status.Should().Be(401);
+        problem.Detail.Should().Be("challenge_required");
+        problem.Type.Should().EndWith("/challenge_required");
+
+        authority.Verify(
+            x => x.Decide(
+                It.IsAny<AccessContext>(),
+                It.IsAny<IEnumerable<IAccessPolicy>>()),
+            Times.Once);
+    }
+
 
     private static async Task<ResourceApiTestHost> CreateHostAsync(
         ISessionValidator validator,

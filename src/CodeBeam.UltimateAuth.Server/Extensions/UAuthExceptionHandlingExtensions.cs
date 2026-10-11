@@ -27,7 +27,7 @@ public static class UAuthExceptionHandlingExtensions
 
     private static Task WriteProblemDetails(HttpContext context, UAuthRuntimeException ex)
     {
-        var status = MapStatusCode(ex);
+        var status = ex.StatusCode;
 
         var problem = new ProblemDetails
         {
@@ -45,20 +45,20 @@ public static class UAuthExceptionHandlingExtensions
         return context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json");
     }
 
-    private static int MapStatusCode(UAuthRuntimeException ex) =>
-        ex switch
-        {
-            UAuthAuthenticationException => StatusCodes.Status401Unauthorized,
-            UAuthAuthorizationException => StatusCodes.Status403Forbidden,
-            UAuthConflictException => StatusCodes.Status409Conflict,
-            UAuthValidationException => StatusCodes.Status400BadRequest,
-            UAuthUnauthorizedException => StatusCodes.Status401Unauthorized,
-            UAuthForbiddenException => StatusCodes.Status403Forbidden,
-            UAuthNotFoundException => StatusCodes.Status404NotFound,
-            UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
-            UAuthIdentifierNotFoundException => StatusCodes.Status404NotFound,
-            UAuthIdentifierConflictException => StatusCodes.Status409Conflict,
-            UAuthIdentifierValidationException => StatusCodes.Status400BadRequest,
-            _ => StatusCodes.Status400BadRequest
-        };
+    //private static int MapStatusCode(UAuthRuntimeException ex) =>
+    //    ex switch
+    //    {
+    //        UAuthAuthenticationException => StatusCodes.Status401Unauthorized,
+    //        UAuthAuthorizationException => StatusCodes.Status403Forbidden,
+    //        UAuthConflictException => StatusCodes.Status409Conflict,
+    //        UAuthValidationException => StatusCodes.Status400BadRequest,
+    //        UAuthUnauthorizedException => StatusCodes.Status401Unauthorized,
+    //        UAuthForbiddenException => StatusCodes.Status403Forbidden,
+    //        UAuthNotFoundException => StatusCodes.Status404NotFound,
+    //        UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
+    //        UAuthIdentifierNotFoundException => StatusCodes.Status404NotFound,
+    //        UAuthIdentifierConflictException => StatusCodes.Status409Conflict,
+    //        UAuthIdentifierValidationException => StatusCodes.Status400BadRequest,
+    //        _ => StatusCodes.Status400BadRequest
+    //    };
 }

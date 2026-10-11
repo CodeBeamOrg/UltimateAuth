@@ -2,7 +2,7 @@
 
 public class UAuthNotFoundException : UAuthRuntimeException
 {
-    public override int StatusCode => 400;
+    public override int StatusCode => 404;
 
     public override string Title => "The resource is not found.";
 
