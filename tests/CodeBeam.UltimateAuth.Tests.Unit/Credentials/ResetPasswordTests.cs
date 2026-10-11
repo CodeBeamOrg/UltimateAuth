@@ -110,7 +110,7 @@ public class ResetPasswordTests
     }
 
     [Fact]
-    public async Task Reset_password_with_same_password_should_fail()
+    public async Task Reset_password_with_same_password_should_succeed_without_changing_password()
     {
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
@@ -118,12 +118,19 @@ public class ResetPasswordTests
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
-        Func<Task> act = async () =>
-            await service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "admin"));
+        var result = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "admin"));
 
-        await act.Should().ThrowAsync<UAuthValidationException>();
+        result.IsSuccess.Should().BeTrue();
+
+        // The reset token must be single-use even when
+        // the new password matches the existing password.
+        var secondResult = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "different-password"));
+
+        secondResult.IsSuccess.Should().BeTrue();
     }
 
     [Fact]

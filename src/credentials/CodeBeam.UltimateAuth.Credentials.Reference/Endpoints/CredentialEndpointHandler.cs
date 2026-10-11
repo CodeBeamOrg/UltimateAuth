@@ -70,12 +70,14 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         return Results.Ok(result);
     }
 
+
     public async Task<IResult> RevokeAsync(HttpContext ctx)
     {
         if (!TryGetSelf(out var flow, out var error))
             return error!;
 
-        var request = await ctx.ReadJsonAsync<RevokeCredentialRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<RevokeCredentialRequest>(
+            ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -83,7 +85,14 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
             resource: "credentials",
             resourceId: flow.UserKey!.Value);
 
-        await _credentials.RevokeAsync(accessContext, request, ctx.RequestAborted);
+        var result = await _credentials.RevokeAsync(
+            accessContext,
+            request,
+            ctx.RequestAborted);
+
+        if (!result.IsSuccess)
+            return MapCredentialActionFailure(result);
+
         return Results.NoContent();
     }
 
@@ -173,13 +182,16 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
         return Results.Ok(result);
     }
 
+
     public async Task<IResult> RevokeAdminAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;
+
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var request = await ctx.ReadJsonAsync<RevokeCredentialRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<RevokeCredentialRequest>(
+            ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -187,18 +199,27 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
             resource: "credentials",
             resourceId: userKey.Value);
 
-        await _credentials.RevokeAsync(accessContext, request, ctx.RequestAborted);
+        var result = await _credentials.RevokeAsync(
+            accessContext,
+            request,
+            ctx.RequestAborted);
+
+        if (!result.IsSuccess)
+            return MapCredentialActionFailure(result);
 
         return Results.NoContent();
     }
 
+
     public async Task<IResult> DeleteAdminAsync(UserKey userKey, HttpContext ctx)
     {
         var flow = _authFlow.Current;
+
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
-        var request = await ctx.ReadJsonAsync<DeleteCredentialRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<DeleteCredentialRequest>(
+            ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -206,17 +227,25 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
             resource: "credentials",
             resourceId: userKey.Value);
 
-        await _credentials.DeleteAsync(accessContext, request, ctx.RequestAborted);
+        var result = await _credentials.DeleteAsync(
+            accessContext,
+            request,
+            ctx.RequestAborted);
+
+        if (!result.IsSuccess)
+            return MapCredentialActionFailure(result);
 
         return Results.NoContent();
     }
+
 
     public async Task<IResult> BeginResetAdminAsync(UserKey userKey, HttpContext ctx)
     {
         if (!TryGetSelf(out var flow, out var error))
             return error!;
 
-        var request = await ctx.ReadJsonAsync<BeginResetCredentialRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<BeginResetCredentialRequest>(
+            ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -224,16 +253,19 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
             resource: "credentials",
             resourceId: userKey.Value);
 
-        await _credentials.BeginResetAsync(accessContext, request, ctx.RequestAborted);
-        return Results.NoContent();
+        var result = await _credentials.BeginResetAsync(accessContext, request, ctx.RequestAborted);
+
+        return Results.Ok(result);
     }
+
 
     public async Task<IResult> CompleteResetAdminAsync(UserKey userKey, HttpContext ctx)
     {
         if (!TryGetSelf(out var flow, out var error))
             return error!;
 
-        var request = await ctx.ReadJsonAsync<CompleteResetCredentialRequest>(ctx.RequestAborted);
+        var request = await ctx.ReadJsonAsync<CompleteResetCredentialRequest>(
+            ctx.RequestAborted);
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -241,8 +273,9 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
             resource: "credentials",
             resourceId: userKey.Value);
 
-        await _credentials.CompleteResetAsync(accessContext, request, ctx.RequestAborted);
-        return Results.NoContent();
+        var result = await _credentials.CompleteResetAsync(accessContext, request, ctx.RequestAborted);
+
+        return Results.Ok(result);
     }
 
     private bool TryGetSelf(out AuthFlowContext flow, out IResult? error)
@@ -256,5 +289,24 @@ public sealed class CredentialEndpointHandler : ICredentialEndpointHandler
 
         error = null;
         return true;
+    }
+
+
+    private static IResult MapCredentialActionFailure(CredentialActionResult result)
+    {
+        var reason = result.Error ?? "credential_action_failed";
+
+        return reason switch
+        {
+            "credential_not_found" => Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Credential not found",
+                detail: reason),
+
+            _ => Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Credential action failed",
+                detail: reason)
+        };
     }
 }

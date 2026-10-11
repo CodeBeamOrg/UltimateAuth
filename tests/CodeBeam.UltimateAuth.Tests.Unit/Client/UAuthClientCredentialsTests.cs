@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
+using FluentAssertions;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -65,19 +67,43 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
         Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/credentials/add", It.IsAny<object>()), Times.Once);
     }
 
+
     [Fact]
     public async Task DeleteUser_Should_Call_Delete_Endpoint()
     {
-        Request.Setup(x => x.SendFormAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UAuthTransportResult { Ok = true, Status = 200 });
+        var userKey = UserKey.FromString("user-1");
+
+        var request = new DeleteCredentialRequest
+        {
+            Id = Guid.NewGuid(),
+            Mode = DeleteMode.Hard
+        };
+
+        Request
+            .Setup(x => x.SendJsonAsync(
+                $"/auth/admin/users/{userKey.Value}/credentials/delete",
+                It.IsAny<DeleteCredentialRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 204
+            });
 
         var client = CreateCredentialClient();
-        var userKey = UserKey.FromString("user-1");
-        await client.Credentials.DeleteUserAsync(userKey, new DeleteCredentialRequest());
-        Request.Verify(x =>
-            x.SendFormAsync($"/auth/admin/users/{userKey.Value}/credentials/delete",
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<CancellationToken>()),
+
+        var result = await client.Credentials.DeleteUserAsync(
+            userKey,
+            request);
+
+        result.IsSuccess.Should().BeTrue();
+
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/users/{userKey.Value}/credentials/delete",
+            It.Is<DeleteCredentialRequest>(r =>
+                r.Id == request.Id &&
+                r.Mode == request.Mode),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

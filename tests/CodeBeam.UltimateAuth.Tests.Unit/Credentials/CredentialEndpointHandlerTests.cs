@@ -550,6 +550,7 @@ public sealed class CredentialEndpointHandlerTests
     // Begin Reset - Admin
     // =========================================================
 
+
     [Fact]
     public async Task BeginResetAdminAsync_WhenAuthenticated_UsesTargetUserAsResourceId()
     {
@@ -562,9 +563,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new BeginResetCredentialRequest
         {
-            // Important:
-            // Admin endpoint's authorization target is userKey,
-            // not this identifier.
             Identifier = "alice@example.com",
             CredentialType = CredentialType.Password,
             ResetCodeType = ResetCodeType.Token
@@ -575,23 +573,39 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
+        var expected = new BeginCredentialResetResult();
+
         f.Credentials
             .Setup(x => x.BeginResetAsync(
                 access,
                 It.IsAny<BeginResetCredentialRequest>(),
                 f.HttpContext.RequestAborted))
-            .ReturnsAsync(new BeginCredentialResetResult());
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.BeginResetAdminAsync(
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<NoContent>();
+        var ok = result.Should()
+            .BeOfType<Ok<BeginCredentialResetResult>>()
+            .Subject;
+
+        ok.Value.Should().BeSameAs(expected);
+
+        f.Credentials.Verify(x => x.BeginResetAsync(
+            access,
+            It.Is<BeginResetCredentialRequest>(r =>
+                r.Identifier == "alice@example.com" &&
+                r.CredentialType == CredentialType.Password &&
+                r.ResetCodeType == ResetCodeType.Token),
+            f.HttpContext.RequestAborted),
+            Times.Once);
     }
 
     // =========================================================
     // Complete Reset - Admin
     // =========================================================
+
 
     [Fact]
     public async Task CompleteResetAdminAsync_WhenAuthenticated_UsesTargetUserAsResourceId()
@@ -616,18 +630,33 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
+        var expected = CredentialActionResult.Success();
+
         f.Credentials
             .Setup(x => x.CompleteResetAsync(
                 access,
                 It.IsAny<CompleteResetCredentialRequest>(),
                 f.HttpContext.RequestAborted))
-            .ReturnsAsync(CredentialActionResult.Success());
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.CompleteResetAdminAsync(
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<NoContent>();
+        var ok = result.Should()
+            .BeOfType<Ok<CredentialActionResult>>()
+            .Subject;
+
+        ok.Value.Should().BeSameAs(expected);
+
+        f.Credentials.Verify(x => x.CompleteResetAsync(
+            access,
+            It.Is<CompleteResetCredentialRequest>(r =>
+                r.Identifier == "alice@example.com" &&
+                r.ResetToken == "token" &&
+                r.NewSecret == "new-password"),
+            f.HttpContext.RequestAborted),
+            Times.Once);
     }
 
     // =========================================================

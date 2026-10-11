@@ -164,10 +164,21 @@ public sealed class CredentialManagementTests
             $"/auth/admin/users/{target.UserKey.Value}/credentials/reset/begin",
             target.Identifier);
 
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<BeginCredentialResetResult>();
+
+        result.Should().NotBeNull();
+        result!.ExpiresAt.Should().BeAfter(factory.Clock.UtcNow);
 
         notifier.Notifications.Should()
             .ContainSingle(x => x.UserKey == target.UserKey);
+
+        var body = await response.Content.ReadAsStringAsync();
+
+        body.Should().NotContain(
+            notifier.Notifications.Single().Token);
     }
 
     [Fact]
@@ -244,7 +255,12 @@ public sealed class CredentialManagementTests
             $"{url}/begin",
             target.Identifier);
 
-        begin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        begin.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var beginResult = await begin.Content
+            .ReadFromJsonAsync<BeginCredentialResetResult>();
+
+        beginResult.Should().NotBeNull();
 
         var token = notifier.Notifications
             .Single(x => x.UserKey == target.UserKey)
@@ -259,7 +275,13 @@ public sealed class CredentialManagementTests
             token,
             newPassword);
 
-        complete.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        complete.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var completeResult = await complete.Content
+            .ReadFromJsonAsync<CredentialActionResult>();
+
+        completeResult.Should().NotBeNull();
+        completeResult!.IsSuccess.Should().BeTrue();
 
         await AssertPasswordAsync(factory, target, newPassword);
         await AssertPasswordRejectedAsync(factory, target, target.Secret);

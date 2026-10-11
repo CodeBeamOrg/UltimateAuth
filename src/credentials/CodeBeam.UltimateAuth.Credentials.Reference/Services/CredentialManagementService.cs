@@ -347,7 +347,22 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             }
 
             if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
-                throw new UAuthValidationException("credential_secret_same");
+            {
+                if (!context.IsAnonymousContext)
+                    throw new UAuthValidationException("credential_secret_same");
+
+                // Valid reset token, but password is unchanged.
+                // Consume the token to preserve single-use semantics.
+                var version = state.SecurityVersion;
+                var consumed = state.ConsumeReset(now);
+
+                await _authenticationSecurityManager.UpdateAsync(
+                    consumed,
+                    version,
+                    innerCt);
+
+                return CredentialActionResult.Success();
+            }
 
             var version3 = state.SecurityVersion;
             state = state.ConsumeReset(now);

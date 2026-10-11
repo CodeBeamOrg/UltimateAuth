@@ -42,7 +42,7 @@ internal sealed class UAuthSessionClient : ISessionClient
         var raw = await _request.SendJsonAsync(Url($"/me/sessions/chains/{chainId.Value}/revoke"));
         var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
 
-        if (result.Value?.CurrentChain == true)
+        if (result.IsSuccess && result.Value?.CurrentChain == true)
         {
             await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.SessionRevoked, _options.StateEvents.HandlingMode));
         }

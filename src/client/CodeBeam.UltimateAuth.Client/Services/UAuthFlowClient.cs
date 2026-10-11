@@ -441,7 +441,7 @@ internal class UAuthFlowClient : IFlowClient
         {
             var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
 
-            if (result.Value?.CurrentChain == true)
+            if (result.IsSuccess && result.Value?.CurrentChain == true)
             {
                 await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
             }
