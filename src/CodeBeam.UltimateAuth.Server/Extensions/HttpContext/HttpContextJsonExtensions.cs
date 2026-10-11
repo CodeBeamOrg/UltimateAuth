@@ -38,6 +38,11 @@ public static class HttpContextJsonExtensions
         {
             throw new UAuthValidationException("request_json_invalid");
         }
+        // TODO: Remove this catch block in the future, as it is a workaround.
+        catch (ArgumentException ex) when (ex.ParamName == "value" && ex.Message.Contains("permission_required", StringComparison.Ordinal))
+        {
+            throw new UAuthValidationException("permission_required");
+        }
         finally
         {
             if (request.Body.CanSeek)

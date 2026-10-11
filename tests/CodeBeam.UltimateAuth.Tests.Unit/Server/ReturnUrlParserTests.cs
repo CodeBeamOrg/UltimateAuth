@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Server.Auth;
+﻿using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
@@ -40,6 +41,6 @@ public sealed class ReturnUrlParserTests
     public void Parser_Rejects_Unsafe_Schemes(string returnUrl)
     {
         Action act = () => ReturnUrlParser.Parse(returnUrl);
-        act.Should().Throw<InvalidOperationException>().WithMessage("*Invalid returnUrl*");
+        act.Should().Throw<UAuthValidationException>().Which.Code.Should().Be("return_url_invalid");
     }
 }

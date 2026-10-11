@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Server.Extensions;
+﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -141,6 +142,41 @@ public sealed class HttpContextJsonContractTests
         result.BodyStartsWithJson.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task InvalidPermission_ShouldReturn400ProblemDetails()
+    {
+        await using var host = await JsonTestHost.CreateAsync();
+
+        using var content = new StringContent(
+            """
+        {
+            "name": "TestRole",
+            "permissions": [
+                { "value": "" }
+            ]
+        }
+        """,
+            Encoding.UTF8,
+            "application/json");
+
+        using var response = await host.Client.PostAsync(
+            "/test/json-permission",
+            content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        response.Content.Headers.ContentType!
+            .MediaType.Should().Be("application/problem+json");
+
+        var problem = await response.Content
+            .ReadFromJsonAsync<ProblemDetails>();
+
+        problem.Should().NotBeNull();
+        problem!.Status.Should().Be(400);
+        problem.Detail.Should().Be("permission_required");
+    }
+
+
     private sealed class JsonTestHost : IAsyncDisposable
     {
         private readonly WebApplication _app;
@@ -182,6 +218,15 @@ public sealed class HttpContextJsonContractTests
                     firstByte == '{'));
             });
 
+
+            app.MapPost("/test/json-permission", async (HttpContext ctx) =>
+            {
+                var request = await ctx.ReadJsonAsync<PermissionTestRequest>(
+                    ctx.RequestAborted);
+
+                return Results.Ok(request.Name);
+            });
+
             await app.StartAsync();
 
             return new JsonTestHost(app);
@@ -201,6 +246,13 @@ public sealed class HttpContextJsonContractTests
     }
 
     private sealed record JsonTestResult(string Name);
+
+    private sealed class PermissionTestRequest
+    {
+        public required string Name { get; init; }
+
+        public required Permission[] Permissions { get; init; }
+    }
 
     private sealed record BodyRewindResult(
         string Name,
