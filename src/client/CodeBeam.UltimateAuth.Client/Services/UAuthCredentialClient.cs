@@ -110,7 +110,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteCredentialRequest request)
     {
-        var raw = await _request.SendFormAsync(Url($"/admin/users/{userKey.Value}/credentials/delete"));
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/credentials/delete"), request);
         return UAuthResultMapper.From(raw);
     }
 }

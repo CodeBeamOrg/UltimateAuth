@@ -263,6 +263,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<IAuthFlow, AuthFlow>();
         services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
+        services.TryAddScoped<ICredentialSessionPolicy, UAuthCredentialSessionPolicy>();
         services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();

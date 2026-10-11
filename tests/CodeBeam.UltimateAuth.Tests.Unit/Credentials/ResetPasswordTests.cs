@@ -110,7 +110,7 @@ public class ResetPasswordTests
     }
 
     [Fact]
-    public async Task Reset_password_with_same_password_should_fail()
+    public async Task Reset_password_with_same_password_should_succeed_without_changing_password()
     {
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
@@ -118,12 +118,19 @@ public class ResetPasswordTests
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
-        Func<Task> act = async () =>
-            await service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "admin"));
+        var result = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "admin"));
 
-        await act.Should().ThrowAsync<UAuthValidationException>();
+        result.IsSuccess.Should().BeTrue();
+
+        // The reset token must be single-use even when
+        // the new password matches the existing password.
+        var secondResult = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "different-password"));
+
+        secondResult.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -194,32 +201,34 @@ public class ResetPasswordTests
     }
 
     [Fact]
-    public async Task Reset_token_should_fail_if_expired()
+    public async Task Reset_token_should_not_change_password_if_expired()
     {
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
+
+        var userKey = await GetAdminUserKeyAsync(runtime);
 
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
         var notification = notifier.Notifications.Single();
 
-        // Advance past the actual configured expiry.
         runtime.Clock.Advance(
             notification.ExpiresAt - runtime.Clock.UtcNow
             + TimeSpan.FromSeconds(1));
 
-        Func<Task> act = async () =>
-            await service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "newpass123"));
+        var result = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "newpass123"));
 
-        await act.Should().ThrowAsync<UAuthConflictException>();
+        // Generic anonymous response, not proof of a password change.
+        result.IsSuccess.Should().BeTrue();
+
+        await AssertPasswordAsync(runtime, userKey, "admin");
+        await AssertPasswordRejectedAsync(runtime, userKey, "newpass123");
     }
 
-    private static (
-        TestAuthRuntime<UserKey> Runtime,
-        RecordingCredentialResetNotifier Notifier)
+    private static (TestAuthRuntime<UserKey> Runtime, RecordingCredentialResetNotifier Notifier)
         CreateRuntime(int maxAttempts = 3)
     {
         var notifier = new RecordingCredentialResetNotifier();

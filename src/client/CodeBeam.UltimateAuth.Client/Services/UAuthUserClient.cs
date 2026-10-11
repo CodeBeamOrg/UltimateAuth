@@ -51,8 +51,7 @@ internal sealed class UAuthUserClient : IUserClient
 
         if (result.IsSuccess)
         {
-            await _events.PublishAsync(
-                new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateEventHandlingMode.Patch));
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.UserDeleted, UAuthStateEventHandlingMode.Patch));
         }
 
         return result;

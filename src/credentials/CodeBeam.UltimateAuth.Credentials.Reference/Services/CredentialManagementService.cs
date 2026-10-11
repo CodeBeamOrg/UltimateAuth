@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -25,6 +26,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly ILoginIdentifierResolver _identifierResolver;
     private readonly ISessionStoreFactory _sessionFactory;
     private readonly ICredentialResetNotifier _resetNotifier;
+    private readonly ICredentialSessionPolicy _credentialSessionPolicy;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -39,6 +41,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         ILoginIdentifierResolver identifierResolver,
         ISessionStoreFactory sessionFactory,
         ICredentialResetNotifier resetNotifier,
+        ICredentialSessionPolicy credentialSessionPolicy,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -52,6 +55,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _identifierResolver = identifierResolver;
         _sessionFactory = sessionFactory;
         _resetNotifier = resetNotifier;
+        _credentialSessionPolicy = credentialSessionPolicy;
         _options = options.Value;
         _clock = clock;
     }
@@ -156,15 +160,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var updated = pwd.ChangeSecret(newHash, now);
             await store.SaveAsync(updated, oldVersion, innerCt);
 
-            var sessionStore = _sessionFactory.Create(context.ResourceTenant);
-            if (context.IsSelfAction && context.ActorChainId is SessionChainId chainId)
-            {
-                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
-            }
-            else
-            {
-                await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
-            }
+            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant, subjectUser, context.IsSelfAction 
+                    ? CredentialChangeReason.SelfChange
+                    : CredentialChangeReason.AdminChange,
+                context.ActorChainId, now, innerCt);
 
             return ChangeCredentialResult.Success(pwd.Type);
         });
@@ -213,6 +212,13 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (string.IsNullOrWhiteSpace(request.Identifier))
                 throw new UAuthValidationException("identifier_required");
 
+            // TODO: Support other credential types in the future (e.g., Totp, Passkey, etc.)
+            if (request.CredentialType != CredentialType.Password)
+                throw new UAuthValidationException("credential_reset_type_not_supported");
+
+            if (request.ResetCodeType is not (ResetCodeType.Token or ResetCodeType.Code))
+                throw new UAuthValidationException("invalid_reset_code_type");
+
             var now = _clock.UtcNow;
             // Anonymous callers must not control the proof's lifetime.
             var validity = _options.ResetCredential.TokenValidity;
@@ -231,23 +237,23 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (resolution?.UserKey is not UserKey userKey)
                 return result; // Enumeration protection
 
-            var state = await _authenticationSecurityManager
-                .GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
+            var state = await _authenticationSecurityManager.GetOrCreateFactorAsync(context.ResourceTenant, userKey, request.CredentialType, innerCt);
 
-            string token;
+            // An existing active reset must not be observable
+            // through the anonymous endpoint.
+            if (state.HasActiveReset(now) && context.IsAnonymousContext)
+                return result;
 
-            if (request.ResetCodeType == ResetCodeType.Token)
+            var token = request.ResetCodeType switch
             {
-                token = _tokenGenerator.Generate();
-            }
-            else if (request.ResetCodeType == ResetCodeType.Code)
-            {
-                token = _numericCodeGenerator.Generate(_options.ResetCredential.CodeLength);
-            }
-            else
-            {
-                throw new UAuthValidationException("invalid_reset_code_type");
-            }
+                ResetCodeType.Token => _tokenGenerator.Generate(),
+
+                ResetCodeType.Code => _numericCodeGenerator.Generate(
+                    _options.ResetCredential.CodeLength),
+
+                _ => throw new UAuthValidationException(
+                    "invalid_reset_code_type")
+            };
 
             var tokenHash = _tokenHasher.Hash(token);
 
@@ -285,6 +291,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             if (string.IsNullOrWhiteSpace(request.NewSecret))
                 throw new UAuthValidationException("new_secret_required");
 
+            // TODO: Support other credential types in the future (e.g., Totp, Passkey, etc.)
+            if (request.CredentialType != CredentialType.Password)
+                throw new UAuthValidationException("credential_reset_type_not_supported");
+
             var now = _clock.UtcNow;
 
             var resolution = await _identifierResolver.ResolveAsync(context.ResourceTenant, request.Identifier, innerCt);
@@ -305,6 +315,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 var version2 = state.SecurityVersion;
                 var cleared = state.ClearReset();
                 await _authenticationSecurityManager.UpdateAsync(cleared, version2, innerCt);
+
+                if (context.IsAnonymousContext)
+                    return CredentialActionResult.Success();
+
                 throw new UAuthConflictException("reset_expired");
             }
 
@@ -341,7 +355,22 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             }
 
             if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
-                throw new UAuthValidationException("credential_secret_same");
+            {
+                if (!context.IsAnonymousContext)
+                    throw new UAuthValidationException("credential_secret_same");
+
+                // Valid reset token, but password is unchanged.
+                // Consume the token to preserve single-use semantics.
+                var version = state.SecurityVersion;
+                var consumed = state.ConsumeReset(now);
+
+                await _authenticationSecurityManager.UpdateAsync(
+                    consumed,
+                    version,
+                    innerCt);
+
+                return CredentialActionResult.Success();
+            }
 
             var version3 = state.SecurityVersion;
             state = state.ConsumeReset(now);
@@ -352,6 +381,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var updated = pwd.ChangeSecret(newHash, now);
 
             await store.SaveAsync(updated, oldVersion, innerCt);
+            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant ,userKey, CredentialChangeReason.Recovery, actorChainId: null, now, innerCt);
 
             return CredentialActionResult.Success();
         });
@@ -420,5 +450,36 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         var store = _credentialsFactory.Create(tenant);
         await store.DeleteByUserAsync(userKey, DeleteMode.Soft, _clock.UtcNow, ct);
         return CredentialActionResult.Success();
+    }
+
+    // ----------------------------------------
+    // HELPERS
+    // ----------------------------------------
+    private async Task ApplyCredentialSessionPolicyAsync(TenantKey tenant, UserKey subjectUser, CredentialChangeReason reason,
+                       SessionChainId? actorChainId, DateTimeOffset now, CancellationToken ct)
+    {
+        var behavior = _credentialSessionPolicy.Resolve(reason);
+
+        if (behavior == CredentialSessionBehavior.PreserveAll)
+            return;
+
+        var sessionStore = _sessionFactory.Create(tenant);
+
+        switch (behavior)
+        {
+            case CredentialSessionBehavior.PreserveCurrent
+                when reason == CredentialChangeReason.SelfChange && actorChainId is SessionChainId chainId:
+                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, ct);
+                break;
+
+            case CredentialSessionBehavior.PreserveCurrent:
+            case CredentialSessionBehavior.RevokeAll:
+
+                await sessionStore.RevokeAllChainsAsync(subjectUser, now, ct);
+                break;
+
+            default:
+                throw new InvalidOperationException($"Unsupported credential session behavior: {behavior}");
+        }
     }
 }

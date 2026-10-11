@@ -114,28 +114,44 @@ internal sealed class InMemoryUserSummaryQueryStore : IUserSummaryQueryStore
             ).ToList();
         }
 
-        IEnumerable<UserSummary> ordered = query.SortBy switch
+
+        IOrderedEnumerable<UserSummary> OrderByText(Func<UserSummary, string?> selector)
+        {
+            return query.Descending
+                ? summaries.OrderByDescending(selector, StringComparer.OrdinalIgnoreCase)
+                : summaries.OrderBy(selector, StringComparer.OrdinalIgnoreCase);
+        }
+
+        IOrderedEnumerable<UserSummary> OrderByCreatedAt()
+        {
+            return query.Descending
+                ? summaries.OrderByDescending(x => x.CreatedAt)
+                : summaries.OrderBy(x => x.CreatedAt);
+        }
+
+        IOrderedEnumerable<UserSummary> ordered = query.SortBy switch
         {
             nameof(UserSummary.DisplayName) =>
-                query.Descending
-                    ? summaries
-                        .OrderByDescending(x => x.DisplayName)
-                        .ThenBy(x => x.UserKey.Value)
-                    : summaries
-                        .OrderBy(x => x.DisplayName)
-                        .ThenBy(x => x.UserKey.Value),
+                OrderByText(x => x.DisplayName)
+                    .ThenBy(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey.Value),
 
-            nameof(UserSummary.CreatedAt) =>
-                query.Descending
-                    ? summaries
-                        .OrderByDescending(x => x.CreatedAt)
-                        .ThenBy(x => x.UserKey.Value)
-                    : summaries
-                        .OrderBy(x => x.CreatedAt)
-                        .ThenBy(x => x.UserKey.Value),
+            nameof(UserSummary.UserName) =>
+                OrderByText(x => x.UserName)
+                    .ThenBy(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey.Value),
 
-            _ => summaries
-                .OrderBy(x => x.CreatedAt)
+            nameof(UserSummary.PrimaryEmail) =>
+                OrderByText(x => x.PrimaryEmail)
+                    .ThenBy(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey.Value),
+
+            nameof(UserSummary.PrimaryPhone) =>
+                OrderByText(x => x.PrimaryPhone)
+                    .ThenBy(x => x.CreatedAt)
+                    .ThenBy(x => x.UserKey.Value),
+
+            _ => OrderByCreatedAt()
                 .ThenBy(x => x.UserKey.Value)
         };
 

@@ -173,40 +173,55 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
+
+    public async Task<UserStatusChangeResult> ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
     {
-        var command = new AccessCommand(async innerCt =>
+        var command = new AccessCommand<UserStatusChangeResult>(async innerCt =>
         {
             var newStatus = request switch
             {
                 ChangeUserStatusSelfRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
                 ChangeUserStatusAdminRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
+
                 _ => throw new InvalidOperationException("invalid_request")
             };
 
             var targetUserKey = context.GetTargetUserKey();
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
             var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+
             var current = await lifecycleStore.GetAsync(userLifecycleKey, innerCt);
-            var now = _clock.UtcNow;
 
             if (current is null)
                 throw new UAuthNotFoundException("user_not_found");
 
             if (context.IsSelfAction && !IsSelfTransitionAllowed(current.Status, newStatus))
-                throw new UAuthConflictException("self_transition_not_allowed");
-
-            if (!context.IsSelfAction)
             {
-                if (newStatus is UserStatus.SelfSuspended)
-                    throw new UAuthConflictException("admin_cannot_set_self_status");
+                throw new UAuthConflictException("self_transition_not_allowed");
             }
+
+            if (!context.IsSelfAction && newStatus is UserStatus.SelfSuspended)
+            {
+                throw new UAuthConflictException("admin_cannot_set_self_status");
+            }
+
+            var previousStatus = current.Status;
+
+            // NoChange: no persistence operation is required.
+            if (previousStatus == newStatus)
+                return UserStatusChangeResult.NoChange(previousStatus);
+
+            var now = _clock.UtcNow;
+
             var newEntity = current.ChangeStatus(now, newStatus);
             await lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
+
+            return UserStatusChangeResult.Success(previousStatus, newStatus);
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     public async Task DeleteMeAsync(AccessContext context, CancellationToken ct = default)
     {
@@ -248,9 +263,10 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
+
+    public async Task<UserDeleteResult> DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
     {
-        var command = new AccessCommand(async innerCt =>
+        var command = new AccessCommand<UserDeleteResult>(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -263,14 +279,15 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+
             await lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
             await identifierStore.DeleteByUserAsync(targetUserKey, request.Mode, now, innerCt);
-
             var profiles = await profileStore.GetAllProfilesByUserAsync(targetUserKey, innerCt);
 
             foreach (var profile in profiles)
             {
                 var key = new UserProfileKey(context.ResourceTenant, profile.UserKey, profile.ProfileKey);
+
                 await profileStore.DeleteAsync(key, profile.Version, request.Mode, now, innerCt);
             }
 
@@ -280,11 +297,15 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
+
             await sessionStore.RevokeAllChainsAsync(targetUserKey, now, innerCt);
+
+            return UserDeleteResult.Success(request.Mode);
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     #endregion
 

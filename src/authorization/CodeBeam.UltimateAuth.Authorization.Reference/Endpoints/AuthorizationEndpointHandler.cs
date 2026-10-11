@@ -173,7 +173,14 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var role = await _roles.CreateAsync(accessContext, req.Name, req.Permissions, ctx.RequestAborted);
 
-        return Results.Ok(role);
+        return Results.Ok(new RoleInfo
+        {
+            Id = role.Id,
+            Name = role.Name,
+            Permissions = role.Permissions.ToArray(),
+            CreatedAt = role.CreatedAt,
+            UpdatedAt = role.UpdatedAt
+        });
     }
 
     public async Task<IResult> RenameRoleAsync(RoleId roleId, HttpContext ctx)

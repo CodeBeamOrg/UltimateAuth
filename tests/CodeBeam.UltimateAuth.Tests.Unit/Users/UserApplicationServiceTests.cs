@@ -1844,6 +1844,24 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<bool>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<UserStatusChangeResult>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext, AccessCommand<UserStatusChangeResult>, CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
+
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<UserDeleteResult>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext, AccessCommand<UserDeleteResult>, CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
         atomic
             .Setup(x => x.ExecuteAsync<UserCreateResult>(
                 It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),

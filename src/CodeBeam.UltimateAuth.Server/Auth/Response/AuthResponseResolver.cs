@@ -72,6 +72,10 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
 
     private static void ValidateDelivery(CredentialResponseOptions delivery)
     {
+        // TODO:
+        if (delivery.Mode == TokenResponseMode.Body)
+            throw new NotSupportedException($"Body credential delivery is not supported for '{delivery.Kind}'.");
+
         if (delivery.Mode == TokenResponseMode.Cookie && delivery.Cookie is null)
         {
             throw new InvalidOperationException($"Credential '{delivery.Kind}' is configured as Cookie but no cookie options were bound.");

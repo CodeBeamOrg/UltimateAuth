@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
@@ -339,6 +340,8 @@ public sealed class CredentialManagementServiceTests
             It.IsAny<DateTimeOffset>(),
             It.IsAny<CancellationToken>()),
             Times.Never);
+
+        f.CredentialSessionPolicy.Verify(x => x.Resolve(CredentialChangeReason.SelfChange), Times.Once);
     }
 
     [Fact]
@@ -376,6 +379,8 @@ public sealed class CredentialManagementServiceTests
             Now,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.CredentialSessionPolicy.Verify(x => x.Resolve(CredentialChangeReason.SelfChange), Times.Once);
     }
 
     [Fact]
@@ -447,6 +452,8 @@ public sealed class CredentialManagementServiceTests
             Now,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.CredentialSessionPolicy.Verify(x => x.Resolve(CredentialChangeReason.AdminChange), Times.Once);
     }
 
     // ---------------------------------------------------------
@@ -972,6 +979,9 @@ public sealed class CredentialManagementServiceTests
         public Mock<ISessionStore> SessionStore { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<ICredentialSessionPolicy> CredentialSessionPolicy { get; }
+            = new(MockBehavior.Strict);
+
         public Mock<IClock> Clock { get; }
             = new(MockBehavior.Strict);
 
@@ -1048,6 +1058,18 @@ public sealed class CredentialManagementServiceTests
                 .Setup(x => x.Create(It.IsAny<TenantKey>()))
                 .Returns(SessionStore.Object);
 
+            CredentialSessionPolicy
+                .Setup(x => x.Resolve(CredentialChangeReason.SelfChange))
+                .Returns(CredentialSessionBehavior.PreserveCurrent);
+
+            CredentialSessionPolicy
+                .Setup(x => x.Resolve(CredentialChangeReason.AdminChange))
+                .Returns(CredentialSessionBehavior.RevokeAll);
+
+            CredentialSessionPolicy
+                .Setup(x => x.Resolve(CredentialChangeReason.Recovery))
+                .Returns(CredentialSessionBehavior.RevokeAll);
+
             var options = Options.Create(
                 TestServerOptions.Default());
 
@@ -1062,6 +1084,7 @@ public sealed class CredentialManagementServiceTests
                 IdentifierResolver.Object,
                 SessionStoreFactory.Object,
                 ResetNotifier.Object,
+                CredentialSessionPolicy.Object,
                 options,
                 Clock.Object);
         }

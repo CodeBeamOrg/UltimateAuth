@@ -11,7 +11,7 @@ public interface IUserApplicationService
     Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default);
     Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default);
 
-    Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default);
+    Task<UserStatusChangeResult> ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default);
 
     Task CreateProfileAsync(AccessContext context, CreateProfileRequest request, CancellationToken ct = default);
     Task UpdateUserProfileAsync(AccessContext context, UpdateProfileRequest request, CancellationToken ct = default);
@@ -37,5 +37,5 @@ public interface IUserApplicationService
     Task<UserIdentifierAvailabilityResult> CheckIdentifierAvailabilityAsync(AccessContext context, CheckUserIdentifierAvailabilityRequest request, CancellationToken ct = default);
 
     Task DeleteMeAsync(AccessContext context, CancellationToken ct = default);
-    Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default);
+    Task<UserDeleteResult> DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default);
 }
