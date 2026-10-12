@@ -36,6 +36,7 @@ public sealed class UAuthCookieOptions
         SameSite = SameSite,
         Path = Path,
         MaxAge = MaxAge,
-        Lifetime = Lifetime.Clone()
+        Lifetime = Lifetime.Clone(),
+        Domain = Domain
     };
 }

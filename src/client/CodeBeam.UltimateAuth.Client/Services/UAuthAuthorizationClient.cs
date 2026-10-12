@@ -25,7 +25,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/authorization/check"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/check"), request);
         return UAuthResultMapper.FromJson<AuthorizationResult>(raw);
     }
 
