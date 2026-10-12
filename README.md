@@ -33,7 +33,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
 | First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Documented & Quality Tested               | ✅ Completed   | 12.10.2026    |
+| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)               | ✅ Completed   | 12.10.2026    |
 | Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q4 2026       |
 | Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🟡 In Progress | Q4 2026       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
@@ -43,7 +43,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Ecosystem Expansion     | 0.8.0         | Migration tools                           | 🔜 Planned     | Q2 2027       |
 | v1.0                    | 1.0.0         | Locked API, align with .NET 11            | 🔜 Planned     | Q2 2027       |
 
-*v 0.1.0 already provides a skeleton of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
+*v 0.1.0 already provides a skeleton and extensibility points of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
 
 > The project roadmap is actively maintained as a GitHub issue:
 
