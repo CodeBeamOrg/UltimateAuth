@@ -366,7 +366,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             IdentifierExistenceScope.WithinUser,
             ctx.RequestAborted);
 
-        return Results.Ok(new IdentifierExistsResponse
+        return Results.Ok(new UserIdentifierExistsResponse
         {
             Exists = exists
         });
@@ -393,7 +393,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             IdentifierExistenceScope.TenantAny,
             ctx.RequestAborted);
 
-        return Results.Ok(new IdentifierExistsResponse
+        return Results.Ok(new UserIdentifierExistsResponse
         {
             Exists = exists
         });

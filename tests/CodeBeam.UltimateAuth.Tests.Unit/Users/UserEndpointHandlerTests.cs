@@ -759,7 +759,7 @@ public sealed class UserEndpointHandlerTests
             await f.Sut.IdentifierExistsSelfAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<IdentifierExistsResponse>>()
+            .BeOfType<Ok<UserIdentifierExistsResponse>>()
             .Subject;
 
         ok.Value!.Exists.Should().BeTrue();
@@ -805,7 +805,7 @@ public sealed class UserEndpointHandlerTests
             f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<IdentifierExistsResponse>>()
+            .BeOfType<Ok<UserIdentifierExistsResponse>>()
             .Subject;
 
         ok.Value!.Exists.Should().BeTrue();

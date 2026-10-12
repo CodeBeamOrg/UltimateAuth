@@ -20,7 +20,7 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
         _pagination = pagination;
     }
 
-    public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
+    public Task<UserIdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -50,10 +50,10 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
         var match = candidates.FirstOrDefault();
 
         if (match is null)
-            return Task.FromResult(new IdentifierExistenceResult(false));
+            return Task.FromResult(new UserIdentifierExistenceResult(false));
 
         return Task.FromResult(
-            new IdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
+            new UserIdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
     }
 
     public Task<UserIdentifier?> GetAsync(UserIdentifierType type, string normalizedValue, CancellationToken ct = default)

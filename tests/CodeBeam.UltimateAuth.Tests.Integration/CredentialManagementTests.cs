@@ -167,7 +167,7 @@ public sealed class CredentialManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<BeginCredentialResetResult>();
+            .ReadFromJsonAsync<CredentialBeginResetResult>();
 
         result.Should().NotBeNull();
         result!.ExpiresAt.Should().BeAfter(factory.Clock.UtcNow);
@@ -258,7 +258,7 @@ public sealed class CredentialManagementTests
         begin.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var beginResult = await begin.Content
-            .ReadFromJsonAsync<BeginCredentialResetResult>();
+            .ReadFromJsonAsync<CredentialBeginResetResult>();
 
         beginResult.Should().NotBeNull();
 

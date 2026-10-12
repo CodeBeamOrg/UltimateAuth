@@ -429,7 +429,7 @@ public sealed class AuthorizationManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserRolesResponse>();
+            .ReadFromJsonAsync<UserRolesGetResult>();
 
         result.Should().NotBeNull();
         result!.UserKey.Should().Be(target.UserKey);
@@ -456,7 +456,7 @@ public sealed class AuthorizationManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserRolesResponse>();
+            .ReadFromJsonAsync<UserRolesGetResult>();
 
         result.Should().NotBeNull();
         result!.UserKey.Should().Be(user.UserKey);

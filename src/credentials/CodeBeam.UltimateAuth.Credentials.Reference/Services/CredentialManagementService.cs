@@ -60,11 +60,11 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _clock = clock;
     }
 
-    public async Task<GetCredentialsResult> GetAllAsync(AccessContext context, CancellationToken ct = default)
+    public async Task<CredentialsGetResult> GetAllAsync(AccessContext context, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<GetCredentialsResult>(async innerCt =>
+        var cmd = new AccessCommand<CredentialsGetResult>(async innerCt =>
         {
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -86,17 +86,17 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 })
                 .ToArray();
 
-            return new GetCredentialsResult { Credentials = dtos };
+            return new CredentialsGetResult { Credentials = dtos };
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<AddCredentialResult> AddAsync(AccessContext context, AddCredentialRequest request, CancellationToken ct = default)
+    public async Task<CredentialAddResult> AddAsync(AccessContext context, AddCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<AddCredentialResult>(async innerCt =>
+        var cmd = new AccessCommand<CredentialAddResult>(async innerCt =>
         {
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -115,17 +115,17 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var store = _credentialsFactory.Create(context.ResourceTenant);
             await store.AddAsync(credential, innerCt);
 
-            return AddCredentialResult.Success(credential.Id, credential.Type);
+            return CredentialAddResult.Success(credential.Id, credential.Type);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<ChangeCredentialResult> ChangeSecretAsync(AccessContext context, ChangeCredentialRequest request, CancellationToken ct = default)
+    public async Task<CredentialChangeResult> ChangeSecretAsync(AccessContext context, ChangeCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<ChangeCredentialResult>(async innerCt =>
+        var cmd = new AccessCommand<CredentialChangeResult>(async innerCt =>
         {
             var subjectUser = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -165,7 +165,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     : CredentialChangeReason.AdminChange,
                 context.ActorChainId, now, innerCt);
 
-            return ChangeCredentialResult.Success(pwd.Type);
+            return CredentialChangeResult.Success(pwd.Type);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -199,11 +199,11 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<BeginCredentialResetResult> BeginResetAsync(AccessContext context, BeginResetCredentialRequest request, CancellationToken ct = default)
+    public async Task<CredentialBeginResetResult> BeginResetAsync(AccessContext context, BeginResetCredentialRequest request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<BeginCredentialResetResult>(async innerCt =>
+        var cmd = new AccessCommand<CredentialBeginResetResult>(async innerCt =>
         {
 
             if (_resetNotifier is NotConfiguredCredentialResetNotifier)
@@ -224,7 +224,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
             var validity = _options.ResetCredential.TokenValidity;
             var expiresAt = now.Add(validity);
 
-            var result = new BeginCredentialResetResult
+            var result = new CredentialBeginResetResult
             {
                 ExpiresAt = expiresAt
             };

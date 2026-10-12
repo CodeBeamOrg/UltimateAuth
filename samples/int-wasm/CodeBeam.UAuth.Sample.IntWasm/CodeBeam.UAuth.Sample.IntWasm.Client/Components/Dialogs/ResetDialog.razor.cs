@@ -26,7 +26,7 @@ public partial class ResetDialog
             Identifier = _identifier ?? string.Empty
         };
 
-        var result = await UAuthClient.Credentials.BeginResetMyAsync(request);
+        var result = await UAuthClient.Credentials.BeginResetAsync(request);
         if (!result.IsSuccess || result.Value is null)
         {
             Snackbar.Add(result.ErrorText ?? "Failed to request credential reset.", Severity.Error);

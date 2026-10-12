@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Authorization.Contracts;
 
-public sealed class DeleteRoleResult
+public sealed class RoleDeleteResult
 {
     public RoleId RoleId { get; init; }
 

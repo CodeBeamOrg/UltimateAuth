@@ -29,18 +29,18 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
         return UAuthResultMapper.FromJson<AuthorizationResult>(raw);
     }
 
-    public async Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync(PageRequest? request = null)
+    public async Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url("/me/authorization/roles/get"), request);
-        return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
+        return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
-    public async Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null)
+    public async Task<UAuthResult<UserRolesGetResult>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
         var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey.Value}/roles/get"), request);
-        return UAuthResultMapper.FromJson<UserRolesResponse>(raw);
+        return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
     public async Task<UAuthResult> AssignRoleToUserAsync(AssignRoleRequest request)
@@ -109,10 +109,10 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
         return result;
     }
 
-    public async Task<UAuthResult<DeleteRoleResult>> DeleteRoleAsync(DeleteRoleRequest request)
+    public async Task<UAuthResult<RoleDeleteResult>> DeleteRoleAsync(DeleteRoleRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/delete"), request);
-        var result = UAuthResultMapper.FromJson<DeleteRoleResult>(raw);
+        var result = UAuthResultMapper.FromJson<RoleDeleteResult>(raw);
 
         if (result.IsSuccess)
         {

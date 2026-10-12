@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 
-namespace CodeBeam.UltimateAuth.Users.Reference;
+namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record UserLifecycleQuery : PageRequest
 {

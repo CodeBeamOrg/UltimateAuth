@@ -45,7 +45,7 @@ public sealed class CredentialEndpointHandlerTests
             f.UserKey.Value,
             access);
 
-        var serviceResult = new GetCredentialsResult();
+        var serviceResult = new CredentialsGetResult();
 
         f.Credentials
             .Setup(x => x.GetAllAsync(
@@ -56,7 +56,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.GetAllAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<GetCredentialsResult>>()
+            .BeOfType<Ok<CredentialsGetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -100,7 +100,7 @@ public sealed class CredentialEndpointHandlerTests
             f.UserKey.Value,
             access);
 
-        var serviceResult = AddCredentialResult.Success(
+        var serviceResult = CredentialAddResult.Success(
             Guid.NewGuid(),
             CredentialType.Password);
 
@@ -115,7 +115,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.AddAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<AddCredentialResult>>()
+            .BeOfType<Ok<CredentialAddResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -162,7 +162,7 @@ public sealed class CredentialEndpointHandlerTests
             access);
 
         var serviceResult =
-            ChangeCredentialResult.Success(CredentialType.Password);
+            CredentialChangeResult.Success(CredentialType.Password);
 
         f.Credentials
             .Setup(x => x.ChangeSecretAsync(
@@ -176,7 +176,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.ChangeSecretAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<ChangeCredentialResult>>()
+            .BeOfType<Ok<CredentialChangeResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -242,7 +242,7 @@ public sealed class CredentialEndpointHandlerTests
             identifier,
             access);
 
-        var serviceResult = new BeginCredentialResetResult();
+        var serviceResult = new CredentialBeginResetResult();
 
         f.Credentials
             .Setup(x => x.BeginResetAsync(
@@ -257,7 +257,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.BeginResetAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<BeginCredentialResetResult>>()
+            .BeOfType<Ok<CredentialBeginResetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -343,7 +343,7 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
-        var serviceResult = new GetCredentialsResult();
+        var serviceResult = new CredentialsGetResult();
 
         f.Credentials
             .Setup(x => x.GetAllAsync(
@@ -356,7 +356,7 @@ public sealed class CredentialEndpointHandlerTests
             f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<GetCredentialsResult>>()
+            .BeOfType<Ok<CredentialsGetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -386,7 +386,7 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
-        var serviceResult = AddCredentialResult.Success(
+        var serviceResult = CredentialAddResult.Success(
             Guid.NewGuid(),
             CredentialType.Password);
 
@@ -402,7 +402,7 @@ public sealed class CredentialEndpointHandlerTests
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok<AddCredentialResult>>();
+        result.Should().BeOfType<Ok<CredentialAddResult>>();
     }
 
     // =========================================================
@@ -445,7 +445,7 @@ public sealed class CredentialEndpointHandlerTests
             access);
 
         var serviceResult =
-            ChangeCredentialResult.Success(CredentialType.Password);
+            CredentialChangeResult.Success(CredentialType.Password);
 
         f.Credentials
             .Setup(x => x.ChangeSecretAsync(
@@ -459,7 +459,7 @@ public sealed class CredentialEndpointHandlerTests
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok<ChangeCredentialResult>>();
+        result.Should().BeOfType<Ok<CredentialChangeResult>>();
     }
 
     // =========================================================
@@ -574,7 +574,7 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
-        var expected = new BeginCredentialResetResult();
+        var expected = new CredentialBeginResetResult();
 
         f.Credentials
             .Setup(x => x.BeginResetAsync(
@@ -588,7 +588,7 @@ public sealed class CredentialEndpointHandlerTests
             f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<BeginCredentialResetResult>>()
+            .BeOfType<Ok<CredentialBeginResetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(expected);

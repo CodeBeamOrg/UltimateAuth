@@ -102,7 +102,7 @@ public sealed class SdkEndpointContractTests
         await AuthenticateAsync(client, admin);
         using var response = await client.PostAsJsonAsync(
             $"/auth/admin/users/{target.UserKey.Value}/credentials/reset/begin", BeginResetRequest(target));
-        var result = await AssertTypedSuccessAsync<BeginCredentialResetResult>(response);
+        var result = await AssertTypedSuccessAsync<CredentialBeginResetResult>(response);
         result.ExpiresAt.Should().BeAfter(factory.Clock.UtcNow);
         var body = await response.Content.ReadAsStringAsync();
         var notification = notifier.Notifications.Should().ContainSingle(x => x.UserKey == target.UserKey).Subject;
@@ -122,7 +122,7 @@ public sealed class SdkEndpointContractTests
         await AuthenticateAsync(client, admin);
         var url = $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
         using var begin = await client.PostAsJsonAsync($"{url}/begin", BeginResetRequest(target));
-        await AssertTypedSuccessAsync<BeginCredentialResetResult>(begin);
+        await AssertTypedSuccessAsync<CredentialBeginResetResult>(begin);
         var token = notifier.Notifications.Single(x => x.UserKey == target.UserKey).Token;
         var newSecret = $"Changed-{Guid.NewGuid():N}!";
         using var complete = await client.PostAsJsonAsync($"{url}/complete",

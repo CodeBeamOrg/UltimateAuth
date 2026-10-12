@@ -117,7 +117,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     {
         var userKey = UserKey.FromString("user-1");
 
-        var response = new UserRolesResponse
+        var response = new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = new PagedResult<UserRoleInfo>(
@@ -158,7 +158,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     {
         var userKey = UserKey.FromString("user-1");
 
-        var response = new UserRolesResponse
+        var response = new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = new PagedResult<UserRoleInfo>(
@@ -262,7 +262,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     public async Task DeleteRole_Should_Publish_Event_On_Success()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new DeleteRoleResult()));
+            .ReturnsAsync(SuccessJson(new RoleDeleteResult()));
 
         var client = CreateClient();
 

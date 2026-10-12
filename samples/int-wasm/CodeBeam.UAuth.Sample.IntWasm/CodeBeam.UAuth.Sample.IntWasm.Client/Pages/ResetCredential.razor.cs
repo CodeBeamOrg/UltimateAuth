@@ -38,7 +38,7 @@ public partial class ResetCredential
             Identifier = Identifier  // Coming from UAuthFlowPageBase automatically if begin reset is successful
         };
 
-        var result = await UAuthClient.Credentials.CompleteResetMyAsync(request);
+        var result = await UAuthClient.Credentials.CompleteResetAsync(request);
 
         if (result.IsSuccess)
         {

@@ -1002,30 +1002,30 @@ public sealed class CredentialManagementServiceTests
             AccessOrchestrator
                 .Setup(x => x.ExecuteAsync(
                     It.IsAny<AccessContext>(),
-                    It.IsAny<AccessCommand<GetCredentialsResult>>(),
+                    It.IsAny<AccessCommand<CredentialsGetResult>>(),
                     It.IsAny<CancellationToken>()))
                 .Returns<AccessContext,
-                    AccessCommand<GetCredentialsResult>,
+                    AccessCommand<CredentialsGetResult>,
                     CancellationToken>(
                     (_, command, ct) => command.ExecuteAsync(ct));
 
             AccessOrchestrator
                 .Setup(x => x.ExecuteAsync(
                     It.IsAny<AccessContext>(),
-                    It.IsAny<AccessCommand<AddCredentialResult>>(),
+                    It.IsAny<AccessCommand<CredentialAddResult>>(),
                     It.IsAny<CancellationToken>()))
                 .Returns<AccessContext,
-                    AccessCommand<AddCredentialResult>,
+                    AccessCommand<CredentialAddResult>,
                     CancellationToken>(
                     (_, command, ct) => command.ExecuteAsync(ct));
 
             AccessOrchestrator
                 .Setup(x => x.ExecuteAsync(
                     It.IsAny<AccessContext>(),
-                    It.IsAny<AccessCommand<ChangeCredentialResult>>(),
+                    It.IsAny<AccessCommand<CredentialChangeResult>>(),
                     It.IsAny<CancellationToken>()))
                 .Returns<AccessContext,
-                    AccessCommand<ChangeCredentialResult>,
+                    AccessCommand<CredentialChangeResult>,
                     CancellationToken>(
                     (_, command, ct) => command.ExecuteAsync(ct));
 
@@ -1043,10 +1043,10 @@ public sealed class CredentialManagementServiceTests
             AccessOrchestrator
                 .Setup(x => x.ExecuteAsync(
                     It.IsAny<AccessContext>(),
-                    It.IsAny<AccessCommand<BeginCredentialResetResult>>(),
+                    It.IsAny<AccessCommand<CredentialBeginResetResult>>(),
                     It.IsAny<CancellationToken>()))
                 .Returns<AccessContext,
-                    AccessCommand<BeginCredentialResetResult>,
+                    AccessCommand<CredentialBeginResetResult>,
                     CancellationToken>(
                     (_, command, ct) => command.ExecuteAsync(ct));
 

@@ -2,7 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
-public sealed record AddCredentialResult
+public sealed record CredentialAddResult
 {
     public bool IsSuccess { get; init; }
 
@@ -11,7 +11,7 @@ public sealed record AddCredentialResult
     public Guid? Id { get; set; }
     public CredentialType? Type { get; init; }
 
-    public static AddCredentialResult Success(Guid id, CredentialType type)
+    public static CredentialAddResult Success(Guid id, CredentialType type)
         => new()
         {
             IsSuccess = true,
@@ -20,7 +20,7 @@ public sealed record AddCredentialResult
             Error = null
         };
 
-    public static AddCredentialResult Fail(string error)
+    public static CredentialAddResult Fail(string error)
         => new()
         {
             IsSuccess = false,

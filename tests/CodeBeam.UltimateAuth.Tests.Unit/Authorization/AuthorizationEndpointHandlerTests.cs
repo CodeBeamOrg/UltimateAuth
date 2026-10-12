@@ -534,7 +534,7 @@ public sealed class AuthorizationEndpointHandlerTests
             roleId.ToString(),
             accessContext);
 
-        var expected = new DeleteRoleResult
+        var expected = new RoleDeleteResult
         {
             RoleId = roleId,
             Mode = DeleteMode.Hard,

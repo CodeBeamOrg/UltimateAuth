@@ -777,7 +777,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         var client = CreateFlowClient(mock);
         var userKey = UserKey.FromString("user-1");
-        await client.LogoutUserOtherDevicesAsync(userKey, new LogoutOtherDevicesRequest() { CurrentChainId = SessionChainId.New() });
+        await client.LogoutUserOtherDevicesAsync(userKey, new LogoutOtherDevicesRequest() { ExceptChainId = SessionChainId.New() });
         mock.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/logout-others", It.IsAny<object>()), Times.Once);
     }
 
