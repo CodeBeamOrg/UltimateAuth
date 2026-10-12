@@ -121,8 +121,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         var initial =
             await GetCurrentChainAsync(_client);
 
-        _factory.Clock.Advance(
-            TimeSpan.FromHours(1));
+        _factory.Clock.Advance(TimeSpan.FromMinutes(6));
 
         var first =
             await RefreshAsync();
@@ -1601,11 +1600,9 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromMinutes(30);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1625,9 +1622,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // Session expired, refresh token is still valid.
-        //
         factory.Clock.Advance(
             TimeSpan.FromMinutes(31));
 
@@ -1650,14 +1645,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1699,14 +1690,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1749,14 +1736,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();

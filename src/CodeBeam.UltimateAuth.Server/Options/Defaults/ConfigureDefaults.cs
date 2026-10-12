@@ -38,8 +38,7 @@ internal class ConfigureDefaults
         var c = o.Cookie;
         var r = o.AuthResponse;
 
-        // Session behavior
-        s.SlidingExpiration = true;
+        //s.SlidingExpiration = true; // Default value.
 
         // Default: long-lived idle session (UX friendly)
         s.IdleTimeout ??= TimeSpan.FromDays(7);
@@ -75,7 +74,7 @@ internal class ConfigureDefaults
         var c = o.Cookie;
         var r = o.AuthResponse;
 
-        s.SlidingExpiration = true;
+        //s.SlidingExpiration = true; // Default value.
         s.TouchInterval = null;
 
         t.IssueJwt = true;

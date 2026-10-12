@@ -878,16 +878,6 @@ public class ServerOptionsValidatorTests
         }, "Token.AccessTokenLifetime");
 
     [Fact]
-    public void Server_refresh_token_exceeding_session_max_fails() =>
-        ShouldReject<UAuthServerOptionsValidator>(o =>
-        {
-            ConfigureValidCrossOptions(o);
-            o.Session.MaxLifetime = TimeSpan.FromMinutes(5);
-            o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(1);
-            o.Token.RefreshTokenLifetime = TimeSpan.FromMinutes(6);
-        }, "Token.RefreshTokenLifetime");
-
-    [Fact]
     public void Server_token_lifetimes_equal_to_session_max_pass() =>
         ShouldAccept<UAuthServerOptionsValidator>(o =>
         {

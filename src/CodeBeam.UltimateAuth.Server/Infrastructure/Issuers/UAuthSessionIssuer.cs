@@ -33,13 +33,15 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         if (!AuthSessionId.TryCreate(opaqueSessionId, out AuthSessionId sessionId))
             throw new InvalidCastException("Can't create opaque id.");
 
-        var expiresAt = now.Add(sessionOptions.Lifetime);
+        var absoluteExpiresAt = sessionOptions.MaxLifetime is { } max
+            ? now.Add(max)
+            : (DateTimeOffset?)null;
 
-        if (sessionOptions.MaxLifetime is not null)
+        var sessionExpiresAt = now.Add(sessionOptions.Lifetime);
+
+        if (absoluteExpiresAt is { } absolute && sessionExpiresAt > absolute)
         {
-            var absoluteExpiry = now.Add(sessionOptions.MaxLifetime.Value);
-            if (absoluteExpiry < expiresAt)
-                expiresAt = absoluteExpiry;
+            sessionExpiresAt = absolute;
         }
 
         var kernel = _storeFactory.Create(context.Tenant);
@@ -76,7 +78,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                         context.Tenant,
                         context.UserKey,
                         now,
-                        expiresAt,
+                        absoluteExpiresAt,
                         context.Device,
                         ClaimsSnapshot.Empty,
                         root.SecurityVersion
@@ -110,7 +112,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     context.Tenant,
                     context.UserKey,
                     now,
-                    expiresAt,
+                    absoluteExpiresAt,
                     context.Device,
                     ClaimsSnapshot.Empty,
                     root.SecurityVersion
@@ -141,7 +143,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 userKey: context.UserKey,
                 chainId: chain.ChainId,
                 now: now,
-                expiresAt: expiresAt,
+                expiresAt: sessionExpiresAt,
                 securityVersion: root.SecurityVersion,
                 device: context.Device,
                 claims: context.Claims,

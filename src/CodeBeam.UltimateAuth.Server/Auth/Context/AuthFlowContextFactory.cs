@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
@@ -69,6 +70,8 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
         SessionSecurityContext? sessionSecurityContext = null;
+        var isAuthenticated = user?.IsAuthenticated ?? false;
+        var userKey = user?.UserId;
 
         if (!sessionCtx.IsAnonymous)
         {
@@ -84,6 +87,19 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
                 ct);
 
             sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+
+            if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
+            {
+                isAuthenticated = validation.IsValid;
+
+                if (!isAuthenticated)
+                    userKey = null;
+            }
+        }
+        else if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
+        {
+            isAuthenticated = false;
+            userKey = null;
         }
 
         if (!tenant.IsValid || tenant.IsUnresolved)
@@ -98,8 +114,8 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             effectiveMode,
             deviceContext,
             tenant,
-            user?.IsAuthenticated ?? false,
-            user?.UserId,
+            isAuthenticated,
+            userKey,
             sessionSecurityContext,
             options,
             response,
