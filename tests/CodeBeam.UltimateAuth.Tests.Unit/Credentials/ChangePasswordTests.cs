@@ -126,6 +126,4 @@ public class ChangePasswordTests
 
         newLogin.IsSuccess.Should().BeTrue();
     }
-
-
 }

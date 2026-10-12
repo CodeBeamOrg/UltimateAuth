@@ -297,7 +297,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
     private async Task<IResult> RedirectToLoginWithErrorAsync(HttpContext ctx, AuthFlowContext auth, string error)
     {
-        var basePath = auth.OriginalOptions.Hub.LoginPath ?? "/login";
+        var basePath = auth.Options.Hub.LoginPath ?? "/login";
         var hubKey = await ResolveHubKeyAsync(ctx);
 
         if (!string.IsNullOrWhiteSpace(hubKey))

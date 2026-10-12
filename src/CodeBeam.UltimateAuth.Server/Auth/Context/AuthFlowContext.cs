@@ -21,8 +21,7 @@ public sealed class AuthFlowContext
     public bool IsAuthenticated { get; }
     public UserKey? UserKey { get; }
 
-    public UAuthServerOptions OriginalOptions { get; }
-    public EffectiveUAuthServerOptions EffectiveOptions { get; }
+    public UAuthServerOptions Options { get; }
 
     public EffectiveAuthResponse Response { get; }
     public ReturnUrlInfo ReturnUrlInfo { get; }
@@ -46,8 +45,7 @@ public sealed class AuthFlowContext
         bool isAuthenticated,
         UserKey? userKey,
         SessionSecurityContext? session,
-        UAuthServerOptions originalOptions,
-        EffectiveUAuthServerOptions effectiveOptions,
+        UAuthServerOptions options,
         EffectiveAuthResponse response,
         PrimaryTokenKind primaryTokenKind,
         ReturnUrlInfo returnUrlInfo)
@@ -65,8 +63,7 @@ public sealed class AuthFlowContext
         IsAuthenticated = isAuthenticated;
         UserKey = userKey;
 
-        OriginalOptions = originalOptions;
-        EffectiveOptions = effectiveOptions;
+        Options = options;
 
         Response = response;
         PrimaryTokenKind = primaryTokenKind;

@@ -5,8 +5,10 @@ using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -360,6 +362,13 @@ public sealed class UAuthResourceAuthenticationHandlerTests
 
         var services = new ServiceCollection();
 
+        var effectiveOptionsProvider = new Mock<IEffectiveServerOptionsProvider>();
+
+        var clientProfileReader = new Mock<IClientProfileReader>();
+
+        services.AddSingleton(effectiveOptionsProvider.Object);
+        services.AddSingleton(clientProfileReader.Object);
+
         services.AddLogging();
 
         services.AddSingleton(
@@ -374,10 +383,7 @@ public sealed class UAuthResourceAuthenticationHandlerTests
         services.AddSingleton(
             clock.Object);
 
-        services
-            .AddAuthentication(
-                UAuthConstants.SchemeDefaults.GlobalScheme)
-            .AddUAuthResourceApi();
+        services.AddAuthentication(UAuthConstants.SchemeDefaults.GlobalScheme).AddUAuthResourceApi();
 
         var provider = services.BuildServiceProvider();
 
@@ -386,9 +392,7 @@ public sealed class UAuthResourceAuthenticationHandlerTests
             RequestServices = provider
         };
 
-        http.Items[
-            UAuthConstants.HttpItems.TenantContextKey] =
-            UAuthTenantContext.Resolved(Tenant);
+        http.Items[UAuthConstants.HttpItems.TenantContextKey] = UAuthTenantContext.Resolved(Tenant);
 
         return new TestSetup(
             http,

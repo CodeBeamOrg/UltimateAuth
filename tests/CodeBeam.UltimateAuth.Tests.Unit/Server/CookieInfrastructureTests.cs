@@ -127,7 +127,7 @@ public sealed class CookieInfrastructureTests
         cookie.SameSite = null;
 
         var context = AuthFlowTestFactory.New();
-        context.OriginalOptions.HubDeploymentMode = deploymentMode;
+        context.Options.HubDeploymentMode = deploymentMode;
 
         var options = _builder.Build(
             CreateResponse(GrantKind.Session, cookie),
@@ -148,7 +148,7 @@ public sealed class CookieInfrastructureTests
         cookie.SameSite = explicitMode;
 
         var context = AuthFlowTestFactory.New();
-        context.OriginalOptions.HubDeploymentMode =
+        context.Options.HubDeploymentMode =
             UAuthHubDeploymentMode.External;
 
         var options = _builder.Build(
@@ -175,7 +175,7 @@ public sealed class CookieInfrastructureTests
 
         var context = AuthFlowTestFactory.New();
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromHours(4);
 
         var options = _builder.Build(
@@ -198,7 +198,7 @@ public sealed class CookieInfrastructureTests
 
         var context = AuthFlowTestFactory.New();
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromHours(4);
 
         var options = _builder.Build(
@@ -251,10 +251,10 @@ public sealed class CookieInfrastructureTests
         var context = AuthFlowTestFactory.New(
             mode: UAuthMode.PureOpaque);
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromMinutes(20);
 
-        context.EffectiveOptions.Options.Token.RefreshTokenLifetime =
+        context.Options.Token.RefreshTokenLifetime =
             TimeSpan.FromDays(7);
 
         var options = _builder.Build(
@@ -273,10 +273,10 @@ public sealed class CookieInfrastructureTests
         var context = AuthFlowTestFactory.New(
             mode: UAuthMode.Hybrid);
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromMinutes(20);
 
-        context.EffectiveOptions.Options.Token.RefreshTokenLifetime =
+        context.Options.Token.RefreshTokenLifetime =
             TimeSpan.FromDays(7);
 
         var options = _builder.Build(
@@ -296,10 +296,10 @@ public sealed class CookieInfrastructureTests
         var context = AuthFlowTestFactory.New(
             mode: UAuthMode.Hybrid);
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromHours(12);
 
-        context.EffectiveOptions.Options.Token.RefreshTokenLifetime =
+        context.Options.Token.RefreshTokenLifetime =
             TimeSpan.FromHours(2);
 
         var options = _builder.Build(
@@ -319,10 +319,10 @@ public sealed class CookieInfrastructureTests
         var context = AuthFlowTestFactory.New(
             mode: UAuthMode.PureJwt);
 
-        context.EffectiveOptions.Options.Session.IdleTimeout =
+        context.Options.Session.IdleTimeout =
             TimeSpan.FromMinutes(15);
 
-        context.EffectiveOptions.Options.Token.RefreshTokenLifetime =
+        context.Options.Token.RefreshTokenLifetime =
             TimeSpan.FromDays(1);
 
         var options = _builder.Build(
@@ -344,7 +344,7 @@ public sealed class CookieInfrastructureTests
 
         var context = AuthFlowTestFactory.New();
 
-        context.EffectiveOptions.Options.Token.AccessTokenLifetime =
+        context.Options.Token.AccessTokenLifetime =
             TimeSpan.FromMinutes(15);
 
         var options = _builder.Build(
@@ -362,7 +362,7 @@ public sealed class CookieInfrastructureTests
 
         var context = AuthFlowTestFactory.New();
 
-        context.EffectiveOptions.Options.Token.RefreshTokenLifetime =
+        context.Options.Token.RefreshTokenLifetime =
             TimeSpan.FromDays(14);
 
         var options = _builder.Build(

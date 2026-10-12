@@ -34,7 +34,7 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
         if (cookie.SameSite is not null)
             return cookie.SameSite.Value;
 
-        return context.OriginalOptions.HubDeploymentMode switch
+        return context.Options.HubDeploymentMode switch
         {
             UAuthHubDeploymentMode.Embedded => SameSiteMode.Strict,
             UAuthHubDeploymentMode.Integrated => SameSiteMode.Lax,
@@ -65,16 +65,16 @@ internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
         return kind switch
         {
             GrantKind.Session => ResolveSessionLifetime(context),
-            GrantKind.RefreshToken => context.EffectiveOptions.Options.Token.RefreshTokenLifetime,
-            GrantKind.AccessToken => context.EffectiveOptions.Options.Token.AccessTokenLifetime,
+            GrantKind.RefreshToken => context.Options.Token.RefreshTokenLifetime,
+            GrantKind.AccessToken => context.Options.Token.AccessTokenLifetime,
             _ => null
         };
     }
 
     private static TimeSpan? ResolveSessionLifetime(AuthFlowContext context)
     {
-        var sessionIdle = context.EffectiveOptions.Options.Session.IdleTimeout;
-        var refresh = context.EffectiveOptions.Options.Token.RefreshTokenLifetime;
+        var sessionIdle = context.Options.Session.IdleTimeout;
+        var refresh = context.Options.Token.RefreshTokenLifetime;
 
         return context.EffectiveMode switch
         {

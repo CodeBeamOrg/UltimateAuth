@@ -551,7 +551,7 @@ public sealed class PkceEndpointHandlerTests
             .Subject;
 
         redirect.Url.Should().Be(
-            fixture.Flow.OriginalOptions.Hub.LoginPath ?? "/login");
+            fixture.Flow.Options.Hub.LoginPath ?? "/login");
 
         fixture.CredentialWriter.VerifyNoOtherCalls();
         fixture.RedirectResolver.VerifyNoOtherCalls();
@@ -829,8 +829,7 @@ public sealed class PkceEndpointHandlerTests
             isAuthenticated: source.IsAuthenticated,
             userKey: source.UserKey,
             session: source.Session,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo);

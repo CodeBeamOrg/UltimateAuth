@@ -655,8 +655,7 @@ public sealed class LogoutEndpointHandlerTests
             isAuthenticated: true,
             userKey: session.UserKey,
             session: session,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo
@@ -676,8 +675,7 @@ public sealed class LogoutEndpointHandlerTests
             isAuthenticated: false,
             userKey: null,
             session: null,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo

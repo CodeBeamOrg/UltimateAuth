@@ -16,7 +16,7 @@ public class EffectiveAuthModeResolverTests
     [InlineData(UAuthClientProfile.Api, UAuthMode.PureJwt)]
     public void Default_Mode_Is_Derived_From_ClientProfile(UAuthClientProfile profile, UAuthMode expected)
     {
-        var mode = _resolver.Resolve(clientProfile: profile, flowType: AuthFlowType.Login);
+        var mode = _resolver.Resolve(clientProfile: profile);
         Assert.Equal(expected, mode);
     }
 }

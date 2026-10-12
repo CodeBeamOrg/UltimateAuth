@@ -41,7 +41,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         if (validation.State == RefreshTokenValidationState.Consumed)
         {
-            var concurrencyWindow = flow.OriginalOptions.Token.RefreshTokenConcurrentRequestWindow;
+            var concurrencyWindow = flow.Options.Token.RefreshTokenConcurrentRequestWindow;
 
             if (IsLikelyConcurrentRequest(validation, context.Now, concurrencyWindow))
             {
@@ -79,7 +79,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         var tokenContext = new TokenIssuanceContext
         {
-            Tenant = flow.OriginalOptions.MultiTenant.Enabled
+            Tenant = flow.Options.MultiTenant.Enabled
                 ? validation.Tenant
                 : TenantKey.Single,
 

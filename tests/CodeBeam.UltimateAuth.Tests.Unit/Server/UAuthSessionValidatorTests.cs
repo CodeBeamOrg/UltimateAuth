@@ -567,15 +567,15 @@ public sealed class UAuthSessionValidatorTests
 
         var sut = new UAuthSessionValidator(
             storeFactory.Object,
-            claimsProvider.Object,
-            Options.Create(options));
+            claimsProvider.Object);
 
         var context = new SessionValidationContext
         {
             Tenant = tenant,
             SessionId = session.SessionId,
             Now = Now,
-            Device = requestDevice ?? TestDevice.Default()
+            Device = requestDevice ?? TestDevice.Default(),
+            SessionOptions = options.Session
         };
 
         return new Fixture(

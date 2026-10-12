@@ -746,8 +746,7 @@ public sealed class UAuthFlowServiceTests
             isAuthenticated: userKey.HasValue,
             userKey: userKey,
             session: session,
-            originalOptions: TestServerOptions.Default(),
-            effectiveOptions: TestServerOptions.Effective(),
+            options: TestServerOptions.Default(),
             response: new EffectiveAuthResponse(
                 sessionIdDelivery:
                     CredentialResponseOptions.Disabled(

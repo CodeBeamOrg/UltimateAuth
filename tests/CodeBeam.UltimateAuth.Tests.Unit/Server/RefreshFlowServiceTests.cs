@@ -496,8 +496,7 @@ public sealed class RefreshFlowServiceTests
             isAuthenticated: true,
             userKey: UserKey.New(),
             session: null,
-            originalOptions: original,
-            effectiveOptions: effective,
+            options: effective.Options,
             response: new EffectiveAuthResponse(
                 sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
                 accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),

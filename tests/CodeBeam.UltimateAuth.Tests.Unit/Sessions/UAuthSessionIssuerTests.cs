@@ -4,11 +4,12 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
-using Microsoft.Extensions.Options;
 using Moq;
 using System.Security;
 
@@ -36,7 +37,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_WhenModeIsPureJwt_ShouldRejectSessionIssuance()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             mode: UAuthMode.PureJwt);
 
         var act = () =>
@@ -60,7 +61,7 @@ public sealed class UAuthSessionIssuerTests
         var fixture = CreateFixture(
             opaqueToken: "invalid");
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var act = () =>
             fixture.Sut.IssueSessionAsync(context);
@@ -81,7 +82,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_WhenActiveRootDoesNotExist_ShouldCreateRoot()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         fixture.Store
             .Setup(x => x.GetActiveRootByUserAsync(
@@ -119,7 +120,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_WhenActiveRootExists_ShouldReuseRoot()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -154,7 +155,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_WhenChainIdIsNotProvided_ShouldCreateNewChain()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -198,7 +199,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_WhenExistingChainIsProvided_ShouldReuseChain()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -209,7 +210,7 @@ public sealed class UAuthSessionIssuerTests
             context.UserKey,
             context.Tenant);
 
-        context = CreateIssuanceContext(
+        context = CreateIssuanceContext(fixture,
             userKey: context.UserKey,
             chainId: chain.ChainId);
 
@@ -247,7 +248,7 @@ public sealed class UAuthSessionIssuerTests
         var requestedChainId =
             SessionChainId.New();
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             userKey: userKey,
             chainId: requestedChainId);
 
@@ -310,7 +311,7 @@ public sealed class UAuthSessionIssuerTests
             otherUser,
             Tenant);
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             userKey: user,
             chainId: chain.ChainId);
 
@@ -340,7 +341,7 @@ public sealed class UAuthSessionIssuerTests
             user,
             otherTenant);
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             userKey: user,
             chainId: chain.ChainId);
 
@@ -370,7 +371,7 @@ public sealed class UAuthSessionIssuerTests
         var chain =
             CreateChain(otherRoot, user, Tenant);
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             userKey: user,
             chainId: chain.ChainId);
 
@@ -399,7 +400,7 @@ public sealed class UAuthSessionIssuerTests
 
         chain = chain.Revoke(Now);
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             userKey: user,
             chainId: chain.ChainId);
 
@@ -423,7 +424,7 @@ public sealed class UAuthSessionIssuerTests
         var fixture = CreateFixture(
             lifetime: TimeSpan.FromHours(4));
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         SetupNewIssuance(fixture, context);
 
@@ -441,7 +442,7 @@ public sealed class UAuthSessionIssuerTests
             lifetime: TimeSpan.FromHours(8),
             maxLifetime: TimeSpan.FromHours(2));
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         SetupNewIssuance(fixture, context);
 
@@ -459,7 +460,7 @@ public sealed class UAuthSessionIssuerTests
             lifetime: TimeSpan.FromHours(4),
             maxLifetime: TimeSpan.FromHours(24));
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         SetupNewIssuance(fixture, context);
 
@@ -478,7 +479,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_ShouldPersistSessionAndAttachItToChain()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -537,9 +538,9 @@ public sealed class UAuthSessionIssuerTests
     [Fact]
     public async Task IssueSessionAsync_WhenModeIsSemiHybrid_ShouldMarkResultAsMetadataOnly()
     {
-        var fixture = CreateFixture();
+        var fixture = CreateFixture(mode: UAuthMode.SemiHybrid);
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             mode: UAuthMode.SemiHybrid);
 
         SetupNewIssuance(fixture, context);
@@ -555,7 +556,7 @@ public sealed class UAuthSessionIssuerTests
     {
         var fixture = CreateFixture();
 
-        var context = CreateIssuanceContext(
+        var context = CreateIssuanceContext(fixture,
             mode: UAuthMode.Hybrid);
 
         SetupNewIssuance(fixture, context);
@@ -576,7 +577,7 @@ public sealed class UAuthSessionIssuerTests
         var fixture = CreateFixture(
             maxSessionsPerChain: 2);
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -606,7 +607,7 @@ public sealed class UAuthSessionIssuerTests
             chain.ChainId,
             Now.AddHours(-4));
 
-        context = CreateIssuanceContext(
+        context = CreateIssuanceContext(fixture,
             userKey: context.UserKey,
             chainId: chain.ChainId);
 
@@ -657,7 +658,7 @@ public sealed class UAuthSessionIssuerTests
         var fixture = CreateFixture(
             maxSessionsPerChain: 3);
 
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         SetupNewIssuance(fixture, context);
 
@@ -680,7 +681,7 @@ public sealed class UAuthSessionIssuerTests
         var fixture = CreateFixture(
             opaqueToken: "invalid");
 
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var act = () =>
             fixture.Sut.RotateSessionAsync(context);
@@ -707,7 +708,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenRootDoesNotExist_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         fixture.Store
             .Setup(x => x.GetActiveRootByUserAsync(
@@ -726,7 +727,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenSessionDoesNotExist_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -751,7 +752,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenSessionIsRevoked_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -786,7 +787,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenSessionIsExpired_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -824,7 +825,7 @@ public sealed class UAuthSessionIssuerTests
     {
         var fixture = CreateFixture();
 
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
         var otherUser = UserKey.New();
 
         var root = CreateRoot(
@@ -857,7 +858,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenSecurityVersionDoesNotMatch_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -889,7 +890,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenChainDoesNotExist_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -925,7 +926,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenChainIsRevoked_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -960,7 +961,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenChainBelongsToDifferentUser_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var root = CreateRoot(
             context.Tenant,
@@ -995,7 +996,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_WhenChainBelongsToDifferentRoot_ShouldThrowSecurityException()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var activeRoot = CreateRoot(
             context.Tenant,
@@ -1040,7 +1041,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_ShouldCreateNewSessionOnSameChain()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var setup =
             SetupSuccessfulRotation(
@@ -1077,7 +1078,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_ShouldRotateChainActiveSession()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var setup =
             SetupSuccessfulRotation(
@@ -1110,7 +1111,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_ShouldRevokeOldSession()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var setup =
             SetupSuccessfulRotation(
@@ -1146,7 +1147,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_ShouldReturnSameBoundSessionThatWasPersisted()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         var setup =
             SetupSuccessfulRotation(
@@ -1176,9 +1177,9 @@ public sealed class UAuthSessionIssuerTests
     [Fact]
     public async Task RotateSessionAsync_WhenModeIsSemiHybrid_ShouldMarkResultAsMetadataOnly()
     {
-        var fixture = CreateFixture();
+        var fixture = CreateFixture(mode: UAuthMode.SemiHybrid);
 
-        var context = CreateRotationContext(
+        var context = CreateRotationContext(fixture,
             mode: UAuthMode.SemiHybrid);
 
         SetupSuccessfulRotation(
@@ -1198,7 +1199,7 @@ public sealed class UAuthSessionIssuerTests
             lifetime: TimeSpan.FromHours(8),
             maxLifetime: TimeSpan.FromHours(2));
 
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         SetupSuccessfulRotation(
             fixture,
@@ -1575,7 +1576,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task IssueSessionAsync_ShouldPassCancellationTokenToTransaction()
     {
         var fixture = CreateFixture();
-        var context = CreateIssuanceContext();
+        var context = CreateIssuanceContext(fixture);
 
         SetupNewIssuance(fixture, context);
 
@@ -1597,7 +1598,7 @@ public sealed class UAuthSessionIssuerTests
     public async Task RotateSessionAsync_ShouldPassCancellationTokenToTransaction()
     {
         var fixture = CreateFixture();
-        var context = CreateRotationContext();
+        var context = CreateRotationContext(fixture);
 
         SetupSuccessfulRotation(
             fixture,
@@ -1625,7 +1626,8 @@ public sealed class UAuthSessionIssuerTests
         string opaqueToken = OpaqueToken,
         TimeSpan? lifetime = null,
         TimeSpan? maxLifetime = null,
-        int maxSessionsPerChain = 5)
+        int maxSessionsPerChain = 5,
+        UAuthMode mode = UAuthMode.Hybrid)
     {
         var storeFactory =
             new Mock<ISessionStoreFactory>(
@@ -1638,6 +1640,8 @@ public sealed class UAuthSessionIssuerTests
         var tokenGenerator =
             new Mock<IOpaqueTokenGenerator>(
                 MockBehavior.Strict);
+
+        var flowAccessor = new Mock<IAuthFlowContextAccessor>(MockBehavior.Strict);
 
         tokenGenerator
             .Setup(x => x.Generate())
@@ -1669,8 +1673,7 @@ public sealed class UAuthSessionIssuerTests
             .Returns<Func<CancellationToken, Task<SessionChainId?>>, CancellationToken>(
                 (action, ct) => action(ct));
 
-        var options =
-            new UAuthServerOptions();
+        var options = new UAuthServerOptions();
 
         options.Session.Lifetime =
             lifetime ?? Lifetime;
@@ -1684,14 +1687,14 @@ public sealed class UAuthSessionIssuerTests
         var sut =
             new UAuthSessionIssuer(
                 storeFactory.Object,
-                tokenGenerator.Object,
-                Options.Create(options));
+                tokenGenerator.Object);
 
         return new Fixture(
             sut,
             storeFactory,
             store,
-            tokenGenerator);
+            tokenGenerator,
+            options.Session);
     }
 
     // =====================================================================
@@ -1861,10 +1864,7 @@ public sealed class UAuthSessionIssuerTests
     // Domain helpers
     // =====================================================================
 
-    private static SessionIssuanceContext CreateIssuanceContext(
-        UserKey? userKey = null,
-        SessionChainId? chainId = null,
-        UAuthMode mode = UAuthMode.Hybrid)
+    private static SessionIssuanceContext CreateIssuanceContext(Fixture fixture, UserKey? userKey = null, SessionChainId? chainId = null, UAuthMode mode = UAuthMode.Hybrid)
     {
         return new SessionIssuanceContext
         {
@@ -1875,26 +1875,26 @@ public sealed class UAuthSessionIssuerTests
             Claims = ClaimsSnapshot.Empty,
             Metadata = SessionMetadata.Empty,
             Mode = mode,
-            ChainId = chainId
+            ChainId = chainId,
+            SessionOptions = fixture.SessionOptions
         };
     }
 
-    private static SessionRotationContext CreateRotationContext(
-        UAuthMode mode = UAuthMode.Hybrid)
+    private static SessionRotationContext CreateRotationContext(Fixture fixture, UAuthMode mode = UAuthMode.Hybrid)
     {
         return new SessionRotationContext
         {
             Tenant = Tenant,
-            CurrentSessionId =
-                AuthSessionId.Parse(
-                    "current-session-000000000000000000000000001",
-                    null),
+            CurrentSessionId = AuthSessionId.Parse(
+                "current-session-000000000000000000000000001",
+                null),
             UserKey = UserKey.New(),
             Now = Now,
             Device = TestDevice.Default(),
             Claims = ClaimsSnapshot.Empty,
             Metadata = SessionMetadata.Empty,
-            Mode = mode
+            Mode = mode,
+            SessionOptions = fixture.SessionOptions
         };
     }
 
@@ -1954,5 +1954,6 @@ public sealed class UAuthSessionIssuerTests
         UAuthSessionIssuer Sut,
         Mock<ISessionStoreFactory> StoreFactory,
         Mock<ISessionStore> Store,
-        Mock<IOpaqueTokenGenerator> TokenGenerator);
+        Mock<IOpaqueTokenGenerator> TokenGenerator,
+        UAuthSessionOptions SessionOptions);
 }
