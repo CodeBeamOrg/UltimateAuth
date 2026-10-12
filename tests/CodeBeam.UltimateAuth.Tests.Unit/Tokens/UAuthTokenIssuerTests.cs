@@ -1101,6 +1101,37 @@ public sealed class UAuthTokenIssuerTests
         refresh!.ExpiresAt.Should().Be(Now.AddMinutes(30));
     }
 
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task IssueRefreshTokenAsync_WhenIssueRefreshDisabled_ShouldReturnNull(UAuthMode mode)
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(mode);
+
+        flow.Options.Token.IssueRefresh = false;
+
+        var result = await fixture.Sut.IssueRefreshTokenAsync(
+            flow,
+            CreateTokenContext(sessionId: null),
+            RefreshTokenPersistence.Persist);
+
+        result.Should().BeNull();
+
+        fixture.OpaqueGenerator.Verify(
+            x => x.Generate(),
+            Times.Never);
+
+        fixture.Hasher.Verify(
+            x => x.Hash(It.IsAny<string>()),
+            Times.Never);
+
+        fixture.StoreFactory.Verify(
+            x => x.Create(It.IsAny<TenantKey>()),
+            Times.Never);
+    }
+
     // =====================================================================
     // Context helpers
     // =====================================================================
@@ -1112,7 +1143,8 @@ public sealed class UAuthTokenIssuerTests
         string? issuer = null,
         string? audience = null,
         string? keyId = null,
-        bool addJwtIdClaim = true)
+        bool addJwtIdClaim = true,
+        bool issueRefresh = true)
     {
         /*
          * Adapt only this helper to the existing AuthFlowContext builder/helper
@@ -1124,15 +1156,11 @@ public sealed class UAuthTokenIssuerTests
          * - OriginalOptions.Token values below
          */
 
-        var flow = AuthFlowTestFactory.New(
-            mode: mode,
-            tenant: Tenant);
+        var flow = AuthFlowTestFactory.New(mode: mode, tenant: Tenant);
 
-        flow.Options.Token.AccessTokenLifetime =
-            accessTokenLifetime ?? TimeSpan.FromMinutes(15);
-
-        flow.Options.Token.RefreshTokenLifetime =
-            refreshTokenLifetime ?? TimeSpan.FromDays(30);
+        flow.Options.Token.AccessTokenLifetime = accessTokenLifetime ?? TimeSpan.FromMinutes(15);
+        flow.Options.Token.RefreshTokenLifetime = refreshTokenLifetime ?? TimeSpan.FromDays(30);
+        flow.Options.Token.IssueRefresh = issueRefresh;
 
         if (issuer is not null)
             flow.Options.Token.Issuer = issuer;

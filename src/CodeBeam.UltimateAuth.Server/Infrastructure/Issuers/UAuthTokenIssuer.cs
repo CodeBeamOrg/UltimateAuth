@@ -52,7 +52,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
     public async Task<RefreshTokenIssuanceResult?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
-        if (flow.EffectiveMode == UAuthMode.PureOpaque)
+        if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
             return null;
 
         if (context.SessionId is not AuthSessionId sessionId)

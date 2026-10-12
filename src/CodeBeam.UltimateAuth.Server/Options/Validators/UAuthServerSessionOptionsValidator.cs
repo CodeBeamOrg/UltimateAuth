@@ -21,11 +21,15 @@ internal sealed class UAuthServerSessionOptionsValidator : IValidateOptions<UAut
         if (session.IdleTimeout.HasValue && session.IdleTimeout < TimeSpan.Zero)
             errors.Add("Session.IdleTimeout cannot be negative.");
 
-        if (options.Session.IdleTimeout is { } idle &&
-            options.Session.TouchInterval is { } touch &&
-            idle > TimeSpan.Zero && touch >= idle)
+        if (options.Session.IdleTimeout is { } idle && options.Session.TouchInterval is { } touch && idle > TimeSpan.Zero && touch >= idle)
         {
             errors.Add("Session.TouchInterval must be less than Session.IdleTimeout.");
+        }
+
+        if (session.SlidingExpiration && session.TouchInterval is { } touchInterval && touchInterval >= session.Lifetime)
+        {
+            errors.Add(
+                "Session.TouchInterval must be less than Session.Lifetime when SlidingExpiration is enabled.");
         }
 
         return errors.Count == 0

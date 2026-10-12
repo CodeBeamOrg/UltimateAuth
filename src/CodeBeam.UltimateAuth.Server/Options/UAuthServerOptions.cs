@@ -133,6 +133,7 @@ public sealed class UAuthServerOptions
     /// </summary>
     public Action<IEndpointRouteBuilder>? OnConfigureEndpoints { get; set; }
 
+    // TODO: Add same startup validations. Mode-based options should not pass through the option invariant.
     internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
 
