@@ -49,7 +49,7 @@ public interface IAuthorizationClient
     /// <remarks>
     /// Results may be paginated. Use <paramref name="request"/> to control paging behavior.
     /// </remarks>
-    Task<UAuthResult<UserRolesResponse>> GetMyRolesAsync(PageRequest? request = null);
+    Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null);
 
     /// <summary>
     /// Retrieves roles assigned to a specific user.
@@ -57,7 +57,7 @@ public interface IAuthorizationClient
     /// <remarks>
     /// Requires appropriate administrative permissions.
     /// </remarks>
-    Task<UAuthResult<UserRolesResponse>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null);
+    Task<UAuthResult<UserRolesGetResult>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null);
 
     /// <summary>
     /// Assigns a role to a user.
@@ -108,5 +108,5 @@ public interface IAuthorizationClient
     /// <remarks>
     /// Deleting a role removes it from all users.
     /// </remarks>
-    Task<UAuthResult<DeleteRoleResult>> DeleteRoleAsync(DeleteRoleRequest request);
+    Task<UAuthResult<RoleDeleteResult>> DeleteRoleAsync(DeleteRoleRequest request);
 }

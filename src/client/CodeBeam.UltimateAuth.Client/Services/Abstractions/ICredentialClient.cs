@@ -39,7 +39,7 @@ public interface ICredentialClient
     /// <remarks>
     /// Typically used for initial password setup or adding alternative credentials.
     /// </remarks>
-    Task<UAuthResult<AddCredentialResult>> AddMyAsync(AddCredentialRequest request);
+    Task<UAuthResult<CredentialAddResult>> AddMyAsync(AddCredentialRequest request);
 
     /// <summary>
     /// Changes the credential of the current user.
@@ -47,7 +47,7 @@ public interface ICredentialClient
     /// <remarks>
     /// May require the current credential for verification depending on policy.
     /// </remarks>
-    Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request);
+    Task<UAuthResult<CredentialChangeResult>> ChangeMyAsync(ChangeCredentialRequest request);
 
     /// <summary>
     /// Revokes the current user's credential.
@@ -63,15 +63,15 @@ public interface ICredentialClient
     /// <remarks>
     /// This typically issues a verification step (e.g., email or OTP).
     /// </remarks>
-    Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginResetCredentialRequest request);
+    Task<UAuthResult<CredentialBeginResetResult>> BeginResetAsync(BeginResetCredentialRequest request);
 
     /// <summary>
     /// Completes the credential reset process for the current user.
     /// </summary>
     /// <remarks>
-    /// Must be called after a successful <see cref="BeginResetMyAsync"/>.
+    /// Must be called after a successful <see cref="BeginResetAsync"/>.
     /// </remarks>
-    Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteResetCredentialRequest request);
+    Task<UAuthResult<CredentialActionResult>> CompleteResetAsync(CompleteResetCredentialRequest request);
 
 
     /// <summary>
@@ -80,7 +80,7 @@ public interface ICredentialClient
     /// <remarks>
     /// Requires administrative privileges.
     /// </remarks>
-    Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request);
+    Task<UAuthResult<CredentialAddResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request);
 
     /// <summary>
     /// Changes the credential of a specific user.
@@ -88,7 +88,7 @@ public interface ICredentialClient
     /// <remarks>
     /// Typically used for administrative resets or overrides.
     /// </remarks>
-    Task<UAuthResult<ChangeCredentialResult>> ChangeUserAsync(UserKey userKey, ChangeCredentialRequest request);
+    Task<UAuthResult<CredentialChangeResult>> ChangeUserAsync(UserKey userKey, ChangeCredentialRequest request);
 
     /// <summary>
     /// Revokes a credential for a specific user.
@@ -98,7 +98,7 @@ public interface ICredentialClient
     /// <summary>
     /// Starts the credential reset process for a specific user.
     /// </summary>
-    Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginResetCredentialRequest request);
+    Task<UAuthResult<CredentialBeginResetResult>> BeginResetUserAsync(UserKey userKey, BeginResetCredentialRequest request);
 
     /// <summary>
     /// Completes the credential reset process for a specific user.

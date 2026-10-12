@@ -59,7 +59,7 @@ internal sealed class FailingUserIdentifierStore : IUserIdentifierStore
             now,
             ct);
 
-    public Task<IdentifierExistenceResult> ExistsAsync(
+    public Task<UserIdentifierExistenceResult> ExistsAsync(
         IdentifierExistenceQuery query,
         CancellationToken ct = default)
         => _inner.ExistsAsync(query, ct);

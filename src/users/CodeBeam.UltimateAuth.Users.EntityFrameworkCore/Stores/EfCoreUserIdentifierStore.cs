@@ -35,7 +35,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
                 ct);
     }
 
-    public async Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
+    public async Task<UserIdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -74,9 +74,9 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
             .FirstOrDefaultAsync(ct);
 
         if (match is null)
-            return new IdentifierExistenceResult(false);
+            return new UserIdentifierExistenceResult(false);
 
-        return new IdentifierExistenceResult(
+        return new UserIdentifierExistenceResult(
             true,
             match.UserKey,
             match.Id,

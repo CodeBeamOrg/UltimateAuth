@@ -115,7 +115,7 @@ public class UAuthClientEventConsistencyTests
         {
             "Change" => () => client.ChangeMyAsync(null!),
             "Revoke" => () => client.RevokeMyAsync(null!),
-            "CompleteReset" => () => client.CompleteResetMyAsync(null!),
+            "CompleteReset" => () => client.CompleteResetAsync(null!),
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
@@ -137,7 +137,7 @@ public class UAuthClientEventConsistencyTests
         Func<Task> act = operation switch
         {
             "Change" => () => client.ChangeMyAsync(null!),
-            "CompleteReset" => () => client.CompleteResetMyAsync(null!),
+            "CompleteReset" => () => client.CompleteResetAsync(null!),
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 

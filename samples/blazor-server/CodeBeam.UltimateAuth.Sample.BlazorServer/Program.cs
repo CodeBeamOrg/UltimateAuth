@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Users;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using MudExtensions.Services;

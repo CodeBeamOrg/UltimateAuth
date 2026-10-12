@@ -23,16 +23,16 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task<UAuthResult<AddCredentialResult>> AddMyAsync(AddCredentialRequest request)
+    public async Task<UAuthResult<CredentialAddResult>> AddMyAsync(AddCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/credentials/add"), request);
-        return UAuthResultMapper.FromJson<AddCredentialResult>(raw);
+        return UAuthResultMapper.FromJson<CredentialAddResult>(raw);
     }
 
-    public async Task<UAuthResult<ChangeCredentialResult>> ChangeMyAsync(ChangeCredentialRequest request)
+    public async Task<UAuthResult<CredentialChangeResult>> ChangeMyAsync(ChangeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/credentials/change"), request);
-        var result = UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
+        var result = UAuthResultMapper.FromJson<CredentialChangeResult>(raw);
 
         if (result.IsSuccess)
         {
@@ -57,13 +57,13 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         return result;
     }
 
-    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetMyAsync(BeginResetCredentialRequest request)
+    public async Task<UAuthResult<CredentialBeginResetResult>> BeginResetAsync(BeginResetCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/me/credentials/reset/begin"), request);
-        return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
+        return UAuthResultMapper.FromJson<CredentialBeginResetResult>(raw);
     }
 
-    public async Task<UAuthResult<CredentialActionResult>> CompleteResetMyAsync(CompleteResetCredentialRequest request)
+    public async Task<UAuthResult<CredentialActionResult>> CompleteResetAsync(CompleteResetCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/credentials/reset/complete"), request);
 
@@ -78,16 +78,16 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         return result;
     }
 
-    public async Task<UAuthResult<AddCredentialResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request)
+    public async Task<UAuthResult<CredentialAddResult>> AddUserAsync(UserKey userKey, AddCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/credentials/add"), request);
-        return UAuthResultMapper.FromJson<AddCredentialResult>(raw);
+        return UAuthResultMapper.FromJson<CredentialAddResult>(raw);
     }
 
-    public async Task<UAuthResult<ChangeCredentialResult>> ChangeUserAsync(UserKey userKey, ChangeCredentialRequest request)
+    public async Task<UAuthResult<CredentialChangeResult>> ChangeUserAsync(UserKey userKey, ChangeCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/credentials/change"), request);
-        return UAuthResultMapper.FromJson<ChangeCredentialResult>(raw);
+        return UAuthResultMapper.FromJson<CredentialChangeResult>(raw);
     }
 
     public async Task<UAuthResult> RevokeUserAsync(UserKey userKey, RevokeCredentialRequest request)
@@ -96,10 +96,10 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         return UAuthResultMapper.From(raw);
     }
 
-    public async Task<UAuthResult<BeginCredentialResetResult>> BeginResetUserAsync(UserKey userKey, BeginResetCredentialRequest request)
+    public async Task<UAuthResult<CredentialBeginResetResult>> BeginResetUserAsync(UserKey userKey, BeginResetCredentialRequest request)
     {
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/credentials/reset/begin"), request);
-        return UAuthResultMapper.FromJson<BeginCredentialResetResult>(raw);
+        return UAuthResultMapper.FromJson<CredentialBeginResetResult>(raw);
     }
 
     public async Task<UAuthResult<CredentialActionResult>> CompleteResetUserAsync(UserKey userKey, CompleteResetCredentialRequest request)

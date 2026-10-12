@@ -430,7 +430,7 @@ public sealed class LogoutEndpointHandlerTests
             fixture.HttpContext,
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = currentChainId
+                ExceptChainId = currentChainId
             });
 
         var access = TestAccessContext.ForUser(

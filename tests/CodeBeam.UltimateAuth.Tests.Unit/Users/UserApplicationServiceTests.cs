@@ -1151,7 +1151,7 @@ public sealed class UserApplicationServiceTests
                     q.UserKey == null &&
                     q.ExcludeIdentifierId == identifier.Id),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(
+            .ReturnsAsync(new UserIdentifierExistenceResult(
                 Exists: false));
 
         f.IdentifierValidator
@@ -1188,7 +1188,7 @@ public sealed class UserApplicationServiceTests
                     q.UserKey == identifier.UserKey &&
                     q.ExcludeIdentifierId == identifier.Id),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(
+            .ReturnsAsync(new UserIdentifierExistenceResult(
                 Exists: false));
 
         f.IdentifierStore
@@ -1690,7 +1690,7 @@ public sealed class UserApplicationServiceTests
                     q.Scope == scope &&
                     q.UserKey == null),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(Exists: true));
+            .ReturnsAsync(new UserIdentifierExistenceResult(Exists: true));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
             context,
@@ -1726,7 +1726,7 @@ public sealed class UserApplicationServiceTests
                     q.Scope == IdentifierExistenceScope.WithinUser &&
                     q.UserKey == target),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(Exists: true));
+            .ReturnsAsync(new UserIdentifierExistenceResult(Exists: true));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
             context,
@@ -1757,7 +1757,7 @@ public sealed class UserApplicationServiceTests
                     q.Scope == IdentifierExistenceScope.TenantPrimaryOnly &&
                     q.UserKey == null),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IdentifierExistenceResult(Exists: false));
+            .ReturnsAsync(new UserIdentifierExistenceResult(Exists: false));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
             context, UserIdentifierType.Username, "missing");

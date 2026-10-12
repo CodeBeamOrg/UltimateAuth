@@ -79,7 +79,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
         );
 
         var roles = await _userRoles.GetRolesAsync(accessContext, flow.UserKey!.Value, req, ctx.RequestAborted);
-        return Results.Ok(new UserRolesResponse
+        return Results.Ok(new UserRolesGetResult
         {
             UserKey = flow.UserKey!.Value,
             Roles = roles
@@ -104,7 +104,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var roles = await _userRoles.GetRolesAsync(accessContext, userKey, req, ctx.RequestAborted);
 
-        return Results.Ok(new UserRolesResponse
+        return Results.Ok(new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = roles
