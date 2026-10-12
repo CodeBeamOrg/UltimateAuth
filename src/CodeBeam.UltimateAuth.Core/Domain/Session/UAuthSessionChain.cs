@@ -264,7 +264,7 @@ public sealed class UAuthSessionChain : IVersionedEntity
         if (IsExpired(at))
             return SessionState.Expired;
 
-        if (idleTimeout.HasValue && at - LastSeenAt >= idleTimeout.Value)
+        if (idleTimeout is { } idle && idle > TimeSpan.Zero && at - LastSeenAt >= idle)
             return SessionState.Expired;
 
         return SessionState.Active;
