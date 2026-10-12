@@ -620,6 +620,56 @@ public sealed class RefreshTokenRotationServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task RotateAsync_WhenIssueRefreshDisabled_ShouldFailWithoutValidationOrMutation()
+    {
+        var validator = new Mock<IRefreshTokenValidator>();
+        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
+        var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
+
+        var flow = CreateFlow();
+        flow.Options.Token.IssueRefresh = false;
+
+        var sut = new RefreshTokenRotationService(
+            validator.Object,
+            storeFactory.Object,
+            issuer.Object,
+            claimsProvider.Object);
+
+        var result = await sut.RotateAsync(
+            flow,
+            CreateContext());
+
+        result.Result.IsSuccess.Should().BeFalse();
+        result.Result.ReauthRequired.Should().BeTrue();
+
+        validator.Verify(
+            x => x.ValidateAsync(
+                It.IsAny<RefreshTokenValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        storeFactory.Verify(
+            x => x.Create(It.IsAny<TenantKey>()),
+            Times.Never);
+
+        issuer.Verify(
+            x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<RefreshTokenPersistence>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        issuer.Verify(
+            x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
 
     private static Mock<IRefreshTokenValidator> CreateValidator(RefreshTokenValidationResult result)
     {

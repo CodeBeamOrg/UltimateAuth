@@ -28,6 +28,14 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
     // TODO: Handle reuse detection and make flow knows situation, but don't make security branch.
     public async Task<RefreshTokenRotationExecution> RotateAsync(AuthFlowContext flow, RefreshTokenRotationContext context, CancellationToken ct = default)
     {
+        if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
+        {
+            return new RefreshTokenRotationExecution
+            {
+                Result = RefreshTokenRotationResult.Failed()
+            };
+        }
+
         var validation = await _validator.ValidateAsync(
             new RefreshTokenValidationContext
             {

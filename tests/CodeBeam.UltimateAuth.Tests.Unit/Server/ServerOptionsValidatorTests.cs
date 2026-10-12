@@ -708,7 +708,7 @@ public class ServerOptionsValidatorTests
         }, "OpaqueIdBytes");
 
     [Theory]
-    [InlineData(16)]
+    [InlineData(24)]
     [InlineData(128)]
     public void Token_opaque_entropy_boundary_values_pass(int bytes) =>
         ShouldAccept<UAuthServerTokenOptionsValidator>(o =>
@@ -926,6 +926,36 @@ public class ServerOptionsValidatorTests
             ConfigureValidCrossOptions(o);
             o.Session.MaxLifetime = null;
         });
+
+
+    [Theory]
+    [InlineData(1, 5)]
+    [InlineData(5, 5)]
+    public void Session_sliding_expiration_touch_interval_greater_than_or_equal_to_lifetime_fails(
+        int lifetimeMinutes,
+        int touchIntervalMinutes) =>
+        ShouldReject<UAuthServerSessionOptionsValidator>(o =>
+        {
+            o.Session.SlidingExpiration = true;
+            o.Session.Lifetime = TimeSpan.FromMinutes(lifetimeMinutes);
+            o.Session.TouchInterval = TimeSpan.FromMinutes(touchIntervalMinutes);
+            o.Session.IdleTimeout = null;
+            o.Session.MaxLifetime = null;
+        }, "Session.TouchInterval must be less than Session.Lifetime");
+
+
+    [Fact]
+    public void Session_sliding_expiration_touch_interval_less_than_lifetime_passes() =>
+        ShouldAccept<UAuthServerSessionOptionsValidator>(o =>
+        {
+            o.Session.SlidingExpiration = true;
+            o.Session.Lifetime = TimeSpan.FromMinutes(5);
+            o.Session.TouchInterval = TimeSpan.FromMinutes(1);
+            o.Session.IdleTimeout = null;
+            o.Session.MaxLifetime = null;
+        });
+
+
 
 
     private static void ShouldReject<TValidator>(Action<UAuthServerOptions> configure, string expected)
