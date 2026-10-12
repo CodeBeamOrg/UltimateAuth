@@ -2,9 +2,15 @@ name: UltimateAuth CI
 
 on:
   push:
-    branches: [ dev ]
+    branches:
+      - dev
+      - 'release/**'
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ dev ]
+    branches:
+      - dev
+      - 'release/**'
   workflow_dispatch:
 
 jobs:
