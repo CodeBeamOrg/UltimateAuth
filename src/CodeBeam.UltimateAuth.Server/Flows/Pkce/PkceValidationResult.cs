@@ -4,11 +4,11 @@ public sealed class PkceValidationResult
 {
     private PkceValidationResult(bool success, PkceValidationFailureReason reason)
     {
-        Success = success;
+        IsSuccess = success;
         FailureReason = reason;
     }
 
-    public bool Success { get; }
+    public bool IsSuccess { get; }
 
     public PkceValidationFailureReason FailureReason { get; }
 

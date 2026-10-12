@@ -466,9 +466,9 @@ public sealed class RoleServiceTests
             AccessOrchestrator
                 .Setup(x => x.ExecuteAsync(
                     It.IsAny<AccessContext>(),
-                    It.IsAny<AccessCommand<DeleteRoleResult>>(),
+                    It.IsAny<AccessCommand<RoleDeleteResult>>(),
                     It.IsAny<CancellationToken>()))
-                .Returns<AccessContext, AccessCommand<DeleteRoleResult>, CancellationToken>(
+                .Returns<AccessContext, AccessCommand<RoleDeleteResult>, CancellationToken>(
                     async (_, command, ct) =>
                         await command.ExecuteAsync(ct));
 

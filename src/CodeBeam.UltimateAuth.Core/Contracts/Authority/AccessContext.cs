@@ -27,6 +27,10 @@ public sealed class AccessContext
     public bool HasActor => ActorUserKey != null;
     public bool HasTarget => TargetUserKey != null;
 
+    public bool IsAdminContext => Action.EndsWith(".admin", StringComparison.Ordinal);
+    public bool IsSelfContext => Action.EndsWith(".self", StringComparison.Ordinal);
+    public bool IsAnonymousContext => Action.EndsWith(".anonymous", StringComparison.Ordinal);
+
     public UserKey GetTargetUserKey()
     {
         if (TargetUserKey is not UserKey targetUserKey)

@@ -51,7 +51,7 @@ public sealed class SessionValidationResult
 
     public static SessionValidationResult Invalid(
         SessionState state,
-        UserKey? userId = null,
+        UserKey? userKey = null,
         AuthSessionId? sessionId = null,
         SessionChainId? chainId = null,
         SessionRootId? rootId = null,
@@ -59,7 +59,7 @@ public sealed class SessionValidationResult
     => new()
     {
         State = state,
-        UserKey = userId,
+        UserKey = userKey,
         SessionId = sessionId,
         ChainId = chainId,
         RootId = rootId,

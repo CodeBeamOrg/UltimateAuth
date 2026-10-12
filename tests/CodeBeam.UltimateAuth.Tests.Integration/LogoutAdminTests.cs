@@ -590,7 +590,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             $"/auth/admin/users/{target.UserKey.Value}/logout-others",
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = currentChain.ChainId
+                ExceptChainId = currentChain.ChainId
             });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -658,7 +658,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             $"/auth/admin/users/{target.UserKey.Value}/logout-others",
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = currentChain.ChainId
+                ExceptChainId = currentChain.ChainId
             });
 
         response.StatusCode.Should()
@@ -758,7 +758,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             $"/auth/admin/users/{target.UserKey.Value}/logout-others",
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = foreignChain.ChainId
+                ExceptChainId = foreignChain.ChainId
             });
 
         response.StatusCode.Should().BeOneOf(
@@ -843,7 +843,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             $"/auth/admin/users/{target.UserKey.Value}/logout-others",
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = currentChain.ChainId
+                ExceptChainId = currentChain.ChainId
             });
 
         response.StatusCode.Should()
@@ -931,7 +931,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
 
         var request = new LogoutOtherDevicesRequest
         {
-            CurrentChainId = preservedChain.ChainId
+            ExceptChainId = preservedChain.ChainId
         };
 
         var url =

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Tests.Unit.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.InMemory;
@@ -6,8 +7,7 @@ using CodeBeam.UltimateAuth.Users.Reference;
 
 public sealed class InMemoryUserIdentifierStoreContractTests : UserIdentifierStoreContractTests
 {
-    protected override Task<IUserIdentifierStoreTestDatabase>
-        CreateDatabaseAsync()
+    protected override Task<IUserIdentifierStoreTestDatabase> CreateDatabaseAsync()
     {
         return Task.FromResult<IUserIdentifierStoreTestDatabase>(
             new Database());
@@ -26,7 +26,7 @@ public sealed class InMemoryUserIdentifierStoreContractTests : UserIdentifierSto
 
             var store = new InMemoryUserIdentifierStore(
                 new TenantExecutionContext(tenant),
-                _atomicContext);
+                _atomicContext, new UAuthPaginationOptions());
 
             _stores.Add(tenant, store);
 

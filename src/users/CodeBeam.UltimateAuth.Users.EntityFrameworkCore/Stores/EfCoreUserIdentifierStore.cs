@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -12,11 +13,13 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
 {
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public EfCoreUserIdentifierStore(TDbContext db, TenantExecutionContext tenant)
+    public EfCoreUserIdentifierStore(TDbContext db, TenantExecutionContext tenant, IUAuthPaginationPolicy pagination)
     {
         _db = db;
         _tenant = tenant.Tenant;
+        _pagination = pagination;
     }
 
     private DbSet<UserIdentifierProjection> DbSet => _db.Set<UserIdentifierProjection>();
@@ -32,7 +35,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
                 ct);
     }
 
-    public async Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
+    public async Task<UserIdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -71,9 +74,9 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
             .FirstOrDefaultAsync(ct);
 
         if (match is null)
-            return new IdentifierExistenceResult(false);
+            return new UserIdentifierExistenceResult(false);
 
-        return new IdentifierExistenceResult(
+        return new UserIdentifierExistenceResult(
             true,
             match.UserKey,
             match.Id,
@@ -305,7 +308,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
         if (query.UserKey is null)
             throw new UAuthIdentifierValidationException("userKey_required");
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = DbSet
             .AsNoTracking()

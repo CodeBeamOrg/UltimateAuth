@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -10,11 +11,13 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
 {
     private readonly TDbContext _db;
     private readonly TenantKey _tenant;
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public EfCoreRoleStore(TDbContext db, TenantExecutionContext tenant)
+    public EfCoreRoleStore(TDbContext db, TenantExecutionContext tenant, IUAuthPaginationPolicy pagination)
     {
         _db = db;
         _tenant = tenant.Tenant;
+        _pagination = pagination;
     }
 
     private DbSet<RoleProjection> DbSetRole => _db.Set<RoleProjection>();
@@ -218,7 +221,7 @@ internal sealed class EfCoreRoleStore<TDbContext> : IRoleStore where TDbContext 
     // TODO: Add UltimateAuth standard: tiebreaker for sorting fields that are not unique.
     public async Task<PagedResult<Role>> QueryAsync(RoleQuery query, CancellationToken ct = default)
     {
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = DbSetRole
             .AsNoTracking()

@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -31,10 +32,10 @@ internal sealed class PkceService : IPkceService
     public async Task<PkceAuthorizeResponse> AuthorizeAsync(PkceAuthorizeCommand command, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(command.CodeChallenge))
-            throw new InvalidOperationException("code_challenge is required.");
+            throw new UAuthValidationException("code_challenge is required.");
 
         if (!string.Equals(command.ChallengeMethod, "S256", StringComparison.Ordinal))
-            throw new InvalidOperationException("Only S256 supported.");
+            throw new UAuthValidationException("Only S256 supported.");
 
         var authorizationCode = AuthArtifactKey.New();
 
@@ -86,13 +87,13 @@ internal sealed class PkceService : IPkceService
 
         var validation = _validator.Validate(artifact, request.CodeVerifier, completionContext, _clock.UtcNow);
 
-        if (!validation.Success)
+        if (!validation.IsSuccess)
         {
             artifact.RegisterAttempt();
 
             return new PkceCompleteResult
             {
-                Success = false,
+                IsSuccess = false,
                 FailureReason = AuthFailureReason.InvalidCredentials
             };
         }
@@ -114,7 +115,7 @@ internal sealed class PkceService : IPkceService
 
         return new PkceCompleteResult
         {
-            Success = result.IsSuccess,
+            IsSuccess = result.IsSuccess,
             FailureReason = result.FailureReason,
             LoginResult = result
         };

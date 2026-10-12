@@ -4,7 +4,7 @@
 
 //public sealed class UserAuthenticationResult<TUserId>
 //{
-//    public bool Succeeded { get; init; }
+//    public bool IsSuccess { get; init; }
 
 //    public TUserId? UserId { get; init; }
 
@@ -12,12 +12,12 @@
 
 //    public bool RequiresMfa { get; init; }
 
-//    public static UserAuthenticationResult<TUserId> Fail() => new() { Succeeded = false };
+//    public static UserAuthenticationResult<TUserId> Fail() => new() { IsSuccess = false };
 
 //    public static UserAuthenticationResult<TUserId> Success(TUserId userId, ClaimsSnapshot claims, bool requiresMfa = false)
 //        => new()
 //        {
-//            Succeeded = true,
+//            IsSuccess = true,
 //            UserId = userId,
 //            Claims = claims,
 //            RequiresMfa = requiresMfa

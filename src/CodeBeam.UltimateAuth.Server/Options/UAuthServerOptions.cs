@@ -43,6 +43,11 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
 
+    /// <summary>
+    /// Controls the default and maximum page sizes for paginated queries.
+    /// </summary>
+    public UAuthPaginationOptions Pagination { get; set; } = new();
+
     // -------------------------------------------------------
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
@@ -75,6 +80,11 @@ public sealed class UAuthServerOptions
     public UAuthResponseOptions AuthResponse { get; init; } = new();
 
     public UAuthResetOptions ResetCredential { get; init; } = new();
+
+    /// <summary>
+    /// Controls session invalidation after credential changes and recovery.
+    /// </summary>
+    public UAuthCredentialSessionPolicyOptions CredentialSessionPolicy { get; init; } = new();
 
     public UAuthHubOptions Hub { get; set; } = new();
 
@@ -123,6 +133,7 @@ public sealed class UAuthServerOptions
     /// </summary>
     public Action<IEndpointRouteBuilder>? OnConfigureEndpoints { get; set; }
 
+    // TODO: Add same startup validations. Mode-based options should not pass through the option invariant.
     internal Dictionary<UAuthMode, Action<UAuthServerOptions>> ModeConfigurations { get; set; } = new();
 
 
@@ -139,12 +150,14 @@ public sealed class UAuthServerOptions
             Pkce = Pkce.Clone(),
             Events = Events.Clone(),
             MultiTenant = MultiTenant.Clone(),
+            Pagination = Pagination.Clone(),
+
             Cookie = Cookie.Clone(),
             Diagnostics = Diagnostics.Clone(),
-
             PrimaryCredential = PrimaryCredential.Clone(),
             AuthResponse = AuthResponse.Clone(),
             ResetCredential = ResetCredential.Clone(),
+            CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             Identifiers = Identifiers.Clone(),

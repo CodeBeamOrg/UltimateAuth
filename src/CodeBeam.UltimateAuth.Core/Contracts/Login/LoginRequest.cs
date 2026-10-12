@@ -6,7 +6,7 @@ public sealed record LoginRequest
 {
     public string Identifier { get; init; } = default!;
     public string Secret { get; init; } = default!;
-    public CredentialType Factor { get; init; } = CredentialType.Password;
+    public CredentialType CredentialType { get; init; } = CredentialType.Password;
     public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
     /// <summary>

@@ -304,7 +304,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         result.Should().NotBeNull();
 
-        result!.Success.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
         result.Reason.Should().BeNull();
         result.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
@@ -330,7 +330,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
 
         var meResponse = await client.PostAsJsonAsync(
             "/auth/me/profile/get",
@@ -364,7 +364,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNull();
 
@@ -390,7 +390,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNull();
     }
@@ -417,7 +417,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         var loginResponse = await client.PostAsJsonAsync(
@@ -460,7 +460,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             .ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         // Attempt to use the valid receipt from another device.
@@ -501,7 +501,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         var loginResponse = await client.PostAsJsonAsync(
@@ -542,7 +542,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         // Present user A's receipt while authenticating as user B.
@@ -591,7 +591,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         // Receipt belongs to user A.
@@ -656,7 +656,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         var firstCommit = await client.PostAsJsonAsync(
@@ -756,7 +756,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await first.Content.ReadFromJsonAsync<TryLoginResult>();
 
         firstResult.Should().NotBeNull();
-        firstResult!.Success.Should().BeFalse();
+        firstResult!.IsSuccess.Should().BeFalse();
 
         var second = await client.PostAsJsonAsync(
             "/auth/try-login",
@@ -770,7 +770,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await second.Content.ReadFromJsonAsync<TryLoginResult>();
 
         secondResult.Should().NotBeNull();
-        secondResult!.Success.Should().BeFalse();
+        secondResult!.IsSuccess.Should().BeFalse();
 
         // Account should now be locked.
         var correctAttempt = await client.PostAsJsonAsync(
@@ -785,7 +785,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await correctAttempt.Content.ReadFromJsonAsync<TryLoginResult>();
 
         correctResult.Should().NotBeNull();
-        correctResult!.Success.Should().BeFalse();
+        correctResult!.IsSuccess.Should().BeFalse();
         correctResult.Reason.Should().Be(AuthFailureReason.LockedOut);
     }
 
@@ -809,7 +809,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await preview.Content.ReadFromJsonAsync<TryLoginResult>();
 
         previewResult.Should().NotBeNull();
-        previewResult!.Success.Should().BeTrue();
+        previewResult!.IsSuccess.Should().BeTrue();
 
         var failure = await client.PostAsJsonAsync(
             "/auth/try-login",
@@ -823,7 +823,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await failure.Content.ReadFromJsonAsync<TryLoginResult>();
 
         failureResult.Should().NotBeNull();
-        failureResult!.Success.Should().BeFalse();
+        failureResult!.IsSuccess.Should().BeFalse();
         failureResult.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
     }
 
@@ -849,7 +849,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         // Receipt was created for the correct secret.
@@ -915,7 +915,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
 
         preview.Should().NotBeNull();
-        preview!.Success.Should().BeTrue();
+        preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         using var otherDevice = CreateClient(
@@ -1013,7 +1013,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await failureAfterSuccess.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
     }
 
@@ -1110,7 +1110,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
         result.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         response.Headers
@@ -1172,7 +1172,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNull();
     }
@@ -1233,7 +1233,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNull();
     }
@@ -1365,8 +1365,8 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         unknownResult.Should().NotBeNull();
         existingResult.Should().NotBeNull();
 
-        unknownResult!.Success.Should().BeFalse();
-        existingResult!.Success.Should().BeFalse();
+        unknownResult!.IsSuccess.Should().BeFalse();
+        existingResult!.IsSuccess.Should().BeFalse();
 
         unknownResult.Reason
             .Should().Be(AuthFailureReason.InvalidCredentials);
@@ -1399,7 +1399,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         result.Should().NotBeNull();
 
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNullOrWhiteSpace();
 
@@ -1431,7 +1431,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         result.Should().NotBeNull();
 
-        result!.Success.Should().BeFalse();
+        result!.IsSuccess.Should().BeFalse();
         result.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         result.PreviewReceipt.Should().BeNullOrWhiteSpace();
 
@@ -1597,7 +1597,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "wrong-password-1");
 
-        first.Success.Should().BeFalse();
+        first.IsSuccess.Should().BeFalse();
         first.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         first.RemainingAttempts.Should().Be(1);
         first.LockoutUntilUtc.Should().BeNull();
@@ -1609,7 +1609,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "wrong-password-2");
 
-        second.Success.Should().BeFalse();
+        second.IsSuccess.Should().BeFalse();
         second.Reason.Should().Be(AuthFailureReason.LockedOut);
         second.RemainingAttempts.Should().Be(0);
         second.LockoutUntilUtc.Should().NotBeNull();
@@ -1630,7 +1630,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "wrong-password-1");
 
-        first.Success.Should().BeFalse();
+        first.IsSuccess.Should().BeFalse();
         first.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
 
         var second = await TryLoginAsync(
@@ -1638,7 +1638,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "wrong-password-2");
 
-        second.Success.Should().BeFalse();
+        second.IsSuccess.Should().BeFalse();
         second.Reason.Should().Be(AuthFailureReason.LockedOut);
         second.LockoutUntilUtc.Should().NotBeNull();
 
@@ -1651,7 +1651,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "still-wrong");
 
-        duringLockout.Success.Should().BeFalse();
+        duringLockout.IsSuccess.Should().BeFalse();
         duringLockout.Reason.Should().Be(AuthFailureReason.LockedOut);
 
         duringLockout.LockoutUntilUtc
@@ -1699,7 +1699,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         var results = await Task.WhenAll(task1, task2);
 
-        results.Should().OnlyContain(x => !x.Success);
+        results.Should().OnlyContain(x => !x.IsSuccess);
 
         using var verificationClient = CreateClient(
             $"concurrent-failure-verification-{Guid.NewGuid():N}");
@@ -1709,7 +1709,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             user.Secret);
 
-        verification.Success.Should().BeFalse();
+        verification.IsSuccess.Should().BeFalse();
         verification.Reason.Should().Be(AuthFailureReason.LockedOut);
         verification.RemainingAttempts.Should().Be(0);
         verification.LockoutUntilUtc.Should().NotBeNull();
@@ -1806,7 +1806,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             user.Secret);
 
-        preview.Success.Should().BeTrue();
+        preview.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
         var receipt = preview.PreviewReceipt!;
@@ -1847,7 +1847,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             user.Identifier,
             "another-wrong-password");
 
-        failureState.Success.Should().BeFalse();
+        failureState.IsSuccess.Should().BeFalse();
         failureState.Reason.Should().Be(AuthFailureReason.LockedOut);
     }
 

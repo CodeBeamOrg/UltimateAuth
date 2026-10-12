@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -647,5 +648,60 @@ public class LoginOrchestratorTests
 
         chain!.RootId.Should()
             .Be(activeRoot!.RootId);
+    }
+
+    [Fact]
+    public async Task Unsupported_credential_type_should_be_rejected()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var orchestrator = runtime.GetLoginOrchestrator();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var unsupported = (CredentialType)int.MaxValue;
+
+        var request = new LoginRequest
+        {
+            Identifier = "user",
+            Secret = "user",
+            CredentialType = unsupported
+        };
+
+        Func<Task> act = async () =>
+            await orchestrator.LoginAsync(flow, request);
+
+        await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+    }
+
+    [Fact]
+    public async Task Unsupported_credential_type_should_not_affect_password_lockout()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var orchestrator = runtime.GetLoginOrchestrator();
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var request = new LoginRequest
+        {
+            Identifier = "user",
+            Secret = "wrong",
+            CredentialType = (CredentialType)int.MaxValue
+        };
+
+        Func<Task> act = async () =>
+            await orchestrator.LoginAsync(flow, request);
+
+        await act.Should().ThrowAsync<UAuthValidationException>();
+
+        var factory = runtime.Services
+            .GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
+
+        var store = factory.Create(TenantKeys.Single);
+
+        var state = await store.GetAsync(
+            TestUsers.User,
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password);
+
+        (state?.FailedAttempts ?? 0).Should().Be(0);
     }
 }

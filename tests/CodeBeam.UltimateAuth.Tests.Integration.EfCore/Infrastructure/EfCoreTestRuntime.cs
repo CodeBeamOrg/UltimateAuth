@@ -94,8 +94,7 @@ internal sealed class EfCoreTestRuntime : IAsyncDisposable
 
     private async Task InitializeDatabaseAsync()
     {
-        await using var scope =
-            Services.CreateAsyncScope();
+        await using var scope = Services.CreateAsyncScope();
 
         var db =
             scope.ServiceProvider

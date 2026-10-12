@@ -67,7 +67,8 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                     Tenant = tenant,
                     SessionId = sessionId,
                     Now = _clock.UtcNow,
-                    Device = auth.Device
+                    Device = auth.Device,
+                    SessionOptions = auth.Options.Session
                 },
                 ct);
 
@@ -76,9 +77,9 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 return Results.Ok(new AuthValidationResult
                 {
                     State = result.State,
-                    ChainId = result.ChainId?.Value,
-                    RootId = result.RootId?.Value,
-                    BoundDeviceId = result.BoundDeviceId?.Value
+                    ChainId = result.ChainId,
+                    RootId = result.RootId,
+                    BoundDeviceId = result.BoundDeviceId
                 });
             }
 
@@ -88,9 +89,9 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                     new AuthValidationResult
                     {
                         State = SessionState.Invalid,
-                        ChainId = result.ChainId?.Value,
-                        RootId = result.RootId?.Value,
-                        BoundDeviceId = result.BoundDeviceId?.Value
+                        ChainId = result.ChainId,
+                        RootId = result.RootId,
+                        BoundDeviceId = result.BoundDeviceId
                     },
                     statusCode: StatusCodes.Status401Unauthorized
                 );
@@ -104,9 +105,9 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                     new AuthValidationResult
                     {
                         State = SessionState.Invalid,
-                        ChainId = result.ChainId?.Value,
-                        RootId = result.RootId?.Value,
-                        BoundDeviceId = result.BoundDeviceId?.Value
+                        ChainId = result.ChainId,
+                        RootId = result.RootId,
+                        BoundDeviceId = result.BoundDeviceId
                     },
                     statusCode:
                         StatusCodes.Status401Unauthorized);
@@ -115,9 +116,9 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             return Results.Ok(new AuthValidationResult
             {
                 State = SessionState.Active,
-                ChainId = result.ChainId?.Value,
-                RootId = result.RootId?.Value,
-                BoundDeviceId = result.BoundDeviceId?.Value,
+                ChainId = result.ChainId,
+                RootId = result.RootId,
+                BoundDeviceId = result.BoundDeviceId,
 
                 Snapshot = snapshot
             });

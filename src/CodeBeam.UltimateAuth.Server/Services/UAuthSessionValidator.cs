@@ -2,8 +2,6 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -11,13 +9,11 @@ internal sealed class UAuthSessionValidator : ISessionValidator
 {
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IUserClaimsProvider _claimsProvider;
-    private readonly UAuthServerOptions _options;
 
-    public UAuthSessionValidator(ISessionStoreFactory storeFactory, IUserClaimsProvider claimsProvider, IOptions<UAuthServerOptions> options)
+    public UAuthSessionValidator(ISessionStoreFactory storeFactory, IUserClaimsProvider claimsProvider)
     {
         _storeFactory = storeFactory;
         _claimsProvider = claimsProvider;
-        _options = options.Value;
     }
 
     // TODO: Improve Device binding
@@ -26,6 +22,8 @@ internal sealed class UAuthSessionValidator : ISessionValidator
     // TODO: Add GetSessionAggregate store method to 1 call instead of 3 calls of root chain session
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
+        var options = context.SessionOptions ?? throw new InvalidOperationException("Session options are required for local session validation.");
+
         var kernel = _storeFactory.Create(context.Tenant);
         var session = await kernel.GetSessionAsync(context.SessionId, ct);
 
@@ -40,7 +38,7 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (chain is null || chain.IsRevoked)
             return SessionValidationResult.Invalid(SessionState.Revoked, session.UserKey, session.SessionId, session.ChainId);
 
-        var chainState = chain.GetState(context.Now, _options.Session.IdleTimeout);
+        var chainState = chain.GetState(context.Now, options.IdleTimeout);
         if (chainState != SessionState.Active)
             return SessionValidationResult.Invalid(chainState, chain.UserKey, session.SessionId, chain.ChainId);
 
@@ -67,10 +65,10 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         {
             if (!Equals(chain.Device.DeviceId, context.Device.DeviceId))
             {
-                if (_options.Session.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
+                if (options.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
                     return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
 
-                //if (_options.Session.DeviceMismatchBehavior == AllowAndRebind)
+                //if (options.Session.DeviceMismatchBehavior == AllowAndRebind)
             }
         }
         //else

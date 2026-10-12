@@ -290,17 +290,24 @@ public sealed class UserEndpointHandlerTests
                 default))
             .ReturnsAsync(accessContext);
 
+        var expected = UserStatusChangeResult.Success(
+            UserStatus.Active,
+            UserStatus.SelfSuspended);
+
         f.Users
             .Setup(x => x.ChangeUserStatusAsync(
                 accessContext,
                 It.IsAny<ChangeUserStatusSelfRequest>(),
                 f.HttpContext.RequestAborted))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(expected);
 
-        var result =
-            await f.Sut.ChangeStatusSelfAsync(f.HttpContext);
+        var result = await f.Sut.ChangeStatusSelfAsync(f.HttpContext);
 
-        result.Should().BeOfType<Ok>();
+        var ok = result.Should()
+            .BeOfType<Ok<UserStatusChangeResult>>()
+            .Subject;
+
+        ok.Value.Should().BeEquivalentTo(expected);
 
         f.Users.Verify(x => x.ChangeUserStatusAsync(
             accessContext,
@@ -335,7 +342,6 @@ public sealed class UserEndpointHandlerTests
     public async Task ChangeStatusAdminAsync_UsesAdminActionAndTargetUserKey()
     {
         var f = CreateFixture();
-
         var targetUser = UserKey.New();
 
         var request = new ChangeUserStatusAdminRequest
@@ -345,8 +351,7 @@ public sealed class UserEndpointHandlerTests
 
         SetJsonBody(f.HttpContext, request);
 
-        var accessContext =
-            CreateAccessContext(f, targetUser);
+        var accessContext = CreateAccessContext(f, targetUser);
 
         f.AccessContextFactory
             .Setup(x => x.CreateAsync(
@@ -358,18 +363,26 @@ public sealed class UserEndpointHandlerTests
                 default))
             .ReturnsAsync(accessContext);
 
+        var expected = UserStatusChangeResult.Success(
+            UserStatus.Active,
+            UserStatus.Suspended);
+
         f.Users
             .Setup(x => x.ChangeUserStatusAsync(
                 accessContext,
                 It.IsAny<ChangeUserStatusAdminRequest>(),
                 f.HttpContext.RequestAborted))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.ChangeStatusAdminAsync(
             targetUser,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok>();
+        var ok = result.Should()
+            .BeOfType<Ok<UserStatusChangeResult>>()
+            .Subject;
+
+        ok.Value.Should().BeEquivalentTo(expected);
 
         f.Users.Verify(x => x.ChangeUserStatusAsync(
             accessContext,
@@ -457,7 +470,7 @@ public sealed class UserEndpointHandlerTests
 
         SetJsonBody(f.HttpContext, request);
 
-        AccessContext? capturedContext = null;
+        var accessContext = CreateAccessContext(f, targetUser);
 
         f.AccessContextFactory
             .Setup(x => x.CreateAsync(
@@ -469,37 +482,35 @@ public sealed class UserEndpointHandlerTests
                     a.ContainsKey("deleteMode") &&
                     (DeleteMode)a["deleteMode"] == DeleteMode.Hard),
                 default))
-            .ReturnsAsync((AuthFlowContext _,
-                string _,
-                string _,
-                string? _,
-                IDictionary<string, object>? _,
-                CancellationToken _) =>
-            {
-                capturedContext = CreateAccessContext(f, targetUser);
-                return capturedContext;
-            });
+            .ReturnsAsync(accessContext);
+
+        var expected = UserDeleteResult.Success(DeleteMode.Hard);
 
         f.Users
             .Setup(x => x.DeleteUserAsync(
-                It.IsAny<AccessContext>(),
-                It.Is<DeleteUserRequest>(r => r.Mode == DeleteMode.Hard),
+                accessContext,
+                It.Is<DeleteUserRequest>(
+                    r => r.Mode == DeleteMode.Hard),
                 f.HttpContext.RequestAborted))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.DeleteAsync(
             targetUser,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok>();
+        var ok = result.Should()
+            .BeOfType<Ok<UserDeleteResult>>()
+            .Subject;
+
+        ok.Value.Should().BeEquivalentTo(expected);
 
         f.Users.Verify(x => x.DeleteUserAsync(
-            It.IsAny<AccessContext>(),
-            It.Is<DeleteUserRequest>(r => r.Mode == DeleteMode.Hard),
+            accessContext,
+            It.Is<DeleteUserRequest>(
+                r => r.Mode == DeleteMode.Hard),
             f.HttpContext.RequestAborted),
             Times.Once);
     }
-
 
     // ============================================================
     // Profiles
@@ -748,7 +759,7 @@ public sealed class UserEndpointHandlerTests
             await f.Sut.IdentifierExistsSelfAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<IdentifierExistsResponse>>()
+            .BeOfType<Ok<UserIdentifierExistsResponse>>()
             .Subject;
 
         ok.Value!.Exists.Should().BeTrue();
@@ -794,7 +805,7 @@ public sealed class UserEndpointHandlerTests
             f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<IdentifierExistsResponse>>()
+            .BeOfType<Ok<UserIdentifierExistsResponse>>()
             .Subject;
 
         ok.Value!.Exists.Should().BeTrue();

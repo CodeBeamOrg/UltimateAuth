@@ -2,10 +2,9 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -13,6 +12,7 @@ using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
 using Moq;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -26,13 +26,14 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = new Mock<IRefreshTokenValidator>();
         var storeFactory = new Mock<IRefreshTokenStoreFactory>();
         var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
         var clock = new TestClock(Now);
 
         validator
             .Setup(x => x.ValidateAsync(It.IsAny<RefreshTokenValidationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(RefreshTokenValidationResult.Invalid());
 
-        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object);
+        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
         var result = await sut.RotateAsync(CreateFlow(), CreateContext());
 
@@ -62,11 +63,13 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(),
@@ -118,11 +121,13 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
@@ -179,6 +184,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         validator
             .Setup(x => x.ValidateAsync(
@@ -211,7 +217,8 @@ public sealed class RefreshTokenRotationServiceTests
             new RefreshTokenRotationService(
                 validator.Object,
                 storeFactory.Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result =
             await sut.RotateAsync(
@@ -263,6 +270,7 @@ public sealed class RefreshTokenRotationServiceTests
         var store = CreateExecutableStore();
         var storeFactory = CreateStoreFactory(tenant, store);
         var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         issuer
             .Setup(x => x.IssueRefreshTokenAsync(
@@ -270,12 +278,13 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<TokenIssuanceContext>(),
                 RefreshTokenPersistence.DoNotPersist,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((RefreshTokenInfo?)null);
+            .ReturnsAsync((RefreshTokenIssuanceResult?)null);
 
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
@@ -312,11 +321,12 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = CreateValidator(validation);
         var store = CreateSuccessfulRotationStore();
         var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var issuer = new Mock<ITokenIssuer>();
 
         var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenInfo();
+        var refreshToken = CreateRefreshTokenIssuanceResult();
 
         issuer
             .Setup(x => x.IssueAccessTokenAsync(
@@ -333,22 +343,16 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(refreshToken);
 
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object);
+        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
-        var result = await sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId));
+        var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId));
 
         result.Result.IsSuccess.Should().BeTrue();
-
-        result.Result.AccessToken
-            .Should().BeSameAs(accessToken);
-
-        result.Result.RefreshToken
-            .Should().BeSameAs(refreshToken);
+        result.Result.AccessToken.Should().BeSameAs(accessToken);
+        result.Result.RefreshToken.Should().NotBeNull();
+        result.Result.RefreshToken!.Token.Should().Be(refreshToken.Token);
+        result.Result.RefreshToken.ExpiresAt.Should().Be(refreshToken.ExpiresAt);
+        typeof(RefreshTokenInfo).GetProperty(nameof(RefreshTokenIssuanceResult.TokenHash)).Should().BeNull();
 
         result.Tenant.Should().Be(tenant);
         result.UserKey.Should().Be(validation.UserKey);
@@ -394,6 +398,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         TokenIssuanceContext? captured = null;
 
@@ -408,7 +413,8 @@ public sealed class RefreshTokenRotationServiceTests
             new RefreshTokenRotationService(
                 CreateValidator(validation).Object,
                 CreateStoreFactory(tenant, store).Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(
@@ -432,6 +438,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var issuer =
             new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         TokenIssuanceContext? captured = null;
 
@@ -448,7 +455,8 @@ public sealed class RefreshTokenRotationServiceTests
                 CreateStoreFactory(
                     TenantKey.Single,
                     store).Object,
-                issuer.Object);
+                issuer.Object,
+                claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(
@@ -473,11 +481,12 @@ public sealed class RefreshTokenRotationServiceTests
         var validator = CreateValidator(validation);
         var store = CreateExecutableStore();
         var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
 
         var issuer = new Mock<ITokenIssuer>();
 
         var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenInfo();
+        var refreshToken = CreateRefreshTokenIssuanceResult();
 
         issuer
             .Setup(x => x.IssueAccessTokenAsync(
@@ -505,7 +514,8 @@ public sealed class RefreshTokenRotationServiceTests
         var sut = new RefreshTokenRotationService(
             validator.Object,
             storeFactory.Object,
-            issuer.Object);
+            issuer.Object,
+            claimsProvider.Object);
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
@@ -530,6 +540,133 @@ public sealed class RefreshTokenRotationServiceTests
             It.IsAny<AuthFlowContext>(),
             It.IsAny<TokenIssuanceContext>(),
             It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RefreshTokenInfo_DoesNotExposeTokenHash()
+    {
+        var info = new RefreshTokenInfo
+        {
+            Token = "raw-refresh-token",
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(7)
+        };
+
+        var json = JsonSerializer.Serialize(info);
+
+        json.Should().Contain("raw-refresh-token");
+        json.Should().NotContain("TokenHash");
+        typeof(RefreshTokenInfo).GetProperty("TokenHash").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RotateAsync_WhenAccessTokenIssuanceThrows_DoesNotConsumeRefreshToken()
+    {
+        var tenant = TenantKey.FromExternal("tenant-a");
+        var validation = CreateValidValidation(tenant);
+
+        var validator = CreateValidator(validation);
+        var store = CreateExecutableStore();
+        var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var issuer = new Mock<ITokenIssuer>();
+
+        var refreshToken = CreateRefreshTokenIssuanceResult();
+
+        issuer
+            .Setup(x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                RefreshTokenPersistence.DoNotPersist,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(refreshToken);
+
+        issuer
+            .Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("AT issuance failed"));
+
+        var sut = new RefreshTokenRotationService(
+            validator.Object,
+            storeFactory.Object,
+            issuer.Object,
+            claimsProvider.Object);
+
+        var act = () => sut.RotateAsync(
+            CreateFlow(tenant, multiTenant: true),
+            CreateContext(validation.SessionId));
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("AT issuance failed");
+
+        store.Verify(x => x.TryConsumeAsync(
+            It.IsAny<string>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        store.Verify(x => x.StoreAsync(
+            It.IsAny<RefreshToken>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        store.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task<bool>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RotateAsync_WhenIssueRefreshDisabled_ShouldFailWithoutValidationOrMutation()
+    {
+        var validator = new Mock<IRefreshTokenValidator>();
+        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
+        var issuer = new Mock<ITokenIssuer>();
+        var claimsProvider = new Mock<IUserClaimsProvider>();
+
+        var flow = CreateFlow();
+        flow.Options.Token.IssueRefresh = false;
+
+        var sut = new RefreshTokenRotationService(
+            validator.Object,
+            storeFactory.Object,
+            issuer.Object,
+            claimsProvider.Object);
+
+        var result = await sut.RotateAsync(
+            flow,
+            CreateContext());
+
+        result.Result.IsSuccess.Should().BeFalse();
+        result.Result.ReauthRequired.Should().BeTrue();
+
+        validator.Verify(
+            x => x.ValidateAsync(
+                It.IsAny<RefreshTokenValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        storeFactory.Verify(
+            x => x.Create(It.IsAny<TenantKey>()),
+            Times.Never);
+
+        issuer.Verify(
+            x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<RefreshTokenPersistence>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        issuer.Verify(
+            x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -620,7 +757,7 @@ public sealed class RefreshTokenRotationServiceTests
             ExpiresAt = Now.AddMinutes(15)
         };
 
-    private static RefreshTokenInfo CreateRefreshTokenInfo()
+    private static RefreshTokenIssuanceResult CreateRefreshTokenIssuanceResult()
         => new()
         {
             Token = "new-refresh-token",
@@ -646,7 +783,7 @@ public sealed class RefreshTokenRotationServiceTests
                 It.IsAny<TokenIssuanceContext>(),
                 RefreshTokenPersistence.DoNotPersist,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateRefreshTokenInfo());
+            .ReturnsAsync(CreateRefreshTokenIssuanceResult());
     }
 
     private static AuthFlowContext CreateFlow(TenantKey? tenant = null, bool multiTenant = false)
@@ -664,8 +801,7 @@ public sealed class RefreshTokenRotationServiceTests
             isAuthenticated: true,
             userKey: UserKey.New(),
             session: null,
-            originalOptions: options,
-            effectiveOptions: TestServerOptions.Effective(UAuthMode.Hybrid),
+            options: options,
             response: new EffectiveAuthResponse(
                 sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
                 accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),

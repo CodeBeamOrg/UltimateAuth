@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using CodeBeam.UltimateAuth.Core.Errors;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
@@ -15,10 +16,10 @@ public static class HttpContextJsonExtensions
         var request = ctx.Request;
 
         if (!request.HasJsonContentType())
-            throw new InvalidOperationException("Request content type must be application/json.");
+            throw new UAuthValidationException("request_content_type_invalid");
 
         if (request.Body == null || request.ContentLength == 0)
-            throw new InvalidOperationException("Request body is empty.");
+            throw new UAuthValidationException("request_body_required");
 
         request.EnableBuffering();
 
@@ -28,16 +29,24 @@ public static class HttpContextJsonExtensions
         {
             var result = await JsonSerializer.DeserializeAsync<T>(request.Body, JsonOptions, ct);
 
-            request.Body.Position = 0;
-
             if (result == null)
-                throw new InvalidOperationException("Request body could not be deserialized.");
+                throw new UAuthValidationException("request_body_invalid");
 
             return result;
         }
         catch (JsonException)
         {
-            throw new InvalidOperationException("Invalid JSON");
+            throw new UAuthValidationException("request_json_invalid");
+        }
+        // TODO: Remove this catch block in the future, as it is a workaround.
+        catch (ArgumentException ex) when (ex.ParamName == "value" && ex.Message.Contains("permission_required", StringComparison.Ordinal))
+        {
+            throw new UAuthValidationException("permission_required");
+        }
+        finally
+        {
+            if (request.Body.CanSeek)
+                request.Body.Position = 0;
         }
     }
 }

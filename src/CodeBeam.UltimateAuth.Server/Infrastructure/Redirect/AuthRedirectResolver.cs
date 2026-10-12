@@ -44,13 +44,13 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
             if (info.IsAbsolute && (info.AbsoluteUri!.Scheme == Uri.UriSchemeHttp || info.AbsoluteUri!.Scheme == Uri.UriSchemeHttps))
             {
                 var origin = info.AbsoluteUri!.GetLeftPart(UriPartial.Authority);
-                ValidateAllowed(origin, flow.OriginalOptions);
+                ValidateAllowed(origin, flow.Options);
                 return RedirectDecision.To(info.AbsoluteUri.ToString());
             }
 
             if (!string.IsNullOrWhiteSpace(info.RelativePath))
             {
-                var baseAddress = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
+                var baseAddress = _baseAddressResolver.Resolve(ctx, flow.Options);
                 return RedirectDecision.To(UrlComposer.Combine(baseAddress, info.RelativePath));
             }
         }
@@ -58,7 +58,7 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         if (string.IsNullOrWhiteSpace(fallbackPath))
             return RedirectDecision.None();
 
-        var baseUrl = _baseAddressResolver.Resolve(ctx, flow.OriginalOptions);
+        var baseUrl = _baseAddressResolver.Resolve(ctx, flow.Options);
 
         var query = new Dictionary<string, string?>();
 
@@ -76,7 +76,7 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
                 Reason = failureReason
             };
 
-            if (flow.FlowType == AuthFlowType.Login && loginResult is not null && flow.OriginalOptions.Login.IncludeFailureDetails)
+            if (flow.FlowType == AuthFlowType.Login && loginResult is not null && flow.Options.Login.IncludeFailureDetails)
             {
                 payload = payload with
                 {

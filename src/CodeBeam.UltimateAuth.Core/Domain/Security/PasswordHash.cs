@@ -1,6 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
+using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Core;
+
+[JsonConverter(typeof(PasswordHashJsonConverter))]
 public readonly record struct PasswordHash : IParsable<PasswordHash>
 {
     public string Algorithm { get; }

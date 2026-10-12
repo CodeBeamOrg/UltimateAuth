@@ -147,4 +147,35 @@ public sealed class UAuthSessionChainTests
 
         Assert.Same(revoked1, revoked2);
     }
+
+    [Theory]
+    [InlineData(null, 60, SessionState.Active)]
+    [InlineData(0, 60, SessionState.Active)]
+    [InlineData(10, 9, SessionState.Active)]
+    [InlineData(10, 10, SessionState.Expired)]
+    [InlineData(10, 11, SessionState.Expired)]
+    public void GetState_ShouldRespectIdleTimeout(int? idleSeconds, int elapsedSeconds, SessionState expectedState)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        var chain = UAuthSessionChain.Create(
+            SessionChainId.New(),
+            SessionRootId.New(),
+            tenant: TenantKey.Single,
+            userKey: UserKey.FromString("user-1"),
+            now,
+            null,
+            TestDevice.Default(),
+            ClaimsSnapshot.Empty,
+            securityVersion: 0
+        );
+
+        var idleTimeout = idleSeconds.HasValue
+            ? TimeSpan.FromSeconds(idleSeconds.Value)
+            : (TimeSpan?)null;
+
+        var state = chain.GetState(now.AddSeconds(elapsedSeconds), idleTimeout);
+
+        Assert.Equal(expectedState, state);
+    }
 }

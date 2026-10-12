@@ -4,7 +4,12 @@ namespace CodeBeam.UltimateAuth.Core.Contracts;
 
 public sealed class RefreshFlowResult
 {
-    public bool Succeeded { get; init; }
+    public bool IsSuccess =>
+        Outcome is RefreshOutcome.Success
+            or RefreshOutcome.NoOp
+            or RefreshOutcome.Touched
+            or RefreshOutcome.Rotated;
+
     public RefreshOutcome Outcome { get; init; }
 
     public AuthSessionId? SessionId { get; init; }
@@ -15,7 +20,6 @@ public sealed class RefreshFlowResult
     {
         return new RefreshFlowResult
         {
-            Succeeded = false,
             Outcome = RefreshOutcome.ReauthRequired
         };
     }
@@ -26,9 +30,14 @@ public sealed class RefreshFlowResult
         AccessToken? accessToken = null,
         RefreshTokenInfo? refreshToken = null)
     {
+
+        if (outcome is not (RefreshOutcome.Success or RefreshOutcome.NoOp or RefreshOutcome.Touched or RefreshOutcome.Rotated))
+        {
+            throw new ArgumentOutOfRangeException(nameof(outcome));
+        }
+
         return new RefreshFlowResult
         {
-            Succeeded = true,
             Outcome = outcome,
             SessionId = sessionId,
             AccessToken = accessToken,

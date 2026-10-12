@@ -24,11 +24,12 @@ public readonly record struct TenantKey : IParsable<TenantKey>
     public bool IsSingle => Value == Single.Value;
     public bool IsSystem => Value == System.Value;
     public bool IsUnresolved => Value == Unresolved.Value;
+    public bool IsValid => !string.IsNullOrWhiteSpace(Value);
 
     /// <summary>
     /// True only for real, customer-defined tenants.
     /// </summary>
-    public bool IsNormal => !IsSingle && !IsSystem && !IsUnresolved;
+    public bool IsNormal => IsValid && !IsSingle && !IsSystem && !IsUnresolved;
 
     public static TenantKey Parse(string s, IFormatProvider? provider)
     {
@@ -37,6 +38,8 @@ public readonly record struct TenantKey : IParsable<TenantKey>
 
         return result;
     }
+
+    public static TenantKey Parse(string value) => Parse(value, null);
 
     public static bool TryParse(string? s, IFormatProvider? provider, out TenantKey result)
     {
@@ -50,7 +53,11 @@ public readonly record struct TenantKey : IParsable<TenantKey>
             result = FromExternal(s);
             return true;
         }
-        catch
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (SecurityException)
         {
             return false;
         }
@@ -78,7 +85,15 @@ public readonly record struct TenantKey : IParsable<TenantKey>
     /// <summary>
     /// Internal creation for framework use only.
     /// </summary>
-    internal static TenantKey FromInternal(string value) => new(value);
+    internal static TenantKey FromInternal(string value)
+    {
+        if (value == Single.Value || value == System.Value || value == Unresolved.Value)
+        {
+            return new TenantKey(value);
+        }
+
+        return new TenantKey(Normalize(value));
+    }
 
     private static string Normalize(string value)
     {

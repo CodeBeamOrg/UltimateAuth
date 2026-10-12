@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Abstactions;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -32,7 +32,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
     public Task<AccessToken> IssueAccessTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, CancellationToken ct = default)
     {
-        var tokens = flow.OriginalOptions.Token;
+        var tokens = flow.Options.Token;
         var now = _clock.UtcNow;
         var expires = now.Add(tokens.AccessTokenLifetime);
 
@@ -40,7 +40,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         {
             // TODO: Discuss, Hybrid token may be JWT.
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
-                Task.FromResult(IssueOpaqueAccessToken(expires, flow?.Session?.SessionId.ToString())),
+                Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
             UAuthMode.SemiHybrid or
             UAuthMode.PureJwt =>
@@ -50,16 +50,16 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         };
     }
 
-    public async Task<RefreshTokenInfo?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
+    public async Task<RefreshTokenIssuanceResult?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
-        if (flow.EffectiveMode == UAuthMode.PureOpaque)
+        if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
             return null;
 
         if (context.SessionId is not AuthSessionId sessionId)
             return null;
 
         var now = _clock.UtcNow;
-        var expires = now.Add(flow.OriginalOptions.Token.RefreshTokenLifetime);
+        var expires = now.Add(flow.Options.Token.RefreshTokenLifetime);
 
         var raw = _opaqueGenerator.Generate();
         var hash = _tokenHasher.Hash(raw);
@@ -84,7 +84,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             }, ct);
         }
 
-        return new RefreshTokenInfo
+        return new RefreshTokenIssuanceResult
         {
             Token = raw,
             TokenHash = hash,
@@ -92,7 +92,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         };
     }
 
-    private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, string? sessionId)
+    private AccessToken IssueOpaqueAccessToken(DateTimeOffset expires, AuthSessionId? sessionId)
     {
         string token = _opaqueGenerator.Generate();
 
@@ -101,26 +101,48 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             Token = token,
             Format = TokenFormat.Opaque,
             ExpiresAt = expires,
-            SessionId = sessionId
+            SessionId = sessionId?.Value
         };
     }
 
     private AccessToken IssueJwtAccessToken(TokenIssuanceContext context, UAuthTokenOptions tokens, DateTimeOffset expires)
     {
-        var claims = new Dictionary<string, object>();
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal);
 
         // Custom/application claims are added first.
         // Framework-owned security claims below always take precedence.
-        foreach (var kv in context.Claims)
-            claims[kv.Key] = kv.Value;
+        foreach (var (type, values) in context.Claims.Claims)
+        {
+            if (values.Count == 0)
+                continue;
+
+            // Framework - owned claims cannot be supplied by applications.
+            if (type is
+                "sub" or
+                "tenant" or
+                "sid" or
+                "jti" or
+                "iss" or
+                "aud" or
+                "exp" or
+                "nbf" or
+                "iat")
+                        continue;
+
+            claims[type] = values.Count == 1
+                ? values.First()
+                : values.ToArray();
+        }
 
         // UltimateAuth-owned identity/security claims must never be overridable
         // by caller-provided claims.
         claims["sub"] = context.UserKey.Value;
-        claims["tenant"] = context.Tenant;
+        claims["tenant"] = context.Tenant.Value;
 
         if (context.SessionId is AuthSessionId sessionId)
-            claims["sid"] = sessionId;
+            claims["sid"] = sessionId.Value;
+        else
+            claims.Remove("sid");
 
         if (tokens.AddJwtIdClaim)
             claims["jti"] = _opaqueGenerator.GenerateJwtId();

@@ -53,7 +53,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
 
-        return result.Succeeded
+        return result.IsSuccess
             ? Results.Ok(result)
             : Results.BadRequest(result);
     }
@@ -73,7 +73,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
 
         var result = await _users.CreateUserAsync(accessContext, request, ctx.RequestAborted);
 
-        return result.Succeeded
+        return result.IsSuccess
             ? Results.Ok(result)
             : Results.BadRequest(result);
     }
@@ -92,8 +92,13 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             resource: "users",
             resourceId: flow?.UserKey?.Value);
 
-        await _users.ChangeUserStatusAsync(accessContext, request, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _users.ChangeUserStatusAsync(accessContext, request, ctx.RequestAborted);
+
+        return result.IsSuccess
+            ? Results.Ok(result)
+            : Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: result.FailureReason);
     }
 
     public async Task<IResult> ChangeStatusAdminAsync(UserKey userKey, HttpContext ctx)
@@ -110,8 +115,13 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             resource: "users",
             resourceId: userKey.Value);
 
-        await _users.ChangeUserStatusAsync(accessContext, request, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _users.ChangeUserStatusAsync(accessContext, request, ctx.RequestAborted);
+
+        return result.IsSuccess
+            ? Results.Ok(result)
+            : Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: result.FailureReason);
     }
 
     public async Task<IResult> GetMeAsync(HttpContext ctx)
@@ -220,8 +230,9 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
                 ["deleteMode"] = request.Mode
             });
 
-        await _users.DeleteUserAsync(accessContext, request, ctx.RequestAborted);
-        return Results.Ok();
+        var result = await _users.DeleteUserAsync(accessContext, request, ctx.RequestAborted);
+
+        return Results.Ok(result);
     }
 
     public async Task<IResult> CreateProfileSelfAsync(HttpContext ctx)
@@ -355,7 +366,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             IdentifierExistenceScope.WithinUser,
             ctx.RequestAborted);
 
-        return Results.Ok(new IdentifierExistsResponse
+        return Results.Ok(new UserIdentifierExistsResponse
         {
             Exists = exists
         });
@@ -382,7 +393,7 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
             IdentifierExistenceScope.TenantAny,
             ctx.RequestAborted);
 
-        return Results.Ok(new IdentifierExistsResponse
+        return Results.Ok(new UserIdentifierExistsResponse
         {
             Exists = exists
         });

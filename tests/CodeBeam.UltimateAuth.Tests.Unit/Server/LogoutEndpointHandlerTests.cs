@@ -40,7 +40,7 @@ public sealed class LogoutEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
 
         fixture.FlowService.Verify(
             x => x.LogoutAsync(
@@ -125,7 +125,7 @@ public sealed class LogoutEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
     }
 
     // =====================================================================
@@ -430,7 +430,7 @@ public sealed class LogoutEndpointHandlerTests
             fixture.HttpContext,
             new LogoutOtherDevicesRequest
             {
-                CurrentChainId = currentChainId
+                ExceptChainId = currentChainId
             });
 
         var access = TestAccessContext.ForUser(
@@ -655,8 +655,7 @@ public sealed class LogoutEndpointHandlerTests
             isAuthenticated: true,
             userKey: session.UserKey,
             session: session,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo
@@ -676,8 +675,7 @@ public sealed class LogoutEndpointHandlerTests
             isAuthenticated: false,
             userKey: null,
             session: null,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo

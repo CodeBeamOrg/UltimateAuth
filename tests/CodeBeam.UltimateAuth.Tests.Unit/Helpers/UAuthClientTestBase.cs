@@ -44,12 +44,10 @@ public abstract class UAuthClientTestBase
         );
     }
 
-    protected IFlowClient CreateFlowClient(
-        Mock<IUAuthRequestClient>? requestMock = null,
-        Mock<IUAuthClientEvents>? eventsMock = null)
+    protected IFlowClient CreateFlowClient(Mock<IUAuthRequestClient>? requestMock = null, Mock<IUAuthClientEvents>? eventsMock = null)
     {
-        var request = requestMock ?? new Mock<IUAuthRequestClient>();
-        var events = eventsMock ?? new Mock<IUAuthClientEvents>();
+        var request = requestMock ?? Request;
+        var events = eventsMock ?? Events;
 
         var deviceProvider = new Mock<IClientDeviceProvider>();
         deviceProvider.Setup(x => x.GetAsync())

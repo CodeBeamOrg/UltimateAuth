@@ -15,12 +15,22 @@ internal sealed class UAuthServerSessionOptionsValidator : IValidateOptions<UAut
         if (session.MaxLifetime.HasValue && session.MaxLifetime <= TimeSpan.Zero)
             errors.Add("Session.MaxLifetime must be greater than zero when specified.");
 
-        if (session.MaxLifetime.HasValue &&
-            session.MaxLifetime < session.Lifetime)
+        if (session.MaxLifetime.HasValue && session.MaxLifetime < session.Lifetime)
             errors.Add("Session.MaxLifetime must be greater than or equal to Session.Lifetime.");
 
         if (session.IdleTimeout.HasValue && session.IdleTimeout < TimeSpan.Zero)
             errors.Add("Session.IdleTimeout cannot be negative.");
+
+        if (options.Session.IdleTimeout is { } idle && options.Session.TouchInterval is { } touch && idle > TimeSpan.Zero && touch >= idle)
+        {
+            errors.Add("Session.TouchInterval must be less than Session.IdleTimeout.");
+        }
+
+        if (session.SlidingExpiration && session.TouchInterval is { } touchInterval && touchInterval >= session.Lifetime)
+        {
+            errors.Add(
+                "Session.TouchInterval must be less than Session.Lifetime when SlidingExpiration is enabled.");
+        }
 
         return errors.Count == 0
             ? ValidateOptionsResult.Success

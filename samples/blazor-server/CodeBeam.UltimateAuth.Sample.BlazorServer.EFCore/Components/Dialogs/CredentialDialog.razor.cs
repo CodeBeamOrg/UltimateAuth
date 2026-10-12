@@ -62,7 +62,7 @@ public partial class CredentialDialog
             };
         }
 
-        UAuthResult<ChangeCredentialResult> result;
+        UAuthResult<CredentialChangeResult> result;
         if (UserKey is null)
         {
             result = await UAuthClient.Credentials.ChangeMyAsync(request);

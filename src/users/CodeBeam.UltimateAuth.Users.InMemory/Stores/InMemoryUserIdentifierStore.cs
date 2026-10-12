@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -12,13 +13,14 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
 {
     protected override Guid GetKey(UserIdentifier entity) => entity.Id;
     private readonly object _primaryLock = new();
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public InMemoryUserIdentifierStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(tenant, atomicContext)
+    public InMemoryUserIdentifierStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext, IUAuthPaginationPolicy pagination) : base(tenant, atomicContext)
     {
-
+        _pagination = pagination;
     }
 
-    public Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
+    public Task<UserIdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -48,10 +50,10 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
         var match = candidates.FirstOrDefault();
 
         if (match is null)
-            return Task.FromResult(new IdentifierExistenceResult(false));
+            return Task.FromResult(new UserIdentifierExistenceResult(false));
 
         return Task.FromResult(
-            new IdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
+            new UserIdentifierExistenceResult(true, match.UserKey, match.Id, match.IsPrimary));
     }
 
     public Task<UserIdentifier?> GetAsync(UserIdentifierType type, string normalizedValue, CancellationToken ct = default)
@@ -143,7 +145,7 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
         if (query.UserKey is null)
             throw new UAuthIdentifierValidationException("userKey_required");
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = TenantValues()
             .Where(x => x.UserKey == query.UserKey.Value);

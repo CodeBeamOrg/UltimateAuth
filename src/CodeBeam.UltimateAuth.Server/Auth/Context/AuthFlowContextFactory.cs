@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
@@ -49,25 +50,28 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var user = ctx.GetUserContext();
 
         var clientProfile = await _clientProfileReader.ReadAsync(ctx);
-        var originalOptions = _serverOptionsProvider.GetOriginal(ctx);
-        var effectiveOptions = _serverOptionsProvider.GetEffective(ctx, flowType, clientProfile);
 
-        var allowedModes = originalOptions.AllowedModes;
+        var effective = _serverOptionsProvider.GetEffective(ctx, clientProfile);
+        var options = effective.Options;
 
-        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        var effectiveMode = effective.Mode;
+        var allowedModes = options.AllowedModes;
+
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
         {
-            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+            throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
         }
 
-        var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-        var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effectiveOptions);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effective);
         var deviceInfo = await _deviceResolver.ResolveAsync(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
         var returnUrl = await ctx.GetReturnUrlAsync();
         var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
         SessionSecurityContext? sessionSecurityContext = null;
+        var isAuthenticated = user?.IsAuthenticated ?? false;
+        var userKey = user?.UserId;
 
         if (!sessionCtx.IsAnonymous)
         {
@@ -77,15 +81,29 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
                     Tenant = tenant,
                     SessionId = sessionCtx.SessionId!.Value,
                     Device = deviceContext,
+                    SessionOptions = options.Session,
                     Now = _clock.UtcNow
                 },
                 ct);
 
             sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+
+            if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
+            {
+                isAuthenticated = validation.IsValid;
+
+                if (!isAuthenticated)
+                    userKey = null;
+            }
+        }
+        else if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
+        {
+            isAuthenticated = false;
+            userKey = null;
         }
 
-        if (tenant.IsUnresolved)
-            throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
+        if (!tenant.IsValid || tenant.IsUnresolved)
+            throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         // TODO: Implement invariant checker
         //_invariantChecker.Validate(flowType, effectiveMode, response, effectiveOptions);
@@ -96,11 +114,10 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             effectiveMode,
             deviceContext,
             tenant,
-            user?.IsAuthenticated ?? false,
-            user?.UserId,
+            isAuthenticated,
+            userKey,
             sessionSecurityContext,
-            originalOptions,
-            effectiveOptions,
+            options,
             response,
             primaryTokenKind,
             returnUrlInfo
@@ -112,19 +129,19 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var flowType = existing.FlowType;
         var tenant = existing.Tenant;
 
-        var originalOptions = existing.OriginalOptions;
-        var effectiveOptions = _serverOptionsProvider.GetEffective(tenant, flowType, overriddenProfile);
+        var effective = _serverOptionsProvider.GetEffective(tenant, overriddenProfile);
+        var options = effective.Options;
+        var effectiveMode = effective.Mode;
 
-        var allowedModes = originalOptions.AllowedModes;
+        var allowedModes = options.AllowedModes;
 
-        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveOptions.Mode))
+        if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
         {
-            throw new InvalidOperationException($"Auth mode '{effectiveOptions.Mode}' is not allowed by server configuration.");
+            throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
         }
 
-        var effectiveMode = effectiveOptions.Mode;
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-        var response = _authResponseResolver.Resolve(effectiveMode, flowType, overriddenProfile, effectiveOptions);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, overriddenProfile, effective);
 
         var returnUrlInfo = existing.ReturnUrlInfo;
         var deviceContext = existing.Device;
@@ -139,8 +156,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             existing.IsAuthenticated,
             existing.UserKey,
             session,
-            originalOptions,
-            effectiveOptions,
+            options,
             response,
             primaryTokenKind,
             returnUrlInfo
@@ -161,8 +177,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             existing.IsAuthenticated,
             existing.UserKey,
             existing.Session,
-            existing.OriginalOptions,
-            existing.EffectiveOptions,
+            existing.Options,
             existing.Response,
             existing.PrimaryTokenKind,
             existing.ReturnUrlInfo

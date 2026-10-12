@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -358,6 +359,6 @@ public class IdentifierConcurrencyTests
     {
         return new InMemoryUserIdentifierStore(
             new TenantExecutionContext(TenantKeys.Single),
-            new InMemoryAtomicContextAccessor());
+            new InMemoryAtomicContextAccessor(), new UAuthPaginationOptions());
     }
 }

@@ -40,8 +40,8 @@ internal sealed class UAuthServerTokenOptionsValidator : IValidateOptions<UAuthS
 
         if (tokens.IssueOpaque)
         {
-            if (tokens.OpaqueIdBytes < 16)
-                errors.Add("Token.OpaqueIdBytes must be at least 16 bytes (128-bit entropy).");
+            if (tokens.OpaqueIdBytes < 24)
+                errors.Add("Token.OpaqueIdBytes must be at least 24 bytes (192-bit entropy).");
 
             if (tokens.OpaqueIdBytes > 128)
                 errors.Add("Token.OpaqueIdBytes must not exceed 128 bytes.");

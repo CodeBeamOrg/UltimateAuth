@@ -1,6 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.InMemory;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.Users.InMemory;
@@ -10,15 +12,18 @@ public sealed class InMemoryUserLifecycleStore : InMemoryTenantVersionedStore<Us
     protected override UserLifecycleKey GetKey(UserLifecycle entity)
         => new(entity.Tenant, entity.UserKey);
 
-    public InMemoryUserLifecycleStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(tenant, atomicContext)
+    private readonly IUAuthPaginationPolicy _pagination;
+
+    public InMemoryUserLifecycleStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext, IUAuthPaginationPolicy pagination) : base(tenant, atomicContext)
     {
+        _pagination = pagination;
     }
 
     public Task<PagedResult<UserLifecycle>> QueryAsync(UserLifecycleQuery query, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
         var baseQuery = TenantValues().AsQueryable();
 
         if (!query.IncludeDeleted)

@@ -40,7 +40,7 @@ public class RedirectTests
         var optionsProvider = provider.GetRequiredService<IEffectiveServerOptionsProvider>();
         var resolver = provider.GetRequiredService<IAuthResponseResolver>();
 
-        var effective = optionsProvider.GetEffective(TenantKey.Single, AuthFlowType.Login, UAuthClientProfile.BlazorServer);
+        var effective = optionsProvider.GetEffective(TenantKey.Single, UAuthClientProfile.BlazorServer);
         var response = resolver.Resolve(effective.Mode, AuthFlowType.Login, UAuthClientProfile.BlazorServer, effective);
 
         response.Redirect.AllowReturnUrlOverride.Should().BeFalse();
@@ -59,12 +59,12 @@ public class RedirectTests
     }
 
     [Theory]
-    [InlineData(UAuthClientProfile.BlazorWasm, AuthFlowType.Login, UAuthMode.Hybrid)]
-    [InlineData(UAuthClientProfile.BlazorServer, AuthFlowType.Login, UAuthMode.PureOpaque)]
-    public void ClientProfile_Resolves_To_Correct_Mode(UAuthClientProfile profile, AuthFlowType flow, UAuthMode expected)
+    [InlineData(UAuthClientProfile.BlazorWasm, UAuthMode.Hybrid)]
+    [InlineData(UAuthClientProfile.BlazorServer, UAuthMode.PureOpaque)]
+    public void ClientProfile_Resolves_To_Correct_Mode(UAuthClientProfile profile, UAuthMode expected)
     {
         var resolver = new EffectiveAuthModeResolver();
-        var mode = resolver.Resolve(profile, flow);
+        var mode = resolver.Resolve(profile);
         mode.Should().Be(expected);
     }
 
@@ -176,7 +176,7 @@ public class RedirectTests
 
         var resolver = TestRedirectResolver.Create();
         var ctx = TestHttpContext.Create();
-        flow.OriginalOptions.Hub.AllowedClientOrigins.Add("https://app.example.com");
+        flow.Options.Hub.AllowedClientOrigins.Add("https://app.example.com");
         Action act = () => resolver.ResolveSuccess(flow, ctx);
         act.Should().Throw<InvalidOperationException>().WithMessage("*not allowed*");
     }

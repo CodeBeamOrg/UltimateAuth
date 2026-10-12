@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public interface IUserIdentifierStore : IVersionedStore<UserIdentifier, Guid>
 {
-    Task<IdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default);
+    Task<UserIdentifierExistenceResult> ExistsAsync(IdentifierExistenceQuery query, CancellationToken ct = default);
 
     Task<IReadOnlyList<UserIdentifier>> GetByUserAsync(UserKey userKey, CancellationToken ct = default);
     Task<UserIdentifier?> GetByIdAsync(Guid id, CancellationToken ct = default);

@@ -49,27 +49,36 @@ internal sealed class Argon2PasswordHasher : IUAuthPasswordHasher
             !int.TryParse(parts[2], out var parallelism))
                     return false;
 
+        if (iterations <= 0 || memory <= 0 || parallelism <= 0)
+            return false;
+
+        byte[] salt;
+        byte[] expectedHash;
+
         try
         {
-            var salt = Convert.FromBase64String(parts[3]);
-            var expectedHash = Convert.FromBase64String(parts[4]);
-
-            var argon2 = new Argon2id(Encoding.UTF8.GetBytes(secret))
-            {
-                Salt = salt,
-                Iterations = iterations,
-                MemorySize = memory,
-                DegreeOfParallelism = parallelism
-            };
-
-            var actualHash = argon2.GetBytes(expectedHash.Length);
-
-            return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+            salt = Convert.FromBase64String(parts[3]);
+            expectedHash = Convert.FromBase64String(parts[4]);
         }
-        catch
+        catch (FormatException)
         {
             return false;
         }
+
+        if (salt.Length == 0 || expectedHash.Length == 0)
+            return false;
+
+        var argon2 = new Argon2id(Encoding.UTF8.GetBytes(secret))
+        {
+            Salt = salt,
+            Iterations = iterations,
+            MemorySize = memory,
+            DegreeOfParallelism = parallelism
+        };
+
+        var actualHash = argon2.GetBytes(expectedHash.Length);
+
+        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
     }
 
     public bool NeedsRehash(PasswordHash hash)

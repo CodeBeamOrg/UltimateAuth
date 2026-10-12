@@ -51,9 +51,9 @@ public static class UAuthUsersModelBuilder
 
             e.HasIndex(x => new { x.Tenant, x.Type, x.NormalizedValue }).IsUnique();
             e.HasIndex(x => new { x.Tenant, x.UserKey });
-            e.HasIndex(x => new { x.Tenant, x.UserKey, x.Type, x.IsPrimary });
             e.HasIndex(x => new { x.Tenant, x.UserKey, x.IsPrimary });
             e.HasIndex(x => new { x.Tenant, x.NormalizedValue });
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.Type, x.IsPrimary, x.DeletedAt, x.CreatedAt, x.Id });
         });
     }
 
@@ -86,6 +86,8 @@ public static class UAuthUsersModelBuilder
                 .IsRequired();
 
             e.HasIndex(x => new { x.Tenant, x.UserKey }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.DeletedAt, x.CreatedAt, x.Id });
+            e.HasIndex(x => new { x.Tenant, x.Status, x.DeletedAt, x.CreatedAt, x.Id });
         });
     }
 

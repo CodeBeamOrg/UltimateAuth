@@ -2,20 +2,20 @@
 
 public sealed record CredentialActionResult
 {
-    public bool Succeeded { get; init; }
+    public bool IsSuccess { get; init; }
 
     public string? Error { get; init; }
 
     public static CredentialActionResult Success()
         => new()
         {
-            Succeeded = true
+            IsSuccess = true
         };
 
     public static CredentialActionResult Fail(string error)
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             Error = error
         };
 }

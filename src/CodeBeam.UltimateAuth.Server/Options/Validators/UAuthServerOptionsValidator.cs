@@ -43,28 +43,19 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
         {
             if (options.Session.Lifetime <= TimeSpan.Zero)
             {
-                return ValidateOptionsResult.Fail(
-                    "Session.Lifetime must be greater than zero.");
+                return ValidateOptionsResult.Fail("Session.Lifetime must be greater than zero.");
             }
 
-            if (options.Session.MaxLifetime is not null &&
-                options.Session.MaxLifetime <= TimeSpan.Zero)
+            if (options.Session.MaxLifetime is not null && options.Session.MaxLifetime <= TimeSpan.Zero)
             {
-                return ValidateOptionsResult.Fail(
-                    "Session.MaxLifetime must be greater than zero when specified.");
+                return ValidateOptionsResult.Fail("Session.MaxLifetime must be greater than zero when specified.");
             }
         }
-
 
         // Only add cross-option validation beyond this point, individual options should validate in their own validators.
         if (options.Token!.AccessTokenLifetime > options.Session!.MaxLifetime)
         {
             return ValidateOptionsResult.Fail("Token.AccessTokenLifetime cannot exceed Session.MaxLifetime.");
-        }
-
-        if (options.Token.RefreshTokenLifetime > options.Session.MaxLifetime)
-        {
-            return ValidateOptionsResult.Fail("Token.RefreshTokenLifetime cannot exceed Session.MaxLifetime.");
         }
 
         return ValidateOptionsResult.Success;

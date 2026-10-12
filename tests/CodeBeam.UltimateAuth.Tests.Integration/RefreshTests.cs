@@ -121,8 +121,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         var initial =
             await GetCurrentChainAsync(_client);
 
-        _factory.Clock.Advance(
-            TimeSpan.FromHours(1));
+        _factory.Clock.Advance(TimeSpan.FromMinutes(6));
 
         var first =
             await RefreshAsync();
@@ -1601,11 +1600,9 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromMinutes(30);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1625,9 +1622,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // Session expired, refresh token is still valid.
-        //
         factory.Clock.Advance(
             TimeSpan.FromMinutes(31));
 
@@ -1650,14 +1645,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1699,14 +1690,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -1749,14 +1736,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         await using var factory = AuthServerFactory.Create(options =>
         {
-            options.Session.Lifetime =
-                TimeSpan.FromDays(7);
-
-            options.Session.IdleTimeout =
-                TimeSpan.FromMinutes(30);
-
-            options.Token.RefreshTokenLifetime =
-                TimeSpan.FromDays(7);
+            options.Session.Lifetime = TimeSpan.FromDays(7);
+            options.Session.MaxLifetime = TimeSpan.FromDays(7);
+            options.Session.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         });
 
         factory.Clock.Reset();
@@ -2486,6 +2469,73 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Refresh_Hybrid_Maui_HeaderCredentials_ShouldSupportConsecutiveRefreshes()
+    {
+        _factory.Clock.Reset();
+
+        var user = await _factory.CreateLoginUserAsync();
+
+        using var client = CreateClient(
+            $"maui-refresh-{Guid.NewGuid():N}");
+
+        SetClientProfile(client, "Maui");
+
+        // 1. Login
+        using var login = await client.PostAsJsonAsync(
+            "/auth/login",
+            new
+            {
+                identifier = user.Identifier,
+                secret = user.Secret
+            });
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        var sessionId = ReadCredential(login, "uas");
+        var refreshToken = ReadCredential(login, "uar");
+
+        sessionId.Should().NotBeNullOrWhiteSpace();
+        refreshToken.Should().NotBeNullOrWhiteSpace();
+
+        // 2. First refresh using the credentials delivered by login
+        using var firstRequest = new HttpRequestMessage(
+            HttpMethod.Post, "/auth/refresh");
+
+        firstRequest.Headers.TryAddWithoutValidation(
+            "X-UAuth-Session", sessionId);
+
+        firstRequest.Headers.TryAddWithoutValidation(
+            "X-Refresh-Token", refreshToken);
+
+        using var first = await client.SendAsync(firstRequest);
+
+        first.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var rotatedRefreshToken = ReadCredential(first, "uar");
+
+        rotatedRefreshToken.Should().NotBeNullOrWhiteSpace();
+        rotatedRefreshToken.Should().NotBe(refreshToken);
+
+        // Session ID may be reissued depending on the refresh policy.
+        var nextSessionId =
+            TryReadCredential(first, "uas") ?? sessionId;
+
+        // 3. Second refresh using the newly delivered refresh token
+        using var secondRequest = new HttpRequestMessage(
+            HttpMethod.Post, "/auth/refresh");
+
+        secondRequest.Headers.TryAddWithoutValidation(
+            "X-UAuth-Session", nextSessionId);
+
+        secondRequest.Headers.TryAddWithoutValidation(
+            "X-Refresh-Token", rotatedRefreshToken);
+
+        using var second = await client.SendAsync(secondRequest);
+
+        second.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
 
 
     private async Task<string> LoginAsync(IntegrationTestUser user, string profile = "BlazorServer")
@@ -2721,5 +2771,26 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Add(
             "X-Tenant",
             tenant);
+    }
+
+    private static string ReadCredential(HttpResponseMessage response, string headerName)
+    {
+        var value = TryReadCredential(response, headerName);
+        value.Should().NotBeNullOrWhiteSpace($"response must deliver the {headerName} credential");
+
+        return value!;
+    }
+
+    private static string? TryReadCredential(HttpResponseMessage response, string headerName)
+    {
+        if (!response.Headers.TryGetValues(headerName, out var values))
+            return null;
+
+        var raw = values.Single().Trim();
+
+        if (raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            raw = raw["Bearer ".Length..].Trim();
+
+        return string.IsNullOrWhiteSpace(raw) ? null : raw;
     }
 }

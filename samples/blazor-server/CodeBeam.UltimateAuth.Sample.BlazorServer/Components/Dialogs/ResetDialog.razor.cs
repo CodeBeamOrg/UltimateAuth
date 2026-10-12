@@ -9,7 +9,6 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.Components.Dialogs;
 public partial class ResetDialog
 {
     private bool _resetRequested = false;
-    private string? _resetCode;
     private string? _identifier;
 
     [CascadingParameter]
@@ -27,14 +26,13 @@ public partial class ResetDialog
             Identifier = _identifier ?? string.Empty
         };
 
-        var result = await UAuthClient.Credentials.BeginResetMyAsync(request);
+        var result = await UAuthClient.Credentials.BeginResetAsync(request);
         if (!result.IsSuccess || result.Value is null)
         {
             Snackbar.Add(result.ErrorText ?? "Failed to request credential reset.", Severity.Error);
             return;
         }
 
-        _resetCode = result.Value.Token;
         _resetRequested = true;
     }
 

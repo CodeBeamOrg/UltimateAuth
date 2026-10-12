@@ -12,19 +12,23 @@ internal sealed class UserRoleService : IUserRoleService
     private readonly IAccessOrchestrator _accessOrchestrator;
     private readonly IUserRoleStoreFactory _userRoleFactory;
     private readonly IRoleStoreFactory _roleFactory;
+    private readonly IUAuthPaginationPolicy _pagination;
     private readonly IClock _clock;
 
-    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStoreFactory userRoleFactory, IRoleStoreFactory roleFactory, IClock clock)
+    public UserRoleService(IAccessOrchestrator accessOrchestrator, IUserRoleStoreFactory userRoleFactory, IRoleStoreFactory roleFactory, IUAuthPaginationPolicy pagination, IClock clock)
     {
         _accessOrchestrator = accessOrchestrator;
         _userRoleFactory = userRoleFactory;
         _roleFactory = roleFactory;
+        _pagination = pagination;
         _clock = clock;
     }
 
     public async Task AssignAsync(AccessContext context, UserKey targetUserKey, string roleName, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        ValidateTargetUser(context, targetUserKey);
 
         var now = _clock.UtcNow;
 
@@ -48,6 +52,8 @@ internal sealed class UserRoleService : IUserRoleService
     {
         ct.ThrowIfCancellationRequested();
 
+        ValidateTargetUser(context, targetUserKey);
+
         var cmd = new AccessCommand(async innerCt =>
         {
             var roleStore = _roleFactory.Create(context.ResourceTenant);
@@ -68,9 +74,11 @@ internal sealed class UserRoleService : IUserRoleService
     {
         ct.ThrowIfCancellationRequested();
 
+        ValidateTargetUser(context, targetUserKey, allowSelf: true);
+
         var cmd = new AccessCommand<PagedResult<UserRoleInfo>>(async innerCt =>
         {
-            request = request.Normalize();
+            request = request.Normalize(_pagination);
 
             var roleStore = _roleFactory.Create(context.ResourceTenant);
             var userRoleStore = _userRoleFactory.Create(context.ResourceTenant);
@@ -131,5 +139,18 @@ internal sealed class UserRoleService : IUserRoleService
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
+    }
+
+    private static void ValidateTargetUser(AccessContext context, UserKey targetUserKey, bool allowSelf = false)
+    {
+        if (context.TargetUserKey == targetUserKey)
+            return;
+
+        if (allowSelf &&
+            context.TargetUserKey is null &&
+            context.ActorUserKey == targetUserKey)
+            return;
+
+        throw new UAuthAuthorizationException("target_user_mismatch");
     }
 }

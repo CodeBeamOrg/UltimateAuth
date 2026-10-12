@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -9,9 +10,11 @@ namespace CodeBeam.UltimateAuth.Authorization.InMemory;
 internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, RoleKey>, IRoleStore
 {
     protected override RoleKey GetKey(Role entity) => new(entity.Tenant, entity.Id);
+    private readonly IUAuthPaginationPolicy _pagination;
 
-    public InMemoryRoleStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(tenant, atomicContext)
+    public InMemoryRoleStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext, IUAuthPaginationPolicy pagination) : base(tenant, atomicContext)
     {
+        _pagination = pagination;
     }
 
     protected override void BeforeAdd(Role entity)
@@ -67,7 +70,7 @@ internal sealed class InMemoryRoleStore : InMemoryTenantVersionedStore<Role, Rol
     {
         ct.ThrowIfCancellationRequested();
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
 
         var baseQuery = TenantValues().AsQueryable();
 

@@ -8,6 +8,8 @@ using CodeBeam.UltimateAuth.Users.Reference;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -48,7 +50,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             await response.Content.ReadFromJsonAsync<UserCreateResult>();
 
         result.Should().NotBeNull();
-        result!.Succeeded.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
         result.UserKey.Should().NotBe(default);
 
         //
@@ -210,55 +212,30 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
     }
 
     [Fact]
-    public async Task CreateUser_WithVerifiedEmail_ShouldPersistEmailAsVerified()
+    public async Task CreateUser_WithVerifiedEmail_ShouldNotPersistEmailAsVerified()
     {
         _factory.Clock.Reset();
 
         using var client = CreateClient();
 
-        var username =
-            $"email-user-{Guid.NewGuid():N}";
+        var username = $"email-user-{Guid.NewGuid():N}";
 
-        var email =
-            $"{Guid.NewGuid():N}@example.com";
+        var email = $"{Guid.NewGuid():N}@example.com";
 
-        var result = await CreateUserAsync(
-            client,
-            username,
-            email: email,
-            emailVerified: true);
+        var result = await CreateUserAsync(client, username, email: email, emailVerified: true);
 
         var userKey = GetUserKey(result);
 
-        using var scope =
-            _factory.Services.CreateScope();
-
-        var factory =
-            scope.ServiceProvider
-                .GetRequiredService<IUserIdentifierStoreFactory>();
-
-        var store =
-            factory.Create(TenantKeys.Single);
-
-        var identifiers =
-            await store.GetByUserAsync(
-                userKey);
-
-        var identifier = identifiers
-            .Single(x =>
-                x.Type == UserIdentifierType.Email);
-
-        identifier.Value.Should()
-            .Be(email);
-
-        identifier.IsPrimary.Should()
-            .BeTrue();
-
-        identifier.IsVerified.Should()
-            .BeTrue();
-
-        identifier.VerifiedAt.Should()
-            .Be(_factory.Clock.UtcNow);
+        using var scope = _factory.Services.CreateScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IUserIdentifierStoreFactory>();
+        var store = factory.Create(TenantKeys.Single);
+        var identifiers = await store.GetByUserAsync(userKey);
+        var identifier = identifiers.Single(x => x.Type == UserIdentifierType.Email);
+        
+        identifier.Value.Should().Be(email);
+        identifier.IsPrimary.Should().BeTrue();
+        identifier.IsVerified.Should().BeFalse("anonymous registration must ignore client-supplied verification flags");
+        identifier.VerifiedAt.Should().BeNull();
     }
 
     [Fact]
@@ -413,7 +390,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 .ReadFromJsonAsync<UserCreateResult>();
 
         firstResult.Should().NotBeNull();
-        firstResult!.Succeeded.Should().BeTrue();
+        firstResult!.IsSuccess.Should().BeTrue();
 
         var firstUserKey =
             GetUserKey(firstResult);
@@ -543,6 +520,147 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 x.UserKey == userKey);
     }
 
+    [Fact]
+    public async Task QueryUsersAsync_AppliesConfiguredPaginationAndSorting()
+    {
+        using var factory = AuthServerFactory.Create(
+            configureServer: options =>
+            {
+                options.Pagination.DefaultPageSize = 2;
+                options.Pagination.MaxPageSize = 3;
+            },
+            configureServices: services =>
+            {
+                var access = new Mock<IAccessOrchestrator>();
+
+                access
+                    .Setup(x => x.ExecuteAsync(
+                        It.IsAny<AccessContext>(),
+                        It.IsAny<AccessCommand<PagedResult<UserSummary>>>(),
+                        It.IsAny<CancellationToken>()))
+                    .Returns<
+                        AccessContext,
+                        AccessCommand<PagedResult<UserSummary>>,
+                        CancellationToken>(
+                        (_, command, ct) => command.ExecuteAsync(ct));
+
+                services.RemoveAll<IAccessOrchestrator>();
+                services.AddScoped(_ => access.Object);
+            });
+
+        var prefix = $"pagination-{Guid.NewGuid():N}";
+
+        var names = new[]
+        {
+            "Charlie",
+            "Alice",
+            "Echo",
+            "Bob",
+            "Delta"
+        };
+
+        foreach (var name in names)
+        {
+            var user = await factory.CreateLoginUserAsync();
+
+            using var seedScope = factory.Services.CreateScope();
+
+            var profileFactory = seedScope.ServiceProvider
+                .GetRequiredService<IUserProfileStoreFactory>();
+
+            await profileFactory
+                .Create(TenantKeys.Single)
+                .AddAsync(UserProfile.Create(
+                    Guid.NewGuid(),
+                    TenantKeys.Single,
+                    user.UserKey,
+                    ProfileKey.Default,
+                    factory.Clock.UtcNow,
+                    displayName: $"{prefix}-{name}"));
+        }
+
+        using var scope = factory.Services.CreateScope();
+
+        var service = scope.ServiceProvider
+            .GetRequiredService<IUserApplicationService>();
+
+        var actor = UserKey.New();
+
+        var context = new AccessContext(
+            actorUserKey: actor,
+            actorTenant: TenantKeys.Single,
+            isAuthenticated: true,
+            isSystemActor: false,
+            actorChainId: null,
+            resource: "users",
+            targetUserKey: actor,
+            resourceTenant: TenantKeys.Single,
+            action: "test",
+            attributes: EmptyAttributes.Instance);
+
+        // DefaultPageSize = 2
+        var firstPage = await service.QueryUsersAsync(
+            context,
+            new UserQuery
+            {
+                PageNumber = 1,
+                PageSize = 0,
+                Search = prefix,
+                SortBy = nameof(UserSummary.DisplayName)
+            });
+
+        firstPage.TotalCount.Should().Be(5);
+        firstPage.PageNumber.Should().Be(1);
+        firstPage.PageSize.Should().Be(2);
+        firstPage.Items.Should().HaveCount(2);
+
+        firstPage.Items
+            .Select(x => x.DisplayName)
+            .Should()
+            .Equal($"{prefix}-Alice", $"{prefix}-Bob");
+
+        // Requested 100 -> MaxPageSize = 3
+        var secondPage = await service.QueryUsersAsync(
+            context,
+            new UserQuery
+            {
+                PageNumber = 2,
+                PageSize = 100,
+                Search = prefix,
+                SortBy = nameof(UserSummary.DisplayName)
+            });
+
+        secondPage.TotalCount.Should().Be(5);
+        secondPage.PageNumber.Should().Be(2);
+        secondPage.PageSize.Should().Be(3);
+        secondPage.Items.Should().HaveCount(2);
+
+        secondPage.Items
+            .Select(x => x.DisplayName)
+            .Should()
+            .Equal($"{prefix}-Delta", $"{prefix}-Echo");
+    }
+
+    [Fact]
+    public async Task AdminCreate_WhenAnonymous_ShouldReturnUnauthorized()
+    {
+        _factory.Clock.Reset();
+
+        using var client = CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/admin/users/create",
+            new CreateUserRequest
+            {
+                UserName = $"admin-create-{Guid.NewGuid():N}",
+                Password = $"Test-{Guid.NewGuid():N}!",
+                DisplayName = "Unauthorized Creation"
+            });
+
+        response.StatusCode.Should()
+            .Be(HttpStatusCode.Unauthorized);
+    }
+
 
     // -------------------------------------------------------
     // Helpers
@@ -594,7 +712,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 .ReadFromJsonAsync<UserCreateResult>();
 
         result.Should().NotBeNull();
-        result!.Succeeded.Should().BeTrue();
+        result!.IsSuccess.Should().BeTrue();
 
         return result;
     }

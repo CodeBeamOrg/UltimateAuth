@@ -14,7 +14,12 @@ public sealed class UserKeyJsonConverter : JsonConverter<UserKey>
         if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("UserKey must be a string.");
 
-        return UserKey.FromString(reader.GetString()!);
+        var value = reader.GetString();
+
+        if (string.IsNullOrWhiteSpace(value))
+            throw new JsonException("UserKey cannot be null or empty.");
+
+        return UserKey.FromString(value);
     }
 
     public override void Write(Utf8JsonWriter writer, UserKey value, JsonSerializerOptions options)

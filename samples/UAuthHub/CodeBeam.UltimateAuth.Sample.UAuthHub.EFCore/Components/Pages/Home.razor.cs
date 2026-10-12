@@ -96,7 +96,7 @@ public partial class Home
     {
         if (result is TryPkceLoginResult pkce)
         {
-            if (!result.Success)
+            if (!result.IsSuccess)
             {
                 if (result.Reason == AuthFailureReason.LockedOut && result.LockoutUntilUtc is { } until)
                 {

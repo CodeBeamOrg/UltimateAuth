@@ -3,8 +3,9 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Extensions.Options;
+
+namespace CodeBeam.UltimateAuth.Users.Reference;
 
 public sealed class UserIdentifierAvailabilityService : IUserIdentifierAvailabilityService
 {

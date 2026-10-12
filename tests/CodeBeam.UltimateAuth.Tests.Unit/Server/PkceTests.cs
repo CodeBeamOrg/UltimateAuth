@@ -16,7 +16,7 @@ public class PkceTests
         var (artifact, verifier) = TestPkceFactory.Create();
         var result = validator.Validate(artifact, verifier, artifact.Context, DateTimeOffset.UtcNow);
 
-        result.Success.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class PkceTests
         var (artifact, _) = TestPkceFactory.Create();
         var result = validator.Validate(artifact, "wrong_verifier", artifact.Context, DateTimeOffset.UtcNow);
 
-        result.Success.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.FailureReason.Should().Be(PkceValidationFailureReason.InvalidVerifier);
     }
 

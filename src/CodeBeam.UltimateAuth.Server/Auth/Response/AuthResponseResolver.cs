@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Net.Http.Headers;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
@@ -72,9 +73,26 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
 
     private static void ValidateDelivery(CredentialResponseOptions delivery)
     {
-        if (delivery.Mode == TokenResponseMode.Cookie && delivery.Cookie is null)
+        // TODO:
+        if (delivery.Mode == TokenResponseMode.Body)
+            throw new NotSupportedException($"Body credential delivery is not supported for '{delivery.Kind}'.");
+
+        if (delivery.Mode != TokenResponseMode.Cookie)
+            return;
+
+        if (delivery.Cookie is null)
         {
             throw new InvalidOperationException($"Credential '{delivery.Kind}' is configured as Cookie but no cookie options were bound.");
+        }
+
+        try
+        {
+            var cookie = new SetCookieHeaderValue(delivery.Cookie.Name, "validation");
+            _ = cookie.ToString();
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidOperationException($"Invalid cookie name configured for '{delivery.Kind}': '{delivery.Cookie.Name}'.", ex);
         }
     }
 

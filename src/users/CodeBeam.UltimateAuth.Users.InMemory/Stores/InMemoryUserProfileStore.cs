@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -13,8 +14,11 @@ public sealed class InMemoryUserProfileStore : InMemoryTenantVersionedStore<User
     protected override UserProfileKey GetKey(UserProfile entity)
         => new(entity.Tenant, entity.UserKey, entity.ProfileKey);
 
-    public InMemoryUserProfileStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext) : base(tenant, atomicContext)
+    private readonly IUAuthPaginationPolicy _pagination;
+
+    public InMemoryUserProfileStore(TenantExecutionContext tenant, InMemoryAtomicContextAccessor atomicContext, IUAuthPaginationPolicy pagination) : base(tenant, atomicContext)
     {
+        _pagination = pagination;
     }
 
     protected override void BeforeAdd(UserProfile entity)
@@ -32,7 +36,7 @@ public sealed class InMemoryUserProfileStore : InMemoryTenantVersionedStore<User
     {
         ct.ThrowIfCancellationRequested();
 
-        var normalized = query.Normalize();
+        var normalized = query.Normalize(_pagination);
         var baseQuery = TenantValues().AsQueryable();
 
         if (query.ProfileKey != null)

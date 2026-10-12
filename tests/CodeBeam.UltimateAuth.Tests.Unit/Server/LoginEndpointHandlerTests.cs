@@ -74,7 +74,7 @@ public sealed class LoginEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.Reason.Should()
             .Be(AuthFailureReason.InvalidCredentials);
 
@@ -129,7 +129,7 @@ public sealed class LoginEndpointHandlerTests
 
         capturedRequest!.Identifier.Should().Be("alice");
         capturedRequest.Secret.Should().Be("password");
-        capturedRequest.Factor.Should()
+        capturedRequest.CredentialType.Should()
             .Be(CredentialType.Password);
 
         capturedRequest.RequestTokens.Should()
@@ -182,7 +182,7 @@ public sealed class LoginEndpointHandlerTests
 
         ok.Value.Should().NotBeNull();
 
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
 
         ok.Value.Reason.Should()
             .Be(AuthFailureReason.InvalidCredentials);
@@ -270,7 +270,7 @@ public sealed class LoginEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
 
         ok.Value.PreviewReceipt.Should()
             .NotBeNullOrWhiteSpace();
@@ -322,7 +322,7 @@ public sealed class LoginEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
 
         fixture.AuthStore.Verify(
             x => x.StoreAsync(
@@ -592,7 +592,7 @@ public sealed class LoginEndpointHandlerTests
             {
                 Identifier = identifier,
                 Secret = secret,
-                Factor = CredentialType.Password,
+                CredentialType = CredentialType.Password,
                 PreviewReceipt = previewReceipt
             });
     }

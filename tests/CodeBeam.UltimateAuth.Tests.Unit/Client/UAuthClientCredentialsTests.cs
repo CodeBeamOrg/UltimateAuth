@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
+using FluentAssertions;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -13,7 +15,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task AddMy_Should_Call_Correct_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new AddCredentialResult()));
+            .ReturnsAsync(SuccessJson(new CredentialAddResult()));
 
         var client = CreateCredentialClient();
         await client.Credentials.AddMyAsync(new AddCredentialRequest() { Secret = "uauth" });
@@ -24,7 +26,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task ChangeMy_Should_Publish_Event_On_Success()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new ChangeCredentialResult()));
+            .ReturnsAsync(SuccessJson(new CredentialChangeResult()));
 
         var client = CreateCredentialClient();
         await client.Credentials.ChangeMyAsync(new ChangeCredentialRequest() { NewSecret = "uauth" });
@@ -57,7 +59,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task AddUser_Should_Call_Admin_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new AddCredentialResult()));
+            .ReturnsAsync(SuccessJson(new CredentialAddResult()));
 
         var client = CreateCredentialClient();
         var userKey = UserKey.FromString("user-1");
@@ -65,19 +67,43 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
         Request.Verify(x => x.SendJsonAsync($"/auth/admin/users/{userKey.Value}/credentials/add", It.IsAny<object>()), Times.Once);
     }
 
+
     [Fact]
     public async Task DeleteUser_Should_Call_Delete_Endpoint()
     {
-        Request.Setup(x => x.SendFormAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UAuthTransportResult { Ok = true, Status = 200 });
+        var userKey = UserKey.FromString("user-1");
+
+        var request = new DeleteCredentialRequest
+        {
+            Id = Guid.NewGuid(),
+            Mode = DeleteMode.Hard
+        };
+
+        Request
+            .Setup(x => x.SendJsonAsync(
+                $"/auth/admin/users/{userKey.Value}/credentials/delete",
+                It.IsAny<DeleteCredentialRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 204
+            });
 
         var client = CreateCredentialClient();
-        var userKey = UserKey.FromString("user-1");
-        await client.Credentials.DeleteUserAsync(userKey, new DeleteCredentialRequest());
-        Request.Verify(x =>
-            x.SendFormAsync($"/auth/admin/users/{userKey.Value}/credentials/delete",
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<CancellationToken>()),
+
+        var result = await client.Credentials.DeleteUserAsync(
+            userKey,
+            request);
+
+        result.IsSuccess.Should().BeTrue();
+
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/users/{userKey.Value}/credentials/delete",
+            It.Is<DeleteCredentialRequest>(r =>
+                r.Id == request.Id &&
+                r.Mode == request.Mode),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -85,10 +111,10 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task BeginResetMy_Should_Call_Correct_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new BeginCredentialResetResult()));
+            .ReturnsAsync(SuccessJson(new CredentialBeginResetResult()));
 
         var client = CreateCredentialClient();
-        await client.Credentials.BeginResetMyAsync(new BeginResetCredentialRequest() { Identifier = "user1" });
+        await client.Credentials.BeginResetAsync(new BeginResetCredentialRequest() { Identifier = "user1" });
         Request.Verify(x => x.SendJsonAsync("/auth/me/credentials/reset/begin", It.IsAny<object>()), Times.Once);
     }
 
@@ -99,7 +125,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
             .ReturnsAsync(SuccessJson(new CredentialActionResult()));
 
         var client = CreateCredentialClient();
-        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.CredentialsChanged)), Times.Once);
     }
 
@@ -110,7 +136,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
             .ReturnsAsync(new UAuthTransportResult { Ok = false, Status = 400 });
 
         var client = CreateCredentialClient();
-        await client.Credentials.CompleteResetMyAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetAsync(new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 
@@ -118,7 +144,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task BeginResetUser_Should_Call_Admin_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new BeginCredentialResetResult()));
+            .ReturnsAsync(SuccessJson(new CredentialBeginResetResult()));
 
         var client = CreateCredentialClient();
         var userKey = UserKey.FromString("user-1");
@@ -136,7 +162,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
 
         var client = CreateCredentialClient();
         var userKey = UserKey.FromString("user-1");
-        await client.Credentials.CompleteResetUserAsync(userKey, new CompleteResetCredentialRequest() { NewSecret = "uauth" });
+        await client.Credentials.CompleteResetUserAsync(userKey, new CompleteResetCredentialRequest() { NewSecret = "uauth", Identifier = "user1", ResetToken = "fake_token" });
         Events.Verify(x => x.PublishAsync(It.IsAny<UAuthStateEventArgs>()), Times.Never);
     }
 
@@ -144,7 +170,7 @@ public class UAuthClientCredentialTests : UAuthClientTestBase
     public async Task ChangeUser_Should_Call_Admin_Endpoint()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new ChangeCredentialResult()));
+            .ReturnsAsync(SuccessJson(new CredentialChangeResult()));
 
         var client = CreateCredentialClient();
         var userKey = UserKey.FromString("user-1");

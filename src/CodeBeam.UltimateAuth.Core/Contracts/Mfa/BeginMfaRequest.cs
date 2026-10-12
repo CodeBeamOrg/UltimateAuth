@@ -1,6 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Core.Contracts;
+﻿//namespace CodeBeam.UltimateAuth.Core.Contracts;
 
-public sealed record BeginMfaRequest
-{
-    public required string MfaToken { get; init; }
-}
+//public sealed record BeginMfaRequest
+//{
+//    public required string MfaToken { get; init; }
+//}

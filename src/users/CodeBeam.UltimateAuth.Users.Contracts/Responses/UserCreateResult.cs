@@ -4,11 +4,11 @@ namespace CodeBeam.UltimateAuth.Users.Contracts;
 
 public sealed record UserCreateResult
 {
-    public required bool Succeeded { get; init; }
+    public required bool IsSuccess { get; init; }
 
     /// <summary>
     /// Created user's key (string form of UserKey).
-    /// Available only when Succeeded = true.
+    /// Available only when IsSuccess = true.
     /// </summary>
     public string? UserKey { get; init; }
 
@@ -17,15 +17,14 @@ public sealed record UserCreateResult
     public static UserCreateResult Success(UserKey userKey)
         => new()
         {
-            Succeeded = true,
+            IsSuccess = true,
             UserKey = userKey.Value
         };
 
     public static UserCreateResult Failed(string reason)
         => new()
         {
-            Succeeded = false,
+            IsSuccess = false,
             FailureReason = reason
         };
 }
-

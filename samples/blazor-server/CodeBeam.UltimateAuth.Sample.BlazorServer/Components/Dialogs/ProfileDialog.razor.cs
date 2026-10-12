@@ -92,11 +92,11 @@ public partial class ProfileDialog
 
         if (UserKey is null)
         {
-            result = await UAuthClient.Users.UpdateMeAsync(request);
+            result = await UAuthClient.Users.UpdateMyProfileAsync(request);
         }
         else
         {
-            result = await UAuthClient.Users.UpdateUserAsync(UserKey.Value, request);
+            result = await UAuthClient.Users.UpdateUserProfileAsync(UserKey.Value, request);
         }
 
         if (result.IsSuccess)

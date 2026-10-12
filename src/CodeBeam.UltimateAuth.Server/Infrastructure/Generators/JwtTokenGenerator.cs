@@ -31,35 +31,32 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
             Claims = BuildClaims(descriptor),
 
-            SigningCredentials = new SigningCredentials(
-                signingKey.Key,
-                signingKey.Algorithm)
+            SigningCredentials = new SigningCredentials(signingKey.Key, signingKey.Algorithm)
         };
-
-        tokenDescriptor.AdditionalHeaderClaims = new Dictionary<string, object>
-            {
-                ["kid"] = signingKey.KeyId
-            };
 
         return _handler.CreateToken(tokenDescriptor);
     }
 
     private static IDictionary<string, object> BuildClaims(UAuthJwtTokenDescriptor descriptor)
     {
-        var claims = new Dictionary<string, object>
-        {
-            ["sub"] = descriptor.Subject
-        };
-
-        claims["tenant"] = descriptor.Tenant;
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal);
 
         if (descriptor.Claims is not null)
         {
-            foreach (var kv in descriptor.Claims)
+            foreach (var (type, value) in descriptor.Claims)
             {
-                claims[kv.Key] = kv.Value;
+                // These claims are controlled by SecurityTokenDescriptor
+                // or explicitly defined by UAuthJwtTokenDescriptor.
+                if (type is "sub" or "tenant" or "iss" or "aud" or "exp" or "nbf" or "iat")
+                    continue;
+
+                claims[type] = value;
             }
         }
+
+        // Framework-owned identity claims always take precedence.
+        claims["sub"] = descriptor.Subject;
+        claims["tenant"] = descriptor.Tenant.Value;
 
         return claims;
     }

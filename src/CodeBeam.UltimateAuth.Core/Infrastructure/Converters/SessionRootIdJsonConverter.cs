@@ -9,12 +9,12 @@ public sealed class SessionRootIdJsonConverter : JsonConverter<SessionRootId>
     public override SessionRootId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.String)
-            throw new JsonException("SessionChainId must be a string.");
+            throw new JsonException("SessionRootId must be a string.");
 
         var raw = reader.GetString();
 
         if (!SessionRootId.TryCreate(raw!, out var id))
-            throw new JsonException($"Invalid SessionChainId value: '{raw}'");
+            throw new JsonException($"Invalid SessionRootId value: '{raw}'");
 
         return id;
     }

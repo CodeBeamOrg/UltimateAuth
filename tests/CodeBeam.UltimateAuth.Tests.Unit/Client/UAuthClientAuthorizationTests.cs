@@ -16,7 +16,10 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     [Fact]
     public async Task AssignRole_Should_Call_Correct_Endpoint_And_Publish_Event()
     {
-        Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
+        Request.Setup(x => x.SendJsonAsync(
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(Success());
 
         var client = CreateClient();
@@ -29,8 +32,18 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
 
         await client.Authorization.AssignRoleToUserAsync(request);
 
-        Request.Verify(x => x.SendJsonAsync( $"/auth/admin/authorization/users/{request.UserKey.Value}/roles/assign", request.RoleName), Times.Once);
-        Events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.AuthorizationChanged)), Times.Once);
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/authorization/users/{request.UserKey.Value}/roles/assign",
+            It.Is<AssignRoleRequest>(r =>
+                r.UserKey == request.UserKey &&
+                r.RoleName == request.RoleName),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Events.Verify(x => x.PublishAsync(
+            It.Is<UAuthStateEventArgs>(e =>
+                e.Type == UAuthStateEvent.AuthorizationChanged)),
+            Times.Once);
     }
 
     [Fact]
@@ -80,7 +93,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
             }));
 
         var client = CreateClient();
-        var result = await client.Authorization.CheckAsync(new AuthorizationCheckRequest() { Action = UAuthActions.Authorization.Roles.CreateAdmin });
+        var result = await client.Authorization.CheckAsync(new AuthorizationCheckRequest() { Action = UAuthActions.Authorization.Roles.CreateAdmin, Resource = "roles" });
         result.IsSuccess.Should().BeTrue();
         result.Value!.IsAllowed.Should().BeTrue();
     }
@@ -104,7 +117,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     {
         var userKey = UserKey.FromString("user-1");
 
-        var response = new UserRolesResponse
+        var response = new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = new PagedResult<UserRoleInfo>(
@@ -145,7 +158,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     {
         var userKey = UserKey.FromString("user-1");
 
-        var response = new UserRolesResponse
+        var response = new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = new PagedResult<UserRoleInfo>(
@@ -249,7 +262,7 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
     public async Task DeleteRole_Should_Publish_Event_On_Success()
     {
         Request.Setup(x => x.SendJsonAsync(It.IsAny<string>(), It.IsAny<object>()))
-            .ReturnsAsync(SuccessJson(new DeleteRoleResult()));
+            .ReturnsAsync(SuccessJson(new RoleDeleteResult()));
 
         var client = CreateClient();
 

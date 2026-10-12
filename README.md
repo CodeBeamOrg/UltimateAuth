@@ -33,7 +33,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
 | First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Documented & Quality Tested               | ✅ Completed   | 08.10.2026    |
+| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)               | ✅ Completed   | 12.10.2026    |
 | Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q4 2026       |
 | Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🟡 In Progress | Q4 2026       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
@@ -43,13 +43,23 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Ecosystem Expansion     | 0.8.0         | Migration tools                           | 🔜 Planned     | Q2 2027       |
 | v1.0                    | 1.0.0         | Locked API, align with .NET 11            | 🔜 Planned     | Q2 2027       |
 
-*v 0.1.0 already provides a skeleton of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
+*v 0.1.0 already provides a skeleton and extensibility points of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
 
 > The project roadmap is actively maintained as a GitHub issue:
 
 👉 https://github.com/CodeBeamOrg/UltimateAuth/issues/8
 
 We keep it up-to-date with current priorities, planned features, and progress. Feel free to follow, comment, or contribute ideas.
+
+---
+
+### 💜 Join the UltimateAuth Community
+
+UltimateAuth is more than a framework — it's a growing open-source community.
+
+Join our **[Discord server](https://discord.gg/QscA86dXSR)** to connect with developers, ask questions, share ideas, discuss authentication challenges, and help shape the future of UltimateAuth.
+
+Whether you're using UltimateAuth, exploring the project, or interested in contributing, **you're always welcome!**
 
 ---
 
@@ -321,12 +331,21 @@ Create accounts, simulate devices, test auth flows, and observe UltimateAuth in 
 
 ---
 
-## 🤝 Contributing
+## 🤝 Community & Contributing
 
-UltimateAuth is a community-first framework.  
-We welcome proposals, discussions, architectural insights, and contributions of all sizes.
+UltimateAuth is built by developers, for developers — and everyone is welcome to be part of its journey.
 
-Discussions are open — your ideas matter.
+Whether you're reporting a bug, proposing an idea, improving documentation, or submitting code, your contribution matters.
+
+**You don't need to be an expert to get involved.**
+
+- 💜 **[Join our Discord](https://discord.gg/QscA86dXSR)** — Connect with the community and share ideas.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** — Learn how to contribute.
+- 🛡️ **[Security Policy](SECURITY.md)** — Report security vulnerabilities responsibly.
+- 📜 **[Code of Conduct](CODE_OF_CONDUCT.md)** — Our community values.
+- 🏛️ **[Governance](GOVERNANCE.md)** — How project decisions are made.
+
+Every great open-source project starts with people willing to build something together.
 
 ---
 

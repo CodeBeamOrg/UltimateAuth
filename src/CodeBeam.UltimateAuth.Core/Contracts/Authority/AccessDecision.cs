@@ -19,7 +19,7 @@ public sealed record AccessDecision
             requiresReauthentication: false,
             denyReason: null);
 
-    public static AccessDecision Deny(string reason)
+    public static AccessDecision Deny(string? reason)
         => new(
             isAllowed: false,
             requiresReauthentication: false,

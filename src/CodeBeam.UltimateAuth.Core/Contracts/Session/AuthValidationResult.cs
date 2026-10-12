@@ -9,11 +9,11 @@ public sealed record AuthValidationResult
 {
     public required SessionState State { get; init; }
     public AuthStateSnapshot? Snapshot { get; init; }
-    public Guid? ChainId { get; init; }
+    public SessionChainId? ChainId { get; init; }
 
-    public Guid? RootId { get; init; }
+    public SessionRootId? RootId { get; init; }
 
-    public string? BoundDeviceId { get; init; }
+    public DeviceId? BoundDeviceId { get; init; }
 
     public bool IsValid => State == SessionState.Active;
 }

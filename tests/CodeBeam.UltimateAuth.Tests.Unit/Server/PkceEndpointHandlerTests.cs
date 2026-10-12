@@ -201,7 +201,7 @@ public sealed class PkceEndpointHandlerTests
             .Subject;
 
         ok.Value.Should().NotBeNull();
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.RetryWithNewPkce.Should().BeTrue();
 
         fixture.Validator.VerifyNoOtherCalls();
@@ -229,7 +229,7 @@ public sealed class PkceEndpointHandlerTests
             .BeOfType<Ok<TryPkceLoginResult>>()
             .Subject;
 
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.RetryWithNewPkce.Should().BeTrue();
 
         fixture.Validator.VerifyNoOtherCalls();
@@ -269,7 +269,7 @@ public sealed class PkceEndpointHandlerTests
             .BeOfType<Ok<TryPkceLoginResult>>()
             .Subject;
 
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.RetryWithNewPkce.Should().BeTrue();
 
         fixture.InternalFlow.VerifyNoOtherCalls();
@@ -341,7 +341,7 @@ public sealed class PkceEndpointHandlerTests
             .BeOfType<Ok<TryPkceLoginResult>>()
             .Subject;
 
-        ok.Value!.Success.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
         ok.Value.RetryWithNewPkce.Should().BeFalse();
 
         // SECURITY:
@@ -419,7 +419,7 @@ public sealed class PkceEndpointHandlerTests
             .BeOfType<Ok<TryPkceLoginResult>>()
             .Subject;
 
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         ok.Value.RemainingAttempts.Should().Be(2);
         ok.Value.LockoutUntilUtc.Should().Be(lockoutUntil);
@@ -457,7 +457,7 @@ public sealed class PkceEndpointHandlerTests
             .BeOfType<Ok<TryPkceLoginResult>>()
             .Subject;
 
-        ok.Value!.Success.Should().BeFalse();
+        ok.Value!.IsSuccess.Should().BeFalse();
         ok.Value.RequiresMfa.Should().BeTrue();
         ok.Value.RetryWithNewPkce.Should().BeFalse();
     }
@@ -539,7 +539,7 @@ public sealed class PkceEndpointHandlerTests
                 fixture.HttpContext.RequestAborted))
             .ReturnsAsync(new PkceCompleteResult
             {
-                Success = false,
+                IsSuccess = false,
                 InvalidPkce = false
             });
 
@@ -551,7 +551,7 @@ public sealed class PkceEndpointHandlerTests
             .Subject;
 
         redirect.Url.Should().Be(
-            fixture.Flow.OriginalOptions.Hub.LoginPath ?? "/login");
+            fixture.Flow.Options.Hub.LoginPath ?? "/login");
 
         fixture.CredentialWriter.VerifyNoOtherCalls();
         fixture.RedirectResolver.VerifyNoOtherCalls();
@@ -577,7 +577,7 @@ public sealed class PkceEndpointHandlerTests
                 fixture.HttpContext.RequestAborted))
             .ReturnsAsync(new PkceCompleteResult
             {
-                Success = false
+                IsSuccess = false
             });
 
         fixture.AuthStore
@@ -629,7 +629,7 @@ public sealed class PkceEndpointHandlerTests
                 fixture.HttpContext.RequestAborted))
             .ReturnsAsync(new PkceCompleteResult
             {
-                Success = true,
+                IsSuccess = true,
                 LoginResult = LoginResult.Success(sessionId)
             });
 
@@ -673,7 +673,7 @@ public sealed class PkceEndpointHandlerTests
                 fixture.HttpContext.RequestAborted))
             .ReturnsAsync(new PkceCompleteResult
             {
-                Success = true,
+                IsSuccess = true,
                 LoginResult = LoginResult.Success(sessionId)
             });
 
@@ -829,8 +829,7 @@ public sealed class PkceEndpointHandlerTests
             isAuthenticated: source.IsAuthenticated,
             userKey: source.UserKey,
             session: source.Session,
-            originalOptions: source.OriginalOptions,
-            effectiveOptions: source.EffectiveOptions,
+            options: source.Options,
             response: source.Response,
             primaryTokenKind: source.PrimaryTokenKind,
             returnUrlInfo: source.ReturnUrlInfo);

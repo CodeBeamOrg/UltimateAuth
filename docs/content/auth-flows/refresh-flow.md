@@ -4,178 +4,171 @@ order: 3
 group: auth-flows
 ---
 
+# Refresh Flow
 
-# 🔄 Refresh Flow
-The refresh flow in UltimateAuth is not a single fixed operation.
+Refresh is how an existing authentication context continues without asking the user to authenticate again. In UltimateAuth, it is not synonymous with issuing a new access token: the operation depends on the active authentication mode and on whether the context is represented by a server-side session, refresh credentials, or both.
 
-👉 It is a **mode-dependent continuation strategy**.
+A successful refresh preserves the authenticated identity and its continuity. It does **not** prove the user's credentials again, create a new login, or necessarily extend every lifetime associated with the authentication.
 
-## 🧠 What is Refresh?
-In traditional systems:
+## The model: continuity, not a second login
 
-- Refresh = get a new access token  
+UltimateAuth distinguishes three related operations:
 
-In UltimateAuth:
+- **Authentication** establishes a new authenticated context after the required proof is accepted.
+- **Refresh** attempts to continue an already established context, subject to its current validity and security policies.
+- **Reauthentication** establishes trust again when continuation is unavailable or no longer permitted.
 
-👉 Refresh continues an existing authentication state
+This distinction matters for both security and client behavior. A refresh request can fail because a session expired, a refresh credential is invalid or consumed, the device context does not match, or the underlying chain is no longer usable. The client should treat an unsuccessful refresh as a need to authenticate again, not as an invitation to retry the same credential indefinitely.
 
-> Refresh is not re-authentication  
-> → It is session continuation
+## Mode-dependent strategies
 
-## 🔀 Two Refresh Strategies
-UltimateAuth supports two fundamentally different refresh behaviors:
+UltimateAuth implements refresh through two building blocks: **session touch** and **refresh-token rotation**. A mode selects how they are combined.
 
-### 🔹 Session Touch (Stateful)
-Used in **PureOpaque mode**
+| Authentication mode | Required refresh input | Strategy | Result |
+| --- | --- | --- | --- |
+| `PureOpaque` | Session ID | Validate session; touch when policy requires | Continue the existing session; no new access or refresh token |
+| `Hybrid` | Session ID **and** refresh token | Validate and conditionally touch session; rotate refresh token | Continue session and issue replacement tokens |
+| `SemiHybrid` | Session ID **and** refresh token | Validate session; rotate refresh token | Issue replacement tokens without a session touch |
+| `PureJwt` | Refresh token | Validate and rotate refresh token | Issue replacement tokens; no session touch in the flow |
 
-- No tokens involved  
-- No new session created  
-- Existing session is extended  
+**Current support status:** `PureOpaque` and `Hybrid` are the supported modes for the initial release. The `SemiHybrid` and `PureJwt` branches are present in the refresh implementation but should not be presented as completed, generally supported configurations in v0.1.0.
 
-```
-Session → Validate → Touch → Continue
-```
+The mode is resolved from the effective authentication context on the server. Clients do not select a refresh algorithm independently.
 
-👉 This updates activity without changing identity
+## Session touch
 
-### 🔹 Token Rotation (Stateless / Hybrid)
-Used in:
+A session touch is a controlled update to existing server-side authentication state. It does not issue a replacement credential or create a new session.
 
-- Hybrid  
-- SemiHybrid  
-- PureJwt  
-
-- Refresh token is validated  
-- Old token is revoked  
-- New tokens are issued  
-
-```
-RefreshToken → Validate → Revoke → Issue New Tokens
+```text
+Session ID
+   → Validate session, chain and device context
+   → Recheck active state and chain/session relationship
+   → Touch if policy requires
+   → Continue with the same session ID
 ```
 
-👉 This ensures forward security
+In `PureOpaque`, the refresh flow requires a session ID. The session validator checks the session against the current tenant, device context and session options. The touch service then reloads the session and chain from the store and checks that they are still active and consistent, including the chain's active session, tenant, user and chain identifiers.
 
-<br>
+Touch behavior is governed by the effective session options:
 
-## ⚖️ Mode-Based Behavior
-Refresh behavior is determined by the authentication mode:
+- `TouchInterval` avoids writing activity state on every request. If the interval has not elapsed, the operation may succeed as **NoOp**.
+- `TouchMode` is `IfNeeded` by default; `Force` requests a touch even when the normal interval has not elapsed.
+- `SlidingExpiration` allows a touch to extend the session expiration using the configured `Lifetime`.
+- An absolute chain expiration remains an upper bound; sliding expiration cannot extend the session beyond it.
+- `IdleTimeout` participates in chain-state validation. An idle or otherwise inactive chain cannot be revived merely by touching it.
 
-| Mode        | Behavior              |
-|-------------|-----------------------|
-| PureOpaque  | Session Touch         |
-| Hybrid      | Rotation + Touch      |
-| SemiHybrid  | Rotation              |
-| PureJwt     | Rotation              |
+A successful **NoOp** is not a failed refresh: the existing state was valid, but no persistence update was necessary. Likewise, a touch is not an unconditional promise to extend the session's expiry; that depends on policy and the absolute limit.
 
-👉 UltimateAuth automatically selects the correct strategy.
+## Refresh-token rotation
 
-<br>
+Rotation replaces a valid refresh credential while preserving its association with the existing authentication context.
 
-## 🔄 Step-by-Step Execution
+```text
+Refresh token
+   → Validate token, tenant, device and expected session (if supplied)
+   → Resolve user, session and chain
+   → Prepare replacement refresh/access tokens
+   → Atomically consume old refresh token and store replacement
+   → Return new credentials
+```
 
-### 1️⃣ Input Resolution
-The system resolves:
+The rotation service first rejects modes or configurations that do not permit refresh-token issuance (`PureOpaque` or `IssueRefresh = false`). It then validates the presented credential and its context. The replacement refresh token and access token are prepared before the existing token is consumed. Persistence uses the refresh-token store's execution boundary and `TryConsumeAsync`, so competing requests cannot both successfully consume the same old token.
 
-- SessionId (if present)  
-- RefreshToken (if present)  
-- Device context  
+Rotation preserves the validated user, session and chain association; it is **not** a new authentication or a new session. Claims for the replacement access token are obtained through the configured claims provider.
 
-### 2️⃣ Mode-Based Branching
-The system determines the refresh strategy:
+### Reuse and concurrent requests
 
-- Session-based → Touch  
-- Token-based → Rotation  
-- Hybrid → Both
+A consumed refresh token cannot be used again to obtain another replacement. UltimateAuth distinguishes two situations:
 
-### 3️⃣ Session Validation
-If session is involved:
+- **Likely concurrent request:** if a consumed token has a recorded replacement and the second request falls within `RefreshTokenConcurrentRequestWindow`, the second rotation is rejected without treating it as a confirmed replay.
+- **Replay outside that window:** the rotation service revokes the associated refresh-token chain, or tokens associated with the session when a chain identifier is unavailable.
 
-- Session is validated  
-- Device binding is checked  
-- Expiration is evaluated
+This distinction reduces destructive responses to ordinary client-side concurrency while retaining a response to suspicious reuse. The concurrency window is **not** a grace period in which the old token may be exchanged again: the second request still fails.
 
-### 4️⃣ Token Validation (if applicable)
-If refresh token is used:
+The rotation implementation shown here revokes refresh-token state. Do not interpret that as an unconditional guarantee that every related server-side session is also revoked; session invalidation is a separate concern.
 
-- Token is validated  
-- Session and chain are verified  
-- Device consistency is checked
+## How each mode executes
 
-### 5️⃣ Security Checks
-The system enforces:
+### PureOpaque: session continuation
 
-- Token reuse detection  
-- Session validity  
-- Chain integrity  
+`PureOpaque` has no refresh-token rotation step. The endpoint resolves the existing session from the authentication flow context, validates it and performs a conditional touch. It returns `Touched` when state was updated or `NoOp` when the valid session required no update.
 
-👉 If validation fails → reauthentication required
+No access token or refresh token is issued. The existing session ID remains the credential representing the continued context.
 
-### 6️⃣ Execution
-Depending on the strategy:
+### Hybrid: session and token continuity
 
-#### Session Touch
-- Updates `LastSeenAt`  
-- Applies sliding expiration  
-- No new tokens issued
+`Hybrid` requires **both** a valid session ID and a refresh token. The flow:
 
-#### Token Rotation
-- Revokes old refresh token  
-- Issues new access token  
-- Issues new refresh token
+1. Validates the session and device context.
+2. Performs the session touch operation according to policy.
+3. Validates and rotates the refresh token, requiring it to match the expected session.
+4. Returns the existing session ID together with replacement access and refresh tokens.
 
-#### Hybrid Mode
-- Validates session  
-- Rotates tokens  
-- Updates session activity
+The order is important: **session touch happens before token rotation** in the current implementation. These operations are not presented as one cross-store transaction. If rotation subsequently fails, the refresh response fails, although a preceding session touch may already have been persisted. This should not be described as an all-or-nothing operation.
 
-### 7️⃣ Response Generation
-The response may include:
+### SemiHybrid and PureJwt: implementation branches
 
-- SessionId  
-- Access token  
-- Refresh token  
+The current service includes branches for two additional modes:
 
-👉 Output depends on mode and client
+- `SemiHybrid` requires a session ID and refresh token, validates the session and rotates the token, but does not touch the session.
+- `PureJwt` uses the refresh token for rotation without a session touch step in `RefreshFlowService`.
 
-<br>
+These describe the existing code paths, **not a promise of v0.1.0 production support**. Configuration validation and supported-mode documentation remain authoritative for which modes applications can enable.
 
-## 🔐 Security Model
-The refresh flow includes strong protections:
+## Request resolution and response delivery
 
-### 🔁 Token Reuse Detection
-If a refresh token is reused:
+The refresh endpoint uses the server's `AuthFlowContext`. It obtains the session ID from `flow.Session`, the device from `flow.Device`, and the refresh token through `RefreshTokenResolver`.
 
-- Chain may be revoked  
-- Session may be revoked  
+For refresh-token input, the resolver checks:
 
-👉 This prevents replay attacks
+1. The explicit `X-Refresh-Token` header, if present.
+2. The configured refresh cookie, when cookie delivery is active.
+3. The configured refresh header, when header delivery is active.
 
-### 🔗 Session Binding
-- Tokens are bound to session  
-- Session is bound to device
+The explicit header takes precedence. Header values may be supplied with a `Bearer ` prefix, which the resolver strips.
 
-👉 Prevents token misuse across devices
+On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and client profile.
 
-### 🧬 Chain Integrity
-- Refresh operates within a chain  
-- Cross-device usage is rejected  
+The HTTP endpoint returns **`204 No Content`** on successful refresh and **`401 Unauthorized`** when continuation fails. Clients should obtain credentials from the configured response delivery mechanism rather than expecting a JSON token payload. When `Diagnostics.EnableRefreshDetails` is enabled, the endpoint also writes the refresh outcome through its diagnostic response writer.
 
-<br>
+> Response delivery customization is not fully independent in v0.1.0: mode templates and client-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
 
-## 🧠 Mental Model
-If you remember one thing:
+## Outcomes and client expectations
 
-👉 Refresh = continuation  
-👉 Not new authentication
+| Outcome | Meaning | Client interpretation |
+| --- | --- | --- |
+| `NoOp` | Existing session is valid; no touch was necessary | Continue normally |
+| `Touched` | Existing session activity was updated | Continue normally |
+| `Rotated` | Refresh token was consumed and replacement credentials issued | Replace stored credentials with the new values |
+| `ReauthRequired` | The flow could not safely continue | Stop using the failed refresh credential and require authentication |
 
-## 📌 Key Takeaways
+`RefreshFlowResult` also recognizes `Success` as a successful outcome, although the mode-specific branches described above return `NoOp`, `Touched`, `Rotated` or `ReauthRequired`.
 
-- Refresh behavior depends on auth mode  
-- Stateful systems use session touch  
-- Stateless systems use token rotation  
-- Hybrid systems combine both  
-- Security is enforced at every step
+Clients should serialize refresh attempts where practical. Parallel refresh requests using the same token do not produce multiple valid replacements, even when they fall within the concurrency window.
 
-## ➡️ Next Step
+## Security boundaries
 
-Continue to **Logout Flow**
+Refresh continues existing trust only while the relevant state remains valid:
+
+- **Session and chain checks:** session-based paths validate active state, tenant, user, chain and session relationships.
+- **Device context:** session and refresh-token validation receive the current device context; mismatches can prevent continuation.
+- **Single-use refresh tokens:** successful rotation consumes the old credential and persists a replacement.
+- **Replay response:** suspicious reuse can revoke refresh-token state associated with the chain or session.
+- **Expiration:** idle, session, chain and refresh-token validity rules can end continuation. Refresh does not bypass those limits.
+- **Issuance policy:** `IssueRefresh = false` prevents rotation before the old token is consumed.
+
+These controls complement one another. A refresh token should be treated as a sensitive credential, not as a harmless request to generate another access token.
+
+## Summary
+
+The useful distinction is not simply *stateful versus stateless*. It is **what must remain valid for authentication to continue**:
+
+- `PureOpaque` continues an existing server-side session, with conditional activity updates.
+- `Hybrid` requires both session validity and successful refresh-token rotation.
+- Other rotation branches exist, but are not part of the completed v0.1.0 supported-mode set.
+
+Refresh does not authenticate a user again. It extends the usefulness of an already established authentication context only within the boundaries of the selected mode and configured security policies.
+
+## Next step
+
+Continue to [Logout Flow](./logout-flow).

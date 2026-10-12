@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Data.Sqlite;
@@ -6,13 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users.Contracts;
 
-public sealed class EfCoreUserLifecycleStoreContractTests
-    : UserLifecycleStoreContractTests
+public sealed class EfCoreUserLifecycleStoreContractTests : UserLifecycleStoreContractTests
 {
-    protected override async Task<IUserLifecycleStoreTestDatabase>
-        CreateDatabaseAsync()
+    private readonly IUAuthPaginationPolicy _pagination = new UAuthPaginationOptions();
+
+    protected override async Task<IUserLifecycleStoreTestDatabase> CreateDatabaseAsync()
     {
-        var database = new Database();
+        var database = new Database(_pagination);
         await database.InitializeAsync();
         return database;
     }
@@ -21,8 +23,9 @@ public sealed class EfCoreUserLifecycleStoreContractTests
     {
         private readonly SqliteConnection _connection;
         private readonly UAuthUserDbContext _db;
+        private readonly IUAuthPaginationPolicy _pagination;
 
-        public Database()
+        public Database(IUAuthPaginationPolicy pagination)
         {
             _connection = new SqliteConnection(
                 "Data Source=:memory:");
@@ -33,6 +36,7 @@ public sealed class EfCoreUserLifecycleStoreContractTests
                     .Options;
 
             _db = new UAuthUserDbContext(options);
+            _pagination = pagination;
         }
 
         public async Task InitializeAsync()
@@ -45,7 +49,7 @@ public sealed class EfCoreUserLifecycleStoreContractTests
         {
             return new EfCoreUserLifecycleStore<UAuthUserDbContext>(
                 _db,
-                new TenantExecutionContext(tenant));
+                new TenantExecutionContext(tenant), _pagination);
         }
 
         public async ValueTask DisposeAsync()

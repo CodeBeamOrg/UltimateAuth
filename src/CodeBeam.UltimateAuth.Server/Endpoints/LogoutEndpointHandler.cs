@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -54,7 +53,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
-            : Results.Ok(new LogoutResponse { Success = true });
+            : Results.Ok(new LogoutResponse { IsSuccess = true });
     }
 
     public async Task<IResult> LogoutDeviceSelfAsync(HttpContext ctx)
@@ -132,7 +131,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
             resource: "flows",
             resourceId: userKey.Value);
 
-        await _sessionApplicationService.LogoutOtherDevicesAsync(access, userKey, request.CurrentChainId, ctx.RequestAborted);
+        await _sessionApplicationService.LogoutOtherDevicesAsync(access, userKey, request.ExceptChainId, ctx.RequestAborted);
         return Results.Ok();
     }
 

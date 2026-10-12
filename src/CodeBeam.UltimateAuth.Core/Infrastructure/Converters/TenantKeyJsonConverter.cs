@@ -19,7 +19,14 @@ public sealed class TenantKeyJsonConverter : JsonConverter<TenantKey>
         // IMPORTANT:
         // JSON transport = internal framework boundary
         // Do NOT use FromExternal here.
-        return TenantKey.FromInternal(value);
+        try
+        {
+            return TenantKey.FromInternal(value!);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new JsonException("Invalid TenantKey.", ex);
+        }
     }
 
     public override void Write(Utf8JsonWriter writer, TenantKey value, JsonSerializerOptions options)

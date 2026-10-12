@@ -28,7 +28,7 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
     public IServiceProvider Services { get; }
     public TestClock Clock { get; }
 
-    public TestAuthRuntime(Action<UAuthServerOptions>? configureServer = null, Action<UAuthOptions>? configureCore = null)
+    public TestAuthRuntime(Action<UAuthServerOptions>? configureServer = null, Action<UAuthOptions>? configureCore = null, Action<IServiceCollection>? configureServices = null)
     {
         Clock = new TestClock();
         var services = new ServiceCollection();
@@ -52,6 +52,8 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
 
         services.AddSingleton<IConfiguration>(configuration);
         services.AddSingleton<IClock>(Clock);
+
+        configureServices?.Invoke(services);
 
         Services = services.BuildServiceProvider();
 

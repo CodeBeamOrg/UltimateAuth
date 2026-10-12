@@ -21,8 +21,7 @@ public sealed class AuthFlowContext
     public bool IsAuthenticated { get; }
     public UserKey? UserKey { get; }
 
-    public UAuthServerOptions OriginalOptions { get; }
-    public EffectiveUAuthServerOptions EffectiveOptions { get; }
+    public UAuthServerOptions Options { get; }
 
     public EffectiveAuthResponse Response { get; }
     public ReturnUrlInfo ReturnUrlInfo { get; }
@@ -35,7 +34,7 @@ public sealed class AuthFlowContext
         Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
 
     public bool IsSingleTenant => Tenant.IsSingle;
-    public bool IsMultiTenant => !Tenant.IsSingle && !Tenant.IsSystem;
+    public bool IsMultiTenant => Tenant.IsNormal;
 
     internal AuthFlowContext(
         AuthFlowType flowType,
@@ -46,14 +45,13 @@ public sealed class AuthFlowContext
         bool isAuthenticated,
         UserKey? userKey,
         SessionSecurityContext? session,
-        UAuthServerOptions originalOptions,
-        EffectiveUAuthServerOptions effectiveOptions,
+        UAuthServerOptions options,
         EffectiveAuthResponse response,
         PrimaryTokenKind primaryTokenKind,
         ReturnUrlInfo returnUrlInfo)
     {
-        if (tenantKey.IsUnresolved)
-            throw new InvalidOperationException("AuthFlowContext cannot be created with unresolved tenant.");
+        if (!tenantKey.IsValid || tenantKey.IsUnresolved)
+            throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         FlowType = flowType;
         ClientProfile = clientProfile;
@@ -65,8 +63,7 @@ public sealed class AuthFlowContext
         IsAuthenticated = isAuthenticated;
         UserKey = userKey;
 
-        OriginalOptions = originalOptions;
-        EffectiveOptions = effectiveOptions;
+        Options = options;
 
         Response = response;
         PrimaryTokenKind = primaryTokenKind;

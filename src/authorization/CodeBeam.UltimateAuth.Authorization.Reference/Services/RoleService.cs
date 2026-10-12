@@ -63,11 +63,11 @@ internal sealed class RoleService : IRoleService
         await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
 
-    public async Task<DeleteRoleResult> DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default)
+    public async Task<RoleDeleteResult> DeleteAsync(AccessContext context, RoleId roleId, DeleteMode mode, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<DeleteRoleResult>(async innerCt =>
+        var cmd = new AccessCommand<RoleDeleteResult>(async innerCt =>
         {
             var key = new RoleKey(context.ResourceTenant, roleId);
             var roleStore = _roleFactory.Create(context.ResourceTenant);
@@ -81,7 +81,7 @@ internal sealed class RoleService : IRoleService
             await userRoleStore.RemoveAssignmentsByRoleAsync(roleId, innerCt);
             await roleStore.DeleteAsync(key, role.Version, mode, _clock.UtcNow, innerCt);
 
-            return new DeleteRoleResult
+            return new RoleDeleteResult
             {
                 RoleId = roleId,
                 RemovedAssignments = removed,

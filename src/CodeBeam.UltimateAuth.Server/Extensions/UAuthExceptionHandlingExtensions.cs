@@ -25,35 +25,42 @@ public static class UAuthExceptionHandlingExtensions
         });
     }
 
+    // TODO: Standardize runtime error codes as stable machine-readable identifiers.
+    // Keep human-readable details separate from codes and ProblemDetails.Type.
     private static Task WriteProblemDetails(HttpContext context, UAuthRuntimeException ex)
     {
+        var status = ex.StatusCode;
+
         var problem = new ProblemDetails
         {
             Title = ex.Title,
             Detail = ex.Code,
-            Status = MapStatusCode(ex),
+            Status = status,
             Type = $"{ex.TypePrefix}/{ex.Code}"
         };
 
         problem.Extensions["traceId"] = context.TraceIdentifier;
 
-        context.Response.StatusCode = problem.Status ?? 500;
+        context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
 
-        return context.Response.WriteAsJsonAsync(problem);
+        return context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json");
     }
 
-    private static int MapStatusCode(UAuthRuntimeException ex) =>
-        ex switch
-        {
-            UAuthAuthenticationException => StatusCodes.Status401Unauthorized,
-            UAuthAuthorizationException => StatusCodes.Status403Forbidden,
-            UAuthConflictException => StatusCodes.Status409Conflict,
-            UAuthValidationException => StatusCodes.Status400BadRequest,
-            UAuthUnauthorizedException => StatusCodes.Status401Unauthorized,
-            UAuthForbiddenException => StatusCodes.Status403Forbidden,
-            UAuthNotFoundException => StatusCodes.Status404NotFound,
-            UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
-            _ => StatusCodes.Status400BadRequest
-        };
+    //private static int MapStatusCode(UAuthRuntimeException ex) =>
+    //    ex switch
+    //    {
+    //        UAuthAuthenticationException => StatusCodes.Status401Unauthorized,
+    //        UAuthAuthorizationException => StatusCodes.Status403Forbidden,
+    //        UAuthConflictException => StatusCodes.Status409Conflict,
+    //        UAuthValidationException => StatusCodes.Status400BadRequest,
+    //        UAuthUnauthorizedException => StatusCodes.Status401Unauthorized,
+    //        UAuthForbiddenException => StatusCodes.Status403Forbidden,
+    //        UAuthNotFoundException => StatusCodes.Status404NotFound,
+    //        UAuthChallengeRequiredException => StatusCodes.Status401Unauthorized,
+    //        UAuthIdentifierNotFoundException => StatusCodes.Status404NotFound,
+    //        UAuthIdentifierConflictException => StatusCodes.Status409Conflict,
+    //        UAuthIdentifierValidationException => StatusCodes.Status400BadRequest,
+    //        _ => StatusCodes.Status400BadRequest
+    //    };
 }

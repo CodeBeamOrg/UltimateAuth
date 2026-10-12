@@ -14,5 +14,5 @@ public sealed record AuthIdentitySnapshot
     public DateTimeOffset? AuthenticatedAt { get; init; }
     public SessionState? SessionState { get; init; }
     public string? TimeZone { get; init; }
-    public UserStatus UserStatus { get; set; }
+    public UserStatus UserStatus { get; init; }
 }

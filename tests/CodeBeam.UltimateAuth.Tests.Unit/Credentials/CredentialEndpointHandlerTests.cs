@@ -1,8 +1,7 @@
-﻿using System.Text;
-using System.Text.Json;
-using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -11,6 +10,8 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -44,7 +45,7 @@ public sealed class CredentialEndpointHandlerTests
             f.UserKey.Value,
             access);
 
-        var serviceResult = new GetCredentialsResult();
+        var serviceResult = new CredentialsGetResult();
 
         f.Credentials
             .Setup(x => x.GetAllAsync(
@@ -55,7 +56,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.GetAllAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<GetCredentialsResult>>()
+            .BeOfType<Ok<CredentialsGetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -72,7 +73,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "new-password"
         });
 
@@ -92,9 +92,7 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "new-password",
-            Source = "test"
         });
 
         f.SetupAccess(
@@ -102,7 +100,7 @@ public sealed class CredentialEndpointHandlerTests
             f.UserKey.Value,
             access);
 
-        var serviceResult = AddCredentialResult.Success(
+        var serviceResult = CredentialAddResult.Success(
             Guid.NewGuid(),
             CredentialType.Password);
 
@@ -110,16 +108,14 @@ public sealed class CredentialEndpointHandlerTests
             .Setup(x => x.AddAsync(
                 access,
                 It.Is<AddCredentialRequest>(r =>
-                    r.Type == CredentialType.Password &&
-                    r.Secret == "new-password" &&
-                    r.Source == "test"),
+                    r.Secret == "new-password"),
                 f.HttpContext.RequestAborted))
             .ReturnsAsync(serviceResult);
 
         var result = await f.Sut.AddAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<AddCredentialResult>>()
+            .BeOfType<Ok<CredentialAddResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -166,7 +162,7 @@ public sealed class CredentialEndpointHandlerTests
             access);
 
         var serviceResult =
-            ChangeCredentialResult.Success(CredentialType.Password);
+            CredentialChangeResult.Success(CredentialType.Password);
 
         f.Credentials
             .Setup(x => x.ChangeSecretAsync(
@@ -180,7 +176,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.ChangeSecretAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<ChangeCredentialResult>>()
+            .BeOfType<Ok<CredentialChangeResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -246,7 +242,7 @@ public sealed class CredentialEndpointHandlerTests
             identifier,
             access);
 
-        var serviceResult = new BeginCredentialResetResult();
+        var serviceResult = new CredentialBeginResetResult();
 
         f.Credentials
             .Setup(x => x.BeginResetAsync(
@@ -261,7 +257,7 @@ public sealed class CredentialEndpointHandlerTests
         var result = await f.Sut.BeginResetAsync(f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<BeginCredentialResetResult>>()
+            .BeOfType<Ok<CredentialBeginResetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -310,7 +306,7 @@ public sealed class CredentialEndpointHandlerTests
             .BeOfType<Ok<CredentialActionResult>>()
             .Subject;
 
-        ok.Value!.Succeeded.Should().BeTrue();
+        ok.Value!.IsSuccess.Should().BeTrue();
     }
 
     // =========================================================
@@ -347,7 +343,7 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
-        var serviceResult = new GetCredentialsResult();
+        var serviceResult = new CredentialsGetResult();
 
         f.Credentials
             .Setup(x => x.GetAllAsync(
@@ -360,7 +356,7 @@ public sealed class CredentialEndpointHandlerTests
             f.HttpContext);
 
         var ok = result.Should()
-            .BeOfType<Ok<GetCredentialsResult>>()
+            .BeOfType<Ok<CredentialsGetResult>>()
             .Subject;
 
         ok.Value.Should().BeSameAs(serviceResult);
@@ -382,7 +378,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new AddCredentialRequest
         {
-            Type = CredentialType.Password,
             Secret = "admin-set-password"
         });
 
@@ -391,7 +386,7 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
-        var serviceResult = AddCredentialResult.Success(
+        var serviceResult = CredentialAddResult.Success(
             Guid.NewGuid(),
             CredentialType.Password);
 
@@ -407,7 +402,7 @@ public sealed class CredentialEndpointHandlerTests
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok<AddCredentialResult>>();
+        result.Should().BeOfType<Ok<CredentialAddResult>>();
     }
 
     // =========================================================
@@ -450,7 +445,7 @@ public sealed class CredentialEndpointHandlerTests
             access);
 
         var serviceResult =
-            ChangeCredentialResult.Success(CredentialType.Password);
+            CredentialChangeResult.Success(CredentialType.Password);
 
         f.Credentials
             .Setup(x => x.ChangeSecretAsync(
@@ -464,7 +459,7 @@ public sealed class CredentialEndpointHandlerTests
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<Ok<ChangeCredentialResult>>();
+        result.Should().BeOfType<Ok<CredentialChangeResult>>();
     }
 
     // =========================================================
@@ -556,6 +551,7 @@ public sealed class CredentialEndpointHandlerTests
     // Begin Reset - Admin
     // =========================================================
 
+
     [Fact]
     public async Task BeginResetAdminAsync_WhenAuthenticated_UsesTargetUserAsResourceId()
     {
@@ -568,9 +564,6 @@ public sealed class CredentialEndpointHandlerTests
 
         f.SetJsonBody(new BeginResetCredentialRequest
         {
-            // Important:
-            // Admin endpoint's authorization target is userKey,
-            // not this identifier.
             Identifier = "alice@example.com",
             CredentialType = CredentialType.Password,
             ResetCodeType = ResetCodeType.Token
@@ -581,23 +574,39 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
+        var expected = new CredentialBeginResetResult();
+
         f.Credentials
             .Setup(x => x.BeginResetAsync(
                 access,
                 It.IsAny<BeginResetCredentialRequest>(),
                 f.HttpContext.RequestAborted))
-            .ReturnsAsync(new BeginCredentialResetResult());
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.BeginResetAdminAsync(
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<NoContent>();
+        var ok = result.Should()
+            .BeOfType<Ok<CredentialBeginResetResult>>()
+            .Subject;
+
+        ok.Value.Should().BeSameAs(expected);
+
+        f.Credentials.Verify(x => x.BeginResetAsync(
+            access,
+            It.Is<BeginResetCredentialRequest>(r =>
+                r.Identifier == "alice@example.com" &&
+                r.CredentialType == CredentialType.Password &&
+                r.ResetCodeType == ResetCodeType.Token),
+            f.HttpContext.RequestAborted),
+            Times.Once);
     }
 
     // =========================================================
     // Complete Reset - Admin
     // =========================================================
+
 
     [Fact]
     public async Task CompleteResetAdminAsync_WhenAuthenticated_UsesTargetUserAsResourceId()
@@ -622,18 +631,33 @@ public sealed class CredentialEndpointHandlerTests
             target.Value,
             access);
 
+        var expected = CredentialActionResult.Success();
+
         f.Credentials
             .Setup(x => x.CompleteResetAsync(
                 access,
                 It.IsAny<CompleteResetCredentialRequest>(),
                 f.HttpContext.RequestAborted))
-            .ReturnsAsync(CredentialActionResult.Success());
+            .ReturnsAsync(expected);
 
         var result = await f.Sut.CompleteResetAdminAsync(
             target,
             f.HttpContext);
 
-        result.Should().BeOfType<NoContent>();
+        var ok = result.Should()
+            .BeOfType<Ok<CredentialActionResult>>()
+            .Subject;
+
+        ok.Value.Should().BeSameAs(expected);
+
+        f.Credentials.Verify(x => x.CompleteResetAsync(
+            access,
+            It.Is<CompleteResetCredentialRequest>(r =>
+                r.Identifier == "alice@example.com" &&
+                r.ResetToken == "token" &&
+                r.NewSecret == "new-password"),
+            f.HttpContext.RequestAborted),
+            Times.Once);
     }
 
     // =========================================================

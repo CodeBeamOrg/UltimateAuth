@@ -139,6 +139,27 @@ public sealed class UAuthSession : IVersionedEntity
         return SessionState.Active;
     }
 
+    public UAuthSession ExtendExpiration(DateTimeOffset expiresAt)
+    {
+        if (expiresAt <= ExpiresAt)
+            return this;
+
+        return new UAuthSession(
+            SessionId,
+            Tenant,
+            UserKey,
+            ChainId,
+            CreatedAt,
+            expiresAt,
+            RevokedAt,
+            SecurityVersionAtCreation,
+            Device,
+            Claims,
+            Metadata,
+            Version + 1
+        );
+    }
+
     public UAuthSession WithChain(SessionChainId chainId)
     {
         if (!ChainId.IsUnassigned)

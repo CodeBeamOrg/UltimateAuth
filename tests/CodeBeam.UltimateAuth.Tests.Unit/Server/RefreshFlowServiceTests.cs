@@ -90,7 +90,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.PureOpaque),
             CreateRequest(SessionId));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(expectedOutcome);
         result.SessionId.Should().Be(SessionId);
         rotation.VerifyNoOtherCalls();
@@ -159,7 +159,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.PureJwt),
             CreateRequest(refreshToken: "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().BeNull();
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -231,14 +231,25 @@ public sealed class RefreshFlowServiceTests
     }
 
     [Fact]
-    public async Task RefreshAsync_Hybrid_WhenRotationFails_ReturnsReauthWithoutTouch()
+    public async Task RefreshAsync_Hybrid_WhenRotationFails_ReturnsReauthAfterSuccessfulTouch()
     {
         var (sut, validator, touch, rotation) = CreateSut();
         var validation = CreateActiveValidation();
 
         validator
-            .Setup(x => x.ValidateSessionAsync(It.IsAny<SessionValidationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(validation);
+
+        touch
+            .Setup(x => x.RefreshAsync(
+                validation,
+                It.IsAny<SessionTouchPolicy>(),
+                It.IsAny<SessionTouchMode>(),
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SessionRefreshResult.Success(SessionId, false));
 
         rotation
             .Setup(x => x.RotateAsync(
@@ -258,7 +269,20 @@ public sealed class RefreshFlowServiceTests
             CreateRequest(SessionId, "refresh-token"));
 
         AssertReauth(result);
-        touch.VerifyNoOtherCalls();
+
+        touch.Verify(x => x.RefreshAsync(
+            validation,
+            It.IsAny<SessionTouchPolicy>(),
+            It.IsAny<SessionTouchMode>(),
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        rotation.Verify(x => x.RotateAsync(
+            It.IsAny<AuthFlowContext>(),
+            It.IsAny<RefreshTokenRotationContext>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -292,7 +316,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.Hybrid),
             CreateRequest(SessionId, "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().Be(SessionId);
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -300,21 +324,16 @@ public sealed class RefreshFlowServiceTests
     }
 
     [Fact]
-    public async Task RefreshAsync_Hybrid_WhenTouchFailsAfterRotation_ReturnsReauth()
+    public async Task RefreshAsync_Hybrid_WhenTouchFails_DoesNotRotateRefreshToken()
     {
         var (sut, validator, touch, rotation) = CreateSut();
         var validation = CreateActiveValidation();
 
         validator
-            .Setup(x => x.ValidateSessionAsync(It.IsAny<SessionValidationContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(validation);
-
-        rotation
-            .Setup(x => x.RotateAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<RefreshTokenRotationContext>(),
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSuccessfulRotation());
+            .ReturnsAsync(validation);
 
         touch
             .Setup(x => x.RefreshAsync(
@@ -330,10 +349,20 @@ public sealed class RefreshFlowServiceTests
             CreateRequest(SessionId, "refresh-token"));
 
         AssertReauth(result);
+
+        touch.Verify(x => x.RefreshAsync(
+            validation,
+            It.IsAny<SessionTouchPolicy>(),
+            It.IsAny<SessionTouchMode>(),
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
         rotation.Verify(x => x.RotateAsync(
             It.IsAny<AuthFlowContext>(),
             It.IsAny<RefreshTokenRotationContext>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -378,7 +407,7 @@ public sealed class RefreshFlowServiceTests
             CreateFlow(UAuthMode.SemiHybrid),
             CreateRequest(SessionId, "refresh-token"));
 
-        result.Succeeded.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
         result.SessionId.Should().Be(SessionId);
         result.AccessToken.Should().BeSameAs(execution.Result.AccessToken);
@@ -464,7 +493,7 @@ public sealed class RefreshFlowServiceTests
             ExpiresAt = Now.AddMinutes(15)
         };
 
-        var refresh = new RefreshTokenInfo
+        var refresh = new RefreshTokenIssuanceResult
         {
             Token = "new-refresh-token",
             TokenHash = "new-refresh-token-hash",
@@ -477,7 +506,7 @@ public sealed class RefreshFlowServiceTests
             UserKey = UserKey.New(),
             SessionId = SessionId,
             ChainId = SessionChainId.New(),
-            Result = RefreshTokenRotationResult.Success(access, refresh)
+            Result = RefreshTokenRotationResult.Success(access, RefreshTokenMapper.ToTransport(refresh))
         };
     }
 
@@ -496,8 +525,7 @@ public sealed class RefreshFlowServiceTests
             isAuthenticated: true,
             userKey: UserKey.New(),
             session: null,
-            originalOptions: original,
-            effectiveOptions: effective,
+            options: effective.Options,
             response: new EffectiveAuthResponse(
                 sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
                 accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
@@ -509,7 +537,7 @@ public sealed class RefreshFlowServiceTests
 
     private static void AssertReauth(RefreshFlowResult result)
     {
-        result.Succeeded.Should().BeFalse();
+        result.IsSuccess.Should().BeFalse();
         result.Outcome.Should().Be(RefreshOutcome.ReauthRequired);
         result.SessionId.Should().BeNull();
         result.AccessToken.Should().BeNull();

@@ -1,14 +1,15 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Users.Contracts;
-using CodeBeam.UltimateAuth.Users;
-using Microsoft.Extensions.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
 
@@ -25,6 +26,8 @@ internal sealed class UserApplicationService : IUserApplicationService
     private readonly IIdentifierNormalizer _identifierNormalizer;
     private readonly IUserIdentifierAvailabilityService _identifierAvailabilityService;
     private readonly ISessionStoreFactory _sessionStoreFactory;
+    private readonly IUserIdentifierVerifier _identifierVerifier;
+    private readonly IUserSummaryQueryStoreFactory _queryStoreFactory;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -40,6 +43,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         IIdentifierNormalizer identifierNormalizer,
         IUserIdentifierAvailabilityService identifierAvailabilityService,
         ISessionStoreFactory sessionStoreFactory,
+        IUserIdentifierVerifier ıdentifierVerifier,
+        IUserSummaryQueryStoreFactory queryStoreFactory,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -54,6 +59,8 @@ internal sealed class UserApplicationService : IUserApplicationService
         _identifierNormalizer = identifierNormalizer;
         _identifierAvailabilityService = identifierAvailabilityService;
         _sessionStoreFactory = sessionStoreFactory;
+        _identifierVerifier = ıdentifierVerifier;
+        _queryStoreFactory = queryStoreFactory;
         _options = options.Value;
         _clock = clock;
     }
@@ -74,6 +81,12 @@ internal sealed class UserApplicationService : IUserApplicationService
             async atomicCt =>
             {
                 var now = _clock.UtcNow;
+
+                var allowVerifiedContacts = context.IsSystemActor ||
+                    (
+                        context.IsAuthenticated && string.Equals(context.Action, UAuthActions.Users.CreateAdmin, StringComparison.Ordinal)
+                    );
+
                 var userKey = UserKey.New();
 
                 var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
@@ -95,7 +108,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                         bio: request.Bio,
                         language: request.Language,
                         timezone: request.TimeZone,
-                        culture: request.Culture), atomicCt);
+                        culture: request.Culture,
+                        metadata: request.Metadata), atomicCt);
 
                 var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
                 if (!string.IsNullOrWhiteSpace(request.UserName))
@@ -110,7 +124,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Username, request.UserName).Normalized,
                             now,
                             true,
-                            request.UserNameVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.UserNameVerified ? now : null), atomicCt);
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.Email))
@@ -125,7 +139,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Email, request.Email).Normalized,
                             now,
                             true,
-                            request.EmailVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.EmailVerified ? now : null), atomicCt);
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.Phone))
@@ -140,7 +154,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                             _identifierNormalizer.Normalize(UserIdentifierType.Phone, request.Phone).Normalized,
                             now,
                             true,
-                            request.PhoneVerified ? now : null), atomicCt);
+                            allowVerifiedContacts && request.PhoneVerified ? now : null), atomicCt);
                 }
 
                 foreach (var integration in _integrations)
@@ -159,40 +173,55 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
+
+    public async Task<UserStatusChangeResult> ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default)
     {
-        var command = new AccessCommand(async innerCt =>
+        var command = new AccessCommand<UserStatusChangeResult>(async innerCt =>
         {
             var newStatus = request switch
             {
                 ChangeUserStatusSelfRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
                 ChangeUserStatusAdminRequest r => UserStatusMapper.ToUserStatus(r.NewStatus),
+
                 _ => throw new InvalidOperationException("invalid_request")
             };
 
             var targetUserKey = context.GetTargetUserKey();
             var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
             var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+
             var current = await lifecycleStore.GetAsync(userLifecycleKey, innerCt);
-            var now = _clock.UtcNow;
 
             if (current is null)
                 throw new UAuthNotFoundException("user_not_found");
 
             if (context.IsSelfAction && !IsSelfTransitionAllowed(current.Status, newStatus))
-                throw new UAuthConflictException("self_transition_not_allowed");
-
-            if (!context.IsSelfAction)
             {
-                if (newStatus is UserStatus.SelfSuspended)
-                    throw new UAuthConflictException("admin_cannot_set_self_status");
+                throw new UAuthConflictException("self_transition_not_allowed");
             }
+
+            if (!context.IsSelfAction && newStatus is UserStatus.SelfSuspended)
+            {
+                throw new UAuthConflictException("admin_cannot_set_self_status");
+            }
+
+            var previousStatus = current.Status;
+
+            // NoChange: no persistence operation is required.
+            if (previousStatus == newStatus)
+                return UserStatusChangeResult.NoChange(previousStatus);
+
+            var now = _clock.UtcNow;
+
             var newEntity = current.ChangeStatus(now, newStatus);
             await lifecycleStore.SaveAsync(newEntity, current.Version, innerCt);
+
+            return UserStatusChangeResult.Success(previousStatus, newStatus);
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     public async Task DeleteMeAsync(AccessContext context, CancellationToken ct = default)
     {
@@ -234,9 +263,10 @@ internal sealed class UserApplicationService : IUserApplicationService
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-    public async Task DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
+
+    public async Task<UserDeleteResult> DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
     {
-        var command = new AccessCommand(async innerCt =>
+        var command = new AccessCommand<UserDeleteResult>(async innerCt =>
         {
             var targetUserKey = context.GetTargetUserKey();
             var now = _clock.UtcNow;
@@ -249,14 +279,15 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+
             await lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
             await identifierStore.DeleteByUserAsync(targetUserKey, request.Mode, now, innerCt);
-
             var profiles = await profileStore.GetAllProfilesByUserAsync(targetUserKey, innerCt);
 
             foreach (var profile in profiles)
             {
                 var key = new UserProfileKey(context.ResourceTenant, profile.UserKey, profile.ProfileKey);
+
                 await profileStore.DeleteAsync(key, profile.Version, request.Mode, now, innerCt);
             }
 
@@ -266,11 +297,15 @@ internal sealed class UserApplicationService : IUserApplicationService
             }
 
             var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
+
             await sessionStore.RevokeAllChainsAsync(targetUserKey, now, innerCt);
+
+            return UserDeleteResult.Success(request.Mode);
         });
 
-        await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     #endregion
 
@@ -361,7 +396,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                     bio: request.Bio,
                     language: request.Language,
                     timezone: request.TimeZone,
-                    culture: request.Culture);
+                    culture: request.Culture,
+                    metadata: request.Metadata);
             }
 
             await store.AddAsync(profile, innerCt);
@@ -563,7 +599,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
 
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.Type == UserIdentifierType.Username && !_options.Identifiers.Behavior.AllowUsernameChange)
@@ -620,7 +656,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null || identifier.IsDeleted)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (identifier.IsPrimary)
@@ -644,7 +680,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             if (!identifier.IsPrimary)
@@ -676,16 +712,51 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task VerifyUserIdentifierAsync(AccessContext context, VerifyUserIdentifierRequest request, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var command = new AccessCommand(async innerCt =>
         {
+            innerCt.ThrowIfCancellationRequested();
+
             EnsureOverrideAllowed(context);
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var expectedVersion = identifier.Version;
+
+            if (context.IsSelfAction)
+            {
+                if (_identifierVerifier is NotConfiguredUserIdentifierVerifier)
+                    throw NotConfiguredUserIdentifierVerifier.CreateException();
+
+                if (string.IsNullOrWhiteSpace(request.Proof))
+                    throw new UAuthIdentifierValidationException("identifier_verification_proof_required");
+
+                var verified = await _identifierVerifier.VerifyAsync(
+                    new UserIdentifierVerificationContext(
+                        Tenant: context.ResourceTenant,
+                        UserKey: identifier.UserKey,
+                        IdentifierId: identifier.Id,
+                        Type: identifier.Type,
+                        Value: identifier.Value,
+                        Proof: request.Proof),
+                    innerCt);
+
+                if (!verified)
+                    throw new UAuthIdentifierValidationException("identifier_verification_failed");
+            }
+
+            // TODO: Provide a built-in identifier verification challenge flow:
+            // issuance, hashed storage, expiry, attempt limits and notification.
+            // Bind each challenge to tenant, user, identifier and current value.
+            //
+            // TODO: Coordinate single-use proof consumption with persistence.
+            // A concurrent identifier change must not be marked verified
+            // using proof issued for the previous value.
+
             identifier.MarkVerified(_clock.UtcNow);
             await identifierStore.SaveAsync(identifier, expectedVersion, innerCt);
         });
@@ -701,7 +772,7 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var identifier = await identifierStore.GetByIdAsync(request.Id, innerCt);
-            if (identifier is null)
+            if (identifier is null || identifier.IsDeleted || identifier.UserKey != context.GetTargetUserKey())
                 throw new UAuthIdentifierNotFoundException("identifier_not_found");
 
             var identifiers = await identifierStore.GetByUserAsync(identifier.UserKey, innerCt);
@@ -843,118 +914,18 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     public async Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default)
     {
-        var command = new AccessCommand<PagedResult<UserSummary>>(async innerCt =>
-        {
-            query ??= new UserQuery();
-            var effectiveProfileKey = query.ProfileKey ?? ProfileKey.Default;
-
-            var lifecycleQuery = new UserLifecycleQuery
+        var command = new AccessCommand<PagedResult<UserSummary>>(
+            async innerCt =>
             {
-                PageNumber = 1,
-                PageSize = int.MaxValue,
-                Status = query.Status,
-                IncludeDeleted = query.IncludeDeleted
-            };
+                var normalized = (UserQuery)(query ?? new UserQuery()).Normalize(_options.Pagination);
+                var store = _queryStoreFactory.Create(context.ResourceTenant);
 
-            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
-            var lifecycleResult = await lifecycleStore.QueryAsync(lifecycleQuery, innerCt);
-            var lifecycles = lifecycleResult.Items;
-
-            if (lifecycles.Count == 0)
-            {
-                return new PagedResult<UserSummary>(
-                    Array.Empty<UserSummary>(),
-                    0,
-                    query.PageNumber,
-                    query.PageSize,
-                    query.SortBy,
-                    query.Descending);
-            }
-
-            var userKeys = lifecycles.Select(x => x.UserKey).ToList();
-            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
-            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-            var profiles = await profileStore.GetByUsersAsync(userKeys, effectiveProfileKey, innerCt);
-            var identifiers = await identifierStore.GetByUsersAsync(userKeys, innerCt);
-            var profileMap = profiles.ToDictionary(x => x.UserKey);
-            var identifierGroups = identifiers.GroupBy(x => x.UserKey).ToDictionary(x => x.Key, x => x.ToList());
-
-            var summaries = new List<UserSummary>();
-
-            foreach (var lifecycle in lifecycles)
-            {
-                profileMap.TryGetValue(lifecycle.UserKey, out var profile);
-
-                identifierGroups.TryGetValue(lifecycle.UserKey, out var ids);
-
-                var username = ids?.FirstOrDefault(x =>
-                    x.Type == UserIdentifierType.Username &&
-                    x.IsPrimary);
-
-                var email = ids?.FirstOrDefault(x =>
-                    x.Type == UserIdentifierType.Email &&
-                    x.IsPrimary);
-
-                summaries.Add(new UserSummary
-                {
-                    UserKey = lifecycle.UserKey,
-                    DisplayName = profile?.DisplayName,
-                    UserName = username?.Value,
-                    PrimaryEmail = email?.Value,
-                    Status = lifecycle.Status,
-                    CreatedAt = lifecycle.CreatedAt
-                });
-            }
-
-            // SEARCH
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                var search = query.Search.Trim().ToLowerInvariant();
-
-                summaries = summaries
-                    .Where(x =>
-                        (x.DisplayName?.ToLowerInvariant().Contains(search) ?? false) ||
-                        (x.PrimaryEmail?.ToLowerInvariant().Contains(search) ?? false) ||
-                        (x.UserName?.ToLowerInvariant().Contains(search) ?? false) ||
-                        x.UserKey.Value.ToLowerInvariant().Contains(search))
-                    .ToList();
-            }
-
-            // SORT
-            summaries = query.SortBy switch
-            {
-                nameof(UserSummary.DisplayName) =>
-                    query.Descending
-                        ? summaries.OrderByDescending(x => x.DisplayName).ToList()
-                        : summaries.OrderBy(x => x.DisplayName).ToList(),
-
-                nameof(UserSummary.CreatedAt) =>
-                    query.Descending
-                        ? summaries.OrderByDescending(x => x.CreatedAt).ToList()
-                        : summaries.OrderBy(x => x.CreatedAt).ToList(),
-
-                _ => summaries.OrderBy(x => x.CreatedAt).ToList()
-            };
-
-            var total = summaries.Count;
-
-            // PAGINATION
-            var items = summaries
-                .Skip((query.PageNumber - 1) * query.PageSize)
-                .Take(query.PageSize)
-                .ToList();
-
-            return new PagedResult<UserSummary>(
-                items,
-                total,
-                query.PageNumber,
-                query.PageSize,
-                query.SortBy,
-                query.Descending);
-        });
+                return await store.QueryAsync(normalized, innerCt);
+            });
 
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
+
 
     private async Task EnsureIdentifierUniquenessAsync(
         IUserIdentifierStore store,

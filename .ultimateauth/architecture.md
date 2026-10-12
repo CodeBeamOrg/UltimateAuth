@@ -76,44 +76,55 @@ This document is NOT intended as an onboarding guide or end-user documentation.
 
 ## 2. Core Authentication Model
 
-UltimateAuth defines authentication as a session-centered, server-authoritative process.
-Authentication determines *who* the current actor is and establishes a stable identity context for the duration of a request or session. Authorization decisions are explicitly out of scope for this model and are handled separately.
+UltimateAuth defines authentication as a server-authoritative process that establishes and validates the identity of the current actor.
+
+Authentication determines *who* the current actor is and establishes a trustworthy identity context for the duration of an authenticated operation.
+
+Authentication state MAY be represented through server-side sessions, cryptographically verifiable tokens, or a combination of both, depending on the effective authentication mode.
+
+Authorization decisions are explicitly separate from authentication and are handled through dedicated authorization mechanisms.
 
 ---
 
-### 2.1 Session as the Source of Truth
+### 2.1 Server Authority and Authentication State
 
-In UltimateAuth, sessions are the primary and authoritative representation of authentication state.
+UltimateAuth treats the server as the authoritative source of authentication rules and security decisions.
 
-- A session represents an authenticated identity.
-- Tokens, cookies, and other credentials are transport mechanisms, not identity sources.
-- Authentication state MUST be verifiable on the server using session-backed data.
+- Authentication authority MUST remain under server control.
+- Client-provided identity information MUST NOT be trusted without validation.
+- Authentication credentials MUST be validated according to the effective authentication mode.
+- Session-backed modes MUST preserve the authority of server-side session state.
+- Stateless modes MAY establish authenticated identity through cryptographically verifiable tokens without request-time session lookup.
 
-Any authentication model that treats tokens as the primary source of identity is explicitly rejected.
+Tokens, cookies, and other credentials represent evidence of authentication. Their presence alone MUST NOT establish authenticated identity without the validation required by the effective authentication mode.
+
+No authentication mode may delegate security authority to an untrusted client.
 
 ---
 
 ### 2.2 Authentication Modes
 
-UltimateAuth supports multiple authentication modes to address different deployment and runtime requirements.
+UltimateAuth defines multiple authentication modes to support different security, lifecycle, and runtime requirements.
 
 The following authentication modes are defined:
 
 - **PureOpaque**  
-  Authentication is fully session-based. No client-readable identity tokens (except session id) are exposed.
+  Fully stateful, session-based authentication. The server-side session is the primary authentication credential and source of authentication state. No separate access or refresh token is required.
 
 - **Hybrid**  
-  Session-backed authentication with client-readable tokens used as a performance optimization.
+  Stateful authentication combining server-side sessions, opaque access tokens, and refresh tokens. Authentication remains session-authoritative, and authenticated requests MUST enforce session validity.
 
 - **SemiHybrid**  
-  Session-backed authentication with limited client-side identity representation.
+  Authentication combining stateless JWT access-token validation with server-side session lifecycle management. Sessions support operations such as refresh, logout, revocation, and device management. Normal JWT validation does not require a request-time session lookup.
 
 - **PureJwt**  
-  Token-centric authentication with server-side validation, used only when session-backed models are not feasible.
+  Stateless JWT-based authentication without mandatory server-side session persistence or request-time session lookup. Token validity is established through cryptographic verification and applicable token validation rules.
 
-Authentication modes define *how authentication state is represented and transported*, not *how identity is verified*.
+Authentication modes define different validation and lifecycle strategies, not merely different credential transport formats.
 
-The selected authentication mode MUST NOT alter core authentication semantics.
+Each mode MUST preserve the framework's common authentication and authorization boundaries while enforcing its own explicitly defined security guarantees.
+
+Defining an authentication mode does not imply that its implementation is complete or available in every release. Supported modes MUST be documented separately.
 
 ---
 
@@ -158,15 +169,19 @@ Authorization systems MUST rely on authenticated identity provided by the authen
 
 ### 2.6 Extensibility Without Semantic Drift
 
-The core authentication model is extensible through plugin domains and override points.
+The core authentication model is extensible through plugin domains and explicit extension points.
 
-Extensibility MUST preserve the semantic guarantees defined in this section.
+Extensibility MUST preserve the security guarantees applicable to the effective authentication mode.
 
-Custom implementations, alternative storage mechanisms, or runtime-specific optimizations MUST NOT change:
+Custom implementations, alternative storage mechanisms, and runtime-specific optimizations MUST NOT change:
 
-- The session-first nature of authentication.
-- The server-authoritative identity model.
+- The server-authoritative nature of authentication.
 - The separation between authentication and authorization.
+- The integrity of authenticated identity and security contexts.
+- The validation and revocation guarantees defined for the selected authentication mode.
+- The requirement that security-sensitive decisions remain under trusted server-side control.
+
+Extensions MUST NOT silently weaken or redefine the security semantics of an authentication mode.
 
 ## 3. Request Pipeline & Context Model
 
@@ -177,16 +192,16 @@ This pipeline is responsible for producing immutable context objects that repres
 
 ### 3.1 AuthFlowContext
 
-AuthFlowContext represents the complete authentication flow state of a request.
+AuthFlowContext represents the effective authentication flow context established for an authentication operation.
 
-- AuthFlowContext is created exactly once per request.
-- AuthFlowContext is request-scoped.
-- AuthFlowContext is immutable after creation.
-- AuthFlowContext is the single source of truth for authentication-related data during request processing.
+- Within an HTTP authentication pipeline, AuthFlowContext MUST be established through the designated context creation mechanism.
+- Once established, the effective AuthFlowContext MUST remain stable throughout the operation.
+- AuthFlowContext MUST NOT be arbitrarily mutated, replaced, or reconstructed by application or domain code.
+- Non-HTTP execution environments MAY use explicitly defined context creation mechanisms, provided equivalent security guarantees are preserved.
 
-AuthFlowContext encapsulates all information required to evaluate authentication state, including session data, client characteristics, and runtime-specific signals.
+AuthFlowContext encapsulates the authentication-related information required by the operation, including effective authentication mode, client characteristics, tenant context, and applicable runtime signals.
 
-AuthFlowContext MUST NOT be modified, replaced, or reconstructed after initial creation.
+Context creation and ownership MUST remain under framework-controlled boundaries.
 
 ---
 
@@ -205,13 +220,14 @@ Authentication decisions MUST be resolved before AccessContext is created.
 
 ### 3.3 Context Creation Boundaries
 
-Context creation is a controlled operation within the request pipeline.
+Context creation is a controlled operation within the authentication and authorization pipeline.
 
-- AuthFlowContext creation is part of the authentication pipeline and occurs before application logic executes.
-- AccessContext creation is a deterministic transformation of AuthFlowContext.
-- Context objects MUST NOT be created lazily or on demand within application or domain code.
+- Authentication context creation MUST occur through designated framework mechanisms.
+- AccessContext MUST be derived from trusted authentication state and the applicable authorization request context.
+- Context creation MUST NOT be delegated to arbitrary application or domain code.
+- Services and stores MUST NOT independently reconstruct or override established security contexts.
 
-Application code, services, and stores MUST treat AuthFlowContext and AccessContext as read-only inputs.
+Application code MUST treat established security contexts as trusted, read-only inputs.
 
 ---
 
@@ -221,7 +237,7 @@ Authentication evaluation in UltimateAuth is deterministic and request-based.
 
 - Each request independently derives its authentication and authorization context.
 - No implicit cross-request authentication state is allowed.
-- Retried, concurrent, or replayed requests MUST produce equivalent authentication results given the same inputs.
+- Authentication evaluation MUST be consistent for equivalent inputs and equivalent authoritative security state. State transitions, replay protection, token rotation, and revocation MAY legitimately produce different outcomes for otherwise identical requests.
 
 Deterministic evaluation ensures predictable behavior across distributed systems and asynchronous execution.
 
@@ -241,15 +257,15 @@ The exact integration mechanism (e.g. middleware, endpoint filters, or framework
 
 ### 3.6 Architectural Invariants
 
-The following invariants MUST hold for all implementations:
+The following invariants MUST hold:
 
-- Exactly one AuthFlowContext exists per request.
-- AuthFlowContext is immutable after creation.
-- AccessContext is derived from AuthFlowContext and never the inverse.
-- Application and domain code MUST NOT influence authentication context creation.
-- Context objects define security boundaries and MUST NOT be bypassed.
+- The effective authentication context remains stable throughout its execution scope.
+- AccessContext is derived from trusted authentication state, never the inverse.
+- Security contexts MUST NOT be arbitrarily modified or replaced by application code.
+- Context creation MUST occur through explicit, controlled boundaries.
+- Context integrity MUST be preserved across supported execution environments.
 
-Any implementation that violates these invariants is considered architecturally incorrect.
+Any implementation that bypasses these boundaries is architecturally incorrect.
 
 ## 4. Domain Boundaries
 
@@ -319,7 +335,23 @@ The internal representation of UserKey MUST remain flexible and replaceable with
 
 ---
 
-### 4.5 Domain Independence Guarantees
+### 4.5 Host User Model Independence
+
+UltimateAuth MUST remain independent of host application user entity models.
+
+- Host applications MUST NOT be required to inherit from framework-owned user entities.
+- Host user entities MUST NOT be required to implement UltimateAuth-specific interfaces.
+- Integration with host user models MUST occur through explicit adapters, providers, or boundary contracts.
+- Framework-owned runtime records and identity snapshots MUST remain independent of host persistence entities.
+- Mapping between host user identities and UltimateAuth UserKey values MUST occur at controlled integration boundaries.
+
+Reference implementations MAY provide ready-to-use adapters or providers, but MUST NOT impose a mandatory host user model.
+
+UltimateAuth MUST preserve its authentication, authorization, and domain invariants regardless of the host application's user entity structure.
+
+---
+
+### 4.6 Domain Independence Guarantees
 
 The following guarantees MUST hold:
 
@@ -387,23 +419,30 @@ New orchestrators MAY be introduced as the system evolves.
 
 ### 5.4 Authority Components
 
-Authority components are responsible for making security and authorization decisions.
+Authority components are responsible for security and authorization decisions within their explicitly defined responsibility boundaries.
 
-- Authorities evaluate policies and permissions.
-- Authorities validate whether an operation is allowed.
-- Authorities are the final decision point for security-sensitive actions.
+- Authorities evaluate applicable security policies and permissions.
+- Authorities determine whether protected operations are permitted.
+- Authorities MUST remain independent of persistence implementation details.
+- Authority decisions MUST NOT be bypassed by services or orchestrators.
 
-Authority logic MUST NOT be embedded in services, stores or domain models.
+Not every security-related validation requires an Authority component.
+
+Cryptographic verification, token parsing, protocol validation, and other deterministic validation operations MAY be performed by dedicated validators or security primitives.
 
 ---
 
-### 5.5 Mandatory Orchestration Rule
+### 5.5 Mandatory Security Coordination Rule
 
-All security-relevant operations MUST pass through an orchestrator and an authority.
+Security-sensitive operations MUST follow their designated framework-controlled execution paths.
 
-No operation that affects authentication state, authorization decisions, session validity, credentials, or user security state may be executed without explicit orchestration and authority evaluation.
+- Operations requiring authorization decisions MUST invoke the applicable authority.
+- Complex security-sensitive workflows MUST use their designated orchestrators.
+- Services MUST NOT bypass required authorization or security checks.
+- Stores MUST NOT independently make authorization decisions.
+- Cryptographic and protocol validation MAY be performed by dedicated components without introducing unnecessary orchestration layers.
 
-Bypassing orchestrators or authorities is considered a critical architectural violation.
+No implementation may bypass a security boundary required by the operation being performed.
 
 ---
 
@@ -412,30 +451,35 @@ Bypassing orchestrators or authorities is considered a critical architectural vi
 The following guarantees MUST hold:
 
 - Stores are never policy-aware.
-- Services never perform security decisions directly.
+- Services MUST NOT independently override required authority decisions.
 - Orchestrators always coordinate security-sensitive flows.
 - Authorities are the single source of truth for authorization decisions.
-- No execution path may bypass orchestrators and authorities.
+- No execution path may bypass the security controls required by its designated execution model.
 
 Violations of these guarantees compromise system security and are not permitted.
 
 ## 6. Session Architecture
 
-UltimateAuth defines sessions as the primary and authoritative representation of authenticated identity.
+UltimateAuth provides a server-controlled session architecture for authentication modes that require stateful identity management.
 
-Sessions establish continuity, revocation guarantees, and server-side control over authentication state.
+Sessions establish authentication continuity, lifecycle management, revocation capabilities, and server-side control over authenticated identity.
+
+The role of sessions depends on the effective authentication mode.
+
+Session-backed modes MUST enforce their documented session validation guarantees. Stateless modes MUST NOT be required to introduce server-side session persistence solely to conform to the session architecture.
 
 ---
 
 ### 6.1 Session as an Authentication Primitive
 
-A session represents an authenticated identity and its associated security state.
+A session represents server-managed authenticated identity state and its associated security lifecycle.
 
 - Sessions are server-owned and server-validated.
-- Sessions define authentication continuity across requests.
-- Sessions are the authoritative source of authentication truth.
+- Sessions provide authentication continuity and lifecycle control.
+- In stateful authentication modes, sessions are authoritative for authentication validity.
+- In modes using stateless access tokens, sessions MAY remain authoritative for lifecycle operations without participating in every access-token validation.
 
-Tokens, cookies, or other client-held artifacts are transport mechanisms and MUST NOT be treated as identity sources.
+Client-held credentials MUST be validated according to the effective authentication mode.
 
 ---
 
@@ -454,25 +498,28 @@ Session composition enables controlled delegation, refresh flows, and security i
 
 ### 6.3 Session Validation and Resolution
 
-Session validation is performed on every request that requires authentication.
+Session validation is required whenever the effective authentication mode or operation depends on server-side session state.
 
-- Session validity MUST be verified server-side.
-- Session resolution MUST be deterministic.
-- Cached or inferred session state is not permitted.
+- Stateful authentication modes MUST validate session validity for authenticated access.
+- Session resolution MUST follow explicit and deterministic rules.
+- Stateless access-token validation MAY operate without request-time session lookup.
+- Operations that require session state, including session refresh and session revocation, MUST validate the applicable session.
 
-Session resolution MUST NOT depend solely on client-held data.
+Session validation requirements MUST be explicitly defined for each authentication mode.
 
 ---
 
 ### 6.4 Revocation and Invalidation Semantics
 
-Session revocation is a first-class security operation.
+Revocation is a first-class security operation in UltimateAuth.
 
-- Revoked sessions MUST be rejected immediately.
-- Revocation MUST be enforceable across all authentication modes.
-- Session invalidation MUST propagate deterministically.
+- Stateful authentication modes MUST reject revoked sessions during subsequent authentication validation.
+- Session-dependent operations MUST reject revoked or invalid sessions.
+- Stateless access tokens MAY remain valid until expiration unless an additional revocation mechanism is explicitly supported.
+- Revocation guarantees MUST be documented separately for each authentication mode.
+- No implementation may claim immediate access-token revocation without an enforcement mechanism capable of providing that guarantee.
 
-Eventual or best-effort revocation semantics are explicitly rejected.
+Revocation behavior MUST be explicit, predictable, and consistent with the selected authentication mode.
 
 ---
 
@@ -490,13 +537,14 @@ Refresh mechanisms MUST NOT bypass session validation or authority evaluation.
 
 ### 6.6 Relationship Between Sessions and Authentication Modes
 
-Authentication modes define how session state is represented and transported, not how it is validated.
+Authentication modes determine how authentication credentials are validated and how session state participates in authentication.
 
-- All authentication modes (except PureJwt) rely on session-backed validation.
-- Token-based representations MUST be verifiable against session state.
-- Switching authentication modes MUST NOT change session semantics.
+- **PureOpaque:** Session state is authoritative for authenticated access.
+- **Hybrid:** Opaque access tokens are validated through server-controlled, session-backed authentication.
+- **SemiHybrid:** JWT access tokens are validated without mandatory request-time session lookup; sessions govern applicable lifecycle operations.
+- **PureJwt:** Authentication is based on stateless JWT validation without mandatory session persistence.
 
-Session architecture remains consistent across all modes.
+Switching authentication modes MAY change validation and revocation behavior, but MUST NOT weaken the common security boundaries of the framework.
 
 ---
 
@@ -504,13 +552,14 @@ Session architecture remains consistent across all modes.
 
 The following invariants MUST hold:
 
-- Sessions are the single source of authenticated identity.
-- Session validation occurs server-side.
-- Revocation is immediate and deterministic.
-- Tokens never replace session authority.
-- No authentication flow may bypass session validation.
+- Authentication authority remains under server control.
+- Stateful authentication modes MUST enforce session validity.
+- Stateless authentication modes MUST validate token authenticity, integrity, expiration, and applicable security constraints.
+- Session-dependent operations MUST NOT bypass required session validation.
+- Revocation guarantees MUST match the actual enforcement capabilities of the selected authentication mode.
+- Client-held credentials MUST NOT be trusted without appropriate validation.
 
-Any implementation that violates these invariants is considered architecturally incorrect.
+Any implementation violating these invariants is architecturally incorrect.
 
 ## 7. Client & Runtime Model
 
@@ -572,13 +621,17 @@ No client runtime is permitted to cache or infer authentication authority outsid
 
 ### 7.5 Public Clients and PKCE Requirements
 
-Public clients (including browser-based and mobile clients) are treated as untrusted environments.
+Public clients, including browser-based and mobile applications, operate in environments that cannot be assumed to protect long-lived client authentication secrets.
 
-- Public clients MUST NOT hold secrets.
-- PKCE is REQUIRED for authorization flows involving public clients.
-- Authentication flows MUST assume client compromise is possible.
+- Public clients MUST NOT be trusted to securely maintain confidential client credentials.
+- Authorization-code flows involving public clients MUST use PKCE.
+- PKCE validation MUST follow the supported protocol requirements and security invariants.
+- Client-provided metadata MUST NOT independently establish trusted client identity.
+- Authentication flows MUST account for potentially compromised or malicious clients.
 
-Security guarantees MUST be preserved even in the presence of malicious or compromised clients.
+User credentials, short-lived authorization artifacts, and PKCE code verifiers MUST NOT be confused with confidential client authentication secrets.
+
+Security guarantees MUST remain enforceable at trusted server-side boundaries.
 
 ---
 
@@ -625,15 +678,16 @@ No client runtime, SDK, or application code may assume authority over identity o
 
 ---
 
-### 8.2 Session Authority Invariant
+### 8.2 Authentication State Validation Invariant
 
-Sessions are the single authoritative source of authenticated identity.
+Authentication state MUST be validated according to the effective authentication mode.
 
-- Authentication state MUST be session-backed.
-- Tokens, cookies, or headers are transport artifacts only.
-- Session validation MUST occur on every authenticated request.
+- Stateful authentication modes MUST validate the authoritative session state.
+- Stateless authentication modes MUST validate cryptographic token integrity and applicable token constraints.
+- Client-held credentials MUST NOT independently establish authentication authority.
+- Authentication validation MUST NOT bypass security checks required by the effective mode.
 
-No authentication flow may bypass session validation.
+The framework MUST NOT assume that all authentication modes require request-time session validation.
 
 ---
 
@@ -650,15 +704,17 @@ Context integrity is mandatory for deterministic and secure request processing.
 
 ---
 
-### 8.4 Orchestration Invariant
+### 8.4 Security Coordination Invariant
 
-All security-relevant operations MUST be orchestrated.
+Security-sensitive operations MUST follow explicitly defined execution and validation boundaries.
 
-- No security-sensitive action may execute directly against stores or domain models.
-- All such actions MUST pass through an orchestrator and an authority component.
-- Orchestration enforces sequencing, policy evaluation and cross-domain consistency.
+- Operations requiring authorization decisions MUST use the applicable authority components.
+- Complex security-sensitive workflows MUST use their designated orchestrators.
+- Security validation primitives MAY operate independently when orchestration or authority evaluation is not required.
+- Services, stores, and extensions MUST NOT bypass mandatory security controls.
+- Cross-domain security operations MUST preserve coordination and consistency guarantees.
 
-Bypassing orchestration or authority evaluation is explicitly forbidden.
+No implementation may weaken required security controls by bypassing the designated execution path.
 
 ---
 
@@ -676,37 +732,42 @@ Domain isolation MUST NOT be weakened by persistence or implementation convenien
 
 ### 8.6 Credential Protection Invariant
 
-Credential material is security-critical and requires strict isolation.
+Credential material is security-critical and MUST be handled through controlled security boundaries.
 
-- Secrets MUST NOT be exposed outside the Credentials domain.
-- Credentials MUST NOT be treated as identifiers or profiles.
-- Credential validation MUST occur server-side.
+- Credential secrets MUST NOT be persisted, logged, or exposed outside authorized credential-handling mechanisms.
+- Credential validation MUST occur through trusted server-side components.
+- Credentials MUST NOT be treated as user identifiers or profile data.
+- Services and transport layers MAY temporarily handle credential material only as required to execute authorized authentication flows.
+- Credential material MUST NOT be propagated to unrelated domains.
 
-Credential leakage or reuse across domains is forbidden.
+Credential protection MUST remain independent of the host application's persistence model.
 
 ---
 
 ### 8.7 Deterministic Evaluation Invariant
 
-Authentication and authorization evaluation MUST be deterministic.
+Authentication and authorization evaluation MUST be deterministic for equivalent inputs and equivalent authoritative security state.
 
-- Identical inputs MUST produce identical outcomes.
-- Hidden, implicit, or ambient security state is not allowed.
-- Concurrent or retried requests MUST behave consistently.
+- Security decisions MUST follow explicit and predictable rules.
+- Hidden or uncontrolled security authority is not permitted.
+- State transitions, token rotation, replay prevention, expiration, and revocation MAY legitimately change evaluation outcomes.
+- Concurrent operations MUST preserve applicable security invariants.
 
-Deterministic evaluation is required for correctness, auditability and security.
+Determinism MUST NOT prevent legitimate stateful security transitions.
 
 ---
 
 ### 8.8 Revocation Invariant
 
-Revocation is a first-class security operation.
+Revocation guarantees MUST be explicit and consistent with the effective authentication mode.
 
-- Revoked sessions or credentials MUST be rejected immediately.
-- Revocation MUST be enforceable across all runtimes and authentication modes.
-- Best-effort or eventual revocation is not permitted.
+- Stateful authentication modes MUST enforce session revocation during subsequent authentication validation.
+- Session-dependent operations MUST reject revoked sessions.
+- Stateless tokens MAY remain valid until expiration unless additional revocation enforcement is provided.
+- Revocation behavior MUST NOT be represented as immediate when the implementation cannot enforce immediate invalidation.
+- Runtime-specific implementations MUST preserve the revocation guarantees defined for their authentication mode.
 
-Revocation guarantees MUST NOT be weakened for performance or convenience.
+Security documentation MUST accurately describe the revocation capabilities and limitations of each supported mode.
 
 ---
 

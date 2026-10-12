@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -39,11 +40,10 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var req = await ctx.ReadJsonAsync<AuthorizationCheckRequest>(ctx.RequestAborted);
 
-        if (string.IsNullOrWhiteSpace(req.Resource))
-            return Results.BadRequest("Resource is required for authorization check.");
-
-        if (string.IsNullOrWhiteSpace(req.Action))
-            return Results.BadRequest("Action is required for authorization check.");
+        if (req is null || string.IsNullOrWhiteSpace(req.Action) || string.IsNullOrWhiteSpace(req.Resource))
+        {
+            return Results.BadRequest("Action and Resource are required.");
+        }
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -79,7 +79,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
         );
 
         var roles = await _userRoles.GetRolesAsync(accessContext, flow.UserKey!.Value, req, ctx.RequestAborted);
-        return Results.Ok(new UserRolesResponse
+        return Results.Ok(new UserRolesGetResult
         {
             UserKey = flow.UserKey!.Value,
             Roles = roles
@@ -104,7 +104,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var roles = await _userRoles.GetRolesAsync(accessContext, userKey, req, ctx.RequestAborted);
 
-        return Results.Ok(new UserRolesResponse
+        return Results.Ok(new UserRolesGetResult
         {
             UserKey = userKey,
             Roles = roles
@@ -118,6 +118,10 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             return Results.Unauthorized();
 
         var req = await ctx.ReadJsonAsync<AssignRoleRequest>(ctx.RequestAborted);
+
+        // These are transport rules, not business rules. The business rules are enforced in the service layer.
+        if (req is null || req.UserKey != userKey || string.IsNullOrWhiteSpace(req.RoleName))
+            return Results.BadRequest("Invalid role assignment request.");
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -137,6 +141,9 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             return Results.Unauthorized();
 
         var req = await ctx.ReadJsonAsync<RemoveRoleRequest>(ctx.RequestAborted);
+
+        if (req is null || req.UserKey != userKey || string.IsNullOrWhiteSpace(req.RoleName))
+            return Results.BadRequest("Invalid role removal request.");
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -166,7 +173,14 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var role = await _roles.CreateAsync(accessContext, req.Name, req.Permissions, ctx.RequestAborted);
 
-        return Results.Ok(role);
+        return Results.Ok(new RoleInfo
+        {
+            Id = role.Id,
+            Name = role.Name,
+            Permissions = role.Permissions.ToArray(),
+            CreatedAt = role.CreatedAt,
+            UpdatedAt = role.UpdatedAt
+        });
     }
 
     public async Task<IResult> RenameRoleAsync(RoleId roleId, HttpContext ctx)
@@ -177,6 +191,9 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             return Results.Unauthorized();
 
         var req = await ctx.ReadJsonAsync<RenameRoleRequest>(ctx.RequestAborted);
+
+        if (req is null || req.Id != roleId || string.IsNullOrWhiteSpace(req.Name))
+            return Results.BadRequest("Invalid role rename request.");
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -199,6 +216,9 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var req = await ctx.ReadJsonAsync<DeleteRoleRequest>(ctx.RequestAborted);
 
+        if (req is null || req.Id != roleId)
+            return Results.BadRequest("Invalid role deletion request.");
+
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
             action: UAuthActions.Authorization.Roles.DeleteAdmin,
@@ -218,6 +238,9 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             return Results.Unauthorized();
 
         var req = await ctx.ReadJsonAsync<SetRolePermissionsRequest>(ctx.RequestAborted);
+
+        if (req is null || req.RoleId != roleId || req.Permissions is null)
+            return Results.BadRequest("Invalid role permissions request.");
 
         var accessContext = await _accessContextFactory.CreateAsync(
             flow,
@@ -248,6 +271,21 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var result = await _roles.QueryAsync(accessContext, req, ctx.RequestAborted);
 
-        return Results.Ok(result);
+        var response = new PagedResult<RoleInfo>(
+            result.Items.Select(role => new RoleInfo
+            {
+                Id = role.Id,
+                Name = role.Name,
+                Permissions = role.Permissions.ToArray(),
+                CreatedAt = role.CreatedAt,
+                UpdatedAt = role.UpdatedAt
+            }).ToArray(),
+            result.TotalCount,
+            result.PageNumber,
+            result.PageSize,
+            result.SortBy,
+            result.Descending);
+
+        return Results.Ok(response);
     }
 }
