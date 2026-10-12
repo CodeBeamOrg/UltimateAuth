@@ -21,6 +21,13 @@ internal sealed class UAuthServerSessionOptionsValidator : IValidateOptions<UAut
         if (session.IdleTimeout.HasValue && session.IdleTimeout < TimeSpan.Zero)
             errors.Add("Session.IdleTimeout cannot be negative.");
 
+        if (options.Session.IdleTimeout is { } idle &&
+            options.Session.TouchInterval is { } touch &&
+            idle > TimeSpan.Zero && touch >= idle)
+        {
+            errors.Add("Session.TouchInterval must be less than Session.IdleTimeout.");
+        }
+
         return errors.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(errors);
