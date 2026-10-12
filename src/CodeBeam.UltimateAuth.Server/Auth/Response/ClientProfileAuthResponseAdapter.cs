@@ -12,6 +12,10 @@ internal sealed class ClientProfileAuthResponseAdapter
     {
         var configured = effectiveOptions.Options.AuthResponse;
 
+        ValidateConfiguredDelivery(configured.SessionIdDelivery);
+        ValidateConfiguredDelivery(configured.AccessTokenDelivery);
+        ValidateConfiguredDelivery(configured.RefreshTokenDelivery);
+
         return new UAuthResponseOptions
         {
             SessionIdDelivery = AdaptCredential(template.SessionIdDelivery, GrantKind.Session, clientProfile),
@@ -76,5 +80,13 @@ internal sealed class ClientProfileAuthResponseAdapter
             RedirectUrl = configured.RedirectUrl ?? template.RedirectUrl,
             AllowReturnUrlOverride = configured.AllowReturnUrlOverride
         };
+    }
+
+    private static void ValidateConfiguredDelivery(CredentialResponseOptions delivery)
+    {
+        if (delivery.Mode == TokenResponseMode.Body)
+        {
+            throw new NotSupportedException($"Body credential delivery is not currently supported for '{delivery.Kind}'.");
+        }
     }
 }

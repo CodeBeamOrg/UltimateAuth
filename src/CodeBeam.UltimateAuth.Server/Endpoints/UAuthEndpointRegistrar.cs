@@ -72,8 +72,8 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
                 => await h.RefreshAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshSession));
 
-            group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
-                => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
+            //group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
+            //    => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
 
 
             if (Enabled(UAuthActions.Flows.LogoutDeviceAdmin))
@@ -206,7 +206,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Users.CreateAdmin))
                 adminUsers.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.CreateAdminAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
             if (Enabled(UAuthActions.Users.ChangeStatusAdmin))
                 adminUsers.MapPost("/{userKey}/status", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)

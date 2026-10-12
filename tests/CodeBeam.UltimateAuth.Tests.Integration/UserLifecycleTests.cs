@@ -641,6 +641,27 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             .Equal($"{prefix}-Delta", $"{prefix}-Echo");
     }
 
+    [Fact]
+    public async Task AdminCreate_WhenAnonymous_ShouldReturnUnauthorized()
+    {
+        _factory.Clock.Reset();
+
+        using var client = CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/admin/users/create",
+            new CreateUserRequest
+            {
+                UserName = $"admin-create-{Guid.NewGuid():N}",
+                Password = $"Test-{Guid.NewGuid():N}!",
+                DisplayName = "Unauthorized Creation"
+            });
+
+        response.StatusCode.Should()
+            .Be(HttpStatusCode.Unauthorized);
+    }
+
+
     // -------------------------------------------------------
     // Helpers
     // -------------------------------------------------------
