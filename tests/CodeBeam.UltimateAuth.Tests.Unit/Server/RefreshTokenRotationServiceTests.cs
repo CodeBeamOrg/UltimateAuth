@@ -690,8 +690,7 @@ public sealed class RefreshTokenRotationServiceTests
             isAuthenticated: true,
             userKey: UserKey.New(),
             session: null,
-            originalOptions: options,
-            effectiveOptions: TestServerOptions.Effective(UAuthMode.Hybrid),
+            options: options,
             response: new EffectiveAuthResponse(
                 sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
                 accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),

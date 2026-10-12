@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -13,4 +14,5 @@ public sealed record SessionRotationContext
     public ClaimsSnapshot? Claims { get; init; }
     public required SessionMetadata Metadata { get; init; } = SessionMetadata.Empty;
     public required UAuthMode Mode { get; init; }
+    public required UAuthSessionOptions SessionOptions { get; init; }
 }

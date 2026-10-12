@@ -61,6 +61,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
                 Tenant = tenant,
                 SessionId = sessionId,
                 Device = _deviceContextFactory.Create(credential.Device),
+                SessionOptions = _serverOptions.Session,
                 Now = _clock.UtcNow
             });
 

@@ -30,7 +30,6 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
-    private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
     public LoginOrchestrator(
@@ -44,7 +43,6 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         ISessionStoreFactory storeFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
-        IOptions<UAuthServerOptions> options,
         IClock clock)
     {
         _identifierResolver = identifierResolver;
@@ -57,7 +55,6 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         _storeFactory = storeFactory;
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
-        _options = options.Value;
         _clock = clock;
     }
 
@@ -136,7 +133,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
             if (chain is not null)
             {
-                var chainState = chain.GetState(now, _options.Session.IdleTimeout);
+                var chainState = chain.GetState(now, flow.Options.Session.IdleTimeout);
 
                 if (chainState == SessionState.Active)
                 {
@@ -174,14 +171,14 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         request.CredentialType,
                         state => state.RegisterFailure(
                             now,
-                            _options.Login.MaxFailedAttempts,
-                            _options.Login.LockoutDuration,
-                            _options.Login.FailureWindow,
-                            _options.Login.ExtendLockOnFailure),
+                            flow.Options.Login.MaxFailedAttempts,
+                            flow.Options.Login.LockoutDuration,
+                            flow.Options.Login.FailureWindow,
+                            flow.Options.Login.ExtendLockOnFailure),
                         ct);
                 }
 
-                if (_options.Login.IncludeFailureDetails)
+                if (flow.Options.Login.IncludeFailureDetails)
                 {
                     var stateForResponse = factorState;
 
@@ -190,9 +187,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         lockedUntil = stateForResponse.LockedUntil;
                         remainingAttempts = 0;
                     }
-                    else if (_options.Login.MaxFailedAttempts > 0)
+                    else if (flow.Options.Login.MaxFailedAttempts > 0)
                     {
-                        remainingAttempts = _options.Login.MaxFailedAttempts - stateForResponse.FailedAttempts;
+                        remainingAttempts = flow.Options.Login.MaxFailedAttempts - stateForResponse.FailedAttempts;
                     }
                 }
 
@@ -247,7 +244,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
             Claims = claims,
             ChainId = chainId,
             Metadata = SessionMetadata.Empty,
-            Mode = flow.EffectiveMode
+            Mode = flow.EffectiveMode,
+            SessionOptions = flow.Options.Session
         };
 
         var authContext = flow.ToAuthContext(now);

@@ -49,7 +49,6 @@ internal class ConfigureDefaults
         // Hard re-auth boundary is an advanced security feature
         // Do NOT enable by default
         s.MaxLifetime ??= null;
-        s.DeviceMismatchBehavior = DeviceMismatchBehavior.Allow;
 
         // SessionId is the primary opaque token, carried via cookie
         t.IssueJwt = false;

@@ -67,7 +67,8 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                     Tenant = tenant,
                     SessionId = sessionId,
                     Now = _clock.UtcNow,
-                    Device = auth.Device
+                    Device = auth.Device,
+                    SessionOptions = auth.Options.Session
                 },
                 ct);
 

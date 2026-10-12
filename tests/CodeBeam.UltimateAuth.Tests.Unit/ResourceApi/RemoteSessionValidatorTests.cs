@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -395,12 +396,10 @@ public sealed class RemoteSessionValidatorTests
         return new SessionValidationContext
         {
             Tenant = Tenant,
-
             SessionId = AuthSessionId.Parse(SessionValue, null),
-
             Now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero),
-
-            Device = DeviceContext.Anonymous()
+            Device = DeviceContext.Anonymous(),
+            SessionOptions = new UAuthSessionOptions()
         };
     }
 

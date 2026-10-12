@@ -72,7 +72,7 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
             _credentialWriter.Write(ctx, GrantKind.RefreshToken, result.RefreshToken);
         }
 
-        if (flow.OriginalOptions.Diagnostics.EnableRefreshDetails)
+        if (flow.Options.Diagnostics.EnableRefreshDetails)
         {
             _refreshWriter.Write(ctx, result.Outcome);
         }

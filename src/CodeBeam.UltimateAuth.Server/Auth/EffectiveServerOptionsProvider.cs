@@ -24,16 +24,16 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
         return _baseOptions.Value;
     }
 
-    public EffectiveUAuthServerOptions GetEffective(HttpContext context, AuthFlowType flowType, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthClientProfile clientProfile)
     {
         var tenant = context.GetTenant();
-        return GetEffective(tenant, flowType, clientProfile);
+        return GetEffective(tenant, clientProfile);
     }
 
-    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, AuthFlowType flowType, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthClientProfile clientProfile)
     {
         var original = _baseOptions.Value;
-        var effectiveMode = _modeResolver.Resolve(clientProfile, flowType);
+        var effectiveMode = _modeResolver.Resolve(clientProfile);
         var options = original.Clone();
 
         ConfigureDefaults.ApplyModeDefaults(effectiveMode, options);

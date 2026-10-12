@@ -60,7 +60,7 @@ public static class UltimateAuthApplicationBuilderExtensions
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
         app.UseMiddleware<SessionResolutionMiddleware>();
-        app.UseMiddleware<SessionValidationMiddleware>();
+        app.UseMiddleware<RemoteSessionValidationMiddleware>();
         app.UseMiddleware<UserMiddleware>();
 
         return app;

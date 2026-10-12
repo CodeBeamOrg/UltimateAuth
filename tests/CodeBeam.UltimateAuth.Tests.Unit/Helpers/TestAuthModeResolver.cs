@@ -7,6 +7,5 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 internal sealed class TestAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthClientProfile profile, AuthFlowType flowType)
-        => UAuthMode.PureOpaque;
+    public UAuthMode Resolve(UAuthClientProfile profile) => UAuthMode.PureOpaque;
 }

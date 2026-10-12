@@ -37,8 +37,7 @@ internal static class AuthFlowTestFactory
             isAuthenticated: isAuthenticated,
             userKey: userKey ?? (isAuthenticated ? UserKey.New() : null),
             session: session,
-            originalOptions: TestServerOptions.Default(),
-            effectiveOptions: TestServerOptions.Effective(),
+            options: TestServerOptions.Default(),
             response: response ?? new EffectiveAuthResponse(
                 sessionIdDelivery:
                     CredentialResponseOptions.Disabled(GrantKind.Session),

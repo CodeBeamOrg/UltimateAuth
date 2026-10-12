@@ -4,8 +4,6 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Server.Options;
-using Microsoft.Extensions.Options;
 using System.Security;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -14,33 +12,32 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 {
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IOpaqueTokenGenerator _opaqueGenerator;
-    private readonly UAuthServerOptions _options;
 
-    public UAuthSessionIssuer(ISessionStoreFactory storeFactory, IOpaqueTokenGenerator opaqueGenerator, IOptions<UAuthServerOptions> options)
+    public UAuthSessionIssuer(ISessionStoreFactory storeFactory, IOpaqueTokenGenerator opaqueGenerator)
     {
         _storeFactory = storeFactory;
         _opaqueGenerator = opaqueGenerator;
-        _options = options.Value;
     }
 
     public async Task<IssuedSession> IssueSessionAsync(SessionIssuanceContext context, CancellationToken ct = default)
     {
         // Defensive guard — enforcement belongs to Authority
         if (context.Mode == UAuthMode.PureJwt)
-        {
             throw new InvalidOperationException("Session issuance is not allowed in PureJwt mode.");
-        }
+
+        var sessionOptions = context.SessionOptions;
 
         var now = context.Now;
         var opaqueSessionId = _opaqueGenerator.Generate();
+
         if (!AuthSessionId.TryCreate(opaqueSessionId, out AuthSessionId sessionId))
             throw new InvalidCastException("Can't create opaque id.");
 
-        var expiresAt = now.Add(_options.Session.Lifetime);
+        var expiresAt = now.Add(sessionOptions.Lifetime);
 
-        if (_options.Session.MaxLifetime is not null)
+        if (sessionOptions.MaxLifetime is not null)
         {
-            var absoluteExpiry = now.Add(_options.Session.MaxLifetime.Value);
+            var absoluteExpiry = now.Add(sessionOptions.MaxLifetime.Value);
             if (absoluteExpiry < expiresAt)
                 expiresAt = absoluteExpiry;
         }
@@ -94,7 +91,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 //chain = await kernel.GetChainAsync(context.ChainId.Value)
                 //    ?? throw new UAuthNotFoundException("Chain not found.");
 
-                var chainState = chain.GetState(now, _options.Session.IdleTimeout);
+                var chainState = chain.GetState(now, sessionOptions.IdleTimeout);
 
                 if (chainState != SessionState.Active)
                     throw new UAuthValidationException("Chain is not active.");
@@ -124,12 +121,12 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
             var sessions = await kernel.GetSessionsByChainAsync(chain.ChainId);
 
-            if (sessions.Count >= _options.Session.MaxSessionsPerChain)
+            if (sessions.Count >= sessionOptions.MaxSessionsPerChain)
             {
                 var toDelete = sessions
                     .Where(s => s.SessionId != chain.ActiveSessionId)
                     .OrderBy(x => x.CreatedAt)
-                    .Take(sessions.Count - _options.Session.MaxSessionsPerChain + 1)
+                    .Take(sessions.Count - sessionOptions.MaxSessionsPerChain + 1)
                     .ToList();
 
                 foreach (var old in toDelete)
@@ -175,14 +172,16 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
         var kernel = _storeFactory.Create(context.Tenant);
         var now = context.Now;
 
+        var sessionOptions = context.SessionOptions;
+
         var opaqueSessionId = _opaqueGenerator.Generate();
         if (!AuthSessionId.TryCreate(opaqueSessionId, out var newSessionId))
             throw new InvalidCastException("Can't create opaque session id.");
 
-        var expiresAt = now.Add(_options.Session.Lifetime);
-        if (_options.Session.MaxLifetime is not null)
+        var expiresAt = now.Add(sessionOptions.Lifetime);
+        if (sessionOptions.MaxLifetime is not null)
         {
-            var absoluteExpiry = now.Add(_options.Session.MaxLifetime.Value);
+            var absoluteExpiry = now.Add(sessionOptions.MaxLifetime.Value);
             if (absoluteExpiry < expiresAt)
                 expiresAt = absoluteExpiry;
         }

@@ -59,7 +59,8 @@ internal sealed class RefreshFlowService : IRefreshFlowService
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
                 Now = now,
-                Device = request.Device
+                Device = request.Device,
+                SessionOptions = flow.Options.Session
             },
             ct);
 
@@ -68,7 +69,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
 
         var touchPolicy = new SessionTouchPolicy
         {
-            TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
+            TouchInterval = flow.Options.Session.TouchInterval
         };
 
         var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
@@ -118,7 +119,8 @@ internal sealed class RefreshFlowService : IRefreshFlowService
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
                 Now = now,
-                Device = request.Device
+                Device = request.Device,
+                SessionOptions = flow.Options.Session
             },
             ct);
 
@@ -141,7 +143,7 @@ internal sealed class RefreshFlowService : IRefreshFlowService
 
         var touchPolicy = new SessionTouchPolicy
         {
-            TouchInterval = flow.EffectiveOptions.Options.Session.TouchInterval
+            TouchInterval = flow.Options.Session.TouchInterval
         };
 
         var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
@@ -171,7 +173,8 @@ internal sealed class RefreshFlowService : IRefreshFlowService
                 Tenant = flow.Tenant,
                 SessionId = request.SessionId.Value,
                 Now = now,
-                Device = request.Device
+                Device = request.Device,
+                SessionOptions = flow.Options.Session
             },
             ct);
 

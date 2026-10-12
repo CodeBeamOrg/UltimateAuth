@@ -675,8 +675,7 @@ public sealed class SessionEndpointHandlerTests
             isAuthenticated: false,
             userKey: null,
             session: null,
-            originalOptions: authenticated.OriginalOptions,
-            effectiveOptions: authenticated.EffectiveOptions,
+            options: authenticated.Options,
             response: authenticated.Response,
             primaryTokenKind: authenticated.PrimaryTokenKind,
             returnUrlInfo: authenticated.ReturnUrlInfo);

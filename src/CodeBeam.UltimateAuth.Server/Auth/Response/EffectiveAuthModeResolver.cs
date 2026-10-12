@@ -6,7 +6,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthClientProfile clientProfile, AuthFlowType flowType)
+    public UAuthMode Resolve(UAuthClientProfile clientProfile)
     {
         return clientProfile switch
         {
