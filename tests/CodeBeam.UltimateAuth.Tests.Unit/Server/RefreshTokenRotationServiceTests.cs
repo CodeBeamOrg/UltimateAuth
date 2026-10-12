@@ -559,6 +559,67 @@ public sealed class RefreshTokenRotationServiceTests
         typeof(RefreshTokenInfo).GetProperty("TokenHash").Should().BeNull();
     }
 
+    [Fact]
+    public async Task RotateAsync_WhenAccessTokenIssuanceThrows_DoesNotConsumeRefreshToken()
+    {
+        var tenant = TenantKey.FromExternal("tenant-a");
+        var validation = CreateValidValidation(tenant);
+
+        var validator = CreateValidator(validation);
+        var store = CreateExecutableStore();
+        var storeFactory = CreateStoreFactory(tenant, store);
+        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var issuer = new Mock<ITokenIssuer>();
+
+        var refreshToken = CreateRefreshTokenIssuanceResult();
+
+        issuer
+            .Setup(x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                RefreshTokenPersistence.DoNotPersist,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(refreshToken);
+
+        issuer
+            .Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(),
+                It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("AT issuance failed"));
+
+        var sut = new RefreshTokenRotationService(
+            validator.Object,
+            storeFactory.Object,
+            issuer.Object,
+            claimsProvider.Object);
+
+        var act = () => sut.RotateAsync(
+            CreateFlow(tenant, multiTenant: true),
+            CreateContext(validation.SessionId));
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("AT issuance failed");
+
+        store.Verify(x => x.TryConsumeAsync(
+            It.IsAny<string>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        store.Verify(x => x.StoreAsync(
+            It.IsAny<RefreshToken>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        store.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task<bool>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
 
     private static Mock<IRefreshTokenValidator> CreateValidator(RefreshTokenValidationResult result)
     {
