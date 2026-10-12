@@ -98,6 +98,8 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
         }
 
+        var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
+
         // Only one concurrent request is allowed to consume
         // the current refresh token.
         var consumed = await store.ExecuteAsync(
@@ -130,8 +132,6 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
         }
 
-        // Only the winning request needs an access token.
-        var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
         var refreshTokenInfo = new RefreshTokenInfo
         {
             Token = refreshToken.Token,

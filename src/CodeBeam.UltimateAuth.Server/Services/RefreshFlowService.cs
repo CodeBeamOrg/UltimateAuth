@@ -130,6 +130,19 @@ internal sealed class RefreshFlowService : IRefreshFlowService
         if (!validation.IsValid)
             return RefreshFlowResult.ReauthRequired();
 
+        var touchPolicy = new SessionTouchPolicy
+        {
+            TouchInterval = flow.Options.Session.TouchInterval,
+            Lifetime = flow.Options.Session.Lifetime,
+            SlidingExpiration = flow.Options.Session.SlidingExpiration,
+            IdleTimeout = flow.Options.Session.IdleTimeout
+        };
+
+        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
+
+        if (!refresh.IsSuccess || refresh.SessionId is null)
+            return RefreshFlowResult.ReauthRequired();
+
         var rotation = await _tokenRotation.RotateAsync(
             flow,
             new RefreshTokenRotationContext
@@ -142,19 +155,6 @@ internal sealed class RefreshFlowService : IRefreshFlowService
             ct);
 
         if (!rotation.Result.IsSuccess)
-            return RefreshFlowResult.ReauthRequired();
-
-        var touchPolicy = new SessionTouchPolicy
-        {
-            TouchInterval = flow.Options.Session.TouchInterval,
-            Lifetime = flow.Options.Session.Lifetime,
-            SlidingExpiration = flow.Options.Session.SlidingExpiration,
-            IdleTimeout = flow.Options.Session.IdleTimeout
-        };
-
-        var refresh = await _sessionRefresh.RefreshAsync(validation, touchPolicy, request.TouchMode, now, ct);
-
-        if (!refresh.IsSuccess || refresh.SessionId is null)
             return RefreshFlowResult.ReauthRequired();
 
         //await StoreRefreshTokenAsync(flow, rotation, request.Now, ct);

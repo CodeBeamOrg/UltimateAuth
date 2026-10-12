@@ -415,6 +415,30 @@ public sealed class SessionSlidingExpirationTests
         next.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
+    [Theory]
+    [InlineData("BlazorServer")]
+    [InlineData("BlazorWasm")]
+    public async Task ZeroIdleTimeout_RefreshShouldRemainValidBeforeSessionExpiry(string profile)
+    {
+        await using var factory = AuthServerFactory.Create(o =>
+        {
+            o.Session.Lifetime = TimeSpan.FromHours(1);
+            o.Session.MaxLifetime = null;
+            o.Session.IdleTimeout = TimeSpan.Zero;
+            o.Session.TouchInterval = TimeSpan.FromMinutes(5);
+            o.Session.SlidingExpiration = true;
+            o.Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
+        });
+
+        using var client = CreateClient(factory, profile);
+        await Login(factory, client);
+
+        factory.Clock.Advance(TimeSpan.FromMinutes(30));
+
+        using var response = await Refresh(client, profile);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
 
     private static AuthServerFactory CreateFactory(bool sliding, TimeSpan? maxLifetime = null)
     {

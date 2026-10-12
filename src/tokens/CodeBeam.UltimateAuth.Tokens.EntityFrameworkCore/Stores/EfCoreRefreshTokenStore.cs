@@ -20,6 +20,10 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
 
     private DbSet<RefreshTokenProjection> DbSet => _db.Set<RefreshTokenProjection>();
 
+    // TODO: Review execution strategy retries and commit-unknown scenarios.
+    // Ensure failed transaction attempts do not retain stale tracked entities,
+    // and evaluate recovery when the database commit succeeds but the client
+    // does not receive the replacement refresh token.
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
         var strategy = _db.Database.CreateExecutionStrategy();

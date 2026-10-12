@@ -133,6 +133,39 @@ public class ServerOptionsValidatorTests
         Assert.Contains("Pkce.AuthorizationCodeLifetimeSeconds must be > 0", ex.Message);
     }
 
+    [Theory]
+    [InlineData(10, 10)]
+    [InlineData(15, 10)]
+    public void TouchInterval_GreaterThanOrEqualToIdleTimeout_ShouldFailValidation(int touchSeconds, int idleSeconds)
+    {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<IConfiguration>(
+            new ConfigurationBuilder()
+                .AddInMemoryCollection()
+                .Build());
+
+        services.AddOptions<UAuthServerOptions>()
+            .Configure(o =>
+            {
+                o.Session.TouchInterval = TimeSpan.FromSeconds(touchSeconds);
+                o.Session.IdleTimeout = TimeSpan.FromSeconds(idleSeconds);
+            });
+
+        services.AddSingleton<
+            IValidateOptions<UAuthServerOptions>,
+            UAuthServerSessionOptionsValidator>();
+
+        using var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<UAuthServerOptions>>().Value);
+
+        Assert.Contains(
+            "Session.TouchInterval must be less than Session.IdleTimeout.",
+            ex.Message);
+    }
+
     [Fact]
     public void MultiTenant_enabled_without_resolver_should_fail()
     {
