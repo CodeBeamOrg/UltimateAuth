@@ -231,14 +231,25 @@ public sealed class RefreshFlowServiceTests
     }
 
     [Fact]
-    public async Task RefreshAsync_Hybrid_WhenRotationFails_ReturnsReauthWithoutTouch()
+    public async Task RefreshAsync_Hybrid_WhenRotationFails_ReturnsReauthAfterSuccessfulTouch()
     {
         var (sut, validator, touch, rotation) = CreateSut();
         var validation = CreateActiveValidation();
 
         validator
-            .Setup(x => x.ValidateSessionAsync(It.IsAny<SessionValidationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(validation);
+
+        touch
+            .Setup(x => x.RefreshAsync(
+                validation,
+                It.IsAny<SessionTouchPolicy>(),
+                It.IsAny<SessionTouchMode>(),
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SessionRefreshResult.Success(SessionId, false));
 
         rotation
             .Setup(x => x.RotateAsync(
@@ -258,7 +269,20 @@ public sealed class RefreshFlowServiceTests
             CreateRequest(SessionId, "refresh-token"));
 
         AssertReauth(result);
-        touch.VerifyNoOtherCalls();
+
+        touch.Verify(x => x.RefreshAsync(
+            validation,
+            It.IsAny<SessionTouchPolicy>(),
+            It.IsAny<SessionTouchMode>(),
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        rotation.Verify(x => x.RotateAsync(
+            It.IsAny<AuthFlowContext>(),
+            It.IsAny<RefreshTokenRotationContext>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -300,21 +324,16 @@ public sealed class RefreshFlowServiceTests
     }
 
     [Fact]
-    public async Task RefreshAsync_Hybrid_WhenTouchFailsAfterRotation_ReturnsReauth()
+    public async Task RefreshAsync_Hybrid_WhenTouchFails_DoesNotRotateRefreshToken()
     {
         var (sut, validator, touch, rotation) = CreateSut();
         var validation = CreateActiveValidation();
 
         validator
-            .Setup(x => x.ValidateSessionAsync(It.IsAny<SessionValidationContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(validation);
-
-        rotation
-            .Setup(x => x.RotateAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<RefreshTokenRotationContext>(),
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSuccessfulRotation());
+            .ReturnsAsync(validation);
 
         touch
             .Setup(x => x.RefreshAsync(
@@ -330,10 +349,20 @@ public sealed class RefreshFlowServiceTests
             CreateRequest(SessionId, "refresh-token"));
 
         AssertReauth(result);
+
+        touch.Verify(x => x.RefreshAsync(
+            validation,
+            It.IsAny<SessionTouchPolicy>(),
+            It.IsAny<SessionTouchMode>(),
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
         rotation.Verify(x => x.RotateAsync(
             It.IsAny<AuthFlowContext>(),
             It.IsAny<RefreshTokenRotationContext>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

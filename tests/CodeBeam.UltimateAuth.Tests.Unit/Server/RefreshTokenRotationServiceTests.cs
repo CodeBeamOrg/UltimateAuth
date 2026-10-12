@@ -540,7 +540,7 @@ public sealed class RefreshTokenRotationServiceTests
             It.IsAny<AuthFlowContext>(),
             It.IsAny<TokenIssuanceContext>(),
             It.IsAny<CancellationToken>()),
-            Times.Never);
+            Times.Once);
     }
 
     [Fact]

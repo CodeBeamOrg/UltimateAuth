@@ -18,6 +18,11 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         _tenant = tenant;
     }
 
+    // TODO: Implement transactional rollback for InMemory refresh token operations.
+    // SemaphoreSlim provides serialization but does not guarantee atomicity.
+    // A failure or cancellation between consuming the current token and storing
+    // its replacement may leave the refresh token chain unusable.
+    // Ensure all mutations participate in the same transaction boundary.
     public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
         await _tx.WaitAsync(ct);
