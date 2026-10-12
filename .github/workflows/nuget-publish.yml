@@ -13,6 +13,14 @@ jobs:
     environment: production
 
     steps:
+      - name: Verify release tag
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::NuGet publishing requires a stable release tag (vX.Y.Z)."
+            exit 1
+          fi
+    
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -23,6 +31,20 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
+
+      - name: Verify package version
+        shell: bash
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+
+          PROJECT_VERSION=$(dotnet msbuild \
+            -getProperty:Version \
+            src/CodeBeam.UltimateAuth.Server/CodeBeam.UltimateAuth.Server.csproj)
+
+          if [[ "$TAG_VERSION" != "$PROJECT_VERSION" ]]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package version ($PROJECT_VERSION)."
+            exit 1
+          fi
 
       - name: Restore
         run: dotnet restore
@@ -38,6 +60,28 @@ jobs:
             /p:IncludeSymbols=true \
             /p:SymbolPackageFormat=snupkg
 
+      - name: Verify packages
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(./nupkgs/*.nupkg)
+
+          if (( ${#packages[@]} == 0 )); then
+            echo "::error::No NuGet packages were generated."
+            exit 1
+          fi
+
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          for f in "${packages[@]}"; do
+            if [[ "$f" != *".$VERSION.nupkg" ]]; then
+              echo "::error::Unexpected package version: $f"
+              exit 1
+            fi
+          done
+
+          echo "Validated ${#packages[@]} packages for version $VERSION"
+
       - name: NuGet login (Trusted Publishing)
         uses: NuGet/login@v1
         id: login
@@ -48,18 +92,18 @@ jobs:
         run: ls -la ./nupkgs
 
       - name: Publish packages
+        shell: bash
         run: |
-          echo "🚀 Publishing..."
+          set -euo pipefail
 
           for f in ./nupkgs/*.nupkg; do
-            echo "📦 $f"
+            echo "Publishing: $f"
 
             dotnet nuget push "$f" \
               --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
               --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate \
-              || echo "❌ Failed: $f"
+              --skip-duplicate
           done
 
       - name: Done
-        run: echo "✅ Publish process completed"
+        run: echo "✅ NuGet publishing completed succesfully."
