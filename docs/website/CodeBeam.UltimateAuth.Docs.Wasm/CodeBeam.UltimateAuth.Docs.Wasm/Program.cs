@@ -1,7 +1,11 @@
+using CodeBeam.UltimateAuth.Docs.Wasm;
 using CodeBeam.UltimateAuth.Docs.Wasm.Client.Pages;
 using CodeBeam.UltimateAuth.Docs.Wasm.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using System.Text.Json;
+using System.Xml.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +16,17 @@ builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var navigation = sp.GetRequiredService<NavigationManager>();
+
+    return new HttpClient
+    {
+        BaseAddress = new Uri(navigation.BaseUri)
+    };
+});
+
 builder.Services.AddScoped<DocsPageState>();
 
 var app = builder.Build();
@@ -30,9 +45,74 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+
+    if (path is not null &&
+        path.StartsWith("/docs/", StringComparison.OrdinalIgnoreCase) &&
+        path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+    {
+        var asset = app.Environment.WebRootFileProvider
+            .GetFileInfo(path.TrimStart('/'));
+
+        if (!asset.Exists)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+
+    await next(context);
+});
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CodeBeam.UltimateAuth.Docs.Wasm.Client._Imports).Assembly);
+
+app.MapGet("/sitemap.xml", async (IWebHostEnvironment env) =>
+{
+    var file = env.WebRootFileProvider.GetFileInfo("docs/docs-index.json");
+
+    if (!file.Exists)
+        return Results.NotFound();
+
+    using var stream = file.CreateReadStream();
+
+    var pages = await JsonSerializer.DeserializeAsync<List<DocIndexEntry>>(
+        stream,
+        new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        }) ?? [];
+
+    const string baseUrl = "https://ultimateauth.com";
+
+    XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+
+    var urls = new List<string>
+    {
+        $"{baseUrl}/",
+        $"{baseUrl}/docs"
+    };
+
+    urls.AddRange(pages.Where(x => !string.IsNullOrWhiteSpace(x.Slug)).Select(x => $"{baseUrl}/docs/{x.Slug.Trim('/')}"));
+
+    var document = new XDocument(
+        new XDeclaration("1.0", "UTF-8", null),
+        new XElement(
+            ns + "urlset",
+            urls.Distinct().Select(url =>
+                new XElement(
+                    ns + "url",
+                    new XElement(ns + "loc", url)
+                )
+            )
+        )
+    );
+
+    return Results.Text(document.ToString(), "application/xml");
+});
 
 app.Run();

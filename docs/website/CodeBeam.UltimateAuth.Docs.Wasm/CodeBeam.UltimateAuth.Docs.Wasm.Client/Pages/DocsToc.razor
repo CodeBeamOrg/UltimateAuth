@@ -7,7 +7,7 @@
     return;
 }
 
-<MudPaper Class="pa-3" Style="background: transparent" Outlined="true" Elevation="0">
+<MudPaper Class="pa-3 ua-docs-toc" Style="background: transparent" Outlined="true" Elevation="0">
     <MudText Typo="Typo.subtitle2" Class="mb-2">On this page</MudText>
 
     <MudNavMenu Dense="true">
@@ -70,5 +70,6 @@
     public void Dispose()
     {
         PageState.Changed -= OnStateChanged;
+        _ref?.Dispose();
     }
 }

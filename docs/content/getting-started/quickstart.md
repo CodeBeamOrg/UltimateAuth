@@ -94,7 +94,7 @@ For in memory
 builder.Services.AddUltimateAuthSampleSeed();
 ```
 
-For entity framework core:
+For entity framework core, use scoped services:
 ```csharp
 builder.Services.AddScopedUltimateAuthSampleSeed();
 ```
