@@ -7,9 +7,13 @@
 <div style="min-height: 20vh; max-height: 90vh; overflow-y: auto;">
     @if (!Inline)
     {
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h6" Class="mb-2 px-2">UAuth Docs</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.CloseFullscreen" Color="Color.Primary" OnClick="@(() => _expanded = !_expanded)" />
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="ua-docs-header">
+            <div class="ua-docs-brand">
+                <MudText Typo="Typo.subtitle1">UltimateAuth</MudText>
+                <span>DOCUMENTATION</span>
+            </div>
+            @* <MudText Typo="Typo.h6" Class="mb-2 px-2">UAuth Docs</MudText> *@
+            <MudIconButton Icon="@Icons.Material.Filled.CloseFullscreen" Color="Color.Primary" Size="Size.Small" OnClick="@(() => _expanded = !_expanded)" />
         </MudStack>
     }
 
@@ -28,18 +32,18 @@
     }
     else if (_groups is null)
     {
-        <MudProgressCircular Indeterminate="true" />
+        <MudProgressLinear Indeterminate="true" />
     }
     else
     {
-        <MudNavMenu Color="Color.Primary" Rounded="true">
-            <MudNavLink Match="NavLinkMatch.All" Href="/docs">Overview</MudNavLink>
+        <MudNavMenu Color="Color.Primary" Rounded="true" Class="ua-docs-nav">
+            <MudNavLink Match="NavLinkMatch.All" Href="/docs" Class="ua-docs-overview">Overview</MudNavLink>
             @foreach (var group in _groups)
             {
-                <MudNavGroup Title="@FormatGroup(group.Key)" Expanded="_expanded">
+                <MudNavGroup Title="@FormatGroup(group.Key)" Expanded="_expanded" Class="ua-docs-group">
                     @foreach (var item in group.Value)
                     {
-                        <MudNavLink Match="NavLinkMatch.Prefix" Href="@($"/docs/{item.Slug}")">@item.Title</MudNavLink>
+                        <MudNavLink Match="NavLinkMatch.Prefix" Href="@($"/docs/{item.Slug}")" Class="ua-docs-item">@item.Title</MudNavLink>
                     }
                 </MudNavGroup>
             }

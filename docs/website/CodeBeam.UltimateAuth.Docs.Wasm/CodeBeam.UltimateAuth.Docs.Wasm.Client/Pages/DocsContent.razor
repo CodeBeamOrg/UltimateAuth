@@ -6,13 +6,6 @@
 @implements IDisposable
 @inject PersistentComponentState PersistentState
 
-@if (_loading)
-{
-    <div class="docs-loading">
-        <MudProgressLinear Indeterminate="true" Size="Size.Large" />
-    </div>
-}
-
 @if (_notFound)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="py-12">
