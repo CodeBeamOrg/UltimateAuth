@@ -1,0 +1,39 @@
+@page "/"
+@inject NavigationManager Navigation
+
+<PageTitle>UltimateAuth Identity Lab</PageTitle>
+<main class="landing-shell @(leaving ? "leaving" : null)">
+    <section class="hero">
+        <div class="hero-copy">
+            <div class="eyebrow">ULTIMATEAUTH</div>
+            <h1>Identity <span>Lab</span></h1>
+            <h2>A live playground and sandbox for authentication, authorization and session management.</h2>
+            <p>Explore real users, device chains, sessions and permissions in an isolated environment built with Blazor, MudBlazor and UltimateAuth.</p>
+            <MudButton Class="explore-button" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.ArrowForward" OnClick="StartExploring">Start Exploring</MudButton>
+        </div>
+        <div class="hero-preview" aria-label="Identity Lab dashboard preview">
+            <div class="preview-top"><strong><span class="mini-mark">U</span> UltimateAuth</strong><span>⌕ &nbsp; Playground</span></div>
+            <div class="preview-body">
+                <aside>▣ Dashboard<br />♙ Users<br />▱ Sessions<br />◇ Authorization</aside>
+                <div><h3>Dashboard</h3><p>Overview of your playground environment.</p><div class="preview-cards"><b>Identity<br /><em>Real</em></b><b>Device chains<br /><em>Live</em></b><b>Auth state<br /><em>Secure</em></b></div><div class="preview-events"><strong>UltimateAuth capabilities</strong><hr />Authentication <span>flow based</span><hr />Sessions <span>device aware</span><hr />Authorization <span>policy driven</span></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="feature-row">
+        <article><i>⚗</i><div><strong>Safe Playground</strong><p>Isolated environment for learning and testing.</p></div></article>
+        <article><i>♢</i><div><strong>Real Authentication</strong><p>Powered by UltimateAuth. No mock authentication.</p></div></article>
+        <article><i>♙</i><div><strong>Full Scenarios</strong><p>Users, permissions, devices and session control.</p></div></article>
+        <article><i>&lt;/&gt;</i><div><strong>Open Source</strong><p>Explore the code and use it in your own projects.</p></div></article>
+    </section>
+    <footer><span>A CodeBeam Product</span><span>Playground &nbsp;&nbsp; Documentation &nbsp;&nbsp; GitHub ↗</span></footer>
+</main>
+
+@code {
+    private bool leaving;
+    private async Task StartExploring()
+    {
+        leaving = true;
+        await Task.Delay(180);
+        Navigation.NavigateTo("/access");
+    }
+}

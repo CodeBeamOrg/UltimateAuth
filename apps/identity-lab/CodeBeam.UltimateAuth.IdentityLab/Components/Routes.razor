@@ -1,0 +1,22 @@
+<UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(MainLayout)">
+    <ChildContent>
+        <MudThemeProvider Theme="LabTheme" />
+        <MudPopoverProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+    </ChildContent>
+    <NotAuthorized><NotAuthorized /></NotAuthorized>
+</UAuthApp>
+
+@code {
+    private readonly MudTheme LabTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#087f7b", Secondary = "#11223f", Background = "#f8fbfc",
+            Surface = "#ffffff", TextPrimary = "#08162f", TextSecondary = "#536581"
+        },
+        Typography = new Typography { Default = new DefaultTypography { FontFamily = ["Inter", "sans-serif"] } },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" }
+    };
+}
