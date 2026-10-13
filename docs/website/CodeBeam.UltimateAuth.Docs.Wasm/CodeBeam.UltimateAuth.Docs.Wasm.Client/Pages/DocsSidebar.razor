@@ -1,5 +1,8 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager Nav
+@using System.Net.Http.Json
+@implements IDisposable
+@inject PersistentComponentState PersistentState
 
 <div style="min-height: 20vh; max-height: 90vh; overflow-y: auto;">
     @if (!Inline)
@@ -12,7 +15,18 @@
 
     <MudDivider Class="mb-2" />
 
-    @if (_groups == null)
+    @if (!RendererInfo.IsInteractive)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+    }
+
+    @if (_loadFailed)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="px-2 py-3">
+            Navigation could not be loaded.
+        </MudText>
+    }
+    else if (_groups is null)
     {
         <MudProgressCircular Indeterminate="true" />
     }
@@ -36,26 +50,67 @@
 @code {
     private Dictionary<string, List<DocIndexItem>>? _groups;
     private bool _expanded = false;
+    private bool _loadFailed;
+
+    private PersistingComponentStateSubscription _subscription;
+
+    private string SidebarStateKey => Inline ? "docs-sidebar-inline" : "docs-sidebar-default";
 
     [Parameter]
     public bool Inline { get; set; }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (!firstRender)
-            return;
+        _subscription = PersistentState.RegisterOnPersisting(PersistSidebarAsync);
+    }
 
-        var items = await Http.GetFromJsonAsync<List<DocIndexItem>>("/docs/docs-index.json") ?? [];
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            List<DocIndexItem> items;
 
-        _groups = items
-            .GroupBy(x => x.Group)
-             .OrderBy(g => g.Min(x => x.GroupOrder))
-            .ToDictionary(
-                g => g.Key,
-                g => g.OrderBy(x => x.Order).ToList()
-            );
+            if (!PersistentState.TryTakeFromJson<List<DocIndexItem>>(SidebarStateKey, out var cachedItems) || cachedItems is null)
+            {
+                items = await Http.GetFromJsonAsync<List<DocIndexItem>>("docs/docs-index.json") ?? [];
+            }
+            else
+            {
+                items = cachedItems;
+            }
 
-        StateHasChanged();
+            _items = items;
+
+            _groups = items
+                .GroupBy(x => x.Group)
+                .OrderBy(g => g.Min(x => x.GroupOrder))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.Order).ToList()
+                );
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Docs sidebar failed: {ex.Message}");
+            _loadFailed = true;
+        }
+        catch (OperationCanceledException ex)
+        {
+            Console.WriteLine($"Docs sidebar request canceled: {ex.Message}");
+            _loadFailed = true;
+        }
+    }
+
+    private List<DocIndexItem>? _items;
+
+    private Task PersistSidebarAsync()
+    {
+        if (_items is not null)
+        {
+            PersistentState.PersistAsJson(SidebarStateKey, _items);
+        }
+
+        return Task.CompletedTask;
     }
 
     private string GetItemClass(DocIndexItem item)
@@ -74,6 +129,11 @@
 
         return System.Globalization.CultureInfo.CurrentCulture.TextInfo
             .ToTitleCase(group.Replace("-", " "));
+    }
+
+    public void Dispose()
+    {
+        _subscription.Dispose();
     }
 
     private class DocIndexItem

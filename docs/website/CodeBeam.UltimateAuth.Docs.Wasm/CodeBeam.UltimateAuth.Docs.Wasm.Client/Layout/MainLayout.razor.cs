@@ -36,4 +36,9 @@ public partial class MainLayout
             Background = "#0C1618"
         },
     };
+
+    public void DocsForceLoad()
+    {
+        Nav.NavigateTo("/docs", forceLoad: true);
+    }
 }

@@ -3,6 +3,8 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@implements IDisposable
+@inject PersistentComponentState PersistentState
 
 @if (_loading)
 {
@@ -13,10 +15,20 @@
 
 @if (_notFound)
 {
-    <MudContainer MaxWidth="MaxWidth.Medium">
-        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
-            Document not found.
-        </MudAlert>
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-12">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h4">
+                Page not found
+            </MudText>
+
+            <MudText Typo="Typo.body1">
+                The documentation page you're looking for doesn't exist.
+            </MudText>
+
+            <MudButton Href="/docs" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Back to documentation
+            </MudButton>
+        </MudStack>
     </MudContainer>
 }
 else if (_doc is not null)
@@ -72,10 +84,16 @@ else if (_doc is not null)
     [Parameter]
     public string? Slug { get; set; }
 
+    private PersistingComponentStateSubscription _subscription;
     private DocPage? _doc;
     private bool _loading = true;
     private bool _notFound;
     private ElementReference _contentRef;
+
+    protected override void OnInitialized()
+    {
+        _subscription = PersistentState.RegisterOnPersisting(PersistDocAsync);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -92,7 +110,14 @@ else if (_doc is not null)
 
         try
         {
-            _doc = await Http.GetFromJsonAsync<DocPage>($"docs/{slug}.json");
+            if (PersistentState.TryTakeFromJson<DocPage>($"docs-page:{Slug}", out var cachedDoc) && cachedDoc is not null)
+            {
+                _doc = cachedDoc;
+            }
+            else
+            {
+                _doc = await Http.GetFromJsonAsync<DocPage>($"docs/{slug}.json");
+            }
 
             if (_doc == null)
             {
@@ -105,14 +130,13 @@ else if (_doc is not null)
                 ComputePrevNext();
             }
         }
-        // catch
-        // {
-        //     _notFound = true;
-        // }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _notFound = true;
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Docs SSR] Failed to load '{slug}': {ex}");
-
+            Console.WriteLine($"[Docs SSR] {slug}: {ex.Message}");
             _notFound = true;
         }
 
@@ -125,6 +149,16 @@ else if (_doc is not null)
         {
             // await JS.InvokeVoidAsync("docsEnhance", _contentRef);
         }
+    }
+
+    private Task PersistDocAsync()
+    {
+        if (_doc is not null)
+        {
+            PersistentState.PersistAsJson($"docs-page:{Slug}", _doc);
+        }
+
+        return Task.CompletedTask;
     }
 
     private sealed class DocPage
@@ -199,5 +233,10 @@ else if (_doc is not null)
 
         if (index >= 0 && index < _nav.Count - 1)
             _next = _nav[index + 1];
+    }
+
+    public void Dispose()
+    {
+        _subscription.Dispose();
     }
 }

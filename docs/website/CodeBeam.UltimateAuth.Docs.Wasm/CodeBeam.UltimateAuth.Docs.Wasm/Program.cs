@@ -45,6 +45,27 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+
+    if (path is not null &&
+        path.StartsWith("/docs/", StringComparison.OrdinalIgnoreCase) &&
+        path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+    {
+        var asset = app.Environment.WebRootFileProvider
+            .GetFileInfo(path.TrimStart('/'));
+
+        if (!asset.Exists)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+
+    await next(context);
+});
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
