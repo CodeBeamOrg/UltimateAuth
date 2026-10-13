@@ -79,9 +79,9 @@ The internal architecture is modular, while the installation experience is delib
 
 ---
 
-# Core
+## Core
 
-## `CodeBeam.UltimateAuth.Core`
+#### `CodeBeam.UltimateAuth.Core`
 
 Core is the foundation of the entire UltimateAuth platform.
 
@@ -105,7 +105,7 @@ Most application developers do not need to install Core directly. It is normally
 
 ---
 
-# Server
+## Server
 
 The Server side is the authority that executes UltimateAuth authentication and identity behavior.
 
@@ -127,7 +127,7 @@ Other essential server capabilities, including authentication, sessions, and tok
 
 This gives UltimateAuth a modular internal architecture without forcing that complexity onto application developers.
 
-## Do I install `CodeBeam.UltimateAuth.Server` directly?
+### Do I install `CodeBeam.UltimateAuth.Server` directly?
 
 For normal application setup, **no**.
 
@@ -156,7 +156,7 @@ This is an important part of the UltimateAuth design:
 
 ---
 
-# Server Bundles
+## Server Bundles
 
 Bundles are server-side composition packages.
 
@@ -164,9 +164,9 @@ They collect the UltimateAuth server capabilities and the implementations requir
 
 You normally choose **one server bundle**.
 
-## Reference Bundle
+### Reference Bundle
 
-### `CodeBeam.UltimateAuth.Reference.Bundle`
+#### `CodeBeam.UltimateAuth.Reference.Bundle`
 
 The Reference Bundle provides the recommended UltimateAuth server composition without selecting a persistence implementation for your application.
 
@@ -188,9 +188,9 @@ This is the lowest-level recommended server composition for applications that wa
 
 It is also an important extensibility point: UltimateAuth provides a recommended architecture without requiring applications to use one particular persistence technology.
 
-## InMemory Bundle
+### InMemory Bundle
 
-### `CodeBeam.UltimateAuth.InMemory.Bundle`
+#### `CodeBeam.UltimateAuth.InMemory.Bundle`
 
 The InMemory Bundle provides a complete server setup backed by UltimateAuth's in-memory implementations.
 
@@ -213,9 +213,9 @@ InMemory.Bundle
 
 This is the easiest way to start an UltimateAuth server.
 
-## Entity Framework Core Bundle
+### Entity Framework Core Bundle
 
-### `CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle`
+#### `CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle`
 
 The Entity Framework Core Bundle provides the complete server composition using UltimateAuth's EF Core persistence implementations.
 
@@ -235,7 +235,7 @@ The bundle performs that composition.
 
 ---
 
-# Why Bundles Matter
+### Why Bundles Matter
 
 A highly modular framework can easily make the developer experience worse if every application has to understand and install its internal package graph.
 
@@ -271,7 +271,7 @@ You should not need to understand the complete internal dependency graph before 
 
 ---
 
-# Client
+## Client
 
 The Client side has a different packaging model.
 
@@ -295,7 +295,7 @@ dotnet add package CodeBeam.UltimateAuth.Client.Blazor
 
 A future MAUI integration can follow the same model without changing the underlying UltimateAuth Client architecture.
 
-## `CodeBeam.UltimateAuth.Client`
+### `CodeBeam.UltimateAuth.Client`
 
 `CodeBeam.UltimateAuth.Client` is the shared client foundation.
 
@@ -307,7 +307,7 @@ Most applications should therefore install their platform-specific client packag
 
 ---
 
-## `CodeBeam.UltimateAuth.Client.Blazor`
+### `CodeBeam.UltimateAuth.Client.Blazor`
 
 `CodeBeam.UltimateAuth.Client.Blazor` is the concrete UltimateAuth client integration for Blazor.
 
@@ -341,13 +341,13 @@ This model keeps the shared Client architecture independent from Blazor while st
 
 ---
 
-# Client Compatibility Packages
+### Client Compatibility Packages
 
 Not every client-side package represents a complete client implementation.
 
 Some packages exist to bridge UltimateAuth with a host framework.
 
-## `CodeBeam.UltimateAuth.Client.AspNetCore`
+#### `CodeBeam.UltimateAuth.Client.AspNetCore`
 
 `CodeBeam.UltimateAuth.Client.AspNetCore` is a lightweight ASP.NET Core compatibility layer for UltimateAuth client applications.
 
@@ -359,11 +359,11 @@ It can enable compatibility with ASP.NET Core features such as `[Authorize]`, bu
 
 ---
 
-# Application Composition
+## Application Composition
 
 Because Server and Client are independent platform sides, different applications can compose UltimateAuth differently.
 
-## Server Only
+### Server Only
 
 Typical examples include:
 
@@ -377,7 +377,7 @@ Application
 +-- Server Bundle
 ```
 
-## Client Only
+### Client Only
 
 Typical examples include:
 
@@ -393,7 +393,7 @@ Application
         +---- remote UltimateAuth Server / UAuthHub
 ```
 
-## Server + Client
+### Server + Client
 
 Some applications host UltimateAuth and consume its client API in the same application.
 
@@ -411,7 +411,7 @@ The two sides remain architecturally distinct even when deployed in the same pro
 
 ---
 
-# Plugin Domains
+## Plugin Domains
 
 UltimateAuth extends its identity platform through **Plugin Domains**.
 
@@ -425,7 +425,7 @@ A Plugin Domain is more than a single assembly. It is a capability area with con
 
 This structure allows a domain to remain replaceable without requiring applications to redesign the rest of UltimateAuth.
 
-## Anatomy of a Plugin Domain
+### Anatomy of a Plugin Domain
 
 A typical Plugin Domain follows this model:
 
@@ -448,7 +448,7 @@ Each layer has a distinct purpose.
 
 ---
 
-## Contracts
+### Contracts
 
 Example:
 
@@ -472,7 +472,7 @@ This allows another implementation to integrate with UltimateAuth without depend
 
 ---
 
-## Domain / Runtime
+### Domain / Runtime
 
 Example:
 
@@ -486,7 +486,7 @@ It operates against abstractions rather than requiring one persistence implement
 
 ---
 
-## Reference Implementations
+### Reference Implementations
 
 Example:
 
@@ -518,7 +518,7 @@ This pattern gives advanced applications extensibility without making simple app
 
 ---
 
-## Persistence Implementations
+### Persistence Implementations
 
 Plugin Domains can provide persistence-specific packages independently.
 
@@ -542,9 +542,9 @@ Their separation exists primarily to preserve architectural modularity and repla
 
 ---
 
-# Current Plugin Domains
+## Current Plugin Domains
 
-## Users
+### Users
 
 The Users domain owns user lifecycle and user-management capabilities.
 
@@ -558,7 +558,7 @@ CodeBeam.UltimateAuth.Users.InMemory
 CodeBeam.UltimateAuth.Users.EntityFrameworkCore
 ```
 
-## Credentials
+### Credentials
 
 The Credentials domain owns credential-related capabilities and credential management.
 
@@ -572,7 +572,7 @@ CodeBeam.UltimateAuth.Credentials.InMemory
 CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore
 ```
 
-## Authorization
+### Authorization
 
 The Authorization domain provides UltimateAuth authorization capabilities.
 
@@ -590,7 +590,7 @@ The same architectural pattern makes these capabilities independently evolvable 
 
 ---
 
-# Essential Server Capabilities
+## Essential Server Capabilities
 
 Authentication, Sessions, and Tokens are slightly different from Plugin Domains.
 
@@ -642,17 +642,17 @@ The selected Server bundle composes the required implementations for the applica
 
 ---
 
-# Policies and Security
+## Policies and Security
 
 Some capabilities are deliberately isolated even though they support multiple areas of the platform.
 
-## Policies
+### Policies
 
 `CodeBeam.UltimateAuth.Policies` contains policy infrastructure used to keep security and application decisions explicit and extensible.
 
 Policies are part of the server architecture rather than application-specific transport logic.
 
-## Security Implementations
+### Security Implementations
 
 Security algorithms can also live behind focused implementations.
 
@@ -666,7 +666,7 @@ Keeping security implementations separate avoids coupling the entire platform to
 
 ---
 
-# Modularity Without an Incomplete Framework
+## Modularity Without an Incomplete Framework
 
 UltimateAuth's modularity has an important design goal:
 
@@ -692,7 +692,7 @@ A customization should be local to the capability being replaced rather than req
 
 ---
 
-# Replaceability by Design
+## Replaceability by Design
 
 UltimateAuth is intentionally built from small architectural boundaries.
 
@@ -736,11 +736,11 @@ Security-sensitive extension points still remain subject to UltimateAuth's secur
 
 ---
 
-# Choosing Packages
+## Choosing Packages
 
 For most developers, package selection should be simple.
 
-## Blazor Server with InMemory persistence
+### Blazor Server with InMemory persistence
 
 ```bash
 dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
@@ -749,14 +749,14 @@ dotnet add package CodeBeam.UltimateAuth.Client.Blazor
 
 The application both hosts UltimateAuth and consumes the Blazor client integration.
 
-## Blazor Server with Entity Framework Core
+### Blazor Server with Entity Framework Core
 
 ```bash
 dotnet add package CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle
 dotnet add package CodeBeam.UltimateAuth.Client.Blazor
 ```
 
-## Custom persistence
+### Custom persistence
 
 Start from:
 
@@ -766,7 +766,7 @@ dotnet add package CodeBeam.UltimateAuth.Reference.Bundle
 
 and provide the required persistence implementations for your architecture.
 
-## Standalone Blazor WebAssembly
+### Standalone Blazor WebAssembly
 
 Install the client integration:
 
@@ -778,7 +778,7 @@ The authentication authority lives in a remote UltimateAuth Server or UAuthHub.
 
 ---
 
-# The Rule of Thumb
+## The Rule of Thumb
 
 You generally do not need to assemble UltimateAuth package-by-package.
 

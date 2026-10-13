@@ -1,121 +1,156 @@
 {
   "Slug": "auth-flows/logout-flow",
   "Title": "Logout",
-  "Html": "\n\u003Cp\u003EThe logout flow in UltimateAuth is not a single action.\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 It represents different \u003Cstrong\u003Elevels of authentication termination\u003C/strong\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-is-logout\u0022\u003E\uD83E\uDDE0 What is Logout?\u003C/h2\u003E\n\u003Cp\u003EIn traditional systems:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogout = remove cookie or token\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn UltimateAuth:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Logout affects \u003Cstrong\u003Esession, device, or identity scope\u003C/strong\u003E\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003ELogout is not just removing access\u003Cbr /\u003E\n\u2192 It is controlling session lifecycle\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-vs-revoke\u0022\u003E\uD83D\uDD00 Logout vs Revoke\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth distinguishes between two concepts:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-soft-termination\u0022\u003E\uD83D\uDD39 Logout (Soft Termination)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EEnds the current session\u003C/li\u003E\n\u003Cli\u003EKeeps the device (chain) active\u003C/li\u003E\n\u003Cli\u003EAllows re-login without resetting device context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003ESession \u2192 Invalidated\nChain \u2192 Still Active\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 User can log in again and continue on the same device chain\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-hard-invalidation\u0022\u003E\uD83D\uDD25 Revoke (Hard Invalidation)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvalidates session, chain, or root\u003C/li\u003E\n\u003Cli\u003ECannot be undone\u003C/li\u003E\n\u003Cli\u003EForces a completely new authentication path\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cpre\u003E\u003Ccode\u003EChain \u2192 Revoked\nSessions \u2192 Revoked\nNext login \u2192 New chain\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\uD83D\uDC49 Revoke resets trust for that scope\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022levels-of-termination\u0022\u003E\uD83E\uDDE9 Levels of Termination\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth supports multiple logout scopes:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-level-logout\u0022\u003E\uD83D\uDD39 Session-Level Logout\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETerminates a single session\u003C/li\u003E\n\u003Cli\u003EOther sessions on the same device may remain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-level-chain\u0022\u003E\uD83D\uDCF1 Device-Level (Chain)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETerminates all sessions on a device\u003C/li\u003E\n\u003Cli\u003EDevice chain is invalidated or reset\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022global-logout-all-devices\u0022\u003E\uD83C\uDF10 Global Logout (All Devices)\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETerminates all sessions across all devices\u003C/li\u003E\n\u003Cli\u003EKeeps root (user identity) intact\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-revoke\u0022\u003E\uD83D\uDD25 Root Revoke\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EInvalidates entire authentication state\u003C/li\u003E\n\u003Cli\u003EAll chains and sessions are revoked\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This is the strongest possible action\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022step-by-step-execution\u0022\u003E\uD83D\uDD04 Step-by-Step Execution\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022flow-context-resolution\u0022\u003E1\uFE0F\u20E3 Flow Context Resolution\u003C/h3\u003E\n\u003Cp\u003EThe system resolves:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECurrent session\u003C/li\u003E\n\u003Cli\u003EUser identity\u003C/li\u003E\n\u003Cli\u003ETenant\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authority-decision\u0022\u003E2\uFE0F\u20E3 Authority Decision\u003C/h3\u003E\n\u003Cp\u003ELogout operations are validated:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAuthorization checks\u003C/li\u003E\n\u003Cli\u003EAccess validation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Logout is not blindly executed\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022scope-determination\u0022\u003E3\uFE0F\u20E3 Scope Determination\u003C/h3\u003E\n\u003Cp\u003EThe system determines what to terminate:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession\u003C/li\u003E\n\u003Cli\u003EChain\u003C/li\u003E\n\u003Cli\u003ERoot\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022execution\u0022\u003E4\uFE0F\u20E3 Execution\u003C/h3\u003E\n\u003Cp\u003EDepending on scope:\u003C/p\u003E\n\u003Ch4 id=\u0022session-logout\u0022\u003ESession Logout\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession is revoked\u003C/li\u003E\n\u003Cli\u003EOther sessions unaffected\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022chain-revoke-logout\u0022\u003EChain Revoke / Logout\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EAll sessions in the chain are revoked\u003C/li\u003E\n\u003Cli\u003EDevice trust is reset\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022global-logout\u0022\u003EGlobal Logout\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EAll chains are revoked (optionally excluding current)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch4 id=\u0022root-revoke-1\u0022\u003ERoot Revoke\u003C/h4\u003E\n\u003Cul\u003E\n\u003Cli\u003EEntire identity state is invalidated\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022event-dispatch\u0022\u003E5\uFE0F\u20E3 Event Dispatch\u003C/h3\u003E\n\u003Cp\u003EThe system emits:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogout events\u003C/li\u003E\n\u003Cli\u003EAudit logs\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-awareness\u0022\u003E\uD83D\uDCF1 Device Awareness\u003C/h2\u003E\n\u003Cp\u003ELogout behavior is device-aware:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEach device is a chain\u003C/li\u003E\n\u003Cli\u003ELogout can target specific devices\u003C/li\u003E\n\u003Cli\u003ESessions are grouped by device\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This enables fine-grained control\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-model\u0022\u003E\uD83D\uDD10 Security Model\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022controlled-termination\u0022\u003E\uD83D\uDD12 Controlled Termination\u003C/h3\u003E\n\u003Cp\u003EAll logout operations:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EPass through orchestrator\u003C/li\u003E\n\u003Cli\u003EAre validated by authority\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Prevents unauthorized session manipulation\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022irreversible-revocation\u0022\u003E\uD83D\uDD01 Irreversible Revocation\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ERevoked chains cannot be restored\u003C/li\u003E\n\u003Cli\u003ERevoked sessions remain invalid\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Ensures strong security guarantees\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022identity-boundaries\u0022\u003E\uD83D\uDD17 Identity Boundaries\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession \u2192 temporary identity proof\u003C/li\u003E\n\u003Cli\u003EChain \u2192 device trust boundary\u003C/li\u003E\n\u003Cli\u003ERoot \u2192 global identity state\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Logout operates within these boundaries\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember one thing:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Logout = ending a session\u003Cbr /\u003E\n\uD83D\uDC49 Revoke = resetting trust\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogout and revoke are different operations\u003C/li\u003E\n\u003Cli\u003ELogout is reversible (via re-login)\u003C/li\u003E\n\u003Cli\u003ERevoke is permanent and forces new authentication\u003C/li\u003E\n\u003Cli\u003EDevice (chain) is a first-class concept\u003C/li\u003E\n\u003Cli\u003ESecurity is enforced through authority and orchestrator\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ESession Lifecycle\u003C/strong\u003E\u003C/p\u003E\n",
+  "Html": "\n\u003Cp\u003EAuthentication does not end when a client deletes a cookie or forgets a token. In UltimateAuth, ending access is a \u003Cstrong\u003Eserver-side lifecycle decision\u003C/strong\u003E: the system determines which authentication state must stop being usable, at what scope, and whether the associated device relationship should survive a future login.\u003C/p\u003E\n\u003Cp\u003EThat distinction is central to UltimateAuth\u0027s design. \u003Cstrong\u003ELogout ends access; revoke permanently invalidates the selected trust boundary.\u003C/strong\u003E Both can prevent a session from being used, but they express different intentions and have different consequences for the session hierarchy.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-is-more-than-clearing-credentials\u0022\u003ELogout is more than clearing credentials\u003C/h2\u003E\n\u003Cp\u003EA traditional application may implement logout by removing a browser cookie or deleting a locally stored token. That is useful client cleanup, but by itself it does not necessarily invalidate a credential already issued by the server. A copied token could remain usable until its expiration if the server has no corresponding invalidation mechanism.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth instead models authentication around a hierarchy:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EUser\n\u2514\u2500\u2500 Root                 Global authentication lineage\n    \u251C\u2500\u2500 Chain            Device-associated authentication lineage\n    \u2502   \u251C\u2500\u2500 Session      Individual authentication instance\n    \u2502   \u2514\u2500\u2500 Session      Another instance in the same chain\n    \u2514\u2500\u2500 Chain            Another device\n        \u2514\u2500\u2500 Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EThis structure gives termination a meaningful scope. An application can end access on the current device, sign out other devices, sign out all devices, or explicitly revoke a session, chain, or root. The correct choice depends on the intent: ordinary sign-out, account security, device compromise, or global trust reset.\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u003Cstrong\u003EMental model:\u003C/strong\u003E Logout is a controlled exit from authentication. Revoke is a permanent invalidation of the selected authentication state. A later login may establish new state, but it does not undo a revocation.\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-versus-revoke\u0022\u003ELogout versus revoke\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-end-access-without-necessarily-destroying-the-device-lineage\u0022\u003ELogout: end access without necessarily destroying the device lineage\u003C/h3\u003E\n\u003Cp\u003EAn ordinary logout is designed for situations such as a user selecting \u003Cstrong\u003ESign out\u003C/strong\u003E in an application. It ends the relevant authenticated access while allowing the device-associated chain to remain available for a subsequent login, subject to its state and lifetime rules.\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EBefore logout\nRoot (active)\n\u2514\u2500\u2500 Chain (active)\n    \u2514\u2500\u2500 Session (authenticated)\n\nAfter logout\nRoot (active)\n\u2514\u2500\u2500 Chain (retained)\n    \u2514\u2500\u2500 Session (no longer usable)\n\nAfter a later successful login\nRoot (active)\n\u2514\u2500\u2500 Chain (reusable if still eligible)\n    \u2514\u2500\u2500 New Session\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\u003Cstrong\u003ERetaining a chain does not mean retaining an authenticated session.\u003C/strong\u003E The user must authenticate again. Reuse is conditional: an expired, revoked, or otherwise ineligible chain must not be treated as active merely because it still exists in storage.\u003C/p\u003E\n\u003Cp\u003EA subtle but important implementation detail: the current HTTP logout flow resolves the authenticated session and invokes the flow service, whose logout command identifies and logs out the \u003Cstrong\u003Eassociated chain\u003C/strong\u003E. Consequently, the default logout endpoint should not be described as a guarantee that \u003Cem\u003Eonly one session record\u003C/em\u003E changes. Its practical boundary is the current device chain.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoke-permanently-invalidate-the-selected-trust-boundary\u0022\u003ERevoke: permanently invalidate the selected trust boundary\u003C/h3\u003E\n\u003Cp\u003ERevocation is a stronger security operation. A revoked session, chain, or root is not restored by a subsequent login, refresh, or cookie update.\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EChain (active)\n\u2514\u2500\u2500 Session (active)\n\nRevoke chain\n\nChain (revoked \u2014 terminal state)\n\u2514\u2500\u2500 Sessions (invalidated)\n\nFuture authentication \u2192 new eligible chain, not restoration of the old one\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003E\u003Cstrong\u003ERevocation is irreversible for the revoked entity.\u003C/strong\u003E This does not mean the user is permanently locked out of the application. A legitimate user may authenticate again and establish a new session lineage if account policy allows it. What cannot happen is bringing the \u003Cem\u003Erevoked\u003C/em\u003E session or chain back to life.\u003C/p\u003E\n\u003Cp\u003EThis distinction is useful in security-sensitive scenarios: a lost device, suspected credential theft, administrator intervention, or a decision to invalidate all existing authentication relationships.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022choosing-the-termination-scope\u0022\u003EChoosing the termination scope\u003C/h2\u003E\n\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EOperation\u003C/th\u003E\n\u003Cth\u003EIntended scope\u003C/th\u003E\n\u003Cth\u003EWhat it means\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ELogout current device\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003ECurrent session\u0027s chain\u003C/td\u003E\n\u003Ctd\u003EEnds authenticated access for the current device while preserving the possibility of later eligible chain reuse.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ELogout a device\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003ESelected chain\u003C/td\u003E\n\u003Ctd\u003EEnds access on the chosen device; can be initiated by the user or an authorized administrator.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ELogout other devices\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOther device sessions\u003C/td\u003E\n\u003Ctd\u003EEnds access elsewhere while preserving the specified current device context.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ELogout all devices\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EAll user sessions\u003C/td\u003E\n\u003Ctd\u003ESigns the user out across devices without treating this as a root revocation.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ERevoke session\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOne session\u003C/td\u003E\n\u003Ctd\u003EPermanently invalidates the selected session.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ERevoke chain\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOne device lineage\u003C/td\u003E\n\u003Ctd\u003EPermanently invalidates that chain and its sessions.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ERevoke other/all chains\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EMultiple device lineages\u003C/td\u003E\n\u003Ctd\u003EPermanently invalidates selected device relationships.\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ERevoke root\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EGlobal authentication lineage\u003C/td\u003E\n\u003Ctd\u003EInvalidates the root and cascades to its chains and sessions.\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\n\u003Cp\u003EThese are not interchangeable aliases. In particular, \u003Cstrong\u003Elogout all devices\u003C/strong\u003E and \u003Cstrong\u003Erevoke root\u003C/strong\u003E both disrupt broad access, but they do not express the same lifecycle intent.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-session-level-revoke-is-separate\u0022\u003EWhy session-level revoke is separate\u003C/h3\u003E\n\u003Cp\u003EUltimateAuth exposes a session revocation operation distinct from the ordinary logout endpoint. A single session can be revoked without necessarily revoking its parent chain. This is useful when an application needs to invalidate a particular authentication instance rather than the entire device relationship.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-root-revoke-is-exceptional\u0022\u003EWhy root revoke is exceptional\u003C/h3\u003E\n\u003Cp\u003EThe root represents the user\u0027s active authentication lineage, not the user\u0027s existence in the user directory. Root revocation cascades through the associated authentication hierarchy. A later permitted login may establish a \u003Cstrong\u003Enew\u003C/strong\u003E active root; it does not reverse the old root\u0027s revocation.\u003C/p\u003E\n\u003Cp\u003ERoot revocation should therefore be reserved for an intentional global trust reset rather than ordinary sign-out.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022how-the-current-logout-flow-executes\u0022\u003EHow the current logout flow executes\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022resolve-the-flow-context\u0022\u003E1. Resolve the flow context\u003C/h3\u003E\n\u003Cp\u003EThe HTTP endpoint obtains the current \u003Ccode\u003EAuthFlowContext\u003C/code\u003E. This carries the relevant authentication state and response configuration, including the resolved session when one is available.\u003C/p\u003E\n\u003Cp\u003EThe ordinary logout endpoint does not accept an arbitrary session ID from the browser and blindly invalidate it. It uses the session already resolved for the current flow.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022request-server-side-termination\u0022\u003E2. Request server-side termination\u003C/h3\u003E\n\u003Cp\u003EWhen a \u003Ccode\u003ESessionSecurityContext\u003C/code\u003E is present, the endpoint constructs a \u003Ccode\u003ELogoutRequest\u003C/code\u003E using that session ID and calls the flow service:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-csharp\u0022\u003Evar request = new LogoutRequest\n{\n    SessionId = session.SessionId\n};\n\nawait _client.Flows.LogoutAsync(request);\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EThe logout command resolves the session\u0027s chain and invokes the session issuer\u0027s \u003Ccode\u003ELogoutChainAsync\u003C/code\u003E operation. The session-store implementation performs the chain logout transition.\u003C/p\u003E\n\u003Cp\u003EThis is the authoritative part of logout. Removing a client cookie alone is not a substitute for this state transition.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022clear-cookies-configured-for-this-flow\u0022\u003E3. Clear cookies configured for this flow\u003C/h3\u003E\n\u003Cp\u003EAfter the server-side operation, the HTTP handler attempts to delete credentials whose \u003Cstrong\u003Eeffective delivery mode is Cookie\u003C/strong\u003E:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession ID cookie\u003C/li\u003E\n\u003Cli\u003ERefresh token cookie\u003C/li\u003E\n\u003Cli\u003EAccess token cookie\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThe handler uses the configured cookie names through \u003Ccode\u003EIUAuthCookieManager\u003C/code\u003E. It does not assume that all three credentials are cookies, and it does not attempt to delete header-delivered credentials from a remote client\u0027s storage.\u003C/p\u003E\n\u003Cp\u003EWhen the flow has no resolved session, the endpoint can still perform cookie cleanup and return a successful logout response. This makes sign-out useful even when a browser holds stale credentials.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022resolve-the-response-and-optional-redirect\u0022\u003E4. Resolve the response and optional redirect\u003C/h3\u003E\n\u003Cp\u003EOnce termination and cookie cleanup have been handled, UltimateAuth evaluates the logout response configuration. The result is either a redirect to the configured destination or a normal HTTP success response.\u003C/p\u003E\n\u003Cp\u003EWith redirect disabled, the ordinary endpoint returns:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode class=\u0022language-json\u0022\u003E{\n  \u0026quot;isSuccess\u0026quot;: true\n}\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EWith redirect enabled, it returns an HTTP redirect to the resolved target instead. Applications should not expect the JSON success body in that case.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-redirect-matters\u0022\u003EWhy redirect matters\u003C/h2\u003E\n\u003Cp\u003EA redirect is \u003Cstrong\u003Enot required to invalidate authentication state\u003C/strong\u003E. It is a navigation concern that becomes important in browser-based authentication flows.\u003C/p\u003E\n\u003Cp\u003EConsider a server-rendered application with a dedicated sign-out page. Once the session has ended and cookies are cleared, the browser should often return to a public page, a login screen, or the page originally requested by the user. Redirecting completes that user journey without requiring the application to parse a logout response and navigate manually.\u003C/p\u003E\n\u003Cp\u003ERedirects can also help when the authentication endpoint and the client application are on different origins or when a centralized authentication service serves multiple clients. The server can perform the security operation and then send the browser back to the appropriate application destination.\u003C/p\u003E\n\u003Cp\u003EIn contrast, a mobile client or API consumer commonly prefers an ordinary HTTP result and controls its own navigation. \u003Cstrong\u003ERedirect is a response behavior, not a security primitive.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022redirect-resolution-in-ultimateauth\u0022\u003ERedirect resolution in UltimateAuth\u003C/h3\u003E\n\u003Cp\u003EThe response resolver selects the effective redirect settings for the logout flow. The redirect resolver then:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EChecks whether redirect is enabled.\u003C/li\u003E\n\u003Cli\u003EOn success, considers an allowed return URL override when configured.\u003C/li\u003E\n\u003Cli\u003EOtherwise uses the configured success path, resolved against the client base address.\u003C/li\u003E\n\u003Cli\u003EIf no valid destination is configured, leaves redirect disabled and allows a normal success response.\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003EFor absolute return URL overrides, the resolver restricts schemes to HTTP or HTTPS and validates the origin against configured allowed client origins when that allowlist is populated. Relative paths are resolved against the selected client base address.\u003C/p\u003E\n\u003Cp\u003EThis is why a return URL should be treated as \u003Cstrong\u003Evalidated navigation input\u003C/strong\u003E, never as an unrestricted arbitrary destination. Applications should configure allowed origins carefully, especially in multi-client or hosted scenarios.\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u003Cstrong\u003EImportant:\u003C/strong\u003E Do not use a redirect as proof that logout succeeded, or assume that clearing browser cookies invalidates every credential issued to every device. The server-side termination scope determines what access has actually ended.\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-aware-logout\u0022\u003EDevice-aware logout\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth treats the device-associated chain as a first-class authentication boundary. That allows applications to build features such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ESign out of this device\u003C/strong\u003E \u2014 end the current device\u0027s authenticated access.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESign out of another device\u003C/strong\u003E \u2014 target a specific chain after the appropriate access checks.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESign out of other devices\u003C/strong\u003E \u2014 preserve the current device while ending other sessions.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESign out everywhere\u003C/strong\u003E \u2014 end all device sessions for the user.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERevoke a lost device\u003C/strong\u003E \u2014 permanently invalidate the compromised chain instead of merely signing it out.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThese operations are exposed through distinct application-service methods, rather than overloading a single logout call with ambiguous behavior.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022self-service-and-administrative-actions\u0022\u003ESelf-service and administrative actions\u003C/h3\u003E\n\u003Cp\u003EDevice and all-device HTTP endpoints use access contexts carrying explicit action identifiers. They are executed through the access orchestrator, which enforces the applicable authorization decision before the requested state mutation.\u003C/p\u003E\n\u003Cp\u003EFor example, \u003Ccode\u003ELogoutDeviceSelfAsync\u003C/code\u003E targets the authenticated user\u0027s device, whereas \u003Ccode\u003ELogoutDeviceAdminAsync\u003C/code\u003E accepts a target user and executes under an administrative action context. Both ultimately call the device logout application service; authorization and target ownership are not left to the client.\u003C/p\u003E\n\u003Cp\u003EThe default current-device logout endpoint follows its own flow-based path. Do not assume every termination operation shares the same exact handler or authorization pipeline.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-properties-and-boundaries\u0022\u003ESecurity properties and boundaries\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-side-invalidation-comes-first\u0022\u003EServer-side invalidation comes first\u003C/h3\u003E\n\u003Cp\u003EThe server must stop recognizing the affected authentication state. Browser cleanup improves user experience and reduces accidental credential reuse, but it is not the source of truth.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revoked-state-is-terminal\u0022\u003ERevoked state is terminal\u003C/h3\u003E\n\u003Cp\u003ERevocation cannot be undone by setting \u003Ccode\u003EIsRevoked\u003C/code\u003E back to false, presenting an old refresh token, or logging in again with the same device. A new authentication path must establish new eligible state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022scope-must-be-explicit\u0022\u003EScope must be explicit\u003C/h3\u003E\n\u003Cp\u003EA session revoke should not be casually described as a chain revoke. A logout-all operation should not be described as a root revoke. These distinctions determine whether existing device lineages are retained, ended, or permanently invalidated.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authorization-and-ownership-matter\u0022\u003EAuthorization and ownership matter\u003C/h3\u003E\n\u003Cp\u003ESelf-service operations must stay within the authenticated user\u0027s permitted scope. Administrative operations must be evaluated under their corresponding action and target context. A client-provided chain identifier is not sufficient authorization to terminate someone else\u0027s session.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-delivery-affects-cleanup-not-the-termination-model\u0022\u003EToken delivery affects cleanup, not the termination model\u003C/h3\u003E\n\u003Cp\u003EWhether a client receives credentials through cookies or headers, the server-side hierarchy still governs session-backed authentication. Clients using non-cookie delivery must also clear their own local credentials after successful termination.\u003C/p\u003E\n\u003Cp\u003EThe precise behavior of already-issued, independently validated tokens depends on the active authentication mode and token validation strategy. Avoid assuming every token format provides instantaneous server-side revocation without checking its validation model.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022practical-examples\u0022\u003EPractical examples\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-user-signs-out-at-the-end-of-the-day\u0022\u003EA user signs out at the end of the day\u003C/h3\u003E\n\u003Cp\u003EUse the ordinary logout flow. The current device\u0027s authenticated access ends, configured cookies are cleared, and the browser may be redirected to a public page. A later successful login can reuse the retained device chain if it remains eligible.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-user-loses-a-phone\u0022\u003EA user loses a phone\u003C/h3\u003E\n\u003Cp\u003EUse \u003Cstrong\u003Echain revoke\u003C/strong\u003E, not merely a soft device logout, when the goal is to permanently invalidate that device\u0027s existing trust lineage. The user may later authenticate on a replacement device, but the revoked chain stays revoked.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-user-wants-to-keep-this-device-but-sign-out-elsewhere\u0022\u003EA user wants to keep this device but sign out elsewhere\u003C/h3\u003E\n\u003Cp\u003EUse \u003Cstrong\u003Elogout other devices\u003C/strong\u003E. The current device\u0027s chain is excluded while other device sessions are terminated. This is different from permanently revoking every other chain.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022an-account-is-believed-to-be-compromised\u0022\u003EAn account is believed to be compromised\u003C/h3\u003E\n\u003Cp\u003EDepending on the security policy, revoke all chains or the root. This is a stronger response than ordinary logout because it deliberately invalidates existing authentication lineages. Credential rotation and additional account recovery steps may also be required; revocation alone does not prove that compromised credentials have been changed.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022common-misconceptions\u0022\u003ECommon misconceptions\u003C/h2\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CLogout just deletes the cookie.\u201D\u003C/strong\u003E No. The ordinary endpoint performs server-side termination when a session is resolved, then clears applicable cookies.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CLogout and revoke are the same operation.\u201D\u003C/strong\u003E No. Both can stop access, but revocation is permanent for the selected entity; soft logout can retain eligible device lineage.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CLogout always means exactly one session.\u201D\u003C/strong\u003E Not in the current default HTTP flow. The resolved session identifies a chain, and the logout command operates on that chain.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CRevocation permanently bans the user.\u201D\u003C/strong\u003E No. It permanently invalidates existing authentication state at the selected scope. A permitted future login may create new state.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CRedirect makes logout secure.\u201D\u003C/strong\u003E No. Redirect controls where the browser goes after logout; the session-store transition is what ends server-recognized access.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003E\u201CLogout all devices is the same as revoke root.\u201D\u003C/strong\u003E No. They are different lifecycle operations with different implications for the authentication hierarchy.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003EKey takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ELogout is a lifecycle operation\u003C/strong\u003E, not merely client-side credential deletion.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERevoke is irreversible\u003C/strong\u003E for the revoked session, chain, or root; a future login never restores that entity.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERoot \u2192 Chain \u2192 Session\u003C/strong\u003E makes termination scope explicit and device-aware.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ECurrent-device logout operates through the associated chain\u003C/strong\u003E in the current server implementation.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EOther-device and all-device logout\u003C/strong\u003E are separate from hard chain/root revocation.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ERedirect is optional navigation behavior\u003C/strong\u003E, especially useful for browser-based flows; it does not perform revocation.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EServer-side state is authoritative\u003C/strong\u003E for session-backed access; client credential cleanup remains important.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003ESession Lifecycle\u003C/strong\u003E to understand how roots, chains, and sessions are created, rotated, expired, logged out, and revoked over time.\u003C/p\u003E\n",
   "Headings": [
     {
-      "Id": "what-is-logout",
-      "Text": "\uD83E\uDDE0 What is Logout?",
+      "Id": "logout-is-more-than-clearing-credentials",
+      "Text": "Logout is more than clearing credentials",
       "Level": 0
     },
     {
-      "Id": "logout-vs-revoke",
-      "Text": "\uD83D\uDD00 Logout vs Revoke",
+      "Id": "logout-versus-revoke",
+      "Text": "Logout versus revoke",
       "Level": 0
     },
     {
-      "Id": "logout-soft-termination",
-      "Text": "\uD83D\uDD39 Logout (Soft Termination)",
+      "Id": "logout-end-access-without-necessarily-destroying-the-device-lineage",
+      "Text": "Logout: end access without necessarily destroying the device lineage",
       "Level": 1
     },
     {
-      "Id": "revoke-hard-invalidation",
-      "Text": "\uD83D\uDD25 Revoke (Hard Invalidation)",
+      "Id": "revoke-permanently-invalidate-the-selected-trust-boundary",
+      "Text": "Revoke: permanently invalidate the selected trust boundary",
       "Level": 1
     },
     {
-      "Id": "levels-of-termination",
-      "Text": "\uD83E\uDDE9 Levels of Termination",
+      "Id": "choosing-the-termination-scope",
+      "Text": "Choosing the termination scope",
       "Level": 0
     },
     {
-      "Id": "session-level-logout",
-      "Text": "\uD83D\uDD39 Session-Level Logout",
+      "Id": "why-session-level-revoke-is-separate",
+      "Text": "Why session-level revoke is separate",
       "Level": 1
     },
     {
-      "Id": "device-level-chain",
-      "Text": "\uD83D\uDCF1 Device-Level (Chain)",
+      "Id": "why-root-revoke-is-exceptional",
+      "Text": "Why root revoke is exceptional",
       "Level": 1
     },
     {
-      "Id": "global-logout-all-devices",
-      "Text": "\uD83C\uDF10 Global Logout (All Devices)",
-      "Level": 1
-    },
-    {
-      "Id": "root-revoke",
-      "Text": "\uD83D\uDD25 Root Revoke",
-      "Level": 1
-    },
-    {
-      "Id": "step-by-step-execution",
-      "Text": "\uD83D\uDD04 Step-by-Step Execution",
+      "Id": "how-the-current-logout-flow-executes",
+      "Text": "How the current logout flow executes",
       "Level": 0
     },
     {
-      "Id": "flow-context-resolution",
-      "Text": "1\uFE0F\u20E3 Flow Context Resolution",
+      "Id": "resolve-the-flow-context",
+      "Text": "1. Resolve the flow context",
       "Level": 1
     },
     {
-      "Id": "authority-decision",
-      "Text": "2\uFE0F\u20E3 Authority Decision",
+      "Id": "request-server-side-termination",
+      "Text": "2. Request server-side termination",
       "Level": 1
     },
     {
-      "Id": "scope-determination",
-      "Text": "3\uFE0F\u20E3 Scope Determination",
+      "Id": "clear-cookies-configured-for-this-flow",
+      "Text": "3. Clear cookies configured for this flow",
       "Level": 1
     },
     {
-      "Id": "execution",
-      "Text": "4\uFE0F\u20E3 Execution",
+      "Id": "resolve-the-response-and-optional-redirect",
+      "Text": "4. Resolve the response and optional redirect",
       "Level": 1
     },
     {
-      "Id": "event-dispatch",
-      "Text": "5\uFE0F\u20E3 Event Dispatch",
-      "Level": 1
-    },
-    {
-      "Id": "device-awareness",
-      "Text": "\uD83D\uDCF1 Device Awareness",
+      "Id": "why-redirect-matters",
+      "Text": "Why redirect matters",
       "Level": 0
     },
     {
-      "Id": "security-model",
-      "Text": "\uD83D\uDD10 Security Model",
+      "Id": "redirect-resolution-in-ultimateauth",
+      "Text": "Redirect resolution in UltimateAuth",
+      "Level": 1
+    },
+    {
+      "Id": "device-aware-logout",
+      "Text": "Device-aware logout",
       "Level": 0
     },
     {
-      "Id": "controlled-termination",
-      "Text": "\uD83D\uDD12 Controlled Termination",
+      "Id": "self-service-and-administrative-actions",
+      "Text": "Self-service and administrative actions",
       "Level": 1
     },
     {
-      "Id": "irreversible-revocation",
-      "Text": "\uD83D\uDD01 Irreversible Revocation",
+      "Id": "security-properties-and-boundaries",
+      "Text": "Security properties and boundaries",
+      "Level": 0
+    },
+    {
+      "Id": "server-side-invalidation-comes-first",
+      "Text": "Server-side invalidation comes first",
       "Level": 1
     },
     {
-      "Id": "identity-boundaries",
-      "Text": "\uD83D\uDD17 Identity Boundaries",
+      "Id": "revoked-state-is-terminal",
+      "Text": "Revoked state is terminal",
       "Level": 1
     },
     {
-      "Id": "mental-model",
-      "Text": "\uD83E\uDDE0 Mental Model",
+      "Id": "scope-must-be-explicit",
+      "Text": "Scope must be explicit",
+      "Level": 1
+    },
+    {
+      "Id": "authorization-and-ownership-matter",
+      "Text": "Authorization and ownership matter",
+      "Level": 1
+    },
+    {
+      "Id": "token-delivery-affects-cleanup-not-the-termination-model",
+      "Text": "Token delivery affects cleanup, not the termination model",
+      "Level": 1
+    },
+    {
+      "Id": "practical-examples",
+      "Text": "Practical examples",
+      "Level": 0
+    },
+    {
+      "Id": "a-user-signs-out-at-the-end-of-the-day",
+      "Text": "A user signs out at the end of the day",
+      "Level": 1
+    },
+    {
+      "Id": "a-user-loses-a-phone",
+      "Text": "A user loses a phone",
+      "Level": 1
+    },
+    {
+      "Id": "a-user-wants-to-keep-this-device-but-sign-out-elsewhere",
+      "Text": "A user wants to keep this device but sign out elsewhere",
+      "Level": 1
+    },
+    {
+      "Id": "an-account-is-believed-to-be-compromised",
+      "Text": "An account is believed to be compromised",
+      "Level": 1
+    },
+    {
+      "Id": "common-misconceptions",
+      "Text": "Common misconceptions",
       "Level": 0
     },
     {
       "Id": "key-takeaways",
-      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Text": "Key takeaways",
       "Level": 0
     },
     {
       "Id": "next-step",
-      "Text": "\u27A1\uFE0F Next Step",
+      "Text": "\u27A1\uFE0F Next step",
       "Level": 0
     }
   ]

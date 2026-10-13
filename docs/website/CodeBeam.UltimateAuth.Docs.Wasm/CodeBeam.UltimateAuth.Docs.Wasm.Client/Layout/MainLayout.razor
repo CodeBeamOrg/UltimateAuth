@@ -13,27 +13,51 @@
 <MudLayout>
     <MudAppBar Class="ua-appbar" Color="Color.Transparent" Dense="true" Elevation="0">
         <div class="ua-appbar-grid">
+
             <div class="ua-left">
-                <div class="ua-mobile-only">
-                    <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
-                </div>
+                @if (RendererInfo.IsInteractive)
+                {
+                    <div class="ua-controls-enter">
+                        <div class="ua-mobile-only">
+                            <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+                        </div>
 
-                <div class="ua-desktop-only">
-                    <MudButton Variant="Variant.Text" Href="/docs" Style="min-width: fit-content">Docs</MudButton>
-                    <MudButton Variant="Variant.Text" Href="/samples">Samples</MudButton>
-                    <MudButton Variant="Variant.Text" Href="/#donate">Donate</MudButton>
-                </div>
+                        <div class="ua-desktop-only">
+                            <MudButton Variant="Variant.Text" Href="/docs">Docs</MudButton>
+                            <MudButton Variant="Variant.Text" Href="/samples">Samples</MudButton>
+                            <MudButton Variant="Variant.Text" Href="/#donate">Donate</MudButton>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="ua-nav-shimmer" aria-hidden="true">
+                        <span class="ua-nav-shimmer-track"></span>
+                    </div>
+                }
             </div>
 
-            <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/#uauth"))">
+            <a class="ua-center" href="/#uauth" aria-label="UltimateAuth Home">
                 <UAuthLogo Class="ua-logo mt-4" Size="64" />
-            </div>
+            </a>
 
             <div class="ua-right">
-                <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Href="https://discord.gg/ENhTkHWcwY" Target="_blank" />
-                <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
-                <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
+                @if (RendererInfo.IsInteractive)
+                {
+                    <div class="ua-controls-enter ua-right-controls">
+                        <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Href="https://discord.gg/ENhTkHWcwY" Target="_blank" />
+                        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
+                        <MudToggleIconButton @bind-Toggled="_isDarkMode" @bind-Toggled:after="SaveThemeAsync" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
+                    </div>
+                }
+                else
+                {
+                    <div class="ua-nav-shimmer ua-nav-shimmer-right" aria-hidden="true">
+                        <span class="ua-nav-shimmer-track"></span>
+                    </div>
+                }
             </div>
+
         </div>
     </MudAppBar>
 
