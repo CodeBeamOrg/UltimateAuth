@@ -25,14 +25,20 @@
                 </div>
             </div>
 
-            <div class="ua-center cursor-pointer" @onclick="@(() => Nav.NavigateTo("/#uauth"))">
+            <a class="ua-center cursor-pointer" href="/#uauth" aria-label="UltimateAuth Home">
                 <UAuthLogo Class="ua-logo mt-4" Size="64" />
-            </div>
+            </a>
 
             <div class="ua-right">
-                <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Href="https://discord.gg/ENhTkHWcwY" Target="_blank" />
-                <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
-                <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
+                <MudTooltip Text="Discord" Delay="300" ShowOnFocus="false">
+                    <MudIconButton Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Href="https://discord.gg/ENhTkHWcwY" Target="_blank" />
+                </MudTooltip>
+                <MudTooltip Text="GitHub" Delay="300" ShowOnFocus="false">
+                    <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Primary" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" />
+                </MudTooltip>
+                <MudTooltip Text="Dark/Light Mode" Delay="300" ShowOnFocus="false">
+                    <MudToggleIconButton @bind-Toggled="@_isDarkMode" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" Color="Color.Primary" ToggledColor="Color.Primary" />
+                </MudTooltip>
             </div>
         </div>
     </MudAppBar>
