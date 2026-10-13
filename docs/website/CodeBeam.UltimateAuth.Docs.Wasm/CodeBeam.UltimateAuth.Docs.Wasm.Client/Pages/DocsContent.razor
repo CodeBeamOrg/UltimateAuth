@@ -4,14 +4,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-@if (_loading || !RendererInfo.IsInteractive)
-{
-    <div class="docs-loading">
-        <MudProgressCircular Indeterminate="true" Size="Size.Large" />
-    </div>
-    return;
-}
-else if (_notFound)
+@if (_notFound)
 {
     <MudContainer MaxWidth="MaxWidth.Medium">
         <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
