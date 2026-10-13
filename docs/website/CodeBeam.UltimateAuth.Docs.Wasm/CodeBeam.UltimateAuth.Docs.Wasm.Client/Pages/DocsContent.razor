@@ -4,6 +4,13 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
+@if (_loading)
+{
+    <div class="docs-loading">
+        <MudProgressLinear Indeterminate="true" Size="Size.Large" />
+    </div>
+}
+
 @if (_notFound)
 {
     <MudContainer MaxWidth="MaxWidth.Medium">
@@ -98,8 +105,14 @@ else if (_doc is not null)
                 ComputePrevNext();
             }
         }
-        catch
+        // catch
+        // {
+        //     _notFound = true;
+        // }
+        catch (Exception ex)
         {
+            Console.WriteLine($"[Docs SSR] Failed to load '{slug}': {ex}");
+
             _notFound = true;
         }
 

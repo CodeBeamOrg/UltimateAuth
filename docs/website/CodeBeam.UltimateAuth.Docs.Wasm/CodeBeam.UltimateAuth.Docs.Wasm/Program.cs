@@ -1,6 +1,7 @@
 using CodeBeam.UltimateAuth.Docs.Wasm;
 using CodeBeam.UltimateAuth.Docs.Wasm.Client.Pages;
 using CodeBeam.UltimateAuth.Docs.Wasm.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using System.Text.Json;
@@ -15,6 +16,17 @@ builder.Services.AddMudServices();
 builder.Services.AddMudExtensions();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var navigation = sp.GetRequiredService<NavigationManager>();
+
+    return new HttpClient
+    {
+        BaseAddress = new Uri(navigation.BaseUri)
+    };
+});
+
 builder.Services.AddScoped<DocsPageState>();
 
 var app = builder.Build();
