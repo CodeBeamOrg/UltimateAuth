@@ -33,7 +33,7 @@ builder.Services.AddUltimateAuthAspNetCoreCompatibility();
 // It gives full AspNetCore compatibility but affects performance significantly.
 //builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6112/auth");
 
-builder.Services.AddScoped<ProductApiService>();
+builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.AddHttpClient("resourceApi", client =>
 {

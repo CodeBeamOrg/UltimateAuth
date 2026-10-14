@@ -1,7 +1,7 @@
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
-using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -31,7 +31,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
 });
 
-builder.Services.AddScoped<ProductApiService>();
+builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.AddScoped(sp =>
 {
