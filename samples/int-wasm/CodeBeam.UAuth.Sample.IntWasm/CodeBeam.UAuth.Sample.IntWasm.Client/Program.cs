@@ -1,7 +1,7 @@
 using CodeBeam.UAuth.Sample.IntWasm.Client.Infrastructure;
-using CodeBeam.UAuth.Sample.IntWasm.Client.ResourceApi;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using MudExtensions.Services;

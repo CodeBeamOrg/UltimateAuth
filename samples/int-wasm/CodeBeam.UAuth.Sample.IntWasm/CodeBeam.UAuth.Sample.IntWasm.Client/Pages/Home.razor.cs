@@ -3,13 +3,12 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
-using CodeBeam.UAuth.Sample.IntWasm.Client.Common;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using System.Security.Claims;
 using CodeBeam.UltimateAuth.Sample.Shared.Dialogs;
-using CodeBeam.UAuth.Sample.IntWasm.Client.Components.Dialogs;
+using CodeBeam.UltimateAuth.Sample.Shared.Common;
 
 namespace CodeBeam.UAuth.Sample.IntWasm.Client.Pages;
 

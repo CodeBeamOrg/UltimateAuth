@@ -1,12 +1,9 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
-using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Components.Dialogs;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Dialogs;
 
 public partial class ResourceApiDialog
 {

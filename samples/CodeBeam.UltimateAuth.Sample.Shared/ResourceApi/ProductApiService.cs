@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using System.Net.Http.Json;
 
-namespace CodeBeam.UAuth.Sample.IntWasm.Client.ResourceApi;
+namespace CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 
 public class ProductApiService
 {

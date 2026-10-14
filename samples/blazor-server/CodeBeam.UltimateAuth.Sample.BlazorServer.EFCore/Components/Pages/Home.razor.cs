@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Common;
+using CodeBeam.UltimateAuth.Sample.Shared.Common;
 using CodeBeam.UltimateAuth.Sample.Shared.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;

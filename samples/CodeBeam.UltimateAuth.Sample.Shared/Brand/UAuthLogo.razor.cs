@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 
-namespace CodeBeam.UltimateAuth.Sample;
+namespace CodeBeam.UltimateAuth.Sample.Shared;
 
 public partial class UAuthLogo : ComponentBase
 {

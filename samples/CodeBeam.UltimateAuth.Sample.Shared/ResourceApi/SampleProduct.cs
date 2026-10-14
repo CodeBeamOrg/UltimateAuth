@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UAuth.Sample.IntWasm.Client.ResourceApi;
+﻿namespace CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 
 public class SampleProduct
 {
