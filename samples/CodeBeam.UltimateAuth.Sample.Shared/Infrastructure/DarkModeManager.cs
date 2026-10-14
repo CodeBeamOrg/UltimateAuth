@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 
-namespace CodeBeam.UAuth.Sample.IntWasm.Client.Infrastructure;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 
 public sealed class DarkModeManager
 {

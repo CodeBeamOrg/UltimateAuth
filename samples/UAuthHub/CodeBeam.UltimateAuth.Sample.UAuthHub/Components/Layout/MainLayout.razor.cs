@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
-using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 

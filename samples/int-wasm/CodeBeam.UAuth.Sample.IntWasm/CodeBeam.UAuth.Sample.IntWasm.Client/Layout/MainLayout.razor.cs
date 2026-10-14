@@ -3,9 +3,9 @@ using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
-using CodeBeam.UAuth.Sample.IntWasm.Client.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 
 namespace CodeBeam.UAuth.Sample.IntWasm.Client.Layout;
 

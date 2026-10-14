@@ -1,11 +1,10 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components;
-using CodeBeam.UltimateAuth.Sample.UAuthHub.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using MudBlazor.Services;
 using MudExtensions.Services;
