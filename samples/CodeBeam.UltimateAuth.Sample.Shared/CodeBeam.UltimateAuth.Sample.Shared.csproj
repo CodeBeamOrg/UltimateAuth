@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+	  <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.13" />
+    <PackageReference Include="MudBlazor" Version="9.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Dialogs;
+using CodeBeam.UltimateAuth.Sample.Shared.Dialogs;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Pages;

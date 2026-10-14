@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Common;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Components.Dialogs;
+using CodeBeam.UltimateAuth.Sample.Shared.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
