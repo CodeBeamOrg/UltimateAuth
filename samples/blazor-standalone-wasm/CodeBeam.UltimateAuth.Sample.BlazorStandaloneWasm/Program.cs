@@ -28,7 +28,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Login.AllowCredentialPost = true;
     o.Pkce.ReturnUrl = "https://localhost:6130/home"; // This application domain + path
 
-    o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
 });
 
 builder.Services.AddScoped<SampleProductApiService>();

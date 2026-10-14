@@ -29,15 +29,14 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddUltimateAuthAspNetCoreCompatibility();
+
 // If you want to use the UltimateAuthClientBlazor without the AspNetCore compatibility layer, you can register the services like this instead:
 // It gives full AspNetCore compatibility but affects performance significantly.
 //builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6112/auth");
 
-builder.Services.AddScoped<SampleProductApiService>();
-
-builder.Services.AddHttpClient("resourceApi", client =>
+builder.Services.AddHttpClient<SampleProductApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:6122"); // Resource API URL
+    client.BaseAddress = new Uri("https://localhost:6122"); // EFCore Resource API URL
 });
 
 var app = builder.Build();
