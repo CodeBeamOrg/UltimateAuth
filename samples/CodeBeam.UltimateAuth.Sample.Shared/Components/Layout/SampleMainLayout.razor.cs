@@ -7,15 +7,21 @@ using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Components.Layout;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Layout;
 
-public partial class MainLayout
+public partial class SampleMainLayout
 {
     [CascadingParameter]
     public UAuthState UAuth { get; set; } = default!;
 
     [CascadingParameter]
     public DarkModeManager DarkModeManager { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    [Parameter]
+    public string? Title { get; set; }
 
     private async Task Refresh()
     {

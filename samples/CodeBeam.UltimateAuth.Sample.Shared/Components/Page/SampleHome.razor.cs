@@ -10,7 +10,7 @@ using System.Security.Claims;
 using CodeBeam.UltimateAuth.Sample.Shared.Common;
 using CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 
-namespace CodeBeam.UltimateAuth.Sample.Shared.Components.PageComponents;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
 public partial class SampleHome : UAuthPageBase
 {

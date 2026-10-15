@@ -10,13 +10,20 @@ using MudExtensions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+# region Essentials & UI & MudBlazor - Extensions
+
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices(o => {
     o.SnackbarConfiguration.PreventDuplicates = false;
 });
+
 builder.Services.AddMudExtensions();
+
+builder.Services.AddScoped<DarkModeManager>();
+
+# endregion
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
@@ -26,12 +33,10 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Pkce.ReturnUrl = "https://localhost:6132/home"; // This application domain + path
 });
 
-builder.Services.AddScoped<DarkModeManager>();
-
 builder.Services.AddUltimateAuthAspNetCoreCompatibility();
 
 // If you want to use the UltimateAuthClientBlazor without the AspNetCore compatibility layer, you can register the services like this instead:
-// It gives full AspNetCore compatibility but affects performance significantly.
+// It gives full AspNetCore compatibility but decreases performance significantly.
 //builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6112/auth");
 
 builder.Services.AddHttpClient<SampleProductApiService>(client =>

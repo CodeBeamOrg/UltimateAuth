@@ -7,9 +7,9 @@ using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.Shared.Components.LayoutComponents;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Layout;
 
-public partial class SampleMainLayout
+public partial class SampleHubMainLayout
 {
     [CascadingParameter]
     public UAuthState UAuth { get; set; } = default!;
@@ -21,7 +21,7 @@ public partial class SampleMainLayout
     public RenderFragment ChildContent { get; set; } = default!;
 
     [Parameter]
-    public string? Title { get; set; }
+    public string? Title { get; set; } = "UAuthHub Sample";
 
     private async Task Refresh()
     {

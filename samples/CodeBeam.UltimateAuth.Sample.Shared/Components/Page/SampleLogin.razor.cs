@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.Shared.Components.PageComponents;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
 public partial class SampleLogin : UAuthPageBase
 {

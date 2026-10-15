@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
+﻿namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
 public partial class NotAuthorized
 {

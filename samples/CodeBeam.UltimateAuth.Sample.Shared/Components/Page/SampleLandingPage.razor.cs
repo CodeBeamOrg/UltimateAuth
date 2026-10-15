@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Defaults;
 
-namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components.Pages;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
-public partial class LandingPage
+public partial class SampleLandingPage
 {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

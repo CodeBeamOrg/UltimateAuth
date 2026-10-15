@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Users.Contracts;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.Shared.Components.PageComponents;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
 public partial class SampleRegister
 {
