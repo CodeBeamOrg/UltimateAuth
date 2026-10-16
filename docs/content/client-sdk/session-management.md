@@ -41,7 +41,7 @@ A chain is associated with a device or client context, but it is not cryptograph
 
 The available hierarchy and enforcement behavior depend on the authentication mode.
 
-For architectural details, see [Session Model & Lifecycle](/docs/sessions-devices/session-model).
+For architectural details, see [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle).
 
 ## 2. Accessing the Session Client
 
@@ -792,6 +792,6 @@ These operations should be protected by appropriate permissions and, where requi
 ## Next Steps
 
 - [Authentication](/docs/client/authentication) — Login, logout, refresh, and authentication state validation.
-- [Session Model & Lifecycle](/docs/sessions-devices/session-model) — Session roots, chains, lifecycle, and expiration.
+- [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Session roots, chains, lifecycle, and expiration.
 - [Device Management](/docs/sessions-devices/device-management) — Device-associated authentication contexts.
-- [Session Security Model](/docs/security/session-security-model) — Revocation and session security boundaries.
+- [Session Security Model](/docs/security/session-security) — Revocation and session security boundaries.

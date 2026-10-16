@@ -28,8 +28,8 @@
     "GroupOrder": 1
   },
   {
-    "Title": "Fundamental Overview",
-    "Slug": "fundamentals/index",
+    "Title": "Fundamentals Overview",
+    "Slug": "fundamentals/overview",
     "Order": 1,
     "Group": "fundamentals",
     "GroupOrder": 2
@@ -77,8 +77,8 @@
     "GroupOrder": 2
   },
   {
-    "Title": "Auth Flows Overview",
-    "Slug": "auth-flows/index",
+    "Title": "Auth-Flows Overview",
+    "Slug": "auth-flows/overview",
     "Order": 1,
     "Group": "auth-flows",
     "GroupOrder": 3
@@ -119,29 +119,29 @@
     "GroupOrder": 4
   },
   {
-    "Title": "Plugin Domains",
-    "Slug": "plugin-domains/index",
+    "Title": "Plugin-Domains Overview",
+    "Slug": "plugin-domains/overview",
     "Order": 1,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },
   {
     "Title": "Users",
-    "Slug": "plugin-domains/users-domain",
+    "Slug": "plugin-domains/users",
     "Order": 2,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },
   {
     "Title": "Credentials",
-    "Slug": "plugin-domains/credential-domain",
+    "Slug": "plugin-domains/credentials",
     "Order": 3,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },
   {
     "Title": "Authorization",
-    "Slug": "plugin-domains/authorization-domain",
+    "Slug": "plugin-domains/authorization",
     "Order": 4,
     "Group": "plugin-domains",
     "GroupOrder": 5
@@ -155,56 +155,56 @@
   },
   {
     "Title": "Client SDK Overview",
-    "Slug": "client/index",
+    "Slug": "client-sdk/overview",
     "Order": 1,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Authentication",
-    "Slug": "client/authentication",
+    "Slug": "client-sdk/authentication",
     "Order": 2,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Session Management",
-    "Slug": "client/session-management",
+    "Slug": "client-sdk/session-management",
     "Order": 3,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "User Management",
-    "Slug": "client/user-management",
+    "Slug": "client-sdk/user-management",
     "Order": 4,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Identifiers",
-    "Slug": "client/identifiers",
+    "Slug": "client-sdk/identifiers",
     "Order": 5,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Credentials",
-    "Slug": "client/credentials",
+    "Slug": "client-sdk/credentials",
     "Order": 6,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Authorization",
-    "Slug": "client/authorization",
+    "Slug": "client-sdk/authorization",
     "Order": 7,
     "Group": "client",
     "GroupOrder": 6
   },
   {
     "Title": "Configuration Overview",
-    "Slug": "configuration/index",
+    "Slug": "configuration/overview",
     "Order": 1,
     "Group": "configuration",
     "GroupOrder": 7
@@ -232,7 +232,7 @@
   },
   {
     "Title": "Session Security Model",
-    "Slug": "security/session-security-model",
+    "Slug": "security/session-security",
     "Order": 1,
     "Group": "security",
     "GroupOrder": 8
@@ -257,12 +257,5 @@
     "Order": 4,
     "Group": "security",
     "GroupOrder": 8
-  },
-  {
-    "Title": "\uD83D\uDD10 UltimateAuth Docs",
-    "Slug": "readme",
-    "Order": 999,
-    "Group": "",
-    "GroupOrder": 999
   }
 ]

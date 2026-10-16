@@ -256,7 +256,7 @@ In JWT-based modes, a previously issued access token may remain valid until expi
 
 Therefore, revoking a device-associated chain must not be described as universally invalidating every previously issued access token immediately.
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes).
+See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Session and Device Limits
 
@@ -302,7 +302,7 @@ It also preserves an important architectural boundary: device recognition, sessi
 
 ## Next Steps
 
-- [Session Model](/docs/sessions-devices/session-model) — Understand sessions, chains, and their lifecycle.
-- [Session Security](/docs/sessions-devices/session-security) — Explore expiration, rotation, touch, and revocation.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Compare session validation across authentication modes.
+- [Session Model](/docs/sessions-devices/session-lifecycle) — Understand sessions, chains, and their lifecycle.
+- [Session Security](/docs/security/session-security) — Explore expiration, rotation, touch, and revocation.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Compare session validation across authentication modes.
 - [Request Lifecycle](/docs/fundamentals/request-lifecycle) — Understand how protected requests are authenticated and authorized.

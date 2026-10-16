@@ -1,5 +1,5 @@
 ---
-title: Fundamental Overview
+title: Fundamentals Overview
 order: 1
 group: fundamentals
 ---

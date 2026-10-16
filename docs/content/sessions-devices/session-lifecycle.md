@@ -277,7 +277,7 @@ A refresh mechanism may use an independent refresh store, but the server-managed
 
 This is an important distinction between the framework's common authentication concepts and the persistence requirements of individual modes.
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes).
+See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Session Expiration
 
@@ -419,6 +419,6 @@ The hierarchy is most directly relevant to session-managed authentication, while
 ## Next Steps
 
 - [Device Management](/docs/sessions-devices/device-management) — Device context, chain association, and device-aware session management.
-- [Session Security](/docs/sessions-devices/session-security) — Session expiration, rotation, revocation, and security controls.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Understand how session behavior differs between modes.
+- [Session Security](/docs/security/session-security) — Session expiration, rotation, revocation, and security controls.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Understand how session behavior differs between modes.
 - [Request Lifecycle](/docs/fundamentals/request-lifecycle) — Learn how protected requests validate authentication state.

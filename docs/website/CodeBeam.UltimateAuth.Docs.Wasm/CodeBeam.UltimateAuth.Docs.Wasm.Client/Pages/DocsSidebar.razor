@@ -131,8 +131,10 @@
         if (string.IsNullOrWhiteSpace(group))
             return "General";
 
-        return System.Globalization.CultureInfo.CurrentCulture.TextInfo
-            .ToTitleCase(group.Replace("-", " "));
+        if (group == "client")
+            return "Client SDK";
+
+        return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(group.Replace("-", " "));
     }
 
     public void Dispose()

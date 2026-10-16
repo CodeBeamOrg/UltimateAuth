@@ -281,4 +281,4 @@ Start with **Authentication** to configure and use login, refresh, and logout op
 
 Then explore session management, user operations, credentials, authorization, and protected resource API integration according to your application's requirements.
 
-For the concepts behind these operations, refer to [Authentication Modes](/docs/fundamentals/authentication-modes) and [Plugin Domains](/docs/plugin-domains).
+For the concepts behind these operations, refer to [Authentication Modes](/docs/fundamentals/auth-modes) and [Plugin Domains](/docs/plugin-domains/overview).

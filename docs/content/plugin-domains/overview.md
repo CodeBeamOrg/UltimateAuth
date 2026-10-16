@@ -1,5 +1,5 @@
 ---
-title: Plugin Domains
+title: Plugin-Domains Overview
 order: 1
 group: plugin-domains
 ---
@@ -119,4 +119,4 @@ Continue with the individual domains to understand their responsibilities, publi
 - [Credentials](/docs/plugin-domains/credentials) — Credential management, verification, and recovery.
 - [Authorization](/docs/plugin-domains/authorization) — Roles, permissions, policies, and access control.
 
-For the underlying authentication architecture, see [Runtime Architecture](/docs/fundamentals/runtime-architecture) and [Authentication Model](/docs/fundamentals/authentication-model).
+For the underlying authentication architecture, see [Runtime Architecture](/docs/fundamentals/runtime-architecture) and [Authentication Model](/docs/fundamentals/auth-model).

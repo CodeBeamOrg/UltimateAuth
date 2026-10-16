@@ -232,7 +232,7 @@ They are not a guarantee that every listed mode is the current implementation de
 
 In particular, the `UAuthHub` profile should not be interpreted as an authentication mode. UAuthHub is the authentication host, and its supported operations may serve clients using different modes.
 
-For the full comparison of validation and lifecycle guarantees, see [Authentication Modes](./authentication-modes.md).
+For the full comparison of validation and lifecycle guarantees, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Profile resolution and request context
 
@@ -288,7 +288,7 @@ Authentication continuation must preserve the relevant security relationships es
 
 The framework-controlled `AuthFlowContext` provides a consistent boundary for these decisions.
 
-See [Flow-Based Authentication](./flow-based-authentication.md) for the conceptual model and [Auth Flows](../auth-flows/) for the technical request pipeline.
+See [Flow-Based Authentication](/docs/fundamentals/flow-based-auth) for the conceptual model and [Auth Flows](/docs/auth-flows/overview) for the technical request pipeline.
 
 ## Credential delivery and runtime capabilities
 
@@ -396,4 +396,4 @@ Together, these concepts allow different clients to share the same UltimateAuth 
 
 ## Next step
 
-Continue to [Runtime Architecture](./runtime-architecture.md) to understand how UltimateAuth's client, server, and hosting components work together across different application environments.
+Continue to [Runtime Architecture](/docs/fundamentals/runtime-architecture) to understand how UltimateAuth's client, server, and hosting components work together across different application environments.

@@ -18,7 +18,7 @@ In session-managed authentication modes, the security hierarchy is:
 
 This page focuses on the security guarantees, validation requirements, and enforcement boundaries of that hierarchy.
 
-For the underlying entities and their lifecycle, see [Session Model & Lifecycle](/docs/sessions-devices/session-model).
+For the underlying entities and their lifecycle, see [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle).
 
 ## Security Objectives
 
@@ -375,7 +375,7 @@ Server-authoritative validation provides stronger immediate control over active 
 
 Locally validated JWTs reduce that dependency but cannot inherently provide the same immediate revocation behavior.
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes).
+See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Threat Scenarios
 
@@ -457,7 +457,7 @@ Their practical security guarantees depend on the authentication mode and the va
 
 ## Next Steps
 
-- [Session Model & Lifecycle](/docs/sessions-devices/session-model) — Understand the underlying hierarchy and lifecycle.
+- [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Understand the underlying hierarchy and lifecycle.
 - [Device Management](/docs/sessions-devices/device-management) — Explore device context and chain association.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Compare enforcement across authentication modes.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Compare enforcement across authentication modes.
 - [Credentials](/docs/plugin-domains/credentials) — Understand credential changes and session revocation policies.

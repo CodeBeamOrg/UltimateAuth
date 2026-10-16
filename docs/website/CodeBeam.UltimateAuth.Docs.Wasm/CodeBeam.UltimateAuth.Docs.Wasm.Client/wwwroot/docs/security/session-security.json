@@ -1,0 +1,192 @@
+{
+  "Slug": "security/session-security",
+  "Title": "Session Security Model",
+  "Html": "\n\u003Cp\u003EA valid authentication credential is not necessarily sufficient to establish that an authentication session should still be trusted.\u003C/p\u003E\n\u003Cp\u003EA session may have been revoked, its associated account security state may have changed, or the client may no longer satisfy the conditions under which authentication was established.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth addresses these concerns through a \u003Cstrong\u003Ehierarchical session security model\u003C/strong\u003E, with explicit boundaries for session validity, device-associated continuity, and account-level invalidation.\u003C/p\u003E\n\u003Cp\u003EIn session-managed authentication modes, the security hierarchy is:\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ERoot \u2192 Chain \u2192 Session\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003EThis page focuses on the security guarantees, validation requirements, and enforcement boundaries of that hierarchy.\u003C/p\u003E\n\u003Cp\u003EFor the underlying entities and their lifecycle, see \u003Ca href=\u0022/docs/sessions-devices/session-lifecycle\u0022\u003ESession Model \u0026amp; Lifecycle\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-objectives\u0022\u003ESecurity Objectives\u003C/h2\u003E\n\u003Cp\u003EThe session security model is designed to support several distinct requirements.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EObjective\u003C/th\u003E\n\u003Cth\u003ESecurity purpose\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ESession isolation\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EInvalidate a particular authentication session without necessarily affecting others\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EChain isolation\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EControl sessions associated with a particular device or client context\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EAccount-level invalidation\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EInvalidate authentication state across the account\u0027s session hierarchy\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ESecurity state propagation\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EDetect changes to account-level authentication security\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EContext consistency\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EEnsure that related session, chain, root, and tenant information remains consistent\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ELifecycle enforcement\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EReject authentication state that has expired or been revoked\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Cp\u003EThese requirements are related, but they should not be collapsed into a single token expiration check.\u003C/p\u003E\n\u003Cp\u003EA token can remain structurally valid even when the server-managed authentication state associated with it is no longer acceptable.\u003C/p\u003E\n\u003Cp\u003EWhether that state is consulted during a protected request depends on the authentication mode.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-boundaries\u0022\u003ESecurity Boundaries\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth\u0027s session hierarchy separates security responsibilities into three levels.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAccount-level security\n        |\n        v\n   SessionRoot\n        |\n        |  Account-wide security state\n        |  Security version\n        |\n        v\n   SessionChain\n        |\n        |  Session continuity\n        |  Device context\n        |  Chain-level revocation\n        |\n        v\n      Session\n        |\n        |  Individual validity\n        |  Expiration\n        |  Revocation\n        |\n        v\n   Authentication state\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EEach level provides a distinct boundary for evaluating or invalidating authentication state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-security-boundary\u0022\u003ERoot Security Boundary\u003C/h3\u003E\n\u003Cp\u003EThe root represents account-level authentication security.\u003C/p\u003E\n\u003Cp\u003EIt provides a common authority for security state that affects sessions associated with the same account.\u003C/p\u003E\n\u003Cp\u003EThis enables account-wide invalidation without requiring the user identity itself to be deleted or recreated.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-security-boundary\u0022\u003EChain Security Boundary\u003C/h3\u003E\n\u003Cp\u003EA chain groups related authentication sessions and may be associated with a device or client environment.\u003C/p\u003E\n\u003Cp\u003EIt provides a boundary for revoking related sessions together.\u003C/p\u003E\n\u003Cp\u003EA chain is not proof of physical device identity, and its existence does not automatically mean that the associated device is trusted.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-security-boundary\u0022\u003ESession Security Boundary\u003C/h3\u003E\n\u003Cp\u003EA session represents individual server-managed authentication state.\u003C/p\u003E\n\u003Cp\u003EIt can be independently subject to expiration, revocation, and consistency checks.\u003C/p\u003E\n\u003Cp\u003EA session is not equivalent to an access token: the token is presented by the client, while the session represents server-managed security state where the selected mode uses it.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022layered-session-validation\u0022\u003ELayered Session Validation\u003C/h2\u003E\n\u003Cp\u003EIn a session-authoritative authentication mode, accepting a presented credential requires more than recognizing its identifier.\u003C/p\u003E\n\u003Cp\u003EThe associated session hierarchy must satisfy the applicable validity and consistency requirements.\u003C/p\u003E\n\u003Cp\u003EThese requirements can be understood in several categories.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-validity\u0022\u003ESession Validity\u003C/h3\u003E\n\u003Cp\u003EThe session must satisfy its own security conditions.\u003C/p\u003E\n\u003Cp\u003ERelevant checks include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe session exists in the authoritative session store.\u003C/li\u003E\n\u003Cli\u003EThe session has not been revoked.\u003C/li\u003E\n\u003Cli\u003EThe session has not exceeded its applicable expiration limits.\u003C/li\u003E\n\u003Cli\u003EThe session is associated with the expected chain.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EA credential referencing a missing, expired, or revoked session must not establish a valid session-authoritative authentication state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-validity\u0022\u003EChain Validity\u003C/h3\u003E\n\u003Cp\u003EThe associated chain must satisfy the applicable chain security conditions.\u003C/p\u003E\n\u003Cp\u003EThese may include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe chain exists.\u003C/li\u003E\n\u003Cli\u003EThe chain has not been revoked.\u003C/li\u003E\n\u003Cli\u003EThe chain belongs to the expected account and tenant context.\u003C/li\u003E\n\u003Cli\u003EThe session-to-chain relationship is consistent.\u003C/li\u003E\n\u003Cli\u003EAny applicable chain-level expiration or inactivity conditions are satisfied.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EChain validation prevents an otherwise recognizable session from bypassing a security restriction applied to its broader session continuity boundary.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-validity\u0022\u003ERoot Validity\u003C/h3\u003E\n\u003Cp\u003EThe root must satisfy the account-level security requirements.\u003C/p\u003E\n\u003Cp\u003ERelevant conditions include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe expected root exists.\u003C/li\u003E\n\u003Cli\u003EThe root is associated with the expected identity and tenant context.\u003C/li\u003E\n\u003Cli\u003EThe chain belongs to the expected root.\u003C/li\u003E\n\u003Cli\u003EThe root has not been invalidated.\u003C/li\u003E\n\u003Cli\u003EApplicable security version requirements are satisfied.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThis prevents a valid-looking session from being accepted when its account-level security authority has changed.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022relationship-consistency\u0022\u003ERelationship Consistency\u003C/h3\u003E\n\u003Cp\u003EThe hierarchy must also be internally consistent.\u003C/p\u003E\n\u003Cp\u003EA session cannot be considered valid merely because a session record, a chain record, and a root record each exist independently.\u003C/p\u003E\n\u003Cp\u003ETheir ownership and association must match the expected authentication context.\u003C/p\u003E\n\u003Cp\u003EThis is especially important in multi-tenant applications, where a mismatched tenant or account association must not be accepted as a valid authentication relationship.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EThe security decision concerns the entire applicable hierarchy, not an isolated record.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-versioning\u0022\u003ESecurity Versioning\u003C/h2\u003E\n\u003Cp\u003ESecurity versioning allows UltimateAuth to represent changes in account-level authentication security.\u003C/p\u003E\n\u003Cp\u003EA root maintains a security version, and a session can retain the version associated with its creation.\u003C/p\u003E\n\u003Cp\u003EDuring validation, the system can compare these values.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022matching-security-state\u0022\u003EMatching Security State\u003C/h3\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ERoot.SecurityVersion = 7\nSession.SecurityVersionAtCreation = 7\n\nSecurity version check: PASS\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe session was created under the current security version.\u003C/p\u003E\n\u003Cp\u003EThis does not mean that the session is automatically valid; expiration, revocation, and other applicable checks must still succeed.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022changed-security-state\u0022\u003EChanged Security State\u003C/h3\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ERoot.SecurityVersion = 8\nSession.SecurityVersionAtCreation = 7\n\nSecurity version check: FAIL\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe session was created under an earlier account-level security state.\u003C/p\u003E\n\u003Cp\u003EWhen security version validation is enforced, the mismatch invalidates that session.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-versioning-matters\u0022\u003EWhy Versioning Matters\u003C/h3\u003E\n\u003Cp\u003EWithout a shared security version, an account-wide security change may require every individual session to be located and updated before the change can be enforced.\u003C/p\u003E\n\u003Cp\u003EA security version provides a common condition against which existing session state can be evaluated.\u003C/p\u003E\n\u003Cp\u003EThis can support responses to events such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECredential changes or recovery.\u003C/li\u003E\n\u003Cli\u003EAdministrative security actions.\u003C/li\u003E\n\u003Cli\u003EAccount compromise.\u003C/li\u003E\n\u003Cli\u003EAccount-level session invalidation.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EHowever, the triggering operation and configured session revocation policy determine whether a security version change should occur.\u003C/p\u003E\n\u003Cp\u003ENot every credential change must automatically invalidate every session.\u003C/p\u003E\n\u003Cp\u003EFor example, UltimateAuth supports credential-related session handling policies such as \u003Ccode\u003EKeepAll\u003C/code\u003E, \u003Ccode\u003EKeepCurrent\u003C/code\u003E, and \u003Ccode\u003ERevokeAll\u003C/code\u003E.\u003C/p\u003E\n\u003Cp\u003EA security operation must preserve the intended policy semantics rather than indiscriminately invalidating the entire account hierarchy.\u003C/p\u003E\n\u003Cp\u003ESee \u003Ca href=\u0022/docs/plugin-domains/credentials\u0022\u003ECredentials\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-context-validation\u0022\u003EDevice Context Validation\u003C/h2\u003E\n\u003Cp\u003EDevice-associated session management can add security conditions to session validation.\u003C/p\u003E\n\u003Cp\u003EA chain may be associated with a device identifier or other client context.\u003C/p\u003E\n\u003Cp\u003EWhen device binding checks are configured and enforced, the system can compare the expected context with the context presented by a request.\u003C/p\u003E\n\u003Cp\u003EFor example:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EChain.DeviceId  = device-A\nRequest.DeviceId = device-B\n\nDevice context mismatch\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EA configured mismatch policy may reject the operation.\u003C/p\u003E\n\u003Cp\u003EHowever, this comparison must be interpreted correctly.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022identification-is-not-authentication\u0022\u003EIdentification Is Not Authentication\u003C/h3\u003E\n\u003Cp\u003EA device identifier is an identifying value, not necessarily a secret.\u003C/p\u003E\n\u003Cp\u003EIf an attacker can copy or forge that value, matching the identifier does not prove that the request originated from the legitimate physical device.\u003C/p\u003E\n\u003Cp\u003EDevice context validation can enforce consistency with recorded metadata, but stronger device authentication requires an appropriate proof mechanism.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-metadata-is-not-a-security-guarantee\u0022\u003EDevice Metadata Is Not a Security Guarantee\u003C/h3\u003E\n\u003Cp\u003EOperating system, browser, platform, and IP information may provide useful context.\u003C/p\u003E\n\u003Cp\u003EThey are not universally stable or unique.\u003C/p\u003E\n\u003Cp\u003EChanges to this information can occur during legitimate usage, and matching values can occur across unrelated clients.\u003C/p\u003E\n\u003Cp\u003EApplications should distinguish between:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EInformational device metadata.\u003C/li\u003E\n\u003Cli\u003EConfigured device consistency requirements.\u003C/li\u003E\n\u003Cli\u003ECryptographically established device binding.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThe security guarantee must reflect the mechanism actually enforced.\u003C/p\u003E\n\u003Cp\u003ESee \u003Ca href=\u0022/docs/sessions-devices/device-management\u0022\u003EDevice Management\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022expiration-and-inactivity\u0022\u003EExpiration and Inactivity\u003C/h2\u003E\n\u003Cp\u003EExpiration is a security control, not merely a cleanup mechanism.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth distinguishes between time-based validity and explicit security invalidation.\u003C/p\u003E\n\u003Cp\u003EDepending on the configured mode and options, relevant conditions may include:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003ECondition\u003C/th\u003E\n\u003Cth\u003ESecurity meaning\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESession lifetime\u003C/td\u003E\n\u003Ctd\u003EThe authentication state has exceeded its permitted duration\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EIdle timeout\u003C/td\u003E\n\u003Ctd\u003EThe required activity has not occurred within the allowed interval\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESliding expiration\u003C/td\u003E\n\u003Ctd\u003EQualifying activity can extend validity within configured limits\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EAbsolute lifetime\u003C/td\u003E\n\u003Ctd\u003EAuthentication state cannot remain valid beyond a fixed boundary\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ERevocation\u003C/td\u003E\n\u003Ctd\u003EAuthentication state has been explicitly invalidated\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Cp\u003EA session may be expired without being revoked.\u003C/p\u003E\n\u003Cp\u003ESimilarly, a session may be revoked before reaching its natural expiration.\u003C/p\u003E\n\u003Cp\u003EThese conditions should remain distinguishable for correct enforcement and security diagnostics.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022activity-tracking-is-not-universal\u0022\u003EActivity Tracking Is Not Universal\u003C/h3\u003E\n\u003Cp\u003ESession activity may be recorded through touch operations.\u003C/p\u003E\n\u003Cp\u003EHowever, a locally validated JWT does not necessarily cause a server-side session touch on every protected request.\u003C/p\u003E\n\u003Cp\u003ETherefore, inactivity enforcement depends on where authoritative activity state is maintained and when it is checked.\u003C/p\u003E\n\u003Cp\u003EAn application should not assume that all authentication modes provide identical idle-timeout guarantees.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022hierarchical-revocation\u0022\u003EHierarchical Revocation\u003C/h2\u003E\n\u003Cp\u003ERevocation allows authentication state to be invalidated before its normal expiration.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth\u0027s hierarchy supports different revocation scopes.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-level-revocation\u0022\u003ESession-Level Revocation\u003C/h3\u003E\n\u003Cp\u003ETargets an individual session.\u003C/p\u003E\n\u003Cp\u003EOther sessions may remain valid if their own security conditions continue to be satisfied.\u003C/p\u003E\n\u003Cp\u003EThis is appropriate for terminating a particular authentication instance.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-level-revocation\u0022\u003EChain-Level Revocation\u003C/h3\u003E\n\u003Cp\u003ETargets the session continuity associated with a chain.\u003C/p\u003E\n\u003Cp\u003EIt can invalidate related sessions without necessarily affecting other chains belonging to the same account.\u003C/p\u003E\n\u003Cp\u003EThis supports targeted containment when a particular client environment is suspected of compromise.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-level-revocation\u0022\u003ERoot-Level Revocation\u003C/h3\u003E\n\u003Cp\u003ETargets the account-level session security boundary.\u003C/p\u003E\n\u003Cp\u003EIt can invalidate the applicable session hierarchy, including chains and sessions associated with that root.\u003C/p\u003E\n\u003Cp\u003ESecurity versioning can contribute to this mechanism by invalidating sessions created under earlier account-level security state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revocation-scope-and-enforcement\u0022\u003ERevocation Scope and Enforcement\u003C/h3\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ESession revoke\n    -\u0026gt; Targeted session\n\nChain revoke\n    -\u0026gt; Sessions associated with the chain\n\nRoot revoke\n    -\u0026gt; Account-level session hierarchy\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThese are logical revocation scopes.\u003C/p\u003E\n\u003Cp\u003EThe effect on protected requests depends on whether the authentication mode consults the revoked state.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ERevoking server-side state is not equivalent to cryptographically invalidating an already-issued JWT.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-mode-enforcement\u0022\u003EAuthentication Mode Enforcement\u003C/h2\u003E\n\u003Cp\u003EThe most important limitation of hierarchical session security is that its enforcement depends on the selected authentication mode.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EMode\u003C/th\u003E\n\u003Cth\u003EProtected request enforcement\u003C/th\u003E\n\u003Cth\u003ERevocation considerations\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EPureOpaque\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EUses authoritative server-side session validation\u003C/td\u003E\n\u003Ctd\u003ERevoked session state can be rejected on subsequent validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EHybrid\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EUses server-authoritative opaque credential and session validation\u003C/td\u003E\n\u003Ctd\u003ESession and chain revocation can be enforced through authoritative validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ESemiHybrid\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EJWT access tokens are validated locally for protected requests\u003C/td\u003E\n\u003Ctd\u003EServer-side revocation may not invalidate an already-issued JWT until expiration\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EPureJwt\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EJWT access tokens are primarily validated without a server-side session lookup\u003C/td\u003E\n\u003Ctd\u003EImmediate session-hierarchy revocation must not be assumed\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-authoritative-modes\u0022\u003EServer-Authoritative Modes\u003C/h3\u003E\n\u003Cp\u003EPureOpaque and Hybrid can evaluate protected requests against current server-managed session state.\u003C/p\u003E\n\u003Cp\u003EThis allows applicable expiration, revocation, and security version conditions to affect subsequent authentication decisions.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022locally-validated-jwt-modes\u0022\u003ELocally Validated JWT Modes\u003C/h3\u003E\n\u003Cp\u003ESemiHybrid and PureJwt can accept a valid JWT without consulting current session hierarchy state on every protected request.\u003C/p\u003E\n\u003Cp\u003EConsequently, changes to server-side session security may not immediately affect an already-issued access token.\u003C/p\u003E\n\u003Cp\u003EThe duration of this exposure depends on token lifetime and any additional validation or revocation mechanism configured by the application.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-tradeoff\u0022\u003ESecurity Tradeoff\u003C/h3\u003E\n\u003Cp\u003EThis is a deliberate architectural distinction.\u003C/p\u003E\n\u003Cp\u003EServer-authoritative validation provides stronger immediate control over active authentication state at the cost of server-side validation work.\u003C/p\u003E\n\u003Cp\u003ELocally validated JWTs reduce that dependency but cannot inherently provide the same immediate revocation behavior.\u003C/p\u003E\n\u003Cp\u003ESee \u003Ca href=\u0022/docs/fundamentals/auth-modes\u0022\u003EAuthentication Modes\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022threat-scenarios\u0022\u003EThreat Scenarios\u003C/h2\u003E\n\u003Cp\u003EThe session security model helps address several common security scenarios.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-session-credential-is-stolen\u0022\u003EA Session Credential Is Stolen\u003C/h3\u003E\n\u003Cp\u003EAn attacker obtains authentication material associated with one session.\u003C/p\u003E\n\u003Cp\u003EIf the compromise is detected, the affected session can be revoked.\u003C/p\u003E\n\u003Cp\u003EIn server-authoritative modes, subsequent attempts to use that session can be rejected through session validation.\u003C/p\u003E\n\u003Cp\u003EIf the attacker possesses an independently valid JWT, the result depends on JWT validation and revocation behavior.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-client-environment-is-compromised\u0022\u003EA Client Environment Is Compromised\u003C/h3\u003E\n\u003Cp\u003EAn attacker may have access to authentication material associated with a particular browser or application installation.\u003C/p\u003E\n\u003Cp\u003EChain-level revocation provides a broader response than revoking only one session.\u003C/p\u003E\n\u003Cp\u003EIt can invalidate related session state while preserving unrelated chains where appropriate.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022an-account-is-compromised\u0022\u003EAn Account Is Compromised\u003C/h3\u003E\n\u003Cp\u003EAn account-level security event may require invalidating authentication state across multiple devices.\u003C/p\u003E\n\u003Cp\u003ERoot-level invalidation provides a common security boundary for the applicable session hierarchy.\u003C/p\u003E\n\u003Cp\u003EThe operation must still account for the configured authentication mode and credential-related revocation policy.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-tenant-relationship-is-inconsistent\u0022\u003EA Tenant Relationship Is Inconsistent\u003C/h3\u003E\n\u003Cp\u003EA session, chain, or root references an unexpected tenant or account relationship.\u003C/p\u003E\n\u003Cp\u003EA session-authoritative validation process must not accept the credential solely because the individual records exist.\u003C/p\u003E\n\u003Cp\u003EThe relationships must satisfy the expected security context.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-device-identifier-is-spoofed\u0022\u003EA Device Identifier Is Spoofed\u003C/h3\u003E\n\u003Cp\u003EAn attacker presents a device identifier matching a known client.\u003C/p\u003E\n\u003Cp\u003EThe identifier match alone does not establish device ownership.\u003C/p\u003E\n\u003Cp\u003EThe request must still satisfy the authentication and applicable session validation requirements.\u003C/p\u003E\n\u003Cp\u003EThese scenarios illustrate how different controls address different classes of risk.\u003C/p\u003E\n\u003Cp\u003ENo single session metadata field or policy provides complete protection against every form of credential compromise.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-design-principles\u0022\u003ESecurity Design Principles\u003C/h2\u003E\n\u003Cp\u003EThe session security model follows several important principles.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EValidate relationships, not just identifiers.\u003C/strong\u003E Session, chain, root, account, and tenant associations must remain consistent.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ESeparate authentication credentials from authoritative state.\u003C/strong\u003E A credential can reference security state without being equivalent to that state.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EApply revocation at the appropriate scope.\u003C/strong\u003E Session, chain, and root invalidation serve different security purposes.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EDo not equate device recognition with device proof.\u003C/strong\u003E Client metadata provides context but not necessarily strong device authentication.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ERespect authentication mode boundaries.\u003C/strong\u003E A security control is only effective where its underlying state is actually checked.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EKeep lifecycle policy explicit.\u003C/strong\u003E Credential changes, recovery, expiration, and administrative actions may require different invalidation behavior.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022architectural-perspective\u0022\u003EArchitectural Perspective\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth\u0027s hierarchical session model provides multiple security boundaries instead of relying on a single token validity check.\u003C/p\u003E\n\u003Cp\u003EThe root represents account-level security authority, the chain organizes related session continuity, and the session represents individual server-managed authentication state.\u003C/p\u003E\n\u003Cp\u003ETogether, they support targeted revocation, security versioning, relationship validation, and device-aware session control.\u003C/p\u003E\n\u003Cp\u003ETheir practical security guarantees depend on the authentication mode and the validation mechanisms enforced during protected operations.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EA secure session is not merely one that has not expired. It is one whose applicable security state, ownership relationships, and validation requirements still hold.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-steps\u0022\u003ENext Steps\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/sessions-devices/session-lifecycle\u0022\u003ESession Model \u0026amp; Lifecycle\u003C/a\u003E \u2014 Understand the underlying hierarchy and lifecycle.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/sessions-devices/device-management\u0022\u003EDevice Management\u003C/a\u003E \u2014 Explore device context and chain association.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/fundamentals/auth-modes\u0022\u003EAuthentication Modes\u003C/a\u003E \u2014 Compare enforcement across authentication modes.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/plugin-domains/credentials\u0022\u003ECredentials\u003C/a\u003E \u2014 Understand credential changes and session revocation policies.\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "security-objectives",
+      "Text": "Security Objectives",
+      "Level": 0
+    },
+    {
+      "Id": "security-boundaries",
+      "Text": "Security Boundaries",
+      "Level": 0
+    },
+    {
+      "Id": "root-security-boundary",
+      "Text": "Root Security Boundary",
+      "Level": 1
+    },
+    {
+      "Id": "chain-security-boundary",
+      "Text": "Chain Security Boundary",
+      "Level": 1
+    },
+    {
+      "Id": "session-security-boundary",
+      "Text": "Session Security Boundary",
+      "Level": 1
+    },
+    {
+      "Id": "layered-session-validation",
+      "Text": "Layered Session Validation",
+      "Level": 0
+    },
+    {
+      "Id": "session-validity",
+      "Text": "Session Validity",
+      "Level": 1
+    },
+    {
+      "Id": "chain-validity",
+      "Text": "Chain Validity",
+      "Level": 1
+    },
+    {
+      "Id": "root-validity",
+      "Text": "Root Validity",
+      "Level": 1
+    },
+    {
+      "Id": "relationship-consistency",
+      "Text": "Relationship Consistency",
+      "Level": 1
+    },
+    {
+      "Id": "security-versioning",
+      "Text": "Security Versioning",
+      "Level": 0
+    },
+    {
+      "Id": "matching-security-state",
+      "Text": "Matching Security State",
+      "Level": 1
+    },
+    {
+      "Id": "changed-security-state",
+      "Text": "Changed Security State",
+      "Level": 1
+    },
+    {
+      "Id": "why-versioning-matters",
+      "Text": "Why Versioning Matters",
+      "Level": 1
+    },
+    {
+      "Id": "device-context-validation",
+      "Text": "Device Context Validation",
+      "Level": 0
+    },
+    {
+      "Id": "identification-is-not-authentication",
+      "Text": "Identification Is Not Authentication",
+      "Level": 1
+    },
+    {
+      "Id": "device-metadata-is-not-a-security-guarantee",
+      "Text": "Device Metadata Is Not a Security Guarantee",
+      "Level": 1
+    },
+    {
+      "Id": "expiration-and-inactivity",
+      "Text": "Expiration and Inactivity",
+      "Level": 0
+    },
+    {
+      "Id": "activity-tracking-is-not-universal",
+      "Text": "Activity Tracking Is Not Universal",
+      "Level": 1
+    },
+    {
+      "Id": "hierarchical-revocation",
+      "Text": "Hierarchical Revocation",
+      "Level": 0
+    },
+    {
+      "Id": "session-level-revocation",
+      "Text": "Session-Level Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "chain-level-revocation",
+      "Text": "Chain-Level Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "root-level-revocation",
+      "Text": "Root-Level Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "revocation-scope-and-enforcement",
+      "Text": "Revocation Scope and Enforcement",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-mode-enforcement",
+      "Text": "Authentication Mode Enforcement",
+      "Level": 0
+    },
+    {
+      "Id": "server-authoritative-modes",
+      "Text": "Server-Authoritative Modes",
+      "Level": 1
+    },
+    {
+      "Id": "locally-validated-jwt-modes",
+      "Text": "Locally Validated JWT Modes",
+      "Level": 1
+    },
+    {
+      "Id": "security-tradeoff",
+      "Text": "Security Tradeoff",
+      "Level": 1
+    },
+    {
+      "Id": "threat-scenarios",
+      "Text": "Threat Scenarios",
+      "Level": 0
+    },
+    {
+      "Id": "a-session-credential-is-stolen",
+      "Text": "A Session Credential Is Stolen",
+      "Level": 1
+    },
+    {
+      "Id": "a-client-environment-is-compromised",
+      "Text": "A Client Environment Is Compromised",
+      "Level": 1
+    },
+    {
+      "Id": "an-account-is-compromised",
+      "Text": "An Account Is Compromised",
+      "Level": 1
+    },
+    {
+      "Id": "a-tenant-relationship-is-inconsistent",
+      "Text": "A Tenant Relationship Is Inconsistent",
+      "Level": 1
+    },
+    {
+      "Id": "a-device-identifier-is-spoofed",
+      "Text": "A Device Identifier Is Spoofed",
+      "Level": 1
+    },
+    {
+      "Id": "security-design-principles",
+      "Text": "Security Design Principles",
+      "Level": 0
+    },
+    {
+      "Id": "architectural-perspective",
+      "Text": "Architectural Perspective",
+      "Level": 0
+    },
+    {
+      "Id": "next-steps",
+      "Text": "Next Steps",
+      "Level": 0
+    }
+  ]
+}

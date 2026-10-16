@@ -415,7 +415,7 @@ You do not need to understand the entire architecture before building your first
 | I want to… | Start here |
 |---|---|
 | Set up UltimateAuth for the first time | [QuickStart](/docs/getting-started/quickstart) |
-| Understand how authentication works internally | [Auth Flows](/docs/auth-flows/index) |
+| Understand how authentication works internally | [Auth Flows](/docs/auth-flows/overview) |
 | Configure session, token, and security behavior | [Server Options](/docs/configuration/server-options) |
 | Integrate authentication into a Blazor application | [Client Options](/docs/configuration/client-options) |
 | Understand the source code and contribute | [GitHub Repository](https://github.com/CodeBeamOrg/UltimateAuth) |

@@ -80,7 +80,7 @@ Depending on the configured mode and strategy, a continuation operation may rota
 
 **Rotation guarantees must be evaluated against the selected refresh strategy, not assumed from the existence of a refresh endpoint.**
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes).
+See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Refresh Credential State
 
@@ -336,7 +336,7 @@ However, a chain is a logical session continuity boundary, not a cryptographical
 
 Chain-level revocation controls the associated authentication state; it does not permanently prevent the physical device from authenticating again.
 
-See [Session Security Model](/docs/security/session-security-model).
+See [Session Security Model](/docs/security/session-security).
 
 ## Invalid Refresh Conditions
 
@@ -465,6 +465,6 @@ UltimateAuth's authentication modes provide different continuation models. Rotat
 ## Next Steps
 
 - [Token Security](/docs/security/token-security) — Access and refresh credential security fundamentals.
-- [Session Security Model](/docs/security/session-security-model) — Hierarchical validation and revocation boundaries.
-- [Session Model & Lifecycle](/docs/sessions-devices/session-model) — Session continuity, expiration, and revocation.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Mode-specific authentication and refresh behavior.
+- [Session Security Model](/docs/security/session-security) — Hierarchical validation and revocation boundaries.
+- [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Session continuity, expiration, and revocation.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Mode-specific authentication and refresh behavior.

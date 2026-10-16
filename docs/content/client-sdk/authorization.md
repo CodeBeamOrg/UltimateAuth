@@ -1358,4 +1358,4 @@ This allows applications to provide flexible administrative interfaces while kee
 - [Authorization Pipeline Internals](/docs/security/authorization-pipeline-internals) — Explore how authorization decisions are evaluated.
 - [User Management](/docs/client/user-management) — Manage user accounts and lifecycle.
 - [Session Management](/docs/client/session-management) — Manage authenticated sessions and devices.
-- [Session Security Model](/docs/security/session-security-model) — Understand session validity and security boundaries.
+- [Session Security Model](/docs/security/session-security) — Understand session validity and security boundaries.

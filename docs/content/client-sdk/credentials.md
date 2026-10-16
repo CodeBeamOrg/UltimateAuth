@@ -709,7 +709,7 @@ Successful recovery may invalidate existing sessions according to the configured
 
 By default, UltimateAuth revokes all session chains after recovery.
 
-For further details, see [Session Security Model](/docs/security/session-security-model).
+For further details, see [Session Security Model](/docs/security/session-security).
 
 ## 13. Revoke Your Credential
 
@@ -1075,4 +1075,4 @@ Use the currently implemented credential contracts and documented authentication
 - [User Management](/docs/client/user-management) — Manage profiles and user lifecycle.
 - [Session Management](/docs/client/session-management) — Inspect and revoke sessions.
 - [Token Security](/docs/security/token-security) — Understand token validation and revocation behavior.
-- [Session Security Model](/docs/security/session-security-model) — Understand session invalidation and account-level security boundaries.
+- [Session Security Model](/docs/security/session-security) — Understand session invalidation and account-level security boundaries.

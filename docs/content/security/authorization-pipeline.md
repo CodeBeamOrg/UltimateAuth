@@ -563,8 +563,6 @@ A custom policy should not:
 
 Custom policies should evaluate well-defined requirements using trusted context and participate in the established decision model.
 
-Implementation and registration examples belong in [How-to Guides](/docs/how-to).
-
 ## Architectural Perspective
 
 UltimateAuth's authorization pipeline separates the responsibilities involved in an access decision.
@@ -587,5 +585,5 @@ Together, these components provide a structured foundation for context-aware, po
 
 - [Authorization](/docs/plugin-domains/authorization) — Actions, permissions, roles, and scopes.
 - [Policies & Access Control](/docs/plugin-domains/policies) — Policy concepts and access decision behavior.
-- [Session Security Model](/docs/security/session-security-model) — Authentication security state and validation boundaries.
+- [Session Security Model](/docs/security/session-security) — Authentication security state and validation boundaries.
 - [Token Security](/docs/security/token-security) — Credential validity and authorization freshness.

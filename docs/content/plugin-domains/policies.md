@@ -343,7 +343,7 @@ A policy can evaluate its inputs correctly while those inputs reflect an earlier
 
 Applications must account for this when choosing token lifetimes, permission resolution strategies, and security requirements.
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes).
+See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Application-Level Access Control
 

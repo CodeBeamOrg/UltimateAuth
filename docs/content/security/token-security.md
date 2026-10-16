@@ -18,7 +18,7 @@ UltimateAuth supports these different mechanisms through its authentication mode
 
 This page explains the security characteristics of access and refresh credentials, including issuance, expiration, rotation, replay risks, and revocation boundaries.
 
-For the overall authentication architecture, see [Authentication Modes](/docs/fundamentals/authentication-modes).
+For the overall authentication architecture, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Authentication State and Credentials
 
@@ -100,7 +100,7 @@ Opacity alone does not prevent credential theft or replay.
 
 In a session-authoritative mode, validation can enforce the applicable session hierarchy requirements, including expiration, revocation, ownership, and security state consistency.
 
-See [Session Security Model](/docs/security/session-security-model).
+See [Session Security Model](/docs/security/session-security).
 
 ## JWT Access Tokens
 
@@ -198,7 +198,7 @@ An optional refresh mechanism may maintain refresh-specific state.
 
 The existence of a refresh store does not make JWT access validation session-authoritative.
 
-For more detail, see [Authentication Modes](/docs/fundamentals/authentication-modes).
+For more detail, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Access Token Lifetime
 
@@ -554,7 +554,7 @@ The purpose of the token security model is to make those tradeoffs explicit.
 
 ## Next Steps
 
-- [Session Security Model](/docs/security/session-security-model) — Understand authoritative session validation and hierarchical revocation.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Compare credential behavior across modes.
-- [Session Model & Lifecycle](/docs/sessions-devices/session-model) — Explore session creation, continuation, and invalidation.
+- [Session Security Model](/docs/security/session-security) — Understand authoritative session validation and hierarchical revocation.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Compare credential behavior across modes.
+- [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Explore session creation, continuation, and invalidation.
 - [Credentials](/docs/plugin-domains/credentials) — Understand credential management and recovery security.

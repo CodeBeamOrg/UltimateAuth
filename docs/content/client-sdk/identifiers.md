@@ -1042,4 +1042,4 @@ Applications should distinguish identifier management from session revocation an
 - [Credentials](/docs/client/credentials) — Manage passwords, credentials, and recovery workflows.
 - [Authentication](/docs/client/authentication) — Understand login and authentication flows.
 - [Users](/docs/plugin-domains/users) — Explore the user domain architecture.
-- [Session Security Model](/docs/security/session-security-model) — Understand authentication security boundaries.
+- [Session Security Model](/docs/security/session-security) — Understand authentication security boundaries.

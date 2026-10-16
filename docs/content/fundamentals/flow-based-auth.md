@@ -71,7 +71,7 @@ In stateless JWT authentication, client-side credential removal does not automat
 
 These operations share architectural boundaries but do not perform identical work.
 
-For their implementation details, see [Auth Flows](../auth-flows/).
+For their implementation details, see [Auth Flows](/docs/auth-flows/overview).
 
 ## The flow execution model
 
@@ -141,7 +141,7 @@ The relevant authentication evidence and security requirements must still be eva
 
 After authentication has established trusted identity, authorization can operate through the appropriate `AccessContext`.
 
-The distinction between these contexts is explained in [Authentication Model](./authentication-model.md).
+The distinction between these contexts is explained in [Authentication Model](/docs/fundamentals/auth-model).
 
 ## Flows and authentication modes
 
@@ -174,7 +174,7 @@ A flow must never introduce a session dependency merely because another authenti
 
 In particular, PureJwt must remain independent of mandatory session persistence and validation.
 
-For the complete mode definitions and their guarantees, see [Authentication Modes](./authentication-modes.md).
+For the complete mode definitions and their guarantees, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Server-controlled decisions
 
@@ -255,7 +255,7 @@ They do not require independent implementations of the fundamental authenticatio
 
 Client Profiles provide runtime-appropriate behavior and defaults, while authentication modes define the validation and lifecycle strategy.
 
-See [Client Profiles](./client-profiles.md) for how runtime characteristics influence authentication configuration.
+See [Client Profiles](/docs/fundamentals/client-profiles) for how runtime characteristics influence authentication configuration.
 
 ## Predictable outcomes
 
@@ -311,7 +311,7 @@ However, not every flow or mode requires persisted Root, Chain, or Session state
 
 This separation allows UltimateAuth to support both stateful and stateless authentication without maintaining two unrelated authentication architectures.
 
-See [Authentication Model](./authentication-model.md) for the lineage model and its role in authentication.
+See [Authentication Model](/docs/fundamentals/auth-model) for the lineage model and its role in authentication.
 
 ## Summary
 
@@ -332,4 +332,4 @@ The architecture does not require every mode to use the same credentials, persis
 
 ## Next step
 
-Continue to [Authentication Modes](./authentication-modes.md) to understand how PureOpaque, Hybrid, SemiHybrid, and PureJwt implement different authentication and session lifecycle strategies.
+Continue to [Authentication Modes](/docs/fundamentals/auth-modes) to understand how PureOpaque, Hybrid, SemiHybrid, and PureJwt implement different authentication and session lifecycle strategies.

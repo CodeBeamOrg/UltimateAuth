@@ -16,7 +16,7 @@ Understanding these differences is essential when integrating UltimateAuth into 
 
 This page focuses on **how authentication is evaluated during application requests and where the security boundaries are enforced**.
 
-For authentication flow orchestration, see [Auth Flows](/docs/auth-flows/index).
+For authentication flow orchestration, see [Auth Flows](/docs/auth-flows/overview).
 
 ## Two request categories
 
@@ -64,7 +64,7 @@ The operation may create or update sessions, issue credentials, rotate refresh t
 
 These details depend on the flow and authentication mode.
 
-The internal execution pipeline is described in [Auth Flows](/docs/auth-flows/index), while individual operations are documented in their respective flow guides.
+The internal execution pipeline is described in [Auth Flows](/docs/auth-flows/overview), while individual operations are documented in their respective flow guides.
 
 ## Protected resource operations
 
@@ -339,4 +339,4 @@ The execution boundary depends on the runtime and deployment architecture.
 
 You have completed the Fundamentals section.
 
-Continue to [Auth Flows](/docs/auth-flows/index) to explore the technical authentication pipeline and the individual login, refresh, and logout operations.
+Continue to [Auth Flows](/docs/auth-flows/overview) to explore the technical authentication pipeline and the individual login, refresh, and logout operations.

@@ -96,7 +96,7 @@ For example, a locally validated JWT may remain valid until expiration unless th
 
 The Users domain participates in security-sensitive account operations, while the authentication infrastructure determines how the resulting security state is enforced.
 
-For more information, see [Authentication Modes](/docs/fundamentals/authentication-modes).
+For more information, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## User Identifiers
 
@@ -254,4 +254,4 @@ The Users domain establishes identity ownership and account lifecycle, but it do
 - [Authorization](/docs/plugin-domains/authorization) — Explore how identities are associated with permissions and access policies.
 - [Plugin Domains](/docs/plugin-domains) — Return to the overall Plugin Domain architecture.
 
-For the distinction between identity and authentication infrastructure, see [Authentication Model](/docs/fundamentals/authentication-model).
+For the distinction between identity and authentication infrastructure, see [Authentication Model](/docs/fundamentals/auth-model).

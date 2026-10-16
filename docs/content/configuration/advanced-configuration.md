@@ -1159,9 +1159,9 @@ It is to customize the smallest component necessary while retaining the guarante
 
 ## Next Steps
 
-- [Configuration Overview](/docs/configuration/configuration) — Understand registration, configuration sources, and architecture.
+- [Configuration Overview](/docs/configuration/overview) — Understand registration, configuration sources, and architecture.
 - [Server Options](/docs/configuration/server-options) — Configure authentication and server security behavior.
 - [Client Options](/docs/configuration/client-options) — Configure SDK flows and client behavior.
-- [Authentication Modes](/docs/fundamentals/authentication-modes) — Understand supported authentication modes.
+- [Authentication Modes](/docs/fundamentals/auth-modes) — Understand supported authentication modes.
 - [Authorization](/docs/client/authorization) — Use the client authorization API.
 - [Session Management](/docs/client/session-management) — Manage sessions and revocation.

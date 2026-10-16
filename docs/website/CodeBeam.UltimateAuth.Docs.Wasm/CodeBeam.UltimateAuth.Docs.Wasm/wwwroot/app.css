@@ -430,7 +430,7 @@ h1:focus {
 
     .docs-content code {
         font-family: Consolas, monospace;
-        font-size: 0.9rem;
+        font-size: 0.9em;
     }
 
     .docs-content p code {
@@ -742,3 +742,35 @@ h1:focus {
     color: #b4d989;
     border-color: #5b8664;
 }
+
+.docs-content blockquote {
+    margin: 0.85rem 0 1.1rem;
+    padding: 0 0 0 0.85rem;
+    border: none;
+    border-left: 2px solid var(--mud-palette-lines-default);
+    border-radius: 0;
+    background: transparent;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.55;
+}
+
+    .docs-content blockquote p {
+        margin: 0;
+    }
+
+        .docs-content blockquote p + p {
+            margin-top: 0.4rem;
+        }
+
+    .docs-content blockquote strong {
+        color: inherit;
+        font-weight: 600;
+    }
+
+    .docs-content blockquote a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }

@@ -112,7 +112,7 @@ For example, session lifecycle operations, credential verification, and authoriz
 
 The architecture separates orchestration from the underlying services that perform domain-specific work.
 
-For the detailed execution pipeline, see [Auth Flows](../auth-flows/).
+For the detailed execution pipeline, see [Auth Flows](/docs/auth-flows/overview).
 
 ## Client: runtime integration
 
@@ -147,7 +147,7 @@ UltimateAuth accounts for these differences through runtime-specific integration
 
 The authentication model remains shared even when the implementation of credential transport or application state differs.
 
-See [Client Profiles](./client-profiles.md).
+See [Client Profiles](/docs/fundamentals/client-profiles).
 
 ## UAuthHub: the authentication host
 
@@ -554,4 +554,4 @@ Authentication modes determine the required validation and state dependencies.
 
 ## Next step
 
-Continue to [Request Lifecycle](./request-lifecycle.md) to understand how an incoming request moves through authentication validation, identity establishment, and authorization before reaching a protected operation.
+Continue to [Request Lifecycle](/docs/fundamentals/request-lifecycle) to understand how an incoming request moves through authentication validation, identity establishment, and authorization before reaching a protected operation.

@@ -246,7 +246,7 @@ In session-authoritative modes, revocation can be reflected through server-side 
 
 Credential changes therefore initiate the applicable security response; they do not imply identical immediate token invalidation across every mode.
 
-See [Authentication Modes](/docs/fundamentals/authentication-modes) for the underlying differences.
+See [Authentication Modes](/docs/fundamentals/auth-modes) for the underlying differences.
 
 ## Integration with the Users Domain
 
