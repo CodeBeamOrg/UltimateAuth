@@ -42,7 +42,7 @@
     "GroupOrder": 2
   },
   {
-    "Title": "Flow Based Authentication",
+    "Title": "Flow-Based Authentication",
     "Slug": "fundamentals/flow-based-auth",
     "Order": 3,
     "Group": "fundamentals",
