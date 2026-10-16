@@ -1,8 +1,8 @@
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm;
-using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.Infrastructure;
-using CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.ResourceApi;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -28,10 +28,10 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Login.AllowCredentialPost = true;
     o.Pkce.ReturnUrl = "https://localhost:6130/home"; // This application domain + path
 
-    o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
 });
 
-builder.Services.AddScoped<ProductApiService>();
+builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.AddScoped(sp =>
 {

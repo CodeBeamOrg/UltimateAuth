@@ -19,8 +19,6 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="MudBlazor" Version="9.10.0" />
-		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.1.0" />
 		<PackageReference Include="Scalar.AspNetCore" Version="2.17.8" />
 	</ItemGroup>
 
@@ -28,6 +26,7 @@
 	  <ProjectReference Include="..\..\..\src\bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" />
 	  <ProjectReference Include="..\..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
 	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
+	  <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Shared\CodeBeam.UltimateAuth.Sample.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

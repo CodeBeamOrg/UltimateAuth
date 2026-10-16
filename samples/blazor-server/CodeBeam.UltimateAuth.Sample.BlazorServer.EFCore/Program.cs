@@ -1,12 +1,12 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components;
-using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +66,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 });
 
 builder.Services.AddScopedUltimateAuthSampleSeed();
+builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
