@@ -1,6 +1,6 @@
 ---
 title: Device Management
-order: 3
+order: 2
 group: sessions-devices
 ---
 

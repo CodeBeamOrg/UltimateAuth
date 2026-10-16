@@ -1,5 +1,5 @@
 ---
-title: Auth Flows
+title: Auth Flows Overview
 order: 1
 group: auth-flows
 ---

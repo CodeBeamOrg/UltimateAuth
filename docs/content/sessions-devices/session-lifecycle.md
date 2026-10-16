@@ -1,6 +1,6 @@
 ---
 title: Session Model & Lifecycle
-order: 2
+order: 1
 group: sessions-devices
 ---
 

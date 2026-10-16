@@ -1,5 +1,5 @@
 ---
-title: Configuration
+title: Configuration Overview
 order: 1
 group: configuration
 ---

@@ -77,7 +77,7 @@
     "GroupOrder": 2
   },
   {
-    "Title": "Auth Flows",
+    "Title": "Auth Flows Overview",
     "Slug": "auth-flows/index",
     "Order": 1,
     "Group": "auth-flows",
@@ -107,14 +107,14 @@
   {
     "Title": "Session Model \u0026 Lifecycle",
     "Slug": "sessions-devices/session-lifecycle",
-    "Order": 2,
+    "Order": 1,
     "Group": "sessions-devices",
     "GroupOrder": 4
   },
   {
     "Title": "Device Management",
     "Slug": "sessions-devices/device-management",
-    "Order": 3,
+    "Order": 2,
     "Group": "sessions-devices",
     "GroupOrder": 4
   },
@@ -203,7 +203,7 @@
     "GroupOrder": 6
   },
   {
-    "Title": "Configuration",
+    "Title": "Configuration Overview",
     "Slug": "configuration/index",
     "Order": 1,
     "Group": "configuration",
@@ -212,6 +212,13 @@
   {
     "Title": "Server Options",
     "Slug": "configuration/server-options",
+    "Order": 2,
+    "Group": "configuration",
+    "GroupOrder": 7
+  },
+  {
+    "Title": "Client Options",
+    "Slug": "configuration/client-options",
     "Order": 3,
     "Group": "configuration",
     "GroupOrder": 7
@@ -219,13 +226,6 @@
   {
     "Title": "Advanced Configuration",
     "Slug": "configuration/advanced-configuration",
-    "Order": 4,
-    "Group": "configuration",
-    "GroupOrder": 7
-  },
-  {
-    "Title": "Client Options",
-    "Slug": "configuration/client-options",
     "Order": 4,
     "Group": "configuration",
     "GroupOrder": 7
