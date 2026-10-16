@@ -13,7 +13,6 @@ builder.Services.AddMudServices(o => {
 });
 builder.Services.AddMudExtensions();
 builder.Services.AddScoped<DarkModeManager>();
-builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
