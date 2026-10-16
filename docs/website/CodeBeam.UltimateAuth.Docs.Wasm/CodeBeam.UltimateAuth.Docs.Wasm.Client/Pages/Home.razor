@@ -90,6 +90,98 @@
     </MudContainer>
 </MudPage>
 
+
+<div class="ua-separator"></div>
+
+<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Large"
+                  Class="d-flex flex-column align-center justify-center">
+
+        <MudStack Spacing="2" Class="text-center mb-8">
+            <MudText Typo="Typo.h4">
+                <b>Explore UltimateAuth</b>
+            </MudText>
+
+            <MudText Typo="Typo.body1" Class="text-secondary">
+                From documentation to working examples —
+                discover how UltimateAuth fits into your applications.
+            </MudText>
+        </MudStack>
+
+        <MudGrid Spacing="3" Class="w-100">
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true"
+                          Class="pa-6 h-100 ua-card">
+                    <MudStack Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Outlined.MenuBook"
+                                 Size="Size.Large"
+                                 Color="Color.Primary" />
+
+                        <MudText Typo="Typo.h6">
+                            <b>Documentation</b>
+                        </MudText>
+
+                        <MudText Typo="Typo.body2"
+                                 Class="text-secondary">
+                            Understand the architecture, authentication
+                            flows, security model and integration patterns.
+                        </MudText>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Href="/docs"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                            Read the Docs
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true"
+                          Class="pa-6 h-100 ua-card">
+                    <MudStack Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Code"
+                                 Size="Size.Large"
+                                 Color="Color.Primary" />
+
+                        <MudText Typo="Typo.h6">
+                            <b>Working Samples</b>
+                        </MudText>
+
+                        <MudText Typo="Typo.body2"
+                                 Class="text-secondary">
+                            Explore real implementations across Blazor Server,
+                            WebAssembly, UAuthHub and Resource APIs.
+                        </MudText>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Href="/samples"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                            Explore Samples
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+        <MudButton Class="mt-8"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Href="https://github.com/CodeBeamOrg/UltimateAuth"
+                   Target="_blank"
+                   StartIcon="@Icons.Custom.Brands.GitHub"
+                   EndIcon="@Icons.Material.Filled.OpenInNew">
+            Explore the Source on GitHub
+        </MudButton>
+
+    </MudContainer>
+</MudPage>
+
+
 <div class="ua-separator"></div>
 
 <a id="donate" />

@@ -212,6 +212,22 @@ h1:focus {
     justify-content: flex-end;
 }
 
+.ua-footer {
+    position: relative;
+    z-index: calc(var(--mud-zindex-drawer) + 1);
+    background: var(--mud-palette-background) !important;
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+    .ua-footer a {
+        color: var(--mud-palette-text-secondary);
+        text-decoration: none;
+    }
+
+        .ua-footer a:hover {
+            color: var(--mud-palette-primary);
+        }
+
 /* Responsive loading line */
 .ua-nav-shimmer {
     display: flex;
