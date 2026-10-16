@@ -7,9 +7,9 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Stores;
 using MudBlazor;
 
-namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Components.Pages;
+namespace CodeBeam.UltimateAuth.Sample.Shared.Hub.Components.Page;
 
-public partial class Home
+public partial class SampleHubHome
 {
     private string? _username;
     private string? _password;

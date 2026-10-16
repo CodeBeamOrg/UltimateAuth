@@ -19,7 +19,7 @@
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
 		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
-		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Shared\CodeBeam.UltimateAuth.Sample.Shared.csproj" />
+		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Shared.Hub\CodeBeam.UltimateAuth.Sample.Shared.Hub.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -13,6 +13,7 @@
     <Project Path="samples/blazor-server/CodeBeam.UltimateAuth.Sample.BlazorServer/CodeBeam.UltimateAuth.Sample.BlazorServer.csproj" />
     <Project Path="samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm.csproj" Id="27bd3c4d-65a9-4c70-a6c9-4178b1897730" />
     <Project Path="samples/CodeBeam.UltimateAuth.Sample.Seed/CodeBeam.UltimateAuth.Sample.Seed.csproj" Id="c79b227b-409e-439d-97df-8979a3dc1a60" />
+    <Project Path="samples/CodeBeam.UltimateAuth.Sample.Shared.Hub/CodeBeam.UltimateAuth.Sample.Shared.Hub.csproj" Id="74bde9eb-9997-479e-846d-ed205195d3c3" />
     <Project Path="samples/CodeBeam.UltimateAuth.Sample.Shared/CodeBeam.UltimateAuth.Sample.Shared.csproj" Id="9edb3d33-3814-4c95-88b0-488c5b4fa25c" />
     <Project Path="samples/int-wasm/CodeBeam.UAuth.Sample.IntWasm/CodeBeam.UAuth.Sample.IntWasm.Client/CodeBeam.UAuth.Sample.IntWasm.Client.csproj" Id="f17355ac-c53c-44e8-b372-a258493bf950" />
     <Project Path="samples/int-wasm/CodeBeam.UAuth.Sample.IntWasm/CodeBeam.UAuth.Sample.IntWasm/CodeBeam.UAuth.Sample.IntWasm.csproj" Id="65386675-4cf7-4745-b4d7-544b6404e0c3" />
