@@ -4,150 +4,119 @@ order: 1
 group: plugin-domains
 ---
 
+# Plugin Domains
 
-# 🧩 Plugin Domains
+UltimateAuth separates **authentication infrastructure** from the domain capabilities commonly required by identity and access management systems.
 
-Authentication alone is not enough.
+The authentication engine is responsible for establishing and validating authentication state. Managing users, credentials, and authorization policies introduces additional responsibilities that do not inherently belong to that engine.
 
-Real-world systems also require:
+UltimateAuth organizes these capabilities into **Plugin Domains**: modular, independently structured domains that extend the framework beyond authentication without making their business logic part of the authentication core.
 
-- User management  
-- Credential handling  
-- Authorization rules  
+Plugin Domains are an architectural concept specific to UltimateAuth. They are not simply runtime plugins or optional features within a monolithic identity system.
 
-👉 UltimateAuth provides these as **plugin domains**
+## Authentication Core and Plugin Domains
 
-## 🧠 What Is a Plugin Domain?
+The distinction is based on responsibility rather than importance.
 
-A plugin domain is a **modular business layer** built on top of UltimateAuth.
+**Authentication Core** provides the infrastructure for authentication flows, authentication modes, sessions, tokens, and runtime security boundaries.
 
-👉 Core handles authentication  
-👉 Plugin domains handle identity and access logic  
+**Plugin Domains** provide the identity and access management capabilities built around that infrastructure.
 
-<br>
+The framework currently organizes these responsibilities into three primary domains:
 
-## 🏗 Architecture
+| Domain | Responsibility |
+|---|---|
+| **Users** | User lifecycle, identifiers, profiles, and account management |
+| **Credentials** | Credential registration, management, verification, and recovery |
+| **Authorization** | Permissions, roles, policies, and access management |
 
-Each plugin domain is composed of multiple layers:
+These domains are not universally required for every authentication scenario. An application may already have its own identity infrastructure or may need only a subset of UltimateAuth's domain capabilities.
 
-### 🔹 Bridge Package
+However, together they provide the foundation for using UltimateAuth as a broader identity and access management platform rather than only an authentication engine.
 
-Defines the server needed bridge interfaces:
+## Architectural Boundaries
 
-👉 This package provides required minimal info for server package.
+Each Plugin Domain owns a distinct area of business logic.
 
-### 🔹 Contracts Package
+A domain should not need to understand the internal implementation of another domain to perform its responsibilities.
 
-Shared models between:
+This separation establishes several architectural properties:
 
-- Server  
-- Client  
+- **Independent domain boundaries:** Each domain defines and maintains its own contracts and behavior.
+- **Explicit integration:** Cross-domain interactions occur through defined abstractions and integration points.
+- **Replaceable infrastructure:** Storage implementations and supporting infrastructure can be substituted without changing the authentication engine.
+- **Controlled extensibility:** Applications can customize domain behavior while preserving established framework contracts.
 
-👉 Includes DTOs, requests, responses
+Isolation does not mean that domains never interact. Identity management operations frequently involve multiple domains, and those interactions must remain coordinated.
 
-### 🔹 Reference Implementation
+UltimateAuth addresses this through explicit integration contracts rather than direct dependencies between domain implementations.
 
-Provides default behavior:
+## Domain Package Structure
 
-- Application services  
-- Store interfaces  
-- Default implementations  
+Plugin Domains follow a layered package structure that separates integration contracts, public models, domain behavior, and persistence.
 
-👉 Acts as a production-ready baseline
+| Layer | Purpose |
+|---|---|
+| **Bridge** | Minimal abstractions required for integration with UltimateAuth Server |
+| **Contracts** | Shared requests, responses, and data transfer models |
+| **Reference Implementation** | Default application services, domain behavior, and storage abstractions |
+| **Persistence** | Concrete storage implementations, including InMemory and Entity Framework Core |
 
-### 🔹 Persistence Layer
+This structure keeps the authentication server independent of the full internal implementation of each domain.
 
-Provides storage implementations:
+It also allows applications to use the provided implementations while retaining control over infrastructure and customization.
 
-- InMemory  
-- Entity Framework Core
+The reference implementations are intended to be practical foundations for real applications, not merely illustrative examples.
 
-👉 Additional providers (Redis, etc.) can be added
+## Cross-Domain Integration
 
-<br>
+Some identity operations naturally cross domain boundaries.
 
-## 🔄 Extensibility Model
+For example, creating a user may need to initiate credential-related behavior. That coordination should not require the Users domain to reference the Credentials domain directly.
 
-Plugin domains are designed to be:
+Instead, UltimateAuth uses integration abstractions and lifecycle hooks to connect independently implemented responsibilities.
 
-- Replaceable  
-- Extendable  
-- Composable  
+`IUserLifecycleIntegration` is an example of such an integration point.
 
-👉 You can implement your own persistence  
-👉 You can extend behavior
+This approach allows domain-specific behavior to remain within its owning domain while supporting coordinated application workflows.
 
-<br>
+Integration hooks are explicit extension boundaries, not a mechanism for bypassing domain ownership or security rules.
 
-## ⚠️ Recommended Approach
+## Extending Plugin Domains
 
-In most cases:
+UltimateAuth provides reference implementations so applications do not need to rebuild common identity management capabilities from scratch.
 
-👉 You should NOT replace a plugin domain entirely  
+For most applications, the recommended approach is to **start with the provided domain implementations and customize only what is necessary**.
 
-Instead:
+Depending on the domain and its supported extension contracts, customization may include:
 
-- Use provided implementations  
-- Extend via interfaces  
-- Customize behavior where needed  
+- Replacing persistence implementations.
+- Providing application-specific services.
+- Extending supported lifecycle integrations.
+- Integrating existing identity or access management infrastructure.
 
-👉 This ensures compatibility with the framework
+Replacing an entire domain is possible as an architectural objective, but doing so requires preserving the contracts expected by the rest of the system.
 
-<br>
+Modularity provides flexibility; it does not eliminate the need for compatible behavior.
 
-## 🔌 Domain Isolation
+## Choosing the Right Capabilities
 
-Plugin domains are designed to be **fully isolated** from each other.
+Plugin Domains are designed to be composed according to application requirements.
 
-👉 A plugin domain does NOT reference another plugin domain  
-👉 There are no direct dependencies between domains
+An application focused on authentication infrastructure may rely primarily on the Core and Server capabilities.
 
-### 🧠 Why?
+An application requiring complete identity management can incorporate Users, Credentials, and Authorization together.
 
-This ensures:
+The important distinction is that **the authentication engine does not need to become a monolithic identity management system to support either scenario**.
 
-- Loose coupling  
-- Independent evolution  
-- Replaceability  
-- Clear boundaries
+This separation allows UltimateAuth to serve both focused authentication use cases and more comprehensive identity platforms while maintaining clear architectural boundaries.
 
-## 🔄 Communication via Hooks
+## Explore the Domains
 
-Plugin domains communicate **only through integration hooks**.
+Continue with the individual domains to understand their responsibilities, public contracts, and extension points.
 
-For example:
+- [Users](/docs/plugin-domains/users) — User identities, identifiers, and lifecycle management.
+- [Credentials](/docs/plugin-domains/credentials) — Credential management, verification, and recovery.
+- [Authorization](/docs/plugin-domains/authorization) — Roles, permissions, policies, and access control.
 
-- User domain triggers → `OnUserCreated`
-- Credential domain listens → creates password credential
-
-👉 This is implemented via abstractions such as:
-
-- `IUserLifecycleIntegration`
-- domain events / integration points
-
-<br>
-
-## 🧠 Mental Model
-
-If you remember one thing:
-
-👉 Core = authentication engine  
-👉 Plugin domains = business logic  
-
-## 🎯 Why This Matters
-
-This architecture allows UltimateAuth to:
-
-- Stay modular  
-- Support multiple domains  
-- Enable enterprise customization  
-- Avoid monolithic identity systems  
-
-👉 You don’t build everything from scratch  
-👉 You assemble what you need
-
-## ➡️ Next Step
-
-- Manage users → Users
-- Handle credentials → Credentials
-- Control access → Authorization
+For the underlying authentication architecture, see [Runtime Architecture](/docs/fundamentals/runtime-architecture) and [Authentication Model](/docs/fundamentals/authentication-model).

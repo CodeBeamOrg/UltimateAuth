@@ -105,179 +105,158 @@
     "GroupOrder": 3
   },
   {
-    "Title": "Session Lifecycle",
-    "Slug": "auth-flows/session-lifecycle",
-    "Order": 5,
-    "Group": "auth-flows",
-    "GroupOrder": 3
-  },
-  {
-    "Title": "Token Behavior",
-    "Slug": "auth-flows/token-behavior",
-    "Order": 6,
-    "Group": "auth-flows",
-    "GroupOrder": 3
+    "Title": "Session Model \u0026 Lifecycle",
+    "Slug": "sessions-devices/session-lifecycle",
+    "Order": 2,
+    "Group": "sessions-devices",
+    "GroupOrder": 4
   },
   {
     "Title": "Device Management",
-    "Slug": "auth-flows/device-management",
-    "Order": 7,
-    "Group": "auth-flows",
-    "GroupOrder": 3
+    "Slug": "sessions-devices/device-management",
+    "Order": 3,
+    "Group": "sessions-devices",
+    "GroupOrder": 4
   },
   {
     "Title": "Plugin Domains",
     "Slug": "plugin-domains/index",
     "Order": 1,
     "Group": "plugin-domains",
-    "GroupOrder": 4
+    "GroupOrder": 5
   },
   {
     "Title": "Users",
     "Slug": "plugin-domains/users-domain",
     "Order": 2,
     "Group": "plugin-domains",
-    "GroupOrder": 4
+    "GroupOrder": 5
   },
   {
     "Title": "Credentials",
     "Slug": "plugin-domains/credential-domain",
     "Order": 3,
     "Group": "plugin-domains",
-    "GroupOrder": 4
+    "GroupOrder": 5
   },
   {
     "Title": "Authorization",
     "Slug": "plugin-domains/authorization-domain",
     "Order": 4,
     "Group": "plugin-domains",
-    "GroupOrder": 4
+    "GroupOrder": 5
   },
   {
-    "Title": "Policies",
+    "Title": "Policies \u0026 Access Control",
     "Slug": "plugin-domains/policies",
     "Order": 5,
     "Group": "plugin-domains",
-    "GroupOrder": 4
+    "GroupOrder": 5
   },
   {
-    "Title": "Client \u0026 API",
+    "Title": "Client SDK Overview",
     "Slug": "client/index",
     "Order": 1,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Authentication",
     "Slug": "client/authentication",
     "Order": 2,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Session Management",
     "Slug": "client/session-management",
     "Order": 3,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "User Management",
     "Slug": "client/user-management",
     "Order": 4,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Identifiers",
     "Slug": "client/identifiers",
     "Order": 5,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Credentials",
     "Slug": "client/credentials",
     "Order": 6,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Authorization",
     "Slug": "client/authorization",
     "Order": 7,
     "Group": "client",
-    "GroupOrder": 5
+    "GroupOrder": 6
   },
   {
     "Title": "Configuration",
     "Slug": "configuration/index",
     "Order": 1,
     "Group": "configuration",
-    "GroupOrder": 6
-  },
-  {
-    "Title": "Configuration Overview",
-    "Slug": "configuration/configuration-overview",
-    "Order": 2,
-    "Group": "configuration",
-    "GroupOrder": 6
+    "GroupOrder": 7
   },
   {
     "Title": "Server Options",
     "Slug": "configuration/server-options",
     "Order": 3,
     "Group": "configuration",
-    "GroupOrder": 6
+    "GroupOrder": 7
+  },
+  {
+    "Title": "Advanced Configuration",
+    "Slug": "configuration/advanced-configuration",
+    "Order": 4,
+    "Group": "configuration",
+    "GroupOrder": 7
   },
   {
     "Title": "Client Options",
     "Slug": "configuration/client-options",
     "Order": 4,
     "Group": "configuration",
-    "GroupOrder": 6
-  },
-  {
-    "Title": "Configuration Sources",
-    "Slug": "configuration/configuration-sources",
-    "Order": 5,
-    "Group": "configuration",
-    "GroupOrder": 6
-  },
-  {
-    "Title": "Advanced Configuration",
-    "Slug": "configuration/advanced-configuration",
-    "Order": 6,
-    "Group": "configuration",
-    "GroupOrder": 6
+    "GroupOrder": 7
   },
   {
     "Title": "Session Security Model",
     "Slug": "security/session-security-model",
     "Order": 1,
     "Group": "security",
-    "GroupOrder": 7
+    "GroupOrder": 8
   },
   {
-    "Title": "Access Token Behavior",
-    "Slug": "security/access-token-behavior",
+    "Title": "Token Security",
+    "Slug": "security/token-security",
     "Order": 2,
     "Group": "security",
-    "GroupOrder": 7
+    "GroupOrder": 8
   },
   {
-    "Title": "Refresh Rotation",
+    "Title": "Refresh Rotation \u0026 Replay Protection",
     "Slug": "security/refresh-rotation",
     "Order": 3,
     "Group": "security",
-    "GroupOrder": 7
+    "GroupOrder": 8
   },
   {
-    "Title": "Policy Pipeline",
-    "Slug": "security/policy-pipeline",
+    "Title": "Authorization Pipeline Internals",
+    "Slug": "security/authorization-pipeline",
     "Order": 4,
     "Group": "security",
-    "GroupOrder": 7
+    "GroupOrder": 8
   },
   {
     "Title": "\uD83D\uDD10 UltimateAuth Docs",

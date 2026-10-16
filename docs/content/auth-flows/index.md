@@ -246,4 +246,4 @@ This is the larger goal of UltimateAuth's unified model—not to make every auth
 
 ## Next step
 
-Start with [Login Flow](./login-flow.md) to see how UltimateAuth turns validated credentials into controlled authenticated access.
+Start with [Login Flow](/docs/auth-flows/login) to see how UltimateAuth turns validated credentials into controlled authenticated access.

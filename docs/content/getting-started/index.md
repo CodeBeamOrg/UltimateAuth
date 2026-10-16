@@ -68,9 +68,9 @@ Where session-backed modes apply, UltimateAuth models authentication through a h
 
 ```text
 User
- └── Root       Global session-security boundary
-      └── Chain Device-associated lifecycle
-           └── Session  Individual authentication instance
+ └── Root        Global session-security boundary
+      └── Chain  Device-associated lifecycle
+           └──   Session  Individual authentication instance
 ```
 
 This structure gives the system a vocabulary for different security actions. A session can be invalidated, a device-associated chain can be terminated, and a broader security boundary can be revoked.
@@ -95,7 +95,7 @@ Request
 
 This is not a claim that pipelines or orchestration are new inventions. The value is in applying them **consistently across authentication operations**, so the rules are easier to reason about, test, and extend.
 
-For the implementation model, see [Auth Flows](../auth-flows/auth-flows.md).
+For the implementation model, see [Auth Flows](/docs/auth-flows/index).
 
 ## Tenant-Aware from the Request Boundary
 
@@ -133,7 +133,7 @@ Security is not finished when login succeeds. UltimateAuth's architecture accoun
 
 A key distinction is **logout versus revoke**. Ordinary logout ends authentication according to its scope; revocation is an irreversible invalidation of the targeted security state. Signing in again may establish *new* authentication, but it does not restore what was revoked.
 
-Explore the details in [Login Flow](../auth-flows/login-flow.md), [Refresh Flow](../auth-flows/refresh-flow.md), and [Logout Flow](../auth-flows/logout-flow.md).
+Explore the details in [Login Flow](/docs/auth-flows/login), [Refresh Flow](/docs/auth-flows/refresh), and [Logout Flow](/docs/auth-flows/logout).
 
 ## Modular and Extensible
 
@@ -167,6 +167,6 @@ The ambition is to build a framework that developers can adopt, inspect, contrib
 
 You do not need to understand every internal component before getting started.
 
-**Continue to Quick Start** to set up your first UltimateAuth application. Then explore [Auth Flows](../auth-flows/auth-flows.md) to understand how the pieces work together.
+**Continue to Quick Start** to set up your first UltimateAuth application. Then explore [Auth Flows](/docs/auth-flows/index) to understand how the pieces work together.
 
 **The idea to remember:** UltimateAuth unifies authentication concepts without erasing their differences. One framework, a consistent lifecycle, and room for the security model your application actually needs.

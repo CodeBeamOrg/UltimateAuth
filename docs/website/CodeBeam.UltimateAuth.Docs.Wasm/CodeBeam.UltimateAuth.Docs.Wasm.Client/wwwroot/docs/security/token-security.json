@@ -1,0 +1,232 @@
+{
+  "Slug": "security/token-security",
+  "Title": "Token Security",
+  "Html": "\n\u003Cp\u003EAuthentication tokens allow clients to present authentication state to protected applications and services.\u003C/p\u003E\n\u003Cp\u003EHowever, not all tokens provide the same security guarantees.\u003C/p\u003E\n\u003Cp\u003EAn opaque credential requires authoritative server-side validation. A JSON Web Token (JWT) can be verified locally using its signature and claims. A refresh credential enables authentication to continue without repeating the original login process.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth supports these different mechanisms through its authentication modes.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EToken security depends on the credential\u0027s purpose, how it is validated, how long it remains valid, and which security state is consulted during validation.\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003EThis page explains the security characteristics of access and refresh credentials, including issuance, expiration, rotation, replay risks, and revocation boundaries.\u003C/p\u003E\n\u003Cp\u003EFor the overall authentication architecture, see \u003Ca href=\u0022/docs/fundamentals/authentication-modes\u0022\u003EAuthentication Modes\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-state-and-credentials\u0022\u003EAuthentication State and Credentials\u003C/h2\u003E\n\u003Cp\u003EA token is authentication material presented by a client.\u003C/p\u003E\n\u003Cp\u003EIt is not the user identity itself.\u003C/p\u003E\n\u003Cp\u003EDepending on the authentication mode, the token may reference server-managed authentication state or contain signed claims that can be validated without retrieving a session.\u003C/p\u003E\n\u003Cp\u003EThese approaches establish different trust boundaries.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-authoritative-authentication\u0022\u003EServer-Authoritative Authentication\u003C/h3\u003E\n\u003Cp\u003EIn server-authoritative modes, a presented opaque credential is validated against server-managed authentication state.\u003C/p\u003E\n\u003Cp\u003EThe server can evaluate the current validity of the corresponding session and applicable security conditions.\u003C/p\u003E\n\u003Cp\u003EThis allows revocation and other authoritative state changes to affect subsequent protected requests.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022locally-validated-authentication\u0022\u003ELocally Validated Authentication\u003C/h3\u003E\n\u003Cp\u003EIn JWT-based modes, a protected resource can validate a token using its signature, issuer, audience, expiration, and other applicable token requirements.\u003C/p\u003E\n\u003Cp\u003EThe resource may not need to consult the issuing server or a session store for every request.\u003C/p\u003E\n\u003Cp\u003EThis reduces the dependency on server-side session lookups but changes how quickly revocation and authorization changes can be enforced.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ENeither model makes the token an identity record. The token is a credential whose validity is determined by the selected authentication mechanism.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-types\u0022\u003EToken Types\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth uses two principal access credential formats: opaque credentials and JWTs.\u003C/p\u003E\n\u003Cp\u003ERefresh credentials serve a separate purpose.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003ECredential\u003C/th\u003E\n\u003Cth\u003EPurpose\u003C/th\u003E\n\u003Cth\u003EValidation model\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EOpaque access credential\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EAuthenticate protected requests\u003C/td\u003E\n\u003Ctd\u003EAuthoritative server-side validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EJWT access token\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EAuthenticate protected requests\u003C/td\u003E\n\u003Ctd\u003ECryptographic and claims validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EOpaque refresh credential\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EContinue authentication and obtain renewed credentials\u003C/td\u003E\n\u003Ctd\u003ERefresh-specific validation and state checks\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Cp\u003EThe distinction between access and refresh credentials is important.\u003C/p\u003E\n\u003Cp\u003EAccess credentials are presented to protected resources.\u003C/p\u003E\n\u003Cp\u003ERefresh credentials are presented to the authentication system for a continuation operation. They should not be accepted as ordinary access credentials.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022opaque-access-credentials\u0022\u003EOpaque Access Credentials\u003C/h2\u003E\n\u003Cp\u003EAn opaque credential is a value whose contents do not expose the authenticated identity or authorization claims to the client.\u003C/p\u003E\n\u003Cp\u003EConceptually:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAccess credential:\nq8Vn2...random-opaque-value...M7x\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe client presents the credential, but cannot determine its authorization meaning by decoding it.\u003C/p\u003E\n\u003Cp\u003EThe server resolves and validates the associated authentication state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-properties\u0022\u003ESecurity Properties\u003C/h3\u003E\n\u003Cp\u003EOpaque access credentials provide several useful characteristics:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ETheir meaning is determined by authoritative server-side state.\u003C/li\u003E\n\u003Cli\u003EThey do not need to expose identity claims in a client-readable payload.\u003C/li\u003E\n\u003Cli\u003ETheir validity can be affected by session expiration or revocation.\u003C/li\u003E\n\u003Cli\u003EThey can participate in account-level and chain-level security enforcement.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EHowever, opaque credentials are still bearer credentials unless an additional proof mechanism is enforced.\u003C/p\u003E\n\u003Cp\u003EAn attacker who obtains a usable opaque credential may be able to present it.\u003C/p\u003E\n\u003Cp\u003EOpacity alone does not prevent credential theft or replay.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-side-validation\u0022\u003EServer-Side Validation\u003C/h3\u003E\n\u003Cp\u003EIn a session-authoritative mode, validation can enforce the applicable session hierarchy requirements, including expiration, revocation, ownership, and security state consistency.\u003C/p\u003E\n\u003Cp\u003ESee \u003Ca href=\u0022/docs/security/session-security-model\u0022\u003ESession Security Model\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022jwt-access-tokens\u0022\u003EJWT Access Tokens\u003C/h2\u003E\n\u003Cp\u003EA JWT is a structured token containing signed claims.\u003C/p\u003E\n\u003Cp\u003EA typical JWT contains three encoded sections:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003Eheader.payload.signature\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EIts payload may describe the authenticated subject, tenant, authorization information, token lifetime, and other relevant context.\u003C/p\u003E\n\u003Cp\u003EA JWT is not encrypted merely because it is encoded and signed.\u003C/p\u003E\n\u003Cp\u003EApplications should not place secrets or unnecessarily sensitive information in a JWT payload.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022cryptographic-validation\u0022\u003ECryptographic Validation\u003C/h3\u003E\n\u003Cp\u003EA protected resource must validate the JWT according to the configured token requirements.\u003C/p\u003E\n\u003Cp\u003ERelevant checks include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESignature validity.\u003C/li\u003E\n\u003Cli\u003EAccepted signing algorithm and key.\u003C/li\u003E\n\u003Cli\u003EExpected issuer.\u003C/li\u003E\n\u003Cli\u003EIntended audience.\u003C/li\u003E\n\u003Cli\u003EExpiration and other applicable time constraints.\u003C/li\u003E\n\u003Cli\u003ERequired token claims and application-specific restrictions.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EA successfully decoded JWT is not necessarily a valid JWT.\u003C/p\u003E\n\u003Cp\u003ELikewise, a correctly signed JWT is not automatically acceptable to every resource.\u003C/p\u003E\n\u003Cp\u003EThe resource must verify that the token was issued for its intended security context.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022local-validation\u0022\u003ELocal Validation\u003C/h3\u003E\n\u003Cp\u003EJWTs can be validated without loading current server-side session state.\u003C/p\u003E\n\u003Cp\u003EThis is useful for distributed APIs and services that need to authenticate requests efficiently.\u003C/p\u003E\n\u003Cp\u003EHowever, local validation introduces an important limitation:\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EA token can remain cryptographically valid after the underlying account or authorization state has changed.\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003EWhether such changes immediately affect access depends on additional validation and revocation mechanisms.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-mode-behavior\u0022\u003EAuthentication Mode Behavior\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth selects credential behavior according to the configured authentication mode.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EMode\u003C/th\u003E\n\u003Cth\u003EAccess mechanism\u003C/th\u003E\n\u003Cth\u003EContinuation mechanism\u003C/th\u003E\n\u003Cth\u003EProtected request authority\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EPureOpaque\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOpaque session credential\u003C/td\u003E\n\u003Ctd\u003ESession lifecycle\u003C/td\u003E\n\u003Ctd\u003EServer-managed session state\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EHybrid\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EOpaque access credential\u003C/td\u003E\n\u003Ctd\u003EOpaque refresh credential\u003C/td\u003E\n\u003Ctd\u003EServer-managed session state\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003ESemiHybrid\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EJWT access token\u003C/td\u003E\n\u003Ctd\u003EServer-managed refresh flow\u003C/td\u003E\n\u003Ctd\u003ELocally validated JWT\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003E\u003Cstrong\u003EPureJwt\u003C/strong\u003E\u003C/td\u003E\n\u003Ctd\u003EJWT access token\u003C/td\u003E\n\u003Ctd\u003EOptional refresh mechanism\u003C/td\u003E\n\u003Ctd\u003ELocally validated JWT\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022pureopaque\u0022\u003EPureOpaque\u003C/h3\u003E\n\u003Cp\u003EPureOpaque uses an opaque session credential.\u003C/p\u003E\n\u003Cp\u003EIt does not require a separate access-token and refresh-token pair.\u003C/p\u003E\n\u003Cp\u003EThe credential is validated through the authoritative session mechanism.\u003C/p\u003E\n\u003Cp\u003ESession lifecycle operations govern the continuation and validity of authentication state.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022hybrid\u0022\u003EHybrid\u003C/h3\u003E\n\u003Cp\u003EHybrid uses distinct opaque access and refresh credentials.\u003C/p\u003E\n\u003Cp\u003EAccess requests are validated against authoritative server-managed state.\u003C/p\u003E\n\u003Cp\u003ERefresh operations use the refresh credential to continue authentication according to the configured lifecycle and rotation behavior.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EHybrid does not require JWT access tokens.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022semihybrid\u0022\u003ESemiHybrid\u003C/h3\u003E\n\u003Cp\u003ESemiHybrid issues JWT access tokens while maintaining server-side session state for relevant lifecycle operations.\u003C/p\u003E\n\u003Cp\u003EProtected requests can validate JWT access tokens locally.\u003C/p\u003E\n\u003Cp\u003ERefresh and logout interact with the server-managed authentication lifecycle.\u003C/p\u003E\n\u003Cp\u003EThis means that server-side revocation does not necessarily invalidate an already-issued JWT immediately.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022purejwt\u0022\u003EPureJwt\u003C/h3\u003E\n\u003Cp\u003EPureJwt uses JWT access tokens without requiring the Root \u2192 Chain \u2192 Session hierarchy for ordinary protected request validation.\u003C/p\u003E\n\u003Cp\u003EAn optional refresh mechanism may maintain refresh-specific state.\u003C/p\u003E\n\u003Cp\u003EThe existence of a refresh store does not make JWT access validation session-authoritative.\u003C/p\u003E\n\u003Cp\u003EFor more detail, see \u003Ca href=\u0022/docs/fundamentals/authentication-modes\u0022\u003EAuthentication Modes\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022access-token-lifetime\u0022\u003EAccess Token Lifetime\u003C/h2\u003E\n\u003Cp\u003EAccess credentials should have lifetimes appropriate to their authentication mode and security requirements.\u003C/p\u003E\n\u003Cp\u003EShort-lived JWT access tokens are particularly important because a token may remain usable until expiration even after server-side authorization state changes.\u003C/p\u003E\n\u003Cp\u003EFor example, an application might choose a JWT access lifetime of several minutes.\u003C/p\u003E\n\u003Cp\u003EHowever, \u003Cstrong\u003Ea lifetime such as 5\u201315 minutes is an example of an application security choice, not a universal UltimateAuth default or requirement\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003EThe appropriate value depends on factors such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ESensitivity of protected resources.\u003C/li\u003E\n\u003Cli\u003EExpected frequency of authorization changes.\u003C/li\u003E\n\u003Cli\u003EAcceptable revocation delay.\u003C/li\u003E\n\u003Cli\u003EAvailability and security of the refresh mechanism.\u003C/li\u003E\n\u003Cli\u003EClient behavior and network conditions.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022lifetime-versus-revocation\u0022\u003ELifetime Versus Revocation\u003C/h3\u003E\n\u003Cp\u003EExpiration limits how long a credential can be accepted.\u003C/p\u003E\n\u003Cp\u003ERevocation invalidates authentication state before its ordinary expiration.\u003C/p\u003E\n\u003Cp\u003EThese mechanisms are related but not interchangeable.\u003C/p\u003E\n\u003Cp\u003EIn server-authoritative modes, current revocation state can be checked during protected requests.\u003C/p\u003E\n\u003Cp\u003EIn locally validated JWT modes, expiration may remain the primary limit on an already-issued access token unless an additional revocation check is implemented.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-credentials\u0022\u003ERefresh Credentials\u003C/h2\u003E\n\u003Cp\u003ERefresh credentials allow clients to continue authentication without repeating the original authentication ceremony.\u003C/p\u003E\n\u003Cp\u003EThey are intended for the authentication system\u0027s refresh operation, not for general API access.\u003C/p\u003E\n\u003Cp\u003EIn UltimateAuth, refresh behavior is mode-dependent.\u003C/p\u003E\n\u003Cp\u003EPureOpaque does not require a separate refresh credential pair, while Hybrid and SemiHybrid use refresh flows. PureJwt can support an optional refresh mechanism.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-security-requirements\u0022\u003ERefresh Security Requirements\u003C/h3\u003E\n\u003Cp\u003EA secure refresh operation must establish that the presented credential is eligible for continued authentication.\u003C/p\u003E\n\u003Cp\u003EDepending on the mode and configured strategy, this may involve checking:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECredential existence and validity.\u003C/li\u003E\n\u003Cli\u003EExpiration.\u003C/li\u003E\n\u003Cli\u003ERevocation or consumption state.\u003C/li\u003E\n\u003Cli\u003EAssociated user or session context.\u003C/li\u003E\n\u003Cli\u003EApplicable client and device context.\u003C/li\u003E\n\u003Cli\u003ERotation and reuse conditions.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EA valid refresh credential should not automatically bypass account-level or session-level security requirements that apply to the selected mode.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022access-and-refresh-separation\u0022\u003EAccess and Refresh Separation\u003C/h3\u003E\n\u003Cp\u003EAccess and refresh credentials have different responsibilities.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EAuthentication\n      |\n      v\nAccess credential\n      |\n      | Used for protected requests\n      v\nAccess expires\n      |\n      v\nRefresh operation\n      |\n      | Validate refresh credential\n      | Apply continuation rules\n      v\nRenewed access credential\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe refresh operation does not extend the expiration timestamp of an already-issued JWT.\u003C/p\u003E\n\u003Cp\u003EIt issues new authentication material when continuation is permitted.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-rotation\u0022\u003ERefresh Rotation\u003C/h2\u003E\n\u003Cp\u003ERefresh rotation replaces refresh authentication material according to the configured refresh strategy.\u003C/p\u003E\n\u003Cp\u003EA rotating refresh mechanism can invalidate the previously used refresh credential and issue a replacement.\u003C/p\u003E\n\u003Cp\u003EConceptually:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ERefresh credential A\n        |\n        | Successful refresh\n        v\nRefresh credential A consumed\nRefresh credential B issued\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThis reduces the period during which an older refresh credential remains reusable.\u003C/p\u003E\n\u003Cp\u003EHowever, \u003Cstrong\u003Erotation behavior is not identical across every UltimateAuth mode or refresh strategy\u003C/strong\u003E.\u003C/p\u003E\n\u003Cp\u003ESome session continuation operations may update existing server-side state without replacing a separate refresh credential.\u003C/p\u003E\n\u003Cp\u003EThe effective behavior must follow the selected mode and its configured refresh strategy.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022rotation-is-not-replay-prevention-by-itself\u0022\u003ERotation Is Not Replay Prevention by Itself\u003C/h3\u003E\n\u003Cp\u003ERotation limits credential reuse only when the server enforces the relevant consumption or replacement state.\u003C/p\u003E\n\u003Cp\u003EA secure rotating refresh mechanism must account for situations such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe same credential being submitted again.\u003C/li\u003E\n\u003Cli\u003EConcurrent refresh requests.\u003C/li\u003E\n\u003Cli\u003EA credential being reused after replacement.\u003C/li\u003E\n\u003Cli\u003EAn interrupted response after a successful rotation.\u003C/li\u003E\n\u003Cli\u003EAn attacker and legitimate client attempting to use the same credential.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThe exact outcome depends on the implemented refresh strategy and concurrency guarantees.\u003C/p\u003E\n\u003Cp\u003ERotation should not be described as automatically eliminating every replay risk.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-token-reuse\u0022\u003ERefresh Token Reuse\u003C/h2\u003E\n\u003Cp\u003ERefresh token reuse occurs when a credential is presented after it has already been consumed, replaced, or otherwise invalidated.\u003C/p\u003E\n\u003Cp\u003EFor a single-use rotating refresh credential, this is a security-relevant event.\u003C/p\u003E\n\u003Cp\u003EConceptually:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EClient refreshes with A\n        |\n        v\nA replaced by B\n        |\n        v\nAnother request presents A\n        |\n        v\nReuse / invalid credential condition\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EA reuse attempt may indicate credential theft, but it can also arise from concurrent requests or client synchronization failures.\u003C/p\u003E\n\u003Cp\u003EThe refresh implementation must distinguish these situations according to its supported guarantees and policy.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-response\u0022\u003ESecurity Response\u003C/h3\u003E\n\u003Cp\u003EPossible security responses include:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ERejecting the invalid refresh attempt.\u003C/li\u003E\n\u003Cli\u003EInvalidating the associated refresh state.\u003C/li\u003E\n\u003Cli\u003ERevoking an affected session.\u003C/li\u003E\n\u003Cli\u003ERevoking a broader session chain where supported and appropriate.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThese are distinct actions.\u003C/p\u003E\n\u003Cp\u003EThe presence of a reuse-detection mechanism does not imply that every reuse attempt automatically revokes the entire device-associated chain.\u003C/p\u003E\n\u003Cp\u003ESuch behavior must be explicitly supported by the configured refresh strategy.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-credential-storage\u0022\u003ERefresh Credential Storage\u003C/h2\u003E\n\u003Cp\u003ERefresh credentials are generally more sensitive to long-term compromise because they may allow new access credentials to be obtained.\u003C/p\u003E\n\u003Cp\u003ETheir storage therefore deserves stronger protection than ordinary client-visible access metadata.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-side-storage\u0022\u003EServer-Side Storage\u003C/h3\u003E\n\u003Cp\u003EFor persisted opaque refresh credentials, storing a one-way verifier or hash instead of the raw credential can reduce the impact of a storage disclosure.\u003C/p\u003E\n\u003Cp\u003EHowever, the exact persistence model depends on the selected authentication mode and refresh implementation.\u003C/p\u003E\n\u003Cp\u003EIt should not be assumed that every authentication mode uses the same refresh storage structure.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022client-side-storage\u0022\u003EClient-Side Storage\u003C/h3\u003E\n\u003Cp\u003EThe appropriate client storage mechanism depends on the application environment.\u003C/p\u003E\n\u003Cp\u003EFor browser applications, HttpOnly cookies can prevent JavaScript from directly reading refresh credentials, although cookie-based refresh flows still require appropriate CSRF and origin protections.\u003C/p\u003E\n\u003Cp\u003ENative applications may use platform-provided secure storage where suitable.\u003C/p\u003E\n\u003Cp\u003ERefresh credentials should not be exposed through application logs, diagnostic output, URLs, or unrelated API responses.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022transport-security\u0022\u003ETransport Security\u003C/h3\u003E\n\u003Cp\u003EAuthentication credentials must be protected in transit.\u003C/p\u003E\n\u003Cp\u003EProduction authentication and refresh endpoints should use HTTPS.\u003C/p\u003E\n\u003Cp\u003EApplications should also avoid sending refresh credentials to services that do not need to receive them.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022claims-and-authorization-freshness\u0022\u003EClaims and Authorization Freshness\u003C/h2\u003E\n\u003Cp\u003EJWT claims represent information established when the token was issued.\u003C/p\u003E\n\u003Cp\u003EThey may include standard or application-specific information such as:\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003Esub       Subject identifier\niss       Issuer\naud       Audience\nexp       Expiration\niat       Issued-at time\njti       Token identifier\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EDepending on the application, a JWT may also include tenant information, roles, permissions, or session references.\u003C/p\u003E\n\u003Cp\u003EThese claims are not automatically updated when the underlying account changes.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022example-permission-removal\u0022\u003EExample: Permission Removal\u003C/h3\u003E\n\u003Cp\u003EConsider the following sequence:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EA JWT is issued containing an administrative permission.\u003C/li\u003E\n\u003Cli\u003EAn administrator removes that permission from the user.\u003C/li\u003E\n\u003Cli\u003EThe client continues presenting the previously issued JWT.\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003EIf the protected resource relies only on the signed claims in that JWT, the removed permission may remain effective until the token expires.\u003C/p\u003E\n\u003Cp\u003EThe signature remains valid because the token has not been modified.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authorization-strategies\u0022\u003EAuthorization Strategies\u003C/h3\u003E\n\u003Cp\u003EApplications can address this limitation through their security architecture, including:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EShorter JWT lifetimes.\u003C/li\u003E\n\u003Cli\u003EReissuing claims during refresh.\u003C/li\u003E\n\u003Cli\u003EConsulting authoritative authorization state for sensitive operations.\u003C/li\u003E\n\u003Cli\u003EUsing server-authoritative authentication modes where immediate state enforcement is required.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThe appropriate approach depends on the security requirements of the application.\u003C/p\u003E\n\u003Cp\u003ESee \u003Ca href=\u0022/docs/plugin-domains/authorization\u0022\u003EAuthorization\u003C/a\u003E and \u003Ca href=\u0022/docs/plugin-domains/policies\u0022\u003EPolicies \u0026amp; Access Control\u003C/a\u003E.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022token-revocation\u0022\u003EToken Revocation\u003C/h2\u003E\n\u003Cp\u003ERevocation behavior differs fundamentally between opaque credentials and locally validated JWTs.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022opaque-credential-revocation\u0022\u003EOpaque Credential Revocation\u003C/h3\u003E\n\u003Cp\u003EAn opaque credential depends on authoritative validation.\u003C/p\u003E\n\u003Cp\u003EIf the corresponding server-managed authentication state is revoked, subsequent validation can reject the credential.\u003C/p\u003E\n\u003Cp\u003EThe precise scope depends on whether the security operation targets a session, chain, or account-level root.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022jwt-revocation\u0022\u003EJWT Revocation\u003C/h3\u003E\n\u003Cp\u003EA signed JWT cannot be made cryptographically invalid merely by deleting a server-side session record.\u003C/p\u003E\n\u003Cp\u003EIts signature and expiration remain unchanged.\u003C/p\u003E\n\u003Cp\u003ETo reject an otherwise valid JWT before expiration, the resource must enforce an additional condition, such as an authoritative revocation check or another supported invalidation mechanism.\u003C/p\u003E\n\u003Cp\u003EWithout that additional enforcement, a locally validated JWT may remain acceptable until expiration.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-revocation\u0022\u003ERefresh Revocation\u003C/h3\u003E\n\u003Cp\u003ERevoking a refresh credential can prevent further successful refresh operations.\u003C/p\u003E\n\u003Cp\u003EHowever, that does not necessarily invalidate access tokens already issued before the revocation.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EAccess revocation and refresh revocation are separate security concerns.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-security-and-token-security\u0022\u003ESession Security and Token Security\u003C/h2\u003E\n\u003Cp\u003EToken security and session security are closely related, but they operate at different levels.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EConcern\u003C/th\u003E\n\u003Cth\u003EToken Security\u003C/th\u003E\n\u003Cth\u003ESession Security\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ECredential format\u003C/td\u003E\n\u003Ctd\u003EOpaque or JWT\u003C/td\u003E\n\u003Ctd\u003ERoot, chain, and session state\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ECryptographic validation\u003C/td\u003E\n\u003Ctd\u003EJWT signature and claims\u003C/td\u003E\n\u003Ctd\u003ENot a substitute for token signature validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EExpiration\u003C/td\u003E\n\u003Ctd\u003EToken validity period\u003C/td\u003E\n\u003Ctd\u003ESession and chain lifecycle limits\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ERotation\u003C/td\u003E\n\u003Ctd\u003EReplacement of authentication material\u003C/td\u003E\n\u003Ctd\u003EContinuity and associated state transitions\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ERevocation\u003C/td\u003E\n\u003Ctd\u003EWhether a presented credential remains acceptable\u003C/td\u003E\n\u003Ctd\u003EWhich authentication state has been invalidated\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EDevice context\u003C/td\u003E\n\u003Ctd\u003EMay be associated with token use\u003C/td\u003E\n\u003Ctd\u003EManaged through applicable chain and session context\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Cp\u003EA token may be valid according to its own format but unacceptable under authoritative session security rules.\u003C/p\u003E\n\u003Cp\u003EConversely, server-side session state may remain active while a particular access token has expired.\u003C/p\u003E\n\u003Cp\u003EBoth levels must be understood to reason correctly about the selected authentication mode.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022common-security-misconceptions\u0022\u003ECommon Security Misconceptions\u003C/h2\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-valid-signature-means-current-authorization\u0022\u003EA Valid Signature Means Current Authorization\u003C/h3\u003E\n\u003Cp\u003EA valid JWT signature proves that the token has not been modified and was signed by an accepted key.\u003C/p\u003E\n\u003Cp\u003EIt does not prove that the user\u0027s permissions or account status have remained unchanged since issuance.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022a-device-identifier-prevents-token-theft\u0022\u003EA Device Identifier Prevents Token Theft\u003C/h3\u003E\n\u003Cp\u003EA device identifier may support context consistency checks.\u003C/p\u003E\n\u003Cp\u003EIt does not independently prevent a stolen bearer credential from being replayed.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh-rotation-makes-token-theft-impossible\u0022\u003ERefresh Rotation Makes Token Theft Impossible\u003C/h3\u003E\n\u003Cp\u003ERotation can reduce reuse opportunities and support detection of invalid reuse.\u003C/p\u003E\n\u003Cp\u003EIt does not prevent a stolen credential from being used before the legitimate client or server detects the compromise.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout-invalidates-every-jwt-immediately\u0022\u003ELogout Invalidates Every JWT Immediately\u003C/h3\u003E\n\u003Cp\u003ELogout may revoke server-managed session or refresh state.\u003C/p\u003E\n\u003Cp\u003EPreviously issued JWT access tokens can remain valid until expiration unless protected resources enforce an additional invalidation mechanism.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022short-lived-tokens-eliminate-the-need-for-session-security\u0022\u003EShort-Lived Tokens Eliminate the Need for Session Security\u003C/h3\u003E\n\u003Cp\u003EShort lifetimes reduce the exposure window of a compromised token.\u003C/p\u003E\n\u003Cp\u003EThey do not replace account-level security policies, credential recovery protections, or session revocation controls where those capabilities are required.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-design-principles\u0022\u003ESecurity Design Principles\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth\u0027s token model is best understood through a few principles.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EUse credentials only for their intended purpose.\u003C/strong\u003E Access and refresh credentials must not be interchangeable.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EValidate according to the selected mode.\u003C/strong\u003E Opaque credentials require authoritative validation; JWTs require correct cryptographic and claims validation.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ETreat JWT claims as issuance-time information.\u003C/strong\u003E Current authorization state may differ from what an older token contains.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EKeep access credentials appropriately short-lived.\u003C/strong\u003E Token lifetime should reflect the application\u0027s acceptable exposure window.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EEnforce refresh continuation rules.\u003C/strong\u003E Rotation, expiration, consumption, and reuse behavior must be consistent with the configured strategy.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EDistinguish token expiration from session revocation.\u003C/strong\u003E They invalidate authentication through different mechanisms.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EDo not promise immediate JWT revocation without enforcement.\u003C/strong\u003E Server-side state changes affect locally validated tokens only when the resource checks the relevant state.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022architectural-perspective\u0022\u003EArchitectural Perspective\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth does not impose a single token model on every application.\u003C/p\u003E\n\u003Cp\u003EPureOpaque and Hybrid emphasize server-authoritative authentication state.\u003C/p\u003E\n\u003Cp\u003ESemiHybrid and PureJwt support locally validated JWT access, with different approaches to authentication continuation.\u003C/p\u003E\n\u003Cp\u003EThese choices affect performance, storage requirements, revocation behavior, and authorization freshness.\u003C/p\u003E\n\u003Cp\u003EThe purpose of the token security model is to make those tradeoffs explicit.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EA token establishes access only while its applicable validation requirements remain satisfied. The strength and freshness of those requirements depend on the authentication mode.\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-steps\u0022\u003ENext Steps\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/security/session-security-model\u0022\u003ESession Security Model\u003C/a\u003E \u2014 Understand authoritative session validation and hierarchical revocation.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/fundamentals/authentication-modes\u0022\u003EAuthentication Modes\u003C/a\u003E \u2014 Compare credential behavior across modes.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/sessions-devices/session-model\u0022\u003ESession Model \u0026amp; Lifecycle\u003C/a\u003E \u2014 Explore session creation, continuation, and invalidation.\u003C/li\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/plugin-domains/credentials\u0022\u003ECredentials\u003C/a\u003E \u2014 Understand credential management and recovery security.\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "authentication-state-and-credentials",
+      "Text": "Authentication State and Credentials",
+      "Level": 0
+    },
+    {
+      "Id": "server-authoritative-authentication",
+      "Text": "Server-Authoritative Authentication",
+      "Level": 1
+    },
+    {
+      "Id": "locally-validated-authentication",
+      "Text": "Locally Validated Authentication",
+      "Level": 1
+    },
+    {
+      "Id": "token-types",
+      "Text": "Token Types",
+      "Level": 0
+    },
+    {
+      "Id": "opaque-access-credentials",
+      "Text": "Opaque Access Credentials",
+      "Level": 0
+    },
+    {
+      "Id": "security-properties",
+      "Text": "Security Properties",
+      "Level": 1
+    },
+    {
+      "Id": "server-side-validation",
+      "Text": "Server-Side Validation",
+      "Level": 1
+    },
+    {
+      "Id": "jwt-access-tokens",
+      "Text": "JWT Access Tokens",
+      "Level": 0
+    },
+    {
+      "Id": "cryptographic-validation",
+      "Text": "Cryptographic Validation",
+      "Level": 1
+    },
+    {
+      "Id": "local-validation",
+      "Text": "Local Validation",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-mode-behavior",
+      "Text": "Authentication Mode Behavior",
+      "Level": 0
+    },
+    {
+      "Id": "pureopaque",
+      "Text": "PureOpaque",
+      "Level": 1
+    },
+    {
+      "Id": "hybrid",
+      "Text": "Hybrid",
+      "Level": 1
+    },
+    {
+      "Id": "semihybrid",
+      "Text": "SemiHybrid",
+      "Level": 1
+    },
+    {
+      "Id": "purejwt",
+      "Text": "PureJwt",
+      "Level": 1
+    },
+    {
+      "Id": "access-token-lifetime",
+      "Text": "Access Token Lifetime",
+      "Level": 0
+    },
+    {
+      "Id": "lifetime-versus-revocation",
+      "Text": "Lifetime Versus Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-credentials",
+      "Text": "Refresh Credentials",
+      "Level": 0
+    },
+    {
+      "Id": "refresh-security-requirements",
+      "Text": "Refresh Security Requirements",
+      "Level": 1
+    },
+    {
+      "Id": "access-and-refresh-separation",
+      "Text": "Access and Refresh Separation",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-rotation",
+      "Text": "Refresh Rotation",
+      "Level": 0
+    },
+    {
+      "Id": "rotation-is-not-replay-prevention-by-itself",
+      "Text": "Rotation Is Not Replay Prevention by Itself",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-token-reuse",
+      "Text": "Refresh Token Reuse",
+      "Level": 0
+    },
+    {
+      "Id": "security-response",
+      "Text": "Security Response",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-credential-storage",
+      "Text": "Refresh Credential Storage",
+      "Level": 0
+    },
+    {
+      "Id": "server-side-storage",
+      "Text": "Server-Side Storage",
+      "Level": 1
+    },
+    {
+      "Id": "client-side-storage",
+      "Text": "Client-Side Storage",
+      "Level": 1
+    },
+    {
+      "Id": "transport-security",
+      "Text": "Transport Security",
+      "Level": 1
+    },
+    {
+      "Id": "claims-and-authorization-freshness",
+      "Text": "Claims and Authorization Freshness",
+      "Level": 0
+    },
+    {
+      "Id": "example-permission-removal",
+      "Text": "Example: Permission Removal",
+      "Level": 1
+    },
+    {
+      "Id": "authorization-strategies",
+      "Text": "Authorization Strategies",
+      "Level": 1
+    },
+    {
+      "Id": "token-revocation",
+      "Text": "Token Revocation",
+      "Level": 0
+    },
+    {
+      "Id": "opaque-credential-revocation",
+      "Text": "Opaque Credential Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "jwt-revocation",
+      "Text": "JWT Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-revocation",
+      "Text": "Refresh Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "session-security-and-token-security",
+      "Text": "Session Security and Token Security",
+      "Level": 0
+    },
+    {
+      "Id": "common-security-misconceptions",
+      "Text": "Common Security Misconceptions",
+      "Level": 0
+    },
+    {
+      "Id": "a-valid-signature-means-current-authorization",
+      "Text": "A Valid Signature Means Current Authorization",
+      "Level": 1
+    },
+    {
+      "Id": "a-device-identifier-prevents-token-theft",
+      "Text": "A Device Identifier Prevents Token Theft",
+      "Level": 1
+    },
+    {
+      "Id": "refresh-rotation-makes-token-theft-impossible",
+      "Text": "Refresh Rotation Makes Token Theft Impossible",
+      "Level": 1
+    },
+    {
+      "Id": "logout-invalidates-every-jwt-immediately",
+      "Text": "Logout Invalidates Every JWT Immediately",
+      "Level": 1
+    },
+    {
+      "Id": "short-lived-tokens-eliminate-the-need-for-session-security",
+      "Text": "Short-Lived Tokens Eliminate the Need for Session Security",
+      "Level": 1
+    },
+    {
+      "Id": "security-design-principles",
+      "Text": "Security Design Principles",
+      "Level": 0
+    },
+    {
+      "Id": "architectural-perspective",
+      "Text": "Architectural Perspective",
+      "Level": 0
+    },
+    {
+      "Id": "next-steps",
+      "Text": "Next Steps",
+      "Level": 0
+    }
+  ]
+}
