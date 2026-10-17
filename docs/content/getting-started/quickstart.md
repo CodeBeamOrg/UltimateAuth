@@ -24,10 +24,10 @@ This guide uses **Blazor Web App with Interactive Server rendering** and Ultimat
 
 ## 1. Create a Blazor Application
 
-Open a terminal and create a new project:
+Open a terminal and create a new Blazor Interactive Server project:
 
 ```bash
-dotnet new blazor -n UltimateAuthDemo -int Server
+dotnet new blazor -n UltimateAuthDemo -int Server -ai
 cd UltimateAuthDemo
 ```
 
@@ -113,6 +113,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseUltimateAuthWithAspNetCore();
+app.UseAntiforgery();
 app.MapUltimateAuthEndpoints();
 
 app.MapRazorComponents<App>()
@@ -171,30 +172,41 @@ With `UseBuiltInRouter="true"`, it also provides the application's router.
 
 You don't need to create a separate `Router` or `CascadingAuthenticationState` component for this setup.
 
-## 7. Create Your Login Page
+## 7. Add Usings
 
-Create `Components/Pages/Login.razor`:
+Add this in `_Imports.razor`
 
 ```razor
+@using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Blazor
+```
+
+## 8. Create Your Login Page
+
+Change `Components/Pages/Home.razor`:
+
+```razor
+@page "/"
 @page "/login"
 @attribute [UAuthLoginPage]
+@inherits UAuthPageBase
 
-@using CodeBeam.UltimateAuth.Client.Blazor
+<div class="container mt-5" style="max-width: 400px;">
+    <h3>Sign in</h3>
+    <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard">
+        <div class="d-block mb-3">
+            <label>Username</label>
+            <input @bind="_identifier" class="form-control w-100" autocomplete="username" />
+        </div>
 
-<h3>Sign in</h3>
-<UAuthLoginForm Identifier="@_identifier" Secret="@_password">
-    <div>
-        <label>Username</label>
-        <input @bind="_identifier" />
-    </div>
+        <div class="d-block mb-3">
+            <label>Password</label>
+            <input type="password" @bind="_password" class="form-control w-100" autocomplete="current-password" />
+        </div>
 
-    <div>
-        <label>Password</label>
-        <input type="password" @bind="_password" />
-    </div>
-
-    <button type="submit">Sign in</button>
-</UAuthLoginForm>
+        <button class="btn btn-primary w-100" type="submit">Sign in</button>
+    </UAuthLoginForm>
+</div>
 
 @code {
     private string _identifier = "";
@@ -210,26 +222,37 @@ Only designate one login page for this purpose.
 
 The form above is intentionally minimal. You can replace the inputs with your preferred UI components later.
 
-## 8. Add a Protected Page
+## 9. Add a Protected Page
 
 Create `Components/Pages/Dashboard.razor`:
 
 ```razor
 @page "/dashboard"
 @attribute [UAuthAuthorize]
-
-@using CodeBeam.UltimateAuth.Client.Blazor
+@inherits UAuthPageBase
+@inject IUAuthClient UAuthClient
 
 <h3>Dashboard</h3>
 
 <p>You have reached an authenticated page.</p>
+<UAuthStateView Roles="Admin">You have admin privileges.</UAuthStateView>
+<p>User: @AuthState?.Identity?.DisplayName</p>
+
+<button @onclick="Logout" class="btn btn-primary">Logout</button>
+
+@code {
+    private async Task Logout()
+    {
+        await UAuthClient.Flows.LogoutAsync();
+    }
+}
 ```
 
 `[UAuthAuthorize]` declares an UltimateAuth authorization requirement for the page.
 
 **Important:** Client-side route protection is not a substitute for server-side authorization. Protected APIs and resources must enforce authorization on the server.
 
-## 9. Run the Application
+## 10. Run the Application
 
 Start the application:
 
