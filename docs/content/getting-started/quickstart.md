@@ -315,4 +315,4 @@ For production use, configure durable persistence, appropriate secrets and signi
 - **[Server Options](/docs/configuration/server-options)** — Configure sessions, tokens, login policies, and security behavior.
 - **[Client Options](/docs/configuration/client-options)** — Customize Blazor integration and authentication flows.
 - **[Authentication Flows](/docs/auth-flows/overview)** — Understand login, refresh, logout, and revocation.
-- **[Entity Framework Core Setup](/docs/getting-started/entity-framework-core)** — Move from in-memory storage to persistent authentication data.
+- **[Entity Framework Core Setup](/docs/getting-started/real-world-setup#persistent-storage-with-entity-framework-core)** — Move from in-memory storage to persistent authentication data.

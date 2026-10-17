@@ -74,7 +74,6 @@ else if (_doc is not null)
 
     private PersistingComponentStateSubscription _subscription;
     private DocPage? _doc;
-    private bool _loading = true;
     private bool _notFound;
     private ElementReference _contentRef;
 
@@ -85,16 +84,13 @@ else if (_doc is not null)
 
     protected override async Task OnParametersSetAsync()
     {
-        _loading = true;
         _notFound = false;
         _doc = null;
         _prev = null;
         _next = null;
         PageState.Clear();
 
-        var slug = string.IsNullOrWhiteSpace(Slug)
-            ? "index"
-            : Slug!.Trim('/');
+        var slug = string.IsNullOrWhiteSpace(Slug) ? "index" : Slug!.Trim('/');
 
         try
         {
@@ -127,8 +123,6 @@ else if (_doc is not null)
             Console.WriteLine($"[Docs SSR] {slug}: {ex.Message}");
             _notFound = true;
         }
-
-        _loading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
