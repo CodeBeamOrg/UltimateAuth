@@ -836,6 +836,6 @@ Server
       +-- Persistence implementations
 ```
 
-Continue with the [Quick Start](./quickstart.md) to build your first UltimateAuth application.
+Continue with the [Quick Start](/docs/getting-started/quickstart) to build your first UltimateAuth application.
 
-For persistent storage, UAuthHub, standalone WebAssembly, Resource API, and other deployment models, continue with the [Real-World Setup](./real-world-setup.md).
+For persistent storage, UAuthHub, standalone WebAssembly, Resource API, and other deployment models, continue with the [Real-World Setup](/docs/getting-started/real-world-setup).

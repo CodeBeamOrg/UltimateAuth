@@ -4,162 +4,554 @@ order: 6
 group: fundamentals
 ---
 
+# Runtime Architecture
 
-# 🏗 Runtime Architecture
+UltimateAuth is designed to provide a unified authentication architecture across different .NET application environments.
 
-UltimateAuth processes authentication through a structured execution pipeline.
+A Blazor Server application, a standalone Blazor WebAssembly application, a native MAUI application, and a resource API may have different execution models, but they should not require entirely separate authentication systems.
 
-👉 It is not just middleware-based authentication  
-👉 It is a **flow-driven execution system**
+UltimateAuth addresses this through a separation between **authentication infrastructure, client integration, hosting, and protected resources**.
 
-## 🧠 The Big Picture
+This separation allows authentication behavior to remain consistent while adapting to the capabilities and responsibilities of each runtime.
 
-When a request reaches an auth endpoint:
+## Architectural overview
+
+At a high level, UltimateAuth consists of several cooperating layers:
+
+- **Core:** Shared authentication contracts, models, and foundational abstractions.
+- **Server:** Authentication operations, security decisions, credential management, and persistence coordination.
+- **Client:** Client-side integration, authentication requests, and credential lifecycle handling.
+- **UAuthHub:** The application hosting UltimateAuth's authentication endpoints and services.
+- **Resource applications:** Applications and APIs that consume authenticated identity and enforce authorization.
+
+These are architectural responsibilities, not necessarily separate processes or deployments.
+
+A single application may host multiple responsibilities. Alternatively, they can be distributed across independently deployed services.
 
 ```text
-Request
-  → Endpoint Filter
-  → AuthFlowContext
-  → Endpoint Handler
-  → Flow Service
-  → Orchestrator
-  → Authority
-  → Stores / Issuers
-  → Response
+                     Application Clients
+                ┌──────────┬──────────┐
+                │          │          │
+           Blazor WASM     MAUI     Other Clients
+                │          │          │
+                └──────────┼──────────┘
+                           │
+                           │ HTTP
+                           ▼
+                      UAuthHub
+                           │
+                  UltimateAuth Server
+                           │
+                 Authentication Services
+                           │
+                  Stores / Providers
+                           │
+                           ▼
+                   Persistent State
+
+
+                    Protected Resources
+                ┌──────────┬──────────┐
+                │          │          │
+           Resource API   Web App   Other Services
+                │          │          │
+                └──────────┼──────────┘
+                           │
+                  Authentication Validation
+                           │
+                      Authorization
 ```
-Each step has a clearly defined responsibility.
 
-## 🔄 Request Entry Point
-Authentication begins at the endpoint level.
+This diagram illustrates the separation of responsibilities.
 
-An endpoint filter detects the flow:
+It does not imply that every authenticated resource request must pass through UAuthHub.
 
-`Endpoint → FlowType (Login, Refresh, Logout…)`
+Whether a protected resource needs to consult server-side authentication infrastructure depends on the effective authentication mode and its validation requirements.
 
-👉 The system knows which flow is being executed before any logic runs.
+## Core: shared authentication foundations
 
-<br>
+The Core layer defines the common concepts used throughout UltimateAuth.
 
-## 🧾 AuthFlowContext — The Core State
-Before any operation starts, UltimateAuth creates an AuthFlowContext.
+Its responsibility is to provide stable contracts and abstractions without depending on a particular client runtime or application host.
 
-This is the central object that carries:
+These foundations include concepts such as:
 
-- Client profile
-- Effective authentication mode
-- Tenant information
-- Device context
-- Session state
-- Response configuration
+- Authentication modes.
+- Authentication and security contexts.
+- Authentication results and contracts.
+- Domain models and shared abstractions.
+- Security-related options and definitions.
 
-👉 This context defines the entire execution environment
+The Core layer provides the common vocabulary used by client integrations, server services, and other framework components.
 
-<br>
+It should not contain assumptions that authentication always occurs through an HTTP endpoint, a browser cookie, or a particular hosting model.
 
-## ⚙️ Flow Service — Entry Layer
-After the context is created, the request is passed to the Flow Service.
+This separation is important because UltimateAuth supports both stateful and stateless authentication strategies.
 
-The Flow Service:
+A shared authentication contract must not implicitly require session persistence when the selected mode does not use sessions.
 
-- Acts as the entry point for all flows
-- Normalizes execution
-- Delegates work to orchestrators
+## Server: authentication execution and lifecycle
 
-👉 It does not implement business logic directly
+The Server layer implements the server-side authentication capabilities.
 
-<br>
+It coordinates the operations required to establish, continue, validate, and terminate authentication according to the effective mode and security policies.
 
-## 🧭 Orchestrator — Flow Coordinator
-The Orchestrator manages the execution of a flow.
+Its responsibilities include:
 
-- Coordinates multiple steps
-- Ensures correct execution order
-- Delegates decisions to Authority
+- Authentication flow execution.
+- Credential validation and management.
+- Session and token lifecycle operations.
+- Authentication security decisions.
+- Coordination with persistence providers.
+- Credential issuance and validation.
+- Integration with server-side authorization infrastructure.
 
-👉 Think of it as the flow engine
+The Server layer contains multiple cooperating services rather than one universal authentication engine responsible for every decision.
 
-<br>
+For example, session lifecycle operations, credential verification, and authorization may follow different execution paths while sharing common security contracts.
 
-## 🔐 Authority — Decision Layer
-The Authority is the most critical component.
+The architecture separates orchestration from the underlying services that perform domain-specific work.
 
-- Validates authentication state
-- Applies security rules
-- Approves or rejects operations
+For the detailed execution pipeline, see [Auth Flows](/docs/auth-flows/overview).
 
-👉 No sensitive operation bypasses Authority
+## Client: runtime integration
 
-<br>
+The Client layer provides the integration between an application and UltimateAuth's authentication services.
 
-## ⚙️ Services & Stores
-Once decisions are made:
+Its purpose is to reduce the amount of authentication infrastructure that application developers need to implement themselves.
 
-- Services handle domain logic
-- Stores handle persistence
-- Issuers generate tokens or session artifacts
+Depending on the supported runtime and configuration, client integration may handle:
 
-👉 These layers do not make security decisions
+- Initiating authentication flows.
+- Communicating with UAuthHub.
+- Processing authentication outcomes.
+- Managing supported credential delivery mechanisms.
+- Coordinating authentication state with the application.
+- Integrating authenticated requests with protected resources.
 
-<br>
+The client SDK does not replace server-side authentication validation.
 
-## 🔁 End-to-End Example (Login)
-Login Request
+It provides an application-facing interface to the authentication infrastructure.
+
+### Client integration is runtime-aware
+
+Different client runtimes have different capabilities.
+
+A browser-based WebAssembly application executes within browser security restrictions.
+
+A native MAUI application has access to platform-specific capabilities.
+
+A Blazor Server application executes application logic on the server while maintaining an interactive connection with the browser.
+
+UltimateAuth accounts for these differences through runtime-specific integrations and Client Profiles.
+
+The authentication model remains shared even when the implementation of credential transport or application state differs.
+
+See [Client Profiles](/docs/fundamentals/client-profiles).
+
+## UAuthHub: the authentication host
+
+UAuthHub is the application hosting UltimateAuth's server-side authentication infrastructure.
+
+It provides the environment in which authentication endpoints and the required server services are available.
+
+Depending on the deployment, UAuthHub can be responsible for:
+
+- Accepting authentication requests.
+- Resolving the applicable tenant and authentication context.
+- Executing authentication flows.
+- Managing credentials and sessions.
+- Issuing authentication credentials.
+- Applying configured authentication policies.
+- Exposing the supported authentication endpoints.
+
+UAuthHub is a hosting role, not an authentication mode.
+
+A single UAuthHub can support multiple client environments and authentication strategies, subject to its configuration.
+
+### Centralized hosting
+
+In a centralized deployment, several applications can use the same UAuthHub.
+
+```text
+Blazor WASM Application ──┐
+                          │
+MAUI Application ─────────┼──► UAuthHub
+                          │        │
+Web Application ──────────┘        │
+                                   ▼
+                         Authentication Services
+                                   │
+                                   ▼
+                         Authentication Storage
 ```
-  → Endpoint Filter (Login Flow)
-  → AuthFlowContext created
-  → Flow Service
-  → Orchestrator
-  → Authority validates credentials
-  → Session created (Store)
-  → Tokens issued (Issuer)
-  → Response generated
+
+This allows applications to share authentication infrastructure without requiring each application to implement its own credential management and authentication lifecycle.
+
+However, centralized authentication hosting does not mean that all protected resource requests must be routed through UAuthHub.
+
+The resource authentication strategy remains mode-dependent.
+
+## Resource applications and APIs
+
+A resource application is an application or service that exposes functionality requiring authentication and authorization.
+
+Examples include:
+
+- A protected Web API.
+- An administrative web application.
+- A business application backend.
+- An independently deployed service.
+- A server-rendered application with protected operations.
+
+A resource application must establish the caller's authenticated identity before allowing access to protected functionality.
+
+It must then enforce the relevant authorization policies.
+
+### Authentication validation depends on the mode
+
+In PureOpaque and Hybrid, authentication requires server-side session authority.
+
+The resource authentication path must therefore have access to the infrastructure necessary to enforce the relevant session validation requirements.
+
+In SemiHybrid and PureJwt, normal access-token authentication uses JWT validation without a mandatory session lookup.
+
+This can allow a resource API to validate access tokens locally when it has the required verification keys and token-validation configuration.
+
+The authentication mode therefore affects the resource application's infrastructure dependencies.
+
+### Authorization remains local to the protected operation
+
+Authentication establishes who the caller is.
+
+Authorization determines whether that caller may perform the requested operation.
+
+A valid authentication credential does not automatically grant permission to every resource.
+
+Resource applications must continue to enforce their authorization requirements through the applicable framework and application policies.
+
+UltimateAuth's authentication integration should preserve these boundaries rather than replacing resource authorization with client-side assumptions.
+
+## Deployment topology
+
+UltimateAuth separates architectural responsibilities from physical deployment boundaries.
+
+This means the same authentication architecture can support different deployment topologies.
+
+### Integrated deployment
+
+An integrated deployment hosts authentication infrastructure and application functionality within the same server application.
+
+```text
+ASP.NET Core Application
+          │
+          ├── UltimateAuth Server
+          │
+          ├── Authentication Services
+          │
+          ├── Application Services
+          │
+          └── Protected Endpoints
 ```
-<br>
 
-## 🧠 Why This Architecture Matters
-✔ Centralized Decision Making
-- Authority is always in control
-- No scattered validation logic
+In this model, authentication services and protected application functionality may share the same dependency injection container and process.
 
-✔ Predictable Execution
-- Every flow follows the same pipeline
-- No hidden behavior
+Where supported, internal operations can interact with server-side services directly without requiring an HTTP call to the same application.
 
-✔ Extensibility
-- Replace stores
-- Extend flows
-- Customize orchestration
+This can simplify deployment and avoid unnecessary network communication.
 
-✔ Security by Design
-- No bypass of Authority
-- Context-driven validation
-- Flow-aware execution
+However, direct service access must still respect the required authentication and authorization boundaries.
 
-## 🔗 Relation to Other Concepts
-This architecture connects all previous concepts:
+### Distributed deployment
 
-- Auth Model (Root / Chain / Session) → validated in Authority
-- Auth Flows → executed by Orchestrator
-- Auth Modes → applied via EffectiveMode
-- Client Profiles → influence behavior at runtime
+A distributed deployment separates the authentication host from one or more resource applications.
 
-## 🧠 Mental Model
+```text
+                    UAuthHub
+                       │
+                       │ Authentication
+                       │
+           ┌───────────┴───────────┐
+           │                       │
+      Web Application         Mobile Client
+           │                       │
+           └───────────┬───────────┘
+                       │
+                       ▼
+                   Resource API
+                       │
+                       ▼
+               Application Services
+```
 
-If you remember one thing:
+In this model, clients communicate with UAuthHub for the applicable authentication operations and access resource APIs using the supported credentials.
 
-👉 Flow defines what happens
-👉 Context defines how it happens
-👉 Authority decides if it happens
+Resource APIs validate those credentials according to the configured authentication mode.
 
-## 📌 Key Takeaways
-Authentication is executed as a pipeline
-AuthFlowContext carries execution state
-Orchestrator coordinates flows
-Authority enforces security
-Services and Stores execute operations
+This architecture supports independently deployed applications while maintaining shared authentication policies and identity infrastructure.
 
-## ➡️ Next Step
+### Choosing a topology
 
-Now that you understand the execution model:
+Integrated and distributed deployments are not different authentication modes.
 
-👉 Continue to Request Lifecycle
+They describe where application components execute and how they communicate.
+
+The appropriate topology depends on:
+
+- Application boundaries.
+- Deployment and operational requirements.
+- Network and infrastructure constraints.
+- Authentication mode dependencies.
+- Service ownership and scaling requirements.
+
+A distributed deployment is not inherently more secure or more scalable than an integrated deployment.
+
+Both require correct authentication validation, authorization enforcement, and infrastructure configuration.
+
+## Blazor Server architecture
+
+Blazor Server has a distinct execution model.
+
+The browser maintains an interactive connection to an application whose component logic executes on the server.
+
+This makes it possible to keep many application operations and authentication-related services within the server environment.
+
+```text
+Browser
+   │
+   │ Interactive Connection
+   ▼
+Blazor Server Application
+   │
+   ├── UI Components
+   │
+   ├── Application Services
+   │
+   ├── UltimateAuth Integration
+   │
+   └── Protected Operations
+```
+
+PureOpaque is a natural default for this environment because it provides server-controlled authentication without requiring a separate access/refresh token lifecycle.
+
+However, the hosting model does not require PureOpaque exclusively.
+
+### Direct service access
+
+When authentication infrastructure and application services are hosted in the same process, server-side code may be able to use registered services directly.
+
+This can avoid unnecessary HTTP requests between components of the same application.
+
+The distinction is between an application service call and a remote API request.
+
+A direct service call must not bypass security checks merely because it avoids HTTP.
+
+Authorization requirements must still be enforced at the appropriate trusted boundary.
+
+### Long-lived interactive connections
+
+Blazor Server introduces an additional consideration: authentication state may change while an interactive circuit remains active.
+
+A session can expire or be revoked after the circuit was established.
+
+Applications must therefore account for authentication-state revalidation and authorization of sensitive operations.
+
+An authenticated circuit must not be treated as permanently authorized solely because its initial connection succeeded.
+
+## Blazor WebAssembly architecture
+
+Blazor WebAssembly executes application code in the browser.
+
+Unlike Blazor Server, it cannot directly access private server-side authentication services.
+
+Authentication and protected application operations therefore cross an HTTP boundary.
+
+```text
+Browser
+   │
+   └── Blazor WebAssembly
+             │
+             ├── UltimateAuth Client
+             │        │
+             │        ▼
+             │      UAuthHub
+             │
+             └── Application API Client
+                      │
+                      ▼
+                  Resource API
+```
+
+Hybrid is a suitable authentication strategy for applications that need separate access and refresh tokens while retaining server-authoritative session validation.
+
+However, a browser application can also use other modes when the corresponding transport and security architecture supports them.
+
+For example, a backend-for-frontend architecture may use secure session cookies rather than exposing bearer tokens to browser application code.
+
+The runtime determines which integration techniques are available; the authentication mode determines the security and lifecycle model.
+
+## Native application architecture
+
+Native applications, including .NET MAUI applications, execute outside the browser environment.
+
+They generally communicate with authentication hosts and resource APIs through HTTP.
+
+```text
+MAUI Application
+      │
+      ├── UltimateAuth Client
+      │        │
+      │        ▼
+      │      UAuthHub
+      │
+      ├── Secure Credential Storage
+      │
+      └── Resource API Client
+               │
+               ▼
+           Resource API
+```
+
+Native applications can use platform-specific secure storage for sensitive credentials.
+
+Their credential delivery and persistence requirements differ from browser applications.
+
+Hybrid can provide a suitable model for applications requiring refresh-token continuity and centralized session control.
+
+The choice remains configurable according to the supported authentication modes and application requirements.
+
+## Shared components across runtimes
+
+A unified authentication architecture should minimize unnecessary duplication between client environments.
+
+UltimateAuth separates shared authentication behavior from runtime-specific integration.
+
+For example, Blazor Server and Blazor WebAssembly applications may share:
+
+- Authentication-related UI components.
+- Login and logout interaction patterns.
+- Request and response contracts.
+- Application-facing client abstractions.
+- Authentication-state presentation logic.
+
+At the same time, they may require different implementations for:
+
+- Credential storage.
+- HTTP communication.
+- Browser interaction.
+- Server-side service access.
+- Authentication-state synchronization.
+
+The goal is not to force every runtime to execute identical code.
+
+The goal is to share behavior and contracts where appropriate while preserving each runtime's security and execution requirements.
+
+## HTTP boundaries and direct execution
+
+An important architectural distinction is whether an operation crosses an HTTP boundary.
+
+### Remote execution
+
+A remote client communicates with an authentication host or resource API through HTTP.
+
+The server must independently validate the request, credentials, and authorization requirements.
+
+Client-side checks are not sufficient.
+
+### In-process execution
+
+An application may host UltimateAuth services and protected application services within the same process.
+
+In that case, some operations may use direct service calls instead of HTTP.
+
+This can reduce serialization and network overhead.
+
+However, HTTP middleware and endpoint authorization attributes do not automatically execute during arbitrary direct service calls.
+
+The application must ensure that equivalent security requirements are enforced through the appropriate service or authorization boundary.
+
+Direct execution is an optimization and integration choice, not permission to bypass authentication or authorization.
+
+## Infrastructure and persistence
+
+UltimateAuth uses abstractions to separate authentication behavior from infrastructure implementations.
+
+Depending on the configured mode and services, the system may require storage for:
+
+- User and credential information.
+- Authentication security state.
+- Session lineage.
+- Refresh-token lifecycle.
+- Device-associated authentication state.
+
+These dependencies vary by authentication mode.
+
+For example, PureOpaque and Hybrid require session infrastructure for authentication.
+
+SemiHybrid requires session infrastructure for lifecycle management but not for normal JWT validation.
+
+PureJwt does not require server-side session infrastructure. Optional refresh-token functionality may introduce independent renewal-state requirements.
+
+The architecture must preserve these distinctions.
+
+Infrastructure abstractions allow the authentication services to remain independent of a particular persistence implementation, while the selected mode determines which capabilities are required.
+
+## Architectural boundaries
+
+UltimateAuth's runtime architecture depends on several boundaries remaining explicit.
+
+### Client and server
+
+Clients initiate operations and present credentials.
+
+Servers establish trusted authentication state and enforce security requirements.
+
+### Authentication and authorization
+
+Authentication determines identity.
+
+Authorization determines whether an operation is permitted.
+
+### Hosting and authentication mode
+
+UAuthHub and resource applications describe hosting responsibilities.
+
+PureOpaque, Hybrid, SemiHybrid, and PureJwt describe authentication strategies.
+
+### Shared contracts and runtime integration
+
+Shared contracts define consistent behavior.
+
+Runtime integrations adapt that behavior to browser, native, and server-side environments.
+
+### Orchestration and infrastructure
+
+Orchestration coordinates authentication operations.
+
+Infrastructure services provide persistence, token operations, and other required capabilities.
+
+These boundaries allow UltimateAuth to evolve without requiring every client integration or authentication mode to duplicate the complete authentication implementation.
+
+## Summary
+
+UltimateAuth's runtime architecture separates authentication responsibilities from application hosting and client execution environments.
+
+Its main architectural components are:
+
+- **Core**, which defines shared contracts and authentication foundations.
+- **Server**, which implements authentication operations and lifecycle management.
+- **Client**, which provides application-facing authentication integration.
+- **UAuthHub**, which hosts the authentication infrastructure.
+- **Resource applications**, which authenticate callers and enforce authorization.
+
+These components can operate within an integrated application or across distributed services.
+
+Different client runtimes can share authentication contracts and behavior while using integration mechanisms appropriate to their environments.
+
+Authentication modes determine the required validation and state dependencies.
+
+**The architecture is unified because its security contracts and responsibilities remain consistent—not because every runtime, mode, or deployment follows an identical execution path.**
+
+## Next step
+
+Continue to [Request Lifecycle](/docs/fundamentals/request-lifecycle) to understand how an incoming request moves through authentication validation, identity establishment, and authorization before reaching a protected operation.

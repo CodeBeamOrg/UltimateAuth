@@ -121,50 +121,48 @@ Traditional auth solutions struggle here — UltimateAuth embraces it.
 ---
 
 # 🚀 Quick Start
-> ⏱ Takes ~2 minutes to get started
+> ⏱ Get started in minutes
 >
 > **This Quick Start uses a Blazor Server application with in-memory persistence.**
 It is intentionally designed as the simplest path to a working UltimateAuth application.
 
 > For Entity Framework Core, Blazor WebAssembly, Blazor Web App, Resource API, persistent storage, and other real-world configurations, see the [Real-World Setup guide](https://github.com/CodeBeamOrg/UltimateAuth/blob/dev/docs/content/getting-started/real-world-setup.md).
 
-### 1) Install UltimateAuth
+UltimateAuth also provides ready-to-use login components, authentication state management, session handling, and a unified client API.
+
+> **This Quick Start provides a simplified integration overview.**
+> For a complete, copy-paste-ready Blazor Server application,
+> see the [Full Quick Start Guide](https://ultimateauth.com/docs/getting-started/quickstart)
+> or
+> [GitHub Quick Start Page](https://github.com/CodeBeamOrg/UltimateAuth/blob/dev/docs/content/getting-started/quickstart.md).
+
+### 1. Install
 
 ```bash
-dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
 dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
 ```
 
-### 2) Configure UltimateAuth
-
-Register UltimateAuth in `Program.cs`:
+### 2. Register services
 
 ```csharp
-// Server registration
-builder.Services
-    .AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemory();
 
-// Client registration
 builder.Services.AddUltimateAuthClientBlazor();
 ```
 
-
 **Usage by application type:**
 
-- **Blazor Server App** → Use both Server and Client registrations  
+- **Blazor Server App / UAuthHub (Auth Server)** → Use both Server and Client registrations  
 - **Blazor WASM / MAUI** → Use Client only  
-- **UAuthHub (Auth Server) / Resource API** → Use Server only
+- **Resource API** → Use own ResourceApi registration
 
-### 3) Configure the Application Pipeline
-Add the UltimateAuth middleware and endpoints:
+### 3. Configure the pipeline
 
 ```csharp
-// app.UseHttpsRedirection();
-// app.UseStaticFiles();
-
-app.UseUltimateAuthWithAspNetCore(); // Includes UseAuthentication() and UseAuthorization()
-// Place Antiforgery or something else before endpoint registration if needed
+app.UseUltimateAuthWithAspNetCore();
+app.UseAntiforgery();
 app.MapUltimateAuthEndpoints();
 
 app.MapRazorComponents<App>()
@@ -172,7 +170,7 @@ app.MapRazorComponents<App>()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 ```
 
-### 4) Add UAuthApp
+### 4. Add UAuthApp
 UltimateAuth uses `UAuthApp` as the root integration point for its client authentication state and Blazor lifecycle.
 
 Replace the default router in your `App.razor` or `Routes.razor` with:
@@ -191,58 +189,61 @@ Replace the default router in your `App.razor` or `Routes.razor` with:
 </UAuthApp>
 ```
 
-`UAuthApp` can provide the built-in router, authentication state, and UltimateAuth client lifecycle integration for your component tree.
-
-> Need full control over routing?
-
-> UAuthApp also supports applications that provide their own Blazor Router. See the Blazor Routing guide for advanced routing configuration.
-
-### 5) Add the UltimateAuth Client Script
+### 5. Add the UltimateAuth Client Script
 Place this in `App.razor` or `index.html` in your Blazor client application:
 ```html
 <script src="_content/CodeBeam.UltimateAuth.Client.Blazor/uauth.min.js"></script>
 ```
 
-### 6) Optional: Blazor Usings
-Add this in `_Imports.razor`:
-```csharp
-@using CodeBeam.UltimateAuth.Client.Blazor
-```
+### 6. Create Your Login Page
 
-### 7) Optional: Add Sample Data
-For the fastest way to try auth process, install the UltimateAuth sample seed package:
+Change `Components/Pages/Home.razor`:
 
-```bash
-dotnet add package CodeBeam.UltimateAuth.Sample.Seed
-```
+```razor
+@page "/"
+@page "/login"
+@attribute [UAuthLoginPage]
+@inherits UAuthPageBase
 
-Register the development seed:
+<div class="container mt-5" style="max-width: 400px;">
+    <h3>Sign in</h3>
+    <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard">
+        <div class="d-block mb-3">
+            <label>Username</label>
+            <input @bind="_identifier" class="form-control w-100" autocomplete="username" />
+        </div>
 
-```bash
-builder.Services.AddUltimateAuthSampleSeed();
-```
+        <div class="d-block mb-3">
+            <label>Password</label>
+            <input type="password" @bind="_password" class="form-control w-100" autocomplete="current-password" />
+        </div>
 
-Then seed the application during development:
+        <button class="btn btn-primary w-100" type="submit">Sign in</button>
+    </UAuthLoginForm>
+</div>
 
-```csharp
-if (app.Environment.IsDevelopment())
-{
-    await app.SeedUltimateAuthAsync();
+@code {
+    private string _identifier = "";
+    private string _password = "";
 }
 ```
 
-The development seed includes ready-to-use accounts:
+### 7. Protect your pages
 
-| Identifier | Secret   |
-|------------|----------|
-| `admin`    | `admin`  |
-| `user`     | `user`   |
+```razor
+@page "/dashboard"
+@attribute [UAuthAuthorize]
+@inherits UAuthPageBase
 
-You can use these credentials to test the auth flows immediately.
+<h3>Dashboard</h3>
+<p>Welcome, @AuthState?.Identity?.DisplayName!</p>
+```
 
-> Development only: Sample users and credentials are intended for evaluation and local development. Do not use them in production.
+The examples above provide a simplified overview of UltimateAuth integration and are not intended to be a complete, copy-paste-ready application.
 
-### ✅ You're Ready
+For a **complete, step-by-step setup with all required configuration, components, and sample data**, follow the full Quick Start guide.
+
+**[⚡ Complete Quick Start — Build a Working Application](https://ultimateauth.com/docs/getting-started/quickstart)**
 
 ---
 
