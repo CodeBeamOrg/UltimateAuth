@@ -9,9 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.1.0" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
-		<PackageReference Include="MudBlazor" Version="9.10.0" />
 		<PackageReference Include="Scalar.AspNetCore.Microsoft" Version="2.17.8" />
 	</ItemGroup>
 
@@ -21,6 +19,7 @@
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />
 		<ProjectReference Include="..\..\..\src\CodeBeam.UltimateAuth.Server\CodeBeam.UltimateAuth.Server.csproj" />
 		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
+		<ProjectReference Include="..\..\CodeBeam.UltimateAuth.Sample.Shared.Hub\CodeBeam.UltimateAuth.Sample.Shared.Hub.csproj" />
 	</ItemGroup>
 
 </Project>

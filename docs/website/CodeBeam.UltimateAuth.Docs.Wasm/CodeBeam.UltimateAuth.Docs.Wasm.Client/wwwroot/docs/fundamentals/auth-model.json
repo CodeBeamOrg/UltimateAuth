@@ -1,91 +1,161 @@
 {
   "Slug": "fundamentals/auth-model",
   "Title": "Authentication Model",
-  "Html": "\n\u003Cp\u003EUltimateAuth is built around a simple but powerful idea:\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003EAuthentication is not just a token.\u003Cbr /\u003E\nIt is a \u003Cstrong\u003Estructured, server-controlled session model\u003C/strong\u003E.\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Cp\u003EAt the core of this model are three concepts:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ERoot\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EChain\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESession\u003C/strong\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ETogether, they form what we call:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003EAuthentication Lineage\u003C/strong\u003E\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022the-big-picture\u0022\u003E\uD83D\uDD11 The Big Picture\u003C/h2\u003E\n\u003Cp\u003EInstead of treating authentication as a single token or cookie, UltimateAuth models it as a hierarchy:\u003C/p\u003E\n\u003Cpre\u003E\u003Ccode\u003ERoot (user authority)\n\u251C\u2500\u2500 Chain (device context)\n\u2502 \u251C\u2500\u2500 Session (login instance)\n\u2502 \u251C\u2500\u2500 Session\n\u2502\n\u251C\u2500\u2500 Chain\n\u2502 \u251C\u2500\u2500 Session (login instance)\n\u003C/code\u003E\u003C/pre\u003E\n\u003Cp\u003EEach level has a distinct responsibility.\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-the-authority\u0022\u003E\uD83E\uDDE9 Root \u2014 The Authority\u003C/h2\u003E\n\u003Cp\u003E\u003Cstrong\u003ERoot\u003C/strong\u003E represents the authentication authority of a user within a tenant.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThere is \u003Cstrong\u003Eonly one active Root per user per tenant\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EIt defines the \u003Cstrong\u003Eglobal security state\u003C/strong\u003E\u003C/li\u003E\n\u003Cli\u003EIt controls all chains and sessions\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-root-does\u0022\u003EWhat Root Does\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ETracks security version (security epoch)\u003C/li\u003E\n\u003Cli\u003EInvalidates all sessions when needed\u003C/li\u003E\n\u003Cli\u003EActs as the \u003Cstrong\u003Esource of truth\u003C/strong\u003E\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022example\u0022\u003EExample\u003C/h3\u003E\n\u003Cp\u003EIf a user changes their password:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Root is updated\u003Cbr /\u003E\n\uD83D\uDC49 All existing sessions can become invalid\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-the-device-context\u0022\u003E\uD83D\uDD17 Chain \u2014 The Device Context\u003C/h2\u003E\n\u003Cp\u003E\u003Cstrong\u003EChain\u003C/strong\u003E represents a device or client context.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EEach device typically has its own chain\u003C/li\u003E\n\u003Cli\u003EMultiple logins from the same device belong to the same chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 Think of Chain as:\u003C/p\u003E\n\u003Cblockquote\u003E\n\u003Cp\u003E\u201CWhere is the user logged in from?\u201D\u003C/p\u003E\n\u003C/blockquote\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-chain-does\u0022\u003EWhat Chain Does\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cp\u003EGroups sessions by device\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EEnables \u003Cstrong\u003Edevice-level control\u003C/strong\u003E\u003C/p\u003E\n\u003C/li\u003E\n\u003Cli\u003E\u003Cp\u003EAllows actions like:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ELogout from one device\u003C/li\u003E\n\u003Cli\u003ERevoke a specific device\u003C/li\u003E\n\u003C/ul\u003E\n\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-the-authentication-instance\u0022\u003E\uD83E\uDDFE Session \u2014 The Authentication Instance\u003C/h2\u003E\n\u003Cp\u003E\u003Cstrong\u003ESession\u003C/strong\u003E is the actual authentication instance.\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECreated when the user logs in\u003C/li\u003E\n\u003Cli\u003ERepresents a single authenticated state\u003C/li\u003E\n\u003Cli\u003ECarries a snapshot of the Root security version\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003E\uD83D\uDC49 This is what gets validated on each request.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022what-session-does\u0022\u003EWhat Session Does\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EProves the user is authenticated\u003C/li\u003E\n\u003Cli\u003ECan be refreshed, revoked, or expired\u003C/li\u003E\n\u003Cli\u003EIs tied to a specific chain\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022how-they-work-together\u0022\u003E\uD83D\uDD04 How They Work Together\u003C/h2\u003E\n\u003Cp\u003EWhen a user logs in:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003ERoot is resolved (or created)\u003C/li\u003E\n\u003Cli\u003EA Chain is identified (device context)\u003C/li\u003E\n\u003Cli\u003EA new Session is created\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003E\u003Ccode\u003ELogin \u2192 Root \u2192 Chain \u2192 Session\u003C/code\u003E\u003C/p\u003E\n\u003Cp\u003EOn each request:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003ESession is validated\u003C/li\u003E\n\u003Cli\u003EChain context is checked\u003C/li\u003E\n\u003Cli\u003ERoot security version is verified\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003E\uD83D\uDC49 If any level is invalid \u2192 authentication fails\u003C/p\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022why-this-model-matters\u0022\u003E\uD83D\uDEE1 Why This Model Matters\u003C/h2\u003E\n\u003Cp\u003ETraditional systems rely on:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ECookies\u003C/li\u003E\n\u003Cli\u003EJWT tokens\u003C/li\u003E\n\u003Cli\u003EStateless validation\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThese approaches have limitations:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ENo real session control\u003C/li\u003E\n\u003Cli\u003EWeak revocation\u003C/li\u003E\n\u003Cli\u003ENo device awareness\u003C/li\u003E\n\u003C/ul\u003E\n\u003Chr /\u003E\n\u003Cp\u003EUltimateAuth solves this by:\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-controlled-authentication\u0022\u003E\u2714 Server-Controlled Authentication\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESessions are always validated server-side\u003C/li\u003E\n\u003Cli\u003ENo blind trust in tokens\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022instant-revocation\u0022\u003E\u2714 Instant Revocation\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ERevoke a session \u2192 immediate effect\u003C/li\u003E\n\u003Cli\u003ERevoke a chain \u2192 device logged out\u003C/li\u003E\n\u003Cli\u003ERevoke root \u2192 disable user (global logout)\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022device-awareness\u0022\u003E\u2714 Device Awareness\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003EEach device has its own chain\u003C/li\u003E\n\u003Cli\u003ESessions are bound to context\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022strong-security-model\u0022\u003E\u2714 Strong Security Model\u003C/h3\u003E\n\u003Cul\u003E\n\u003Cli\u003ESession carries Root security version\u003C/li\u003E\n\u003Cli\u003EOld sessions automatically become invalid\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cbr\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022mental-model\u0022\u003E\uD83E\uDDE0 Mental Model\u003C/h2\u003E\n\u003Cp\u003EIf you remember only one thing, remember this:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 \u003Cstrong\u003ERoot = authority\u003C/strong\u003E\u003Cbr /\u003E\n\uD83D\uDC49 \u003Cstrong\u003EChain = device\u003C/strong\u003E\u003Cbr /\u003E\n\uD83D\uDC49 \u003Cstrong\u003ESession = login\u003C/strong\u003E\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022key-takeaways\u0022\u003E\uD83D\uDCCC Key Takeaways\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003EAuthentication is not just a token\u003C/li\u003E\n\u003Cli\u003ESessions are first-class citizens\u003C/li\u003E\n\u003Cli\u003EThe server always remains in control\u003C/li\u003E\n\u003Cli\u003EDevice and security context are built-in\u003C/li\u003E\n\u003C/ul\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003E\u27A1\uFE0F Next Step\u003C/h2\u003E\n\u003Cp\u003ENow that you understand the core model:\u003C/p\u003E\n\u003Cp\u003E\uD83D\uDC49 Continue to \u003Cstrong\u003EFlow-Based Authentication\u003C/strong\u003E\u003C/p\u003E\n",
+  "Html": "\n\u003Cp\u003EUltimateAuth is built around a fundamental principle: \u003Cstrong\u003Eauthentication is a trusted process for establishing identity, not simply the presence of a token, cookie, or session identifier.\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003EAn authentication credential provides evidence of identity. The server must evaluate that evidence according to the active authentication mode before treating a request as authenticated.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth provides a common authentication architecture that supports both server-side sessions and cryptographically verifiable tokens.\u003C/p\u003E\n\u003Cp\u003EThe authentication mode determines how identity is established, what state must be validated, and which lifecycle guarantees apply.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-and-identity\u0022\u003EAuthentication and identity\u003C/h2\u003E\n\u003Cp\u003EAuthentication answers a specific question:\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EWho is making this request, and what evidence establishes that identity?\u003C/strong\u003E\u003C/p\u003E\n\u003Cp\u003EAn authentication operation may involve credentials such as passwords, existing sessions, access tokens, refresh tokens, or other supported authentication proofs.\u003C/p\u003E\n\u003Cp\u003EThese credentials have different purposes.\u003C/p\u003E\n\u003Cp\u003EA password can establish a new authenticated context. An access token can represent an already established identity. A refresh token can continue an existing authentication context without repeating the original login.\u003C/p\u003E\n\u003Cp\u003ENone of these credentials should be trusted merely because a client presents them.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth evaluates authentication evidence through framework-controlled services and produces a trusted identity context only after the applicable validation succeeds.\u003C/p\u003E\n\u003Cp\u003EAuthorization is a separate responsibility. It determines what an authenticated actor is allowed to do.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022server-authority\u0022\u003EServer authority\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth is server-authoritative.\u003C/p\u003E\n\u003Cp\u003EThis means the server defines the authentication rules and determines whether the presented evidence satisfies them.\u003C/p\u003E\n\u003Cp\u003EServer authority does not require every request to access a server-side session store.\u003C/p\u003E\n\u003Cp\u003EFor example:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EIn PureOpaque, the server validates the session represented by the client\u0027s opaque session credential.\u003C/li\u003E\n\u003Cli\u003EIn Hybrid, the server resolves an opaque access token and validates its associated session.\u003C/li\u003E\n\u003Cli\u003EIn SemiHybrid, normal requests authenticate through JWT validation, while server-side sessions govern authentication continuation and lifecycle operations.\u003C/li\u003E\n\u003Cli\u003EIn PureJwt, authentication can be established through JWT validation without requiring session persistence or lookup.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EIn all cases, the effective authentication mode, validation requirements, and security policies remain under trusted server control.\u003C/p\u003E\n\u003Cp\u003EThe client cannot establish its own authenticated identity merely by supplying claims, identifiers, or an arbitrary authentication mode.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-state\u0022\u003EAuthentication state\u003C/h2\u003E\n\u003Cp\u003EAuthentication state can be represented in different ways.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EServer-side authentication state\u003C/strong\u003E is maintained by the authentication system and evaluated when required. It enables centralized session management and immediate session-based revocation.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003EToken-based authentication state\u003C/strong\u003E can be represented by cryptographically verifiable credentials. A JWT can carry sufficient information to establish identity without a session lookup, provided its signature and applicable validation rules are satisfied.\u003C/p\u003E\n\u003Cp\u003E\u003Cstrong\u003ECombined authentication state\u003C/strong\u003E uses both approaches for different purposes. For example, an application can validate JWTs independently while retaining server-side state for refresh and session management.\u003C/p\u003E\n\u003Cp\u003EThese are different authentication strategies, not separate authentication architectures.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth preserves common trust boundaries while allowing the effective mode to determine how authentication state is represented and evaluated.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-lineage\u0022\u003EAuthentication lineage\u003C/h2\u003E\n\u003Cp\u003EFor session-backed authentication, UltimateAuth models authentication state through three related concepts:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Cstrong\u003ERoot:\u003C/strong\u003E User-level authentication authority within a tenant.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003EChain:\u003C/strong\u003E A grouping of related authentication sessions, typically associated with a device or client context.\u003C/li\u003E\n\u003Cli\u003E\u003Cstrong\u003ESession:\u003C/strong\u003E An individual authenticated session.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ETogether, these form the authentication lineage.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003ERoot\n  |\n  \u002B-- Chain A\n  |     |\n  |     \u002B-- Session 1\n  |     |\n  |     \u002B-- Session 2\n  |\n  \u002B-- Chain B\n        |\n        \u002B-- Session 3\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe lineage provides a structured way to manage authentication state at different scopes.\u003C/p\u003E\n\u003Cp\u003EIt allows the system to distinguish between terminating one session, terminating sessions associated with a particular chain, and applying a broader user-level security change.\u003C/p\u003E\n\u003Cp\u003EThe lineage is central to session-backed authentication. It must not be interpreted as a mandatory persistence requirement for every authentication mode.\u003C/p\u003E\n\u003Cp\u003EIn particular, PureJwt does not require Root, Chain, or Session records to authenticate requests.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022root-user-level-authentication-authority\u0022\u003ERoot: user-level authentication authority\u003C/h2\u003E\n\u003Cp\u003ERoot represents the user-level authority within a tenant\u0027s session-backed authentication lineage.\u003C/p\u003E\n\u003Cp\u003EIt provides a common security boundary for related chains and sessions.\u003C/p\u003E\n\u003Cp\u003EDepending on the configured policies and supported operations, Root can participate in:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003ETracking user-level authentication security state.\u003C/li\u003E\n\u003Cli\u003ECoordinating security changes affecting multiple sessions.\u003C/li\u003E\n\u003Cli\u003EApplying broader session invalidation.\u003C/li\u003E\n\u003Cli\u003EMaintaining a security version or epoch used by session-backed validation.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EFor example, a security-sensitive credential change may trigger a policy that invalidates existing sessions.\u003C/p\u003E\n\u003Cp\u003ERather than treating each session as unrelated, the lineage provides a common authority through which the affected authentication state can be managed.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022security-versions\u0022\u003ESecurity versions\u003C/h3\u003E\n\u003Cp\u003EA security version, sometimes called a security epoch, can be used to determine whether an existing session still belongs to the current authentication security state.\u003C/p\u003E\n\u003Cp\u003EA session may retain the version associated with its creation. When the relevant authority changes, validation can reject sessions associated with an outdated version.\u003C/p\u003E\n\u003Cp\u003EThis mechanism is meaningful when authentication validation consults the relevant server-side state.\u003C/p\u003E\n\u003Cp\u003EIt does not automatically invalidate a previously issued JWT that is validated without a server-side lookup.\u003C/p\u003E\n\u003Cp\u003EThe exact invalidation behavior depends on the authentication mode and configured security policies.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022chain-related-session-context\u0022\u003EChain: related session context\u003C/h2\u003E\n\u003Cp\u003EChain groups related authentication sessions under a common lifecycle context.\u003C/p\u003E\n\u003Cp\u003EA chain commonly represents a device or client context, but its purpose is broader than storing a device identifier.\u003C/p\u003E\n\u003Cp\u003EIt provides a boundary for managing related authentication activity.\u003C/p\u003E\n\u003Cp\u003EA chain can support:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EGrouping related sessions.\u003C/li\u003E\n\u003Cli\u003EDevice-oriented session management.\u003C/li\u003E\n\u003Cli\u003EChain-level expiration and invalidation.\u003C/li\u003E\n\u003Cli\u003ECoordinating refresh-token lifecycle where applicable.\u003C/li\u003E\n\u003Cli\u003EApplying security policies to related authentication sessions.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EFor example, an application may allow a user to terminate authentication associated with a particular device without terminating every session belonging to the user.\u003C/p\u003E\n\u003Cp\u003EA chain provides a suitable scope for that operation.\u003C/p\u003E\n\u003Cp\u003EA chain is not itself proof of authentication. Its validity and relationship to the relevant session must be evaluated according to the active mode.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-an-authenticated-instance\u0022\u003ESession: an authenticated instance\u003C/h2\u003E\n\u003Cp\u003ESession represents an individual authenticated instance maintained by the server.\u003C/p\u003E\n\u003Cp\u003EIt can contain or reference the information required to manage that instance, such as:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EThe authenticated user and tenant.\u003C/li\u003E\n\u003Cli\u003EIts relationship to a chain.\u003C/li\u003E\n\u003Cli\u003ECreation and expiration information.\u003C/li\u003E\n\u003Cli\u003ERevocation or lifecycle status.\u003C/li\u003E\n\u003Cli\u003EApplicable security-version information.\u003C/li\u003E\n\u003Cli\u003ESession metadata required by supported policies.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003EThe role of Session differs by authentication mode.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-authoritative-authentication\u0022\u003ESession-authoritative authentication\u003C/h3\u003E\n\u003Cp\u003EIn PureOpaque and Hybrid, session validity is part of the authentication decision.\u003C/p\u003E\n\u003Cp\u003EA request cannot be treated as authenticated merely because it presents a structurally valid credential. The associated session must also satisfy the applicable validation requirements.\u003C/p\u003E\n\u003Cp\u003EIn these modes, session invalidation affects subsequent authentication evaluations.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-managed-authentication\u0022\u003ESession-managed authentication\u003C/h3\u003E\n\u003Cp\u003EIn SemiHybrid, sessions support lifecycle operations such as refresh, logout, device management, and session revocation.\u003C/p\u003E\n\u003Cp\u003EHowever, normal JWT authentication does not require session validation.\u003C/p\u003E\n\u003Cp\u003EConsequently, revoking a session can prevent future refresh operations without automatically invalidating an already issued JWT.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-independent-authentication\u0022\u003ESession-independent authentication\u003C/h3\u003E\n\u003Cp\u003EPureJwt does not require a Session record.\u003C/p\u003E\n\u003Cp\u003EAuthentication relies on cryptographic token validation and applicable claims and token-validation policies.\u003C/p\u003E\n\u003Cp\u003EThere is no mandatory session authority or session lookup in its authentication pipeline.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022establishing-a-new-authentication-context\u0022\u003EEstablishing a new authentication context\u003C/h2\u003E\n\u003Cp\u003EAuthentication begins when the system receives evidence sufficient to establish a new authenticated identity.\u003C/p\u003E\n\u003Cp\u003EA typical login operation follows these conceptual steps:\u003C/p\u003E\n\u003Col\u003E\n\u003Cli\u003EResolve the effective authentication context and security policies.\u003C/li\u003E\n\u003Cli\u003EValidate the presented authentication proof.\u003C/li\u003E\n\u003Cli\u003EEstablish the authenticated identity.\u003C/li\u003E\n\u003Cli\u003ECreate the authentication state required by the selected mode.\u003C/li\u003E\n\u003Cli\u003EIssue the appropriate authentication credentials.\u003C/li\u003E\n\u003Cli\u003EDeliver those credentials through the configured transport mechanism.\u003C/li\u003E\n\u003C/ol\u003E\n\u003Cp\u003EThe fourth and fifth steps are mode-dependent.\u003C/p\u003E\n\u003Cp\u003EFor session-backed modes, establishing authentication can involve creating or resolving the relevant Root, Chain, and Session state.\u003C/p\u003E\n\u003Cp\u003EFor PureJwt, issuing a JWT must not require creating a server-side session.\u003C/p\u003E\n\u003Cp\u003EThe shared authentication pipeline does not imply that every mode performs identical persistence operations.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authenticating-subsequent-requests\u0022\u003EAuthenticating subsequent requests\u003C/h2\u003E\n\u003Cp\u003EAfter login, a client presents the credential appropriate for its authentication mode.\u003C/p\u003E\n\u003Cp\u003EThe request pipeline validates that credential and establishes the trusted authentication state.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-code-wrapper\u0022\u003E\u003Cdiv class=\u0022docs-code-header\u0022\u003E\u003Cspan class=\u0022docs-code-language\u0022\u003EText\u003C/span\u003E\u003Cbutton type=\u0022button\u0022 class=\u0022docs-code-copy\u0022 aria-label=\u0022Copy code\u0022\u003ECopy\u003C/button\u003E\u003C/div\u003E\u003Cpre\u003E\u003Ccode class=\u0022language-text\u0022\u003EIncoming Request\n       |\n       v\nEffective Authentication Context\n       |\n       v\nCredential Resolution\n       |\n       v\nMode-Specific Authentication Validation\n       |\n       \u002B-- PureOpaque: Session validation\n       |\n       \u002B-- Hybrid: Opaque token \u002B session validation\n       |\n       \u002B-- SemiHybrid: JWT validation\n       |\n       \u002B-- PureJwt: JWT validation\n       |\n       v\nAuthenticated Identity\n       |\n       v\nAccessContext\n       |\n       v\nAuthorization\n       |\n       v\nProtected Operation\n\u003C/code\u003E\u003C/pre\u003E\u003C/div\u003E\n\u003Cp\u003EThe authentication mode determines which validation steps are required.\u003C/p\u003E\n\u003Cp\u003EThe resulting identity must satisfy the same framework-level trust requirements regardless of the credential format.\u003C/p\u003E\n\u003Cp\u003EAn application must not construct a trusted identity directly from unvalidated client input.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-context-and-authorization-context\u0022\u003EAuthentication context and authorization context\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth distinguishes the context used to execute an authentication flow from the context used to evaluate authorization.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authflowcontext\u0022\u003EAuthFlowContext\u003C/h3\u003E\n\u003Cp\u003E\u003Ccode\u003EAuthFlowContext\u003C/code\u003E represents the effective authentication context for an operation.\u003C/p\u003E\n\u003Cp\u003EIt includes the relevant mode, client characteristics, tenant context, and other applicable runtime information.\u003C/p\u003E\n\u003Cp\u003EThe framework establishes this context through controlled boundaries.\u003C/p\u003E\n\u003Cp\u003EOnce established, the effective context remains stable throughout the operation.\u003C/p\u003E\n\u003Cp\u003EApplication code and individual domain services must not independently replace or reconstruct it to change the security rules.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022accesscontext\u0022\u003EAccessContext\u003C/h3\u003E\n\u003Cp\u003E\u003Ccode\u003EAccessContext\u003C/code\u003E represents the trusted actor and authorization context after authentication has been evaluated.\u003C/p\u003E\n\u003Cp\u003EIt provides the identity and contextual information needed for authorization and policy decisions.\u003C/p\u003E\n\u003Cp\u003E\u003Ccode\u003EAccessContext\u003C/code\u003E does not authenticate credentials.\u003C/p\u003E\n\u003Cp\u003EAuthentication must be resolved before a trusted authorization context is established.\u003C/p\u003E\n\u003Cp\u003EThis separation allows the authentication mechanism to vary without requiring a different authorization architecture for each mode.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-lifecycle\u0022\u003EAuthentication lifecycle\u003C/h2\u003E\n\u003Cp\u003EAuthentication does not end when credentials are issued.\u003C/p\u003E\n\u003Cp\u003EDepending on the mode, an authenticated context may be continued, renewed, expired, or revoked.\u003C/p\u003E\n\u003Cp\u003EUltimateAuth distinguishes several lifecycle operations.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication\u0022\u003EAuthentication\u003C/h3\u003E\n\u003Cp\u003EEstablishes a new authenticated context after the required proof has been validated.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022refresh\u0022\u003ERefresh\u003C/h3\u003E\n\u003Cp\u003EContinues an existing authentication context when its continuation requirements are satisfied.\u003C/p\u003E\n\u003Cp\u003ERefresh is mode-dependent.\u003C/p\u003E\n\u003Cp\u003EPureOpaque uses session continuation and touch semantics rather than refresh-token rotation.\u003C/p\u003E\n\u003Cp\u003EHybrid and SemiHybrid use refresh-token rotation together with the applicable session validation requirements.\u003C/p\u003E\n\u003Cp\u003EPureJwt may support session-independent token renewal when refresh tokens are enabled.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022logout\u0022\u003ELogout\u003C/h3\u003E\n\u003Cp\u003EEnds or discards the relevant authentication context according to the mode.\u003C/p\u003E\n\u003Cp\u003EIn session-authoritative modes, server-side session revocation can prevent subsequent authentication.\u003C/p\u003E\n\u003Cp\u003EIn JWT-based modes, removing credentials from the client does not by itself invalidate already issued JWTs.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022revocation\u0022\u003ERevocation\u003C/h3\u003E\n\u003Cp\u003EInvalidates authentication state or credentials according to the guarantees supported by the selected mode.\u003C/p\u003E\n\u003Cp\u003ESession revocation and JWT revocation are not equivalent operations.\u003C/p\u003E\n\u003Cp\u003EA server-side session can be revoked immediately, but a JWT validated without session lookup can remain valid until expiration.\u003C/p\u003E\n\u003Cp\u003EApplications requiring stronger access-token invalidation guarantees must select a mode and validation strategy that explicitly provides them.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-security-boundaries\u0022\u003EAuthentication security boundaries\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth\u0027s authentication architecture relies on several principles that apply across modes.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022credentials-are-evidence-not-authority\u0022\u003ECredentials are evidence, not authority\u003C/h3\u003E\n\u003Cp\u003EThe presence of a token, cookie, or session identifier does not automatically establish identity.\u003C/p\u003E\n\u003Cp\u003EThe required validation must succeed first.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-modes-have-explicit-guarantees\u0022\u003EAuthentication modes have explicit guarantees\u003C/h3\u003E\n\u003Cp\u003EA mode must not silently weaken its validation or revocation guarantees because of client runtime, transport selection, or performance optimization.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022session-authority-is-mode-dependent\u0022\u003ESession authority is mode-dependent\u003C/h3\u003E\n\u003Cp\u003EServer-side sessions are authoritative where the mode requires them.\u003C/p\u003E\n\u003Cp\u003EStateless authentication does not become session-backed merely because other parts of the framework support session management.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022client-context-is-not-inherently-trusted\u0022\u003EClient context is not inherently trusted\u003C/h3\u003E\n\u003Cp\u003EDevice identifiers, tenant identifiers, and client-provided runtime information must be handled according to the applicable trust boundaries.\u003C/p\u003E\n\u003Cp\u003EThey must not allow a client to bypass authentication requirements.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022authentication-and-authorization-remain-separate\u0022\u003EAuthentication and authorization remain separate\u003C/h3\u003E\n\u003Cp\u003EA valid identity does not automatically imply permission to access a resource.\u003C/p\u003E\n\u003Cp\u003EAuthorization policies must still evaluate the authenticated actor\u0027s access rights.\u003C/p\u003E\n\u003Ch3 class=\u0022mud-scrollspy-section\u0022 id=\u0022credential-protection-remains-essential\u0022\u003ECredential protection remains essential\u003C/h3\u003E\n\u003Cp\u003EOpaque session credentials, opaque access tokens, JWTs, and refresh tokens are all sensitive.\u003C/p\u003E\n\u003Cp\u003ETheir safe use depends on appropriate transport, storage, expiration, and validation policies.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022how-the-model-relates-to-authentication-modes\u0022\u003EHow the model relates to authentication modes\u003C/h2\u003E\n\u003Cp\u003EThe authentication model establishes the shared principles and boundaries.\u003C/p\u003E\n\u003Cp\u003EAuthentication modes determine how those principles are executed.\u003C/p\u003E\n\u003Cdiv class=\u0022docs-table-wrapper\u0022\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EMode\u003C/th\u003E\n\u003Cth\u003EAuthentication authority\u003C/th\u003E\n\u003Cth\u003ERole of session state\u003C/th\u003E\n\u003C/tr\u003E\n\u003C/thead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureOpaque\u003C/td\u003E\n\u003Ctd\u003EServer-side session\u003C/td\u003E\n\u003Ctd\u003ERequired for authentication and lifecycle\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EHybrid\u003C/td\u003E\n\u003Ctd\u003EServer-side session, accessed through an opaque token\u003C/td\u003E\n\u003Ctd\u003ERequired for authentication and lifecycle\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ESemiHybrid\u003C/td\u003E\n\u003Ctd\u003ECryptographically validated JWT for normal requests\u003C/td\u003E\n\u003Ctd\u003ERequired for session lifecycle, not default request validation\u003C/td\u003E\n\u003C/tr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPureJwt\u003C/td\u003E\n\u003Ctd\u003ECryptographically validated JWT\u003C/td\u003E\n\u003Ctd\u003ENot required\u003C/td\u003E\n\u003C/tr\u003E\n\u003C/tbody\u003E\n\u003C/table\u003E\u003C/div\u003E\n\u003Cp\u003EThis distinction is essential to understanding UltimateAuth.\u003C/p\u003E\n\u003Cp\u003ERoot, Chain, and Session provide structured lifecycle control where server-side authentication state is required.\u003C/p\u003E\n\u003Cp\u003EThey are not universal prerequisites for authenticating a request.\u003C/p\u003E\n\u003Cp\u003ELikewise, JWT authentication does not eliminate server authority. The server still defines which tokens are acceptable and which validation rules must be enforced.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022summary\u0022\u003ESummary\u003C/h2\u003E\n\u003Cp\u003EUltimateAuth defines authentication as a controlled process that establishes trusted identity from validated evidence.\u003C/p\u003E\n\u003Cp\u003EIts architecture separates:\u003C/p\u003E\n\u003Cul\u003E\n\u003Cli\u003EAuthentication proof and credential validation.\u003C/li\u003E\n\u003Cli\u003EAuthentication state and lifecycle management.\u003C/li\u003E\n\u003Cli\u003EAuthentication context and authorization context.\u003C/li\u003E\n\u003Cli\u003EShared security boundaries and mode-specific execution strategies.\u003C/li\u003E\n\u003C/ul\u003E\n\u003Cp\u003ERoot, Chain, and Session form the authentication lineage used by session-backed modes.\u003C/p\u003E\n\u003Cp\u003EPureOpaque and Hybrid rely on that lineage as part of their authentication authority.\u003C/p\u003E\n\u003Cp\u003ESemiHybrid retains session lifecycle management while allowing JWT authentication without request-time session lookup.\u003C/p\u003E\n\u003Cp\u003EPureJwt does not require session persistence or validation.\u003C/p\u003E\n\u003Cp\u003EThese distinctions allow UltimateAuth to support different authentication strategies without changing the fundamental trust and authorization model.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022next-step\u0022\u003ENext step\u003C/h2\u003E\n\u003Cp\u003EContinue to \u003Cstrong\u003EFlow-Based Authentication\u003C/strong\u003E to understand how UltimateAuth establishes and executes authentication operations through its controlled flow pipeline.\u003C/p\u003E\n",
   "Headings": [
     {
-      "Id": "the-big-picture",
-      "Text": "\uD83D\uDD11 The Big Picture",
+      "Id": "authentication-and-identity",
+      "Text": "Authentication and identity",
       "Level": 0
     },
     {
-      "Id": "root-the-authority",
-      "Text": "\uD83E\uDDE9 Root \u2014 The Authority",
+      "Id": "server-authority",
+      "Text": "Server authority",
       "Level": 0
     },
     {
-      "Id": "what-root-does",
-      "Text": "What Root Does",
-      "Level": 1
-    },
-    {
-      "Id": "example",
-      "Text": "Example",
-      "Level": 1
-    },
-    {
-      "Id": "chain-the-device-context",
-      "Text": "\uD83D\uDD17 Chain \u2014 The Device Context",
+      "Id": "authentication-state",
+      "Text": "Authentication state",
       "Level": 0
     },
     {
-      "Id": "what-chain-does",
-      "Text": "What Chain Does",
-      "Level": 1
-    },
-    {
-      "Id": "session-the-authentication-instance",
-      "Text": "\uD83E\uDDFE Session \u2014 The Authentication Instance",
+      "Id": "authentication-lineage",
+      "Text": "Authentication lineage",
       "Level": 0
     },
     {
-      "Id": "what-session-does",
-      "Text": "What Session Does",
-      "Level": 1
-    },
-    {
-      "Id": "how-they-work-together",
-      "Text": "\uD83D\uDD04 How They Work Together",
+      "Id": "root-user-level-authentication-authority",
+      "Text": "Root: user-level authentication authority",
       "Level": 0
     },
     {
-      "Id": "why-this-model-matters",
-      "Text": "\uD83D\uDEE1 Why This Model Matters",
+      "Id": "security-versions",
+      "Text": "Security versions",
+      "Level": 1
+    },
+    {
+      "Id": "chain-related-session-context",
+      "Text": "Chain: related session context",
       "Level": 0
     },
     {
-      "Id": "server-controlled-authentication",
-      "Text": "\u2714 Server-Controlled Authentication",
-      "Level": 1
-    },
-    {
-      "Id": "instant-revocation",
-      "Text": "\u2714 Instant Revocation",
-      "Level": 1
-    },
-    {
-      "Id": "device-awareness",
-      "Text": "\u2714 Device Awareness",
-      "Level": 1
-    },
-    {
-      "Id": "strong-security-model",
-      "Text": "\u2714 Strong Security Model",
-      "Level": 1
-    },
-    {
-      "Id": "mental-model",
-      "Text": "\uD83E\uDDE0 Mental Model",
+      "Id": "session-an-authenticated-instance",
+      "Text": "Session: an authenticated instance",
       "Level": 0
     },
     {
-      "Id": "key-takeaways",
-      "Text": "\uD83D\uDCCC Key Takeaways",
+      "Id": "session-authoritative-authentication",
+      "Text": "Session-authoritative authentication",
+      "Level": 1
+    },
+    {
+      "Id": "session-managed-authentication",
+      "Text": "Session-managed authentication",
+      "Level": 1
+    },
+    {
+      "Id": "session-independent-authentication",
+      "Text": "Session-independent authentication",
+      "Level": 1
+    },
+    {
+      "Id": "establishing-a-new-authentication-context",
+      "Text": "Establishing a new authentication context",
+      "Level": 0
+    },
+    {
+      "Id": "authenticating-subsequent-requests",
+      "Text": "Authenticating subsequent requests",
+      "Level": 0
+    },
+    {
+      "Id": "authentication-context-and-authorization-context",
+      "Text": "Authentication context and authorization context",
+      "Level": 0
+    },
+    {
+      "Id": "authflowcontext",
+      "Text": "AuthFlowContext",
+      "Level": 1
+    },
+    {
+      "Id": "accesscontext",
+      "Text": "AccessContext",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-lifecycle",
+      "Text": "Authentication lifecycle",
+      "Level": 0
+    },
+    {
+      "Id": "authentication",
+      "Text": "Authentication",
+      "Level": 1
+    },
+    {
+      "Id": "refresh",
+      "Text": "Refresh",
+      "Level": 1
+    },
+    {
+      "Id": "logout",
+      "Text": "Logout",
+      "Level": 1
+    },
+    {
+      "Id": "revocation",
+      "Text": "Revocation",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-security-boundaries",
+      "Text": "Authentication security boundaries",
+      "Level": 0
+    },
+    {
+      "Id": "credentials-are-evidence-not-authority",
+      "Text": "Credentials are evidence, not authority",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-modes-have-explicit-guarantees",
+      "Text": "Authentication modes have explicit guarantees",
+      "Level": 1
+    },
+    {
+      "Id": "session-authority-is-mode-dependent",
+      "Text": "Session authority is mode-dependent",
+      "Level": 1
+    },
+    {
+      "Id": "client-context-is-not-inherently-trusted",
+      "Text": "Client context is not inherently trusted",
+      "Level": 1
+    },
+    {
+      "Id": "authentication-and-authorization-remain-separate",
+      "Text": "Authentication and authorization remain separate",
+      "Level": 1
+    },
+    {
+      "Id": "credential-protection-remains-essential",
+      "Text": "Credential protection remains essential",
+      "Level": 1
+    },
+    {
+      "Id": "how-the-model-relates-to-authentication-modes",
+      "Text": "How the model relates to authentication modes",
+      "Level": 0
+    },
+    {
+      "Id": "summary",
+      "Text": "Summary",
       "Level": 0
     },
     {
       "Id": "next-step",
-      "Text": "\u27A1\uFE0F Next Step",
+      "Text": "Next step",
       "Level": 0
     }
   ]

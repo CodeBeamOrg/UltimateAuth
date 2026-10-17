@@ -5,7 +5,7 @@
         <MudStack Spacing="4" Class="text-center">
             <MudText Typo="Typo.h3"><b>Samples</b></MudText>
             <MudText Typo="Typo.subtitle2">Explore working examples and see UltimateAuth in action.</MudText>
-            <MudText Typo="Typo.caption">Interactive online samples are coming soon.</MudText>
+            <MudText Typo="Typo.caption">Identity Lab (hosted live demo) is coming soon.</MudText>
 
             <MudDivider />
 
@@ -15,6 +15,14 @@
             </MudText>
 
             <MudGrid>
+                <MudItem xs="12">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">Sample.Shared</MudText>
+                        <MudText Typo="Typo.subtitle2">Shared component designs across all modern .NET platforms.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/shared" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
                         <MudText Typo="Typo.h6">Blazor Server (EF Core)</MudText>
@@ -31,9 +39,9 @@
                     </MudPaper>
                 </MudItem>
 
-                <MudItem xs="12">
+                <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
-                        <MudText Typo="Typo.h6">Blazor WASM (Standalone)</MudText>
+                        <MudText Typo="Typo.h6">Blazor Standalone WASM</MudText>
                         <MudText Typo="Typo.subtitle2">Client-side sample using Hybrid authentication model.</MudText>
                         <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/blazor-standalone-wasm/CodeBeam.UltimateAuth.Sample.BlazorStandaloneWasm" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
                     </MudPaper>
@@ -41,7 +49,23 @@
 
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
-                        <MudText Typo="Typo.h6">UAuthHub</MudText>
+                        <MudText Typo="Typo.h6">Blazor Interactive WASM</MudText>
+                        <MudText Typo="Typo.subtitle2">Client-side interactive render mode sample using Hybrid authentication model.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/int-wasm/CodeBeam.UAuth.Sample.IntWasm" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">UAuthHub (EF Core)</MudText>
+                        <MudText Typo="Typo.subtitle2">Complete Auth server with UI, working together with WASM client and EF Core.</MudText>
+                        <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center" Style="background: transparent; min-height: 200px" Outlined="true" Elevation="0">
+                        <MudText Typo="Typo.h6">UAuthHub (InMemory)</MudText>
                         <MudText Typo="Typo.subtitle2">Complete Auth server with UI, working together with WASM client.</MudText>
                         <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/UAuthHub/CodeBeam.UltimateAuth.Sample.UAuthHub" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
                     </MudPaper>
@@ -54,20 +78,91 @@
                         <MudButton Class="mt-4" Variant="Variant.Filled" Href="https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples/resource-api/CodeBeam.UltimateAuth.Sample.ResourceApi" Target="_blank" StartIcon="@Icons.Material.Outlined.OpenInNew">View Source Code on GitHub</MudButton>
                     </MudPaper>
                 </MudItem>
-            </MudGrid>   
+            </MudGrid>
 
-            <MudAlert Severity="Severity.Info" Class="mt-6" ContentAlignment="HorizontalAlignment.Center">
-                <b>WASM Sample Setup:</b><br />
-                Start the following projects together:<br />
-                (1) UAuthHub<br />
-                (2) ResourceApi<br />
-                (3) BlazorStandaloneWasm<br />
-                After opening the solution, configure multiple startup projects in Visual Studio.
-            </MudAlert>
+            
+            <MudDivider Class="my-6" />
 
-            <MudAlert Severity="Severity.Info" Class="my-6">
-                Each sample refreshes (clear + seed) it's data on each restart. When you close application it will be reset.
-            </MudAlert>
+            <MudStack Spacing="3" Class="text-start">
+
+                <MudText Typo="Typo.h5" Align="Align.Center">
+                    <b>Running the Samples</b>
+                </MudText>
+
+                <MudText Typo="Typo.body2" Align="Align.Center">
+                    The samples are preconfigured with different hosting and storage setups.
+                    Follow the project combinations below to run them locally.
+                </MudText>
+
+                <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h6">Blazor Server</MudText>
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">Standalone</MudChip>
+                        </MudStack>
+
+                        <MudText Typo="Typo.body2">
+                            Run either Blazor Server (InMemory) or Blazor Server (EF Core) independently.
+                            No additional projects are required.
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true"AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h6">Blazor Standalone WASM</MudText>
+                            <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">3 Projects</MudChip>
+                        </MudStack>
+
+                        <MudText Typo="Typo.body2">Start these projects together:</MudText>
+
+                        <MudStack Spacing="1" Class="pl-3">
+                            <MudText Typo="Typo.body2">1. UAuthHub</MudText>
+                            <MudText Typo="Typo.body2">2. ResourceApi</MudText>
+                            <MudText Typo="Typo.body2">3. BlazorStandaloneWasm</MudText>
+                        </MudStack>
+
+                        <MudText Typo="Typo.caption" Color="Color.Info">Preconfigured with InMemory storage.</MudText>
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h6">Blazor Interactive WASM</MudText>
+                            <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small">3 Projects</MudChip>
+                        </MudStack>
+
+                        <MudText Typo="Typo.body2">Start these projects together:</MudText>
+
+                        <MudStack Spacing="1" Class="pl-3">
+                            <MudText Typo="Typo.body2">1. UAuthHub EF Core</MudText>
+                            <MudText Typo="Typo.body2">2. Resource API EF Core</MudText>
+                            <MudText Typo="Typo.body2">3. Blazor Interactive WASM</MudText>
+                        </MudStack>
+
+                        <MudText Typo="Typo.caption" Color="Color.Info">Preconfigured with EF Core storage.</MudText>
+                    </MudStack>
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    <b>Storage flexibility:</b>
+                    These are sample configurations, not framework limitations.
+                    Both WASM hosting models can use InMemory or EF Core backends.
+                    The combinations above are simply the preconfigured examples provided in this repository.
+                </MudAlert>
+
+                <MudText Typo="Typo.body2" Align="Align.Center">
+                    In Visual Studio, open <b>Configure Startup Projects</b>, select <b>Multiple startup projects</b>, and set the required projects to <b>Start</b>.
+                </MudText>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                    <b>Sample Data:</b>
+                    Sample data is reset and seeded again on each restart in the provided demo configurations.
+                </MudAlert>
+            </MudStack>
+
         </MudStack>
     </MudContainer>
 </MudPage>

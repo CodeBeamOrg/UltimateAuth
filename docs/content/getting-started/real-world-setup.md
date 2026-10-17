@@ -4,214 +4,1079 @@ order: 4
 group: getting-started
 ---
 
-# 🏗 Real-World Setup
+# 🏗️ Real-World Setup
 
-The Quick Start uses an in-memory setup for simplicity.
-In real-world applications, you should replace it with a persistent configuration as shown below.
+**One authentication framework. Different deployment models.**
 
-In real applications, you will typically configure:
+The [QuickStart](/docs/getting-started/quickstart) demonstrates UltimateAuth with Blazor Server and in-memory storage.
 
-- A persistent database
-- An appropriate client profile
-- A suitable authentication mode
+Real applications may require persistent data, a separate authentication server, browser-based clients, or independently deployed APIs.
 
-This guide shows how to set up UltimateAuth for real-world scenarios.
+UltimateAuth supports these scenarios through different service registrations and hosting integrations. You can choose the architecture that fits your application without configuring every available component.
 
-## 🗄️ Using Entity Framework Core
-For production, you should use a persistent store. (In-memory provider is volatile and automatically resets on each restart.)
+This guide covers the setup patterns demonstrated by the UltimateAuth samples.
 
-In this setup, you no longer need the `CodeBeam.UltimateAuth.InMemory.Bundle` package.
+## 1. Choose Your Architecture
 
-### Install Packages
+Start by identifying where authentication is hosted and how your application communicates with it.
+
+| Application architecture | Authentication host | Application registration |
+|---|---|---|
+| Blazor Server, single project | Same application | Server + persistence + Blazor client |
+| Blazor Server with EF Core | Same application | Server + EF Core + Blazor client |
+| Dedicated UAuthHub | Separate authentication application | Server + persistence + Hub |
+| Standalone Blazor WASM | Remote UAuthHub | Blazor client |
+| Blazor Web App, Interactive WASM | Remote UAuthHub | Host integration + WASM client |
+| Separate Resource API | Remote UAuthHub | Resource API integration |
+
+These models can be combined.
+
+For example, an application might use an EF Core-backed UAuthHub, a standalone Blazor WASM frontend, and a separate Resource API.
+
+The frontend handles user interaction, UAuthHub manages authentication, and the Resource API enforces access to protected resources.
+
+## 2. Persistent Storage with Entity Framework Core
+
+For applications that need authentication state to survive restarts, use a persistent storage provider.
+
+UltimateAuth provides an Entity Framework Core bundle that registers its reference domain implementations and EF Core-backed stores.
+
+### Install packages
 
 ```bash
 dotnet add package CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add package Microsoft.EntityFrameworkCore.Design
 ```
 
-### Configure Services
+The SQLite provider is used here for simplicity. You can use another compatible EF Core database provider.
+
+When using the EF Core bundle, you do not need the in-memory bundle.
+
+### Register the services
+
+In `Program.cs`:
+
 ```csharp
-builder.Services
-    .AddUltimateAuthServer()
+using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.EntityFrameworkCore;
+
+builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
-        db.UseSqlite("Data Source=uauth.db");
-        // or UseSqlServer(...) / UseNpgsql(...) / UseMySql(...) etc.
+        db.UseSqlite("Data Source=uauth.db", sqlite => sqlite.MigrationsAssembly(typeof(Program).Assembly.GetName().Name!));
     });
-
-builder.Services
-    .AddUltimateAuthClientBlazor();
 ```
 
-### Database Migrations
+`AddUltimateAuthEntityFrameworkCore()` registers the EF Core stores and reference domain implementations.
 
-UltimateAuth integrates with Entity Framework Core, but database migrations belong to your application.
+The bundle provides a unified `UAuthDbContext` for the supported authentication domains.
 
-UltimateAuth does not automatically create or apply migrations on your behalf. This keeps your database schema lifecycle under your control and allows migrations to follow the same deployment and review process as the rest of your application.
+You do not need to register each user, session, credential, token, or authorization store individually.
 
-After configuring the Entity Framework Core provider, create the initial migration and update the database using either the .NET CLI or Visual Studio Package Manager Console.
+### Configure the database connection
 
-#### Option A — .NET CLI
+For a deployed application, prefer configuration over hardcoded connection strings.
 
-If you use the .NET CLI:
+`appsettings.json`:
 
-```bash
-dotnet ef migrations add InitUAuth --context UAuthDbContext
-dotnet ef database update --context UAuthDbContext
+```json
+{
+  "ConnectionStrings": {
+    "UltimateAuth": "Data Source=uauth.db"
+  }
+}
 ```
 
-If the dotnet ef command is not available, install the EF Core CLI tool:
+`Program.cs`:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("UltimateAuth")
+    ?? throw new InvalidOperationException("UltimateAuth connection string is missing.");
+
+builder.Services.AddUltimateAuthServer()
+    .AddUltimateAuthEntityFrameworkCore(db =>
+    {
+        db.UseSqlite(connectionString);
+    });
+```
+
+For production databases, use your deployment environment's secret management facilities rather than storing credentials in source control.
+
+### Database migrations
+
+UltimateAuth does not automatically create or apply migrations when the EF Core bundle is registered.
+
+Your application owns the database migration lifecycle.
+
+Install the EF Core CLI if necessary:
 
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-Your project also needs the Entity Framework Core design package:
+Create the initial migration:
 
 ```bash
-dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet ef migrations add InitUAuth --context UAuthDbContext
 ```
 
-#### Option B — Visual Studio Package Manager Console
-
-If you use Visual Studio, you can perform the same operation from Tools → NuGet Package Manager → Package Manager Console:
+Apply it:
 
 ```bash
+dotnet ef database update --context UAuthDbContext
+```
+
+For Visual Studio Package Manager Console:
+
+```powershell
 Add-Migration InitUAuth -Context UAuthDbContext
 Update-Database -Context UAuthDbContext
 ```
 
-For Package Manager Console tooling, make sure the required EF Core tooling package is available:
+Install `Microsoft.EntityFrameworkCore.Tools` if required.
+
+### Applying migrations programmatically
+
+The EF Core samples demonstrate initialization through a scoped `UAuthDbContext`.
+
+For a controlled development environment:
+
+```csharp
+using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<UAuthDbContext>();
+    await db.Database.MigrateAsync();
+}
+```
+
+This applies pending migrations. It does not generate migration files.
+
+**Production guidance:** Prefer applying reviewed migrations as a separate deployment step, particularly when multiple application instances share a database.
+
+Do not copy the sample initializer's `reset: true` behavior into production. The samples use database reset functionality for repeatable demonstrations, not as a safe deployment strategy.
+
+### Optional: sample accounts with EF Core
+
+The sample seed package can also work with EF Core persistence.
 
 ```bash
-Install-Package Microsoft.EntityFrameworkCore.Tools
+dotnet add package CodeBeam.UltimateAuth.Sample.Seed
 ```
 
-### Who Owns the Migrations?
+Register the scoped seed services:
 
-Your application does.
-
-This is intentional. UltimateAuth provides the authentication and identity model through its Entity Framework Core integration, while your application remains responsible for managing the resulting database schema.
-
-This means you can:
-
-- review migrations before applying them,
-- include UltimateAuth schema changes in your normal deployment process,
-- control when database changes are applied,
-- maintain migration history alongside your application,
-- use the database provider and deployment strategy appropriate for your environment.
-
-When upgrading UltimateAuth, review the release notes for persistence-related schema changes and create a new migration when required.
-
-> **Tip:** Treat UltimateAuth model changes like any other Entity Framework Core model change: upgrade the package, create a migration, review the generated migration, and apply it through your normal deployment process.
-
-## Configure Services With Options
-UltimateAuth provides rich options for server and client service registration.
 ```csharp
-builder.Services.AddUltimateAuthServer(o => {
-    o.Diagnostics.EnableRefreshDetails = true;
-    o.Login.MaxFailedAttempts = 4;
-    o.Identifiers.AllowMultipleUsernames = true;
-});
+builder.Services.AddScopedUltimateAuthSampleSeed();
 ```
 
-## Blazor Standalone WASM Setup
-Blazor WASM applications run entirely on the client and cannot securely handle credentials.
-For this reason, UltimateAuth uses a dedicated Auth server called **UAuthHub**.
+After preparing the database:
 
-WASM `Program.cs`:
 ```csharp
-builder.Services.AddUltimateAuthClientBlazor(o =>
+if (app.Environment.IsDevelopment())
 {
-    o.Endpoints.BasePath = "https://localhost:6110/auth"; // UAuthHub URL
-    o.Pkce.ReturnUrl = "https://localhost:6130/home"; // Your (WASM) application domain + return path
+    await app.SeedUltimateAuthAsync();
+}
+```
+
+The difference matters:
+
+- `AddUltimateAuthSampleSeed()` is used by the in-memory samples.
+- `AddScopedUltimateAuthSampleSeed()` is used by the EF Core samples.
+
+Do not deploy the demonstration accounts and passwords to production.
+
+## 3. Blazor Server — Integrated Authentication
+
+**Best for:** A Blazor Server application that wants to host its own authentication system.
+
+This is the simplest deployment model for a server-side Blazor application.
+
+The application hosts UltimateAuth Server and uses the Blazor client adapter in the same project.
+
+A separate UAuthHub is not required.
+
+### Packages
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+dotnet add package CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+```
+
+### Services
+
+```csharp
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.EntityFrameworkCore;
+
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddUltimateAuthServer()
+    .AddUltimateAuthEntityFrameworkCore(db =>
+    {
+        db.UseSqlite("Data Source=uauth.db");
+    });
+
+builder.Services.AddUltimateAuthClientBlazor();
+```
+
+### Pipeline
+
+```csharp
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseUltimateAuthWithAspNetCore();
+app.UseAntiforgery();
+
+app.MapUltimateAuthEndpoints();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
+```
+
+Also configure the `UAuthApp` root component, login page, and UltimateAuth JavaScript file as demonstrated in QuickStart.
+
+### Authentication behavior
+
+The default client profile resolution selects `PureOpaque` for Blazor Server.
+
+This uses session-oriented authentication rather than requiring the application to manage access and refresh tokens manually.
+
+You can configure session lifetimes, login policies, credential policies, and other behavior through `AddUltimateAuthServer()`.
+
+For example:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Login.MaxFailedAttempts = 5;
+    options.Login.LockoutDuration = TimeSpan.FromMinutes(15);
+    options.Session.Lifetime = TimeSpan.FromDays(7);
+    options.Identifiers.Behavior.AllowMultipleUsernames = true;
 });
 ```
 
-UAuthHub `Program.cs`:
+The effective authentication mode is resolved at runtime. The application does not need to select a single mode globally.
+
+## 4. UAuthHub — Dedicated Authentication Server
+
+**Best for:** Applications where multiple clients share one authentication authority.
+
+UAuthHub hosts UltimateAuth's authentication services separately from your frontend applications.
+
+It is particularly relevant for standalone WASM applications, Interactive WASM applications, and systems with separate Resource APIs.
+
+A typical architecture looks like this:
+
+```text
+       Standalone WASM       Interactive WASM
+              │                    │
+              └──────────┬─────────┘
+                         │
+                         ▼
+                      UAuthHub
+                  Authentication
+                  Sessions & Users
+                         │
+                         ▼
+                    Persistence
+
+       Resource API ───► UAuthHub
+         (validation)
+```
+
+### Create the Hub application
+
+A UAuthHub can be hosted in an ASP.NET Core Blazor Server application.
+
+The current samples use Blazor Server to provide the Hub's login UI.
+
+### In-memory UAuthHub
+
+For development:
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+dotnet add package CodeBeam.UltimateAuth.InMemory.Bundle
+```
+
+Register:
+
 ```csharp
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.InMemory;
+using CodeBeam.UltimateAuth.Server.Extensions;
+
 builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemory()
-    .AddUAuthHub(o => o.AllowedClientOrigins.Add("https://localhost:6130")); // WASM application's URL
+    .AddUAuthHub(options =>
+    {
+        options.AllowedClientOrigins.Add("https://localhost:6130");
+    });
+
+builder.Services.AddUltimateAuthClientBlazor();
 ```
 
-UAuthHub Pipeline Configuration
+The Hub's Blazor client registration is needed when the Hub itself hosts UltimateAuth-powered Blazor pages and login UI.
+
+### EF Core UAuthHub
+
+For persistent storage:
+
 ```csharp
+using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+builder.Services.AddUltimateAuthServer()
+    .AddUltimateAuthEntityFrameworkCore(db =>
+    {
+        db.UseSqlite("Data Source=uauthhub.db");
+    })
+    .AddUAuthHub(options =>
+    {
+        options.AllowedClientOrigins.Add("https://localhost:6132");
+    });
+
+builder.Services.AddUltimateAuthClientBlazor();
+```
+
+The `AllowedClientOrigins` collection identifies browser origins permitted to interact with the Hub.
+
+Use exact origins, including scheme and port. Do not include paths such as `/home`.
+
+### Hub pipeline
+
+```csharp
+app.UseHttpsRedirection();
+
+app.UseUltimateAuthWithAspNetCore();
+app.UseAntiforgery();
+
 app.MapUltimateAuthEndpoints();
 app.MapUAuthHub();
+
+app.MapStaticAssets();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 ```
 
-## Blazor Web App Setup
-A blazor web app contains two projects that includes host and client. You need to arrange them both.
+`MapUltimateAuthEndpoints()` maps the authentication endpoints.
 
-In the host project:
+`MapUAuthHub()` maps the Hub-specific entry endpoint.
+
+Both registrations are used by the current UAuthHub samples.
+
+The Hub also needs its login page and Blazor application lifecycle components.
+
+### Choosing origins
+
+For example:
+
+| Application | URL |
+|---|---|
+| UAuthHub | `https://localhost:6112` |
+| Standalone WASM | `https://localhost:6130` |
+| Interactive WASM | `https://localhost:6132` |
+
+Configure the Hub's allowed origins for the actual frontend applications it serves.
+
+These localhost addresses are illustrative and must match your deployment.
+
+## 5. Blazor Standalone WebAssembly
+
+**Best for:** A browser-hosted application with a separate UAuthHub.
+
+Standalone Blazor WASM runs in the browser. It does not host UltimateAuth Server or database persistence.
+
+Authentication is handled by the remote UAuthHub.
+
+### Client packages
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+```
+
+### Configure services
+
+In the standalone WASM application's `Program.cs`:
+
 ```csharp
-builder.Services.AddUltimateAuthClientBlazor(o =>
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+
+builder.Services.AddScoped(sp => new HttpClient
 {
-    o.Endpoints.BasePath = "https://localhost:6112/auth"; // UAuthHub URL
-    o.Pkce.ReturnUrl = "https://localhost:6132/home"; // Current application domain + path
+    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-// In pipeline configuration
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.Endpoints.BasePath = "https://localhost:6110/auth";
+    options.Pkce.ReturnUrl = "https://localhost:6130/home";
+    options.Login.AllowCredentialPost = true;
+    options.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+});
+
+await builder.Build().RunAsync();
+```
+
+The current standalone WASM sample explicitly configures `Login.AllowCredentialPost` and the PKCE return URL.
+
+These are client-side settings. The UAuthHub must be configured independently.
+
+### What the URLs mean
+
+`Endpoints.BasePath` points to the remote authentication endpoints.
+
+`Pkce.ReturnUrl` identifies the frontend destination used by the relevant PKCE flow.
+
+The Hub must recognize the frontend's origin, and any return URL used in an authentication flow must be validated against the application's security policy.
+
+### Root component
+
+A standalone WASM application should initialize UltimateAuth through `UAuthApp`.
+
+For example, its root application or routing component can contain:
+
+```razor
+@using CodeBeam.UltimateAuth.Client.Blazor
+
+<UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.MainLayout)" />
+```
+
+Include the UltimateAuth JavaScript asset in the application's HTML host page.
+
+### Authentication modes
+
+The default `BlazorWasm` profile resolves to `Hybrid` in the current mode resolver.
+
+Do not manually force `PureOpaque` for a standalone browser client simply because a Blazor Server application uses it.
+
+The transport and authentication lifecycle must match the client environment.
+
+## 6. Blazor Web App — Interactive WebAssembly
+
+**Best for:** A Blazor Web App with an ASP.NET Core host and a separate `.Client` project.
+
+This scenario differs from standalone WASM because components may participate in both server-side rendering and browser-side interactivity.
+
+The current UltimateAuth sample registers the Blazor client integration in **both projects**.
+
+It also adds a separate ASP.NET Core compatibility registration in the host.
+
+### Project structure
+
+```text
+MyApplication/
+├── MyApplication/
+│   ├── Program.cs
+│   └── Components/
+│       └── App.razor
+│
+└── MyApplication.Client/
+    ├── Program.cs
+    └── Pages/
+```
+
+The host serves the application.
+
+The `.Client` project contains browser-executed components and services.
+
+A remote UAuthHub manages authentication.
+
+### 6.1 Host project packages
+
+Install the Blazor client integration and ASP.NET Core compatibility package in the host:
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+dotnet add package CodeBeam.UltimateAuth.Client.AspNetCore
+```
+
+### 6.2 Host project services
+
+In the host `Program.cs`:
+
+```csharp
+using CodeBeam.UltimateAuth.Client.AspNetCore;
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
+
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveWebAssemblyComponents();
+
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.Endpoints.BasePath = "https://localhost:6112/auth";
+    options.Pkce.ReturnUrl = "https://localhost:6132/home";
+    options.Login.AllowCredentialPost = true;
+    options.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+});
+
+builder.Services.AddUltimateAuthAspNetCoreCompatibility();
+```
+
+`AddUltimateAuthAspNetCoreCompatibility()` registers the compatibility authentication scheme and ASP.NET Core authorization services used by this hosting pattern.
+
+It does **not** turn the host into an UltimateAuth authentication server.
+
+It is also not equivalent to `AddUltimateAuthResourceApi()`.
+
+### 6.3 Host project pipeline
+
+```csharp
+app.UseHttpsRedirection();
+
+app.UseAntiforgery();
+
+app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(UAuthAssemblies.BlazorClient().First());
+    .AddAdditionalAssemblies(typeof(MyApplication.Client._Imports).Assembly, UAuthAssemblies.BlazorClient().First());
 ```
 
-In the client project:
+Replace `MyApplication.Client._Imports` with the corresponding type from your client project.
+
+The additional assemblies allow the host to discover routable components from the WASM client project and UltimateAuth's Blazor client assembly.
+
+The sample does not register `AddUltimateAuthServer()` in this host because authentication is delegated to a separate UAuthHub.
+
+### 6.4 Client project packages
+
+Install the Blazor client adapter in the `.Client` project:
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Client.Blazor
+```
+
+### 6.5 Client project services
+
+In `MyApplication.Client/Program.cs`:
+
 ```csharp
-builder.Services.AddUltimateAuthClientBlazor(o =>
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+builder.Services.AddScoped(sp => new HttpClient
 {
-    o.Endpoints.BasePath = "https://localhost:6112/auth"; // UAuthHub URL
-    o.Pkce.ReturnUrl = "https://localhost:6132/home"; // Current application domain + path
+    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-
-// Optional if you use external API calls in your client project.
-builder.Services.AddHttpClient("resourceApi", client =>
+builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    client.BaseAddress = new Uri("https://localhost:6122");
+    options.Endpoints.BasePath = "https://localhost:6112/auth";
+    options.Pkce.ReturnUrl = "https://localhost:6132/home";
+    options.Login.AllowCredentialPost = true;
+    options.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+});
+
+await builder.Build().RunAsync();
+```
+
+The host and client configurations should agree on the remote UAuthHub URL and authentication flow settings.
+
+### Why both registrations are necessary
+
+The host and browser client have separate dependency injection containers.
+
+Registering `AddUltimateAuthClientBlazor()` in the host does not automatically register those services inside the WebAssembly runtime.
+
+Likewise, registering the client adapter only in the `.Client` project does not supply the services required during server-side integration.
+
+The additional ASP.NET Core compatibility registration addresses the host's ASP.NET Core authentication and authorization integration requirements.
+
+**Important:** This compatibility layer is not a replacement for server-side authorization of your protected business APIs.
+
+## 7. Resource API — Separate Protected Backend
+
+**Best for:** An API that needs UltimateAuth authentication validation but does not host the authentication system itself.
+
+A Resource API can be an ASP.NET Core Web API, MVC application, or another supported server-side application.
+
+It does not need to be a Blazor application.
+
+### Architecture
+
+```text
+        Blazor Client
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+    UAuthHub    Resource API
+       ▲           │
+       └───────────┘
+       Authentication
+         validation
+```
+
+The Resource API uses the configured UAuthHub for remote authentication and session validation behavior.
+
+### Install the server integration package
+
+```bash
+dotnet add package CodeBeam.UltimateAuth.Server
+```
+
+### Configure services
+
+In the Resource API's `Program.cs`:
+
+```csharp
+using CodeBeam.UltimateAuth.Server.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.UAuthHubBaseUrl = "https://localhost:6112";
+    options.AllowedClientOrigins.Add("https://localhost:6132");
+    options.CorsPolicyName = "resourceApi";
 });
 ```
 
-> If you want to use embedded UAuthHub in host project, you can register server services as shown in quickstart.
+`UAuthHubBaseUrl` is the base address of the authentication server.
 
-> ℹ️ UltimateAuth automatically selects the appropriate authentication mode (PureOpaque, Hybrid, etc.) based on the client type.
+Notice that this example uses the Hub origin without the `/auth` suffix, matching the current Resource API samples.
 
-## ResourceApi Setup
-You may want to secure your custom API with UltimateAuth. UltimateAuth provides a lightweight option for this case. (ResourceApi doesn't have to be a blazor application, it can be any server-side project like MVC.)
+`AllowedClientOrigins` controls the browser origins permitted by the Resource API's CORS configuration.
 
-ResourceApi's `Program.cs`
+### Configure the pipeline
+
 ```csharp
-builder.Services.AddUltimateAuthResourceApi(o =>
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+
+app.UseUltimateAuthResourceApiWithAspNetCore();
+
+app.MapControllers();
+
+app.Run();
+```
+
+`UseUltimateAuthResourceApiWithAspNetCore()` installs the Resource API integration middleware together with ASP.NET Core authentication and authorization middleware.
+
+You do not need to register a local UltimateAuth Server or its persistence bundle in the Resource API.
+
+### Protecting endpoints
+
+Use ASP.NET Core authorization attributes for endpoints that require authentication:
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    [Authorize]
+    public IActionResult GetProducts()
     {
-        o.UAuthHubBaseUrl = "https://localhost:6110";
-        o.AllowedClientOrigins.Add("https://localhost:6130");
+        return Ok(new[]
+        {
+            new { Id = 1, Name = "Example product" }
+        });
+    }
+}
+```
+
+The authorization attribute is enforced by ASP.NET Core on the server.
+
+For permission-specific rules, configure and apply the corresponding authorization policies.
+
+Do not rely on Blazor UI authorization checks to protect Resource API endpoints.
+
+### CORS configuration
+
+The current Resource API integration registers CORS from the configured allowed origins.
+
+For example:
+
+```csharp
+options.AllowedClientOrigins.Add("https://localhost:6132");
+```
+
+Only add origins that should be allowed to call your API from a browser.
+
+CORS is a browser access control mechanism, not an authentication or authorization mechanism.
+
+A request must still pass the applicable authentication and authorization checks.
+
+### Resource API vs UAuthHub
+
+These are different responsibilities.
+
+| UAuthHub | Resource API |
+|---|---|
+| Hosts authentication flows | Hosts application resources |
+| Manages authentication sessions | Validates remote authentication context |
+| Uses authentication persistence | Does not require local authentication stores |
+| Provides login and related endpoints | Provides application endpoints |
+| Serves authentication clients | Serves authorized API consumers |
+
+Use a Resource API when you want independent deployment of business endpoints without duplicating the authentication server.
+
+## 8. Resource API with an EF Core-Backed UAuthHub
+
+The Resource API does not need to use EF Core just because UAuthHub does.
+
+For example:
+
+```text
+Interactive WASM
+      │
+      ├──────────────► Resource API
+      │
+      ▼
+   UAuthHub
+      │
+      ▼
+ EF Core Database
+```
+
+The Hub stores users, credentials, sessions, and related security state in its database.
+
+The Resource API communicates with the Hub through the configured remote validation integration.
+
+Its registration remains:
+
+```csharp
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.UAuthHubBaseUrl = "https://localhost:6112";
+    options.AllowedClientOrigins.Add("https://localhost:6132");
+    options.CorsPolicyName = "resourceApi";
+});
+```
+
+This separation allows the API and authentication infrastructure to be deployed, scaled, and maintained independently.
+
+## 9. Calling a Resource API from Blazor
+
+The current samples demonstrate calling a separate Resource API from Blazor applications.
+
+The client integration and the business API's HTTP client are separate concerns.
+
+### Interactive WASM host
+
+In the ASP.NET Core host:
+
+```csharp
+builder.Services.AddHttpClient<SampleProductApiService>(
+    client =>
+    {
+        client.BaseAddress = new Uri("https://localhost:6122");
     });
 ```
 
-Configure pipeline:
+### Interactive WASM client
+
+Register the same application API service in the `.Client` project:
+
 ```csharp
-app.UseUltimateAuthResourceApiWithAspNetCore();
+builder.Services.AddHttpClient<SampleProductApiService>(
+    client =>
+    {
+        client.BaseAddress = new Uri("https://localhost:6122");
+    });
 ```
 
-Notes:
-- ResourceApi should connect with an UAuthHub, not a pure-server. Make sure `.AddUAuthHub()` after calling `builder.Services.AddUltimateAuthServer()`.
-- UltimateAuth automatically configures CORS based on the provided origins.
+The host and client each require the service when application components or services execute in their respective environments.
 
-Use ResourceApi when:
+`SampleProductApiService` is an example application service, not a required UltimateAuth framework type.
 
-- You have a separate backend API
-- You want to validate sessions or tokens externally
-- Your API is not hosting UltimateAuth directly
+### Standalone WASM
 
-## 🧠 How to Think About Setup
+A standalone WASM application can register an HTTP client for its Resource API:
 
-In UltimateAuth:
+```csharp
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri("https://localhost:6120")
+});
+```
 
-- The **Server** manages authentication flows and sessions  
-- The **Client** interacts through flows (not tokens directly)  
-- The **Storage layer** (InMemory / EF Core) defines persistence  
-- The **Application type** determines runtime behavior  
+If your application has multiple HTTP clients, prefer explicitly named or typed clients to avoid ambiguity.
 
-👉 You configure the system once, and UltimateAuth adapts automatically.
+The current samples also demonstrate browser request credentials handling for cookie-based requests.
+
+For cross-origin cookie authentication, the browser request, API CORS policy, cookie attributes, and Hub configuration must all be compatible.
+
+Do not assume that registering an `HttpClient` automatically forwards authentication credentials to every remote API.
+
+## 10. Authentication Modes and Client Profiles
+
+UltimateAuth separates **client profile detection** from **authentication mode enforcement**.
+
+The default resolver maps client profiles to authentication modes.
+
+| Client profile | Default resolved mode |
+|---|---|
+| Blazor Server | `PureOpaque` |
+| Blazor WASM | `Hybrid` |
+| Web Server | `Hybrid` |
+| MAUI | `Hybrid` |
+| API | `PureJwt` |
+
+This mapping describes the resolver's behavior, not a guarantee that every mode is currently fully supported by the server.
+
+In particular, `PureJwt` and `SemiHybrid` have implementation limitations in the current release.
+
+### Restrict allowed modes
+
+On the authentication server:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.AllowedModes =
+    [
+        UAuthMode.PureOpaque,
+        UAuthMode.Hybrid
+    ];
+});
+```
+
+`AllowedModes` is a guardrail.
+
+It does not select a mode for every request.
+
+The effective mode is resolved from the client profile and then checked against the server's allowed-mode policy.
+
+For most applications, use the default mode resolution unless you have a specific integration requirement.
+
+## 11. Server Options for Real Applications
+
+Production configuration should reflect your application's security requirements.
+
+For example:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Login.MaxFailedAttempts = 5;
+    options.Login.LockoutDuration = TimeSpan.FromMinutes(15);
+    options.Identifiers.Behavior.AllowMultipleUsernames = true;
+    options.UserProfile.EnableMultiProfile = false;
+});
+```
+
+Server options also compose the Core-defined login, session, token, PKCE, and multi-tenant options.
+
+Configure those through `AddUltimateAuthServer()`.
+
+Do not independently configure Core options and assume the server will automatically use them.
+
+### Configuration files
+
+UltimateAuth also supports configuration through `appsettings.json`.
+
+```json
+{
+  "UltimateAuth": {
+    "Server": {
+      "Login": {
+        "MaxFailedAttempts": 5,
+        "LockoutDuration": "00:15:00"
+      }
+    }
+  }
+}
+```
+
+The server options registration binds the `UltimateAuth:Server` configuration section.
+
+Remember that effective mode defaults and mode-specific overrides are applied after the base options have been configured.
+
+For detailed configuration behavior, see Server Options and Advanced Configuration.
+
+## 12. Development and Production Differences
+
+The samples intentionally prioritize visibility and repeatability.
+
+A production application needs additional safeguards.
+
+| Area | Sample or development | Production |
+|---|---|---|
+| Persistence | InMemory or local SQLite | Durable database |
+| Seed accounts | Example users and passwords | Real provisioning |
+| Database initialization | May reset sample data | Reviewed migrations |
+| HTTPS | Local development certificate | Proper TLS termination |
+| CORS | Localhost origins | Exact trusted origins |
+| Signing keys | Development defaults | Managed, persistent keys |
+| Diagnostics | Detailed debugging | Restrict sensitive diagnostics |
+| Credential recovery | Development notifier | Real secure notification channel |
+| Identifier verification | Development bypass | Proof-based verification |
+| Secrets | Local settings | Secure configuration provider |
+
+The sample projects include development-only implementations for credential reset notifications and identifier verification.
+
+Those implementations demonstrate extension points and should not be treated as production verification systems.
+
+### Credential recovery
+
+If your application exposes credential recovery, configure a real implementation of the credential reset notifier.
+
+Recovery secrets must be delivered through an appropriate channel and must not be exposed directly through anonymous API responses.
+
+### Identifier verification
+
+If your application supports verified email addresses, phone numbers, or other identifiers, use an implementation that verifies ownership through suitable proof.
+
+Do not use a development bypass verifier in production.
+
+### Signing keys
+
+Configure persistent signing keys for authentication modes that issue JWTs.
+
+Development signing key providers are not a substitute for production key management.
+
+## 13. Deployment Checklist
+
+Before deploying, verify the following:
+
+- [ ] The selected architecture matches the actual client hosting model.
+- [ ] The authentication server uses appropriate persistent storage.
+- [ ] Database migrations have been reviewed and applied.
+- [ ] Sample users and development-only verification services are disabled.
+- [ ] Production signing keys and secrets are configured.
+- [ ] HTTPS is enforced at the appropriate boundary.
+- [ ] UAuthHub and Resource API origins are explicitly configured.
+- [ ] Authentication endpoints and application endpoints are protected appropriately.
+- [ ] Client and server endpoint URLs match the deployment.
+- [ ] Session expiration, refresh, logout, and revocation have been tested.
+- [ ] Protected resources enforce server-side authorization.
+- [ ] Authentication state and persistence survive the expected application lifecycle.
+
+## 14. Choosing Your Architecture
+
+**Start with one server and one client. Connect more clients whenever you need them.**
+
+UltimateAuth is built around two fundamental responsibilities:
+
+- **UltimateAuth Server** — Manages authentication, users, credentials, sessions, authorization, and the security lifecycle.
+- **UltimateAuth Client** — Integrates an application with the authentication system using the appropriate client profile and authentication flows.
+
+Every application needs access to an authentication server, but that server does not have to be a separate application. It can be hosted within your existing ASP.NET Core application or deployed independently as UAuthHub.
+
+### Single Application — The Simplest Setup
+
+For a traditional ASP.NET Core or Blazor Server application, UltimateAuth Server and Client can run together.
+
+```text
+┌──────────────────────────────┐
+│       Your Application       │
+│                              │
+│    UltimateAuth Client       │
+│             │                │
+│    UltimateAuth Server       │
+│             │                │
+│          Database            │
+└──────────────────────────────┘
+```
+
+This approach is ideal when you want authentication without introducing another service or deployment.
+
+### Multiple Applications — One Authentication Server
+
+As your system grows, you can connect multiple client applications to the same UltimateAuth Server.
+
+```text
+     Blazor Server       Blazor WASM
+           │                  │
+           ├────────┬─────────┤
+           │        │         │
+       Razor Pages  MAUI   Other .NET Clients
+           │        │         │
+           └────────┼─────────┘
+                    │
+                    ▼
+           UltimateAuth Server
+                 UAuthHub
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+        Users    Sessions   Authorization
+                    │
+                    ▼
+              Persistence
+```
+
+Each client can have its own application structure, hosting model, and authentication requirements while sharing the same authentication authority.
+
+For example, a business platform might use Blazor Server for administration, Blazor WASM for its customer portal, MAUI for mobile access, and Razor Pages for an internal application.
+
+**Adding another client does not require replacing the existing clients or creating another UltimateAuth Server.**
+
+The same users, credentials, security policies, and session infrastructure can serve multiple applications, subject to the authentication modes and client integrations supported by the installed version.
+
+### Distributed Applications — Separate Resource APIs
+
+When your architecture includes independently deployed backend services, Resource APIs can integrate with the same authentication authority.
+
+```text
+         Multiple Client Applications
+                     │
+             ┌───────┴───────┐
+             ▼               ▼
+          UAuthHub       Resource APIs
+             ▲               │
+             └───────────────┘
+             Authentication
+               Validation
+```
+
+Resource APIs protect application resources without becoming additional authentication servers.
+
+This lets you separate business services from authentication infrastructure while maintaining a shared security model.
+
+### One Foundation, Different Scales
+
+| Your scenario | Recommended approach |
+|---|---|
+| A simple Blazor Server application | Integrated Server + Client |
+| A traditional ASP.NET Core application | Server hosted within the application |
+| A standalone Blazor WASM application | Client + remote UAuthHub |
+| An Interactive WASM application | Host + WASM Client + remote UAuthHub |
+| Multiple web, desktop, or mobile applications | Multiple Clients + shared UAuthHub |
+| Multiple backend services | Shared UAuthHub + Resource APIs |
+
+**UltimateAuth does not require a complex architecture to get started, and it does not restrict you to a single client as your application grows.**
+
+Start with the simplest deployment that meets your needs. Add new client applications, persistent storage, or separate Resource APIs as your requirements evolve.
+
+The authentication foundation remains consistent.
+
+## Next Steps
+
+- [QuickStart](/docs/getting-started/quickstart) — Build the minimal in-memory application.
+- [Ecosystem](/docs/getting-started/ecosystem) — Explore packages and supported integrations.
+- [Server Options](/docs/configuration/server-options) — Configure server authentication and security behavior.
+- [Client Options](/docs/configuration/client-options) — Configure client profiles, endpoints, refresh, and reauthentication.
+- [Advanced Configuration](/docs/configuration/advanced-configuration) — Explore effective options, dependency injection, and extension points.

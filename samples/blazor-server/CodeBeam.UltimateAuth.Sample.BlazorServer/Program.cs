@@ -1,15 +1,17 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
-using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Users;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -66,12 +68,17 @@ builder.Services.AddUltimateAuthServer(o =>
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
 builder.Services.AddUltimateAuthSampleSeed();
+
+//builder.Services.AddHttpClient<SampleProductApiService>(client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:7213");
+//});
 
 // Customize UltimateAuth
 if (builder.Environment.IsDevelopment())

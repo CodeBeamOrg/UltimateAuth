@@ -13,7 +13,8 @@
                 <span>DOCUMENTATION</span>
             </div>
             @* <MudText Typo="Typo.h6" Class="mb-2 px-2">UAuth Docs</MudText> *@
-            <MudIconButton Icon="@Icons.Material.Filled.CloseFullscreen" Color="Color.Primary" Size="Size.Small" OnClick="@(() => _expanded = !_expanded)" />
+
+            <MudIconButton Icon="@(HasExpandedGroups ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)" Color="Color.Default" Size="Size.Small" OnClick="ToggleAllGroups" />
         </MudStack>
     }
 
@@ -40,7 +41,8 @@
             <MudNavLink Match="NavLinkMatch.All" Href="/docs" Class="ua-docs-overview">Overview</MudNavLink>
             @foreach (var group in _groups)
             {
-                <MudNavGroup Title="@FormatGroup(group.Key)" Expanded="_expanded" Class="ua-docs-group">
+                <MudNavGroup @key="group.Key" Title="@FormatGroup(group.Key)" Expanded="@IsGroupExpanded(group.Key)"
+                             ExpandedChanged="@(value => SetGroupExpanded(group.Key, value))" Class="ua-docs-group">
                     @foreach (var item in group.Value)
                     {
                         <MudNavLink Match="NavLinkMatch.Prefix" Href="@($"/docs/{item.Slug}")" Class="ua-docs-item">@item.Title</MudNavLink>
@@ -53,7 +55,6 @@
 
 @code {
     private Dictionary<string, List<DocIndexItem>>? _groups;
-    private bool _expanded = false;
     private bool _loadFailed;
 
     private PersistingComponentStateSubscription _subscription;
@@ -63,9 +64,54 @@
     [Parameter]
     public bool Inline { get; set; }
 
+    private readonly Dictionary<string, bool> _expandedGroups = new();
+
+    private string? _activeGroup;
+
+    private bool IsGroupExpanded(string group)
+    {
+        return _expandedGroups.TryGetValue(group, out var expanded)
+            ? expanded
+            : group == _activeGroup;
+    }
+
+    private void SetGroupExpanded(string group, bool expanded)
+    {
+        _expandedGroups[group] = expanded;
+        StateHasChanged();
+    }
+
+    private void UpdateActiveGroup()
+    {
+        if (_groups is null)
+            return;
+
+        var currentPath = Nav.ToBaseRelativePath(Nav.Uri)
+            .Split('?', '#')[0]
+            .Trim('/');
+
+        var activeItem = _groups
+            .SelectMany(g => g.Value)
+            .FirstOrDefault(item =>
+                currentPath.Equals(
+                    $"docs/{item.Slug.Trim('/')}",
+                    StringComparison.OrdinalIgnoreCase));
+
+        var newGroup = activeItem?.Group;
+
+        if (newGroup == _activeGroup)
+            return;
+
+        _activeGroup = newGroup;
+
+        if (newGroup is not null)
+            _expandedGroups[newGroup] = true;
+    }
+
     protected override void OnInitialized()
     {
         _subscription = PersistentState.RegisterOnPersisting(PersistSidebarAsync);
+        Nav.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -92,6 +138,7 @@
                     g => g.Key,
                     g => g.OrderBy(x => x.Order).ToList()
                 );
+            UpdateActiveGroup();
         }
         catch (HttpRequestException ex)
         {
@@ -103,6 +150,15 @@
             Console.WriteLine($"Docs sidebar request canceled: {ex.Message}");
             _loadFailed = true;
         }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(() =>
+        {
+            UpdateActiveGroup();
+            StateHasChanged();
+        });
     }
 
     private List<DocIndexItem>? _items;
@@ -131,12 +187,30 @@
         if (string.IsNullOrWhiteSpace(group))
             return "General";
 
-        return System.Globalization.CultureInfo.CurrentCulture.TextInfo
-            .ToTitleCase(group.Replace("-", " "));
+        if (group == "client")
+            return "Client SDK";
+
+        return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(group.Replace("-", " "));
+    }
+
+    private bool HasExpandedGroups => _groups is { Count: > 0 } && _groups.Keys.Any(IsGroupExpanded);
+
+    private void ToggleAllGroups()
+    {
+        if (_groups is null)
+            return;
+
+        bool expand = !HasExpandedGroups;
+
+        foreach (var group in _groups.Keys)
+        {
+            _expandedGroups[group] = expand;
+        }
     }
 
     public void Dispose()
     {
+        Nav.LocationChanged -= OnLocationChanged;
         _subscription.Dispose();
     }
 

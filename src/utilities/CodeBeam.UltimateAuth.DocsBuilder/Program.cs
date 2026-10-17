@@ -108,6 +108,8 @@ foreach (var file in markdownFiles)
 
     html = Regex.Replace(html, "<h2", "<h2 class=\"mud-scrollspy-section\"");
     html = Regex.Replace(html, "<h3", "<h3 class=\"mud-scrollspy-section\"");
+    html = WrapTables(html);
+    html = WrapCodeBlocks(html);
 
     var outputFolder = Path.GetDirectoryName(outputPath);
     if (!string.IsNullOrWhiteSpace(outputFolder))
@@ -264,6 +266,93 @@ static List<DocsHeadingItem> ExtractHeadingsFromHtml(string html)
     }
 
     return result;
+}
+
+static string WrapTables(string html)
+{
+    var doc = new HtmlDocument();
+    doc.LoadHtml(html);
+
+    var tables = doc.DocumentNode.SelectNodes("//table");
+
+    if (tables == null)
+        return html;
+
+    foreach (var table in tables.ToList())
+    {
+        var wrapper = HtmlNode.CreateNode("<div class=\"docs-table-wrapper\"></div>");
+        table?.ParentNode?.ReplaceChild(wrapper, table);
+        wrapper.AppendChild(table);
+    }
+
+    return doc.DocumentNode.InnerHtml;
+}
+
+static string WrapCodeBlocks(string html)
+{
+    var doc = new HtmlDocument();
+    doc.LoadHtml(html);
+
+    var blocks = doc.DocumentNode.SelectNodes("//pre[code]");
+
+    if (blocks == null)
+        return html;
+
+    foreach (var pre in blocks.ToList())
+    {
+        var code = pre.SelectSingleNode("./code");
+        if (code == null)
+            continue;
+
+        var classes = code.GetAttributeValue("class", "");
+
+        var language = classes.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(x => x.StartsWith("language-"))?
+            .Replace("language-", "") ?? "text";
+
+        var label = language.ToLowerInvariant() switch
+        {
+            "csharp" or "cs" => "C#",
+            "javascript" or "js" => "JavaScript",
+            "typescript" or "ts" => "TypeScript",
+            "json" => "JSON",
+            "bash" or "shell" or "sh" => "Bash",
+            "razor" => "Razor",
+            "html" => "HTML",
+            "css" => "CSS",
+            "xml" => "XML",
+            "text" => "Text",
+            _ => language.ToUpperInvariant()
+        };
+
+        var wrapper = HtmlNode.CreateNode(
+            "<div class=\"docs-code-wrapper\"></div>"
+        );
+
+        var header = HtmlNode.CreateNode(
+            "<div class=\"docs-code-header\"></div>"
+        );
+
+        var languageLabel = HtmlNode.CreateNode(
+            "<span class=\"docs-code-language\"></span>"
+        );
+
+        languageLabel.InnerHtml = HtmlEntity.Entitize(label);
+
+        var copyButton = HtmlNode.CreateNode(
+            "<button type=\"button\" class=\"docs-code-copy\" aria-label=\"Copy code\">Copy</button>"
+        );
+
+        header.AppendChild(languageLabel);
+        header.AppendChild(copyButton);
+
+        pre?.ParentNode?.ReplaceChild(wrapper, pre);
+
+        wrapper.AppendChild(header);
+        wrapper.AppendChild(pre);
+    }
+
+    return doc.DocumentNode.InnerHtml;
 }
 
 internal sealed record DocOutput(string Slug, string Title, string Html, List<DocsHeadingItem> Headings);

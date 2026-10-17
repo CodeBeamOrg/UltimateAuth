@@ -212,6 +212,22 @@ h1:focus {
     justify-content: flex-end;
 }
 
+.ua-footer {
+    position: relative;
+    z-index: calc(var(--mud-zindex-drawer) + 1);
+    background: var(--mud-palette-background) !important;
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+    .ua-footer a {
+        color: var(--mud-palette-text-secondary);
+        text-decoration: none;
+    }
+
+        .ua-footer a:hover {
+            color: var(--mud-palette-primary);
+        }
+
 /* Responsive loading line */
 .ua-nav-shimmer {
     display: flex;
@@ -430,7 +446,7 @@ h1:focus {
 
     .docs-content code {
         font-family: Consolas, monospace;
-        font-size: 0.9rem;
+        font-size: 0.9em;
     }
 
     .docs-content p code {
@@ -458,7 +474,319 @@ h1:focus {
     background: var(--mud-palette-background-gray);
 }
 
+/* Documentation content */
+.docs-content a {
+    color: var(--mud-palette-primary);
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    font-weight: 500;
+    transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+
+    .docs-content a:hover {
+        color: var(--mud-palette-primary-darken);
+        text-decoration-thickness: 2px;
+    }
+
+    .docs-content a:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 3px;
+        border-radius: 2px;
+    }
+
+
 .docs-content h2,
 .docs-content h3 {
     scroll-margin-top: 240px;
 }
+
+.docs-content h2 {
+    margin-top: 40px;
+    margin-bottom: 16px;
+    font-size: 1.65rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.docs-content h3 {
+    margin-top: 28px;
+    margin-bottom: 12px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Avoid extra spacing at the beginning */
+.docs-content > h2:first-child,
+.docs-content > h3:first-child {
+    margin-top: 0;
+}
+
+/* Documentation tables */
+
+.docs-content table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 20px 0 28px;
+    font-size: 0.925rem;
+    line-height: 1.6;
+}
+
+.docs-content th,
+.docs-content td {
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--mud-palette-divider);
+}
+
+.docs-content th {
+    font-weight: 600;
+    background: var(--mud-palette-background-gray);
+    border-top: 1px solid var(--mud-palette-divider);
+}
+
+    .docs-content th:first-child {
+        border-top-left-radius: 8px;
+    }
+
+    .docs-content th:last-child {
+        border-top-right-radius: 8px;
+    }
+
+.docs-content tbody tr:hover {
+    background: var(--mud-palette-action-default-hover);
+}
+
+.docs-content tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.docs-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 20px 0 28px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 10px;
+}
+
+    .docs-table-wrapper table {
+        width: 100%;
+        margin: 0;
+        border: 0;
+    }
+
+    .docs-table-wrapper th,
+    .docs-table-wrapper td {
+        min-width: 120px;
+    }
+
+        .docs-table-wrapper th:first-child,
+        .docs-table-wrapper td:first-child {
+            min-width: 160px;
+        }
+
+@media (max-width: 600px) {
+    .docs-content h2 {
+        margin-top: 32px;
+        margin-bottom: 14px;
+        font-size: 1.45rem;
+    }
+
+    .docs-content h3 {
+        margin-top: 24px;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+    }
+}
+
+/* Documentation code blocks */
+
+.docs-content pre[class*="language-"],
+.docs-content pre:has(> code) {
+    background: #171b24;
+    color: #e5eaf3;
+    border: 1px solid #303746;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 20px 0 28px;
+    overflow-x: auto;
+    line-height: 1.65;
+    font-size: 0.9rem;
+    tab-size: 4;
+}
+
+.docs-content pre code,
+.docs-content pre code[class*="language-"] {
+    background: transparent;
+    color: #e5eaf3;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: inherit;
+    line-height: inherit;
+    text-shadow: none;
+}
+
+/* Prism syntax highlighting */
+
+.docs-content pre .token.comment,
+.docs-content pre .token.prolog,
+.docs-content pre .token.doctype {
+    color: #8994a8;
+}
+
+.docs-content pre .token.keyword,
+.docs-content pre .token.boolean,
+.docs-content pre .token.important {
+    color: #c4a7ff;
+}
+
+.docs-content pre .token.string,
+.docs-content pre .token.char,
+.docs-content pre .token.attr-value {
+    color: #b4d989;
+}
+
+.docs-content pre .token.function,
+.docs-content pre .token.class-name {
+    color: #75c7ff;
+}
+
+.docs-content pre .token.number,
+.docs-content pre .token.constant {
+    color: #ffae83;
+}
+
+.docs-content pre .token.operator,
+.docs-content pre .token.punctuation {
+    color: #d5dce8;
+}
+
+.docs-content pre .token.property,
+.docs-content pre .token.variable,
+.docs-content pre .token.parameter {
+    color: #ffcc85;
+}
+
+.docs-content pre .token.namespace {
+    color: #cbd5e1;
+    opacity: 1;
+}
+
+/* Prevent Prism themes from adding text shadows */
+
+.docs-content pre[class*="language-"],
+.docs-content code[class*="language-"],
+.docs-content pre[class*="language-"] *,
+.docs-content code[class*="language-"] * {
+    text-shadow: none;
+}
+
+/* Code block container */
+
+.docs-content .docs-code-wrapper {
+    margin: 20px 0 28px;
+    border: 1px solid #303746;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #171b24;
+}
+
+/* Header */
+
+.docs-content .docs-code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 8px 14px;
+    background: #252b37;
+    border-bottom: 1px solid #384252;
+}
+
+.docs-content .docs-code-language {
+    color: #cdd6e3;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Copy button */
+
+.docs-content .docs-code-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid #485365;
+    border-radius: 6px;
+    color: #cdd6e3;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+    .docs-content .docs-code-copy:hover {
+        background: #384252;
+        border-color: #64748b;
+    }
+
+    .docs-content .docs-code-copy:focus-visible {
+        outline: 2px solid #75c7ff;
+        outline-offset: 2px;
+    }
+
+/* Code content */
+
+.docs-content .docs-code-wrapper pre,
+.docs-content .docs-code-wrapper pre[class*="language-"] {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: #171b24;
+    padding: 18px 20px;
+    overflow-x: auto;
+}
+
+.docs-content .docs-code-copy.copied {
+    color: #b4d989;
+    border-color: #5b8664;
+}
+
+.docs-content blockquote {
+    margin: 0.85rem 0 1.1rem;
+    padding: 0 0 0 0.85rem;
+    border: none;
+    border-left: 2px solid var(--mud-palette-lines-default);
+    border-radius: 0;
+    background: transparent;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.55;
+}
+
+    .docs-content blockquote p {
+        margin: 0;
+    }
+
+        .docs-content blockquote p + p {
+            margin-top: 0.4rem;
+        }
+
+    .docs-content blockquote strong {
+        color: inherit;
+        font-weight: 600;
+    }
+
+    .docs-content blockquote a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }

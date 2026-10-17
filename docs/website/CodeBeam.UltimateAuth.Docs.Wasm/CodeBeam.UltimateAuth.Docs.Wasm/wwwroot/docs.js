@@ -71,3 +71,39 @@
         scrollTo
     };
 })();
+
+window.highlightDocsCode = () => {
+    if (window.Prism) {
+        Prism.highlightAllUnder(
+            document.querySelector(".docs-content") ?? document
+        );
+    }
+};
+
+document.addEventListener("click", async (event) => {
+    const button = event.target.closest(".docs-code-copy");
+
+    if (!button) return;
+
+    const wrapper = button.closest(".docs-code-wrapper");
+    const code = wrapper?.querySelector("pre code");
+
+    if (!code) return;
+
+    const originalText = button.textContent;
+
+    try {
+        await navigator.clipboard.writeText(code.textContent);
+
+        button.textContent = "Copied!";
+        button.classList.add("copied");
+
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove("copied");
+        }, 2000);
+    }
+    catch (error) {
+        console.error("Failed to copy code:", error);
+    }
+});

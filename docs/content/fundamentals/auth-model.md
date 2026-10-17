@@ -4,186 +4,405 @@ order: 2
 group: fundamentals
 ---
 
+# Authentication Model
 
-# 🧠 Authentication Model
+UltimateAuth is built around a fundamental principle: **authentication is a trusted process for establishing identity, not simply the presence of a token, cookie, or session identifier.**
 
-UltimateAuth is built around a simple but powerful idea:
+An authentication credential provides evidence of identity. The server must evaluate that evidence according to the active authentication mode before treating a request as authenticated.
 
-> Authentication is not just a token.  
-> It is a **structured, server-controlled session model**.
+UltimateAuth provides a common authentication architecture that supports both server-side sessions and cryptographically verifiable tokens.
 
-At the core of this model are three concepts:
+The authentication mode determines how identity is established, what state must be validated, and which lifecycle guarantees apply.
 
-- **Root**
-- **Chain**
-- **Session**
+## Authentication and identity
 
-Together, they form what we call:
+Authentication answers a specific question:
 
-👉 **Authentication Lineage**
+**Who is making this request, and what evidence establishes that identity?**
 
-<br>
+An authentication operation may involve credentials such as passwords, existing sessions, access tokens, refresh tokens, or other supported authentication proofs.
 
-## 🔑 The Big Picture
+These credentials have different purposes.
 
-Instead of treating authentication as a single token or cookie, UltimateAuth models it as a hierarchy:
+A password can establish a new authenticated context. An access token can represent an already established identity. A refresh token can continue an existing authentication context without repeating the original login.
 
+None of these credentials should be trusted merely because a client presents them.
+
+UltimateAuth evaluates authentication evidence through framework-controlled services and produces a trusted identity context only after the applicable validation succeeds.
+
+Authorization is a separate responsibility. It determines what an authenticated actor is allowed to do.
+
+## Server authority
+
+UltimateAuth is server-authoritative.
+
+This means the server defines the authentication rules and determines whether the presented evidence satisfies them.
+
+Server authority does not require every request to access a server-side session store.
+
+For example:
+
+- In PureOpaque, the server validates the session represented by the client's opaque session credential.
+- In Hybrid, the server resolves an opaque access token and validates its associated session.
+- In SemiHybrid, normal requests authenticate through JWT validation, while server-side sessions govern authentication continuation and lifecycle operations.
+- In PureJwt, authentication can be established through JWT validation without requiring session persistence or lookup.
+
+In all cases, the effective authentication mode, validation requirements, and security policies remain under trusted server control.
+
+The client cannot establish its own authenticated identity merely by supplying claims, identifiers, or an arbitrary authentication mode.
+
+## Authentication state
+
+Authentication state can be represented in different ways.
+
+**Server-side authentication state** is maintained by the authentication system and evaluated when required. It enables centralized session management and immediate session-based revocation.
+
+**Token-based authentication state** can be represented by cryptographically verifiable credentials. A JWT can carry sufficient information to establish identity without a session lookup, provided its signature and applicable validation rules are satisfied.
+
+**Combined authentication state** uses both approaches for different purposes. For example, an application can validate JWTs independently while retaining server-side state for refresh and session management.
+
+These are different authentication strategies, not separate authentication architectures.
+
+UltimateAuth preserves common trust boundaries while allowing the effective mode to determine how authentication state is represented and evaluated.
+
+## Authentication lineage
+
+For session-backed authentication, UltimateAuth models authentication state through three related concepts:
+
+- **Root:** User-level authentication authority within a tenant.
+- **Chain:** A grouping of related authentication sessions, typically associated with a device or client context.
+- **Session:** An individual authenticated session.
+
+Together, these form the authentication lineage.
+
+```text
+Root
+  |
+  +-- Chain A
+  |     |
+  |     +-- Session 1
+  |     |
+  |     +-- Session 2
+  |
+  +-- Chain B
+        |
+        +-- Session 3
 ```
-Root (user authority)
-├── Chain (device context)
-│ ├── Session (login instance)
-│ ├── Session
-│
-├── Chain
-│ ├── Session (login instance)
+
+The lineage provides a structured way to manage authentication state at different scopes.
+
+It allows the system to distinguish between terminating one session, terminating sessions associated with a particular chain, and applying a broader user-level security change.
+
+The lineage is central to session-backed authentication. It must not be interpreted as a mandatory persistence requirement for every authentication mode.
+
+In particular, PureJwt does not require Root, Chain, or Session records to authenticate requests.
+
+## Root: user-level authentication authority
+
+Root represents the user-level authority within a tenant's session-backed authentication lineage.
+
+It provides a common security boundary for related chains and sessions.
+
+Depending on the configured policies and supported operations, Root can participate in:
+
+- Tracking user-level authentication security state.
+- Coordinating security changes affecting multiple sessions.
+- Applying broader session invalidation.
+- Maintaining a security version or epoch used by session-backed validation.
+
+For example, a security-sensitive credential change may trigger a policy that invalidates existing sessions.
+
+Rather than treating each session as unrelated, the lineage provides a common authority through which the affected authentication state can be managed.
+
+### Security versions
+
+A security version, sometimes called a security epoch, can be used to determine whether an existing session still belongs to the current authentication security state.
+
+A session may retain the version associated with its creation. When the relevant authority changes, validation can reject sessions associated with an outdated version.
+
+This mechanism is meaningful when authentication validation consults the relevant server-side state.
+
+It does not automatically invalidate a previously issued JWT that is validated without a server-side lookup.
+
+The exact invalidation behavior depends on the authentication mode and configured security policies.
+
+## Chain: related session context
+
+Chain groups related authentication sessions under a common lifecycle context.
+
+A chain commonly represents a device or client context, but its purpose is broader than storing a device identifier.
+
+It provides a boundary for managing related authentication activity.
+
+A chain can support:
+
+- Grouping related sessions.
+- Device-oriented session management.
+- Chain-level expiration and invalidation.
+- Coordinating refresh-token lifecycle where applicable.
+- Applying security policies to related authentication sessions.
+
+For example, an application may allow a user to terminate authentication associated with a particular device without terminating every session belonging to the user.
+
+A chain provides a suitable scope for that operation.
+
+A chain is not itself proof of authentication. Its validity and relationship to the relevant session must be evaluated according to the active mode.
+
+## Session: an authenticated instance
+
+Session represents an individual authenticated instance maintained by the server.
+
+It can contain or reference the information required to manage that instance, such as:
+
+- The authenticated user and tenant.
+- Its relationship to a chain.
+- Creation and expiration information.
+- Revocation or lifecycle status.
+- Applicable security-version information.
+- Session metadata required by supported policies.
+
+The role of Session differs by authentication mode.
+
+### Session-authoritative authentication
+
+In PureOpaque and Hybrid, session validity is part of the authentication decision.
+
+A request cannot be treated as authenticated merely because it presents a structurally valid credential. The associated session must also satisfy the applicable validation requirements.
+
+In these modes, session invalidation affects subsequent authentication evaluations.
+
+### Session-managed authentication
+
+In SemiHybrid, sessions support lifecycle operations such as refresh, logout, device management, and session revocation.
+
+However, normal JWT authentication does not require session validation.
+
+Consequently, revoking a session can prevent future refresh operations without automatically invalidating an already issued JWT.
+
+### Session-independent authentication
+
+PureJwt does not require a Session record.
+
+Authentication relies on cryptographic token validation and applicable claims and token-validation policies.
+
+There is no mandatory session authority or session lookup in its authentication pipeline.
+
+## Establishing a new authentication context
+
+Authentication begins when the system receives evidence sufficient to establish a new authenticated identity.
+
+A typical login operation follows these conceptual steps:
+
+1. Resolve the effective authentication context and security policies.
+2. Validate the presented authentication proof.
+3. Establish the authenticated identity.
+4. Create the authentication state required by the selected mode.
+5. Issue the appropriate authentication credentials.
+6. Deliver those credentials through the configured transport mechanism.
+
+The fourth and fifth steps are mode-dependent.
+
+For session-backed modes, establishing authentication can involve creating or resolving the relevant Root, Chain, and Session state.
+
+For PureJwt, issuing a JWT must not require creating a server-side session.
+
+The shared authentication pipeline does not imply that every mode performs identical persistence operations.
+
+## Authenticating subsequent requests
+
+After login, a client presents the credential appropriate for its authentication mode.
+
+The request pipeline validates that credential and establishes the trusted authentication state.
+
+```text
+Incoming Request
+       |
+       v
+Effective Authentication Context
+       |
+       v
+Credential Resolution
+       |
+       v
+Mode-Specific Authentication Validation
+       |
+       +-- PureOpaque: Session validation
+       |
+       +-- Hybrid: Opaque token + session validation
+       |
+       +-- SemiHybrid: JWT validation
+       |
+       +-- PureJwt: JWT validation
+       |
+       v
+Authenticated Identity
+       |
+       v
+AccessContext
+       |
+       v
+Authorization
+       |
+       v
+Protected Operation
 ```
 
-Each level has a distinct responsibility.
+The authentication mode determines which validation steps are required.
 
-<br>
+The resulting identity must satisfy the same framework-level trust requirements regardless of the credential format.
 
-## 🧩 Root — The Authority
+An application must not construct a trusted identity directly from unvalidated client input.
 
-**Root** represents the authentication authority of a user within a tenant.
+## Authentication context and authorization context
 
-- There is **only one active Root per user per tenant**
-- It defines the **global security state**
-- It controls all chains and sessions
+UltimateAuth distinguishes the context used to execute an authentication flow from the context used to evaluate authorization.
 
-### What Root Does
+### AuthFlowContext
 
-- Tracks security version (security epoch)
-- Invalidates all sessions when needed
-- Acts as the **source of truth**
+`AuthFlowContext` represents the effective authentication context for an operation.
 
-### Example
+It includes the relevant mode, client characteristics, tenant context, and other applicable runtime information.
 
-If a user changes their password:
+The framework establishes this context through controlled boundaries.
 
-👉 Root is updated  
-👉 All existing sessions can become invalid  
+Once established, the effective context remains stable throughout the operation.
 
-<br>
+Application code and individual domain services must not independently replace or reconstruct it to change the security rules.
 
-## 🔗 Chain — The Device Context
+### AccessContext
 
-**Chain** represents a device or client context.
+`AccessContext` represents the trusted actor and authorization context after authentication has been evaluated.
 
-- Each device typically has its own chain
-- Multiple logins from the same device belong to the same chain
+It provides the identity and contextual information needed for authorization and policy decisions.
 
-👉 Think of Chain as:
+`AccessContext` does not authenticate credentials.
 
-> “Where is the user logged in from?”
+Authentication must be resolved before a trusted authorization context is established.
 
-### What Chain Does
+This separation allows the authentication mechanism to vary without requiring a different authorization architecture for each mode.
 
-- Groups sessions by device
-- Enables **device-level control**
-- Allows actions like:
+## Authentication lifecycle
 
-  - Logout from one device  
-  - Revoke a specific device  
+Authentication does not end when credentials are issued.
 
-<br>
+Depending on the mode, an authenticated context may be continued, renewed, expired, or revoked.
 
-## 🧾 Session — The Authentication Instance
+UltimateAuth distinguishes several lifecycle operations.
 
-**Session** is the actual authentication instance.
+### Authentication
 
-- Created when the user logs in
-- Represents a single authenticated state
-- Carries a snapshot of the Root security version
+Establishes a new authenticated context after the required proof has been validated.
 
-👉 This is what gets validated on each request.
+### Refresh
 
-### What Session Does
+Continues an existing authentication context when its continuation requirements are satisfied.
 
-- Proves the user is authenticated
-- Can be refreshed, revoked, or expired
-- Is tied to a specific chain
+Refresh is mode-dependent.
 
-<br>
+PureOpaque uses session continuation and touch semantics rather than refresh-token rotation.
 
-## 🔄 How They Work Together
+Hybrid and SemiHybrid use refresh-token rotation together with the applicable session validation requirements.
 
-When a user logs in:
+PureJwt may support session-independent token renewal when refresh tokens are enabled.
 
-1. Root is resolved (or created)
-2. A Chain is identified (device context)
-3. A new Session is created
+### Logout
 
-`Login → Root → Chain → Session`
+Ends or discards the relevant authentication context according to the mode.
 
+In session-authoritative modes, server-side session revocation can prevent subsequent authentication.
 
-On each request:
+In JWT-based modes, removing credentials from the client does not by itself invalidate already issued JWTs.
 
-1. Session is validated  
-2. Chain context is checked  
-3. Root security version is verified  
+### Revocation
 
-👉 If any level is invalid → authentication fails
+Invalidates authentication state or credentials according to the guarantees supported by the selected mode.
 
-<br>
+Session revocation and JWT revocation are not equivalent operations.
 
-## 🛡 Why This Model Matters
+A server-side session can be revoked immediately, but a JWT validated without session lookup can remain valid until expiration.
 
-Traditional systems rely on:
+Applications requiring stronger access-token invalidation guarantees must select a mode and validation strategy that explicitly provides them.
 
-- Cookies  
-- JWT tokens  
-- Stateless validation  
+## Authentication security boundaries
 
-These approaches have limitations:
+UltimateAuth's authentication architecture relies on several principles that apply across modes.
 
-- No real session control  
-- Weak revocation  
-- No device awareness  
+### Credentials are evidence, not authority
 
----
+The presence of a token, cookie, or session identifier does not automatically establish identity.
 
-UltimateAuth solves this by:
+The required validation must succeed first.
 
-### ✔ Server-Controlled Authentication
+### Authentication modes have explicit guarantees
 
-- Sessions are always validated server-side  
-- No blind trust in tokens  
+A mode must not silently weaken its validation or revocation guarantees because of client runtime, transport selection, or performance optimization.
 
-### ✔ Instant Revocation
+### Session authority is mode-dependent
 
-- Revoke a session → immediate effect  
-- Revoke a chain → device logged out  
-- Revoke root → disable user (global logout)
+Server-side sessions are authoritative where the mode requires them.
 
-### ✔ Device Awareness
+Stateless authentication does not become session-backed merely because other parts of the framework support session management.
 
-- Each device has its own chain  
-- Sessions are bound to context  
+### Client context is not inherently trusted
 
-### ✔ Strong Security Model
+Device identifiers, tenant identifiers, and client-provided runtime information must be handled according to the applicable trust boundaries.
 
-- Session carries Root security version
-- Old sessions automatically become invalid
+They must not allow a client to bypass authentication requirements.
 
-<br>
+### Authentication and authorization remain separate
 
-## 🧠 Mental Model
+A valid identity does not automatically imply permission to access a resource.
 
-If you remember only one thing, remember this:
+Authorization policies must still evaluate the authenticated actor's access rights.
 
-👉 **Root = authority**  
-👉 **Chain = device**  
-👉 **Session = login**
+### Credential protection remains essential
 
-## 📌 Key Takeaways
+Opaque session credentials, opaque access tokens, JWTs, and refresh tokens are all sensitive.
 
-- Authentication is not just a token  
-- Sessions are first-class citizens  
-- The server always remains in control  
-- Device and security context are built-in
+Their safe use depends on appropriate transport, storage, expiration, and validation policies.
 
-## ➡️ Next Step
+## How the model relates to authentication modes
 
-Now that you understand the core model:
+The authentication model establishes the shared principles and boundaries.
 
-👉 Continue to **Flow-Based Authentication**
+Authentication modes determine how those principles are executed.
+
+| Mode | Authentication authority | Role of session state |
+|---|---|---|
+| PureOpaque | Server-side session | Required for authentication and lifecycle |
+| Hybrid | Server-side session, accessed through an opaque token | Required for authentication and lifecycle |
+| SemiHybrid | Cryptographically validated JWT for normal requests | Required for session lifecycle, not default request validation |
+| PureJwt | Cryptographically validated JWT | Not required |
+
+This distinction is essential to understanding UltimateAuth.
+
+Root, Chain, and Session provide structured lifecycle control where server-side authentication state is required.
+
+They are not universal prerequisites for authenticating a request.
+
+Likewise, JWT authentication does not eliminate server authority. The server still defines which tokens are acceptable and which validation rules must be enforced.
+
+## Summary
+
+UltimateAuth defines authentication as a controlled process that establishes trusted identity from validated evidence.
+
+Its architecture separates:
+
+- Authentication proof and credential validation.
+- Authentication state and lifecycle management.
+- Authentication context and authorization context.
+- Shared security boundaries and mode-specific execution strategies.
+
+Root, Chain, and Session form the authentication lineage used by session-backed modes.
+
+PureOpaque and Hybrid rely on that lineage as part of their authentication authority.
+
+SemiHybrid retains session lifecycle management while allowing JWT authentication without request-time session lookup.
+
+PureJwt does not require session persistence or validation.
+
+These distinctions allow UltimateAuth to support different authentication strategies without changing the fundamental trust and authorization model.
+
+## Next step
+
+Continue to **Flow-Based Authentication** to understand how UltimateAuth establishes and executes authentication operations through its controlled flow pipeline.

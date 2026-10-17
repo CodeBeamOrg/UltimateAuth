@@ -1,7 +1,7 @@
-using CodeBeam.UAuth.Sample.IntWasm.Client.Infrastructure;
-using CodeBeam.UAuth.Sample.IntWasm.Client.ResourceApi;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
+using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -13,13 +13,12 @@ builder.Services.AddMudServices(o => {
 });
 builder.Services.AddMudExtensions();
 builder.Services.AddScoped<DarkModeManager>();
-builder.Services.AddScoped<ProductApiService>();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-builder.Services.AddHttpClient("resourceApi", client =>
+builder.Services.AddHttpClient<SampleProductApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:6122");
+    client.BaseAddress = new Uri("https://localhost:6122"); // EFCore Resource API URL
 });
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
