@@ -4,169 +4,428 @@ order: 1
 group: getting-started
 ---
 
-# 🚀 Getting Started
+# Welcome to UltimateAuth
 
-Welcome to **UltimateAuth**, a unified authentication and authorization framework for modern .NET applications.
+**Modern authentication and authorization for .NET — built around a unified security lifecycle.**
 
-Authentication should not become a different system every time your application gains a new client, tenant, device, or security requirement. UltimateAuth brings these concerns into **one coherent model**—without pretending that every application needs the same authentication strategy.
+Authentication starts with a login. But it doesn't end there.
 
-**One framework. Multiple authentication models. A consistent security lifecycle.**
+As applications grow, they introduce new challenges: multiple clients, refresh tokens, device sessions, credential recovery, tenant isolation, permissions, and revocation. What begins as a simple login system can gradually become a collection of disconnected security mechanisms.
 
-## What is UltimateAuth?
+UltimateAuth takes a different approach.
 
-UltimateAuth is a modular, flow-driven framework for building and managing authentication in .NET. It connects concepts that are often implemented separately:
+It brings authentication, authorization, users, credentials, sessions, and client integration into **one coherent framework**, with a shared model for how security decisions are made and how authentication state changes over time.
 
-- **Sessions, cookies and tokens** — stateful session management alongside access and refresh token workflows.
-- **Authentication and authorization** — identity establishment and access decisions within a consistent architecture.
-- **Users and credentials** — identity, identifiers, credentials, and their security state.
-- **Devices and session continuity** — device-aware session chains, refresh, logout, and revocation.
-- **Clients and delivery mechanisms** — browser, API, Blazor, and mobile scenarios with client-aware behavior.
-- **Tenants and isolation** — tenant-aware request context and authentication boundaries.
-- **Security policies and execution flows** — explicit decisions, validation, and controlled state transitions.
+**One framework. Multiple client environments. A consistent security lifecycle.**
 
-The goal is not to hide these concepts. It is to make them **work together predictably**.
+[Explore the Source](https://github.com/CodeBeamOrg/UltimateAuth)
 
-## Unified Does Not Mean One-Size-Fits-All
+## Why UltimateAuth?
 
-A server-rendered web application, a browser-based SPA, a mobile app, and a backend API do not share the same trust boundaries or credential transport requirements.
+Most applications don't struggle with generating an access token.
 
-UltimateAuth provides a common foundation while allowing behavior to be shaped by the **effective authentication mode**, **client profile**, **tenant**, and **request context**.
+They struggle with everything that comes afterward.
 
-| Concern | What UltimateAuth brings together | Why it matters |
-| --- | --- | --- |
-| Authentication models | Session-oriented and token-oriented workflows | Different clients can participate in one security architecture |
-| Session lifecycle | Root → Chain → Session | Manage authentication at identity, device, and session scope |
-| Client environments | ASP.NET Core, Blazor, APIs, and .NET mobile clients | Avoid rebuilding the core authentication model for each frontend |
-| Multi-tenancy | Tenant resolution and tenant-bound context | Keep authentication operations within the intended tenant boundary |
-| Credentials and identities | User identifiers, credential providers, and security state | Separate *who the user is* from *how they prove it* |
-| Security enforcement | Context, validation, authority, and orchestration | Make decisions explicit rather than scattering checks across endpoints |
-| Credential delivery | Mode- and client-aware response policies | Handle cookies, tokens, and redirects according to the scenario |
-| Session termination | Logout, targeted revocation, and device management | Respond proportionately to ordinary sign-out and security incidents |
+Consider an application that starts with a single web frontend. Eventually, it adds a mobile application, an administration panel, multiple organizations, and external APIs.
 
-**Unified** is therefore about a shared security model—not forcing all applications to use identical cookies, tokens, or endpoints.
+Suddenly, authentication raises questions that a basic login implementation doesn't answer:
 
-## Authentication Is More Than Issuing a Token
+- How should browser sessions and API tokens coexist?
+- Can users see and revoke sessions associated with their devices?
+- What happens to existing sessions after a password reset?
+- How do we prevent refresh token replay?
+- How do we enforce tenant boundaries consistently?
+- How do we keep authorization decisions separate from authentication?
+- Can multiple application types use the same backend security model?
 
-In many applications, authentication is described as a short sequence: validate credentials, generate a token, return it to the client.
+These concerns are related. Implementing each independently makes the system harder to maintain, audit, and extend.
 
-That is only part of the story.
+**UltimateAuth is designed to manage these concerns as parts of the same security lifecycle.**
 
-A production authentication system must also answer questions such as:
+## A Different Way to Think About Authentication
 
-- Which tenant does this request belong to?
-- Which user and credential are being evaluated?
-- Is an existing session still valid?
-- Is the request coming from a known device?
-- Can access be renewed, restricted, or terminated?
-- What should happen when a credential changes or a device is no longer trusted?
+Traditional authentication integration is often organized around credentials and their immediate results:
 
-UltimateAuth treats authentication as a **controlled lifecycle**. Login, refresh, and logout are operations within that lifecycle—not unrelated endpoints that happen to exchange tokens.
+```text
+Credentials
+    ↓
+Validate
+    ↓
+Issue Token
+    ↓
+Authenticated
+```
 
-## Sessions Are First-Class
+That sequence is necessary, but incomplete.
 
-Where session-backed modes apply, UltimateAuth models authentication through a hierarchy:
+UltimateAuth approaches authentication as a longer-running lifecycle:
+
+```text
+                    UltimateAuth
+                         │
+                         ▼
+                Request Context
+            Client · Tenant · Device
+                         │
+                         ▼
+                 Authentication
+                Validation · Decisions
+                         │
+                         ▼
+                 Security State
+              User · Root · Chain · Session
+                         │
+              ┌──────────┼──────────┐
+              ▼          ▼          ▼
+           Refresh     Logout     Revoke
+              │          │          │
+              └──────────┼──────────┘
+                         ▼
+                 Controlled State
+                    Transitions
+```
+
+This model makes it possible to reason about authentication beyond a single request.
+
+Login establishes authentication. Refresh evaluates whether it may continue. Logout and revocation terminate authentication at the appropriate scope. Credential changes and security policies can affect existing sessions.
+
+The result is a framework where these operations share a consistent security vocabulary.
+
+## What Makes UltimateAuth Different?
+
+<escape>| Capability | UltimateAuth's approach |
+|---|---|
+| **Unified architecture** | Authentication, sessions, users, credentials, and authorization share a common foundation |
+| **Client-aware behavior** | Authentication can adapt to the client profile and effective server configuration |
+| **Session lifecycle** | Root, chain, and session concepts support different scopes of session management |
+| **Flow-driven execution** | Authentication operations use explicit context, validation, decisions, and state transitions |
+| **Credential lifecycle** | Credential changes, recovery, and session invalidation are related security operations |
+| **Tenant awareness** | Tenant context participates in authentication and access decisions |
+| **Modularity** | Core, Server, Client, and domain packages separate responsibilities |
+| **Self-hosting** | Applications can operate their own authentication infrastructure |
+
+</escape>
+
+UltimateAuth does not claim that tokens, sessions, PKCE, or policy-based authorization are new concepts.
+
+Its value is in **bringing established security concepts together under a consistent architecture**, rather than requiring every application to connect them independently.
+
+## One Security Model Across Different Clients
+
+A browser application, a server-rendered application, and a native client have different security constraints.
+
+They should not necessarily use identical credential storage, transport, or authentication flows.
+
+UltimateAuth separates the common authentication model from client-specific integration.
+
+<escape>```text
+            Your .NET Applications
+
+    Blazor Server      Blazor WebAssembly
+          │                    │
+          └─────────┬──────────┘
+                    │
+             UltimateAuth Client
+                    │
+                    ▼
+             UltimateAuth Server
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+      Users      Sessions   Authorization
+        │           │           │
+        └───────────┼───────────┘
+                    ▼
+             Shared Security
+                 Lifecycle
+```</escape>
+
+The architecture also provides foundations for .NET MAUI, traditional ASP.NET Core applications, and API-oriented integrations.
+
+**Support depends on the client adapter and authentication modes available in the installed version.** A supported architectural profile should not be confused with a fully released platform adapter.
+
+The goal is to share authentication concepts without pretending that all clients have the same trust boundaries.
+
+## Sessions Are More Than Tokens
+
+One of UltimateAuth's central concepts is its stateful session hierarchy.
 
 ```text
 User
- └── Root       Global session-security boundary
-      └── Chain Device-associated lifecycle
-           └── Session  Individual authentication instance
+ └── Root
+      ├── Chain — Browser A
+      │    ├── Session
+      │    └── Session
+      │
+      └── Chain — Device B
+           ├── Session
+           └── Session
 ```
 
-This structure gives the system a vocabulary for different security actions. A session can be invalidated, a device-associated chain can be terminated, and a broader security boundary can be revoked.
+Each level represents a different security scope.
 
-**A token is not the entire authentication model.** It is a credential used within that model, subject to the applicable mode and validation rules.
+**Root** represents a broader authentication security boundary.
 
-Not every authentication mode has identical persistence or session behavior. The session hierarchy describes the stateful lifecycle where that model is in use.
+**Chain** represents the continuity of authentication associated with a device or client context.
 
-## Flow-Driven by Design
+**Session** represents an individual authentication instance within that chain.
 
-UltimateAuth organizes authentication operations around explicit flows. A flow brings together the request context, operation-specific validation, security decisions, permitted state transitions, and response behavior.
+This distinction makes several operations easier to express:
+
+- End the current session.
+- Revoke a particular device-associated chain.
+- Revoke other active chains while preserving the current one.
+- Revoke a broader authentication scope after a security-sensitive event.
+
+A token is a credential used to access the system. It is not necessarily the complete record of the user's authentication lifecycle.
+
+The hierarchy applies to session-backed authentication modes; different modes can have different persistence and validation characteristics.
+
+[Explore Session Management](https://github.com/CodeBeamOrg/UltimateAuth)
+
+## Authentication Flows, Not Disconnected Endpoints
+
+UltimateAuth organizes security-sensitive operations around explicit flows.
+
+A flow can combine:
+
+1. Request and tenant context.
+2. User, credential, and session resolution.
+3. Input and security validation.
+4. Authorization and authority decisions.
+5. Controlled state transitions.
+6. Client-appropriate results and responses.
 
 ```text
 Request
-  → Tenant, session, and user resolution
-  → AuthFlowContext
-  → Flow-specific validation
-  → Security decision and orchestration
-  → State transition (when permitted)
-  → Result and client-appropriate response
+   ↓
+AuthFlowContext
+   ↓
+Validation
+   ↓
+Security Decision
+   ↓
+Execution
+   ↓
+State Transition
+   ↓
+Response
 ```
 
-This is not a claim that pipelines or orchestration are new inventions. The value is in applying them **consistently across authentication operations**, so the rules are easier to reason about, test, and extend.
+This approach provides a consistent place for security rules to be evaluated.
 
-For the implementation model, see [Auth Flows](../auth-flows/auth-flows.md).
+It also makes individual operations easier to test and inspect because the important decisions are part of an explicit execution model.
 
-## Tenant-Aware from the Request Boundary
+**The purpose is not abstraction for its own sake. It is to make authentication behavior understandable and predictable.**
 
-Multi-tenancy is not simply a `TenantId` added to a user table. Authentication must understand *which tenant's security context* a request is operating within.
+## Security Continues After Login
 
-UltimateAuth resolves tenant context as part of the ASP.NET Core request pipeline and carries it into the authentication flow. The flow context then combines that boundary with client settings, device information, and applicable session validation.
+A secure authentication system must account for events that happen after a user signs in.
 
-This helps teams design multi-tenant applications without treating tenant isolation as an afterthought. **Tenant resolution and configuration still need to be correctly integrated by the host application.**
+| Event | UltimateAuth concept |
+|---|---|
+| A user signs in | Login flow |
+| A session needs renewal | Refresh flow |
+| A user signs out | Logout flow |
+| A device should lose access | Chain revocation |
+| A credential is changed | Credential lifecycle and session policy |
+| An account is recovered | Recovery proof and session invalidation |
+| A user requests a protected resource | Authorization decision |
+| A request targets a tenant | Tenant-aware security context |
 
-## Built for Different Clients, Not Just Different Screens
+This is why UltimateAuth treats session management, credential management, and authorization as connected parts of the system.
 
-UltimateAuth is designed for applications that may span several environments:
+For example, a password reset is not simply a database update. It can also affect the validity of existing authentication sessions according to the configured credential session policy.
 
-- **ASP.NET Core web applications** with server-managed authentication concerns.
-- **Blazor Server and Blazor WebAssembly** with different hosting and transport constraints.
-- **.NET MAUI** and other native clients with device-oriented authentication needs.
-- **HTTP APIs** serving browsers, applications, and other services.
+Similarly, logout and revocation are not interchangeable operations. They have different scopes and consequences.
 
-Client profiles and effective server options help adapt authentication behavior to the requesting client. Response policies determine how applicable credentials are delivered and whether a redirect belongs in the interaction.
+## Authentication and Authorization Together
 
-The result is a common backend security vocabulary across multiple application types—not a promise that every client uses the same transport or requires zero configuration.
+Knowing who a user is does not determine what that user is allowed to do.
 
-## Security Is a Lifecycle, Too
+UltimateAuth separates authentication from authorization while keeping them within the same overall security architecture.
 
-Security is not finished when login succeeds. UltimateAuth's architecture accounts for what happens *after* access is established:
+Authentication establishes identity and applicable security context.
 
-| Situation | Security question | UltimateAuth concept |
-| --- | --- | --- |
-| A user signs in | Should this attempt establish authentication? | Login flow and security decisions |
-| A session needs renewal | Can continuity be preserved safely? | Refresh flow and session lifecycle |
-| A user signs out | Which authentication scope should end? | Logout |
-| A device is lost | How can that device's access be terminated? | Chain-level management and revocation |
-| A credential is compromised | How should existing authentication be affected? | Credential security state and revocation policies |
-| An administrator manages access | Is the operation permitted for this actor and target? | Authorization and access context |
+Authorization evaluates whether an actor may perform an action on a resource.
 
-A key distinction is **logout versus revoke**. Ordinary logout ends authentication according to its scope; revocation is an irreversible invalidation of the targeted security state. Signing in again may establish *new* authentication, but it does not restore what was revoked.
+For example:
 
-Explore the details in [Login Flow](../auth-flows/login-flow.md), [Refresh Flow](../auth-flows/refresh-flow.md), and [Logout Flow](../auth-flows/logout-flow.md).
+```text
+Actor:    Authenticated user
+Action:   update
+Resource: products
+Result:   Allowed or Denied
+```
 
-## Modular and Extensible
+Roles and permissions can be managed through the authorization domain, while the server remains responsible for enforcing access decisions.
 
-UltimateAuth is intended to serve both straightforward applications and systems with more demanding security requirements. Its architecture separates responsibilities such as core contracts, server execution, client integration, user management, credentials, and authorization.
+This separation helps applications avoid spreading authorization logic across UI components, controllers, and unrelated service methods.
 
-This separation makes it possible to understand and evolve individual concerns without reducing authentication to a collection of disconnected custom handlers.
+Client-side authorization checks can improve the interface, but **server-side enforcement remains the security boundary**.
 
-**Extensible does not mean every possible flow is already implemented.** Available modes, integrations, and capabilities should be evaluated against the version you are using; the documentation for each feature describes its current behavior and limitations.
+## Tenant-Aware by Design
 
-## When Should You Choose UltimateAuth?
+Multi-tenant authentication involves more than adding a tenant identifier to a user record.
 
-UltimateAuth is especially relevant when:
+A request must be interpreted within the correct tenant context, and security operations must respect that boundary.
 
-- You need quickly-installed, consistent, secure and easy-to-use auth in your .NET application.
-- Your .NET application has—or will have—**more than one client type**.
-- You need **device-aware session management**, not only token generation.
-- You are designing a **multi-tenant** system with clear authentication boundaries.
-- You want **authentication and authorization** to follow a consistent architectural model.
-- You need control over **refresh, logout, revocation, and credential lifecycle**.
-- You value a **modular, self-hosted, open-source** foundation you can understand and extend.
+UltimateAuth provides tenant resolution and propagation mechanisms that participate in its request and flow infrastructure.
 
-Also for a small application with minimal authentication needs, UltimateAuth brings the simplest possible solution.
+This allows applications to build tenant-aware authentication and authorization behavior without treating tenancy as an unrelated afterthought.
 
-## Open Source First
+Tenant context must still be configured correctly, and a client-supplied tenant identifier is never sufficient proof of authorization.
 
-UltimateAuth is built with a simple commitment: **self-hosted authentication should remain accessible**. The framework is open source, and self-hosting is intended to remain free. A hosted offering may provide an operational alternative, not a separate tier of authentication features.
+## Modular Without Becoming Fragmented
 
-The ambition is to build a framework that developers can adopt, inspect, contribute to, and trust—not merely a service they must depend on.
+UltimateAuth is divided into packages with distinct responsibilities.
 
-## Where to Go Next
+| Package or domain | Responsibility |
+|---|---|
+| **Core** | Shared contracts, domain concepts, and authentication foundations |
+| **Server** | Authentication execution, runtime configuration, and server integration |
+| **Client** | Platform-independent authentication and domain APIs |
+| **Client.Blazor** | Blazor-specific transport, storage, and authentication state integration |
+| **Users** | User lifecycle, profiles, and identifiers |
+| **Credentials** | Credential operations, changes, and recovery |
+| **Authorization** | Roles, permissions, and access checks |
+| **Policies** | Application access policy integration |
 
-You do not need to understand every internal component before getting started.
+This structure supports both a straightforward integration experience and deeper customization where the application requires it.
 
-**Continue to Quick Start** to set up your first UltimateAuth application. Then explore [Auth Flows](../auth-flows/auth-flows.md) to understand how the pieces work together.
+Developers can begin with the public registration and client APIs without first learning every internal service.
 
-**The idea to remember:** UltimateAuth unifies authentication concepts without erasing their differences. One framework, a consistent lifecycle, and room for the security model your application actually needs.
+When necessary, they can explore the underlying flows, policies, stores, and extension points.
+
+## Designed for Practical .NET Development
+
+UltimateAuth is intended to fit naturally into .NET applications.
+
+A server application begins by registering UltimateAuth and configuring the security behavior it needs:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Login.MaxFailedAttempts = 5;
+    options.Session.Lifetime = TimeSpan.FromDays(7);
+    options.CredentialSessionPolicy.OnRecovery = CredentialSessionBehavior.RevokeAll;
+});
+```
+
+A Blazor application registers the client adapter:
+
+```csharp
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.AutoDetectClientProfile = true;
+    options.Endpoints.BasePath = "/auth";
+});
+```
+
+These examples illustrate the configuration entry points rather than a complete application setup.
+
+The server and client have different responsibilities, and a complete deployment also needs the appropriate hosting, persistence, transport, and authentication integration.
+
+The important idea is that common behavior is configured through structured options rather than scattered application-specific code.
+
+[Start with QuickStart](/docs/getting-started/quickstart)
+
+## Who Is UltimateAuth For?
+
+UltimateAuth is particularly relevant if you are building:
+
+- **A Blazor application** that needs authentication and authorization integrated with its hosting model.
+- **A multi-client .NET system** where different frontends should share the same authentication backend.
+- **An application with device-aware sessions** where users or administrators need control over active authentication.
+- **A multi-tenant platform** with explicit tenant resolution and security boundaries.
+- **A security-sensitive application** that requires controlled refresh, credential recovery, and revocation behavior.
+- **A self-hosted system** where the team wants visibility into and control over its authentication infrastructure.
+
+**From a simple login page to a complex authentication platform, UltimateAuth is designed to make getting started easy without limiting what comes next.**
+
+You shouldn't need to understand an entire identity framework just to add authentication to a small .NET application. And you shouldn't need to replace your authentication system when that application grows.
+
+UltimateAuth is built for both.
+
+### Simple Applications. Simple Beginnings.
+
+For a small application, authentication should be straightforward.
+
+UltimateAuth aims to provide a lightweight integration experience with clear configuration, sensible defaults, and ready-to-use authentication flows.
+
+Instead of requiring developers to assemble numerous identity components before they can begin, UltimateAuth provides a cohesive foundation that can be configured through a small number of well-defined entry points.
+
+**Start with what you need. You don't have to configure everything the framework supports.**
+
+### Complex Applications. Room to Grow.
+
+When requirements become more demanding, the same framework provides a deeper security architecture.
+
+UltimateAuth is particularly useful for applications requiring multiple client types, device-aware session management, tenant isolation, advanced authorization, credential recovery, controlled refresh, and targeted revocation.
+
+Its modular architecture, explicit authentication flows, configurable policies, and extension points allow developers to introduce additional capabilities without abandoning the original authentication foundation.
+
+**The complexity of your application should not determine how difficult authentication is to begin with.**
+
+### One Framework for Both
+
+Whether you're building a small personal project, a business application, a SaaS platform, or a larger distributed system, UltimateAuth follows the same principle:
+
+**Easy to start. Powerful when needed. Consistent as you grow.**
+
+You can begin with a straightforward authentication setup and progressively adopt the capabilities your application actually requires.
+
+UltimateAuth can also serve smaller applications, but its architecture becomes especially valuable when authentication requirements extend beyond a basic login form.
+
+If your application only needs a minimal authentication mechanism, evaluate whether UltimateAuth's broader lifecycle model provides enough value for your use case.
+
+## Current Scope and Maturity
+
+UltimateAuth is an evolving open-source framework.
+
+Its architecture covers several authentication models and client environments, but not every designed capability is necessarily available in the current release.
+
+In particular:
+
+- Authentication mode availability must be checked against the current server implementation.
+- Client adapter availability varies by platform.
+- Some advanced session and device policy options may be reserved for future enforcement.
+- Production adoption requires appropriate configuration, persistence, deployment security, and testing.
+
+The documentation distinguishes supported behavior from planned or partially implemented capabilities.
+
+This matters because a trustworthy authentication framework should be clear not only about what it can do, but also about its current limits.
+
+## Open Source First. Self-Hosted by Design.
+
+UltimateAuth is developed as an open-source project with self-hosting at its foundation.
+
+The project's direction is to keep self-hosted authentication free, while a potential managed hosting service could provide an alternative for teams that prefer not to operate the infrastructure themselves.
+
+The intention is not to divide authentication capabilities into free and paid feature tiers.
+
+It is to make the framework accessible, inspectable, extensible, and useful to the .NET community.
+
+[View UltimateAuth on GitHub](https://github.com/CodeBeamOrg/UltimateAuth)
+
+## Choose Your Starting Point
+
+You do not need to understand the entire architecture before building your first application.
+
+| I want to… | Start here |
+|---|---|
+| Set up UltimateAuth for the first time | [QuickStart](/docs/getting-started/quickstart) |
+| Understand how authentication works internally | [Auth Flows](/docs/auth-flows/overview) |
+| Configure session, token, and security behavior | [Server Options](/docs/configuration/server-options) |
+| Integrate authentication into a Blazor application | [Client Options](/docs/configuration/client-options) |
+| Understand the source code and contribute | [GitHub Repository](https://github.com/CodeBeamOrg/UltimateAuth) |
+
+---
+
+### Authentication is a lifecycle, not a login endpoint.
+
+UltimateAuth brings together the concepts needed to establish, maintain, evaluate, and terminate authentication within a consistent .NET architecture.
+
+**Start simple. Understand the security model. Extend when you need to.**
+
+[Continue to QuickStart](/docs/getting-started/quickstart)

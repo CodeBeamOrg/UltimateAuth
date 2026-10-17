@@ -1,6 +1,7 @@
 ﻿@using CodeBeam.UltimateAuth.Docs.Wasm.Client.Pages
 @inherits LayoutComponentBase
 @layout MainLayout
+@inject NavigationManager Nav
 
 <MudLayout>
     <MudDrawer Open="true" Elevation="1" Class="pa-2" Style="width:260px; background: transparent">
@@ -11,8 +12,15 @@
         @Body
     </MudMainContent>
 
-    <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
-        <DocsToc />
-        <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
-    </MudDrawer>
+    @if (!IsDocsLandingPage)
+    {
+        <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
+            <DocsToc />
+            <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
+        </MudDrawer>
+    }
 </MudLayout>
+
+@code {
+    private bool IsDocsLandingPage => Nav.ToBaseRelativePath(Nav.Uri).Trim('/').Equals("docs", StringComparison.OrdinalIgnoreCase);
+}
