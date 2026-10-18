@@ -7,7 +7,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

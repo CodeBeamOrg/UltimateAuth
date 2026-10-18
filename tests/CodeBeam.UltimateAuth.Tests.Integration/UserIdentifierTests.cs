@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -253,7 +253,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
         });
 
         var after = await store.GetByUserAsync(victim.UserKey);
-        using var assertions = new FluentAssertions.Execution.AssertionScope();
+        using var assertions = new AwesomeAssertions.Execution.AssertionScope();
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         after.Should().BeEquivalentTo(before,
             "rejected operations must not mutate the victim or their primary identifiers");

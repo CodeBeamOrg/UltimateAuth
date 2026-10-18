@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 using System.Net;
 using System.Net.Http.Headers;

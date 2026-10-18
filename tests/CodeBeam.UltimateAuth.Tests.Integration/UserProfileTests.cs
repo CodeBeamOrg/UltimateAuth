@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;

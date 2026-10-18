@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 using System.Text.Json;
 

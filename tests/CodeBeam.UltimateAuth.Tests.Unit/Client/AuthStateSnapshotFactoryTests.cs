@@ -6,7 +6,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 using System.Text.Json;
 

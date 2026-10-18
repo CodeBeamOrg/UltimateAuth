@@ -2,9 +2,10 @@
 using Markdig;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml;
 
 Console.WriteLine("=== DocsBuilder START ===");
+
+const string BuilderVersion = "1";
 
 var solutionRootDir = TryGetSolutionDir(args) ?? FindSolutionRootFallback();
 
@@ -86,16 +87,33 @@ foreach (var file in markdownFiles)
         GroupOrder = groupOrder
     });
 
-    var inputLastWrite = File.GetLastWriteTimeUtc(file);
+    var sourceHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(markdown)
+        )
+    );
 
     if (File.Exists(outputPath))
     {
-        var outputLastWrite = File.GetLastWriteTimeUtc(outputPath);
-
-        if (outputLastWrite >= inputLastWrite)
+        try
         {
-            Console.WriteLine($"⏩ Skipped: {relativePath}");
-            continue;
+            var existingJson = await File.ReadAllTextAsync(outputPath);
+            var existingDoc =
+                JsonSerializer.Deserialize<DocOutput>(existingJson);
+
+            if (existingDoc is not null &&
+                existingDoc.SourceHash == sourceHash &&
+                existingDoc.BuilderVersion == BuilderVersion &&
+                existingDoc.Slug == slug &&
+                existingDoc.Title == title)
+            {
+                Console.WriteLine($"⏩ Skipped: {relativePath}");
+                continue;
+            }
+        }
+        catch (JsonException)
+        {
+            // Invalid cache: regenerate.
         }
     }
 
@@ -115,7 +133,7 @@ foreach (var file in markdownFiles)
     if (!string.IsNullOrWhiteSpace(outputFolder))
         Directory.CreateDirectory(outputFolder);
 
-    var doc = new DocOutput(slug, title, html, headings);
+    var doc = new DocOutput(slug, title, html, headings, sourceHash, BuilderVersion);
 
     var json = JsonSerializer.Serialize(doc, new JsonSerializerOptions
     {
@@ -123,6 +141,23 @@ foreach (var file in markdownFiles)
     });
 
     await File.WriteAllTextAsync(outputPath, json);
+}
+
+// Remove generated JSON files whose Markdown sources no longer exist.
+var expectedOutputs = markdownFiles
+    .Select(file => Path.GetFullPath(Path.Combine(websiteDocsOutputDir, Path.ChangeExtension(Path.GetRelativePath(sourceDocsDir, file), ".json"))))
+    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+foreach (var outputFile in Directory.GetFiles(websiteDocsOutputDir, "*.json", SearchOption.AllDirectories))
+{
+    if (Path.GetFileName(outputFile).Equals("docs-index.json", StringComparison.OrdinalIgnoreCase))
+        continue;
+
+    if (!expectedOutputs.Contains(Path.GetFullPath(outputFile)))
+    {
+        File.Delete(outputFile);
+        Console.WriteLine($"🗑 Removed: {Path.GetRelativePath(websiteDocsOutputDir, outputFile)}");
+    }
 }
 
 var ordered = allDocs
@@ -325,23 +360,15 @@ static string WrapCodeBlocks(string html)
             _ => language.ToUpperInvariant()
         };
 
-        var wrapper = HtmlNode.CreateNode(
-            "<div class=\"docs-code-wrapper\"></div>"
-        );
+        var wrapper = HtmlNode.CreateNode("<div class=\"docs-code-wrapper\"></div>");
 
-        var header = HtmlNode.CreateNode(
-            "<div class=\"docs-code-header\"></div>"
-        );
+        var header = HtmlNode.CreateNode("<div class=\"docs-code-header\"></div>");
 
-        var languageLabel = HtmlNode.CreateNode(
-            "<span class=\"docs-code-language\"></span>"
-        );
+        var languageLabel = HtmlNode.CreateNode("<span class=\"docs-code-language\"></span>");
 
         languageLabel.InnerHtml = HtmlEntity.Entitize(label);
 
-        var copyButton = HtmlNode.CreateNode(
-            "<button type=\"button\" class=\"docs-code-copy\" aria-label=\"Copy code\">Copy</button>"
-        );
+        var copyButton = HtmlNode.CreateNode("<button type=\"button\" class=\"docs-code-copy\" aria-label=\"Copy code\">Copy</button>");
 
         header.AppendChild(languageLabel);
         header.AppendChild(copyButton);
@@ -355,7 +382,7 @@ static string WrapCodeBlocks(string html)
     return doc.DocumentNode.InnerHtml;
 }
 
-internal sealed record DocOutput(string Slug, string Title, string Html, List<DocsHeadingItem> Headings);
+internal sealed record DocOutput(string Slug, string Title, string Html, List<DocsHeadingItem> Headings, string SourceHash, string BuilderVersion);
 
 internal sealed class DocIndexItem
 {

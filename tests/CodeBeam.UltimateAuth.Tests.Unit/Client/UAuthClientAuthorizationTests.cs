@@ -6,7 +6,7 @@ using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using FluentAssertions;
+using AwesomeAssertions;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Layout;
 using CodeBeam.UltimateAuth.Sample.UAuthHub.Components.Pages;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Samples.UAuthHub;

@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Server.Authentication;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 

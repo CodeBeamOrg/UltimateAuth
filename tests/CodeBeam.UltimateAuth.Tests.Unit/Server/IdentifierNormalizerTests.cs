@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
