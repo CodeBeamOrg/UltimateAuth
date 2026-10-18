@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.EntityFrameworkCore;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.EntityFrameworkCore;

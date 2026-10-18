@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Policies;
 using CodeBeam.UltimateAuth.Policies.Registry;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

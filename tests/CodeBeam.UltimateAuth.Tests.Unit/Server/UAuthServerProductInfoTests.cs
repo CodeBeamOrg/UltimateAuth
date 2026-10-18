@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.InteropServices;

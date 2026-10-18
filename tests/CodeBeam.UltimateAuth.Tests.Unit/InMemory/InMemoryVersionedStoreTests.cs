@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.InMemory;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.InMemory;
 

@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users.Contracts;
 

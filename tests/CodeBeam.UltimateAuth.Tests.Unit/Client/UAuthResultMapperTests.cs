@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
-using FluentAssertions;
+using AwesomeAssertions;
 using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
