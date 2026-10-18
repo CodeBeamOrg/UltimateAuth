@@ -2,7 +2,7 @@
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Security.Argon2;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

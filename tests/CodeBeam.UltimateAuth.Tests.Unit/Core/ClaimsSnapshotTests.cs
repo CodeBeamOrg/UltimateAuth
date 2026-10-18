@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
-using FluentAssertions;
+using AwesomeAssertions;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;

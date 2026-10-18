@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 public sealed class UAuthHubSampleSmokeTests : IClassFixture<AuthServerFactory>

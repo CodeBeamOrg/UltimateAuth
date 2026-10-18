@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Server.Authorization;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 

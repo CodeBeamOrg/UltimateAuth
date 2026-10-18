@@ -8,10 +8,14 @@
 ![GitHub stars](https://img.shields.io/github/stars/CodeBeamOrg/UltimateAuth?style=flat&logo=github)
 ![Last Commit](https://img.shields.io/github/last-commit/CodeBeamOrg/UltimateAuth?branch=dev&logo=github)
 ![License](https://img.shields.io/github/license/CodeBeamOrg/UltimateAuth)
-[![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/QscA86dXSR)
 [![codecov](https://codecov.io/gh/CodeBeamOrg/UltimateAuth/branch/dev/graph/badge.svg)](https://codecov.io/gh/CodeBeamOrg/UltimateAuth)
 [![NuGet version](https://img.shields.io/nuget/v/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20version&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core)
 [![NuGet downloads](https://img.shields.io/nuget/dt/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20downloads&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core)
+<!-- Dynamic Discord badge (enable when community grows)
+[![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
+-->
+
 
 ## 📑 Table of Contents
 

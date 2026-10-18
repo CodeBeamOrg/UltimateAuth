@@ -93,5 +93,7 @@
       "Text": "Authentication is a lifecycle, not a login endpoint.",
       "Level": 1
     }
-  ]
+  ],
+  "SourceHash": "F7A457DB94D9E4B4383CDE2C557C052B4E7AFBFD779257A5B795C4DF364D4F86",
+  "BuilderVersion": "1"
 }

@@ -60,10 +60,12 @@ jobs:
             /p:IncludeSymbols=true \
             /p:SymbolPackageFormat=snupkg
 
-      - name: Verify packages
+      - name: Verify packages and symbols
         shell: bash
         run: |
+          set -euo pipefail
           shopt -s nullglob
+
           packages=(./nupkgs/*.nupkg)
 
           if (( ${#packages[@]} == 0 )); then
@@ -78,9 +80,18 @@ jobs:
               echo "::error::Unexpected package version: $f"
               exit 1
             fi
+
+            symbols="${f%.nupkg}.snupkg"
+
+            if [[ ! -s "$symbols" ]]; then
+              echo "::error::Missing or empty symbols package: $symbols"
+              exit 1
+            fi
+
+            echo "Validated: $f + $symbols"
           done
 
-          echo "Validated ${#packages[@]} packages for version $VERSION"
+          echo "Validated ${#packages[@]} packages and symbols."
 
       - name: NuGet login (Trusted Publishing)
         uses: NuGet/login@v1

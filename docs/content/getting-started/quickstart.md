@@ -75,8 +75,7 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 After creating the builder, register UltimateAuth:
 
 ```csharp
-builder.Services
-    .AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer()
     .AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor();
@@ -152,15 +151,22 @@ Place these near the end of the document body.
 
 UltimateAuth's Blazor integration uses this script for browser-side functionality.
 
-## 6. Initialize the UltimateAuth Application
+## 6. Add Usings
+
+Add this in `_Imports.razor`
+
+```razor
+@using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Client.Blazor
+```
+
+## 7. Initialize the UltimateAuth Application
 
 Open `Components/Routes.razor`.
 
 Replace its contents with:
 
 ```razor
-@using CodeBeam.UltimateAuth.Client.Blazor
-
 <UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.MainLayout)" />
 ```
 
@@ -171,15 +177,6 @@ It initializes the client runtime, provides authentication state to child compon
 With `UseBuiltInRouter="true"`, it also provides the application's router.
 
 You don't need to create a separate `Router` or `CascadingAuthenticationState` component for this setup.
-
-## 7. Add Usings
-
-Add this in `_Imports.razor`
-
-```razor
-@using CodeBeam.UltimateAuth.Client
-@using CodeBeam.UltimateAuth.Client.Blazor
-```
 
 ## 8. Create Your Login Page
 

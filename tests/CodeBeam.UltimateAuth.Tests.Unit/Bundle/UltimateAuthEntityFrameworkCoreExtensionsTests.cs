@@ -5,7 +5,7 @@ using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Tokens.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Users.EntityFrameworkCore;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
