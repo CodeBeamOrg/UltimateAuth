@@ -82,6 +82,18 @@ UltimateAuth is licensed under the [Apache License 2.0](LICENSE.txt). By contrib
 
 If a separate contributor agreement is introduced, its requirements will be documented before enforcement.
 
+## Contributor License Agreement (CLA)
+
+UltimateAuth welcomes contributions from the open-source community.
+
+Contributors retain copyright ownership of their original contributions unless otherwise agreed in writing.
+
+By submitting a contribution, contributors agree that their contributions are provided under the project's Apache License, Version 2.0, and confirm that they have the necessary rights to submit them.
+
+UltimateAuth intends to adopt the .NET Foundation Contributor License Agreement (CLA) process if accepted as a .NET Foundation project.
+
+Once the CLA process is implemented, contributors may be required to sign the applicable agreement before their pull requests can be merged.
+
 ## A welcoming community
 
 Be respectful, assume good intentions, and help others learn. Different experience levels and perspectives make the project better.
