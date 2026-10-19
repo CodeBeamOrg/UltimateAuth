@@ -2,6 +2,7 @@
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
+// TODO: Make this to work on controllers. Maybe needed to move core.
 /// <summary>
 /// Declares UltimateAuth authorization requirements for a Blazor component or page.
 /// </summary>
