@@ -1,8 +1,7 @@
 ﻿@namespace CodeBeam.UltimateAuth.Client.Blazor
 
 @inherits UAuthComponentBase
-@using Microsoft.AspNetCore.Authorization
-@inject IAuthorizationService AuthorizationService 
+@inject IUAuthAuthorizationEvaluator AuthorizationEvaluator
 
 @if (_inactive)
 {

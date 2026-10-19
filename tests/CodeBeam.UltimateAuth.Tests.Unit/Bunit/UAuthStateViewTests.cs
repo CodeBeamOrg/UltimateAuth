@@ -33,6 +33,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = UAuthState.Anonymous();
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = ctx.Render<CascadingValue<UAuthState>>(parameters => parameters
             .Add(p => p.Value, state)
@@ -50,6 +51,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.Authenticated();
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.ChildContent, s => b => b.AddContent(0, "authorized"))
@@ -64,6 +66,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithRoles("user");
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin")
@@ -79,6 +82,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithRoles("admin");
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin")
@@ -94,6 +98,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithPermissions("read");
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Permissions, "write")
@@ -109,6 +114,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithRoles("admin");
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
@@ -125,6 +131,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithRoles("admin");
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
@@ -143,6 +150,7 @@ public class UAuthStateViewTests
         var state = TestAuthState.WithRoles("admin");
 
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
@@ -164,6 +172,7 @@ public class UAuthStateViewTests
             permissions: ["write"]);
 
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Roles, "admin,user")
@@ -181,6 +190,7 @@ public class UAuthStateViewTests
         using var ctx = new BunitContext();
         var state = TestAuthState.WithSession(SessionState.Revoked);
         ctx.Services.AddSingleton(Mock.Of<IAuthorizationService>());
+        ctx.Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
 
         var cut = RenderWithAuth(ctx, state, p => p
             .Add(x => x.Inactive, s => b => b.AddContent(0, "inactive"))
