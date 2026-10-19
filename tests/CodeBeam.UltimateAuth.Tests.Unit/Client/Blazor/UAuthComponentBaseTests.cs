@@ -1,13 +1,12 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
-using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
@@ -26,59 +25,118 @@ public sealed class UAuthComponentBaseTests : BunitContext
     [Fact]
     public void Render_WithUAuthState_ReceivesCascadingState()
     {
-        var state = UAuthState.Anonymous();
+        var state = AuthenticatedState();
 
         var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
 
-        var component = cut
-            .FindComponent<TestComponent>()
-            .Instance;
-
-        component.CurrentAuthState
-            .Should()
-            .BeSameAs(state);
+        component.CurrentAuthState.Should().BeSameAs(state);
     }
 
     [Fact]
-    public void Render_WithoutAuthorizeAttribute_DoesNotCallUnauthorized()
+    public void InitialRender_DoesNotInvokeStateChangedHandler()
     {
-        var state = UAuthState.Anonymous();
+        var state = AuthenticatedState();
 
         var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
 
-        var component = cut
-            .FindComponent<TestComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
+        component.StateChangedCount.Should().Be(0);
+        component.LastChangeReason.Should().BeNull();
+        component.RenderCount.Should().Be(1);
     }
 
     [Fact]
-    public void AuthStateCleared_WithRoleRequirement_WhenAnonymous_CallsUnauthorized_NotForbidden()
+    public void StateChange_ForwardsReasonToComponent()
     {
-        var state = UAuthState.Anonymous();
+        var state = AuthenticatedState();
 
-        var cut = RenderWithState<AdminRequiredComponent>(state);
+        var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
 
-        var component = cut
-            .FindComponent<AdminRequiredComponent>()
-            .Instance;
+        state.MarkStale();
 
-        // Initial render must not make a premature authorization decision.
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
+        cut.WaitForAssertion(() =>
+        {
+            component.StateChangedCount.Should().Be(1);
+            component.LastChangeReason
+                .Should().Be(UAuthStateChangeReason.MarkedStale);
+        });
+    }
 
-        state.Clear();
+    [Fact]
+    public void StateChange_TriggersAutomaticRender()
+    {
+        var state = AuthenticatedState();
 
-        component.UnauthorizedCount.Should().Be(1);
-        component.ForbiddenCount.Should().Be(0);
+        var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
+
+        var initialRenderCount = component.RenderCount;
+
+        state.MarkStale();
+
+        cut.WaitForAssertion(() =>
+        {
+            component.StateChangedCount.Should().Be(1);
+            component.RenderCount.Should().BeGreaterThan(initialRenderCount);
+        });
+    }
+
+    [Fact]
+    public void StateChange_WhenAutoRefreshDisabled_DoesNotRender()
+    {
+        var state = AuthenticatedState();
+
+        var cut = RenderWithState<NoAutoRefreshComponent>(state);
+        var component = GetComponent<NoAutoRefreshComponent>(cut);
+
+        var initialRenderCount = component.RenderCount;
+
+        state.MarkStale();
+
+        cut.WaitForAssertion(() =>
+        {
+            component.StateChangedCount.Should().Be(1);
+        });
+
+        component.RenderCount.Should().Be(initialRenderCount);
+    }
+
+    [Fact]
+    public async Task StateChange_AwaitsAsyncHandlerBeforeRendering()
+    {
+        var state = AuthenticatedState();
+
+        var cut = RenderWithState<AsyncComponent>(state);
+        var component = GetComponent<AsyncComponent>(cut);
+
+        var initialRenderCount = component.RenderCount;
+
+        state.MarkStale();
+
+        cut.WaitForAssertion(() =>
+        {
+            component.HandlerStarted.Should().BeTrue();
+        });
+
+        component.HandlerCompleted.Should().BeFalse();
+        component.RenderCount.Should().Be(initialRenderCount);
+
+        await cut.InvokeAsync(() =>
+            component.CompleteHandler());
+
+        cut.WaitForAssertion(() =>
+        {
+            component.HandlerCompleted.Should().BeTrue();
+            component.RenderCount.Should().BeGreaterThan(initialRenderCount);
+        });
     }
 
     [Fact]
     public void Dispose_DoesNotThrow()
     {
-        var state = UAuthState.Anonymous();
+        var state = AuthenticatedState();
 
         var cut = RenderWithState<TestComponent>(state);
 
@@ -88,162 +146,22 @@ public sealed class UAuthComponentBaseTests : BunitContext
     }
 
     [Fact]
-    public void Render_WithAuthorizeAttribute_WhenAuthenticated_DoesNotReject()
-    {
-        var state = AuthenticatedState();
-
-        var cut = RenderWithState<AuthenticationRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<AuthenticationRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Render_WithRequiredRole_WhenUserHasRole_DoesNotReject()
-    {
-        var state = AuthenticatedState(
-            roles: ["admin"]);
-
-        var cut = RenderWithState<AdminRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<AdminRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void AuthStateChanged_WithRequiredRole_WhenUserDoesNotHaveRole_CallsForbidden()
-    {
-        var state = AuthenticatedState(
-            roles: ["User"]);
-
-        var cut = RenderWithState<AdminRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<AdminRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-
-        state.MarkStale();
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(1);
-    }
-
-    [Fact]
-    public void Render_WithRequiredPermission_WhenUserHasPermission_DoesNotReject()
-    {
-        var state = AuthenticatedState(
-            permissions: ["users.read"]);
-
-        var cut = RenderWithState<ReadUsersRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<ReadUsersRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void AuthStateChanged_WithRequiredPermission_WhenUserDoesNotHavePermission_CallsForbidden()
-    {
-        var state = AuthenticatedState(
-            permissions: ["users.list"]);
-
-        var cut = RenderWithState<ReadUsersRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<ReadUsersRequiredComponent>()
-            .Instance;
-
-        // No premature decision during initial render.
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-
-        state.MarkStale();
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(1);
-    }
-
-    [Fact]
-    public void Render_WithMultipleRoles_AllowsWhenAnyRoleMatches()
-    {
-        var state = AuthenticatedState(
-            roles: ["manager"]);
-
-        var cut = RenderWithState<AdminOrManagerComponent>(state);
-
-        var component = cut
-            .FindComponent<AdminOrManagerComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Render_WithMultiplePermissions_AllowsWhenAnyPermissionMatches()
-    {
-        var state = AuthenticatedState(
-            permissions: ["users.write"]);
-
-        var cut = RenderWithState<ReadOrWriteUsersComponent>(state);
-
-        var component = cut
-            .FindComponent<ReadOrWriteUsersComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void StateChange_ForwardsReasonToComponent()
+    public void Dispose_CanBeCalledMultipleTimes()
     {
         var state = AuthenticatedState();
 
         var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
 
-        var component = cut
-            .FindComponent<TestComponent>()
-            .Instance;
+        var act = () =>
+        {
+            component.Dispose();
+            component.Dispose();
+            cut.Dispose();
+        };
 
-        state.MarkStale();
-
-        component.StateChangedCount.Should().Be(1);
-        component.LastChangeReason
-            .Should().Be(UAuthStateChangeReason.MarkedStale);
-    }
-
-    [Fact]
-    public void StateChange_ReevaluatesAuthorization()
-    {
-        var state = AuthenticatedState();
-
-        var cut =
-            RenderWithState<AuthenticationRequiredComponent>(state);
-
-        var component = cut
-            .FindComponent<AuthenticationRequiredComponent>()
-            .Instance;
-
-        component.UnauthorizedCount.Should().Be(0);
-
-        state.Clear();
-
-        component.UnauthorizedCount.Should().Be(1);
+        act.Should().NotThrow();
+        component.Disposed.Should().BeTrue();
     }
 
     [Fact]
@@ -252,14 +170,14 @@ public sealed class UAuthComponentBaseTests : BunitContext
         var state = AuthenticatedState();
 
         var cut = RenderWithState<TestComponent>(state);
-
-        var component = cut
-            .FindComponent<TestComponent>()
-            .Instance;
+        var component = GetComponent<TestComponent>(cut);
 
         state.MarkStale();
 
-        component.StateChangedCount.Should().Be(1);
+        cut.WaitForAssertion(() =>
+        {
+            component.StateChangedCount.Should().Be(1);
+        });
 
         component.Dispose();
 
@@ -271,37 +189,110 @@ public sealed class UAuthComponentBaseTests : BunitContext
     }
 
     [Fact]
-    public void AuthStateCleared_WithAuthorizeAttribute_CallsUnauthorized()
+    public void Dispose_DuringPendingHandler_DoesNotRenderAfterCompletion()
     {
         var state = AuthenticatedState();
 
-        var cut = RenderWithState<AuthenticationRequiredComponent>(state);
+        var cut = RenderWithState<AsyncComponent>(state);
+        var component = GetComponent<AsyncComponent>(cut);
 
-        var component = cut
-            .FindComponent<AuthenticationRequiredComponent>()
-            .Instance;
+        state.MarkStale();
 
-        component.UnauthorizedCount.Should().Be(0);
+        cut.WaitForAssertion(() =>
+        {
+            component.HandlerStarted.Should().BeTrue();
+        });
 
-        state.Clear();
+        component.Dispose();
 
-        component.UnauthorizedCount.Should().Be(1);
+        var renderCount = component.RenderCount;
+
+        cut.InvokeAsync(() => component.CompleteHandler());
+
+        cut.WaitForAssertion(() =>
+        {
+            component.HandlerCompleted.Should().BeTrue();
+        });
+
+        component.RenderCount.Should().Be(renderCount);
     }
 
     [Fact]
-    public void InitialRender_WithAuthorizeAttribute_DoesNotEvaluateAuthorizationPrematurely()
+    public void StateChange_AfterDispose_DoesNotInvokeHandler()
     {
         var state = UAuthState.Anonymous();
 
-        var cut = RenderWithState<AuthenticationRequiredComponent>(state);
+        var cut = RenderWithState<TestComponent>(state);
+        var component = GetComponent<TestComponent>(cut);
 
-        var component = cut
-            .FindComponent<AuthenticationRequiredComponent>()
-            .Instance;
+        component.Dispose();
 
-        component.UnauthorizedCount.Should().Be(0);
-        component.ForbiddenCount.Should().Be(0);
+        state.MarkStale();
+
+        component.StateChangedCount.Should().Be(0);
+        component.Disposed.Should().BeTrue();
     }
+
+
+    [Fact]
+    public void CascadingStateReplacement_UnsubscribesFromPreviousState()
+    {
+        var firstState = AuthenticatedState();
+        var secondState = AuthenticatedState();
+
+        var cut = Render<StateHost>(parameters => parameters
+            .Add(x => x.State, firstState));
+
+        var originalComponent = cut.FindComponent<TestComponent>().Instance;
+
+        originalComponent.CurrentAuthState
+            .Should().BeSameAs(firstState);
+
+        cut.Render(parameters => parameters
+            .Add(x => x.State, secondState));
+
+        var component = cut.FindComponent<TestComponent>().Instance;
+
+        // The same component instance should receive the new cascading state.
+        component.Should().BeSameAs(originalComponent);
+
+        component.CurrentAuthState
+            .Should().BeSameAs(secondState);
+
+        firstState.MarkStale();
+
+        component.StateChangedCount.Should().Be(0);
+
+        secondState.MarkStale();
+
+        cut.WaitForAssertion(() =>
+        {
+            component.StateChangedCount.Should().Be(1);
+            component.LastChangeReason
+                .Should().Be(UAuthStateChangeReason.MarkedStale);
+        });
+    }
+
+    [Fact]
+    public void MarkStale_OnAuthenticatedState_RaisesChangedEvent()
+    {
+        var state = AuthenticatedState();
+
+        var count = 0;
+        UAuthStateChangeReason? reason = null;
+
+        state.Changed += changeReason =>
+        {
+            count++;
+            reason = changeReason;
+        };
+
+        state.MarkStale();
+
+        count.Should().Be(1);
+        reason.Should().Be(UAuthStateChangeReason.MarkedStale);
+    }
+
 
     private IRenderedComponent<CascadingValue<UAuthState>> RenderWithState<TComponent>(UAuthState state) where TComponent : IComponent
     {
@@ -311,81 +302,102 @@ public sealed class UAuthComponentBaseTests : BunitContext
                 .AddChildContent<TComponent>());
     }
 
-    [UAuthAuthorize]
-    private sealed class AuthenticationRequiredComponent
-        : TestComponent
+    private static TComponent GetComponent<TComponent>(
+        IRenderedComponent<CascadingValue<UAuthState>> cut)
+        where TComponent : IComponent
     {
+        return cut.FindComponent<TComponent>().Instance;
     }
 
-    [UAuthAuthorize(Roles = "admin")]
-    private sealed class AdminRequiredComponent
-        : TestComponent
+    private sealed class StateHost : ComponentBase
     {
-    }
+        [Parameter]
+        public UAuthState State { get; set; } = default!;
 
-    [UAuthAuthorize(Permissions = "users.read")]
-    private sealed class ReadUsersRequiredComponent
-        : TestComponent
-    {
+        protected override void BuildRenderTree(
+            RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<CascadingValue<UAuthState>>(0);
+            builder.AddAttribute(1, "Value", State);
+            builder.AddAttribute(2, "ChildContent",
+                (RenderFragment)(content =>
+                {
+                    content.OpenComponent<TestComponent>(0);
+                    content.CloseComponent();
+                }));
+            builder.CloseComponent();
+        }
     }
-
-    [UAuthAuthorize(Roles = "admin,manager")]
-    private sealed class AdminOrManagerComponent : TestComponent
-    {
-    }
-
-    [UAuthAuthorize(Permissions = "users.read,users.write")]
-    private sealed class ReadOrWriteUsersComponent : TestComponent
-    {
-    }
-
 
     private class TestComponent : UAuthComponentBase
     {
         public int StateChangedCount { get; private set; }
 
-        public UAuthStateChangeReason? LastChangeReason { get; private set; }
+        public UAuthStateChangeReason? LastChangeReason
+        { get; private set; }
 
-        public int UnauthorizedCount { get; private set; }
-
-        public int ForbiddenCount { get; private set; }
+        public int RenderCount { get; private set; }
 
         public UAuthState CurrentAuthState => AuthState;
 
-        protected override void HandleAuthStateChanged(
+        public bool Disposed => IsDisposed;
+
+        protected override Task HandleAuthStateChangedAsync(
             UAuthStateChangeReason reason)
         {
             StateChangedCount++;
             LastChangeReason = reason;
-        }
 
-        protected override void OnUnauthorized()
-        {
-            UnauthorizedCount++;
-        }
-
-        protected override void OnForbidden()
-        {
-            ForbiddenCount++;
+            return Task.CompletedTask;
         }
 
         protected override void BuildRenderTree(
             RenderTreeBuilder builder)
         {
+            RenderCount++;
             builder.AddContent(0, "uauth-test-component");
         }
     }
 
-    private static UAuthState AuthenticatedState(string[]? roles = null, string[]? permissions = null)
+    private sealed class NoAutoRefreshComponent : TestComponent
     {
-        var claims = new List<(string Type, string Value)>();
+        protected override bool AutoRefreshOnAuthStateChanged => false;
+    }
 
-        foreach (var role in roles ?? [])
-            claims.Add((ClaimTypes.Role, role));
+    private sealed class AsyncComponent : UAuthComponentBase
+    {
+        private readonly TaskCompletionSource<bool> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        foreach (var permission in permissions ?? [])
-            claims.Add(("uauth:permission", permission));
+        public bool HandlerStarted { get; private set; }
 
+        public bool HandlerCompleted { get; private set; }
+
+        public int RenderCount { get; private set; }
+
+        protected override async Task HandleAuthStateChangedAsync(UAuthStateChangeReason reason)
+        {
+            HandlerStarted = true;
+
+            await _completion.Task;
+
+            HandlerCompleted = true;
+        }
+
+        public void CompleteHandler()
+        {
+            _completion.TrySetResult(true);
+        }
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            RenderCount++;
+            builder.AddContent(0, "async-component");
+        }
+    }
+
+    private static UAuthState AuthenticatedState()
+    {
         var state = UAuthState.Anonymous();
 
         state.ApplySnapshot(
@@ -397,7 +409,7 @@ public sealed class UAuthComponentBaseTests : BunitContext
                     Tenant = TenantKey.Single,
                     PrimaryUserName = "alice"
                 },
-                Claims = ClaimsSnapshot.From(claims.ToArray())
+                Claims = ClaimsSnapshot.From([])
             },
             DateTimeOffset.UtcNow);
 
