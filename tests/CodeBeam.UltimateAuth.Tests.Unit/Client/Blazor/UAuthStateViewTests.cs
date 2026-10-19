@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -25,6 +26,7 @@ public sealed class UAuthStateViewTests : BunitContext
     public UAuthStateViewTests()
     {
         Services.AddSingleton(_authorization.Object);
+        Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
     }
 
     // ============================================================
@@ -528,6 +530,260 @@ public sealed class UAuthStateViewTests : BunitContext
         cut.Markup.Should().NotContain(InactiveContent);
     }
 
+    [Fact]
+    public void Login_AfterAnonymousState_RendersAuthorized()
+    {
+        var state = UAuthState.Anonymous();
+        var cut = RenderView(state);
+
+        AssertDenied(cut.Markup);
+
+        var authenticated = TestAuthState.Authenticated();
+
+        cut.InvokeAsync(() => state.ApplySnapshot(
+            new AuthStateSnapshot
+            {
+                Identity = authenticated.Identity
+                    ?? throw new InvalidOperationException("Expected identity."),
+                Claims = authenticated.Claims
+            },
+            DateTimeOffset.UtcNow));
+
+        cut.WaitForAssertion(() => AssertAuthorized(cut.Markup));
+    }
+
+    [Fact]
+    public void Logout_AfterAuthenticatedState_RendersNotAuthorized()
+    {
+        var state = AuthenticatedState();
+        var cut = RenderView(state);
+
+        AssertAuthorized(cut.Markup);
+
+        cut.InvokeAsync(state.Clear);
+
+        cut.WaitForAssertion(() => AssertDenied(cut.Markup));
+    }
+
+    [Fact]
+    public void RoleRevocation_RemovesAuthorizedSection()
+    {
+        var state = AuthenticatedState(roles: ["Admin"]);
+        var cut = RenderView(state, roles: "Admin");
+
+        AssertAuthorized(cut.Markup);
+
+        var replacement = AuthenticatedState(roles: ["User"]);
+
+        cut.InvokeAsync(() => ApplyState(state, replacement));
+
+        cut.WaitForAssertion(() => AssertDenied(cut.Markup));
+    }
+
+    [Fact]
+    public void PermissionRevocation_RemovesAuthorizedSection()
+    {
+        var state = AuthenticatedState(permissions: ["users.read"]);
+        var cut = RenderView(state, permissions: "users.read");
+
+        AssertAuthorized(cut.Markup);
+
+        var replacement = AuthenticatedState(permissions: ["users.list"]);
+
+        cut.InvokeAsync(() => ApplyState(state, replacement));
+
+        cut.WaitForAssertion(() => AssertDenied(cut.Markup));
+    }
+
+    [Fact]
+    public void SessionRevocation_RendersInactive()
+    {
+        var state = AuthenticatedState(sessionState: SessionState.Active);
+        var cut = RenderView(state, requireActive: true);
+
+        AssertAuthorized(cut.Markup);
+
+        var replacement = AuthenticatedState(
+            sessionState: SessionState.Revoked);
+
+        cut.InvokeAsync(() => ApplyState(state, replacement));
+
+        cut.WaitForAssertion(() => AssertInactive(cut.Markup));
+    }
+
+    [Fact]
+    public void SessionReactivation_RendersAuthorized()
+    {
+        var state = AuthenticatedState(sessionState: SessionState.Revoked);
+        var cut = RenderView(state, requireActive: true);
+
+        AssertInactive(cut.Markup);
+
+        var replacement = AuthenticatedState(
+            sessionState: SessionState.Active);
+
+        cut.InvokeAsync(() => ApplyState(state, replacement));
+
+        cut.WaitForAssertion(() => AssertAuthorized(cut.Markup));
+    }
+
+    [Fact]
+    public void ChangingRoles_ReevaluatesAuthorization()
+    {
+        var state = AuthenticatedState(roles: ["Admin"]);
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Roles, "Admin"));
+
+        AssertAuthorized(cut.Markup);
+
+        cut.Render(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Roles, "Manager"));
+
+        AssertDenied(cut.Markup);
+    }
+
+    [Fact]
+    public void ChangingPermissions_ReevaluatesAuthorization()
+    {
+        var state = AuthenticatedState(
+            permissions: ["users.read"]);
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Permissions, "users.read"));
+
+        AssertAuthorized(cut.Markup);
+
+        cut.Render(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Permissions, "users.write"));
+
+        AssertDenied(cut.Markup);
+    }
+
+    [Fact]
+    public void ChangingMatchMode_ReevaluatesAuthorization()
+    {
+        var state = AuthenticatedState(roles: ["Admin"]);
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Roles, "Admin,Manager")
+            .Add(x => x.MatchMode, AuthorizationMatchMode.Category));
+
+        AssertAuthorized(cut.Markup);
+
+        cut.Render(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Roles, "Admin,Manager")
+            .Add(x => x.MatchMode, AuthorizationMatchMode.All));
+
+        AssertDenied(cut.Markup);
+    }
+
+    [Fact]
+    public void ChangingPolicy_ReevaluatesAuthorization()
+    {
+        var state = AuthenticatedState();
+
+        SetupPolicy("PolicyA", AuthorizationResult.Success());
+        SetupPolicy("PolicyB", AuthorizationResult.Failed());
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Policy, "PolicyA"));
+
+        AssertAuthorized(cut.Markup);
+
+        cut.Render(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Policy, "PolicyB"));
+
+        AssertDenied(cut.Markup);
+    }
+
+    [Fact]
+    public void PendingPolicy_DoesNotRenderAuthorizedContent()
+    {
+        var pending = new TaskCompletionSource<AuthorizationResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _authorization
+            .Setup(x => x.AuthorizeAsync(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<object?>(),
+                "SlowPolicy"))
+            .Returns(pending.Task);
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, AuthenticatedState())
+            .Add(x => x.Policy, "SlowPolicy"));
+
+        cut.Markup.Should().NotContain(AuthorizedContent);
+
+        pending.SetResult(AuthorizationResult.Success());
+
+        cut.WaitForAssertion(() => AssertAuthorized(cut.Markup));
+    }
+
+    [Fact]
+    public void StalePolicyResult_MustNotOverrideNewerAuthorization()
+    {
+        var pending = new TaskCompletionSource<AuthorizationResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _authorization
+            .Setup(x => x.AuthorizeAsync(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<object?>(),
+                "SlowPolicy"))
+            .Returns(pending.Task);
+
+        SetupPolicy("FastPolicy", AuthorizationResult.Failed());
+
+        var state = AuthenticatedState();
+
+        var cut = Render<ConfigurableStateViewHost>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Policy, "SlowPolicy"));
+
+        cut.Render(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Policy, "FastPolicy"));
+
+        AssertDenied(cut.Markup);
+
+        pending.SetResult(AuthorizationResult.Success());
+
+        cut.WaitForAssertion(() => AssertDenied(cut.Markup));
+    }
+
+    [Fact]
+    public void CustomEvaluator_IsUsedByStateView()
+    {
+        var custom = new Mock<IUAuthAuthorizationEvaluator>();
+
+        custom
+            .Setup(x => x.EvaluateAsync(
+                It.IsAny<UAuthState>(),
+                It.IsAny<UAuthAuthorizationRequirement>()))
+            .ReturnsAsync(UAuthAuthorizationResult.Denied);
+
+        Services.AddSingleton(custom.Object);
+
+        var cut = RenderView(AuthenticatedState());
+
+        AssertDenied(cut.Markup);
+
+        custom.Verify(x => x.EvaluateAsync(
+            It.IsAny<UAuthState>(),
+            It.IsAny<UAuthAuthorizationRequirement>()),
+            Times.Once);
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
@@ -607,9 +863,7 @@ public sealed class UAuthStateViewTests : BunitContext
                 }));
     }
 
-    private void SetupPolicy(
-        string policy,
-        AuthorizationResult result)
+    private void SetupPolicy(string policy, AuthorizationResult result)
     {
         _authorization
             .Setup(x => x.AuthorizeAsync(
@@ -617,6 +871,17 @@ public sealed class UAuthStateViewTests : BunitContext
                 It.IsAny<object?>(),
                 policy))
             .ReturnsAsync(result);
+    }
+
+    private static void ApplyState(UAuthState target, UAuthState source)
+    {
+        target.ApplySnapshot(
+            new AuthStateSnapshot
+            {
+                Identity = source.Identity ?? throw new InvalidOperationException("Expected authenticated identity."),
+                Claims = source.Claims
+            },
+            DateTimeOffset.UtcNow);
     }
 
     private static void AssertAuthorized(string markup)
@@ -668,10 +933,7 @@ public sealed class UAuthStateViewTests : BunitContext
         };
 
         var state = UAuthState.Anonymous();
-
-        state.ApplySnapshot(
-            snapshot,
-            DateTimeOffset.UtcNow);
+        state.ApplySnapshot(snapshot, DateTimeOffset.UtcNow);
 
         return state;
     }
@@ -723,6 +985,67 @@ public sealed class UAuthStateViewTests : BunitContext
                         nameof(UAuthStateView.Inactive),
                         (RenderFragment<UAuthState>)(_ => child =>
                             child.AddContent(0, InactiveContent)));
+
+                    content.CloseComponent();
+                }));
+
+            builder.CloseComponent();
+        }
+    }
+
+    private sealed class ConfigurableStateViewHost : ComponentBase
+    {
+        [Parameter] public UAuthState State { get; set; } = default!;
+        [Parameter] public string? Roles { get; set; }
+        [Parameter] public string? Permissions { get; set; }
+        [Parameter] public string? Policy { get; set; }
+
+        [Parameter]
+        public AuthorizationMatchMode MatchMode { get; set; }
+            = AuthorizationMatchMode.Category;
+
+        [Parameter]
+        public bool RequireActive { get; set; } = true;
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<CascadingValue<UAuthState>>(0);
+            builder.AddAttribute(1, "Value", State);
+
+            builder.AddAttribute(2, "ChildContent",
+                (RenderFragment)(content =>
+                {
+                    content.OpenComponent<UAuthStateView>(0);
+
+                    content.AddAttribute(1, nameof(UAuthStateView.Roles), Roles);
+                    content.AddAttribute(2, nameof(UAuthStateView.Permissions), Permissions);
+                    content.AddAttribute(3, nameof(UAuthStateView.Policy), Policy);
+                    content.AddAttribute(4, nameof(UAuthStateView.MatchMode), MatchMode);
+                    content.AddAttribute(5, nameof(UAuthStateView.RequireActive), RequireActive);
+
+                    content.AddAttribute(
+                        6,
+                        nameof(UAuthStateView.Authorized),
+                        (RenderFragment<UAuthState>)(_ => child =>
+                            child.AddContent(0, AuthorizedContent)));
+
+                    content.AddAttribute(
+                        7,
+                        nameof(UAuthStateView.NotAuthorized),
+                        (RenderFragment)(child =>
+                            child.AddContent(0, DeniedContent)));
+
+                    content.AddAttribute(
+                        8,
+                        nameof(UAuthStateView.Inactive),
+                        (RenderFragment<UAuthState>)(_ => child =>
+                            child.AddContent(0, InactiveContent)));
+
+                    content.AddAttribute(
+                        9,
+                        nameof(UAuthStateView.Authorizing),
+                        (RenderFragment)(child =>
+                            child.AddContent(0, "AUTHORIZING-CONTENT")));
 
                     content.CloseComponent();
                 }));
