@@ -13,6 +13,7 @@ public partial class UAuthStateView : UAuthComponentBase
     private UAuthAuthorizationResult _result = UAuthAuthorizationResult.Denied;
 
     private bool _authorizing;
+    private UAuthState? _evaluatedState;
     private long _evaluationVersion;
     private UAuthAuthorizationRequirement? _currentRequirement;
 
@@ -106,11 +107,13 @@ public partial class UAuthStateView : UAuthComponentBase
 
         var requirement = CreateRequirement();
 
-        if (_currentRequirement == requirement)
+        if (_currentRequirement == requirement && ReferenceEquals(_evaluatedState, AuthState))
+        {
             return;
+        }
 
         _currentRequirement = requirement;
-
+        _evaluatedState = AuthState;
         await ReevaluateAuthorizationAsync(requirement);
     }
 
@@ -119,41 +122,48 @@ public partial class UAuthStateView : UAuthComponentBase
     /// This method is called when the authentication state changes, and it evaluates the current session state and authorization requirements.
     /// </summary>
     /// <param name="reason"></param>
-    protected override async void HandleAuthStateChanged(UAuthStateChangeReason reason)
+    protected override async Task HandleAuthStateChangedAsync(UAuthStateChangeReason reason)
     {
-        try
-        {
-            await InvokeAsync(async () =>
-            {
-                var requirement = _currentRequirement ?? CreateRequirement();
-                await ReevaluateAuthorizationAsync(requirement);
-            });
-        }
-        catch (ObjectDisposedException)
-        {
-            // The component was disposed during evaluation.
-        }
+        if (IsDisposed)
+            return;
+
+        var requirement = _currentRequirement ?? CreateRequirement();
+        await ReevaluateAuthorizationAsync(requirement);
     }
 
     private async Task ReevaluateAuthorizationAsync(UAuthAuthorizationRequirement requirement)
     {
+        if (IsDisposed)
+            return;
+
         var version = ++_evaluationVersion;
 
         _authorizing = true;
         _result = UAuthAuthorizationResult.Denied;
 
+        // Display Authorizing immediately and remove previously
+        // authorized content before awaiting policy evaluation.
+        await InvokeAsync(StateHasChanged);
+
         try
         {
-            var result = await AuthorizationEvaluator.EvaluateAsync(AuthState, requirement);
+            var result = await AuthorizationEvaluator.EvaluateAsync(
+                AuthState,
+                requirement);
 
-            if (version != _evaluationVersion)
+            if (IsDisposed || version != _evaluationVersion)
                 return;
 
             _result = result;
         }
+        catch (Exception) when (!IsDisposed && version == _evaluationVersion)
+        {
+            _result = UAuthAuthorizationResult.Denied;
+            throw;
+        }
         finally
         {
-            if (version == _evaluationVersion)
+            if (!IsDisposed && version == _evaluationVersion)
             {
                 _authorizing = false;
                 await InvokeAsync(StateHasChanged);

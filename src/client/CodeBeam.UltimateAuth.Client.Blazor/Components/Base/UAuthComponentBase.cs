@@ -3,33 +3,30 @@
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 /// <summary>
-/// Base class for Blazor components that participate in the UltimateAuth authentication state lifecycle.
+/// Base class for Blazor components that participate in
+/// the UltimateAuth authentication state lifecycle.
 /// </summary>
 public abstract class UAuthComponentBase : ComponentBase, IDisposable
 {
     private UAuthState? _subscribedState;
     private bool _disposed;
 
-    /// <summary>
-    /// Gets the current UltimateAuth authentication state
-    /// supplied by UAuthApp.
-    /// </summary>
     [CascadingParameter]
     protected UAuthState AuthState { get; set; } = default!;
 
-    /// <summary>
-    /// Gets the Blazor navigation service.
-    /// </summary>
     [Inject]
     protected NavigationManager Navigation { get; set; } = default!;
 
     /// <summary>
-    /// Determines whether authentication state changes
-    /// automatically trigger a component render.
+    /// Automatically re-render when the authentication state changes.
     /// </summary>
     protected virtual bool AutoRefreshOnAuthStateChanged => true;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Indicates whether the component has been disposed.
+    /// </summary>
+    protected bool IsDisposed => _disposed;
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -47,8 +44,8 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
 
         Unsubscribe();
 
-        AuthState.Changed += OnAuthStateChanged;
         _subscribedState = AuthState;
+        _subscribedState.Changed += OnAuthStateChanged;
     }
 
     private void OnAuthStateChanged(UAuthStateChangeReason reason)
@@ -56,23 +53,42 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
         if (_disposed)
             return;
 
-        _ = InvokeAsync(() =>
+        _ = DispatchAuthStateChangedAsync(reason);
+    }
+
+    private async Task DispatchAuthStateChangedAsync(UAuthStateChangeReason reason)
+    {
+        try
         {
-            if (_disposed)
-                return;
+            await InvokeAsync(async () =>
+            {
+                if (_disposed)
+                    return;
 
-            HandleAuthStateChanged(reason);
+                await HandleAuthStateChangedAsync(reason);
 
-            if (AutoRefreshOnAuthStateChanged)
-                StateHasChanged();
-        });
+                if (!_disposed && AutoRefreshOnAuthStateChanged)
+                    StateHasChanged();
+            });
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            // Ignore disposal-related exceptions.
+        }
+        catch (Exception ex)
+        {
+            if (!_disposed)
+                await DispatchExceptionAsync(ex);
+        }
     }
 
     /// <summary>
-    /// Called when the UltimateAuth authentication state changes.
+    /// Called when the authentication state changes.
+    /// Override to perform asynchronous state-dependent work.
     /// </summary>
-    protected virtual void HandleAuthStateChanged(UAuthStateChangeReason reason)
+    protected virtual Task HandleAuthStateChangedAsync(UAuthStateChangeReason reason)
     {
+        return Task.CompletedTask;
     }
 
     private void Unsubscribe()
@@ -84,7 +100,6 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
         _subscribedState = null;
     }
 
-    /// <inheritdoc />
     public virtual void Dispose()
     {
         if (_disposed)
