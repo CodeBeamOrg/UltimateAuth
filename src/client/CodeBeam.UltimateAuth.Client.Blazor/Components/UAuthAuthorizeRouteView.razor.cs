@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Reflection;
 
@@ -15,7 +16,12 @@ public partial class UAuthAuthorizeRouteView : ComponentBase, IDisposable
     private bool _hasUAuthRequirement;
     private bool _uauthAuthorized;
     private bool _runtimeReady;
+    private bool _evaluating;
+    private long _evaluationVersion;
     private bool _disposed;
+
+    [Inject]
+    private IUAuthAuthorizationEvaluator AuthorizationEvaluator { get; set; } = default!;
 
     /// <summary>
     /// The route to render.
@@ -60,75 +66,80 @@ public partial class UAuthAuthorizeRouteView : ComponentBase, IDisposable
     [CascadingParameter(Name = "UAuthRuntimeReady")]
     private bool RuntimeReady { get; set; }
 
-    private UAuthState AuthState => CurrentAuthState
-        ?? throw new InvalidOperationException($"{nameof(UAuthAuthorizeRouteView)} requires " + $"a cascading {nameof(UAuthState)}.");
+    private UAuthState AuthState => CurrentAuthState ?? throw new InvalidOperationException($"{nameof(UAuthAuthorizeRouteView)} requires " + $"a cascading {nameof(UAuthState)}.");
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        base.OnParametersSet();
+        await base.OnParametersSetAsync();
 
         ArgumentNullException.ThrowIfNull(RouteData);
 
-        _requirement = RouteData.PageType.GetCustomAttribute<UAuthAuthorizeAttribute>(inherit: true);
+        _requirement = RouteData.PageType
+            .GetCustomAttribute<UAuthAuthorizeAttribute>(inherit: true);
 
         _hasUAuthRequirement = _requirement is not null;
+        _runtimeReady = RuntimeReady;
 
-        // Public routes remain under the standard
-        // ASP.NET Core AuthorizeRouteView.
         if (!_hasUAuthRequirement)
         {
+            ++_evaluationVersion;
+
             _uauthAuthorized = true;
+            _evaluating = false;
+
             Unsubscribe();
             return;
         }
 
         Subscribe(AuthState);
 
-        _runtimeReady = RuntimeReady;
-
-        EvaluateAuthorization();
+        await EvaluateAuthorizationAsync();
     }
 
-    private void EvaluateAuthorization()
+    private async Task EvaluateAuthorizationAsync()
     {
-        // Fail closed until UltimateAuth initialization
-        // has completed.
+        var version = ++_evaluationVersion;
+
         _uauthAuthorized = false;
+        _evaluating = false;
 
-        if (!_runtimeReady || _requirement is null)
+        if (_disposed || !_runtimeReady || _requirement is null)
             return;
 
-        if (!AuthState.IsAuthenticated)
-            return;
+        var requirement = CreateRequirement(_requirement);
 
-        var roles = ParseValues(_requirement.Roles);
-        var permissions = ParseValues(_requirement.Permissions);
+        var state = AuthState;
 
-        // Category semantics:
-        // At least one role AND at least one permission,
-        // when both categories are configured.
-        if (roles.Length > 0 && !roles.Any(AuthState.IsInRole))
+        _evaluating = true;
+
+        try
         {
-            return;
-        }
+            var result = await AuthorizationEvaluator.EvaluateAsync(state, requirement);
 
-        if (permissions.Length > 0 && !permissions.Any(AuthState.HasPermission))
+            if (_disposed || version != _evaluationVersion)
+                return;
+
+            _uauthAuthorized = result.IsAuthorized;
+        }
+        finally
         {
-            return;
+            if (!_disposed && version == _evaluationVersion)
+            {
+                _evaluating = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
-
-        _uauthAuthorized = true;
     }
 
-    private static string[] ParseValues(string? values)
+    private UAuthAuthorizationRequirement CreateRequirement(UAuthAuthorizeAttribute attribute)
     {
-        if (string.IsNullOrWhiteSpace(values))
-            return [];
-
-        return values
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .ToArray();
+        return new UAuthAuthorizationRequirement
+        {
+            Roles = attribute.Roles,
+            Permissions = attribute.Permissions,
+            MatchMode = attribute.MatchMode,
+            RequireActive = attribute.RequireActive
+        };
     }
 
     private void Subscribe(UAuthState state)
@@ -156,19 +167,26 @@ public partial class UAuthAuthorizeRouteView : ComponentBase, IDisposable
         if (_disposed)
             return;
 
-        _ = InvokeAsync(() =>
+        _ = InvokeAsync(async () =>
         {
             if (_disposed)
                 return;
 
-            EvaluateAuthorization();
-            StateHasChanged();
+            await EvaluateAuthorizationAsync();
+
+            if (!_disposed)
+                StateHasChanged();
         });
     }
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
         _disposed = true;
+        ++_evaluationVersion;
+
         Unsubscribe();
     }
 }

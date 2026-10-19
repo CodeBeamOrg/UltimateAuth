@@ -5,7 +5,7 @@
 
 @implements IDisposable
 
-@if (!_hasUAuthRequirement || (_runtimeReady && _uauthAuthorized))
+@if (!_hasUAuthRequirement || (_runtimeReady && !_evaluating && _uauthAuthorized))
 {
     <AuthorizeRouteView RouteData="@RouteData" DefaultLayout="@DefaultLayout" Resource="@Resource">
 
@@ -29,7 +29,7 @@
 
     </AuthorizeRouteView>
 }
-else if (!_runtimeReady)
+else if (!_runtimeReady || _evaluating)
 {
     @if (Authorizing is not null)
     {

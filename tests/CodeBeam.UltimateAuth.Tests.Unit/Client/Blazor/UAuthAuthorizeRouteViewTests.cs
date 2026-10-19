@@ -1,14 +1,15 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
+using Bunit.TestDoubles;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Rendering;
-using Bunit.TestDoubles;
-using CodeBeam.UltimateAuth.Core.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
@@ -25,6 +26,8 @@ public sealed class UAuthAuthorizeRouteViewTests : BunitContext
 
     public UAuthAuthorizeRouteViewTests()
     {
+        Services.AddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
+
         _authorization = AddAuthorization();
         _authorization.SetNotAuthorized();
     }

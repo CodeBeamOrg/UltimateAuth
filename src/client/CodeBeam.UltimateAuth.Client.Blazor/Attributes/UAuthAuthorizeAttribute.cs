@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Blazor;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 /// <summary>
 /// Declares UltimateAuth authorization requirements for a Blazor component or page.
@@ -34,4 +36,14 @@ public sealed class UAuthAuthorizeAttribute : Attribute
     /// permission requirement is declared by this property.
     /// </remarks>
     public string? Permissions { get; set; }
+
+    /// <summary>
+    /// Determines how roles, permissions, and other authorization requirements are combined.
+    /// </summary>
+    public AuthorizationMatchMode MatchMode { get; set; } = AuthorizationMatchMode.Category;
+
+    /// <summary>
+    /// Determines whether the current session must be active.
+    /// </summary>
+    public bool RequireActive { get; set; } = true;
 }

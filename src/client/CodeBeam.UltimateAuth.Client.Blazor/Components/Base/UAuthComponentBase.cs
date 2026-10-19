@@ -3,15 +3,16 @@
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 /// <summary>
-/// Base class for Blazor components that participate in UltimateAuth authentication state and authorization lifecycle.
+/// Base class for Blazor components that participate in the UltimateAuth authentication state lifecycle.
 /// </summary>
 public abstract class UAuthComponentBase : ComponentBase, IDisposable
 {
-    private UAuthState? _previousState;
-    private bool _rendered;
+    private UAuthState? _subscribedState;
+    private bool _disposed;
 
     /// <summary>
-    /// Gets the current UltimateAuth authentication state supplied by <c>UAuthApp</c>.
+    /// Gets the current UltimateAuth authentication state
+    /// supplied by UAuthApp.
     /// </summary>
     [CascadingParameter]
     protected UAuthState AuthState { get; set; } = default!;
@@ -19,131 +20,77 @@ public abstract class UAuthComponentBase : ComponentBase, IDisposable
     /// <summary>
     /// Gets the Blazor navigation service.
     /// </summary>
-    [Inject] protected NavigationManager Navigation { get; set; } = default!;
+    [Inject]
+    protected NavigationManager Navigation { get; set; } = default!;
 
     /// <summary>
-    /// Automatically re-render when UAuthState changes. Can be overridden to disable.
+    /// Determines whether authentication state changes
+    /// automatically trigger a component render.
     /// </summary>
     protected virtual bool AutoRefreshOnAuthStateChanged => true;
 
-    /// <summary>
-    /// Called when the component's parameters have been set. This method ensures that the component is properly registered 
-    /// with the current <see cref="UAuthState"/> and evaluates authorization requirements.
-    /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
         if (AuthState is null)
-            throw new InvalidOperationException($"{GetType().Name} requires a cascading parameter of type {nameof(UAuthState)}. " +
-                $"Make sure it is used inside <UAuthApp>.");
-
-        if (!ReferenceEquals(_previousState, AuthState))
         {
-            if (_previousState is not null)
-                _previousState.Changed -= OnAuthStateChanged;
-
-            AuthState.Changed += OnAuthStateChanged;
-            _previousState = AuthState;
+            throw new InvalidOperationException(
+                $"{GetType().Name} requires a cascading parameter " +
+                $"of type {nameof(UAuthState)}. " +
+                "Make sure it is used inside <UAuthApp>.");
         }
 
-        EvaluateAuthorization();
-    }
+        if (ReferenceEquals(_subscribedState, AuthState))
+            return;
 
-    /// <summary>
-    /// Called after the component has been rendered. This method sets the _rendered flag to true on the first render.
-    /// </summary>
-    /// <param name="firstRender"></param>
-    /// <returns></returns>
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        
-        if (firstRender)
-        {
-            _rendered = true;
-            // Never call EvaluateAuthorization() here, because it breaks UAuthAuthorize attribute behavior.
-        }
+        Unsubscribe();
+
+        AuthState.Changed += OnAuthStateChanged;
+        _subscribedState = AuthState;
     }
 
     private void OnAuthStateChanged(UAuthStateChangeReason reason)
     {
-        HandleAuthStateChanged(reason);
+        if (_disposed)
+            return;
 
-        EvaluateAuthorization();
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed)
+                return;
 
-        if (AutoRefreshOnAuthStateChanged)
-            _ = InvokeAsync(StateHasChanged);
+            HandleAuthStateChanged(reason);
+
+            if (AutoRefreshOnAuthStateChanged)
+                StateHasChanged();
+        });
     }
 
     /// <summary>
-    /// Allows derived components to react to auth state changes.
+    /// Called when the UltimateAuth authentication state changes.
     /// </summary>
     protected virtual void HandleAuthStateChanged(UAuthStateChangeReason reason)
     {
     }
 
-    private void EvaluateAuthorization()
+    private void Unsubscribe()
     {
-        var attr = GetType()
-            .GetCustomAttributes(typeof(UAuthAuthorizeAttribute), true)
-            .FirstOrDefault() as UAuthAuthorizeAttribute;
-
-        if (attr is null)
+        if (_subscribedState is null)
             return;
 
-        if (_rendered && !AuthState.IsAuthenticated)
-        {
-            OnUnauthorized();
-            return;
-        }
-
-        if (_rendered && !string.IsNullOrEmpty(attr.Roles))
-        {
-            var roles = attr.Roles.Split(',');
-
-            if (!roles.Any(r => AuthState.IsInRole(r.Trim())))
-            {
-                OnForbidden();
-                return;
-            }
-        }
-
-        if (_rendered && !string.IsNullOrEmpty(attr.Permissions))
-        {
-            var permissions = attr.Permissions.Split(',');
-
-            if (!permissions.Any(p => AuthState.HasPermission(p.Trim())))
-            {
-                OnForbidden();
-                return;
-            }
-        }
+        _subscribedState.Changed -= OnAuthStateChanged;
+        _subscribedState = null;
     }
 
-    /// <summary>
-    /// Called when the component requires authentication but the current user is not authenticated.
-    /// </summary>
-    protected virtual void OnUnauthorized()
-    {
-        Navigation.NavigateTo("/");
-    }
-
-    /// <summary>
-    /// Called when the current user is authenticated but does not satisfy the authorization requirements of the component.
-    /// </summary>
-    protected virtual void OnForbidden()
-    {
-        Navigation.NavigateTo("/forbidden");
-    }
-
-    /// <summary>
-    /// Disposes of the component and unsubscribes from the <see cref="UAuthState.Changed"/> event to prevent memory leaks.
-    /// </summary>
+    /// <inheritdoc />
     public virtual void Dispose()
     {
-        if (_previousState is not null)
-            _previousState.Changed -= OnAuthStateChanged;
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        Unsubscribe();
     }
 }

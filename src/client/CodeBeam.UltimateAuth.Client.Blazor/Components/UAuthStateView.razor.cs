@@ -10,14 +10,14 @@ namespace CodeBeam.UltimateAuth.Client.Blazor;
 /// </summary>
 public partial class UAuthStateView : UAuthComponentBase
 {
-    private IReadOnlyList<string> _rolesParsed = Array.Empty<string>();
-    private IReadOnlyList<string> _permissionsParsed = Array.Empty<string>();
-    private bool _authorized;
-    private bool _inactive;
+    private UAuthAuthorizationResult _result = UAuthAuthorizationResult.Denied;
+
     private bool _authorizing;
-    private string? _authKey;
-    private string? _rolesRaw;
-    private string? _permissionsRaw;
+    private long _evaluationVersion;
+    private UAuthAuthorizationRequirement? _currentRequirement;
+
+    private bool _authorized => _result.IsAuthorized;
+    private bool _inactive => _result.IsInactive;
 
     /// <summary>
     /// Gets or sets the content to render when the user is authorized. The content receives the current <see cref="UAuthState"/> as a parameter.
@@ -104,29 +104,14 @@ public partial class UAuthStateView : UAuthComponentBase
     {
         await base.OnParametersSetAsync();
 
-        var newKey = BuildAuthKey();
+        var requirement = CreateRequirement();
 
-        if (_authKey == newKey)
+        if (_currentRequirement == requirement)
             return;
 
-        _authKey = newKey;
-        _authorizing = true;
+        _currentRequirement = requirement;
 
-        if (_rolesRaw != Roles)
-        {
-            _rolesRaw = Roles;
-            _rolesParsed = ParseCsv(Roles);
-        }
-
-        if (_permissionsRaw != Permissions)
-        {
-            _permissionsRaw = Permissions;
-            _permissionsParsed = ParseCsv(Permissions);
-        }
-
-        EvaluateSessionState();
-        _authorized = await EvaluateAuthorizationAsync();
-        _authorizing = false;
+        await ReevaluateAuthorizationAsync(requirement);
     }
 
     /// <summary>
@@ -136,139 +121,55 @@ public partial class UAuthStateView : UAuthComponentBase
     /// <param name="reason"></param>
     protected override async void HandleAuthStateChanged(UAuthStateChangeReason reason)
     {
-        EvaluateSessionState();
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                var requirement = _currentRequirement ?? CreateRequirement();
+                await ReevaluateAuthorizationAsync(requirement);
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+            // The component was disposed during evaluation.
+        }
+    }
+
+    private async Task ReevaluateAuthorizationAsync(UAuthAuthorizationRequirement requirement)
+    {
+        var version = ++_evaluationVersion;
+
         _authorizing = true;
-        _authorized = await EvaluateAuthorizationAsync();
-        _authorizing = false;
-        await InvokeAsync(StateHasChanged);
+        _result = UAuthAuthorizationResult.Denied;
+
+        try
+        {
+            var result = await AuthorizationEvaluator.EvaluateAsync(AuthState, requirement);
+
+            if (version != _evaluationVersion)
+                return;
+
+            _result = result;
+        }
+        finally
+        {
+            if (version == _evaluationVersion)
+            {
+                _authorizing = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
     }
 
-    private async Task<bool> EvaluateAuthorizationAsync()
+    private UAuthAuthorizationRequirement CreateRequirement()
     {
-        if (!AuthState.IsAuthenticated)
-            return false;
-
-        var hasRoles = _rolesParsed.Count > 0;
-        var hasPermissions = _permissionsParsed.Count > 0;
-        var hasPolicy = !string.IsNullOrWhiteSpace(Policy);
-
-        // No explicit authorization requirements:
-        // authentication itself is sufficient.
-        if (!hasRoles && !hasPermissions && !hasPolicy)
-            return true;
-
-        var roleResults = _rolesParsed
-            .Select(AuthState.IsInRole)
-            .ToList();
-
-        var permissionResults = _permissionsParsed
-            .Select(AuthState.HasPermission)
-            .ToList();
-
-        bool? policyResult = null;
-
-        if (!string.IsNullOrWhiteSpace(Policy))
+        return new UAuthAuthorizationRequirement
         {
-            policyResult = await EvaluatePolicyAsync();
-        }
-
-        return MatchMode switch
-        {
-            AuthorizationMatchMode.Any
-                => EvaluateAny(roleResults, permissionResults, policyResult),
-
-            AuthorizationMatchMode.All
-                => EvaluateAll(roleResults, permissionResults, policyResult),
-
-            AuthorizationMatchMode.Category
-                => EvaluateCategory(roleResults, permissionResults, policyResult),
-
-            _ => false
+            Roles = Roles,
+            Permissions = Permissions,
+            Policy = Policy,
+            MatchMode = MatchMode,
+            RequireActive = RequireActive
         };
-    }
-
-    private static bool EvaluateAny(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
-    {
-        return roles.Any(x => x) || permissions.Any(x => x) || policy == true;
-    }
-
-    private static bool EvaluateAll(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
-    {
-        if (roles.Count > 0 && roles.Any(x => !x))
-            return false;
-
-        if (permissions.Count > 0 && permissions.Any(x => !x))
-            return false;
-
-        if (policy.HasValue && !policy.Value)
-            return false;
-
-        return true;
-    }
-
-    private static bool EvaluateCategory(IReadOnlyList<bool> roles, IReadOnlyList<bool> permissions, bool? policy)
-    {
-        if (roles.Count > 0 && !roles.Any(x => x))
-            return false;
-
-        if (permissions.Count > 0 && !permissions.Any(x => x))
-            return false;
-
-        if (policy.HasValue && !policy.Value)
-            return false;
-
-        return true;
-    }
-
-    private void EvaluateSessionState()
-    {
-        if (!RequireActive)
-        {
-            _inactive = false;
-            return;
-        }
-
-        if (AuthState.IsAuthenticated != true)
-        {
-            _inactive = false;
-            return;
-        }
-
-        if (AuthState.Identity?.SessionState is null)
-        {
-            _inactive = false;
-        }
-        else
-        {
-            _inactive = AuthState.Identity?.SessionState != SessionState.Active;
-        }
-    }
-
-    private static IReadOnlyList<string> ParseCsv(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Array.Empty<string>();
-
-        return value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Trim())
-            .Where(x => x.Length > 0)
-            .ToArray();
-    }
-
-    private async Task<bool> EvaluatePolicyAsync()
-    {
-        if (string.IsNullOrWhiteSpace(Policy))
-            return true;
-
-        var principal = AuthState.ToClaimsPrincipal();
-        var result = await AuthorizationService.AuthorizeAsync(principal, Policy);
-
-        return result.Succeeded;
-    }
-
-    private string BuildAuthKey()
-    {
-        return $"{Roles}|{Permissions}|{Policy}|{MatchMode}{RequireActive}";
     }
 }
