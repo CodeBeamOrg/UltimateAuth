@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+﻿using FluentAssertions;
 using Bunit;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;

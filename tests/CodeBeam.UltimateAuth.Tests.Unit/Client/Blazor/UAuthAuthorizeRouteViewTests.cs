@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+﻿using FluentAssertions;
 using Bunit;
 using Bunit.TestDoubles;
 using CodeBeam.UltimateAuth.Client;
