@@ -1,0 +1,49 @@
+﻿@namespace CodeBeam.UltimateAuth.Client.Blazor
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+
+@implements IDisposable
+
+@if (!_hasUAuthRequirement || (_runtimeReady && _uauthAuthorized))
+{
+    <AuthorizeRouteView RouteData="@RouteData" DefaultLayout="@DefaultLayout" Resource="@Resource">
+
+        <NotAuthorized Context="authenticationState">
+            @if (NotAuthorized is not null)
+            {
+                @NotAuthorized(authenticationState)
+            }
+            else
+            {
+                <p>Not authorized.</p>
+            }
+        </NotAuthorized>
+
+        <Authorizing>
+            @if (Authorizing is not null)
+            {
+                @Authorizing
+            }
+        </Authorizing>
+
+    </AuthorizeRouteView>
+}
+else if (!_runtimeReady)
+{
+    @if (Authorizing is not null)
+    {
+        @Authorizing
+    }
+}
+else
+{
+    @if (NotAuthorized is not null)
+    {
+        @NotAuthorized(new AuthenticationState(AuthState.ToClaimsPrincipal()))
+    }
+    else
+    {
+        <p>Not authorized.</p>
+    }
+}
