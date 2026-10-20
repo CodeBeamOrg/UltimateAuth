@@ -4,7 +4,7 @@
 @implements IDisposable
 @inject PersistentComponentState PersistentState
 
-<div style="min-height: 20vh; max-height: 90vh; overflow-y: auto;">
+<div class="ua-docs-sidebar">
     @if (!Inline)
     {
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="ua-docs-header">
@@ -12,7 +12,6 @@
                 <MudText Typo="Typo.subtitle1">UltimateAuth</MudText>
                 <span>DOCUMENTATION</span>
             </div>
-            @* <MudText Typo="Typo.h6" Class="mb-2 px-2">UAuth Docs</MudText> *@
 
             <MudIconButton Icon="@(HasExpandedGroups ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)" Color="Color.Default" Size="Size.Small" OnClick="ToggleAllGroups" />
         </MudStack>

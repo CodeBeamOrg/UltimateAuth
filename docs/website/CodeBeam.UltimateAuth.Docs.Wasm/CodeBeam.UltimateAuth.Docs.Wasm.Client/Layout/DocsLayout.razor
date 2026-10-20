@@ -3,24 +3,33 @@
 @layout MainLayout
 @inject NavigationManager Nav
 
-<MudLayout>
-    <MudDrawer Open="true" Elevation="1" Class="pa-2" Style="width:260px; background: transparent">
-        <DocsSidebar />
-    </MudDrawer>
+<div class="docs-shell">
 
-    <MudMainContent Class="docs-main">
+    <aside class="docs-sidebar-column">
+        <div class="docs-sticky">
+            <DocsSidebar />
+        </div>
+    </aside>
+
+    <main class="docs-main-column">
         @Body
-    </MudMainContent>
+    </main>
 
-    @if (!IsDocsLandingPage)
-    {
-        <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
-            <DocsToc />
-            <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
-        </MudDrawer>
-    }
-</MudLayout>
+    <aside class="docs-toc-column">
+        @if (!IsDocsLandingPage)
+        {
+            <div class="docs-sticky">
+                <DocsToc />
+                <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
+            </div>
+        }
+    </aside>
+
+</div>
 
 @code {
-    private bool IsDocsLandingPage => Nav.ToBaseRelativePath(Nav.Uri).Trim('/').Equals("docs", StringComparison.OrdinalIgnoreCase);
+    private bool IsDocsLandingPage =>
+        Nav.ToBaseRelativePath(Nav.Uri)
+           .Trim('/')
+           .Equals("docs", StringComparison.OrdinalIgnoreCase);
 }

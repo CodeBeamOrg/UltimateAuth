@@ -75,6 +75,7 @@ else if (_doc is not null)
     private PersistingComponentStateSubscription _subscription;
     private DocPage? _doc;
     private bool _notFound;
+    private string? _highlightedHtml;
     private ElementReference _contentRef;
 
     protected override void OnInitialized()
@@ -127,10 +128,12 @@ else if (_doc is not null)
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("highlightDocsCode");
-        }
+        if (_doc is null || _doc.Html == _highlightedHtml)
+            return;
+
+        await JS.InvokeVoidAsync("highlightDocsCode");
+
+        _highlightedHtml = _doc.Html;
     }
 
     private Task PersistDocAsync()
