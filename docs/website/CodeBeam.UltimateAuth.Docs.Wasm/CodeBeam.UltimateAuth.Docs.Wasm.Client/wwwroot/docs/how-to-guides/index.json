@@ -1,0 +1,14 @@
+{
+  "Slug": "how-to-guides/index",
+  "Title": "How-to Guides",
+  "Html": "\n\u003Cp\u003EPractical, task-oriented guides for building applications with UltimateAuth.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022available-guides\u0022\u003EAvailable Guides\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/how-to-guides/protect-a-page\u0022\u003EProtect a Page\u003C/a\u003E \u2014 Secure Blazor pages and UI sections using UltimateAuth and ASP.NET Core authorization.\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "available-guides",
+      "Text": "Available Guides",
+      "Level": 0
+    }
+  ],
+  "SourceHash": "D45E8C30B26AF54F802D9926DA15D933AA6342A064BE1D54F90087F8F64A49AA",
+  "BuilderVersion": "1"
+}
