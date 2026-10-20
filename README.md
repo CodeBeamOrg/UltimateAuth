@@ -16,12 +16,6 @@
 [![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
 -->
 
-
-## 📑 Table of Contents
-
-## Table of Contents
-
-
 ## Table of Contents
 
 - [Roadmap](#roadmap)
@@ -43,9 +37,9 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
 | First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)               | ✅ Completed   | 12.10.2026    |
-| Product Expansion       | 0.2.0         | Full Auth Modes                           | 🟡 In Progress | Q4 2026       |
-| Security Expansion      | 0.3.0         | MFA, Reauth, Rate Limiting                | 🟡 In Progress | Q4 2026       |
+| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)       | ✅ Completed   | 12.10.2026    |
+| Product Expansion       | 0.2.0         | Full Auth Modes, Rate Limiting            | 🟡 In Progress | Q4 2026       |
+| Security Expansion      | 0.3.0         | MFA, Reauth                               | 🟡 In Progress | Q4 2026       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
 | Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                   | 🔜 Planned     | Q1 2027       |
 | Extensibility Expansion | 0.6.0         | Audit, events, hooks                      | 🔜 Planned     | Q1 2027       |
