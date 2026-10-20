@@ -214,7 +214,6 @@ h1:focus {
 
 .ua-footer {
     position: relative;
-    z-index: calc(var(--mud-zindex-drawer) + 1);
     background: var(--mud-palette-background) !important;
     border-top: 1px solid var(--mud-palette-lines-default);
 }
@@ -302,11 +301,9 @@ h1:focus {
 
 /* Sidebar container */
 .ua-docs-sidebar {
-    min-height: 20vh;
-    max-height: 90vh;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--mud-palette-lines-default) transparent;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
 }
 
 /* Header */
@@ -790,3 +787,58 @@ h1:focus {
         text-decoration: underline;
         text-underline-offset: 2px;
     }
+
+
+
+/* Documentation layout */
+
+.docs-shell {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr) 260px;
+    min-height: calc(100vh - 64px);
+}
+
+.docs-sidebar-column,
+.docs-toc-column {
+    min-width: 0;
+    padding: 8px;
+}
+
+.docs-main-column {
+    min-width: 0;
+}
+
+.docs-sticky {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mud-palette-lines-default) transparent;
+}
+
+/* Tablet: left sidebar + content */
+
+@media (min-width: 600px) and (max-width: 1199px) {
+    .docs-shell {
+        grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .docs-toc-column {
+        display: none;
+    }
+}
+
+/* Mobile: content only */
+
+@media (max-width: 599px) {
+    .docs-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .docs-sidebar-column,
+    .docs-toc-column {
+        display: none;
+    }
+}
