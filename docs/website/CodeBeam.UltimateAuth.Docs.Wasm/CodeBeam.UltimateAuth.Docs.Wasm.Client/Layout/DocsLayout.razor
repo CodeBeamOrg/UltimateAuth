@@ -12,13 +12,13 @@
         @Body
     </MudMainContent>
 
-    @if (!IsDocsLandingPage)
-    {
-        <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
+    <MudDrawer Open="true" Elevation="0" Class="pa-2 docs-toc-container" Style="width:260px; background: transparent" Anchor="Anchor.End">
+        @if (!IsDocsLandingPage)
+        {
             <DocsToc />
             <MudPageContentNavigation SectionClassSelector="mud-scrollspy-section" />
-        </MudDrawer>
-    }
+        }
+    </MudDrawer>
 </MudLayout>
 
 @code {
