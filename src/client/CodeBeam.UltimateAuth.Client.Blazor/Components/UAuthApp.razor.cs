@@ -27,6 +27,7 @@ public partial class UAuthApp
 {
     private bool _initialized;
     private bool _coordinatorStarted;
+    private bool _runtimeReady;
 
     /// <summary>
     /// Gets or sets the application content rendered within the UltimateAuth context.
@@ -131,6 +132,8 @@ public partial class UAuthApp
 
             await Bootstrapper.EnsureStartedAsync();
             await StateManager.EnsureAsync();
+
+            _runtimeReady = true;
 
             if (StateManager.State.IsAuthenticated)
             {

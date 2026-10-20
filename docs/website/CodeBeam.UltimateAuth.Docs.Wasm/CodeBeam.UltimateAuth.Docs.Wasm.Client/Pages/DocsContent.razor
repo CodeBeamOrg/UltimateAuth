@@ -8,7 +8,7 @@
 
 @if (_notFound)
 {
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-12">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-12 docs-container" Style="min-height: 80vh">
         <MudStack Spacing="3" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h4">
                 Page not found
@@ -26,7 +26,7 @@
 }
 else if (_doc is not null)
 {
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="docs-container">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="docs-container" Style="min-height: 80vh">
         <MudText Typo="Typo.h3" Class="docs-title">@_doc.Title</MudText>
 
         <MudDivider Class="mb-4" />
@@ -75,6 +75,7 @@ else if (_doc is not null)
     private PersistingComponentStateSubscription _subscription;
     private DocPage? _doc;
     private bool _notFound;
+    private string? _highlightedHtml;
     private ElementReference _contentRef;
 
     protected override void OnInitialized()
@@ -127,10 +128,12 @@ else if (_doc is not null)
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("highlightDocsCode");
-        }
+        if (_doc is null || _doc.Html == _highlightedHtml)
+            return;
+
+        await JS.InvokeVoidAsync("highlightDocsCode");
+
+        _highlightedHtml = _doc.Html;
     }
 
     private Task PersistDocAsync()

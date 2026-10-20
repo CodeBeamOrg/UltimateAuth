@@ -19,20 +19,26 @@
 
 ## 📑 Table of Contents
 
-- [🗺 Roadmap](#-roadmap)
-- [🌟 Why UltimateAuth](#-why-ultimateauth)
-- [🚀 Quick Start](#-quick-start)
-- [💡 Usage](#-usage)
-- [📘 Documentation](#-documentation)
-- [🤝 Contributing](#-contributing)
-- [⭐ Acknowledgements](#-acknowledgements)
+## Table of Contents
+
+
+## Table of Contents
+
+- [Roadmap](#roadmap)
+- [Why UltimateAuth](#why-ultimateauth)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Upgrading & Breaking Changes](#upgrading--breaking-changes)
+- [Community & Contributing](#community--contributing)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
 UltimateAuth is an open-source auth framework with platform-level capabilities that unifies secure session, cookie and token based Auth, modern PKCE flows, Blazor/Maui-ready client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
 
 ---
-## 🗺 Roadmap
+## Roadmap
 
 | Phase                   | Version       | Scope                                     | Status         | Release Date  |
 | ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
@@ -67,7 +73,7 @@ Whether you're using UltimateAuth, exploring the project, or interested in contr
 
 ---
 
-## 🌟 Why UltimateAuth
+## Why UltimateAuth
 The Six-Point Principles
 
 ### 1) Unified Authentication System
@@ -124,7 +130,7 @@ Traditional auth solutions struggle here — UltimateAuth embraces it.
 
 ---
 
-# 🚀 Quick Start
+# Quick Start
 > ⏱ Get started in minutes
 >
 > **This Quick Start uses a Blazor Server application with in-memory persistence.**
@@ -251,7 +257,7 @@ For a **complete, step-by-step setup with all required configuration, components
 
 ---
 
-## 💡 Usage
+## Usage
 
 **One Client. Your Auth Application API.**
 
@@ -324,7 +330,7 @@ Start with the simple API. Drop down to UltimateAuth's extensibility points when
 
 ---
 
-## 📘 Documentation
+## Documentation
 
 Two documentation experiences are provided:
 
@@ -336,7 +342,19 @@ Create accounts, simulate devices, test auth flows, and observe UltimateAuth in 
 
 ---
 
-## 🤝 Community & Contributing
+## Upgrading & Breaking Changes
+
+UltimateAuth aims to keep upgrades straightforward. When a release introduces breaking changes, we provide concise migration guides explaining what needs to be updated.
+
+**Upgrading from an earlier version?**
+
+Check the [Migration Guides](https://ultimateauth.com/docs/migration/index) for version-specific instructions.
+
+For new features and improvements, see the [GitHub Releases](https://github.com/CodeBeamOrg/UltimateAuth/releases).
+
+---
+
+## Community & Contributing
 
 UltimateAuth is built by developers, for developers — and everyone is welcome to be part of its journey.
 
@@ -354,7 +372,7 @@ Every great open-source project starts with people willing to build something to
 
 ---
 
-## ⭐ Acknowledgements
+## Acknowledgements
 
 UltimateAuth is built with love by CodeBeam and shaped by real-world .NET development —  
 for teams who want authentication to be secure, predictable, extensible, and a joy to use.

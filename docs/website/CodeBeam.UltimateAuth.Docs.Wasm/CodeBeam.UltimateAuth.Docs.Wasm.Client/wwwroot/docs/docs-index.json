@@ -257,5 +257,33 @@
     "Order": 4,
     "Group": "security",
     "GroupOrder": 8
+  },
+  {
+    "Title": "How-to Guides",
+    "Slug": "how-to-guides/index",
+    "Order": 1,
+    "Group": "how-to-guides",
+    "GroupOrder": 9
+  },
+  {
+    "Title": "Protect a Page",
+    "Slug": "how-to-guides/protect-a-page",
+    "Order": 2,
+    "Group": "how-to-guides",
+    "GroupOrder": 9
+  },
+  {
+    "Title": "Migration Guides",
+    "Slug": "migration/index",
+    "Order": 1,
+    "Group": "migration",
+    "GroupOrder": 10
+  },
+  {
+    "Title": "Migrating to v0.1.1",
+    "Slug": "migration/v0.1.1",
+    "Order": 2,
+    "Group": "migration",
+    "GroupOrder": 10
   }
 ]

@@ -1,6 +1,5 @@
 ﻿@namespace CodeBeam.UltimateAuth.Client.Blazor
 
-@using CodeBeam.UltimateAuth.Client.Contracts
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 @inject IUAuthStateManager StateManager
@@ -9,32 +8,34 @@
 
 <CascadingAuthenticationState>
     <CascadingValue Value="@StateManager.State" IsFixed="true">
-        @if (RenderMode == UAuthRenderMode.Reactive)
-        {
-            <UAuthScope>
+        <CascadingValue Name="UAuthRuntimeReady" Value="@_runtimeReady">
+            @if (RenderMode == UAuthRenderMode.Reactive)
+            {
+                <UAuthScope>
+                    @ChildContent
+                    @if (UseBuiltInRouter)
+                    {
+                        @RenderRouter()
+                    }
+                </UAuthScope>
+            }
+            else
+            {
                 @ChildContent
                 @if (UseBuiltInRouter)
                 {
                     @RenderRouter()
                 }
-            </UAuthScope>
-        }
-        else
-        {
-            @ChildContent
-            @if (UseBuiltInRouter)
-            {
-                @RenderRouter()
             }
-        }
+        </CascadingValue>
     </CascadingValue>
 </CascadingAuthenticationState>
 
 @code {
     private RenderFragment RenderRouter() => @<Router AppAssembly="@AppAssembly" AdditionalAssemblies="GetAdditionalAssemblies()">
         <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="@DefaultLayout">
-                <NotAuthorized>
+            <UAuthAuthorizeRouteView RouteData="routeData" DefaultLayout="@DefaultLayout">
+                <NotAuthorized Context="authenticationState">
                     @if (NotAuthorized is not null)
                     {
                         @NotAuthorized
@@ -44,7 +45,7 @@
                         <p>Not authorized</p>
                     }
                 </NotAuthorized>
-            </AuthorizeRouteView>
+            </UAuthAuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="@FocusSelector" />
         </Found>
     </Router>;

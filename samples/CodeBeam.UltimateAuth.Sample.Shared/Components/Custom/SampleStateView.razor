@@ -1,0 +1,130 @@
+﻿@using CodeBeam.UltimateAuth.Core.Defaults
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1" Class="d-flex align-center justify-center pa-4">
+
+    <MudContainer MaxWidth="MaxWidth.Small">
+
+        <MudStack Spacing="3">
+
+            <MudStack Spacing="1" AlignItems="AlignItems.Center">
+
+                <MudIcon Icon="@Icons.Material.Outlined.ViewQuilt"
+                         Color="Color.Primary"
+                         Size="Size.Large" />
+
+                <MudText Typo="Typo.h5">
+                    <b>UAuthStateView</b>
+                </MudText>
+
+                <MudText Typo="Typo.body2"
+                         Color="Color.Secondary"
+                         Align="Align.Center">
+                    This page is public. Each section evaluates its own authorization requirements.
+                </MudText>
+            </MudStack>
+
+            <MudPaper Outlined="true" Class="pa-4">
+
+                <MudStack Spacing="2">
+
+                    <MudText Typo="Typo.subtitle1">
+                        <b>Authenticated User</b>
+                    </MudText>
+
+                    <MudText Typo="Typo.caption"
+                             Color="Color.Secondary">
+                        No role or permission required.
+                    </MudText>
+
+                    <UAuthStateView>
+
+                        <Authorized Context="state">
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                Welcome, @state.Identity?.DisplayName!
+                            </MudAlert>
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <MudAlert Severity="Severity.Warning" Dense="true">
+                                Authentication required.
+                            </MudAlert>
+                        </NotAuthorized>
+
+                    </UAuthStateView>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-4">
+
+                <MudStack Spacing="2">
+
+                    <MudText Typo="Typo.subtitle1">
+                        <b>Admin Role</b>
+                    </MudText>
+
+                    <MudText Typo="Typo.caption"
+                             Color="Color.Secondary">
+                        Roles = Admin
+                    </MudText>
+
+                    <UAuthStateView Roles="Admin">
+
+                        <Authorized>
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                Admin role granted.
+                            </MudAlert>
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <MudAlert Severity="Severity.Error" Dense="true">
+                                Admin role required.
+                            </MudAlert>
+                        </NotAuthorized>
+
+                    </UAuthStateView>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-4">
+
+                <MudStack Spacing="2">
+
+                    <MudText Typo="Typo.subtitle1">
+                        <b>Admin Permission</b>
+                    </MudText>
+
+                    <MudText Typo="Typo.caption"
+                             Color="Color.Secondary">
+                        @UAuthActions.Users.QueryAdmin
+                    </MudText>
+
+                    <UAuthStateView Permissions="@UAuthActions.Users.QueryAdmin">
+
+                        <Authorized>
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                Admin permission granted.
+                            </MudAlert>
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <MudAlert Severity="Severity.Error" Dense="true">
+                                Admin permission required.
+                            </MudAlert>
+                        </NotAuthorized>
+
+                    </UAuthStateView>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudButton Href="/home"
+                       Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Back to Home
+            </MudButton>
+
+        </MudStack>
+    </MudContainer>
+</MudPage>

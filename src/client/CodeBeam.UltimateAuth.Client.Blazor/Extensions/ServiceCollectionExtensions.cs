@@ -41,6 +41,8 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
 
+        services.TryAddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
+
         services.TryAddScoped<ISessionCoordinator, SessionCoordinator>();
         services.AddScoped<UAuthClientDiagnostics>();
 

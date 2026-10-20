@@ -1,5 +1,4 @@
 ﻿@using System.Reflection
-@using CodeBeam.UltimateAuth.Sample.Shared.Components.Page
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
 @implements IDisposable
 
@@ -36,7 +35,9 @@
     </UAuthApp> *@
 
         <NotAuthorized>
-            <NotAuthorized />
+            <LayoutView Layout="@DefaultLayout">
+                <NotAuthorized />
+            </LayoutView>
         </NotAuthorized>
 
     </UAuthApp>
