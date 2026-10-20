@@ -1,0 +1,8 @@
+﻿@page "/samples/auth/combined"
+@using CodeBeam.UltimateAuth.Core.Defaults
+@attribute [UAuthAuthorize(Permissions = UAuthActions.Users.QueryAdmin)]
+@attribute [Authorize(Roles = "Admin")]
+
+<SampleAuthorizationResult Title="Combined Authorization"
+                           Description="Both UltimateAuth and ASP.NET Core authorization succeeded."
+                           Requirement="[UAuthAuthorize(Permissions = UAuthActions.Users.QueryAdmin)] + [Authorize(Roles = &quot;Admin&quot;)]" />

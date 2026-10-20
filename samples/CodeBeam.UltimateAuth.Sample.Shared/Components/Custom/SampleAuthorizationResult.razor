@@ -1,0 +1,66 @@
+﻿@inject NavigationManager Nav
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1" Class="d-flex align-center justify-center pa-4">
+
+    <MudPaper Outlined="true" Elevation="0" Class="pa-6" Style="width: 100%; max-width: 520px;">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <MudAvatar Size="Size.Large" Color="Color.Success" Variant="Variant.Outlined">
+                <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser" Size="Size.Large" />
+            </MudAvatar>
+
+            <MudText Typo="Typo.h5"><b>@(Public ? "Public Access" : "Access Granted")</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">@Description</MudText>
+
+            <MudDivider Class="my-2" />
+
+            <MudStack Spacing="2" Class="mud-width-full">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Color="Color.Secondary" Typo="Typo.body2">Scenario</MudText>
+                    <MudText Typo="Typo.subtitle2"><b>@Title</b></MudText>
+                </MudStack>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Color="Color.Secondary" Typo="Typo.body2">Authorization</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@(Public ? "Public" : "Authorized")</MudChip>
+                </MudStack>
+
+            </MudStack>
+
+            <MudPaper Outlined="true" Class="pa-3 mud-width-full" Style="background: var(--mud-palette-background-gray);">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Outlined.Code" Size="Size.Small" Color="Color.Secondary" />
+
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">
+                            REQUIREMENT
+                        </MudText>
+                    </MudStack>
+
+                    <MudText Typo="Typo.body2" Style="font-family: monospace; overflow-wrap: anywhere;">
+                        @Requirement
+                    </MudText>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/home"))">
+                Back to Home
+            </MudButton>
+
+        </MudStack>
+    </MudPaper>
+</MudPage>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = default!;
+
+    [Parameter]
+    public string Description { get; set; } = "You have successfully accessed this protected page.";
+
+    [Parameter]
+    public bool Public { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Requirement { get; set; } = default!;
+}

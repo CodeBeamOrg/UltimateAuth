@@ -1,0 +1,192 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Defaults
+
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1" Class="d-flex align-center justify-center pa-4">
+
+    <MudContainer MaxWidth="MaxWidth.Medium">
+
+        <MudStack Spacing="3">
+
+            <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Outlined.Rule"
+                         Color="Color.Primary"
+                         Size="Size.Large" />
+
+                <MudText Typo="Typo.h5">
+                    <b>Authorization Match Modes</b>
+                </MudText>
+
+                <MudText Typo="Typo.body2"
+                         Color="Color.Secondary"
+                         Align="Align.Center">
+                    Compare how Category, Any, and All evaluate the same requirements.
+                </MudText>
+            </MudStack>
+
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2">
+                        <b>Requirements</b>
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        Roles: Admin, Manager, User
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        Permission: @UAuthActions.Users.QueryAdmin
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            <MudGrid Spacing="2">
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4 h-100">
+                        <MudStack Spacing="2">
+
+                            <MudText Typo="Typo.subtitle1">
+                                <b>Category</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.caption"
+                                     Color="Color.Secondary">
+                                One matching role AND the permission.
+                            </MudText>
+
+                            <MudDivider />
+
+                            <UAuthStateView Roles="Admin,Manager,User"
+                                            Permissions="@UAuthActions.Users.QueryAdmin"
+                                            MatchMode="AuthorizationMatchMode.Category">
+
+                                <Authorized>
+                                    <MudChip T="string"
+                                             Color="Color.Success"
+                                             Size="Size.Small">
+                                        Authorized
+                                    </MudChip>
+                                </Authorized>
+
+                                <NotAuthorized>
+                                    <MudChip T="string"
+                                             Color="Color.Error"
+                                             Size="Size.Small">
+                                        Denied
+                                    </MudChip>
+                                </NotAuthorized>
+
+                                <Authorizing>
+                                    <MudProgressCircular Size="Size.Small"
+                                                         Indeterminate="true" />
+                                </Authorizing>
+
+                            </UAuthStateView>
+
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4 h-100">
+                        <MudStack Spacing="2">
+
+                            <MudText Typo="Typo.subtitle1">
+                                <b>Any</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.caption"
+                                     Color="Color.Secondary">
+                                One matching role OR the permission.
+                            </MudText>
+
+                            <MudDivider />
+
+                            <UAuthStateView Roles="Admin,Manager,User"
+                                            Permissions="@UAuthActions.Users.QueryAdmin"
+                                            MatchMode="AuthorizationMatchMode.Any">
+
+                                <Authorized>
+                                    <MudChip T="string"
+                                             Color="Color.Success"
+                                             Size="Size.Small">
+                                        Authorized
+                                    </MudChip>
+                                </Authorized>
+
+                                <NotAuthorized>
+                                    <MudChip T="string"
+                                             Color="Color.Error"
+                                             Size="Size.Small">
+                                        Denied
+                                    </MudChip>
+                                </NotAuthorized>
+
+                                <Authorizing>
+                                    <MudProgressCircular Size="Size.Small"
+                                                         Indeterminate="true" />
+                                </Authorizing>
+
+                            </UAuthStateView>
+
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4 h-100">
+                        <MudStack Spacing="2">
+
+                            <MudText Typo="Typo.subtitle1">
+                                <b>All</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.caption"
+                                     Color="Color.Secondary">
+                                Both roles AND the permission.
+                            </MudText>
+
+                            <MudDivider />
+
+                            <UAuthStateView Roles="Admin,Manager,User"
+                                            Permissions="@UAuthActions.Users.QueryAdmin"
+                                            MatchMode="AuthorizationMatchMode.All">
+
+                                <Authorized>
+                                    <MudChip T="string"
+                                             Color="Color.Success"
+                                             Size="Size.Small">
+                                        Authorized
+                                    </MudChip>
+                                </Authorized>
+
+                                <NotAuthorized>
+                                    <MudChip T="string"
+                                             Color="Color.Error"
+                                             Size="Size.Small">
+                                        Denied
+                                    </MudChip>
+                                </NotAuthorized>
+
+                                <Authorizing>
+                                    <MudProgressCircular Size="Size.Small"
+                                                         Indeterminate="true" />
+                                </Authorizing>
+
+                            </UAuthStateView>
+
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+            </MudGrid>
+
+            <MudButton Href="/home"
+                       Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Back to Home
+            </MudButton>
+
+        </MudStack>
+    </MudContainer>
+</MudPage>

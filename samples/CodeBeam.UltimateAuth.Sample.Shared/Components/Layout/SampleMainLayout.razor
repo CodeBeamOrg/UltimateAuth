@@ -11,6 +11,50 @@
 
         <MudSpacer />
 
+        <MudMenu Dense="true" PopoverClass="uauth-menu-popover" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+
+            <ActivatorContent>
+                <MudButton Class="d-none d-sm-flex" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Outlined.Security" EndIcon="@Icons.Material.Filled.ArrowDropDown" OnClick="@context.ToggleAsync">
+                    Authorization Lab
+                </MudButton>
+
+                <MudIconButton Class="d-flex d-sm-none" Icon="@Icons.Material.Outlined.Security" Color="Color.Inherit" Size="Size.Medium" OnClick="@context.ToggleAsync" aria-label="Authorization Lab" />
+            </ActivatorContent>
+
+            <ChildContent>
+                <MudText Typo="Typo.subtitle2" Class="px-4 pt-3 pb-1">
+                    <b>Authorization Lab</b>
+                </MudText>
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-4 pb-2">
+                    Explore route and UI authorization.
+                </MudText>
+
+                <MudDivider />
+
+                <MudText Typo="Typo.overline" Class="px-4 pt-2">ROUTE PROTECTION</MudText>
+
+                <MudMenuItem Icon="@Icons.Material.Outlined.Public" Label="Public Page" Href="/samples/auth/public" />
+                <MudMenuItem Icon="@Icons.Material.Outlined.Lock" Label="Authenticated Page" Href="/samples/auth/authenticated" />
+                <MudMenuItem Icon="@Icons.Material.Outlined.AdminPanelSettings" Label="Admin Role" Href="/samples/auth/admin" />
+                <MudMenuItem Icon="@Icons.Material.Outlined.Security" Label="Admin Permission" Href="/samples/auth/permission-admin" />
+
+                <MudDivider />
+
+                <MudText Typo="Typo.overline" Class="px-4 pt-2">AUTHORIZATION MODELS</MudText>
+
+                <MudMenuItem Icon="@Icons.Material.Outlined.Rule" Label="Match Modes" Href="/samples/auth/match-modes" />
+                <MudMenuItem Icon="@Icons.Material.Outlined.VerifiedUser" Label="ASP.NET Core Authorize" Href="/samples/auth/aspnet" />
+                <MudMenuItem Icon="@Icons.Material.Outlined.Layers" Label="Combined Authorization" Href="/samples/auth/combined" />
+
+                <MudDivider />
+
+                <MudText Typo="Typo.overline" Class="px-4 pt-2">COMPONENT AUTHORIZATION</MudText>
+
+                <MudMenuItem Icon="@Icons.Material.Outlined.ViewQuilt" Label="UAuthStateView" Href="/samples/auth/state-view" />
+            </ChildContent>
+        </MudMenu>
+
         <MudIconButton Icon="@(DarkModeManager.IsDarkMode? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" OnClick="@(() => DarkModeManager.ToggleAsync())" />
 
         <UAuthStateView>
