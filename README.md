@@ -24,6 +24,7 @@
 - [🚀 Quick Start](#-quick-start)
 - [💡 Usage](#-usage)
 - [📘 Documentation](#-documentation)
+- [🔄 Upgrading & Breaking Changes](#-upgrading--breaking-changes)
 - [🤝 Contributing](#-contributing)
 - [⭐ Acknowledgements](#-acknowledgements)
 
@@ -333,6 +334,18 @@ Guides, API reference, tutorials - https://ultimateauth.com
 
 ### **2) Interactive Identity Sandbox** (Available Soon)
 Create accounts, simulate devices, test auth flows, and observe UltimateAuth in action.  
+
+---
+
+## 🔄 Upgrading & Breaking Changes
+
+UltimateAuth aims to keep upgrades straightforward. When a release introduces breaking changes, we provide concise migration guides explaining what needs to be updated.
+
+**Upgrading from an earlier version?**
+
+Check the [Migration Guides](https://ultimateauth.com/docs/migration) for version-specific instructions.
+
+For new features and improvements, see the [GitHub Releases](https://github.com/CodeBeamOrg/UltimateAuth/releases).
 
 ---
 
