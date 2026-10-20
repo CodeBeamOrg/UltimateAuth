@@ -6,5 +6,7 @@
   "plugin-domains": 5,
   "client": 6,
   "configuration": 7,
-  "security": 8
+  "security": 8,
+  "how-to-guides": 9,
+  "migration": 10
 }

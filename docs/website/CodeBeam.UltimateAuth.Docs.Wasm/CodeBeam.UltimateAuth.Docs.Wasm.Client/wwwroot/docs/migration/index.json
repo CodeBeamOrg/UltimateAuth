@@ -1,0 +1,14 @@
+{
+  "Slug": "migration/index",
+  "Title": "Migration Guides",
+  "Html": "\n\u003Cp\u003EVersion-specific instructions for upgrading UltimateAuth applications.\u003C/p\u003E\n\u003Cp\u003EMigration guides focus on breaking changes, behavior changes, and required application updates.\u003C/p\u003E\n\u003Ch2 class=\u0022mud-scrollspy-section\u0022 id=\u0022available-guides\u0022\u003EAvailable Guides\u003C/h2\u003E\n\u003Cul\u003E\n\u003Cli\u003E\u003Ca href=\u0022/docs/migration/v0.1.1\u0022\u003EMigrating to v0.1.1\u003C/a\u003E \u2014 Blazor route authorization and component lifecycle changes.\u003C/li\u003E\n\u003C/ul\u003E\n",
+  "Headings": [
+    {
+      "Id": "available-guides",
+      "Text": "Available Guides",
+      "Level": 0
+    }
+  ],
+  "SourceHash": "FA6FAFE02BA9EF2656EBA1C8531CEC3F43A2666D05A61B6E2979BD96B3593D8B",
+  "BuilderVersion": "1"
+}
