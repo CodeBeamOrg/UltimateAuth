@@ -1,9 +1,14 @@
 ﻿.lab-header {
-    position: relative;
-    z-index: 20;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
     width: 100%;
     background: var(--mud-palette-surface);
     border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    background: color-mix( in srgb, var(--mud-palette-surface) 92%, transparent );
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
 }
 
 .lab-header-inner {

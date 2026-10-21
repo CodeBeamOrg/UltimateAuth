@@ -7,8 +7,7 @@
 
             <a href="/" class="lab-brand">
                 <span class="lab-brand-symbol">
-                    <MudIcon Icon="@Icons.Material.Filled.Science"
-                             Size="Size.Medium" />
+                    <MudImage Src="identity-lab.png" Height="42" Width="42" />
                 </span>
 
                 <span class="lab-brand-text">
@@ -44,10 +43,11 @@
                 <MudButton Href="/login"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Size="Size.Medium"
-                           EndIcon="@Icons.Material.Filled.ArrowForward"
-                           Class="lab-launch-button">
-                    Launch Lab
+                           StartIcon="@Icons.Material.Filled.RocketLaunch">
+
+                    <span class="d-none d-sm-inline">Launch Lab</span>
+                    <span class="d-inline d-sm-none">Launch</span>
+
                 </MudButton>
 
             </div>

@@ -3,6 +3,15 @@
 
 <PageTitle>Identity Lab — Explore UltimateAuth</PageTitle>
 
+<HeadContent>
+    <meta name="description" content="Explore UltimateAuth in a free, open-source identity sandbox. Test authentication, authorization, sessions, roles, and permissions through real interactive workflows." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Identity Lab | Interactive UltimateAuth Sandbox" />
+    <meta property="og:description" content="Experience real authentication and authorization flows powered by the open-source UltimateAuth framework for .NET." />
+    <meta name="twitter:card" content="summary_large_image" />
+</HeadContent>
+
 <section class="lab-hero">
     <MudContainer MaxWidth="MaxWidth.Large">
         <MudGrid Spacing="6" AlignItems="AlignItems.Center">
@@ -13,6 +22,19 @@
                     THE ULTIMATEAUTH EXPERIENCE
                 </div>
 
+                <a href="https://github.com/CodeBeamOrg/UltimateAuth"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="lab-opensource-link">
+
+                    <MudIcon Icon="@Icons.Custom.Brands.GitHub"
+                             Size="Size.Small" />
+
+                    <span>Open Source on GitHub</span>
+
+                    <MudIcon Icon="@Icons.Material.Filled.NorthEast" Size="Size.Small" />
+                </a>
+
                 <MudText Typo="Typo.h2" Class="lab-hero-title">
                     Identity, made
                     <span>interactive.</span>
@@ -20,8 +42,7 @@
 
                 <MudText Typo="Typo.body1" Class="lab-hero-description">
                     Create your sandbox. Manage identities.
-                    Explore authentication, authorization,
-                    and session management powered by UltimateAuth.
+                    Explore authentication, authorization and session management powered by UltimateAuth.
                 </MudText>
 
                 <MudStack Row="true" Spacing="2" Class="mt-8" AlignItems="AlignItems.Center">
@@ -30,7 +51,7 @@
                                Color="Color.Primary"
                                Size="Size.Large"
                                EndIcon="@Icons.Material.Filled.ArrowForward">
-                        Launch Your Sandbox
+                        Create Your Sandbox
                     </MudButton>
 
                     <MudButton Href="https://ultimateauth.com/docs"
@@ -46,11 +67,11 @@
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline"
                              Color="Color.Success"
                              Size="Size.Small" />
-                    <MudText Typo="Typo.caption">Free to explore</MudText>
+                    <MudText Typo="Typo.caption">Free to explore completely</MudText>
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline"
                              Color="Color.Success"
                              Size="Size.Small" />
-                    <MudText Typo="Typo.caption">Real authentication flows</MudText>
+                    <MudText Typo="Typo.caption">Real auth flows</MudText>
                 </MudStack>
             </MudItem>
 
@@ -154,7 +175,18 @@
             </MudText>
 
             <MudText Typo="Typo.body1" Color="Color.Secondary">
-                Go beyond documentation. Explore real identity workflows through an interactive sandbox.
+                Go beyond documentation. Explore real identity workflows
+                through an interactive sandbox.
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Color="Color.Secondary"
+                     Class="mt-3">
+                <b>Powered by UltimateAuth, not simulated.</b>
+                Every authentication, authorization, and session management
+                capability demonstrated here is powered by UltimateAuth itself.
+                If it works in Identity Lab, it's a capability you can
+                build with UltimateAuth.
             </MudText>
         </div>
 
@@ -230,6 +262,115 @@
                 Get Started
             </MudButton>
         </div>
+    </MudContainer>
+</section>
+   
+<section class="lab-section lab-guidelines-section">
+    <MudContainer MaxWidth="MaxWidth.Large">
+
+        <div class="lab-section-heading">
+            <MudText Typo="Typo.overline" Color="Color.Primary">
+                A SHARED DEVELOPER SANDBOX
+            </MudText>
+
+            <MudText Typo="Typo.h3">
+                Explore freely. Use responsibly.
+            </MudText>
+
+            <MudText Typo="Typo.body1" Color="Color.Secondary">
+                Identity Lab is a free, shared environment for
+                learning, experimentation, and discovering issues
+                in UltimateAuth. Help us keep it available for everyone.
+            </MudText>
+        </div>
+
+        <MudGrid Spacing="3">
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Outlined="true" Elevation="0"
+                          Class="lab-guideline-card pa-4">
+                    <div class="lab-feature-icon">
+                        <MudIcon Icon="@Icons.Material.Outlined.Science"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <MudText Typo="Typo.h6">Learn & test</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Explore authentication, authorization,
+                        sessions, and account management to understand
+                        how UltimateAuth works.
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Outlined="true" Elevation="0"
+                          Class="lab-guideline-card pa-4">
+                    <div class="lab-feature-icon">
+                        <MudIcon Icon="@Icons.Material.Outlined.VolunteerActivism"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <MudText Typo="Typo.h6">Fair use</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Avoid automated load testing, excessive
+                        requests, or activities that could disrupt
+                        the shared environment.
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Outlined="true" Elevation="0"
+                          Class="lab-guideline-card pa-4">
+                    <div class="lab-feature-icon">
+                        <MudIcon Icon="@Icons.Material.Outlined.GppGood"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <MudText Typo="Typo.h6">Test data only</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Use fictional accounts and test credentials.
+                        Never submit real personal, confidential,
+                        or production information.
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Outlined="true" Elevation="0"
+                          Class="lab-guideline-card pa-4">
+                    <div class="lab-feature-icon">
+                        <MudIcon Icon="@Icons.Material.Outlined.BugReport"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <MudText Typo="Typo.h6">Report issues</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Found unexpected behavior? Help improve
+                        UltimateAuth by sharing your findings
+                        with the open-source community.
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+        <div class="lab-guidelines-footer">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Free to use · Shared environment · Test data only
+            </MudText>
+
+            <MudButton Href="https://github.com/CodeBeamOrg/UltimateAuth/issues/new"
+                       Target="_blank"
+                       Rel="noopener noreferrer"
+                       Variant="Variant.Text"
+                       Color="Color.Primary"
+                       EndIcon="@Icons.Material.Filled.OpenInNew">
+                Report an Issue
+            </MudButton>
+        </div>
+
     </MudContainer>
 </section>
 

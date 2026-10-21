@@ -3,6 +3,10 @@
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
 @inject DarkModeManager DarkModeManager
 
+<HeadContent>
+    <meta name="robots" content="noindex, nofollow" />
+</HeadContent>
+
 <MudLayout Class="lab-dashboard-layout">
     <div class="lab-appbar-host">
         <MudAppBar Color="Color.Inherit" Elevation="0" Fixed="true" Class="lab-dashboard-appbar">
@@ -95,6 +99,12 @@
                 <MudNavLink Href="/dashboard/access"
                             Icon="@Icons.Material.Filled.VerifiedUser">
                     My Access
+                </MudNavLink>
+
+                <MudNavLink Href="/dashboard/authorization-lab"
+                            Match="NavLinkMatch.All"
+                            Icon="@Icons.Material.Outlined.Security">
+                    Authorization Lab
                 </MudNavLink>
 
                 @if (ShowManagement)

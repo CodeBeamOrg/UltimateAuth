@@ -1,0 +1,132 @@
+.auth-lab-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.auth-lab-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-primary-hover);
+}
+
+.auth-lab-header .mud-typography-h4 {
+    font-size: 1.7rem;
+    line-height: 1.3;
+}
+
+.auth-lab-section {
+    margin-bottom: 32px;
+}
+
+.auth-lab-section-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+    .auth-lab-section-title .mud-typography-h6 {
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+    .auth-lab-section-title .mud-typography-body2 {
+        font-size: .78rem;
+        line-height: 1.6;
+        margin-top: 3px;
+    }
+
+.auth-lab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.auth-lab-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 18px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 13px;
+    background: var(--mud-palette-surface);
+}
+
+    .auth-lab-card > .mud-icon-root {
+        flex-shrink: 0;
+    }
+
+.auth-lab-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+}
+
+    .auth-lab-card-content strong {
+        font-size: .86rem;
+        font-weight: 750;
+    }
+
+    .auth-lab-card-content span {
+        font-size: .75rem;
+        line-height: 1.6;
+        color: var(--mud-palette-text-secondary);
+    }
+
+a.auth-lab-card {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+}
+
+    a.auth-lab-card:hover {
+        border-color: var(--mud-palette-primary);
+        background: var(--mud-palette-primary-hover);
+        transform: translateY(-2px);
+    }
+
+    a.auth-lab-card:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+
+@media (prefers-reduced-motion: reduce) {
+    a.auth-lab-card {
+        transition: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .auth-lab-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-lab-header {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .auth-lab-header-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .auth-lab-header .mud-typography-h4 {
+        font-size: 1.35rem;
+    }
+
+    .auth-lab-card {
+        padding: 15px;
+    }
+}

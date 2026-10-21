@@ -49,112 +49,193 @@
 
             <!-- OPERATIONS -->
             <MudItem xs="12" md="4" Class="order-2 order-md-1">
-                <MudExpansionPanel Text="Auth Operations" Expanded="true">
-                    <MudStack Class="mt-2" Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle2">Session</MudText>
-                            <MudDivider Style="width: 60%" />
-                        </MudStack>
+                <MudExpansionPanel Text="Auth Operations"
+                                   Expanded="true"
+                                   Class="uauth-operations-panel">
 
-                        <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="6">
-                                <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.VerifiedUser" OnClick="Validate">
-                                    <MudText Class="mud-width-full" Align="Align.Center">Validate</MudText>
-                                </MudButton>
-                            </MudItem>
+                    <div class="uauth-operations">
 
-                            <MudItem xs="12" sm="6">
-                                <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshSession">
-                                    <MudText Class="mud-width-full" Align="Align.Center">Manual Refresh</MudText>
-                                </MudButton>
-                            </MudItem>
+                        <div class="uauth-operation-section">
+                            <div class="uauth-operation-heading">
+                                <MudIcon Icon="@Icons.Material.Outlined.Security"
+                                         Size="Size.Small" />
+                                <span>Session</span>
+                            </div>
 
-                            <MudItem xs="12">
-                                <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Logout" OnClick="Logout">
-                                    <MudText Class="mud-width-full" Align="Align.Center">Logout</MudText>
-                                </MudButton>
-                            </MudItem>
-                        </MudGrid>
+                            <div class="uauth-operation-grid">
+                                <button type="button" class="uauth-operation"
+                                        @onclick="Validate">
+                                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Validate</strong>
+                                        <small>Check authentication</small>
+                                    </span>
+                                </button>
 
-                        <MudStack Class="mt-4" Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle2">Account</MudText>
-                            <MudDivider Style="width: 60%" />
-                        </MudStack>
+                                <button type="button" class="uauth-operation"
+                                        @onclick="RefreshSession">
+                                    <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Refresh</strong>
+                                        <small>Renew session</small>
+                                    </span>
+                                </button>
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.SpaceDashboard" OnClick="OpenSessionDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Manage Sessions</MudText>
-                        </MudButton>
+                                <button type="button"
+                                        class="uauth-operation uauth-operation-danger"
+                                        @onclick="Logout">
+                                    <MudIcon Icon="@Icons.Material.Filled.Logout"
+                                             Color="Color.Error" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Logout</strong>
+                                        <small>End current session</small>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Person" OnClick="OpenProfileDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Manage Profile</MudText>
-                        </MudButton>
+                        <div class="uauth-operation-section">
+                            <div class="uauth-operation-heading">
+                                <MudIcon Icon="@Icons.Material.Outlined.ManageAccounts"
+                                         Size="Size.Small" />
+                                <span>Account</span>
+                            </div>
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Abc" OnClick="OpenIdentifierDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Manage Identifiers</MudText>
-                        </MudButton>
+                            <div class="uauth-operation-grid">
+                                <button type="button" class="uauth-operation"
+                                        @onclick="OpenSessionDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.Devices"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Sessions</strong>
+                                        <small>Manage devices</small>
+                                    </span>
+                                </button>
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Password" OnClick="OpenCredentialDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Manage Credentials</MudText>
-                        </MudButton>
+                                <button type="button" class="uauth-operation"
+                                        @onclick="OpenProfileDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Profile</strong>
+                                        <small>Personal details</small>
+                                    </span>
+                                </button>
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="OpenAccountStatusDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Suspend | Delete Account</MudText>
-                        </MudButton>
+                                <button type="button" class="uauth-operation"
+                                        @onclick="OpenIdentifierDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.AlternateEmail"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Identifiers</strong>
+                                        <small>Emails & usernames</small>
+                                    </span>
+                                </button>
 
-                        <MudStack Class="mt-4" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudText Typo="Typo.subtitle2">Admin</MudText>
-                            <MudDivider Style="width: 60%" />
-                            <UAuthStateView Roles="Admin">
-                                <NotAuthorized>
-                                    <MudSwitchM3 @bind-Value="_showAdminPreview" Color="Color.Primary" Label="View" />
-                                </NotAuthorized>
-                            </UAuthStateView>
-                        </MudStack>
+                                <button type="button" class="uauth-operation"
+                                        @onclick="OpenCredentialDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.Key"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Credentials</strong>
+                                        <small>Passwords & security</small>
+                                    </span>
+                                </button>
 
-                        @if (_showAdminPreview)
-                        {
-                            <MudAlert Dense Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">
-                                Admin operations are shown for preview. Sign in as an Admin to execute them.
-                            </MudAlert>
-                        }
+                                <button type="button"
+                                        class="uauth-operation uauth-operation-danger"
+                                        @onclick="OpenAccountStatusDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
+                                             Color="Color.Error" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Account Status</strong>
+                                        <small>Suspend or delete</small>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
 
-                        @if (AuthState?.IsInRole("Admin") == true || _showAdminPreview)
-                        {
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
-                                    <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick="OpenUserDialog">
-                                        @* <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center"> *@
-                                            @* <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" /> *@
-                                            <MudText Class="mud-width-full" Align="Align.Center">User Management</MudText>
-                                        @* </MudStack> *@
-                                    </MudButton>
-                                </MudItem>
+                        <div class="uauth-operation-section">
+                            <div class="uauth-operation-heading">
+                                <MudIcon Icon="@Icons.Material.Outlined.AdminPanelSettings"
+                                         Size="Size.Small" />
+                                <span>Administration</span>
 
-                                <MudItem xs="12" sm="6">
-                                    <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenRoleDialog">
-                                        @* <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"> *@
-                                            <MudText Class="mud-width-full" Align="Align.Center">Role Management</MudText>
-                                        @* </MudStack> *@
-                                    </MudButton>
-                                </MudItem>
-                            </MudGrid>
-                        }
+                                <UAuthStateView Roles="Admin">
+                                    <NotAuthorized>
+                                        <MudSwitchM3 @bind-Value="_showAdminPreview"
+                                                     Color="Color.Primary"
+                                                     Label="Preview"
+                                                     Class="ml-auto" />
+                                    </NotAuthorized>
+                                </UAuthStateView>
+                            </div>
 
-                        <MudStack Class="mt-4" Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle2">Resource Api</MudText>
-                            <MudDivider Style="width: 60%" />
-                        </MudStack>
+                            @if (_showAdminPreview)
+                            {
+                                <MudAlert Dense="true"
+                                          Severity="Severity.Warning"
+                                          Variant="Variant.Outlined">
+                                    Admin operations are shown for preview.
+                                    Sign in as an Admin to execute them.
+                                </MudAlert>
+                            }
 
-                        <MudButton FullWidth Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Api" OnClick="OpenResourceApiDialog">
-                            <MudText Class="mud-width-full" Align="Align.Center">Manage Resource</MudText>
-                        </MudButton>
-                    </MudStack>
+                            @if (AuthState?.IsInRole("Admin") == true || _showAdminPreview)
+                            {
+                                <div class="uauth-operation-grid">
+                                    <button type="button" class="uauth-operation"
+                                            @onclick="OpenUserDialog">
+                                        <MudIcon Icon="@Icons.Material.Filled.People"
+                                                 Color="Color.Primary" />
+                                        <span class="uauth-operation-text">
+                                            <strong>Users</strong>
+                                            <small>User management</small>
+                                        </span>
+                                    </button>
+
+                                    <button type="button" class="uauth-operation"
+                                            @onclick="OpenRoleDialog">
+                                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings"
+                                                 Color="Color.Primary" />
+                                        <span class="uauth-operation-text">
+                                            <strong>Roles</strong>
+                                            <small>Role management</small>
+                                        </span>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="uauth-operation-section">
+                            <div class="uauth-operation-heading">
+                                <MudIcon Icon="@Icons.Material.Outlined.Api"
+                                         Size="Size.Small" />
+                                <span>Resource API</span>
+                            </div>
+
+                            <div class="uauth-operation-grid">
+                                <button type="button" class="uauth-operation"
+                                        @onclick="OpenResourceApiDialog">
+                                    <MudIcon Icon="@Icons.Material.Filled.Storage"
+                                             Color="Color.Primary" />
+                                    <span class="uauth-operation-text">
+                                        <strong>Resources</strong>
+                                        <small>Protected API demo</small>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
                 </MudExpansionPanel>
             </MudItem>
 
             <!-- PROFILE -->
             <MudItem xs="12" md="4" Class="order-1 order-md-2">
-                <MudCard Style="height: 90vh; max-height:90vh; overflow: auto" Outlined="true" Elevation="0">
+                <MudCard Class="uauth-profile-card" Outlined="true" Elevation="0">
                     <MudCardHeader Class="d-flex flex-column align-center justify-center" Style="background: var(--mud-palette-background-gray)">
                         <MudAvatar Style="width: 120px; height: 120px" Color="Color.Primary">
                             <MudText Typo="Typo.h4">

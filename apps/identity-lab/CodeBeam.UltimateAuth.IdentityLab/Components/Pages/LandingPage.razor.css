@@ -366,6 +366,70 @@
     background: var(--mud-palette-background);
 }
 
+.lab-guidelines-section {
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.lab-guideline-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 14px;
+    background: var(--mud-palette-surface);
+}
+
+    .lab-guideline-card .mud-typography-h6 {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .lab-guideline-card .mud-typography-body2 {
+        font-size: .82rem;
+        line-height: 1.65;
+    }
+
+.lab-guidelines-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.lab-opensource-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    margin-top: 16px;
+    margin-bottom: 12px;
+    padding: 7px 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 999px;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-primary-hover);
+    text-decoration: none;
+    font-size: .76rem;
+    font-weight: 650;
+    transition: border-color .2s ease;
+}
+
+    .lab-opensource-link:hover {
+        border-color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary);
+    }
+
+@media (max-width: 599.98px) {
+    .lab-guidelines-footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+}
+
 @media (max-width: 960px) {
     .lab-preview {
         transform: none;
