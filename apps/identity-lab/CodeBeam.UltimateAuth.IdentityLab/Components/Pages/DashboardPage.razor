@@ -1,0 +1,275 @@
+﻿@page "/dashboard"
+@layout DashboardLayout
+
+@* TODO: Enable after authentication integration.
+@attribute [UAuthAuthorize]
+*@
+
+<PageTitle>Dashboard · Identity Lab</PageTitle>
+
+<div class="lab-overview">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-overview-heading">
+            <div>
+                <span class="lab-overview-eyebrow">IDENTITY WORKSPACE</span>
+                <h1>Welcome to your sandbox.</h1>
+                <p>
+                    Explore your identity, manage sessions, and
+                    experience UltimateAuth in action.
+                </p>
+            </div>
+
+            <MudChip T="string"
+                     Color="Color.Info"
+                     Variant="Variant.Outlined"
+                     Size="Size.Small"
+                     Icon="@Icons.Material.Filled.Science">
+                Demo Preview
+            </MudChip>
+        </div>
+
+        <div class="lab-overview-section-title">
+            <div>
+                <h2>My Identity</h2>
+                <p>Your personal authentication and security overview.</p>
+            </div>
+        </div>
+
+        <div class="lab-overview-stats">
+
+            <div class="lab-stat-card">
+                <span class="lab-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                </span>
+                <span class="lab-stat-label">Identity status</span>
+                <strong>Authenticated</strong>
+                <small>Example identity state</small>
+            </div>
+
+            <div class="lab-stat-card">
+                <span class="lab-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                </span>
+                <span class="lab-stat-label">My sessions</span>
+                <strong>2</strong>
+                <small>Example active sessions</small>
+            </div>
+
+            <div class="lab-stat-card">
+                <span class="lab-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                </span>
+                <span class="lab-stat-label">My roles</span>
+                <strong>1</strong>
+                <small>Example assigned role</small>
+            </div>
+
+            <div class="lab-stat-card">
+                <span class="lab-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Key" />
+                </span>
+                <span class="lab-stat-label">My permissions</span>
+                <strong>View</strong>
+                <small>Explore access decisions</small>
+            </div>
+
+        </div>
+
+        <div class="lab-overview-grid">
+
+            <section class="lab-panel">
+                <div class="lab-panel-heading">
+                    <div>
+                        <h3>Identity Details</h3>
+                        <p>Your account and authentication context.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Badge"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-profile">
+                    <MudAvatar Color="Color.Primary"
+                               Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" />
+                    </MudAvatar>
+
+                    <div>
+                        <strong>Sandbox User</strong>
+                        <span>Example account</span>
+                    </div>
+
+                    <MudSpacer />
+
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Text"
+                             Size="Size.Small">
+                        Active
+                    </MudChip>
+                </div>
+
+                <div class="lab-detail-row">
+                    <span>Username</span>
+                    <strong>demo-user</strong>
+                </div>
+
+                <div class="lab-detail-row">
+                    <span>Authentication</span>
+                    <strong>Password</strong>
+                </div>
+
+                <div class="lab-detail-row">
+                    <span>Session model</span>
+                    <strong>Root / Chain / Session</strong>
+                </div>
+
+                <MudButton Href="/dashboard/identity"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Size="Size.Medium"
+                           FullWidth="true"
+                           Class="mt-5">
+                    Explore My Identity
+                </MudButton>
+            </section>
+
+            <section class="lab-panel">
+                <div class="lab-panel-heading">
+                    <div>
+                        <h3>Session Management</h3>
+                        <p>Discover how device sessions are managed.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Devices"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-session-item">
+                    <span class="lab-session-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Computer" />
+                    </span>
+                    <div>
+                        <strong>Windows · Chrome</strong>
+                        <span>Example current device</span>
+                    </div>
+                    <MudSpacer />
+                    <MudChip T="string"
+                             Color="Color.Success"
+                             Variant="Variant.Text"
+                             Size="Size.Small">
+                        Current
+                    </MudChip>
+                </div>
+
+                <div class="lab-session-item">
+                    <span class="lab-session-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Smartphone" />
+                    </span>
+                    <div>
+                        <strong>Mobile · Safari</strong>
+                        <span>Example remote device</span>
+                    </div>
+                    <MudSpacer />
+                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                             Color="Color.Secondary" />
+                </div>
+
+                <MudButton Href="/dashboard/sessions"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Size="Size.Medium"
+                           FullWidth="true"
+                           Class="mt-5">
+                    Manage My Sessions
+                </MudButton>
+            </section>
+
+        </div>
+
+        @if (ShowManagement)
+        {
+            <div class="lab-overview-section-title lab-management-heading">
+                <div>
+                    <span class="lab-overview-eyebrow">SANDBOX MANAGEMENT</span>
+                    <h2>Manage your environment</h2>
+                    <p>
+                        Create users, configure authorization, and
+                        experiment with identity operations.
+                    </p>
+                </div>
+            </div>
+
+            <div class="lab-management-grid">
+
+                <a href="/dashboard/users" class="lab-management-card">
+                    <span class="lab-management-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.People" />
+                    </span>
+                    <strong>Users</strong>
+                    <p>
+                        Create and manage identities within your sandbox.
+                    </p>
+                    <span class="lab-management-link">
+                        Manage users
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small" />
+                    </span>
+                </a>
+
+                <a href="/dashboard/authorization" class="lab-management-card">
+                    <span class="lab-management-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+                    </span>
+                    <strong>Authorization</strong>
+                    <p>
+                        Explore roles, permissions, and access control.
+                    </p>
+                    <span class="lab-management-link">
+                        Explore authorization
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small" />
+                    </span>
+                </a>
+
+                <a href="/dashboard/activity" class="lab-management-card">
+                    <span class="lab-management-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.History" />
+                    </span>
+                    <strong>Activity</strong>
+                    <p>
+                        Inspect security events and identity operations.
+                    </p>
+                    <span class="lab-management-link">
+                        View activity
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small" />
+                    </span>
+                </a>
+
+            </div>
+
+            <div class="lab-sandbox-banner">
+                <div>
+                    <strong>Your sandbox, your experiments.</strong>
+                    <p>
+                        Each sandbox supports up to four users,
+                        including its owner.
+                    </p>
+                </div>
+
+                <MudChip T="string"
+                         Variant="Variant.Outlined"
+                         Color="Color.Primary">
+                    1 / 4 example users
+                </MudChip>
+            </div>
+        }
+
+    </MudContainer>
+</div>
+
+@code {
+    // Temporary design preview. Must be replaced by
+    // server-validated, sandbox-scoped management permission.
+    private bool ShowManagement => true;
+}

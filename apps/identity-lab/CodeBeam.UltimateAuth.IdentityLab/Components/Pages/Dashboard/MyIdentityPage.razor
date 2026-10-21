@@ -1,0 +1,303 @@
+﻿@page "/dashboard/identity"
+@layout DashboardLayout
+
+@* TODO: Enable after authentication integration.
+@attribute [UAuthAuthorize]
+*@
+
+<PageTitle>My Identity · Identity Lab</PageTitle>
+
+<div class="lab-identity-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-identity-header">
+            <div>
+                <span class="lab-identity-eyebrow">PERSONAL WORKSPACE</span>
+                <h1>My Identity</h1>
+                <p>
+                    Explore your account, sign-in identifiers,
+                    and credential security.
+                </p>
+            </div>
+
+            <MudChip T="string"
+                     Icon="@Icons.Material.Filled.Science"
+                     Color="Color.Info"
+                     Variant="Variant.Outlined"
+                     Size="Size.Small">
+                Demo Preview
+            </MudChip>
+        </div>
+
+        <div class="lab-identity-grid">
+
+            <div class="lab-identity-column">
+
+                <section class="lab-identity-card">
+
+                    <div class="lab-card-header">
+                        <div>
+                            <h2>Profile</h2>
+                            <p>Your account information.</p>
+                        </div>
+
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-identity-profile">
+                        <MudAvatar Color="Color.Primary"
+                                   Size="Size.Large">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" />
+                        </MudAvatar>
+
+                        <div>
+                            <strong>Sandbox User</strong>
+                            <span>@@demo-user</span>
+                        </div>
+
+                        <MudSpacer />
+
+                        <MudChip T="string"
+                                 Color="Color.Success"
+                                 Variant="Variant.Text"
+                                 Size="Size.Small">
+                            Active
+                        </MudChip>
+                    </div>
+
+                    <div class="lab-identity-details">
+                        <div class="lab-identity-detail">
+                            <span>Display name</span>
+                            <strong>Sandbox User</strong>
+                        </div>
+
+                        <div class="lab-identity-detail">
+                            <span>Username</span>
+                            <strong>demo-user</strong>
+                        </div>
+
+                        <div class="lab-identity-detail">
+                            <span>Email</span>
+                            <strong>demo@example.com</strong>
+                        </div>
+
+                        <div class="lab-identity-detail">
+                            <span>Account status</span>
+                            <strong>Active</strong>
+                        </div>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               Disabled="true">
+                        Edit Profile
+                    </MudButton>
+                </section>
+
+                <section class="lab-identity-card">
+
+                    <div class="lab-card-header">
+                        <div>
+                            <h2>Sign-in Identifiers</h2>
+                            <p>
+                                Identifiers associated with your account.
+                            </p>
+                        </div>
+
+                        <MudIcon Icon="@Icons.Material.Filled.AlternateEmail"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-identifier-list">
+
+                        <div class="lab-identifier-item">
+                            <span class="lab-identifier-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Email" />
+                            </span>
+
+                            <div class="lab-identifier-info">
+                                <strong>demo@example.com</strong>
+                                <span>Email address</span>
+                            </div>
+
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Text"
+                                     Size="Size.Small"
+                                     Icon="@Icons.Material.Filled.Verified">
+                                Verified
+                            </MudChip>
+                        </div>
+
+                        <div class="lab-identifier-item">
+                            <span class="lab-identifier-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" />
+                            </span>
+
+                            <div class="lab-identifier-info">
+                                <strong>demo-user</strong>
+                                <span>Username</span>
+                            </div>
+
+                            <MudChip T="string"
+                                     Color="Color.Default"
+                                     Variant="Variant.Outlined"
+                                     Size="Size.Small">
+                                Primary
+                            </MudChip>
+                        </div>
+
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="true">
+                        Add Identifier
+                    </MudButton>
+
+                </section>
+            </div>
+
+            <div class="lab-identity-column">
+
+                <section class="lab-identity-card">
+
+                    <div class="lab-card-header">
+                        <div>
+                            <h2>Credentials &amp; Security</h2>
+                            <p>
+                                Manage how you authenticate.
+                            </p>
+                        </div>
+
+                        <MudIcon Icon="@Icons.Material.Filled.Security"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-security-item">
+                        <span class="lab-security-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Password" />
+                        </span>
+
+                        <div>
+                            <strong>Password</strong>
+                            <p>
+                                Update the secret used to sign in.
+                            </p>
+                        </div>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Disabled="true">
+                            Change
+                        </MudButton>
+                    </div>
+
+                    <div class="lab-security-item">
+                        <span class="lab-security-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                        </span>
+
+                        <div>
+                            <strong>Device Sessions</strong>
+                            <p>
+                                Review and revoke your sessions.
+                            </p>
+                        </div>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                       Color="Color.Primary"
+                                       Href="/dashboard/sessions" />
+                    </div>
+
+                    <div class="lab-security-item">
+                        <span class="lab-security-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                        </span>
+
+                        <div>
+                            <strong>My Authorization</strong>
+                            <p>
+                                Inspect your assigned roles and permissions.
+                            </p>
+                        </div>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                       Color="Color.Primary"
+                                       Href="/dashboard/access" />
+                    </div>
+
+                </section>
+
+                <section class="lab-identity-card">
+
+                    <div class="lab-card-header">
+                        <div>
+                            <h2>Authentication Context</h2>
+                            <p>
+                                Understand your UltimateAuth identity.
+                            </p>
+                        </div>
+
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree"
+                                 Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-auth-context">
+                        <div class="lab-auth-context-node">
+                            <span class="lab-auth-context-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" />
+                            </span>
+
+                            <div>
+                                <strong>Identity</strong>
+                                <span>Your authenticated account</span>
+                            </div>
+                        </div>
+
+                        <div class="lab-auth-context-connector"></div>
+
+                        <div class="lab-auth-context-node">
+                            <span class="lab-auth-context-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Hub" />
+                            </span>
+
+                            <div>
+                                <strong>Authentication Chain</strong>
+                                <span>Explore your authentication lifecycle</span>
+                            </div>
+                        </div>
+
+                        <div class="lab-auth-context-connector"></div>
+
+                        <div class="lab-auth-context-node">
+                            <span class="lab-auth-context-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                            </span>
+
+                            <div>
+                                <strong>Sessions</strong>
+                                <span>Manage active device sessions</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <MudAlert Severity="Severity.Info"
+                              Variant="Variant.Text"
+                              Dense="true"
+                              Class="mt-4">
+                        This is an illustrative overview.
+                        Live authentication data will appear after integration.
+                    </MudAlert>
+
+                </section>
+
+            </div>
+        </div>
+
+    </MudContainer>
+</div>

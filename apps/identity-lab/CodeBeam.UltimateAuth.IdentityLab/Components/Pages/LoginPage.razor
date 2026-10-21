@@ -1,0 +1,160 @@
+﻿@page "/login"
+@using CodeBeam.UltimateAuth.Core.Contracts
+@layout PublicLayout
+
+<PageTitle>Sign In · Identity Lab</PageTitle>
+
+<div class="lab-login-page">
+    <MudContainer MaxWidth="MaxWidth.Large">
+        <div class="lab-login-grid">
+
+            <section class="lab-login-form-section">
+                <div class="lab-login-form-wrap">
+
+                    <div class="lab-login-intro">
+                        <span class="lab-login-eyebrow">
+                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                            YOUR IDENTITY WORKSPACE
+                        </span>
+
+                        <h1>Welcome back.</h1>
+                        <p>Sign in to continue to your Identity Lab sandbox.</p>
+                    </div>
+
+                    <div class="lab-login-card">
+                        <UAuthLoginForm Identifier="@_identifier"
+                                        Secret="@_password"
+                                        ReturnUrl="/dashboard"
+                                        OnTryResult="HandleLoginResult">
+
+                            <div class="lab-login-fields">
+                                <MudTextField T="string"
+                                              @bind-Value="_identifier"
+                                              Label="Email or Username"
+                                              Placeholder="Enter your email or username"
+                                              InputType="InputType.Email"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                              Required="true"
+                                              Immediate="true" />
+
+                                <MudPasswordField T="string"
+                                              @bind-Value="_password"
+                                              Label="Password"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.End"
+                                              Required="true"
+                                              Immediate="true" />
+
+                                <MudButton ButtonType="ButtonType.Submit"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           EndIcon="@Icons.Material.Filled.ArrowForward">
+                                    Sign In
+                                </MudButton>
+                            </div>
+                        </UAuthLoginForm>
+
+                        <MudDivider />
+
+                        <div class="lab-login-register mt-4">
+                            <span>New to Identity Lab?</span>
+                            <MudLink Href="/register" Underline="Underline.Hover">
+                                Create a sandbox
+                            </MudLink>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-note">
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
+                                 Size="Size.Small"
+                                 Color="Color.Success" />
+                        <span>Secure authentication powered by UltimateAuth</span>
+                    </div>
+
+                </div>
+            </section>
+
+
+            <aside class="lab-login-showcase">
+                <div class="lab-login-showcase-inner">
+
+                    <div class="lab-login-showcase-label">
+                        THE IDENTITY PLAYGROUND
+                    </div>
+
+                    <MudText Typo="Typo.h4" Class="lab-login-showcase-title">
+                        Your sandbox.
+                        <span>Your control.</span>
+                    </MudText>
+
+                    <MudText Typo="Typo.body1"
+                             Class="lab-login-showcase-description">
+                        Experience modern authentication, authorization,
+                        and session management in one place.
+                    </MudText>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
+                        </span>
+                        <div>
+                            <strong>Unified Sessions</strong>
+                            <p>One consistent model for your authentication lifecycle.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                        </span>
+                        <div>
+                            <strong>Device Control</strong>
+                            <p>Explore active sessions and remote sign-out.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+                        </span>
+                        <div>
+                            <strong>Authorization</strong>
+                            <p>Understand roles, permissions, and access decisions.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-showcase-footer">
+                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome"
+                                 Size="Size.Small" />
+                        Built for developers. Open to everyone.
+                    </div>
+
+                </div>
+            </aside>
+
+        </div>
+    </MudContainer>
+</div>
+
+@code {
+    private MudForm? _form;
+    private string _identifier = string.Empty;
+    private string _password = string.Empty;
+    private bool _rememberMe;
+    private bool _showPassword;
+
+    private void TogglePassword()
+    {
+        _showPassword = !_showPassword;
+    }
+
+    private void HandleLoginResult(IUAuthTryResult result)
+    {
+        // Sonraki adımda başarısız giriş mesajlarını
+        // ve hesap kilidi durumunu burada işleyeceğiz.
+    }
+}

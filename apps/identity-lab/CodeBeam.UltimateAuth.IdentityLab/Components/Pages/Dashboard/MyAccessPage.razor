@@ -1,0 +1,290 @@
+﻿@page "/dashboard/access"
+@layout DashboardLayout
+
+@* TODO: Enable after authentication integration.
+@attribute [UAuthAuthorize]
+*@
+
+<PageTitle>My Access · Identity Lab</PageTitle>
+
+<div class="lab-access-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-access-heading">
+            <div>
+                <span class="lab-access-eyebrow">PERSONAL AUTHORIZATION</span>
+                <h1>My Access</h1>
+                <p>
+                    Explore your roles, effective permissions,
+                    and how UltimateAuth evaluates access.
+                </p>
+            </div>
+
+            <MudChip T="string"
+                     Icon="@Icons.Material.Filled.Science"
+                     Color="Color.Info"
+                     Variant="Variant.Outlined"
+                     Size="Size.Small">
+                Demo Preview
+            </MudChip>
+        </div>
+
+        <div class="lab-access-stats">
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" />
+                </span>
+                <span>Assigned Roles</span>
+                <strong>1</strong>
+                <small>Example role assignment</small>
+            </div>
+
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Key" />
+                </span>
+                <span>Effective Permissions</span>
+                <strong>4</strong>
+                <small>Illustrative permission set</small>
+            </div>
+
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                </span>
+                <span>Access Context</span>
+                <strong>Member</strong>
+                <small>Example sandbox role</small>
+            </div>
+        </div>
+
+        <div class="lab-access-grid">
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>My Roles</h2>
+                        <p>Roles assigned to your identity.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-role-item">
+                    <span class="lab-role-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                    </span>
+
+                    <div>
+                        <strong>Member</strong>
+                        <span>Example sandbox membership role</span>
+                    </div>
+
+                    <MudChip T="string"
+                             Color="Color.Primary"
+                             Variant="Variant.Outlined"
+                             Size="Size.Small">
+                        Assigned
+                    </MudChip>
+                </div>
+
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Text"
+                          Dense="true"
+                          Class="mt-4">
+                    Your roles determine which operations you may
+                    perform, together with the applicable policies
+                    and authorization context.
+                </MudAlert>
+            </section>
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Effective Permissions</h2>
+                        <p>Example permissions available to your identity.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Key"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-permission-list">
+                    @foreach (var permission in _permissions)
+                    {
+                        <div class="lab-permission-item">
+                            <span class="lab-permission-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Check"
+                                         Size="Size.Small" />
+                            </span>
+
+                            <div>
+                                <strong>@permission.Name</strong>
+                                <span>@permission.Description</span>
+                            </div>
+
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Text"
+                                     Size="Size.Small">
+                                Allowed
+                            </MudChip>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="lab-access-section-heading">
+            <span class="lab-access-eyebrow">INTERACTIVE AUTHORIZATION</span>
+            <h2>Authorization Playground</h2>
+            <p>
+                Choose a resource and operation to explore
+                how access decisions work.
+            </p>
+        </div>
+
+        <div class="lab-playground-grid">
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Access Request</h2>
+                        <p>Configure an authorization check.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Tune"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-playground-fields">
+                    <MudSelect T="string"
+                               Label="Resource"
+                               Variant="Variant.Outlined"
+                               @bind-Value="_selectedResource">
+                        <MudSelectItem Value="@("users")">Users</MudSelectItem>
+                        <MudSelectItem Value="@("sessions")">Sessions</MudSelectItem>
+                        <MudSelectItem Value="@("credentials")">Credentials</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect T="string"
+                               Label="Operation"
+                               Variant="Variant.Outlined"
+                               @bind-Value="_selectedOperation">
+                        <MudSelectItem Value="@("query")">Query</MudSelectItem>
+                        <MudSelectItem Value="@("create")">Create</MudSelectItem>
+                        <MudSelectItem Value="@("update")">Update</MudSelectItem>
+                        <MudSelectItem Value="@("revoke")">Revoke</MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField T="string"
+                                  Label="Authorization action"
+                                  Value="@($"{_selectedResource}.{_selectedOperation}.self")"
+                                  ReadOnly="true"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Illustrative action format; not a live permission check." />
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               Disabled="true">
+                        Evaluate Access
+                    </MudButton>
+                </div>
+            </section>
+
+            <section class="lab-access-card lab-result-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Evaluation Result</h2>
+                        <p>Authorization decision and explanation.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-result-empty">
+                    <span class="lab-result-empty-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Rule"
+                                 Size="Size.Large" />
+                    </span>
+
+                    <strong>Ready to evaluate</strong>
+                    <p>
+                        Live access decisions will appear here once
+                        UltimateAuth authorization is connected.
+                    </p>
+                </div>
+
+                <div class="lab-result-footer">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
+                    <span>
+                        An authorization decision may depend on roles,
+                        permissions, policies, and request context.
+                    </span>
+                </div>
+            </section>
+
+        </div>
+
+        <div class="lab-access-section-heading lab-model-heading">
+            <span class="lab-access-eyebrow">ULTIMATEAUTH CONCEPTS</span>
+            <h2>Understanding Access Control</h2>
+            <p>
+                Three concepts work together to protect resources.
+            </p>
+        </div>
+
+        <div class="lab-access-concepts">
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                </span>
+                <strong>Roles</strong>
+                <p>
+                    Group authorization responsibilities and
+                    organize access assignments.
+                </p>
+            </div>
+
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" />
+                </span>
+                <strong>Permissions</strong>
+                <p>
+                    Represent actions that an identity may be
+                    authorized to perform.
+                </p>
+            </div>
+
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Policy" />
+                </span>
+                <strong>Policies</strong>
+                <p>
+                    Evaluate authorization requirements using
+                    the relevant access context.
+                </p>
+            </div>
+        </div>
+
+    </MudContainer>
+</div>
+
+@code {
+    private string _selectedResource = "users";
+    private string _selectedOperation = "query";
+
+    private readonly List<PermissionPreview> _permissions =
+    [
+        new("users.query.self", "View your own user information"),
+        new("sessions.query.self", "Inspect your own sessions"),
+        new("credentials.update.self", "Manage your own credentials"),
+        new("sessions.revoke.self", "Revoke your own sessions")
+    ];
+
+    private sealed record PermissionPreview(
+        string Name,
+        string Description);
+}
