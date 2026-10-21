@@ -1,0 +1,33 @@
+﻿<MudNavMenu>
+    <MudText Typo="Typo.overline" Class="px-4 pt-4 pb-2">
+        SANDBOX
+    </MudText>
+
+    <MudNavLink Href="/dashboard"
+                Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.Dashboard">
+        Overview
+    </MudNavLink>
+
+    <MudNavLink Href="/dashboard/members"
+                Icon="@Icons.Material.Filled.People">
+        Members
+    </MudNavLink>
+
+    <MudNavLink Href="/dashboard/sessions"
+                Icon="@Icons.Material.Filled.Devices">
+        Sessions & Devices
+    </MudNavLink>
+
+    <MudNavLink Href="/dashboard/authorization"
+                Icon="@Icons.Material.Filled.AdminPanelSettings">
+        Roles & Permissions
+    </MudNavLink>
+
+    <MudDivider Class="my-4" />
+
+    <MudNavLink Href="/"
+                Icon="@Icons.Material.Filled.Home">
+        Back to Home
+    </MudNavLink>
+</MudNavMenu>

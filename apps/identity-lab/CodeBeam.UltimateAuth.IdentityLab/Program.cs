@@ -1,13 +1,14 @@
+using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using MudExtensions.Services;
-using CodeBeam.UltimateAuth.Core.Domain;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +48,6 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
-    //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
 builder.Services.AddScopedUltimateAuthSampleSeed();
@@ -70,6 +70,7 @@ app.UseAntiforgery();
 app.MapUltimateAuthEndpoints();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
 
 app.Run();
