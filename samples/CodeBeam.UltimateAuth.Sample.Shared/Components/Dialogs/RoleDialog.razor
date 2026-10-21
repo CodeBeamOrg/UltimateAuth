@@ -4,78 +4,252 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
-
+<MudDialog Class="lab-role-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Role Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Manage system roles</MudText>
+        <div class="lab-role-header">
+            <div class="lab-role-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-role-header-text">
+                <MudText Typo="Typo.h6">Role Management</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Create roles and manage their permissions.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudDataGrid @ref="_grid" T="RoleInfo" ServerData="LoadServerData" Hover="true" Dense="true" Bordered="true" Striped="true"
-                     EditMode="DataGridEditMode.Form" CommittedItemChanges="CommittedItemChanges" Loading="_loading" ReadOnly="false">
+        <div class="lab-role-content">
+            @if (PreviewMode)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Role changes are disabled.
+                </MudAlert>
+            }
 
-            <ToolBarContent>
-                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
-                    <MudText>Roles</MudText>
-                    <MudSpacer />
-                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Variant="Variant.Filled" Color="Color.Primary" OnClick="ReloadAsync" />
-                </MudStack>
-            </ToolBarContent>
+            <div class="lab-role-toolbar">
+                <div class="lab-role-section-heading">
+                    <strong>System Roles</strong>
+                    <span>Roles available in the authorization system.</span>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@(_loading || PreviewMode)"
+                               OnClick="ReloadAsync"
+                               aria-label="Refresh roles" />
+            </div>
 
-            <Columns>
-                <PropertyColumn Property="x => x.Id" Title="Role Id" Editable="false" />
-                <PropertyColumn Property="x => x.Name" Title="Name" />
-                <PropertyColumn Property="x => x.Permissions" Title="Permissions" Editable="false">
-                    <CellTemplate>
-                        <MudChip Color="Color.Primary" Variant="Variant.Outlined">@GetPermissionCount(context.Item)</MudChip>
-                    </CellTemplate>
-                </PropertyColumn>
-                <TemplateColumn Title="Is Wildcard" Editable="false">
-                    <CellTemplate>
-                        <MudCheckBox Value="@(context.Item.Permissions.Any(x => x.IsWildcard))" Color="Color.Primary" ReadOnly="true" />
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn Title="Actions" Editable="false">
-                    <CellTemplate>
-                        <MudStack Row="true" Spacing="2">
-                            <MudTooltip Text="Edit" Delay="300" Color="Color.Primary">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Variant="Variant.Filled" OnClick="@context.Actions.StartEditingItemAsync" />
-                            </MudTooltip>
+            @if (PreviewMode)
+            {
+                <div class="lab-role-list">
+                    @foreach (var role in _previewRoles)
+                    {
+                        <div class="lab-role-card" @key="role.Name">
+                            <div class="lab-role-card-main">
+                                <div class="lab-role-card-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Shield"
+                                             Size="Size.Small" />
+                                </div>
+                                <div class="lab-role-card-info">
+                                    <strong>@role.Name</strong>
+                                    <span>@role.Description</span>
+                                </div>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="Color.Primary"
+                                         Variant="Variant.Outlined">
+                                    @role.PermissionCount permissions
+                                </MudChip>
+                            </div>
+                            <div class="lab-role-card-actions">
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           Disabled="true">
+                                    Rename
+                                </MudButton>
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           Disabled="true">
+                                    Permissions
+                                </MudButton>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Disabled="true" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <MudDataGrid @ref="_grid"
+                             T="RoleInfo"
+                             ServerData="LoadServerData"
+                             Loading="@_loading"
+                             Hover="true"
+                             Dense="true"
+                             Elevation="0"
+                             Bordered="false"
+                             Striped="false"
+                             ReadOnly="true"
+                             Filterable="false"
+                             Class="lab-role-grid">
+                    <Columns>
+                        <TemplateColumn Title="Role">
+                            <CellTemplate>
+                                <div class="lab-role-grid-name">
+                                    <MudIcon Icon="@Icons.Material.Filled.Shield"
+                                             Color="Color.Primary"
+                                             Size="Size.Small" />
+                                    <strong>@context.Item.Name</strong>
+                                </div>
+                            </CellTemplate>
+                        </TemplateColumn>
 
-                            <MudTooltip Text="Permissions">
-                                <MudIconButton Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => EditPermissions(context.Item))" />
-                            </MudTooltip>
+                        <TemplateColumn Title="Permissions">
+                            <CellTemplate>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Outlined"
+                                         Color="Color.Primary">
+                                    @GetPermissionCount(context.Item)
+                                </MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
 
-                            <MudTooltip Text="Delete">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="@(()=>DeleteRole(context.Item.Id))" />
-                            </MudTooltip>
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
+                        <TemplateColumn Title="Wildcard">
+                            <CellTemplate>
+                                @if (context.Item.Permissions.Any(x => x.IsWildcard))
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="Color.Warning"
+                                             Variant="Variant.Outlined">
+                                        Wildcard
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption">—</MudText>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
 
-            <PagerContent>
-                <MudDataGridPager T="RoleInfo" PageSizeOptions="new int[] {5,10,20}" />
-            </PagerContent>
-        </MudDataGrid>
+                        <TemplateColumn Title="Actions">
+                            <CellTemplate>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="Rename Role">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       Disabled="@_loading"
+                                                       OnClick="@(() => BeginRename(context.Item))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Manage Permissions">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Security"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       Disabled="@_loading"
+                                                       OnClick="@(() => EditPermissions(context.Item))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Role">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       Disabled="@_loading"
+                                                       OnClick="@(() => DeleteRoleAsync(context.Item))" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
 
-        <MudExpansionPanels Class="mt-4">
-            <MudExpansionPanel Text="Create Role">
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_newRoleName" Label="Role name" Variant="Variant.Outlined" />
-                    </MudItem>
+                    <PagerContent>
+                        <MudDataGridPager T="RoleInfo"
+                                          PageSizeOptions="new int[] { 5, 10, 20 }" />
+                    </PagerContent>
+                </MudDataGrid>
+            }
 
-                    <MudItem xs="12">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateRole">Create</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
+            @if (_editingRole is not null)
+            {
+                <div class="lab-role-edit">
+                    <div class="lab-role-section-heading">
+                        <strong>Rename Role</strong>
+                        <span>Change the role name without changing its permissions.</span>
+                    </div>
+                    <MudTextField @bind-Value="_editingName"
+                                  Label="Role Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Disabled="@_loading" />
+                    <div class="lab-role-edit-actions">
+                        <MudButton Variant="Variant.Text"
+                                   Disabled="@_loading"
+                                   OnClick="CancelRename">
+                            Cancel
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="@_loading"
+                                   OnClick="SaveRenameAsync">
+                            Save Name
+                        </MudButton>
+                    </div>
+                </div>
+            }
+
+            <MudDivider />
+
+            <div class="lab-role-section-heading">
+                <strong>Create Role</strong>
+                <span>Add a new role to the authorization system.</span>
+            </div>
+
+            <div class="lab-role-create">
+                <MudTextField @bind-Value="_newRoleName"
+                              Label="Role Name"
+                              Placeholder="e.g. ContentEditor"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="100"
+                              Disabled="@(_loading || PreviewMode)" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@(_loading || PreviewMode || string.IsNullOrWhiteSpace(_newRoleName))"
+                           OnClick="CreateRoleAsync">
+                    Create Role
+                </MudButton>
+            </div>
+
+            <div class="lab-role-hint">
+                <MudIcon Icon="@Icons.Material.Outlined.Info"
+                         Size="Size.Small" />
+                <span>
+                    Roles define authorization groups. Permissions can be
+                    configured after creating a role.
+                </span>
+            </div>
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Close</MudButton>
+        <div class="lab-role-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_loading"
+                       OnClick="Close">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

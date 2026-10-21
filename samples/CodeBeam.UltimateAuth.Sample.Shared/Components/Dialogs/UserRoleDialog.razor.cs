@@ -12,113 +12,216 @@ public partial class UserRoleDialog
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
     [Parameter]
     public UserKey UserKey { get; set; } = default!;
 
-    private List<string> _roles = new();
-    private List<RoleInfo> _allRoles = new();
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
+    private List<string> _roles = [];
+    private List<RoleInfo> _allRoles = [];
 
     private string? _selectedRole;
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private string? _loadError;
+
+    private List<RoleInfo> AvailableRoles =>
+        _allRoles
+            .Where(role => !_roles.Contains(
+                role.Name,
+                StringComparer.OrdinalIgnoreCase))
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadRoles();
-    }
-
-    private async Task LoadRoles()
-    {
-        var userRoles = await UAuthClient.Authorization.GetUserRolesAsync(UserKey);
-
-        if (userRoles.IsSuccess && userRoles.Value != null)
-            _roles = userRoles.Value.Roles.Items.Select(x => x.Name).ToList();
-
-        var roles = await UAuthClient.Authorization.QueryRolesAsync(new RoleQuery
+        if (PreviewMode)
         {
-            PageNumber = 1,
-            PageSize = 200
-        });
+            LoadPreviewData();
+            _isLoading = false;
+            return;
+        }
 
-        if (roles.IsSuccess && roles.Value != null)
-            _allRoles = roles.Value.Items.ToList();
+        await LoadRolesAsync();
     }
 
-    private async Task AddRole()
+    private void LoadPreviewData()
     {
-        if (string.IsNullOrWhiteSpace(_selectedRole))
+        _roles = ["User", "Editor"];
+        _allRoles =
+        [
+            new RoleInfo { Name = "User" },
+            new RoleInfo { Name = "Editor" },
+            new RoleInfo { Name = "Admin" },
+            new RoleInfo { Name = "Viewer" }
+        ];
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        _isLoading = true;
+        _loadError = null;
+
+        try
+        {
+            var userRoles = await UAuthClient.Authorization
+                .GetUserRolesAsync(UserKey);
+
+            if (!userRoles.IsSuccess || userRoles.Value is null)
+            {
+                _loadError = userRoles.ErrorText
+                    ?? "Unable to load assigned roles.";
+                return;
+            }
+
+            var roles = await UAuthClient.Authorization
+                .QueryRolesAsync(new RoleQuery
+                {
+                    PageNumber = 1,
+                    PageSize = 200
+                });
+
+            if (!roles.IsSuccess || roles.Value is null)
+            {
+                _loadError = roles.ErrorText
+                    ?? "Unable to load available roles.";
+                return;
+            }
+
+            _roles = userRoles.Value.Roles.Items
+                .Select(x => x.Name)
+                .ToList();
+
+            _allRoles = roles.Value.Items.ToList();
+        }
+        catch (Exception)
+        {
+            _loadError = "An unexpected error occurred while loading roles.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddRoleAsync()
+    {
+        if (PreviewMode || _isSubmitting ||
+            string.IsNullOrWhiteSpace(_selectedRole))
+            return;
+
+        var roleName = _selectedRole;
+
+        if (_roles.Contains(roleName, StringComparer.OrdinalIgnoreCase))
             return;
 
         var request = new AssignRoleRequest
         {
             UserKey = UserKey,
-            RoleName = _selectedRole
+            RoleName = roleName
         };
 
-        var result = await UAuthClient.Authorization.AssignRoleToUserAsync(request);
+        _isSubmitting = true;
 
-        if (result.IsSuccess)
+        try
         {
-            _roles.Add(_selectedRole);
-            Snackbar.Add("Role assigned", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Failed", Severity.Error);
-        }
+            var result = await UAuthClient.Authorization
+                .AssignRoleToUserAsync(request);
 
-        _selectedRole = null;
-    }
-
-    private async Task RemoveRole(string role)
-    {
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            "Remove Role",
-            $"Remove {role} from user?",
-            yesText: "Remove",
-            noText: "Cancel",
-            options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass = "uauth-blur-slight" });
-
-        if (confirm != true)
-        {
-            Snackbar.Add("Role remove process cancelled.", Severity.Info);
-            return;
-        }
-
-        if (role == "Admin")
-        {
-            var confirm2 = await DialogService.ShowMessageBoxAsync(
-                "Are You Sure",
-                "You are going to remove admin role. This action may cause the application unuseable.",
-                yesText: "Remove",
-                noText: "Cancel",
-                options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass = "uauth-blur-slight" });
-
-            if (confirm2 != true)
+            if (!result.IsSuccess)
             {
-                Snackbar.Add("Role remove process cancelled.", Severity.Info);
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to assign role.",
+                    Severity.Error);
                 return;
             }
+
+            _roles.Add(roleName);
+            _selectedRole = null;
+
+            Snackbar.Add("Role assigned successfully.", Severity.Success);
         }
-
-        var request = new RemoveRoleRequest
+        catch (Exception)
         {
-            UserKey = UserKey,
-            RoleName = role
-        };
-
-        var result = await UAuthClient.Authorization.RemoveRoleFromUserAsync(request);
-
-        if (result.IsSuccess)
-        {
-            _roles.Remove(role);
-            Snackbar.Add("Role removed.", Severity.Success);
+            Snackbar.Add("An unexpected error occurred.", Severity.Error);
         }
-        else
+        finally
         {
-            Snackbar.Add(result.ErrorText ?? "Failed", Severity.Error);
+            _isSubmitting = false;
         }
     }
 
-    private void Close() => MudDialog.Close();
+    private async Task RemoveRoleAsync(string role)
+    {
+        if (PreviewMode || _isSubmitting)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Role",
+            $"Remove the '{role}' role from this user?",
+            yesText: "Remove",
+            noText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        if (IsAdminRole(role))
+        {
+            var adminConfirmed = await DialogService.ShowMessageBoxAsync(
+                "Remove Administrator Role",
+                "Removing the Admin role may prevent this user from " +
+                "managing the application. Continue?",
+                yesText: "Remove Admin",
+                noText: "Cancel");
+
+            if (adminConfirmed != true)
+                return;
+        }
+
+        _isSubmitting = true;
+
+        try
+        {
+            var request = new RemoveRoleRequest
+            {
+                UserKey = UserKey,
+                RoleName = role
+            };
+
+            var result = await UAuthClient.Authorization
+                .RemoveRoleFromUserAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to remove role.",
+                    Severity.Error);
+                return;
+            }
+
+            _roles.RemoveAll(x =>
+                string.Equals(x, role, StringComparison.OrdinalIgnoreCase));
+
+            Snackbar.Add("Role removed successfully.", Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("An unexpected error occurred.", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private static bool IsAdminRole(string role) =>
+        string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+    private void Close()
+    {
+        if (!_isSubmitting)
+            MudDialog.Close();
+    }
 }

@@ -1,5 +1,6 @@
 ﻿@page "/dashboard/users"
 @layout DashboardLayout
+@inject IDialogService DialogService
 
 @* TODO: Enable sandbox-scoped authorization.
 @attribute [UAuthAuthorize]
@@ -23,7 +24,7 @@
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.PersonAdd"
-                       Disabled="true">
+                       OnClick="OpenCreateUserDialogAsync">
                 Create User
             </MudButton>
         </div>
@@ -189,7 +190,7 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                Color="Color.Default"
                                                Size="Size.Small"
-                                               Disabled="true" />
+                                               OnClick="@(() => OpenUserProfileAsync(context.DisplayName))" />
                             </MudTooltip>
 
                             @if (!context.IsOwner)
@@ -256,8 +257,33 @@
     private string _search = string.Empty;
     private string _statusFilter = "all";
 
-    private double CapacityPercentage =>
-        (double)_users.Count / MaxUsers * 100;
+    private double CapacityPercentage => (double)_users.Count / MaxUsers * 100;
+
+    
+    private async Task OpenCreateUserDialogAsync()
+    {
+        var parameters = new DialogParameters<CreateUserDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Small));
+    }
+
+    private async Task OpenUserProfileAsync(string displayName)
+    {
+        var parameters = new DialogParameters<ProfileDialog>
+        {
+            { x => x.PreviewMode, true },
+            { x => x.PreviewDisplayName, displayName }
+        };
+
+        await DialogService.ShowAsync<ProfileDialog>(
+            "Edit Profile",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+    }
+
 
     private IEnumerable<SandboxUserPreview> FilteredUsers =>
         _users.Where(user =>

@@ -1,92 +1,187 @@
 ﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-profile-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
-            @if (UserKey is null)
-            {
-                <text>User: @AuthState?.Identity?.DisplayName</text>
-            }
-            else
-            {
-                <text>UserKey: @UserKey.Value</text>
-            }
-        </MudText>
+        <div class="lab-profile-header">
+            <div class="lab-profile-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.ManageAccounts"
+                         Size="Size.Medium" />
+            </div>
+
+            <div class="lab-profile-header-text">
+                <MudText Typo="Typo.h6">Edit Profile</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Update identity details and personal preferences.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
+
     <DialogContent>
-        <MudForm @ref="_form" OnEnterPressed="SaveAsync">
-            <MudContainer Class="pa-2" Gutters="false">
-                <MudGrid Spacing="2">
-                    <MudItem xs="12">
-                        <MudStack Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle1" Color="Color.Primary">Name</MudText>
-                            <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
-                        </MudStack>
-                    </MudItem>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true"
+                               Color="Color.Primary" />
+        }
+        else if (_loadError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                @_loadError
+            </MudAlert>
+        }
+        else
+        {
+            <MudForm @ref="_form" OnEnterPressed="SaveAsync">
+                <div class="lab-profile-content">
+                    @if (PreviewMode)
+                    {
+                        <MudAlert Severity="Severity.Info"
+                                  Variant="Variant.Outlined"
+                                  Dense="true">
+                            Preview mode is active. Profile changes cannot be saved.
+                        </MudAlert>
+                    }
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_firstName" Label="First Name" Variant="Variant.Outlined" />
-                    </MudItem>
+                    <div class="lab-profile-section">
+                        <div class="lab-profile-section-heading">
+                            <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                     Color="Color.Primary"
+                                     Size="Size.Small" />
+                            <div>
+                                <strong>Basic Information</strong>
+                                <span>How this identity appears throughout the application.</span>
+                            </div>
+                        </div>
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_lastName" Label="Last Name" Variant="Variant.Outlined" />
-                    </MudItem>
+                        <div class="lab-profile-grid">
+                            <MudTextField @bind-Value="_firstName"
+                                          Label="First Name"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isSaving" />
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_displayName" Label="Display Name" Variant="Variant.Outlined" />
-                    </MudItem>
+                            <MudTextField @bind-Value="_lastName"
+                                          Label="Last Name"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isSaving" />
 
-                    <MudItem xs="12" class="mt-4">
-                        <MudStack Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle1" Color="Color.Primary">Personal</MudText>
-                            <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
-                        </MudStack>
-                    </MudItem>
+                            <div class="lab-profile-full">
+                                <MudTextField @bind-Value="_displayName"
+                                              Label="Display Name"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="@_isSaving" />
+                            </div>
+                        </div>
+                    </div>
 
-                    <MudItem xs="12" sm="4">
-                        <MudDatePicker @bind-Date="_birthDate" Label="Birth Date" Variant="Variant.Outlined" />
-                    </MudItem>
+                    <MudDivider />
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_gender" Label="Gender" Variant="Variant.Outlined" />
-                    </MudItem>
+                    <div class="lab-profile-section">
+                        <div class="lab-profile-section-heading">
+                            <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
+                                     Color="Color.Primary"
+                                     Size="Size.Small" />
+                            <div>
+                                <strong>Personal Details</strong>
+                                <span>Optional information associated with this profile.</span>
+                            </div>
+                        </div>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_bio" Label="Bio" Lines="3" Variant="Variant.Outlined" />
-                    </MudItem>
+                        <div class="lab-profile-grid">
+                            <MudDatePicker @bind-Date="_birthDate"
+                                           Label="Birth Date"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Disabled="@_isSaving" />
 
-                    <MudItem xs="12" class="mt-4">
-                        <MudStack Row="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.subtitle1" Color="Color.Primary">Localization</MudText>
-                            <MudDivider DividerType="DividerType.FullWidth" Style="width: unset" />
-                        </MudStack>
-                    </MudItem>
+                            <MudTextField @bind-Value="_gender"
+                                          Label="Gender"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isSaving" />
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_language" Label="Language" Variant="Variant.Outlined" />
-                    </MudItem>
+                            <div class="lab-profile-full">
+                                <MudTextField @bind-Value="_bio"
+                                              Label="Bio"
+                                              Lines="3"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="@_isSaving" />
+                            </div>
+                        </div>
+                    </div>
 
-                    <MudItem xs="12" sm="4">
-                        <MudSelectExtended T="string" @bind-Value="_timeZone" Label="Time Zone" Variant="Variant.Outlined" SearchBox="true">
-                            @foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
-                            {
-                                <MudSelectItemExtended Value="@tz.Id">@tz.Id - @tz.DisplayName</MudSelectItemExtended>
-                            }
-                        </MudSelectExtended>
-                    </MudItem>
+                    <MudDivider />
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_culture" Label="Culture" Variant="Variant.Outlined" />
-                    </MudItem>
-                </MudGrid>
-            </MudContainer>
-        </MudForm>
+                    <div class="lab-profile-section">
+                        <div class="lab-profile-section-heading">
+                            <MudIcon Icon="@Icons.Material.Filled.Language"
+                                     Color="Color.Primary"
+                                     Size="Size.Small" />
+                            <div>
+                                <strong>Localization</strong>
+                                <span>Language, time zone and culture preferences.</span>
+                            </div>
+                        </div>
+
+                        <div class="lab-profile-grid">
+                            <MudTextField @bind-Value="_language"
+                                          Label="Language"
+                                          Placeholder="e.g. en"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isSaving" />
+
+                            <MudTextField @bind-Value="_culture"
+                                          Label="Culture"
+                                          Placeholder="e.g. en-US"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isSaving" />
+
+                            <div class="lab-profile-full">
+                                <MudSelectExtended T="string"
+                                                   @bind-Value="_timeZone"
+                                                   Label="Time Zone"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   SearchBox="true"
+                                                   Disabled="@_isSaving">
+                                    @foreach (var tz in _timeZones)
+                                    {
+                                        <MudSelectItemExtended Value="@tz.Id">
+                                            @tz.Id
+                                        </MudSelectItemExtended>
+                                    }
+                                </MudSelectExtended>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MudForm>
+        }
     </DialogContent>
+
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
+        <div class="lab-profile-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSaving"
+                       OnClick="Cancel">
+                Cancel
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Loading="@_isSaving"
+                       Disabled="@(_isLoading || _loadError is not null || PreviewMode || _isSaving)"
+                       OnClick="SaveAsync">
+                Save Changes
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

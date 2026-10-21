@@ -1,5 +1,6 @@
 ﻿@page "/dashboard/identity"
 @layout DashboardLayout
+@inject IDialogService DialogService
 
 @* TODO: Enable after authentication integration.
 @attribute [UAuthAuthorize]
@@ -14,40 +15,28 @@
             <div>
                 <span class="lab-identity-eyebrow">PERSONAL WORKSPACE</span>
                 <h1>My Identity</h1>
-                <p>
-                    Explore your account, sign-in identifiers,
-                    and credential security.
-                </p>
+                <p>Explore your account, sign-in identifiers, and credential security.</p>
             </div>
 
-            <MudChip T="string"
-                     Icon="@Icons.Material.Filled.Science"
-                     Color="Color.Info"
-                     Variant="Variant.Outlined"
-                     Size="Size.Small">
+            <MudChip T="string" Icon="@Icons.Material.Filled.Science" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
                 Demo Preview
             </MudChip>
         </div>
 
         <div class="lab-identity-grid">
-
             <div class="lab-identity-column">
-
                 <section class="lab-identity-card">
-
                     <div class="lab-card-header">
                         <div>
                             <h2>Profile</h2>
                             <p>Your account information.</p>
                         </div>
 
-                        <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
-                                 Color="Color.Primary" />
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Color="Color.Primary" />
                     </div>
 
                     <div class="lab-identity-profile">
-                        <MudAvatar Color="Color.Primary"
-                                   Size="Size.Large">
+                        <MudAvatar Color="Color.Primary" Size="Size.Large">
                             <MudIcon Icon="@Icons.Material.Filled.Person" />
                         </MudAvatar>
 
@@ -91,7 +80,7 @@
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Edit"
-                               Disabled="true">
+                               OnClick="OpenEditProfileAsync">
                         Edit Profile
                     </MudButton>
                 </section>
@@ -154,7 +143,7 @@
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Add"
-                               Disabled="true">
+                               OnClick="OpenIdentifiersAsync">
                         Add Identifier
                     </MudButton>
 
@@ -192,7 +181,7 @@
                         <MudButton Variant="Variant.Outlined"
                                    Color="Color.Primary"
                                    Size="Size.Small"
-                                   Disabled="true">
+                                   OnClick="OpenChangePasswordAsync">
                             Change
                         </MudButton>
                     </div>
@@ -301,3 +290,45 @@
 
     </MudContainer>
 </div>
+
+@code {
+    private async Task OpenEditProfileAsync()
+    {
+        var parameters = new DialogParameters<ProfileDialog>
+        {
+            { x => x.PreviewMode, true },
+            { x => x.PreviewDisplayName, "Alex Morgan" }
+        };
+
+        await DialogService.ShowAsync<ProfileDialog>(
+            "Edit Profile",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+    }
+
+    private async Task OpenIdentifiersAsync()
+    {
+        var parameters = new DialogParameters<IdentifierDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<IdentifierDialog>(
+            "Manage Identifiers",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+    }
+
+    private async Task OpenChangePasswordAsync()
+    {
+        var parameters = new DialogParameters<CredentialDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<CredentialDialog>(
+            "Change Password",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+    }
+}

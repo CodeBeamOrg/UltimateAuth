@@ -1,25 +1,148 @@
 ﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog Class="lab-create-user-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h6">Create User</MudText>
+        <div class="lab-create-user-header">
+            <div class="lab-create-user-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                         Size="Size.Medium" />
+            </div>
+
+            <div class="lab-create-user-header-text">
+                <MudText Typo="Typo.h6">Create User</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Add a new identity to your environment.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
         <MudForm @ref="_form" OnEnterPressed="CreateUserAsync">
-            <MudStack Spacing="2">
-                <MudTextField @bind-Value="_username" Label="Username" Variant="Variant.Outlined" Required="true" />
-                <MudTextField @bind-Value="_email" Label="Email" Variant="Variant.Outlined" Required="true" />
-                <MudPasswordField @bind-Value="_password" Label="Password" Variant="Variant.Outlined" Required="true" />
-                <MudPasswordField @bind-Value="_passwordCheck" Label="Password (Again)" Variant="Variant.Outlined" Required="true" Immediate="true" Validation="@(new Func<string, string>(PasswordMatch))" />
-                <MudTextField @bind-Value="_displayName" Label="Display Name" Variant="Variant.Outlined" />
-            </MudStack>
+            <div class="lab-create-user-content">
+
+                @if (PreviewMode)
+                {
+                    <MudAlert Severity="Severity.Info"
+                              Variant="Variant.Outlined"
+                              Dense="true">
+                        This dialog is running in preview mode.
+                        You can explore the form, but user creation is not enabled.
+                    </MudAlert>
+                }
+
+                <div class="lab-create-user-section">
+                    <div class="lab-create-user-section-heading">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                 Size="Size.Small"
+                                 Color="Color.Primary" />
+                        <div>
+                            <strong>Identity Information</strong>
+                            <span>Basic details used to identify this user.</span>
+                        </div>
+                    </div>
+
+                    <div class="lab-create-user-fields">
+                        <MudTextField T="string"
+                                      @bind-Value="_displayName"
+                                      Label="Display Name"
+                                      Placeholder="e.g. Alex Morgan"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Disabled="@_isSubmitting"
+                                      MaxLength="150" />
+
+                        <MudTextField T="string"
+                                      @bind-Value="_username"
+                                      Label="Username"
+                                      Placeholder="e.g. alex"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Username is required."
+                                      Immediate="true"
+                                      Disabled="@_isSubmitting"
+                                      MaxLength="100" />
+
+                        <MudTextField T="string"
+                                      @bind-Value="_email"
+                                      Label="Email Address"
+                                      Placeholder="e.g. alex@example.com"
+                                      InputType="InputType.Email"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Email is required."
+                                      Validation="@(new Func<string?, string?>(ValidateEmail))"
+                                      Immediate="true"
+                                      Disabled="@_isSubmitting"
+                                      MaxLength="254" />
+                    </div>
+                </div>
+
+                <MudDivider />
+
+                <div class="lab-create-user-section">
+                    <div class="lab-create-user-section-heading">
+                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Primary" />
+                        <div>
+                            <strong>Initial Credential</strong>
+                            <span>Set the password for the new account.</span>
+                        </div>
+                    </div>
+
+                    <div class="lab-create-user-fields">
+                        <MudPasswordField @bind-Value="_password"
+                                          Label="Password"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Required="true"
+                                          RequiredError="Password is required."
+                                          Disabled="@_isSubmitting" />
+
+                        <MudPasswordField @bind-Value="_passwordCheck"
+                                          Label="Confirm Password"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Required="true"
+                                          RequiredError="Please confirm the password."
+                                          Immediate="true"
+                                          Validation="@(new Func<string?, string?>(PasswordMatch))"
+                                          Disabled="@_isSubmitting" />
+                    </div>
+
+                    <div class="lab-create-user-hint">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
+                        <span>
+                            Password requirements are enforced by the
+                            configured UltimateAuth credential policy.
+                        </span>
+                    </div>
+                </div>
+
+            </div>
         </MudForm>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CreateUserAsync">Create</MudButton>
+        <div class="lab-create-user-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSubmitting"
+                       OnClick="Cancel">
+                Cancel
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       Loading="@_isSubmitting"
+                       Disabled="@(PreviewMode || _isSubmitting)"
+                       OnClick="CreateUserAsync">
+                Create User
+            </MudButton>
+        </div>
     </DialogActions>
+
 </MudDialog>

@@ -1,0 +1,118 @@
+.lab-create-user-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 4px 0;
+}
+
+.lab-create-user-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+}
+
+.lab-create-user-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+    .lab-create-user-header-text ::deep .mud-typography-h6 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        letter-spacing: -.4px;
+    }
+
+    .lab-create-user-header-text ::deep .mud-typography-body2 {
+        font-size: .77rem;
+        line-height: 1.5;
+    }
+
+.lab-create-user-content {
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+    padding: 8px 0;
+}
+
+.lab-create-user-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lab-create-user-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+    .lab-create-user-section-heading > div {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .lab-create-user-section-heading strong {
+        font-size: .85rem;
+        font-weight: 750;
+    }
+
+    .lab-create-user-section-heading span {
+        color: var(--mud-palette-text-secondary);
+        font-size: .73rem;
+        line-height: 1.6;
+    }
+
+.lab-create-user-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+.lab-create-user-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 13px 15px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 11px;
+    background: var(--mud-palette-background);
+    color: var(--mud-palette-text-secondary);
+}
+
+    .lab-create-user-hint span {
+        font-size: .72rem;
+        line-height: 1.65;
+    }
+
+.lab-create-user-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 5px 0;
+}
+
+@media (max-width: 480px) {
+    .lab-create-user-header-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .lab-create-user-actions {
+        flex-wrap: wrap;
+    }
+
+        .lab-create-user-actions ::deep .mud-button-root {
+            flex: 1;
+        }
+}

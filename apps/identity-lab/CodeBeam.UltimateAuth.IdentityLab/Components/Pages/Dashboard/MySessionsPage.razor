@@ -1,5 +1,6 @@
 ﻿@page "/dashboard/sessions"
 @layout DashboardLayout
+@inject IDialogService DialogService
 
 @* TODO: Enable after authentication integration.
 @attribute [UAuthAuthorize]
@@ -114,7 +115,7 @@
                 <MudButton Variant="Variant.Outlined"
                            Color="Color.Primary"
                            Size="Size.Small"
-                           Disabled="true">
+                           OnClick="OpenSessionManagementAsync">
                     Details
                 </MudButton>
             </section>
@@ -368,3 +369,18 @@
 
     </MudContainer>
 </div>
+
+@code {
+    private async Task OpenSessionManagementAsync()
+    {
+        var parameters = new DialogParameters<SessionDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<SessionDialog>(
+            "Session Management",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Large));
+    }
+}

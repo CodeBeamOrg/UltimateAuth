@@ -17,13 +17,20 @@ public static class UAuthDialog
         return parameters;
     }
 
-    public static DialogOptions GetDialogOptions(MaxWidth maxWidth = MaxWidth.Medium)
+    public static DialogOptions GetDialogOptions(
+        MaxWidth maxWidth = MaxWidth.Medium,
+        bool allowBackdropClose = false,
+        bool allowEscapeClose = false,
+        bool showCloseButton = true)
     {
         return new DialogOptions
         {
             MaxWidth = maxWidth,
             FullWidth = true,
-            CloseButton = true
+            BackdropClick = allowBackdropClose,
+            CloseOnEscapeKey = allowEscapeClose,
+            CloseButton = showCloseButton,
+            BackgroundClass = "uauth-dialog-backdrop",
         };
     }
 }

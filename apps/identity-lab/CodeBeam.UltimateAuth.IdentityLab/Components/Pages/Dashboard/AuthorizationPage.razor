@@ -1,5 +1,6 @@
 ﻿@page "/dashboard/authorization"
 @layout DashboardLayout
+@inject IDialogService DialogService
 
 @* TODO: Enable sandbox-scoped authorization.
 @attribute [UAuthAuthorize]
@@ -23,7 +24,7 @@
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
-                       Disabled="true">
+                       OnClick="OpenRoleManagementAsync">
                 Create Role
             </MudButton>
         </div>
@@ -273,6 +274,19 @@
     private string _permissionSearch = string.Empty;
     private string _playgroundRoleId = "owner";
     private string _playgroundPermissionId = "users.query";
+
+    private async Task OpenRoleManagementAsync()
+    {
+        var parameters = new DialogParameters<RoleDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<RoleDialog>(
+            "Role Management",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Large));
+    }
 
     private readonly List<PermissionPreview> _permissions =
     [
