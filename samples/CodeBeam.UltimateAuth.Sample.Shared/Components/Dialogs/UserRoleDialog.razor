@@ -3,47 +3,153 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
-
+<MudDialog Class="lab-user-role-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h6">User Roles</MudText>
-        <MudText Typo="Typo.subtitle2">UserKey: @UserKey.Value</MudText>
+        <div class="lab-user-role-header">
+            <div class="lab-user-role-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-user-role-header-text">
+                <MudText Typo="Typo.h6">Manage User Roles</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Assign and remove authorization roles for this identity.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.subtitle1">Assigned Roles</MudText>
-
-            @if (_roles.Count == 0)
+        <div class="lab-user-role-content">
+            @if (PreviewMode)
             {
-                <MudText Color="Color.Secondary">No roles assigned</MudText>
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Role assignments cannot be changed.
+                </MudAlert>
             }
 
-            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
-                @foreach (var role in _roles)
-                {
-                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" OnClose="(() => RemoveRole(role))">@role</MudChip>
-                }
-            </MudStack>
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true"
+                                   Color="Color.Primary" />
+            }
+            else if (_loadError is not null)
+            {
+                <MudAlert Severity="Severity.Error"
+                          Variant="Variant.Outlined">
+                    @_loadError
+                </MudAlert>
+            }
+            else
+            {
+                <div class="lab-user-role-section">
+                    <div class="lab-user-role-section-heading">
+                        <MudIcon Icon="@Icons.Material.Filled.Security"
+                                 Color="Color.Primary"
+                                 Size="Size.Small" />
+                        <div>
+                            <strong>Assigned Roles</strong>
+                            <span>Roles currently granted to this identity.</span>
+                        </div>
+                    </div>
 
-            <MudDivider Class="my-4" />
-
-            <MudText Typo="Typo.subtitle1">Add Role</MudText>
-            <MudStack Row="true" Spacing="2">
-
-                <MudSelect T="string" @bind-Value="_selectedRole" Label="Role" Dense="true">
-                    @foreach (var role in _allRoles)
+                    @if (_roles.Count == 0)
                     {
-                        <MudSelectItem Value="@role.Name">@role.Name</MudSelectItem>
+                        <div class="lab-user-role-empty">
+                            <MudIcon Icon="@Icons.Material.Outlined.Shield"
+                                     Color="Color.Secondary"
+                                     Size="Size.Medium" />
+                            <span>No roles assigned to this user.</span>
+                        </div>
                     }
-                </MudSelect>
+                    else
+                    {
+                        <div class="lab-user-role-chips">
+                            @foreach (var role in _roles)
+                            {
+                                <MudChip T="string"
+                                         @key="role"
+                                         Color="@(IsAdminRole(role) ? Color.Warning : Color.Primary)"
+                                         Variant="Variant.Outlined"
+                                         Size="Size.Medium"
+                                         Disabled="@(_isSubmitting || PreviewMode)"
+                                         OnClose="@(() => RemoveRoleAsync(role))">
+                                    @role
+                                </MudChip>
+                            }
+                        </div>
+                    }
+                </div>
 
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddRole">Add</MudButton>
-            </MudStack>
-        </MudStack>
+                <MudDivider />
+
+                <div class="lab-user-role-section">
+                    <div class="lab-user-role-section-heading">
+                        <MudIcon Icon="@Icons.Material.Filled.AddModerator"
+                                 Color="Color.Primary"
+                                 Size="Size.Small" />
+                        <div>
+                            <strong>Assign New Role</strong>
+                            <span>Select an available role to grant additional permissions.</span>
+                        </div>
+                    </div>
+
+                    <div class="lab-user-role-add">
+                        <MudSelect T="string"
+                                   @bind-Value="_selectedRole"
+                                   Label="Available Roles"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Disabled="@(_isSubmitting || PreviewMode || AvailableRoles.Count == 0)">
+                            @foreach (var role in AvailableRoles)
+                            {
+                                <MudSelectItem T="string" Value="@role.Name">
+                                    @role.Name
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   Loading="@_isSubmitting"
+                                   Disabled="@(_isSubmitting || PreviewMode || string.IsNullOrWhiteSpace(_selectedRole))"
+                                   OnClick="AddRoleAsync">
+                            Assign Role
+                        </MudButton>
+                    </div>
+
+                    @if (AvailableRoles.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            No additional roles are currently available.
+                        </MudText>
+                    }
+                </div>
+
+                <div class="lab-user-role-hint">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info"
+                             Size="Size.Small" />
+                    <span>
+                        Role assignments affect authorization decisions.
+                        Changes may require a new authentication or authorization
+                        evaluation to be reflected in active sessions.
+                    </span>
+                </div>
+            }
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Close">Close</MudButton>
+        <div class="lab-user-role-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSubmitting"
+                       OnClick="Close">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

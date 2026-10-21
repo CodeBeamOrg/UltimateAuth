@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Apps/">
+    <Project Path="apps/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj" Id="ae45cd5c-2a32-42d2-aad8-f10c4bb9fba3" />
+  </Folder>
   <Folder Name="/Docs/">
     <Project Path="docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.Client/CodeBeam.UltimateAuth.Docs.Wasm.Client.csproj" Id="1976793c-a84c-4009-96c5-1fb8c7657c5e" />
     <Project Path="docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.csproj" Id="629c8d74-d253-4ef2-9f26-47a405d9d7a6" />

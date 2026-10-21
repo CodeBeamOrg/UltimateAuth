@@ -1,0 +1,85 @@
+﻿.lab-header {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    width: 100%;
+    background: var(--mud-palette-surface);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    background: color-mix( in srgb, var(--mud-palette-surface) 92%, transparent );
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.lab-header-inner {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.lab-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--mud-palette-text-primary);
+}
+
+.lab-brand-symbol {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-primary-hover);
+}
+
+.lab-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+    .lab-brand-text strong {
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: -0.6px;
+        line-height: 1.15;
+    }
+
+    .lab-brand-text small {
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .lab-header-inner {
+        min-height: 64px;
+        gap: 12px;
+    }
+
+    .lab-brand-text strong {
+        font-size: 1.05rem;
+    }
+
+    .lab-header-actions {
+        gap: 2px;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-header-github {
+        display: none;
+    }
+}

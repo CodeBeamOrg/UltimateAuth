@@ -1,46 +1,148 @@
 ﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
-@using CodeBeam.UltimateAuth.Core.Defaults
-@using System.Reflection
-
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-permission-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h6">Role Permissions</MudText>
-        <MudText Typo="Typo.subtitle2">@Role.Name</MudText>
+        <div class="lab-permission-header">
+            <div class="lab-permission-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Security"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-permission-header-text">
+                <MudText Typo="Typo.h6">Role Permissions</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Configure permissions for @(PreviewMode ? PreviewRoleName : Role?.Name ?? "this role").
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        @* For Debug *@
-        @* <MudText>Current Permissions: @string.Join(", ", Role.Permissions)</MudText> *@
-        <MudExpansionPanels Dense="true">
-            @foreach (var group in _groups)
+        <div class="lab-permission-content">
+            @if (PreviewMode)
             {
-                <MudExpansionPanel HeaderClass="py-0">
-                    <TitleContent>
-                        <MudStack Class="py-1" Row="true" AlignItems="AlignItems.Center">
-                            <MudCheckBox T="bool?" Color="Color.Primary" Value="@GetGroupState(group)" ValueChanged="@(v => ToggleGroup(group, v ?? false))" />
-                            <MudText Class="ml-2">@group.Name (@group.Items.Count(x => x.Selected)/@group.Items.Count)</MudText>
-                        </MudStack>
-                    </TitleContent>
-                    <ChildContent>
-                        <MudGrid Spacing="0">
-                        @foreach (var perm in group.Items)
-                        {
-                            <MudItem xs="12" md="6">
-                                <MudCheckBox T="bool" Class="ml-6" Style="width: fit-content" Color="Color.Primary" Label="@perm.Value" Value="@perm.Selected" ValueChanged="@(v => TogglePermission(perm, v))" />
-                            </MudItem>
-                        }
-                        </MudGrid>
-                    </ChildContent>
-                </MudExpansionPanel>
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. You can explore permission
+                    selection, but changes cannot be saved.
+                </MudAlert>
             }
-        </MudExpansionPanels>
+
+            <div class="lab-permission-summary">
+                <div>
+                    <span>Selected Permissions</span>
+                    <strong>@SelectedCount / @TotalCount</strong>
+                </div>
+                <MudProgressLinear Value="@SelectionPercentage"
+                                   Color="Color.Primary"
+                                   Rounded="true"
+                                   Size="Size.Small" />
+            </div>
+
+            <div class="lab-permission-toolbar">
+                <MudTextField T="string"
+                              @bind-Value="_search"
+                              Placeholder="Search permissions..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Immediate="true"
+                              Clearable="true" />
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="ResetSelection">
+                    Reset
+                </MudButton>
+            </div>
+
+            <div class="lab-permission-groups">
+                @foreach (var group in FilteredGroups)
+                {
+                    <div class="lab-permission-group" @key="group.Name">
+                        <div class="lab-permission-group-header">
+                            <MudCheckBox T="bool?"
+                                         Value="@GetGroupState(group)"
+                                         ValueChanged="@(value => ToggleGroup(group, value != true))"
+                                         Color="Color.Primary"
+                                         Size="Size.Small" />
+
+                            <div class="lab-permission-group-heading">
+                                <strong>@group.Name</strong>
+                                <span>@group.Items.Count(x => x.Selected) of @group.Items.Count selected</span>
+                            </div>
+
+                            <MudIconButton Icon="@(group.Expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                           Size="Size.Small"
+                                           OnClick="@(() => ToggleExpanded(group))"
+                                           aria-label="Expand or collapse group" />
+                        </div>
+
+                        @if (group.Expanded)
+                        {
+                            <div class="lab-permission-items">
+                                @foreach (var permission in GetVisibleItems(group))
+                                {
+                                    <div class="lab-permission-item" @key="permission.Value">
+                                        <MudCheckBox T="bool"
+                                                     Value="@permission.Selected"
+                                                     ValueChanged="@(value => TogglePermission(permission, value))"
+                                                     Color="Color.Primary"
+                                                     Size="Size.Small" />
+                                        <span>@permission.Value</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (FilteredGroups.Count == 0)
+                {
+                    <div class="lab-permission-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.SearchOff"
+                                 Color="Color.Secondary"
+                                 Size="Size.Large" />
+                        <strong>No permissions found</strong>
+                        <span>Try a different search term.</span>
+                    </div>
+                }
+            </div>
+
+            <div class="lab-permission-hint">
+                <MudIcon Icon="@Icons.Material.Outlined.Info"
+                         Size="Size.Small" />
+                <span>
+                    Permission groups are organized by resource.
+                    Selecting a group selects its catalog permissions.
+                    Changes take effect according to the authorization
+                    evaluation and caching policies of the application.
+                </span>
+            </div>
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Save">Save</MudButton>
+        <div class="lab-permission-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSaving"
+                       OnClick="Cancel">
+                Cancel
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Loading="@_isSaving"
+                       Disabled="@(PreviewMode || _isSaving || !HasChanges)"
+                       OnClick="SaveAsync">
+                Save Permissions
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

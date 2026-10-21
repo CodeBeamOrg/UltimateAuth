@@ -3,71 +3,190 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-user-detail-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h6">User Management</MudText>
-        <MudText Typo="Typo.subtitle2">@_user?.UserKey.Value</MudText>
+        <div class="lab-user-detail-header">
+            <div class="lab-user-detail-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.ManageAccounts"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-user-detail-header-text">
+                <MudText Typo="Typo.h6">User Management</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Review identity details and manage account access.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudStack Spacing="3">
-            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Display Name</MudText>
-                        <MudText>@_user?.DisplayName</MudText>
-                    </MudItem>
+        <div class="lab-user-detail-content">
+            @if (PreviewMode)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. User management actions are disabled.
+                </MudAlert>
+            }
 
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Username</MudText>
-                        <MudText>@_user?.UserName</MudText>
-                    </MudItem>
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true"
+                                   Color="Color.Primary" />
+            }
+            else if (_loadError is not null)
+            {
+                <MudAlert Severity="Severity.Error"
+                          Variant="Variant.Outlined">
+                    @_loadError
+                </MudAlert>
+            }
+            else if (_user is not null || PreviewMode)
+            {
+                <div class="lab-user-detail-identity">
+                    <div class="lab-user-detail-avatar">
+                        <MudIcon Icon="@Icons.Material.Filled.Person"
+                                 Size="Size.Large" />
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Email</MudText>
-                        <MudText>@_user?.PrimaryEmail</MudText>
-                    </MudItem>
+                    <div class="lab-user-detail-identity-info">
+                        <strong>@DisplayName</strong>
+                        <span>@UserName</span>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Phone</MudText>
-                        <MudText>@_user?.PrimaryPhone</MudText>
-                    </MudItem>
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Color="@GetStatusColor(CurrentStatus)"
+                             Variant="Variant.Outlined">
+                        @CurrentStatus
+                    </MudChip>
+                </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Created</MudText>
-                        <MudText>@_user?.CreatedAt?.ToLocalTime()</MudText>
-                    </MudItem>
+                <div class="lab-user-detail-section-heading">
+                    <strong>Identity Information</strong>
+                    <span>Primary account information and registration details.</span>
+                </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Status</MudText>
-                        <MudChip T="string" Color="@GetStatusColor(_user?.Status)" Variant="Variant.Filled">@_user?.Status</MudChip>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudSelect T="AdminAssignableUserStatus" @bind-Value="_status" Dense="true" Variant="Variant.Outlined">
-                                @foreach (var s in Enum.GetValues<AdminAssignableUserStatus>())
-                                {
-                                    <MudSelectItem Value="@s">@s</MudSelectItem>
-                                }
-                            </MudSelect>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeStatusAsync">Change</MudButton>
-                        </MudStack>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
+                <div class="lab-user-detail-info-grid">
+                    <div class="lab-user-detail-info-item">
+                        <span>Display Name</span>
+                        <strong>@DisplayName</strong>
+                    </div>
 
-            <MudDivider />
+                    <div class="lab-user-detail-info-item">
+                        <span>Username</span>
+                        <strong>@UserName</strong>
+                    </div>
 
-            <MudText Typo="Typo.subtitle1">Management</MudText>
-            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenSessions">Sessions</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenProfile">Profile</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenIdentifiers">Identifiers</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCredentials">Credentials</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenRoles">Roles</MudButton>
-            </MudStack>
-        </MudStack>
+                    <div class="lab-user-detail-info-item">
+                        <span>Email</span>
+                        <strong>@PrimaryEmail</strong>
+                    </div>
+
+                    <div class="lab-user-detail-info-item">
+                        <span>Phone</span>
+                        <strong>@PrimaryPhone</strong>
+                    </div>
+
+                    <div class="lab-user-detail-info-item">
+                        <span>Created</span>
+                        <strong>@CreatedAt</strong>
+                    </div>
+
+                    <div class="lab-user-detail-info-item">
+                        <span>User Key</span>
+                        <strong class="lab-user-detail-break">@UserKeyText</strong>
+                    </div>
+                </div>
+
+                <MudDivider />
+
+                <div class="lab-user-detail-section-heading">
+                    <strong>Account Status</strong>
+                    <span>Control whether this identity can access the application.</span>
+                </div>
+
+                <div class="lab-user-detail-status">
+                    <MudSelect T="AdminAssignableUserStatus"
+                               @bind-Value="_status"
+                               Label="Account Status"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Disabled="@(_isSubmitting || PreviewMode)">
+                        @foreach (var status in Enum.GetValues<AdminAssignableUserStatus>())
+                        {
+                            <MudSelectItem T="AdminAssignableUserStatus"
+                                           Value="@status">
+                                @status
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Loading="@_isSubmitting"
+                               Disabled="@(_isSubmitting || PreviewMode || !HasStatusChange)"
+                               OnClick="ChangeStatusAsync">
+                        Update Status
+                    </MudButton>
+                </div>
+
+                <MudDivider />
+
+                <div class="lab-user-detail-section-heading">
+                    <strong>Management</strong>
+                    <span>Manage the user's authentication and authorization settings.</span>
+                </div>
+
+                <div class="lab-user-detail-management">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PersonOutline"
+                               OnClick="OpenProfileAsync">
+                        Profile
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.AlternateEmail"
+                               OnClick="OpenIdentifiersAsync">
+                        Identifiers
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Key"
+                               OnClick="OpenCredentialsAsync">
+                        Credentials
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Devices"
+                               OnClick="OpenSessionsAsync">
+                        Sessions
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                               OnClick="OpenRolesAsync">
+                        Roles
+                    </MudButton>
+                </div>
+            }
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Close">Close</MudButton>
+        <div class="lab-user-detail-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSubmitting"
+                       OnClick="Close">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

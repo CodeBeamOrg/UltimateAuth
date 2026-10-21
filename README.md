@@ -324,15 +324,30 @@ Start with the simple API. Drop down to UltimateAuth's extensibility points when
 
 ---
 
-## Documentation
+## Documentation & Examples
 
-Two documentation experiences are provided:
+UltimateAuth provides three ways to learn, explore, and experience the framework.
 
-### **1) Classic Documentation**
-Guides, API reference, tutorials - https://ultimateauth.com
+### **1) Documentation**
+Comprehensive guides, API references, tutorials, and architectural explanations to help you understand and integrate UltimateAuth.
 
-### **2) Interactive Identity Sandbox** (Available Soon)
-Create accounts, simulate devices, test auth flows, and observe UltimateAuth in action.  
+📖 **[Explore Documentation](https://ultimateauth.com/docs)**
+
+### **2) Runnable Samples**
+Go beyond code snippets. UltimateAuth includes multiple complete, ready-to-run sample applications covering different hosting models, authentication flows, and integration scenarios.
+
+Clone the repository, open the solution in your IDE, and run the samples directly. No need to build a demo application from scratch.
+
+💻 **[Explore Samples](https://github.com/CodeBeamOrg/UltimateAuth/tree/dev/samples)**
+
+### **3) Identity Lab — Interactive Sandbox**
+Experience UltimateAuth directly in your browser through a free, interactive sandbox.
+
+Create test accounts, manage identities and sessions, explore roles and permissions, and experiment with real authentication and authorization flows.
+
+**Powered by UltimateAuth, not simulated.** The demonstrated identity capabilities use the framework itself, so you can see what UltimateAuth can do before integrating it into your own application.
+
+🧪 **Identity Lab — Interactive Sandbox** *(Link coming soon)*
 
 ---
 

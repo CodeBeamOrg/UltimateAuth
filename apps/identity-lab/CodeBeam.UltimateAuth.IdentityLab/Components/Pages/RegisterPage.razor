@@ -1,0 +1,217 @@
+﻿@page "/register"
+@layout PublicLayout
+
+<PageTitle>Create Sandbox · Identity Lab</PageTitle>
+
+<div class="lab-login-page">
+    <MudContainer MaxWidth="MaxWidth.Large">
+        <div class="lab-login-grid">
+
+            <section class="lab-login-form-section">
+                <div class="lab-login-form-wrap">
+
+                    <div class="lab-login-intro">
+                        <span class="lab-login-eyebrow">
+                            <MudIcon Icon="@Icons.Material.Filled.Science"
+                                     Size="Size.Small" />
+                            GET STARTED
+                        </span>
+
+                        <h1>Create your sandbox.</h1>
+                        <p>
+                            Set up your account and start exploring
+                            UltimateAuth in your own workspace.
+                        </p>
+                    </div>
+
+                    
+                    <div class="lab-login-card">
+                        <MudForm @ref="_form">
+                            <div class="lab-login-fields">
+
+                                <MudTextField T="string"
+                                              @bind-Value="_username"
+                                              Label="Username"
+                                              Placeholder="Choose a username"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.PersonOutline"
+                                              Required="true"
+                                              RequiredError="Username is required." />
+
+                                <MudTextField T="string"
+                                              @bind-Value="_email"
+                                              Label="Email address"
+                                              Placeholder="you@example.com"
+                                              InputType="InputType.Email"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                              Required="true"
+                                              RequiredError="Email address is required."
+                                              Validation="@(new Func<string, string?>(ValidateEmail))" />
+
+                                <MudPasswordField @bind-Value="_password"
+                                                  Label="Password"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true"
+                                                  RequiredError="Password is required."
+                                                  Immediate="true"
+                                                  Validation="@(new Func<string, string?>(ValidatePassword))" />
+
+                                <MudPasswordField @bind-Value="_confirmPassword"
+                                                  Label="Confirm password"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true"
+                                                  RequiredError="Please confirm your password."
+                                                  Immediate="true"
+                                                  Validation="@(new Func<string, string?>(ValidateConfirmPassword))" />
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           Disabled="true"
+                                           EndIcon="@Icons.Material.Filled.ArrowForward">
+                                    Create Sandbox
+                                </MudButton>
+
+                            </div>
+                        </MudForm>
+
+                        <div class="lab-login-register">
+                            <span>Already have an account?</span>
+                            <MudLink Href="/login" Underline="Underline.Hover">
+                                Sign in
+                            </MudLink>
+                        </div>
+                    </div>
+
+
+                    <div class="lab-login-note">
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
+                                 Size="Size.Small"
+                                 Color="Color.Success" />
+                        <span>Free, open source, and powered by UltimateAuth</span>
+                    </div>
+
+                </div>
+            </section>
+
+            <aside class="lab-login-showcase">
+                <div class="lab-login-showcase-inner">
+
+                    <div class="lab-login-showcase-label">
+                        YOUR IDENTITY PLAYGROUND
+                    </div>
+
+                    <MudText Typo="Typo.h4"
+                             Class="lab-login-showcase-title">
+                        Build identities.
+                        <span>Explore freely.</span>
+                    </MudText>
+
+                    <MudText Typo="Typo.body1"
+                             Class="lab-login-showcase-description">
+                        Create a private sandbox to experience
+                        authentication, sessions, and authorization
+                        in a real application.
+                    </MudText>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.People" />
+                        </span>
+                        <div>
+                            <strong>Your own users</strong>
+                            <p>Create and manage up to four sandbox members, including yourself.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                        </span>
+                        <div>
+                            <strong>Real session management</strong>
+                            <p>Explore device sessions, authentication lifecycle, and revocation.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-feature">
+                        <span class="lab-login-feature-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+                        </span>
+                        <div>
+                            <strong>Roles &amp; permissions</strong>
+                            <p>Experiment with access control inside your sandbox.</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-login-showcase-footer">
+                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome"
+                                 Size="Size.Small" />
+                        Your sandbox. Your experiments.
+                    </div>
+
+                </div>
+            </aside>
+
+        </div>
+    </MudContainer>
+</div>
+
+@code {
+    private string _username = string.Empty;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string _confirmPassword = string.Empty;
+    private bool _showPassword;
+    private MudForm? _form;
+
+    private static string? ValidateEmail(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Email address is required.";
+
+        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute()
+            .IsValid(value)
+            ? null
+            : "Enter a valid email address.";
+    }
+
+    private static string? ValidatePassword(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Password is required.";
+
+        if (value.Length < 8)
+            return "Password must be at least 8 characters.";
+
+        return null;
+    }
+
+    private string? ValidateConfirmPassword(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Please confirm your password.";
+
+        if (value != _password)
+            return "Passwords do not match.";
+
+        return null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form is null)
+            return;
+
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
+
+        // UltimateAuth registration + sandbox creation
+    }
+}

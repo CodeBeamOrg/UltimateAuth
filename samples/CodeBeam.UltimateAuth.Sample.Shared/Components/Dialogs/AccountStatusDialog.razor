@@ -1,23 +1,139 @@
-﻿@using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Users.Contracts
+﻿@using CodeBeam.UltimateAuth.Users.Contracts
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudDialog Class="mud-width-full">
+<MudDialog Class="lab-account-status-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">User: @AuthState?.Identity?.DisplayName</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudStack Class="mud-width-full">
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.NearbyOff" OnClick="SuspendAccountAsync">
-                Suspend Account
-            </MudButton>
+        <div class="lab-account-status-header">
+            <div class="lab-account-status-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.ManageAccounts"
+                         Size="Size.Medium" />
+            </div>
 
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAccountAsync">
-                Delete Account
-            </MudButton>
-        </MudStack>
+            <div class="lab-account-status-header-text">
+                <MudText Typo="Typo.h6">Account Management</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Manage your account status and access.
+                </MudText>
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="lab-account-status-content">
+            @if (PreviewMode)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Account changes are disabled.
+                </MudAlert>
+            }
+
+            <div class="lab-account-status-identity">
+                <div class="lab-account-status-avatar">
+                    <MudIcon Icon="@Icons.Material.Filled.Person"
+                             Size="Size.Medium" />
+                </div>
+
+                <div class="lab-account-status-identity-info">
+                    <strong>@AccountName</strong>
+                    <span>Personal account</span>
+                </div>
+
+                <MudChip T="string"
+                         Color="Color.Success"
+                         Variant="Variant.Outlined"
+                         Size="Size.Small">
+                    Account
+                </MudChip>
+            </div>
+
+            <div class="lab-account-status-section-heading">
+                <strong>Account Status</strong>
+                <span>Temporarily suspend access to your account.</span>
+            </div>
+
+            <div class="lab-account-status-card">
+                <div class="lab-account-status-card-main">
+                    <div class="lab-account-status-action-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.PauseCircleOutline"
+                                 Size="Size.Medium" />
+                    </div>
+
+                    <div class="lab-account-status-card-info">
+                        <strong>Suspend Account</strong>
+                        <span>
+                            Temporarily suspend your account.
+                            Reactivation may be available according
+                            to the application's account policies.
+                        </span>
+                    </div>
+                </div>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.PauseCircleOutline"
+                           Disabled="@(_isSubmitting || PreviewMode)"
+                           OnClick="SuspendAccountAsync">
+                    Suspend Account
+                </MudButton>
+            </div>
+
+            <MudDivider />
+
+            <div class="lab-account-status-section-heading">
+                <strong>Danger Zone</strong>
+                <span>Actions that may significantly affect your account.</span>
+            </div>
+
+            <div class="lab-account-status-danger">
+                <div class="lab-account-status-card-main">
+                    <div class="lab-account-status-danger-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.DeleteForever"
+                                 Size="Size.Medium" />
+                    </div>
+
+                    <div class="lab-account-status-card-info">
+                        <strong>Delete Account</strong>
+                        <span>
+                            Delete your account and lose access to its
+                            associated identity. Recovery, if available,
+                            depends on the server's retention policy.
+                        </span>
+                    </div>
+                </div>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.DeleteOutline"
+                           Disabled="@(_isSubmitting || PreviewMode)"
+                           OnClick="DeleteAccountAsync">
+                    Delete Account
+                </MudButton>
+            </div>
+
+            <div class="lab-account-status-hint">
+                <MudIcon Icon="@Icons.Material.Outlined.Info"
+                         Size="Size.Small" />
+                <span>
+                    These actions affect your own account.
+                    Administrative account management is available
+                    separately through user management.
+                </span>
+            </div>
+        </div>
     </DialogContent>
+
+    <DialogActions>
+        <div class="lab-account-status-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSubmitting"
+                       OnClick="Close">
+                Close
+            </MudButton>
+        </div>
+    </DialogActions>
 </MudDialog>

@@ -1,0 +1,172 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
+@inject DarkModeManager DarkModeManager
+
+<HeadContent>
+    <meta name="robots" content="noindex, nofollow" />
+</HeadContent>
+
+<MudLayout Class="lab-dashboard-layout">
+    <div class="lab-appbar-host">
+        <MudAppBar Color="Color.Inherit" Elevation="0" Fixed="true" Class="lab-dashboard-appbar">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Edge="Edge.Start"
+                           Color="Color.Inherit"
+                           Class="lab-mobile-menu"
+                           OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+
+            <a href="/dashboard" class="lab-dashboard-brand">
+                <span class="lab-dashboard-brand-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Science" />
+                </span>
+                <span>
+                    <strong>Identity Lab</strong>
+                    <small>Sandbox Workspace</small>
+                </span>
+            </a>
+
+            <MudSpacer />
+
+            <MudTooltip Text="@(DarkModeManager.IsDarkMode ? "Light mode" : "Dark mode")"
+                        Delay="300">
+                <MudIconButton Icon="@(DarkModeManager.IsDarkMode
+                                           ? Icons.Material.Filled.LightMode
+                                   : Icons.Material.Filled.DarkMode)"
+                               Color="Color.Inherit"
+                               OnClick="DarkModeManager.ToggleAsync" />
+            </MudTooltip>
+
+            <MudTooltip Text="View source on GitHub" Delay="300">
+                <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
+                               Href="https://github.com/CodeBeamOrg/UltimateAuth"
+                               Target="_blank"
+                               Color="Color.Inherit" />
+            </MudTooltip>
+
+            <MudAvatar Color="Color.Primary"
+                       Size="Size.Medium"
+                       Class="ml-3">
+                <MudIcon Icon="@Icons.Material.Filled.Person" />
+            </MudAvatar>
+        </MudAppBar>
+    </div>
+
+    <MudDrawer @bind-Open="_drawerOpen"
+               Variant="DrawerVariant.Responsive"
+               Breakpoint="Breakpoint.Md"
+               Width="252px"
+               Elevation="0"
+               Class="lab-dashboard-drawer">
+
+        <div class="lab-sidebar-content">
+
+            <div class="lab-sidebar-sandbox">
+                <span class="lab-sidebar-sandbox-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Science" />
+                </span>
+                <div>
+                    <strong>My Sandbox</strong>
+                    <small>Identity environment</small>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                         Color="Color.Success"
+                         Size="Size.Small" />
+            </div>
+
+            <MudNavMenu>
+                <div class="lab-nav-label">WORKSPACE</div>
+
+                <MudNavLink Href="/dashboard"
+                            Match="NavLinkMatch.All"
+                            Icon="@Icons.Material.Filled.Dashboard">
+                    Overview
+                </MudNavLink>
+
+                <div class="lab-nav-label">PERSONAL</div>
+
+                <MudNavLink Href="/dashboard/identity"
+                            Icon="@Icons.Material.Filled.Badge">
+                    My Identity
+                </MudNavLink>
+
+                <MudNavLink Href="/dashboard/sessions"
+                            Icon="@Icons.Material.Filled.Devices">
+                    My Sessions
+                </MudNavLink>
+
+                <MudNavLink Href="/dashboard/access"
+                            Icon="@Icons.Material.Filled.VerifiedUser">
+                    My Access
+                </MudNavLink>
+
+                <MudNavLink Href="/dashboard/authorization-lab"
+                            Match="NavLinkMatch.All"
+                            Icon="@Icons.Material.Outlined.Security">
+                    Authorization Lab
+                </MudNavLink>
+
+                @if (ShowManagement)
+                {
+                    <div class="lab-nav-label">SANDBOX MANAGEMENT</div>
+
+                    <MudNavLink Href="/dashboard/users"
+                                Icon="@Icons.Material.Filled.People">
+                        Users
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/authorization"
+                                Icon="@Icons.Material.Filled.AdminPanelSettings">
+                        Authorization
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/activity"
+                                Icon="@Icons.Material.Filled.History">
+                        Activity
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/settings"
+                                Icon="@Icons.Material.Filled.Settings">
+                        Settings
+                    </MudNavLink>
+                }
+            </MudNavMenu>
+
+            <MudSpacer />
+
+            <div class="lab-sidebar-bottom">
+                <MudIcon Icon="@Icons.Material.Filled.Code"
+                         Size="Size.Small" />
+                <span>Powered by UltimateAuth</span>
+            </div>
+        </div>
+    </MudDrawer>
+
+    <MudMainContent Class="lab-dashboard-main">
+        @Body
+    </MudMainContent>
+
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    // UI preview only. Replace with sandbox-scoped authorization.
+    private bool ShowManagement => true;
+
+    protected override void OnInitialized()
+    {
+        DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        DarkModeManager.Changed -= OnThemeChanged;
+    }
+}

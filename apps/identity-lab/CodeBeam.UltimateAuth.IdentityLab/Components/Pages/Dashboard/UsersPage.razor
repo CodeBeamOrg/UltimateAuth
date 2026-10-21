@@ -1,0 +1,355 @@
+﻿@page "/dashboard/users"
+@layout DashboardLayout
+@inject IDialogService DialogService
+
+@* TODO: Enable sandbox-scoped authorization.
+@attribute [UAuthAuthorize]
+*@
+
+<PageTitle>Users · Identity Lab</PageTitle>
+
+<div class="lab-users-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-users-heading">
+            <div>
+                <span class="lab-users-eyebrow">SANDBOX MANAGEMENT</span>
+                <h1>Users</h1>
+                <p>
+                    Manage identities, account status, and
+                    membership within your sandbox.
+                </p>
+            </div>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       OnClick="OpenCreateUserDialogAsync">
+                Create User
+            </MudButton>
+        </div>
+
+        <div class="lab-users-summary">
+
+            <section class="lab-users-capacity">
+                <div class="lab-capacity-heading">
+                    <div>
+                        <span>Sandbox Capacity</span>
+                        <strong>@_users.Count / @MaxUsers users</strong>
+                    </div>
+
+                    <MudChip T="string"
+                             Color="Color.Info"
+                             Variant="Variant.Outlined"
+                             Size="Size.Small">
+                        Demo Preview
+                    </MudChip>
+                </div>
+
+                <MudProgressLinear Value="@CapacityPercentage"
+                                   Color="Color.Primary"
+                                   Rounded="true"
+                                   Size="Size.Medium"
+                                   Class="my-4" />
+
+                <p>
+                    @_users.Count of @MaxUsers available user slots are
+                    occupied, including the sandbox owner.
+                </p>
+            </section>
+
+            <section class="lab-users-summary-card">
+                <span class="lab-users-summary-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.People" />
+                </span>
+                <span>Total Users</span>
+                <strong>@_users.Count</strong>
+                <small>Example sandbox members</small>
+            </section>
+
+            <section class="lab-users-summary-card">
+                <span class="lab-users-summary-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                </span>
+                <span>Active Users</span>
+                <strong>@_users.Count(x => x.Status == UserStatus.Active)</strong>
+                <small>Example active accounts</small>
+            </section>
+
+        </div>
+
+        <section class="lab-users-panel">
+
+            <div class="lab-users-panel-heading">
+                <div>
+                    <h2>Sandbox Members</h2>
+                    <p>
+                        Browse and manage the identities
+                        belonging to this environment.
+                    </p>
+                </div>
+
+                <MudChip T="string"
+                         Color="Color.Default"
+                         Variant="Variant.Outlined"
+                         Size="Size.Small">
+                    @FilteredUsers.Count() results
+                </MudChip>
+            </div>
+
+            <div class="lab-users-toolbar">
+                <MudTextField T="string"
+                              @bind-Value="_search"
+                              Immediate="true"
+                              Placeholder="Search by name, username or email"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Class="lab-users-search" />
+
+                <MudSelect T="string"
+                           @bind-Value="_statusFilter"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="lab-users-filter">
+                    <MudSelectItem Value="@("all")">All statuses</MudSelectItem>
+                    <MudSelectItem Value="@("active")">Active</MudSelectItem>
+                    <MudSelectItem Value="@("disabled")">Disabled</MudSelectItem>
+                </MudSelect>
+            </div>
+
+            <MudTable T="SandboxUserPreview"
+                      Items="@FilteredUsers"
+                      Hover="true"
+                      Dense="false"
+                      Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10"
+                      Class="lab-users-table">
+
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="User">
+                        <div class="lab-user-cell">
+                            <MudAvatar Color="Color.Primary"
+                                       Size="Size.Medium">
+                                @context.Initials
+                            </MudAvatar>
+
+                            <div>
+                                <strong>@context.DisplayName</strong>
+                                <span>@context.Email</span>
+                                <small>@@@context.Username</small>
+                            </div>
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Role">
+                        <MudChip T="string"
+                                 Color="@(context.IsOwner ? Color.Primary : Color.Default)"
+                                 Variant="Variant.Outlined"
+                                 Size="Size.Small">
+                            @(context.IsOwner ? "Owner" : "Member")
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string"
+                                 Color="@(context.Status == UserStatus.Active
+                                              ? Color.Success
+                                              : Color.Warning)"
+                                 Variant="Variant.Text"
+                                 Size="Size.Small">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Created">
+                        <span class="lab-user-date">
+                            @context.CreatedAt.ToString("MMM dd, yyyy")
+                        </span>
+                    </MudTd>
+
+                    <MudTd DataLabel="Actions">
+                        <div class="lab-user-actions">
+                            <MudTooltip Text="View user">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Disabled="true" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Edit user">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Default"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OpenUserProfileAsync(context.DisplayName))" />
+                            </MudTooltip>
+
+                            @if (!context.IsOwner)
+                            {
+                                <MudTooltip Text="Manage account status">
+                                    <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                                   Color="Color.Default"
+                                                   Size="Size.Small"
+                                                   Disabled="true" />
+                                </MudTooltip>
+                            }
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="lab-users-empty">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch"
+                                 Size="Size.Large"
+                                 Color="Color.Secondary" />
+                        <strong>No users found</strong>
+                        <p>Try changing your search or status filter.</p>
+                    </div>
+                </NoRecordsContent>
+
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+
+            </MudTable>
+
+        </section>
+
+        <div class="lab-users-bottom">
+
+            <div class="lab-users-info">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
+
+                <div>
+                    <strong>Sandbox isolation</strong>
+                    <p>
+                        Members belong to a private sandbox.
+                        User management must be scoped to that sandbox,
+                        including all authorization and data operations.
+                    </p>
+                </div>
+            </div>
+
+            <MudButton Href="/dashboard/authorization"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       EndIcon="@Icons.Material.Filled.ArrowForward">
+                Explore Authorization
+            </MudButton>
+
+        </div>
+
+    </MudContainer>
+</div>
+
+@code {
+    private const int MaxUsers = 4;
+
+    private string _search = string.Empty;
+    private string _statusFilter = "all";
+
+    private double CapacityPercentage => (double)_users.Count / MaxUsers * 100;
+
+    
+    private async Task OpenCreateUserDialogAsync()
+    {
+        var parameters = new DialogParameters<CreateUserDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Small));
+    }
+
+    private async Task OpenUserProfileAsync(string displayName)
+    {
+        var parameters = new DialogParameters<ProfileDialog>
+        {
+            { x => x.PreviewMode, true },
+            { x => x.PreviewDisplayName, displayName }
+        };
+
+        await DialogService.ShowAsync<ProfileDialog>(
+            "Edit Profile",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+    }
+
+
+    private IEnumerable<SandboxUserPreview> FilteredUsers =>
+        _users.Where(user =>
+        {
+            var matchesSearch =
+                string.IsNullOrWhiteSpace(_search) ||
+                user.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                user.Username.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                user.Email.Contains(_search, StringComparison.OrdinalIgnoreCase);
+
+            var matchesStatus = _statusFilter switch
+            {
+                "active" => user.Status == UserStatus.Active,
+                "disabled" => user.Status == UserStatus.Disabled,
+                _ => true
+            };
+
+            return matchesSearch && matchesStatus;
+        });
+
+    private readonly List<SandboxUserPreview> _users =
+    [
+        new(
+            "Alex Morgan",
+            "alex",
+            "alex@example.com",
+            true,
+            UserStatus.Active,
+            new DateTime(2026, 10, 18)
+        ),
+        new(
+            "Taylor Reed",
+            "taylor",
+            "taylor@example.com",
+            false,
+            UserStatus.Active,
+            new DateTime(2026, 10, 19)
+        ),
+        new(
+            "Jordan Lee",
+            "jordan",
+            "jordan@example.com",
+            false,
+            UserStatus.Disabled,
+            new DateTime(2026, 10, 20)
+        )
+    ];
+
+    private enum UserStatus
+    {
+        Active,
+        Disabled
+    }
+
+    private sealed record SandboxUserPreview(
+        string DisplayName,
+        string Username,
+        string Email,
+        bool IsOwner,
+        UserStatus Status,
+        DateTime CreatedAt)
+    {
+        public string Initials =>
+            string.Concat(
+                DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                           .Take(2)
+                           .Select(x => char.ToUpperInvariant(x[0])));
+    }
+}

@@ -1,0 +1,193 @@
+﻿@page "/dashboard/authorization-lab"
+@layout DashboardLayout
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+
+    <div class="auth-lab-header">
+        <div class="auth-lab-header-icon">
+            <MudIcon Icon="@Icons.Material.Outlined.Security"
+                     Size="Size.Large" />
+        </div>
+
+        <div>
+            <MudText Typo="Typo.h4">
+                <b>Authorization Lab</b>
+            </MudText>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Explore how UltimateAuth protects routes, evaluates
+                authorization requirements, and controls component visibility.
+            </MudText>
+        </div>
+    </div>
+
+    <MudAlert Severity="Severity.Info"
+              Variant="Variant.Outlined"
+              Dense="true"
+              Class="mb-6">
+        These examples demonstrate authorization behavior in real
+        applications. Each example will open in a new tab once available.
+    </MudAlert>
+
+    <div class="auth-lab-section">
+        <div class="auth-lab-section-title">
+            <MudIcon Icon="@Icons.Material.Outlined.Lock"
+                     Color="Color.Primary" />
+            <div>
+                <MudText Typo="Typo.h6">Route Protection</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    See how access to application pages changes
+                    based on authentication, roles, and permissions.
+                </MudText>
+            </div>
+        </div>
+
+        <div class="auth-lab-grid">
+            <a class="auth-lab-card" href="/dashboard/auth/public" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.Public"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Public Page</strong>
+                    <span>
+                        A route accessible to everyone, including
+                        users who are not signed in.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+
+            <a class="auth-lab-card" href="/dashboard/auth/authenticated" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.Lock"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Authenticated Page</strong>
+                    <span>
+                        A protected route that requires an
+                        authenticated user session.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+
+            <a class="auth-lab-card" href="/dashboard/auth/admin" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.AdminPanelSettings"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Admin Role</strong>
+                    <span>
+                        Demonstrates route access restricted
+                        to users assigned the Admin role.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+
+            <a class="auth-lab-card" href="/dashboard/auth/permission-admin" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.VpnKey"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Admin Permission</strong>
+                    <span>
+                        Demonstrates route protection using
+                        an authorization permission requirement.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+        </div>
+    </div>
+
+    <div class="auth-lab-section">
+        <div class="auth-lab-section-title">
+            <MudIcon Icon="@Icons.Material.Outlined.Rule"
+                     Color="Color.Primary" />
+            <div>
+                <MudText Typo="Typo.h6">Authorization Models</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Compare authorization approaches and learn
+                    how multiple access requirements work together.
+                </MudText>
+            </div>
+        </div>
+
+        <div class="auth-lab-grid">
+            <a class="auth-lab-card" href="/dashboard/auth/match-modes" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.Rule"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Match Modes</strong>
+                    <span>
+                        Explore how different matching rules
+                        affect authorization decisions.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+
+            <a class="auth-lab-card" href="/dashboard/auth/aspnet" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>ASP.NET Core Authorize</strong>
+                    <span>
+                        See how standard ASP.NET Core authorization
+                        integrates with the authentication state.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+
+            <a class="auth-lab-card" href="/dashboard/auth/combined" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.Layers"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>Combined Authorization</strong>
+                    <span>
+                        Examine how multiple authorization
+                        requirements protect the same route.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+        </div>
+    </div>
+
+    <div class="auth-lab-section">
+        <div class="auth-lab-section-title">
+            <MudIcon Icon="@Icons.Material.Outlined.ViewQuilt"
+                     Color="Color.Primary" />
+            <div>
+                <MudText Typo="Typo.h6">Component Authorization</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Explore conditional UI rendering based
+                    on the current user's authorization state.
+                </MudText>
+            </div>
+        </div>
+
+        <div class="auth-lab-grid">
+            <a class="auth-lab-card" href="/dashboard/auth/state-view" target="_blank" rel="noopener noreferrer">
+                <MudIcon Icon="@Icons.Material.Outlined.ViewQuilt"
+                         Color="Color.Primary" />
+                <div class="auth-lab-card-content">
+                    <strong>UAuthStateView</strong>
+                    <span>
+                        Demonstrates how components display
+                        authorized and unauthorized content
+                        based on the current authentication state.
+                    </span>
+                </div>
+                <MudIcon Icon="@Icons.Material.Outlined.OpenInNew"
+                         Color="Color.Secondary" />
+            </a>
+        </div>
+    </div>
+
+</MudContainer>

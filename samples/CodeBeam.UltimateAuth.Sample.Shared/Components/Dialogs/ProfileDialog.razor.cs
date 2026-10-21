@@ -10,6 +10,7 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 public partial class ProfileDialog
 {
     private MudForm? _form;
+
     private string? _firstName;
     private string? _lastName;
     private string? _displayName;
@@ -20,95 +21,149 @@ public partial class ProfileDialog
     private string? _timeZone;
     private string? _culture;
 
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _loadError;
+
+    private readonly IReadOnlyList<TimeZoneInfo> _timeZones =
+        TimeZoneInfo.GetSystemTimeZones();
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
     [Parameter]
     public UserKey? UserKey { get; set; }
 
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
+    [Parameter]
+    public string? PreviewDisplayName { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        UAuthResult<UserView> result;
-
-        if (UserKey is null)
+        if (PreviewMode)
         {
-            result = await UAuthClient.Users.GetMeAsync();
-        }
-        else
-        {
-            result = await UAuthClient.Users.GetUserAsync(UserKey.Value);
+            LoadPreviewData();
+            _isLoading = false;
+            return;
         }
 
-        if (result.IsSuccess && result.Value is not null)
+        try
         {
-            var p = result.Value;
+            UAuthResult<UserView> result = UserKey is null
+                ? await UAuthClient.Users.GetMeAsync()
+                : await UAuthClient.Users.GetUserAsync(UserKey.Value);
 
-            _firstName = p.FirstName;
-            _lastName = p.LastName;
-            _displayName = p.DisplayName;
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _loadError = result.ErrorText
+                    ?? "Unable to load profile information.";
+                return;
+            }
 
-            _gender = p.Gender;
-            _birthDate = p.BirthDate?.ToDateTime(TimeOnly.MinValue);
-            _bio = p.Bio;
+            var profile = result.Value;
 
-            _language = p.Language;
-            _timeZone = p.TimeZone;
-            _culture = p.Culture;
+            _firstName = profile.FirstName;
+            _lastName = profile.LastName;
+            _displayName = profile.DisplayName;
+            _birthDate = profile.BirthDate?
+                .ToDateTime(TimeOnly.MinValue);
+            _gender = profile.Gender;
+            _bio = profile.Bio;
+            _language = profile.Language;
+            _timeZone = profile.TimeZone;
+            _culture = profile.Culture;
         }
+        catch (Exception)
+        {
+            _loadError = "An unexpected error occurred while loading the profile.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void LoadPreviewData()
+    {
+        _displayName = PreviewDisplayName ?? "Alex Morgan";
+        _firstName = "Alex";
+        _lastName = "Morgan";
+        _birthDate = null;
+        _gender = null;
+        _bio = "Exploring identity management with UltimateAuth.";
+        _language = "en";
+        _culture = "en-US";
+        _timeZone = "UTC";
     }
 
     private async Task SaveAsync()
     {
-        if (AuthState is null || AuthState.Identity is null)
-        {
-            Snackbar.Add("No AuthState found.", Severity.Error);
+        if (PreviewMode || _isLoading || _isSaving || _loadError is not null)
             return;
-        }
 
-        if (_form is not null)
-        {
-            await _form.ValidateAsync();
-            if (!_form.IsValid)
-                return;
-        }
+        if (_form is null)
+            return;
+
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
 
         var request = new UpdateProfileRequest
         {
-            FirstName = _firstName,
-            LastName = _lastName,
-            DisplayName = _displayName,
-            BirthDate = _birthDate.HasValue ? DateOnly.FromDateTime(_birthDate.Value) : null,
-            Gender = _gender,
+            FirstName = _firstName?.Trim(),
+            LastName = _lastName?.Trim(),
+            DisplayName = _displayName?.Trim(),
+            BirthDate = _birthDate.HasValue
+                ? DateOnly.FromDateTime(_birthDate.Value)
+                : null,
+            Gender = _gender?.Trim(),
             Bio = _bio,
-            Language = _language,
+            Language = _language?.Trim(),
             TimeZone = _timeZone,
-            Culture = _culture
+            Culture = _culture?.Trim()
         };
 
-        UAuthResult result;
+        _isSaving = true;
 
-        if (UserKey is null)
+        try
         {
-            result = await UAuthClient.Users.UpdateMyProfileAsync(request);
-        }
-        else
-        {
-            result = await UAuthClient.Users.UpdateUserProfileAsync(UserKey.Value, request);
-        }
+            UAuthResult result = UserKey is null
+                ? await UAuthClient.Users.UpdateMyProfileAsync(request)
+                : await UAuthClient.Users.UpdateUserProfileAsync(
+                    UserKey.Value, request);
 
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Profile updated", Severity.Success);
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to update profile.",
+                    Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Profile updated successfully.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result.ErrorText ?? "Failed to update profile", Severity.Error);
+            Snackbar.Add(
+                "An unexpected error occurred while saving the profile.",
+                Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        if (!_isSaving)
+            MudDialog.Cancel();
+    }
 }

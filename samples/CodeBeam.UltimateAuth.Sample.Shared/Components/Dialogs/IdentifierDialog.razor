@@ -1,106 +1,248 @@
-﻿@using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Users.Contracts
+﻿@using CodeBeam.UltimateAuth.Users.Contracts
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-identifier-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Identifier Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
-            @if (UserKey is null)
+        <div class="lab-identifier-header">
+            <div class="lab-identifier-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.AlternateEmail"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-identifier-header-text">
+                <MudText Typo="Typo.h6">Manage Identifiers</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Manage usernames, email addresses and other sign-in identifiers.
+                </MudText>
+            </div>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div class="lab-identifier-content">
+            @if (PreviewMode)
             {
-                <text>User: @AuthState?.Identity?.DisplayName</text>
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Identifier changes are disabled.
+                </MudAlert>
+            }
+
+            <div class="lab-identifier-toolbar">
+                <div class="lab-identifier-section-heading">
+                    <strong>Linked Identifiers</strong>
+                    <span>Identifiers associated with this identity.</span>
+                </div>
+
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@(_loading || PreviewMode)"
+                               OnClick="ReloadAsync"
+                               aria-label="Refresh identifiers" />
+            </div>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_loadError is not null)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                    @_loadError
+                </MudAlert>
+            }
+            else if (_identifiers.Count == 0)
+            {
+                <div class="lab-identifier-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.AlternateEmail"
+                             Size="Size.Large"
+                             Color="Color.Secondary" />
+                    <strong>No identifiers found</strong>
+                    <span>No identifiers are currently available for this identity.</span>
+                </div>
             }
             else
             {
-                <text>UserKey: @UserKey.Value</text>
+                <div class="lab-identifier-list">
+                    @foreach (var identifier in _identifiers)
+                    {
+                        <div class="lab-identifier-card" @key="identifier.Id">
+                            <div class="lab-identifier-card-main">
+                                <div class="lab-identifier-type-icon">
+                                    <MudIcon Icon="@GetIdentifierIcon(identifier.Type)"
+                                             Size="Size.Small" />
+                                </div>
+
+                                <div class="lab-identifier-card-details">
+                                    <div class="lab-identifier-card-label">
+                                        <strong>@identifier.Type</strong>
+
+                                        @if (identifier.IsPrimary)
+                                        {
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Color="Color.Primary"
+                                                     Variant="Variant.Outlined">
+                                                Primary
+                                            </MudChip>
+                                        }
+                                    </div>
+
+                                    <span class="lab-identifier-value">
+                                        @identifier.Value
+                                    </span>
+
+                                    <div class="lab-identifier-status">
+                                        @if (identifier.IsVerified)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Verified"
+                                                     Color="Color.Success"
+                                                     Size="Size.Small" />
+                                            <span>Verified</span>
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.Info"
+                                                     Color="Color.Warning"
+                                                     Size="Size.Small" />
+                                            <span>Not verified</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lab-identifier-card-actions">
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           Color="Color.Primary"
+                                           Disabled="@(_loading || PreviewMode)"
+                                           OnClick="@(() => BeginEdit(identifier))">
+                                    Edit
+                                </MudButton>
+
+                                @if (identifier.IsPrimary)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Text"
+                                               Disabled="@(_loading || PreviewMode)"
+                                               OnClick="@(() => UnsetPrimaryAsync(identifier.Id))">
+                                        Unset Primary
+                                    </MudButton>
+                                }
+                                else
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Text"
+                                               Disabled="@(_loading || PreviewMode)"
+                                               OnClick="@(() => SetPrimaryAsync(identifier.Id))">
+                                        Set Primary
+                                    </MudButton>
+                                }
+
+                                @if (!identifier.IsVerified)
+                                {
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Text"
+                                               Color="Color.Primary"
+                                               Disabled="@(_loading || PreviewMode)"
+                                               OnClick="@(() => VerifyAsync(identifier.Id))">
+                                        Verify
+                                    </MudButton>
+                                }
+
+                                <MudSpacer />
+
+                                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               Disabled="@(_loading || PreviewMode)"
+                                               OnClick="@(() => DeleteIdentifierAsync(identifier.Id))"
+                                               aria-label="Delete identifier" />
+                            </div>
+
+                            @if (_editingId == identifier.Id)
+                            {
+                                <div class="lab-identifier-edit">
+                                    <MudTextField @bind-Value="_editingValue"
+                                                  Label="Identifier Value"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  Disabled="@_loading" />
+
+                                    <div class="lab-identifier-edit-actions">
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Disabled="@_loading"
+                                                   OnClick="CancelEdit">
+                                            Cancel
+                                        </MudButton>
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   Disabled="@_loading"
+                                                   OnClick="SaveEditAsync">
+                                            Save
+                                        </MudButton>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             }
-        </MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudDataGrid @ref="@_grid" T="UserIdentifierInfo" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
-                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges" Loading="@_loading">
-            <ToolBarContent>
-                <MudStack Class="mud-width-full" Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center">
-                    <MudText>Identifiers</MudText>
-                    <MudSpacer />
-                    <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
-                </MudStack>
-            </ToolBarContent>
-            <Columns>
-                <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-                <PropertyColumn Property="x => x.Type" Title="Type" Editable="false" />
-                <PropertyColumn Property="x => x.Value" Title="Value" />
-                <PropertyColumn Property="x => x.IsPrimary" Title="Primary" Editable="false">
-                    <CellTemplate>
-                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsPrimary? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
-                    </CellTemplate>
-                </PropertyColumn>
-                <PropertyColumn Property="x => x.IsVerified" Title="Verified" Editable="false">
-                    <CellTemplate>
-                        <MudIcon Size="Size.Small" Icon="@(context.Item.IsVerified? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
-                    </CellTemplate>
-                </PropertyColumn>
-                <TemplateColumn Title="Actions" Editable="false">
-                    <CellTemplate>
-                        <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@context.Actions.StartEditingItemAsync" />
-                            </MudTooltip>
-                            @if (context.Item.IsPrimary)
-                            {
-                                <MudTooltip Text="Unset Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.KeyOff" Size="Size.Small" OnClick="@(() => UnsetPrimaryAsync(context.Item.Id))" />
-                                </MudTooltip>
-                            }
-                            else
-                            {
-                                <MudTooltip Text="Set Primary" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Key" Size="Size.Small" OnClick="@(() => SetPrimaryAsync(context.Item.Id))" />
-                                </MudTooltip>
-                            }
 
-                            <MudTooltip Text="Verify" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified" Size="Size.Small" OnClick="@(() => VerifyAsync(context.Item.Id))" />
-                            </MudTooltip>
+            <MudDivider />
 
-                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteIdentifier(context.Item.Id))" />
-                            </MudTooltip>
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="UserIdentifierInfo" PageSizeOptions="new int[] { 5, 10, 20 }" />
-            </PagerContent>
-        </MudDataGrid>
+            <div class="lab-identifier-section-heading">
+                <strong>Add Identifier</strong>
+                <span>Attach an additional identifier to this account.</span>
+            </div>
 
-        <MudExpansionPanels Class="mt-4" Elevation="0">
-            <MudExpansionPanel Style="background: var(--mud-palette-background-gray)" Text="Add New Identifier" Expanded="false">
-                <MudGrid>
-                    <MudItem xs="12" sm="6" md="4">
-                        <MudSelectExtended @bind-Value="_newIdentifierType" ItemCollection="@(Enum.GetValues<UserIdentifierType>())" Variant="Variant.Outlined" Label="Type" Dense="true" />
-                    </MudItem>
+            <div class="lab-identifier-add">
+                <MudSelectExtended T="UserIdentifierType"
+                                   @bind-Value="_newIdentifierType"
+                                   ItemCollection="@_identifierTypes"
+                                   Label="Identifier Type"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Disabled="@(_loading || PreviewMode)" />
 
-                    <MudItem xs="12" sm="6" md="4">
-                        <MudTextField @bind-Value="_newIdentifierValue" Variant="Variant.Outlined" Label="Value" />
-                    </MudItem>
+                <MudTextField @bind-Value="_newIdentifierValue"
+                              Label="Identifier Value"
+                              Placeholder="Enter username, email or phone"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Disabled="@(_loading || PreviewMode)" />
 
-                    <MudItem xs="12" sm="6" md="4" Class="d-flex align-center justify-start">
-                        <MudSwitchM3 @bind-Value="_newIdentifierPrimary" Label="Primary" Color="Color.Primary" />
-                    </MudItem>
+                <div class="lab-identifier-add-footer">
+                    <MudSwitchM3 @bind-Value="_newIdentifierPrimary"
+                                 Label="Set as primary"
+                                 Color="Color.Primary"
+                                 Disabled="@(_loading || PreviewMode)" />
 
-                    <MudItem xs="12">
-                        <MudButton Style="width: fit-content" Color="Color.Primary" Variant="Variant.Outlined" OnClick="AddNewIdentifier">Add</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@(_loading || PreviewMode)"
+                               OnClick="AddNewIdentifierAsync">
+                        Add Identifier
+                    </MudButton>
+                </div>
+            </div>
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <div class="lab-identifier-footer">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_loading"
+                       OnClick="Cancel">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

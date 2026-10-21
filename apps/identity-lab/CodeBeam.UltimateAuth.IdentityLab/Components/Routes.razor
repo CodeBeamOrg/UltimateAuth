@@ -1,0 +1,103 @@
+﻿@using CodeBeam.UltimateAuth.Client.Blazor
+@using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
+@using MudBlazor
+@implements IDisposable
+
+@inject ISnackbar Snackbar
+@inject DarkModeManager DarkModeManager
+
+<CascadingValue Value="DarkModeManager" IsFixed="true">
+    <UAuthApp UseBuiltInRouter="true" AppAssembly="typeof(Program).Assembly" DefaultLayout="typeof(Layout.PublicLayout)" OnReauthRequired="HandleReauth">
+
+        <ChildContent>
+            <MudThemeProvider Theme="LabTheme" IsDarkMode="@DarkModeManager.IsDarkMode" />
+            <MudPopoverProvider />
+            <MudDialogProvider />
+            <MudSnackbarProvider />
+        </ChildContent>
+
+        <NotAuthorized>
+            <LayoutView Layout="typeof(Layout.PublicLayout)">
+                <NotAuthorized />
+            </LayoutView>
+        </NotAuthorized>
+
+    </UAuthApp>
+</CascadingValue>
+
+@code {
+    private readonly MudTheme LabTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#087f7b",
+            Secondary = "#11223f",
+            Background = "#f8fbfc",
+            Surface = "#ffffff",
+            TextPrimary = "#08162f",
+            TextSecondary = "#536581"
+        },
+
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#29c6b7",
+            Secondary = "#78a7e3",
+
+            Background = "#091629",
+            BackgroundGray = "#0d1e33",
+            Surface = "#10233a",
+            AppbarBackground = "#0d1e33",
+            DrawerBackground = "#10233a",
+
+            TextPrimary = "#f1f7ff",
+            TextSecondary = "#9db1ca",
+
+            LinesDefault = "#294158",
+            LinesInputs = "#36506a",
+
+            Success = "#35d39c",
+            Info = "#69baff",
+            Warning = "#ffbf69",
+            Error = "#ff7585",
+
+            ActionDefault = "#a9bfd5",
+            ActionDisabled = "#61758c"
+        },
+
+        Typography = new Typography { Default = new DefaultTypography { FontFamily = ["Inter", "sans-serif"] } },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" }
+    };
+
+    private Task HandleReauth()
+    {
+        Snackbar.Add(
+            "Your session has expired. Please sign in again.",
+            Severity.Warning);
+
+        return Task.CompletedTask;
+    }
+
+    protected override void OnInitialized()
+    {
+        DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await DarkModeManager.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        DarkModeManager.Changed -= OnThemeChanged;
+    }
+}

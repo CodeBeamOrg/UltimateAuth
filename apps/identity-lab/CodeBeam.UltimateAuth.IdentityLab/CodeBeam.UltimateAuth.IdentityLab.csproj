@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+	  <IsPackable>false</IsPackable>
+    <UserSecretsId>4f9706a0-d4d2-476c-bd8f-9bd1cd4f6f0e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CodeBeam.MudBlazor.Extensions" Version="9.2.0" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
+	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.12">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\samples\CodeBeam.UltimateAuth.Sample.Seed\CodeBeam.UltimateAuth.Sample.Seed.csproj" />
+    <ProjectReference Include="..\..\..\samples\CodeBeam.UltimateAuth.Sample.Shared\CodeBeam.UltimateAuth.Sample.Shared.csproj" />
+    <ProjectReference Include="..\..\..\src\bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle\CodeBeam.UltimateAuth.EntityFrameworkCore.Bundle.csproj" />
+    <ProjectReference Include="..\..\..\src\client\CodeBeam.UltimateAuth.Client.Blazor\CodeBeam.UltimateAuth.Client.Blazor.csproj" />
+  </ItemGroup>
+
+</Project>

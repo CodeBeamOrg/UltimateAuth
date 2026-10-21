@@ -1,0 +1,351 @@
+﻿@page "/dashboard/authorization"
+@layout DashboardLayout
+@inject IDialogService DialogService
+
+@* TODO: Enable sandbox-scoped authorization.
+@attribute [UAuthAuthorize]
+*@
+
+<PageTitle>Authorization · Identity Lab</PageTitle>
+
+<div class="lab-authz-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-authz-heading">
+            <div>
+                <span class="lab-authz-eyebrow">SANDBOX MANAGEMENT</span>
+                <h1>Authorization</h1>
+                <p>
+                    Explore roles, permission assignments,
+                    and access control within your sandbox.
+                </p>
+            </div>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenRoleManagementAsync">
+                Create Role
+            </MudButton>
+        </div>
+
+        <div class="lab-authz-stats">
+            <div class="lab-authz-stat">
+                <span class="lab-authz-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+                </span>
+                <span>Roles</span>
+                <strong>@_roles.Count</strong>
+                <small>Example sandbox roles</small>
+            </div>
+
+            <div class="lab-authz-stat">
+                <span class="lab-authz-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Key" />
+                </span>
+                <span>Permissions</span>
+                <strong>@_permissions.Count</strong>
+                <small>Illustrative permissions</small>
+            </div>
+
+            <div class="lab-authz-stat">
+                <span class="lab-authz-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                </span>
+                <span>Role Assignments</span>
+                <strong>3</strong>
+                <small>Example assignments</small>
+            </div>
+        </div>
+
+        <div class="lab-authz-section-heading">
+            <div>
+                <h2>Roles &amp; Permissions</h2>
+                <p>
+                    Select a role to inspect its assigned permissions.
+                </p>
+            </div>
+
+            <MudChip T="string"
+                     Color="Color.Info"
+                     Variant="Variant.Outlined"
+                     Size="Size.Small"
+                     Icon="@Icons.Material.Filled.Science">
+                Demo Preview
+            </MudChip>
+        </div>
+
+        <div class="lab-authz-main-grid">
+
+            <section class="lab-authz-card lab-roles-card">
+                <div class="lab-authz-card-heading">
+                    <div>
+                        <h3>Sandbox Roles</h3>
+                        <p>Available authorization roles.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Shield"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-authz-role-list">
+                    @foreach (var role in _roles)
+                    {
+                        <button type="button"
+                                class="lab-authz-role @(SelectedRole.Id == role.Id ? "selected" : "")"
+                                @onclick="() => SelectRole(role)">
+
+                            <span class="lab-authz-role-icon">
+                                <MudIcon Icon="@(role.IsOwner
+                                                   ? Icons.Material.Filled.AdminPanelSettings
+                                               : Icons.Material.Filled.PersonOutline)" />
+                            </span>
+
+                            <span class="lab-authz-role-content">
+                                <strong>@role.Name</strong>
+                                <small>@role.Description</small>
+                                <span>@role.MemberCount example members</span>
+                            </span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                                     Size="Size.Small" />
+                        </button>
+                    }
+                </div>
+            </section>
+
+            <section class="lab-authz-card lab-permissions-card">
+                <div class="lab-authz-card-heading">
+                    <div>
+                        <h3>@SelectedRole.Name Permissions</h3>
+                        <p>Permissions assigned to this example role.</p>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               Disabled="true">
+                        Edit
+                    </MudButton>
+                </div>
+
+                <MudTextField T="string"
+                              @bind-Value="_permissionSearch"
+                              Immediate="true"
+                              Placeholder="Search permissions"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Class="mb-4" />
+
+                <div class="lab-authz-permission-list">
+                    @foreach (var permission in FilteredPermissions)
+                    {
+                        <div class="lab-authz-permission">
+                            <span class="lab-authz-permission-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Key"
+                                         Size="Size.Small" />
+                            </span>
+
+                            <div>
+                                <strong>@permission.Name</strong>
+                                <span>@permission.Description</span>
+                            </div>
+
+                            <MudChip T="string"
+                                     Color="@(SelectedRole.PermissionIds.Contains(permission.Id)
+                                                  ? Color.Success
+                                                  : Color.Default)"
+                                     Variant="Variant.Text"
+                                     Size="Size.Small">
+                                @(SelectedRole.PermissionIds.Contains(permission.Id)
+                                      ? "Granted"
+                                      : "Not granted")
+                            </MudChip>
+                        </div>
+                    }
+
+                    @if (!FilteredPermissions.Any())
+                    {
+                        <div class="lab-authz-empty">
+                            No permissions match your search.
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="lab-authz-section-heading lab-authz-playground-heading">
+            <div>
+                <span class="lab-authz-eyebrow">AUTHORIZATION EXPLORER</span>
+                <h2>Policy Playground</h2>
+                <p>
+                    Preview how role selection and access requests
+                    can be evaluated.
+                </p>
+            </div>
+        </div>
+
+        <div class="lab-authz-playground-grid">
+
+            <section class="lab-authz-card">
+                <div class="lab-authz-card-heading">
+                    <div>
+                        <h3>Access Request</h3>
+                        <p>Configure an example authorization request.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Tune"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-authz-fields">
+                    <MudSelect T="string"
+                               Label="Role"
+                               Variant="Variant.Outlined"
+                               @bind-Value="_playgroundRoleId">
+                        @foreach (var role in _roles)
+                        {
+                            <MudSelectItem Value="@role.Id">
+                                @role.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="string"
+                               Label="Permission"
+                               Variant="Variant.Outlined"
+                               @bind-Value="_playgroundPermissionId">
+                        @foreach (var permission in _permissions)
+                        {
+                            <MudSelectItem Value="@permission.Id">
+                                @permission.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               Disabled="true">
+                        Evaluate Policy
+                    </MudButton>
+                </div>
+            </section>
+
+            <section class="lab-authz-card lab-authz-result-card">
+                <div class="lab-authz-card-heading">
+                    <div>
+                        <h3>Evaluation Result</h3>
+                        <p>Live authorization decisions will appear here.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-authz-result-empty">
+                    <span>
+                        <MudIcon Icon="@Icons.Material.Filled.Rule"
+                                 Size="Size.Large" />
+                    </span>
+                    <strong>Ready to evaluate</strong>
+                    <p>
+                        Connect UltimateAuth authorization to inspect
+                        actual access decisions for sandbox users.
+                    </p>
+                </div>
+
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Text"
+                          Dense="true">
+                    A role's permission list alone does not guarantee
+                    an authorization decision. Policies and context
+                    may also affect the result.
+                </MudAlert>
+            </section>
+
+        </div>
+
+    </MudContainer>
+</div>
+
+@code {
+    private string _permissionSearch = string.Empty;
+    private string _playgroundRoleId = "owner";
+    private string _playgroundPermissionId = "users.query";
+
+    private async Task OpenRoleManagementAsync()
+    {
+        var parameters = new DialogParameters<RoleDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<RoleDialog>(
+            "Role Management",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Large));
+    }
+
+    private readonly List<PermissionPreview> _permissions =
+    [
+        new("users.query", "users.query.self", "View own user information"),
+        new("users.manage", "users.update.admin", "Manage sandbox users"),
+        new("sessions.query", "sessions.query.self", "Inspect own sessions"),
+        new("sessions.revoke", "sessions.revoke.self", "Revoke own sessions"),
+        new("roles.manage", "roles.update.admin", "Manage role assignments"),
+        new("credentials.update", "credentials.update.self", "Update own credentials")
+    ];
+
+    private readonly List<RolePreview> _roles =
+    [
+        new(
+            "owner",
+            "Owner",
+            "Sandbox administration",
+            1,
+            true,
+            ["users.query", "users.manage", "sessions.query",
+             "sessions.revoke", "roles.manage", "credentials.update"]
+        ),
+        new(
+            "member",
+            "Member",
+            "Personal identity access",
+            2,
+            false,
+            ["users.query", "sessions.query",
+             "sessions.revoke", "credentials.update"]
+        )
+    ];
+
+    private RolePreview SelectedRole =>
+        _roles.First(x => x.Id == _selectedRoleId);
+
+    private string _selectedRoleId = "owner";
+
+    private IEnumerable<PermissionPreview> FilteredPermissions =>
+        _permissions.Where(x =>
+            string.IsNullOrWhiteSpace(_permissionSearch) ||
+            x.Name.Contains(_permissionSearch, StringComparison.OrdinalIgnoreCase) ||
+            x.Description.Contains(_permissionSearch, StringComparison.OrdinalIgnoreCase));
+
+    private void SelectRole(RolePreview role)
+    {
+        _selectedRoleId = role.Id;
+    }
+
+    private sealed record PermissionPreview(
+        string Id,
+        string Name,
+        string Description);
+
+    private sealed record RolePreview(
+        string Id,
+        string Name,
+        string Description,
+        int MemberCount,
+        bool IsOwner,
+        string[] PermissionIds);
+}

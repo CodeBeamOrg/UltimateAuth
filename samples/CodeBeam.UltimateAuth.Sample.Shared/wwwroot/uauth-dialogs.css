@@ -1,0 +1,47 @@
+﻿.uauth-shared-dialog {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 18px !important;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .16);
+    overflow: hidden;
+}
+
+    .uauth-shared-dialog .mud-dialog-title {
+        padding: 14px 20px;
+        background: var(--mud-palette-background);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .uauth-shared-dialog .mud-dialog-content {
+        padding: 20px;
+    }
+
+    .uauth-shared-dialog .mud-dialog-actions {
+        padding: 10px 20px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+.uauth-dialog-backdrop {
+    backdrop-filter: blur(3px);
+}
+
+@media (max-width: 600px) {
+    .mud-dialog.uauth-shared-dialog {
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px);
+        margin: 8px;
+        border-radius: 14px !important;
+    }
+
+    .uauth-shared-dialog .mud-dialog-title {
+        padding: 12px 16px;
+    }
+
+    .uauth-shared-dialog .mud-dialog-content {
+        padding: 16px;
+    }
+
+    .uauth-shared-dialog .mud-dialog-actions {
+        padding: 10px 16px;
+    }
+}
