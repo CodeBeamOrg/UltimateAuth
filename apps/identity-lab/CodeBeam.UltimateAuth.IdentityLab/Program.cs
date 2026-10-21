@@ -40,7 +40,7 @@ builder.Services.AddUltimateAuthServer(o =>
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
-        db.UseNpgsql("Host=localhost;Port=5433;Database=identitylab_dev;Username=identitylab;Password=LocalDevPassword123",
+        db.UseNpgsql(connectionString,
             options => options.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
     });
 
