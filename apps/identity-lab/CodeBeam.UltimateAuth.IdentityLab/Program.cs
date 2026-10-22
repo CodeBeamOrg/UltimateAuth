@@ -1,8 +1,15 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
+using CodeBeam.UltimateAuth.IdentityLab.Endpoints;
+using CodeBeam.UltimateAuth.IdentityLab.Persistence;
+using CodeBeam.UltimateAuth.IdentityLab.Seed;
+using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -50,7 +57,27 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 
-builder.Services.AddScopedUltimateAuthSampleSeed();
+
+builder.Services.AddDbContext<LabDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, npgsql =>
+    {
+        npgsql.MigrationsAssembly(typeof(LabDbContext).Assembly.GetName().Name);
+        npgsql.MigrationsHistoryTable("__IdentityLabMigrationsHistory");
+    });
+});
+
+builder.Services.AddScoped<ILabAdminGuard, LabAdminGuard>();
+builder.Services.AddScoped<LabAccessContextProvider>();
+builder.Services.AddScoped<LabAdminAuthorizationFilter>();
+builder.Services.AddScoped<SandboxService>();
+builder.Services.AddScoped<SandboxAdminService>();
+builder.Services.AddScoped<SandboxAccessService>();
+
+builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
+
+builder.Services.AddScoped<SeedRunner>();
+builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
 
 var app = builder.Build();
 
@@ -68,9 +95,13 @@ app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
+app.MapLabAdminEndpoints();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
+
+await app.SeedIdentityLabAsync();
 
 app.Run();
