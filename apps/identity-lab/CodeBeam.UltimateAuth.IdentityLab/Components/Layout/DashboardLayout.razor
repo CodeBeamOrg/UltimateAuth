@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
+@inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
 
 <HeadContent>
@@ -33,7 +34,7 @@
                         Delay="300">
                 <MudIconButton Icon="@(DarkModeManager.IsDarkMode
                                            ? Icons.Material.Filled.LightMode
-                                   : Icons.Material.Filled.DarkMode)"
+                               : Icons.Material.Filled.DarkMode)"
                                Color="Color.Inherit"
                                OnClick="DarkModeManager.ToggleAsync" />
             </MudTooltip>
@@ -45,11 +46,59 @@
                                Color="Color.Inherit" />
             </MudTooltip>
 
-            <MudAvatar Color="Color.Primary"
-                       Size="Size.Medium"
-                       Class="ml-3">
-                <MudIcon Icon="@Icons.Material.Filled.Person" />
-            </MudAvatar>
+            <MudMenu AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight"
+                     Dense="true"
+                     PopoverClass="lab-profile-menu">
+
+                <ActivatorContent>
+                    <MudAvatar Color="Color.Primary"
+                               Size="Size.Medium"
+                               Class="ml-3 lab-profile-avatar"
+                               @onclick="@context.ToggleAsync">
+                        @AvatarInitials
+                    </MudAvatar>
+                </ActivatorContent>
+
+                <ChildContent>
+                    <div class="lab-profile-menu-header">
+                        <MudAvatar Color="Color.Primary"
+                                   Size="Size.Medium"
+                                   Class="lab-profile-menu-avatar">
+                            @AvatarInitials
+                        </MudAvatar>
+
+                        <div class="lab-profile-menu-user">
+                            <div class="lab-profile-menu-name">
+                                @DisplayName
+                            </div>
+
+                            <div class="lab-profile-menu-username">
+                                @@ @UserName
+                            </div>
+                        </div>
+                    </div>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudMenuItem Href="/dashboard/identity"
+                                 Icon="@Icons.Material.Outlined.Badge">
+                        My Identity
+                    </MudMenuItem>
+
+                    <MudMenuItem Href="/dashboard/sessions"
+                                 Icon="@Icons.Material.Outlined.Devices">
+                        My Sessions
+                    </MudMenuItem>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Logout"
+                                 OnClick="LogoutAsync">
+                        Sign Out
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
         </MudAppBar>
     </div>
 
@@ -131,6 +180,12 @@
                         Settings
                     </MudNavLink>
                 }
+
+                <MudNavMenu>
+                    <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
+                        Sign Out
+                    </MudNavLink>
+                </MudNavMenu>
             </MudNavMenu>
 
             <MudSpacer />
@@ -150,6 +205,15 @@
 </MudLayout>
 
 @code {
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private string UserName => AuthState?.Identity?.PrimaryUserName ?? "User";
+
+    private string DisplayName => UserName;
+
+    private string AvatarInitials => GetInitials(DisplayName);
+
     private bool _drawerOpen = true;
 
     // UI preview only. Replace with sandbox-scoped authorization.
@@ -165,8 +229,28 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
+    private async Task LogoutAsync()
+    {
+        await UAuthClient.Flows.LogoutAsync();
+    }
+
     public void Dispose()
     {
         DarkModeManager.Changed -= OnThemeChanged;
+    }
+
+    private static string GetInitials(string? displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return "?";
+
+        var parts = displayName.Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var initials = parts.Length > 1
+            ? $"{parts[0][0]}{parts[^1][0]}"
+            : new string(parts[0].Take(2).ToArray());
+
+        return initials.ToUpperInvariant();
     }
 }

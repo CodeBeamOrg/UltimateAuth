@@ -134,6 +134,58 @@
     display: none;
 }
 
+.lab-profile-avatar {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.025em;
+    user-select: none;
+    transition: transform 150ms ease, opacity 150ms ease;
+}
+
+    .lab-profile-avatar:hover {
+        transform: scale(1.06);
+        opacity: 0.9;
+    }
+
+.lab-profile-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px 8px;
+    min-width: 230px;
+}
+
+.lab-profile-menu-avatar {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.lab-profile-menu-user {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.lab-profile-menu-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lab-profile-menu-username {
+    font-size: 0.75rem;
+    opacity: 0.65;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 960px) {
     .lab-mobile-menu {
         display: inline-flex;

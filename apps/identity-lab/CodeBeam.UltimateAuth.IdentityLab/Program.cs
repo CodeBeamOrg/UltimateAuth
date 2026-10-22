@@ -73,6 +73,7 @@ builder.Services.AddScoped<LabAdminAuthorizationFilter>();
 builder.Services.AddScoped<SandboxService>();
 builder.Services.AddScoped<SandboxAdminService>();
 builder.Services.AddScoped<SandboxAccessService>();
+builder.Services.AddScoped<LabApiClient>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
 

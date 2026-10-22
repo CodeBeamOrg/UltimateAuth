@@ -1,0 +1,38 @@
+﻿@page "/admin/test"
+@rendermode InteractiveServer
+
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@inject LabApiClient Api
+
+<MudButton OnClick="LoadAsync">
+    Load Statistics
+</MudButton>
+
+<MudText>@_message</MudText>
+
+@code {
+    private string _message = "Not loaded";
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var response = await Api.GetAsync<SandboxStatistics>(
+                "/api/lab/admin/statistics");
+
+            _message = response.Status switch
+            {
+                200 => $"Total sandboxes: {response.Body?.Total}",
+                401 => "Authentication required",
+                403 => "LabAdmin permission required",
+                _ => $"HTTP {response.Status}"
+            };
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+}
