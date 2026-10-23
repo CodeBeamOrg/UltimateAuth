@@ -7,10 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGuard)
+public sealed class SandboxAdminService(IDbContextFactory<LabDbContext> dbFactory, ILabAdminGuard adminGuard)
 {
     public async Task<bool> SetStatusAsync(AccessContext context, Guid sandboxId, SandboxStatus status, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
 
         if (!Enum.IsDefined(status))
@@ -31,6 +33,8 @@ public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGua
 
     public async Task<bool> SetMaxUsersAsync(AccessContext context, Guid sandboxId, int maxUsers, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
 
         if (maxUsers < 1)
@@ -57,6 +61,8 @@ public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGua
 
     public async Task<bool> RenameAsync(AccessContext context, Guid sandboxId, string name, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(name))
@@ -85,6 +91,8 @@ public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGua
 
     public async Task<SandboxSummary?> GetAsync(AccessContext context, Guid sandboxId, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
 
         return await db.Sandboxes
@@ -103,6 +111,8 @@ public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGua
 
     public async Task<PagedResult<SandboxSummary>> QueryAsync(AccessContext context, SandboxQuery query, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         ArgumentNullException.ThrowIfNull(query);
 
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
@@ -168,6 +178,8 @@ public sealed class SandboxAdminService(LabDbContext db, ILabAdminGuard adminGua
 
     public async Task<SandboxStatistics> GetStatisticsAsync(AccessContext context, CancellationToken cancellationToken = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         await adminGuard.EnsureAdminAsync(context, cancellationToken);
 
         var counts = await db.Sandboxes

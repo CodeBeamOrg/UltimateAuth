@@ -1,7 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
+@inject LabDashboardService DashboardService
 @inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
 
@@ -117,12 +122,12 @@
                     <MudIcon Icon="@Icons.Material.Filled.Science" />
                 </span>
                 <div>
-                    <strong>My Sandbox</strong>
-                    <small>Identity environment</small>
+                    <strong>@(_sandbox?.SandboxName ?? "My Sandbox")</strong>
+                    <small>
+                        @(_sandbox is null ? "Identity environment" : $"{_sandbox.MemberCount} / {_sandbox.MaxUsers} users")
+                    </small>
                 </div>
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                         Color="Color.Success"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
             </div>
 
             <MudNavMenu>
@@ -226,19 +231,39 @@
     private UAuthState? AuthState { get; set; }
 
     private string UserName => AuthState?.Identity?.PrimaryUserName ?? "User";
-
     private string DisplayName => UserName;
-
     private string AvatarInitials => GetInitials(DisplayName);
-
+    private LabDashboardSnapshot? _sandbox;
+    private UserKey? _loadedUserKey;
     private bool _drawerOpen = true;
 
-    // UI preview only. Replace with sandbox-scoped authorization.
-    private bool ShowManagement => true;
+    private bool ShowManagement =>
+        AuthState?.IsInRole(LabRoles.Admin) == true ||
+        (AuthState?.IsInRole(LabRoles.Owner) == true &&
+         _sandbox?.IsOwner == true);
 
     protected override void OnInitialized()
     {
         DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _sandbox = null;
+            _loadedUserKey = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+
+        _sandbox = await DashboardService.GetAsync(userKey.Value);
     }
 
     private void OnThemeChanged()

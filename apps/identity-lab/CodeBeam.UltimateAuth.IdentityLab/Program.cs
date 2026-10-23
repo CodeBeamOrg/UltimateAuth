@@ -20,6 +20,11 @@ using MudExtensions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// TODO(Part 3): Protect system roles through UltimateAuth request guards.
+// TODO(Part 3): Add atomic provisioning and recovery for partial failures.
+// TODO(Part 3): Enforce sandbox ownership and user limits across all applicable UltimateAuth operations.
+// TODO(Part 3): Implement authenticated sandbox repair.
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -61,7 +66,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 });
 
 
-builder.Services.AddDbContext<LabDbContext>(options =>
+builder.Services.AddDbContextFactory<LabDbContext>(options =>
 {
     options.UseNpgsql(connectionString, npgsql =>
     {
@@ -76,6 +81,8 @@ builder.Services.AddScoped<LabAdminAuthorizationFilter>();
 builder.Services.AddScoped<SandboxService>();
 builder.Services.AddScoped<SandboxAdminService>();
 builder.Services.AddScoped<SandboxAccessService>();
+builder.Services.AddScoped<LabRegistrationService>();
+builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<LabApiClient>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));

@@ -44,7 +44,8 @@ public sealed class LabAdminSeedContributor(
 
         await EnsureUserAsync(tenant, userKey, settings, ct);
         await EnsureCredentialAsync(tenant, userKey, settings.Password, ct);
-        await EnsureRoleAsync(tenant, userKey, ct);
+        await EnsureSystemRolesAsync(tenant, ct);
+        await EnsureAdminRoleAssignmentAsync(tenant, userKey, ct);
     }
 
     private async Task EnsureUserAsync(
@@ -80,6 +81,8 @@ public sealed class LabAdminSeedContributor(
                     userKey,
                     ProfileKey.Default,
                     now,
+                    firstName: "Lab",
+                    lastName: "Administrator",
                     displayName: settings.DisplayName),
                 ct);
         }
@@ -167,39 +170,43 @@ public sealed class LabAdminSeedContributor(
             ct);
     }
 
-    private async Task EnsureRoleAsync(
-        TenantKey tenant,
-        UserKey userKey,
-        CancellationToken ct)
+    private async Task EnsureSystemRolesAsync(TenantKey tenant, CancellationToken ct)
     {
         var roleStore = roleStoreFactory.Create(tenant);
-        var userRoleStore = userRoleStoreFactory.Create(tenant);
 
-        var role = await roleStore.GetByNameAsync(
-            LabRoles.Admin.ToUpperInvariant(), ct);
-
-        if (role is null)
+        foreach (var roleName in LabRoles.SystemRoles)
         {
-            role = Role.Create(
+            var existing = await roleStore.GetByNameAsync(roleName.ToUpperInvariant(), ct);
+
+            if (existing is not null)
+                continue;
+
+            var role = Role.Create(
                 RoleId.From(Guid.NewGuid()),
                 tenant,
-                LabRoles.Admin,
+                roleName,
                 new HashSet<Permission>(),
                 clock.UtcNow);
 
             await roleStore.AddAsync(role, ct);
         }
+    }
 
-        var assignments = await userRoleStore
-            .GetAssignmentsAsync(userKey, ct);
+    private async Task EnsureAdminRoleAssignmentAsync(TenantKey tenant, UserKey userKey, CancellationToken ct)
+    {
+        var roleStore = roleStoreFactory.Create(tenant);
+        var userRoleStore = userRoleStoreFactory.Create(tenant);
+
+        var role = await roleStore.GetByNameAsync(LabRoles.Admin.ToUpperInvariant(), ct);
+
+        if (role is null)
+            throw new InvalidOperationException("LabAdmin role was not initialized.");
+
+        var assignments = await userRoleStore.GetAssignmentsAsync(userKey, ct);
 
         if (assignments.Any(x => x.RoleId == role.Id))
             return;
 
-        await userRoleStore.AssignAsync(
-            userKey,
-            role.Id,
-            clock.UtcNow,
-            ct);
+        await userRoleStore.AssignAsync(userKey, role.Id, clock.UtcNow, ct);
     }
 }

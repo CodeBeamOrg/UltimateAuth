@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class SandboxAccessService(LabDbContext db)
+public sealed class SandboxAccessService(IDbContextFactory<LabDbContext> dbFactory)
 {
     public Task<SandboxAccessResult> CanAccessAsync(UserKey userKey, Guid sandboxId, CancellationToken cancellationToken = default)
         => CheckAsync(userKey, sandboxId, AccessRequirement.Access, cancellationToken);
@@ -22,6 +22,8 @@ public sealed class SandboxAccessService(LabDbContext db)
 
     private async Task<SandboxAccessResult> CheckAsync(UserKey userKey, Guid sandboxId, AccessRequirement requirement, CancellationToken cancellationToken)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
         if (string.IsNullOrWhiteSpace(userKey.Value))
             return SandboxAccessResult.Denied(SandboxAccessFailure.InvalidUser);
 

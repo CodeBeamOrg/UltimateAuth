@@ -42,5 +42,9 @@ public sealed class SandboxMemberConfiguration : IEntityTypeConfiguration<Sandbo
             x.SandboxId,
             x.Role
         });
+
+        builder.HasIndex(x => x.SandboxId)
+            .IsUnique()
+            .HasFilter("\"Role\" = 'Owner'");
     }
 }

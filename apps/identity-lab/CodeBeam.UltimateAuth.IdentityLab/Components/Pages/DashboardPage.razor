@@ -1,5 +1,10 @@
 ﻿@page "/dashboard"
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @layout DashboardLayout
+@inject LabDashboardService DashboardService
 
 @attribute [UAuthAuthorize]
 
@@ -246,28 +251,65 @@
 
             </div>
 
-            <div class="lab-sandbox-banner">
-                <div>
-                    <strong>Your sandbox, your experiments.</strong>
-                    <p>
-                        Each sandbox supports up to four users,
-                        including its owner.
-                    </p>
-                </div>
+            @if (_dashboard is not null)
+            {
+                <div class="lab-sandbox-banner">
+                    <div>
+                        <strong>@_dashboard.SandboxName</strong>
+                        <p>
+                            Each sandbox supports up to
+                            @_dashboard.MaxUsers users, including its owner.
+                        </p>
+                    </div>
 
-                <MudChip T="string"
-                         Variant="Variant.Outlined"
-                         Color="Color.Primary">
-                    1 / 4 example users
-                </MudChip>
-            </div>
+                    <MudChip T="string"
+                             Variant="Variant.Outlined"
+                             Color="Color.Primary">
+                        @_dashboard.MemberCount / @_dashboard.MaxUsers users
+                    </MudChip>
+                </div>
+            }
         }
 
     </MudContainer>
 </div>
 
 @code {
-    // Temporary design preview. Must be replaced by
-    // server-validated, sandbox-scoped management permission.
-    private bool ShowManagement => true;
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private LabDashboardSnapshot? _dashboard;
+    private UserKey? _loadedUserKey;
+    private bool _loading;
+    private bool ShowManagement =>
+        AuthState?.IsInRole(LabRoles.Admin) == true ||
+        (AuthState?.IsInRole(LabRoles.Owner) == true &&
+         _dashboard?.IsOwner == true);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _dashboard = null;
+            _loadedUserKey = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+        _loading = true;
+
+        try
+        {
+            _dashboard = await DashboardService.GetAsync(userKey.Value);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 }

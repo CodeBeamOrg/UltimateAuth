@@ -1,5 +1,10 @@
 ﻿@page "/register"
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @layout PublicLayout
+@inject LabRegistrationService RegistrationService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <PageTitle>Create Sandbox · Identity Lab</PageTitle>
 
@@ -12,16 +17,12 @@
 
                     <div class="lab-login-intro">
                         <span class="lab-login-eyebrow">
-                            <MudIcon Icon="@Icons.Material.Filled.Science"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
                             GET STARTED
                         </span>
 
                         <h1>Create your sandbox.</h1>
-                        <p>
-                            Set up your account and start exploring
-                            UltimateAuth in your own workspace.
-                        </p>
+                        <p>Set up your account and start exploring UltimateAuth in your own workspace.</p>
                     </div>
 
                     
@@ -71,9 +72,10 @@
                                            Color="Color.Primary"
                                            FullWidth="true"
                                            Size="Size.Large"
-                                           Disabled="true"
+                                           Disabled="@_isSubmitting"
+                                           OnClick="SubmitAsync"
                                            EndIcon="@Icons.Material.Filled.ArrowForward">
-                                    Create Sandbox
+                                    @(_isSubmitting ? "Creating..." : "Create Sandbox")
                                 </MudButton>
 
                             </div>
@@ -89,9 +91,7 @@
 
 
                     <div class="lab-login-note">
-                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
-                                 Size="Size.Small"
-                                 Color="Color.Success" />
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" Color="Color.Success" />
                         <span>Free, open source, and powered by UltimateAuth</span>
                     </div>
 
@@ -105,17 +105,13 @@
                         YOUR IDENTITY PLAYGROUND
                     </div>
 
-                    <MudText Typo="Typo.h4"
-                             Class="lab-login-showcase-title">
+                    <MudText Typo="Typo.h4" Class="lab-login-showcase-title">
                         Build identities.
                         <span>Explore freely.</span>
                     </MudText>
 
-                    <MudText Typo="Typo.body1"
-                             Class="lab-login-showcase-description">
-                        Create a private sandbox to experience
-                        authentication, sessions, and authorization
-                        in a real application.
+                    <MudText Typo="Typo.body1" Class="lab-login-showcase-description">
+                        Create a private sandbox to experience authentication, sessions, and authorization in a real application.
                     </MudText>
 
                     <div class="lab-login-feature">
@@ -124,7 +120,7 @@
                         </span>
                         <div>
                             <strong>Your own users</strong>
-                            <p>Create and manage up to four sandbox members, including yourself.</p>
+                            <p>Create and manage up to five sandbox members, including yourself.</p>
                         </div>
                     </div>
 
@@ -167,6 +163,7 @@
     private string _password = string.Empty;
     private string _confirmPassword = string.Empty;
     private bool _showPassword;
+    private bool _isSubmitting;
     private MudForm? _form;
 
     private static string? ValidateEmail(string value)
@@ -174,8 +171,7 @@
         if (string.IsNullOrWhiteSpace(value))
             return "Email address is required.";
 
-        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute()
-            .IsValid(value)
+        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(value)
             ? null
             : "Enter a valid email address.";
     }
@@ -204,7 +200,7 @@
 
     private async Task SubmitAsync()
     {
-        if (_form is null)
+        if (_form is null || _isSubmitting)
             return;
 
         await _form.ValidateAsync();
@@ -212,6 +208,29 @@
         if (!_form.IsValid)
             return;
 
-        // UltimateAuth registration + sandbox creation
+        _isSubmitting = true;
+
+        try
+        {
+            var result = await RegistrationService.RegisterAsync(new LabRegistrationRequest(_username.Trim(), _email.Trim(), _password.Trim()));
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(result.ErrorMessage ?? "Registration failed.", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Your sandbox has been created successfully.", Severity.Success);
+
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("An unexpected error occurred during registration.", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 }
