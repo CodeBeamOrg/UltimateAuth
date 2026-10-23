@@ -14,6 +14,8 @@ public partial class SessionDialog
 
     private bool _loading;
     private bool _reloadQueued;
+    private const int SessionPageSize = 10;
+    private int _sessionPage = 1;
 
     private readonly List<PreviewDevice> _previewDevices =
     [
@@ -50,11 +52,20 @@ public partial class SessionDialog
     public UserKey? UserKey { get; set; }
 
     [Parameter]
+    public SessionChainId? InitialChainId { get; set; }
+
+    [Parameter]
     public bool PreviewMode { get; set; }
 
-    private async Task<GridData<SessionChainSummary>> LoadServerData(
-        GridState<SessionChainSummary> state,
-        CancellationToken ct)
+    protected override async Task OnInitializedAsync()
+    {
+        if (!PreviewMode && InitialChainId is { } chainId)
+        {
+            await ShowChainDetailsAsync(chainId);
+        }
+    }
+
+    private async Task<GridData<SessionChainSummary>> LoadServerData(GridState<SessionChainSummary> state, CancellationToken ct)
     {
         if (PreviewMode)
             return EmptyGrid();
@@ -363,6 +374,7 @@ public partial class SessionDialog
             }
 
             _chainDetail = result.Value;
+            _sessionPage = 1;
         }
         catch (Exception)
         {

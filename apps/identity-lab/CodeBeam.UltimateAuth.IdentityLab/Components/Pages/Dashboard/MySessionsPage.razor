@@ -1,384 +1,544 @@
 ﻿@page "/dashboard/sessions"
 @layout DashboardLayout
-@inject IDialogService DialogService
-
 @attribute [UAuthAuthorize]
+@using CodeBeam.UltimateAuth.Client
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <PageTitle>My Sessions · Identity Lab</PageTitle>
 
 <div class="lab-sessions-page">
     <MudContainer MaxWidth="MaxWidth.ExtraLarge">
-
         <div class="lab-sessions-heading">
             <div>
                 <span class="lab-sessions-eyebrow">PERSONAL SECURITY</span>
                 <h1>My Sessions</h1>
-                <p>
-                    Explore your devices, authentication sessions,
-                    and the UltimateAuth session lifecycle.
-                </p>
+                <p>Explore your devices, authentication sessions, and the UltimateAuth session lifecycle.</p>
             </div>
-
-            <MudChip T="string"
-                     Color="Color.Info"
-                     Variant="Variant.Outlined"
-                     Size="Size.Small"
-                     Icon="@Icons.Material.Filled.Science">
-                Demo Preview
-            </MudChip>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@_busy" OnClick="RefreshAsync">Refresh</MudButton>
         </div>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="my-4">@_error</MudAlert>
+        }
 
         <div class="lab-sessions-stats">
             <div class="lab-session-stat">
-                <span class="lab-session-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Devices" />
-                </span>
-                <span>Active sessions</span>
-                <strong>2</strong>
-                <small>Example session count</small>
+                <span class="lab-session-stat-icon"><MudIcon Icon="@Icons.Material.Filled.Devices" /></span>
+                <span>Active devices</span>
+                <strong>@(_chains.Count(x => x.State == SessionChainState.Active))</strong>
+                <small>On this page</small>
             </div>
-
             <div class="lab-session-stat">
-                <span class="lab-session-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
-                </span>
+                <span class="lab-session-stat-icon"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /></span>
                 <span>Authentication chains</span>
-                <strong>2</strong>
-                <small>Illustrative chains</small>
+                <strong>@_totalChains</strong>
+                <small>Total chain records</small>
             </div>
-
             <div class="lab-session-stat">
-                <span class="lab-session-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Security" />
-                </span>
-                <span>Security status</span>
-                <strong>Active</strong>
-                <small>Example state</small>
+                <span class="lab-session-stat-icon"><MudIcon Icon="@Icons.Material.Filled.Security" /></span>
+                <span>Current device</span>
+                <strong>@(_currentChain is not null ? "Identified" : "Not located")</strong>
+                <small>Server-reported session context</small>
             </div>
         </div>
 
         <div class="lab-sessions-section-heading">
             <div>
-                <h2>Active Devices</h2>
-                <p>
-                    Sessions associated with your identity.
-                </p>
+                <h2>Devices &amp; Chains</h2>
+                <p>Session chains associated with your account.</p>
             </div>
-
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Error"
+            <MudButton Variant="Variant.Outlined" Color="Color.Error"
                        StartIcon="@Icons.Material.Filled.Logout"
-                       Disabled="true">
-                Revoke Other Sessions
-            </MudButton>
+                       Disabled="@(_busy || _totalChains < 2)"
+                       OnClick="LogoutOthersAsync">Logout Other Sessions</MudButton>
         </div>
 
+        
+        @* TODO (SDK): Provide direct current-chain lookup without scanning pages. *@
+        @if (_currentChain is not null)
+        {
+            <div class="lab-device-list mb-4">
+                <section class="lab-device-card" @key="_currentChain.ChainId">
+                    <span class="lab-device-icon">
+                        <MudIcon Icon="@DeviceIcon(_currentChain.DeviceType)"
+                                 Size="Size.Large" />
+                    </span>
+
+                    <div class="lab-device-main">
+                        <div class="lab-device-title">
+                            <strong>@DeviceName(_currentChain)</strong>
+
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Text"
+                                     Size="Size.Small"
+                                     Icon="@Icons.Material.Filled.CheckCircle">
+                                Current Device
+                            </MudChip>
+                        </div>
+
+                        <p>@(_currentChain.Platform ?? "Platform unavailable")</p>
+
+                        <div class="lab-device-meta">
+                            <span>
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                         Size="Size.Small" />
+                                Last seen:
+                                @(_currentChain.LastSeenAt?.ToLocalTime().ToString("g") ?? "Unknown")
+                            </span>
+
+                            <span>
+                                <MudIcon Icon="@Icons.Material.Filled.Fingerprint"
+                                         Size="Size.Small" />
+                                Chain: @_currentChain.ChainId
+                            </span>
+                        </div>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@_busy"
+                               OnClick="@(() => OpenSessionManagementAsync(_currentChain.ChainId))">
+                        Details
+                    </MudButton>
+
+                    @if (!_currentChain.IsRevoked)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   Disabled="@_busy"
+                                   OnClick="@(() => LogoutAsync(_currentChain))">
+                            Logout
+                        </MudButton>
+                    }
+                </section>
+            </div>
+        }
+        else if (!_loading && _error is null)
+        {
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       Disabled="@_busy"
+                       OnClick="FindCurrentChainAsync">
+                Locate Current Device
+            </MudButton>
+        }
+
         <div class="lab-device-list">
-
-            <section class="lab-device-card">
-                <span class="lab-device-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Computer"
-                             Size="Size.Large" />
-                </span>
-
-                <div class="lab-device-main">
-                    <div class="lab-device-title">
-                        <strong>Windows · Chrome</strong>
-
-                        <MudChip T="string"
-                                 Color="Color.Success"
-                                 Variant="Variant.Text"
-                                 Size="Size.Small"
-                                 Icon="@Icons.Material.Filled.CheckCircle">
-                            Current Device
-                        </MudChip>
+            @if (!_loading && _error is null && _chains.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info">No session chains were returned.</MudAlert>
+            }
+            @foreach (var chain in _chains.Where(x => !x.IsCurrentDevice))
+            {
+                <section class="lab-device-card" @key="chain.ChainId">
+                    <span class="lab-device-icon">
+                        <MudIcon Icon="@DeviceIcon(chain.DeviceType)" Size="Size.Large" />
+                    </span>
+                    <div class="lab-device-main">
+                        <div class="lab-device-title">
+                            <strong>@DeviceName(chain)</strong>
+                            @if (chain.IsCurrentDevice)
+                            {
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Text"
+                                         Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">Current Device</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined"
+                                         Size="Size.Small">@chain.State</MudChip>
+                            }
+                        </div>
+                        <p>@(chain.Platform ?? "Platform unavailable")</p>
+                        <div class="lab-device-meta">
+                            <span>
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                Last seen: @(chain.LastSeenAt?.ToLocalTime().ToString("g") ?? "Unknown")
+                            </span>
+                            <span>
+                                <MudIcon Icon="@Icons.Material.Filled.Fingerprint" Size="Size.Small" />
+                                Chain: @chain.ChainId
+                            </span>
+                        </div>
                     </div>
-
-                    <p>Example desktop session</p>
-
-                    <div class="lab-device-meta">
-                        <span>
-                            <MudIcon Icon="@Icons.Material.Filled.Schedule"
-                                     Size="Size.Small" />
-                            Active now (example)
-                        </span>
-                        <span>
-                            <MudIcon Icon="@Icons.Material.Filled.Fingerprint"
-                                     Size="Size.Small" />
-                            Password authentication
-                        </span>
-                    </div>
-                </div>
-
-                <MudButton Variant="Variant.Outlined"
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               Disabled="@_busy" OnClick="@(() => OpenSessionManagementAsync(chain.ChainId))">Details</MudButton>
+                    @if (!chain.IsRevoked)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                   Disabled="@_busy" OnClick="@(() => LogoutAsync(chain))">Logout</MudButton>
+                    }
+                </section>
+            }
+        </div>
+        
+        <div class="d-flex flex-column align-center ga-2 my-5">
+            <MudPagination Count="@TotalPages"
+                           Selected="@_page"
+                           SelectedChanged="OnPageChangedAsync"
+                           Disabled="@_busy"
                            Color="Color.Primary"
-                           Size="Size.Small"
-                           OnClick="OpenSessionManagementAsync">
-                    Details
-                </MudButton>
-            </section>
+                           Variant="Variant.Outlined"
+                           ShowFirstButton="true"
+                           ShowLastButton="true" />
 
-            <section class="lab-device-card">
-                <span class="lab-device-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Smartphone"
-                             Size="Size.Large" />
-                </span>
-
-                <div class="lab-device-main">
-                    <div class="lab-device-title">
-                        <strong>Mobile · Safari</strong>
-
-                        <MudChip T="string"
-                                 Color="Color.Default"
-                                 Variant="Variant.Outlined"
-                                 Size="Size.Small">
-                            Remote Session
-                        </MudChip>
-                    </div>
-
-                    <p>Example mobile session</p>
-
-                    <div class="lab-device-meta">
-                        <span>
-                            <MudIcon Icon="@Icons.Material.Filled.Schedule"
-                                     Size="Size.Small" />
-                            Recently active (example)
-                        </span>
-                        <span>
-                            <MudIcon Icon="@Icons.Material.Filled.Fingerprint"
-                                     Size="Size.Small" />
-                            Password authentication
-                        </span>
-                    </div>
-                </div>
-
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           Disabled="true">
-                    Revoke
-                </MudButton>
-            </section>
-
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Page @_page of @TotalPages · @_totalChains chains
+            </MudText>
         </div>
 
         <div class="lab-sessions-section-heading lab-sessions-hierarchy-heading">
             <div>
                 <span class="lab-sessions-eyebrow">ULTIMATEAUTH ARCHITECTURE</span>
                 <h2>Authentication Hierarchy</h2>
-                <p>
-                    Understand the relationship between authentication
-                    roots, chains, and sessions.
-                </p>
+                <p>Root → Chain → Session. Open Details to inspect actual chain and session history.</p>
             </div>
         </div>
-
         <div class="lab-hierarchy-layout">
-
             <section class="lab-sessions-panel">
-
                 <div class="lab-panel-title">
-                    <h3>Session Structure</h3>
-                    <MudIcon Icon="@Icons.Material.Filled.AccountTree"
-                             Color="Color.Primary" />
+                    <h3>My Chains</h3>
+                    <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
                 </div>
-
                 <div class="lab-hierarchy-tree">
-
                     <div class="lab-tree-node lab-tree-root">
-                        <span class="lab-tree-icon">
-                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" />
-                        </span>
-
-                        <div>
-                            <strong>Authentication Root</strong>
-                            <span>Example authentication origin</span>
-                        </div>
-
-                        <MudChip T="string"
-                                 Color="Color.Success"
-                                 Size="Size.Small"
-                                 Variant="Variant.Text">
-                            Active
-                        </MudChip>
+                        <span class="lab-tree-icon"><MudIcon Icon="@Icons.Material.Filled.AccountCircle" /></span>
+                        <div><strong>Authentication Root</strong><span>Current account</span></div>
                     </div>
-
                     <div class="lab-tree-branch">
-
-                        <div class="lab-tree-node">
-                            <span class="lab-tree-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
-                            </span>
-
-                            <div>
-                                <strong>Chain A</strong>
-                                <span>Example desktop chain</span>
+                        @if (_currentChain is not null)
+                        {
+                            <div class="lab-tree-node" @key="_currentChain.ChainId">
+                                <span class="lab-tree-icon"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /></span>
+                                <div><strong>@DeviceName(_currentChain)</strong><span>Current · @_currentChain.State</span></div>
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           OnClick="@(() => OpenSessionManagementAsync(_currentChain.ChainId))">Sessions</MudButton>
                             </div>
-                        </div>
-
-                        <div class="lab-tree-leaf">
-                            <MudIcon Icon="@Icons.Material.Filled.Computer"
-                                     Color="Color.Primary"
-                                     Size="Size.Small" />
-
-                            <div>
-                                <strong>Session A1</strong>
-                                <span>Windows · Chrome</span>
+                        }
+                        @foreach (var chain in _chains.Where(x => !x.IsCurrentDevice).Take(_treeVisibleCount))
+                        {
+                            <div class="lab-tree-node" @key="chain.ChainId">
+                                <span class="lab-tree-icon"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /></span>
+                                <div><strong>@DeviceName(chain)</strong><span>@chain.State · @chain.ChainId</span></div>
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           OnClick="@(() => OpenSessionManagementAsync(chain.ChainId))">Sessions</MudButton>
                             </div>
-
-                            <MudChip T="string"
-                                     Color="Color.Success"
-                                     Variant="Variant.Text"
-                                     Size="Size.Small">
-                                Current
-                            </MudChip>
-                        </div>
-
-                        <div class="lab-tree-node">
-                            <span class="lab-tree-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
-                            </span>
-
-                            <div>
-                                <strong>Chain B</strong>
-                                <span>Example mobile chain</span>
-                            </div>
-                        </div>
-
-                        <div class="lab-tree-leaf">
-                            <MudIcon Icon="@Icons.Material.Filled.Smartphone"
-                                     Color="Color.Primary"
-                                     Size="Size.Small" />
-
-                            <div>
-                                <strong>Session B1</strong>
-                                <span>Mobile · Safari</span>
-                            </div>
-                        </div>
-
+                        }
+                        @if (_chains.Count(x => !x.IsCurrentDevice) > _treeVisibleCount)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                       OnClick="ExpandTree">Show more chains</MudButton>
+                        }
+                        @if (_totalChains > PageSize)
+                        {
+                            <MudText Typo="Typo.caption">Showing chains from page @_page of @TotalPages. Use pagination above to browse other chains.</MudText>
+                        }
                     </div>
                 </div>
-
             </section>
-
             <section class="lab-sessions-panel">
-
                 <div class="lab-panel-title">
                     <h3>How It Works</h3>
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Primary" />
                 </div>
-
                 <div class="lab-explanation-list">
-
                     <div class="lab-explanation-item">
                         <span class="lab-explanation-number">01</span>
-                        <div>
-                            <strong>Root</strong>
-                            <p>
-                                Represents the origin of an authentication
-                                relationship.
-                            </p>
-                        </div>
+                        <div><strong>Root</strong><p>Account-level session authority.</p></div>
                     </div>
-
                     <div class="lab-explanation-item">
                         <span class="lab-explanation-number">02</span>
-                        <div>
-                            <strong>Chain</strong>
-                            <p>
-                                Groups related authentication activity
-                                within a lifecycle.
-                            </p>
-                        </div>
+                        <div><strong>Chain</strong><p>Device-associated authentication continuity.</p></div>
                     </div>
-
                     <div class="lab-explanation-item">
                         <span class="lab-explanation-number">03</span>
-                        <div>
-                            <strong>Session</strong>
-                            <p>
-                                Represents a session that can be inspected
-                                and managed according to its security context.
-                            </p>
-                        </div>
+                        <div><strong>Session</strong><p>An authentication instance within a chain.</p></div>
                     </div>
-
                 </div>
-
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Text"
-                          Dense="true"
-                          Class="mt-5">
-                    This hierarchy is illustrative. The actual structure
-                    depends on the authentication mode and session lifecycle.
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-5">
+                    Device information is descriptive and does not prove physical device identity.
                 </MudAlert>
-
             </section>
-
         </div>
 
         <div class="lab-sessions-section-heading lab-sessions-security-heading">
-            <div>
-                <h2>Session Security</h2>
-                <p>
-                    Manage your authentication lifecycle and device access.
-                </p>
-            </div>
+            <div><h2>Session Security</h2><p>Manage your authentication lifecycle and device access.</p></div>
         </div>
-
         <div class="lab-session-actions">
-
             <div class="lab-session-action">
-                <span class="lab-session-action-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.DevicesOther" />
-                </span>
+                <span class="lab-session-action-icon"><MudIcon Icon="@Icons.Material.Filled.DevicesOther" /></span>
                 <div>
-                    <strong>Revoke other sessions</strong>
-                    <p>
-                        End other device sessions while keeping
-                        your current session.
-                    </p>
+                    <strong>Logout other sessions</strong>
+                    <p>Logout other chains while keeping your current chain.</p>
                 </div>
-                <MudButton Color="Color.Primary"
-                           Variant="Variant.Outlined"
-                           Disabled="true">
-                    Revoke Others
-                </MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Outlined"
+                           Disabled="@(_busy || _totalChains < 2)" OnClick="LogoutOthersAsync">Logout Others</MudButton>
             </div>
-
+            
             <div class="lab-session-action">
                 <span class="lab-session-action-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Logout" />
+                    <MudIcon Icon="@Icons.Material.Filled.PhonelinkErase" />
                 </span>
+
                 <div>
-                    <strong>Sign out</strong>
-                    <p>
-                        End your current authenticated session.
-                    </p>
+                    <strong>Logout all sessions</strong>
+                    <p>Logout every device chain, including your current session.</p>
                 </div>
+
                 <MudButton Color="Color.Error"
                            Variant="Variant.Outlined"
-                           Disabled="true">
-                    Sign Out
+                           Disabled="@_busy"
+                           OnClick="LogoutAllAsync">
+                    Logout All
                 </MudButton>
             </div>
 
+            <div class="lab-session-action">
+                <span class="lab-session-action-icon"><MudIcon Icon="@Icons.Material.Filled.Logout" /></span>
+                <div><strong>Sign out</strong><p>End your current authenticated session.</p></div>
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" Disabled="@_busy" OnClick="SignOutAsync">Sign Out</MudButton>
+            </div>
         </div>
-
     </MudContainer>
 </div>
 
 @code {
-    private async Task OpenSessionManagementAsync()
+    private readonly List<SessionChainSummary> _chains = [];
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private int _page = 1;
+    private int _totalChains;
+    private SessionChainSummary? _currentChain;
+    private int _treeVisibleCount = 4;
+    private int TotalPages => Math.Max(1, (_totalChains + PageSize - 1) / PageSize);
+    private const int PageSize = 20;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task RefreshAsync()
+    {
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task OnPageChangedAsync(int page)
+    {
+        _page = page;
+        _treeVisibleCount = 4;
+        await LoadAsync();
+    }
+
+    private void ExpandTree() => _treeVisibleCount += 5;
+
+    // Fallback without a current-chain endpoint. Run only on explicit user request:
+    // a full scan on every page load would not scale for accounts with many chains.
+    // TODO (SDK): Replace with GetMyCurrentChainAsync when available.
+    private async Task FindCurrentChainAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            for (var page = 1; page <= TotalPages; page++)
+            {
+                var result = await UAuthClient.Sessions.GetMyChainsAsync(CreateChainsRequest(_page));
+
+                if (!result.IsSuccess || result.Value is null)
+                {
+                    Snackbar.Add(result.ErrorText ?? "Unable to locate current device.", Severity.Error);
+                    return;
+                }
+                _totalChains = result.Value.TotalCount;
+                var current = result.Value.Items.FirstOrDefault(x => x.IsCurrentDevice);
+                if (current is not null)
+                {
+                    _currentChain = current;
+                    return;
+                }
+            }
+            Snackbar.Add("Current device was not found in the available chains.", Severity.Info);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to locate current device.", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _loading = true;
+        _error = null;
+        try
+        {
+            var result = await UAuthClient.Sessions.GetMyChainsAsync(CreateChainsRequest(_page));
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _error = result.ErrorText ?? "Unable to load session chains.";
+                return;
+            }
+            _chains.Clear();
+            _chains.AddRange(result.Value.Items);
+            _totalChains = result.Value.TotalCount;
+            _currentChain = _chains.FirstOrDefault(x => x.IsCurrentDevice) ?? _currentChain;
+        }
+        catch (Exception)
+        {
+            _error = "Session service is unavailable.";
+        }
+        finally
+        {
+            _loading = false;
+            _busy = false;
+        }
+    }
+
+    private async Task OpenSessionManagementAsync(SessionChainId chainId)
     {
         var parameters = new DialogParameters<SessionDialog>
         {
-            { x => x.PreviewMode, true }
+            { x => x.PreviewMode, false },
+            { x => x.InitialChainId, chainId }
         };
 
-        await DialogService.ShowAsync<SessionDialog>(
-            "Session Management",
+        var dialog = await DialogService.ShowAsync<SessionDialog>(
+            "Session Details",
             parameters,
             UAuthDialog.GetDialogOptions(MaxWidth.Large));
+
+        await dialog.Result;
+        await LoadAsync();
     }
+
+    private async Task<bool> ConfirmAsync(string title, string message, string action)
+        => await DialogService.ShowMessageBoxAsync(title, message, yesText: action, noText: "Cancel") == true;
+
+    private async Task LogoutAsync(SessionChainSummary chain)
+    {
+        if (_busy || !await ConfirmAsync("Logout device",
+            chain.IsCurrentDevice
+                ? "This is your current device. Logout it may sign you out. Continue?"
+                : "Logout this device chain?", "Logout")) return;
+        _busy = true;
+        try
+        {
+            var result = await UAuthClient.Flows.LogoutMyDeviceAsync(new LogoutDeviceRequest() { ChainId = chain.ChainId });
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(result.ErrorText ?? "Unable to logout device.", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Logout from device chain.", Severity.Success);
+            if (result.Value?.CurrentChain == true)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+        }
+        catch (Exception) { Snackbar.Add("Unable to logout device.", Severity.Error); }
+        finally { _busy = false; }
+        await LoadAsync();
+    }
+
+    private async Task LogoutOthersAsync()
+    {
+        if (_busy || !await ConfirmAsync("Logout other sessions",
+            "Logout all other device chains and keep the current chain?", "Logout Others")) return;
+        _busy = true;
+        try
+        {
+            var result = await UAuthClient.Flows.LogoutMyOtherDevicesAsync();
+            Snackbar.Add(result.IsSuccess ? "Logout from other chains." :
+                result.ErrorText ?? "Unable to logout other chains.",
+                result.IsSuccess ? Severity.Success : Severity.Error);
+        }
+        catch (Exception) { Snackbar.Add("Unable to logout other chains.", Severity.Error); }
+        finally { _busy = false; }
+
+        await LoadAsync();
+    }
+    
+    private async Task LogoutAllAsync()
+    {
+        if (_busy || !await ConfirmAsync(
+            "Logout all sessions",
+            "This will end all your device sessions, including the current one. Continue?",
+            "Logout All"))
+            return;
+
+        _busy = true;
+
+        try
+        {
+            var result = await UAuthClient.Flows.LogoutAllMyDevicesAsync();
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(result.ErrorText ?? "Unable to logout all sessions.", Severity.Error);
+                return;
+            }
+
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to logout all sessions.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        if (_busy || !await ConfirmAsync("Sign out", "End your current session?", "Sign Out")) return;
+        _busy = true;
+        try
+        {
+            await UAuthClient.Flows.LogoutAsync();
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to sign out.", Severity.Error);
+            _busy = false;
+        }
+    }
+
+    private static string DeviceName(SessionChainSummary chain)
+        => $"{chain.OperatingSystem ?? "Unknown OS"} · {chain.Browser ?? "Unknown browser"}";
+
+    private static string DeviceIcon(string? deviceType)
+        => deviceType?.Contains("mobile", StringComparison.OrdinalIgnoreCase) == true
+            ? Icons.Material.Filled.Smartphone
+            : Icons.Material.Filled.Computer;
+            
+    private PageRequest CreateChainsRequest(int page) => new()
+    {
+        PageNumber = page,
+        PageSize = PageSize,
+        SortBy = nameof(SessionChainSummary.CreatedAt),
+        Descending = true
+    };
 }

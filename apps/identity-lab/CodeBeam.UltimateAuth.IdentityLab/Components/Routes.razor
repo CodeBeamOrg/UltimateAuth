@@ -4,6 +4,7 @@
 @implements IDisposable
 
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 @inject DarkModeManager DarkModeManager
 
 <CascadingValue Value="DarkModeManager" IsFixed="true">
@@ -70,9 +71,8 @@
 
     private Task HandleReauth()
     {
-        Snackbar.Add(
-            "Your session has expired. Please sign in again.",
-            Severity.Warning);
+        Snackbar.Add("Your session is no longer valid. Please sign in again.", Severity.Warning);
+        // Navigation.NavigateTo("/login", forceLoad: true);
 
         return Task.CompletedTask;
     }
