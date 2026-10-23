@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
+@using CodeBeam.UltimateAuth.Core.Contracts
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
 @inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
@@ -199,6 +200,22 @@
     </MudDrawer>
 
     <MudMainContent Class="lab-dashboard-main">
+        @if (AuthState?.Identity?.UserStatus == UserStatus.SelfSuspended)
+        {
+            <MudAlert Severity="Severity.Warning"
+                      Variant="Variant.Outlined"
+                      Class="mx-4 mt-4"
+                      Icon="@Icons.Material.Filled.PauseCircleOutline">
+                <strong>Account Suspended</strong>
+
+                <MudText Typo="Typo.body2">
+                    Your account is currently self-suspended.
+                    Most account operations are restricted.
+                    Reactivate your account from
+                    My Identity → Account Management.
+                </MudText>
+            </MudAlert>
+        }
         @Body
     </MudMainContent>
 

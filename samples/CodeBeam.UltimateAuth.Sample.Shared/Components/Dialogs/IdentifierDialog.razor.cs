@@ -35,6 +35,9 @@ public partial class IdentifierDialog
     [Parameter]
     public bool PreviewMode { get; set; }
 
+    [Parameter]
+    public bool EnableVerification { get; set; } = true;
+
     protected override async Task OnInitializedAsync()
     {
         if (PreviewMode)
@@ -323,6 +326,6 @@ public partial class IdentifierDialog
     private void Cancel()
     {
         if (!_loading)
-            MudDialog.Cancel();
+            MudDialog.Close(DialogResult.Ok(true));
     }
 }

@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
@@ -44,6 +45,8 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.MaxFailedAttempts = 5;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
+    // TODO: Remove it back after fix
+    o.CredentialSessionPolicy.OnSelfChange = CredentialSessionBehavior.PreserveAll;
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
