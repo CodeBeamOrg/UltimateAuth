@@ -133,9 +133,13 @@
             <MudNavMenu>
                 <div class="lab-nav-label">WORKSPACE</div>
 
-                <MudNavLink Href="/dashboard"
-                            Match="NavLinkMatch.All"
-                            Icon="@Icons.Material.Filled.Dashboard">
+                <UAuthStateView Roles="Ladmin">
+                    <MudNavLink Href="/admin" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                        Platform Administration
+                    </MudNavLink>
+                </UAuthStateView>
+
+                <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
                     Overview
                 </MudNavLink>
 

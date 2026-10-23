@@ -8,7 +8,7 @@
 @inject SandboxUserService SandboxUserService
 @inject IDialogService DialogService
 
-@attribute [UAuthAuthorize]
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner")]
 
 <PageTitle>Users · Identity Lab</PageTitle>
 
@@ -19,16 +19,10 @@
             <div>
                 <span class="lab-users-eyebrow">SANDBOX MANAGEMENT</span>
                 <h1>Users</h1>
-                <p>
-                    Manage identities, account status, and
-                    membership within your sandbox.
-                </p>
+                <p>Manage identities, account status, and membership within your sandbox.</p>
             </div>
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.PersonAdd"
-                       OnClick="OpenCreateUserDialogAsync">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateUserDialogAsync">
                 Create User
             </MudButton>
         </div>
@@ -41,25 +35,11 @@
                         <span>Sandbox Capacity</span>
                         <strong>@_users.Count / @MaxUsers users</strong>
                     </div>
-
-                    <MudChip T="string"
-                             Color="Color.Info"
-                             Variant="Variant.Outlined"
-                             Size="Size.Small">
-                        Demo Preview
-                    </MudChip>
                 </div>
 
-                <MudProgressLinear Value="@CapacityPercentage"
-                                   Color="Color.Primary"
-                                   Rounded="true"
-                                   Size="Size.Medium"
-                                   Class="my-4" />
+                <MudProgressLinear Value="@CapacityPercentage" Color="Color.Primary" Rounded="true" Size="Size.Medium" Class="my-4" />
 
-                <p>
-                    @_users.Count of @MaxUsers available user slots are
-                    occupied, including the sandbox owner.
-                </p>
+                <p>@_users.Count of @MaxUsers available user slots are occupied, including the sandbox owner.</p>
             </section>
 
             <section class="lab-users-summary-card">
@@ -68,7 +48,7 @@
                 </span>
                 <span>Total Users</span>
                 <strong>@_users.Count</strong>
-                <small>Example sandbox members</small>
+                <small>Sandbox members</small>
             </section>
 
             <section class="lab-users-summary-card">
@@ -77,7 +57,7 @@
                 </span>
                 <span>Active Users</span>
                 <strong>@_users.Count(x => x.Status == UserStatus.Active)</strong>
-                <small>Example active accounts</small>
+                <small>Active accounts</small>
             </section>
 
         </div>
@@ -359,21 +339,6 @@
         if (actorUserKey is not null)
             await LoadUsersAsync(actorUserKey.Value);
     }
-
-    private async Task OpenUserProfileAsync(string displayName)
-    {
-        var parameters = new DialogParameters<ProfileDialog>
-        {
-            { x => x.PreviewMode, true },
-            { x => x.PreviewDisplayName, displayName }
-        };
-
-        await DialogService.ShowAsync<ProfileDialog>(
-            "Edit Profile",
-            parameters,
-            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
-    }
-
 
     private IEnumerable<SandboxUserItem> FilteredUsers =>
         _users.Where(user =>

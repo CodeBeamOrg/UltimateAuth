@@ -1,0 +1,350 @@
+﻿@page "/admin"
+@layout DashboardLayout
+@attribute [UAuthAuthorize(Roles = "Ladmin")]
+
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+@using CodeBeam.UltimateAuth.IdentityLab.Components.Pages.Dialogs
+
+@inject LabAdminService AdminService
+@inject IDialogService DialogService
+
+<PageTitle>Administration · Identity Lab</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-8">
+
+    <MudStack Spacing="4">
+
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">
+                PLATFORM ADMINISTRATION
+            </MudText>
+
+            <MudText Typo="Typo.h4">
+                Sandbox Management
+            </MudText>
+
+            <MudText Color="Color.Secondary">
+                Monitor and manage all Identity Lab environments.
+            </MudText>
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error"
+                      Variant="Variant.Outlined">
+                @_error
+            </MudAlert>
+        }
+        else if (_snapshot is not null)
+        {
+            <MudGrid Spacing="3">
+
+                <MudItem xs="6" md="3">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Color="Color.Secondary">
+                            Total Sandboxes
+                        </MudText>
+                        <MudText Typo="Typo.h4">
+                            @_snapshot.TotalSandboxes
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="6" md="3">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Color="Color.Secondary">
+                            Active Sandboxes
+                        </MudText>
+                        <MudText Typo="Typo.h4">
+                            @_snapshot.ActiveSandboxes
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="6" md="3">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Color="Color.Secondary">
+                            Suspended
+                        </MudText>
+                        <MudText Typo="Typo.h4">
+                            @_snapshot.SuspendedSandboxes
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="6" md="3">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Color="Color.Secondary">
+                            Total Members
+                        </MudText>
+                        <MudText Typo="Typo.h4">
+                            @_snapshot.TotalMembers
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+            </MudGrid>
+
+            <MudPaper Outlined="true" Class="pa-4">
+
+                <MudStack Spacing="3">
+
+                    <MudStack Row="true"
+                              AlignItems="AlignItems.Center"
+                              Justify="Justify.SpaceBetween">
+
+                        <MudText Typo="Typo.h6">
+                            All Sandboxes
+                        </MudText>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       OnClick="LoadAsync" />
+                    </MudStack>
+
+                    <MudGrid Spacing="2">
+
+                        <MudItem xs="12" md="8">
+                            <MudTextField T="string"
+                                          @bind-Value="_search"
+                                          Immediate="true"
+                                          Placeholder="Search sandbox or owner"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          DebounceInterval="300"
+                                          OnDebounceIntervalElapsed="RefreshTableAsync"/>
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="string"
+                                       @bind-Value="_statusFilter"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense">
+
+                                <MudSelectItem Value="@("all")">
+                                    All statuses
+                                </MudSelectItem>
+
+                                <MudSelectItem Value="@("active")">
+                                    Active
+                                </MudSelectItem>
+
+                                <MudSelectItem Value="@("passive")">
+                                    Passive
+                                </MudSelectItem>
+
+                                <MudSelectItem Value="@("suspended")">
+                                    Suspended
+                                </MudSelectItem>
+
+                            </MudSelect>
+                        </MudItem>
+
+                    </MudGrid>
+
+                    <MudTable T="AdminSandboxItem"
+                              ServerData="LoadSandboxTableAsync"
+                              Hover="true"
+                              RowsPerPage="10"
+                              Breakpoint="Breakpoint.Sm"
+                              @ref="_table">
+
+                        <HeaderContent>
+                            <MudTh>Sandbox</MudTh>
+                            <MudTh>Owner</MudTh>
+                            <MudTh>Members</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="Sandbox">
+                                <MudText Typo="Typo.subtitle2">
+                                    @context.Name
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Owner">
+                                @context.OwnerName
+                            </MudTd>
+
+                            <MudTd DataLabel="Members">
+                                @context.MemberCount / @context.MaxUsers
+                            </MudTd>
+
+                            <MudTd DataLabel="Status">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@GetStatusColor(context.Status)">
+                                    @context.Status
+                                </MudChip>
+                            </MudTd>
+
+                            <MudTd DataLabel="Actions">
+                                <MudTooltip Text="Manage sandbox">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => OpenManageAsync(context))" />
+                                </MudTooltip>
+                            </MudTd>
+                        </RowTemplate>
+
+                        <NoRecordsContent>
+                            <MudText Class="pa-4"
+                                     Color="Color.Secondary">
+                                No sandboxes found.
+                            </MudText>
+                        </NoRecordsContent>
+
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+
+                    </MudTable>
+
+                </MudStack>
+
+            </MudPaper>
+        }
+
+    </MudStack>
+
+</MudContainer>
+
+@code {
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private MudTable<AdminSandboxItem>? _table;
+    private AdminDashboardSnapshot? _snapshot;
+    private UserKey? _loadedUserKey;
+    private bool _loading;
+    private string? _error;
+
+    private string _search = string.Empty;
+    private string _statusFilter = "all";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _snapshot = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+            return;
+
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _snapshot = await AdminService.GetStatisticsAsync(userKey.Value);
+            _loadedUserKey = userKey;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _snapshot = null;
+            _error = "Platform administrator access is required.";
+        }
+        catch (Exception)
+        {
+            _snapshot = null;
+            _error = "Unable to load platform administration data.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<TableData<AdminSandboxItem>> LoadSandboxTableAsync(TableState state, CancellationToken ct)
+    {
+        var actor = AuthState?.Identity?.UserKey;
+
+        if (actor is null)
+        {
+            return new TableData<AdminSandboxItem>
+            {
+                Items = [],
+                TotalItems = 0
+            };
+        }
+
+        var result = await AdminService.QuerySandboxesAsync(actor.Value,
+            new AdminSandboxQuery(
+                _search,
+                _statusFilter == "all" ? null : _statusFilter,
+                state.Page,
+                state.PageSize),
+            ct);
+
+        return new TableData<AdminSandboxItem>
+        {
+            Items = result.Items,
+            TotalItems = result.TotalCount
+        };
+    }
+
+    private async Task RefreshTableAsync()
+    {
+        if (_table is not null)
+            _table.NavigateTo(0);
+    }
+
+    private async Task OpenManageAsync(AdminSandboxItem sandbox)
+    {
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is null)
+            return;
+
+        var parameters = new DialogParameters<ManageSandboxDialog>
+        {
+            { x => x.Sandbox, sandbox },
+            { x => x.ActorUserKey, actorUserKey.Value }
+        };
+
+        var dialog = await DialogService
+            .ShowAsync<ManageSandboxDialog>(
+                "Manage Sandbox",
+                parameters,
+                UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+            await LoadAsync();
+    }
+
+    private static Color GetStatusColor(SandboxStatus status) =>
+        status switch
+        {
+            SandboxStatus.Active => Color.Success,
+            SandboxStatus.Passive => Color.Default,
+            SandboxStatus.Suspended => Color.Warning,
+            _ => Color.Default
+        };
+}

@@ -142,8 +142,7 @@ public sealed class SandboxService(IDbContextFactory<LabDbContext> dbFactory)
         if (ownerUserKey == newUserKey)
             throw new InvalidOperationException("Sandbox owner cannot be added as a regular member.");
 
-        await using var transaction =
-            await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
 
         var sandbox = await db.Sandboxes
             .Include(x => x.Settings)
@@ -154,6 +153,13 @@ public sealed class SandboxService(IDbContextFactory<LabDbContext> dbFactory)
 
         if (sandbox.Status != SandboxStatus.Active)
             throw new InvalidOperationException("Sandbox is not active.");
+
+        var effectiveLimit = Math.Min(sandbox.Settings.MaxUsers, SandboxLimits.AbsoluteMaxUsers);
+
+        var memberCount = await db.SandboxMembers.CountAsync(x => x.SandboxId == sandbox.Id, cancellationToken);
+
+        if (memberCount >= effectiveLimit)
+            throw new InvalidOperationException("Sandbox user limit reached.");
 
         var existing = await db.SandboxMembers.FirstOrDefaultAsync(x => x.UserKey == newUserKey, cancellationToken);
 
@@ -167,11 +173,6 @@ public sealed class SandboxService(IDbContextFactory<LabDbContext> dbFactory)
             await transaction.CommitAsync(cancellationToken);
             return existing;
         }
-
-        var memberCount = await db.SandboxMembers.CountAsync(x => x.SandboxId == sandbox.Id, cancellationToken);
-
-        if (memberCount >= sandbox.Settings.MaxUsers)
-            throw new InvalidOperationException("Sandbox user limit reached.");
 
         var member = new SandboxMember
         {

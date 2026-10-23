@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
 using CodeBeam.UltimateAuth.IdentityLab.Endpoints;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
+using CodeBeam.UltimateAuth.IdentityLab.Policy;
 using CodeBeam.UltimateAuth.IdentityLab.Seed;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
@@ -78,6 +79,7 @@ builder.Services.AddDbContextFactory<LabDbContext>(options =>
 builder.Services.AddScoped<ILabAdminGuard, LabAdminGuard>();
 builder.Services.AddScoped<LabAccessContextProvider>();
 builder.Services.AddScoped<LabAdminAuthorizationFilter>();
+builder.Services.AddScoped<LabAdminService>();
 builder.Services.AddScoped<SandboxService>();
 builder.Services.AddScoped<SandboxAdminService>();
 builder.Services.AddScoped<SandboxAccessService>();
@@ -85,8 +87,12 @@ builder.Services.AddScoped<LabRegistrationService>();
 builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<LabApiClient>();
+builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
+builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
+
+builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
 
 builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();

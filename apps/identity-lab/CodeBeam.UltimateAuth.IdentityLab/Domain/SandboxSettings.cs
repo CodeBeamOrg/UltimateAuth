@@ -4,7 +4,7 @@ public sealed class SandboxSettings
 {
     public Guid SandboxId { get; set; }
 
-    public int MaxUsers { get; set; } = 5;
+    public int MaxUsers { get; set; } = SandboxLimits.DefaultMaxUsers;
 
     public Sandbox Sandbox { get; set; } = default!;
 }

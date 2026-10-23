@@ -19,7 +19,6 @@ public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreF
             return LabRegistrationResult.Failed("Username, email and password are required.");
         }
 
-        // Step 1: Create user through UltimateAuth's public endpoint.
         var createResult = await uAuthClient.Users.CreateAsync(
             new CreateUserRequest
             {

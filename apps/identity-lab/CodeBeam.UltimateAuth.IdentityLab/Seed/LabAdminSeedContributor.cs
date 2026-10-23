@@ -171,36 +171,48 @@ public sealed class LabAdminSeedContributor(
     }
 
     // TODO(Part 3 - Security):
-    // Owner wildcard permission is temporary and intended only
-    // for local Identity Lab happy-path testing.
-    //
-    // Replace wildcard access with resource-scoped authorization:
-    // - Validate sandbox membership and ownership.
-    // - Restrict user operations to the current sandbox.
-    // - Enforce sandbox scope at the UltimateAuth endpoint/request level.
-    // - Prevent cross-sandbox access through direct API calls.
-    // - Replace wildcard with explicit Owner permissions.
-    //
-    // SECURITY: Do not deploy publicly while this wildcard is active.
+    // Owner wildcard permission is restricked with SandboxUAuthAccessPolicy, but not tested.
     private async Task EnsureSystemRolesAsync(TenantKey tenant, CancellationToken ct)
     {
         var roleStore = roleStoreFactory.Create(tenant);
 
-        foreach (var roleName in LabRoles.SystemRoles)
+        var roles = new[]
         {
-            var existing = await roleStore.GetByNameAsync(roleName.ToUpperInvariant(), ct);
+            (Name: LabRoles.Admin, Id: LabRoleIds.Admin),
+            (Name: LabRoles.Owner, Id: LabRoleIds.Owner),
+            (Name: LabRoles.User, Id: LabRoleIds.User)
+        };
+
+        foreach (var definition in roles)
+        {
+            var existing = await roleStore.GetByNameAsync(definition.Name.ToUpperInvariant(), ct);
 
             if (existing is not null)
-                continue;
+            {
+                if (existing.Id != definition.Id)
+                {
+                    throw new InvalidOperationException(
+                        $"System role '{definition.Name}' has an unexpected ID.");
+                }
 
-            var permissions = roleName is LabRoles.Admin or LabRoles.Owner
-                ? new HashSet<Permission> { Permission.Wildcard }
-                : new HashSet<Permission>();
+                if (existing.IsDeleted)
+                {
+                    throw new InvalidOperationException(
+                        $"System role '{definition.Name}' is deleted.");
+                }
+
+                continue;
+            }
+
+            var permissions = definition.Name is
+                LabRoles.Admin or LabRoles.Owner
+                    ? new HashSet<Permission> { Permission.Wildcard }
+                    : new HashSet<Permission>();
 
             var role = Role.Create(
-                RoleId.From(Guid.NewGuid()),
+                definition.Id,
                 tenant,
-                roleName,
+                definition.Name,
                 permissions,
                 clock.UtcNow);
 
