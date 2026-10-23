@@ -1,10 +1,14 @@
 ﻿@page "/dashboard/users"
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+@using CodeBeam.UltimateAuth.Users.Contracts
 @layout DashboardLayout
+@inject SandboxUserService SandboxUserService
 @inject IDialogService DialogService
 
-@* TODO: Enable sandbox-scoped authorization.
 @attribute [UAuthAuthorize]
-*@
 
 <PageTitle>Users · Identity Lab</PageTitle>
 
@@ -119,12 +123,20 @@
                 </MudSelect>
             </div>
 
-            <MudTable T="SandboxUserPreview"
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">
+                    @_error
+                </MudAlert>
+            }
+
+            <MudTable T="SandboxUserItem"
                       Items="@FilteredUsers"
                       Hover="true"
                       Dense="false"
                       Breakpoint="Breakpoint.Sm"
                       RowsPerPage="10"
+                      Loading="@_loading"
                       Class="lab-users-table">
 
                 <HeaderContent>
@@ -138,8 +150,7 @@
                 <RowTemplate>
                     <MudTd DataLabel="User">
                         <div class="lab-user-cell">
-                            <MudAvatar Color="Color.Primary"
-                                       Size="Size.Medium">
+                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
                                 @context.Initials
                             </MudAvatar>
 
@@ -179,29 +190,17 @@
 
                     <MudTd DataLabel="Actions">
                         <div class="lab-user-actions">
-                            <MudTooltip Text="View user">
-                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                            <MudTooltip Text="@(context.IsOwner
+                                        ? "Manage your own account in My Identity."
+                                        : "Manage user")">
+
+                                <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts"
                                                Color="Color.Primary"
                                                Size="Size.Small"
-                                               Disabled="true" />
-                            </MudTooltip>
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => OpenUserDetailsAsync(context))" />
 
-                            <MudTooltip Text="Edit user">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                               Color="Color.Default"
-                                               Size="Size.Small"
-                                               OnClick="@(() => OpenUserProfileAsync(context.DisplayName))" />
                             </MudTooltip>
-
-                            @if (!context.IsOwner)
-                            {
-                                <MudTooltip Text="Manage account status">
-                                    <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
-                                                   Color="Color.Default"
-                                                   Size="Size.Small"
-                                                   Disabled="true" />
-                                </MudTooltip>
-                            }
                         </div>
                     </MudTd>
                 </RowTemplate>
@@ -252,22 +251,113 @@
 </div>
 
 @code {
-    private const int MaxUsers = 4;
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private SandboxUsersSnapshot? _snapshot;
+    private List<SandboxUserItem> _users = [];
+
+    private UserKey? _loadedUserKey;
+    private bool _loading;
+    private string? _error;
+
+    private int MaxUsers => _snapshot?.MaxUsers ?? 0;
+
+    private double CapacityPercentage => _snapshot?.CapacityPercentage ?? 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _snapshot = null;
+            _users.Clear();
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        await LoadUsersAsync(userKey.Value);
+    }
+
+    private async Task LoadUsersAsync(UserKey userKey)
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var snapshot = await SandboxUserService.GetUsersAsync(
+                userKey);
+
+            _snapshot = snapshot;
+            _users = snapshot?.Users.ToList() ?? [];
+
+            _loadedUserKey = userKey;
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load sandbox users.";
+            _snapshot = null;
+            _users.Clear();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
     private string _search = string.Empty;
     private string _statusFilter = "all";
-
-    private double CapacityPercentage => (double)_users.Count / MaxUsers * 100;
 
     
     private async Task OpenCreateUserDialogAsync()
     {
         var parameters = new DialogParameters<CreateUserDialog>
         {
-            { x => x.PreviewMode, true }
+            { x => x.PreviewMode, false },
+            { x => x.OnCreateUserAsync, CreateSandboxUserAsync }
         };
 
-        await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Small));
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>(
+            "Create User",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            var userKey = AuthState?.Identity?.UserKey;
+
+            if (userKey is not null)
+                await LoadUsersAsync(userKey.Value);
+        }
+    }
+
+    private async Task OpenUserDetailsAsync(SandboxUserItem user)
+    {
+        if (user.IsOwner)
+            return;
+
+        var parameters = new DialogParameters<UserDetailDialog>
+        {
+            { x => x.AuthState, AuthState },
+            { x => x.UserKey, user.UserKey },
+            { x => x.PreviewMode, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDetailDialog>("Manage User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Large));
+
+        await dialog.Result;
+
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is not null)
+            await LoadUsersAsync(actorUserKey.Value);
     }
 
     private async Task OpenUserProfileAsync(string displayName)
@@ -285,7 +375,7 @@
     }
 
 
-    private IEnumerable<SandboxUserPreview> FilteredUsers =>
+    private IEnumerable<SandboxUserItem> FilteredUsers =>
         _users.Where(user =>
         {
             var matchesSearch =
@@ -304,52 +394,13 @@
             return matchesSearch && matchesStatus;
         });
 
-    private readonly List<SandboxUserPreview> _users =
-    [
-        new(
-            "Alex Morgan",
-            "alex",
-            "alex@example.com",
-            true,
-            UserStatus.Active,
-            new DateTime(2026, 10, 18)
-        ),
-        new(
-            "Taylor Reed",
-            "taylor",
-            "taylor@example.com",
-            false,
-            UserStatus.Active,
-            new DateTime(2026, 10, 19)
-        ),
-        new(
-            "Jordan Lee",
-            "jordan",
-            "jordan@example.com",
-            false,
-            UserStatus.Disabled,
-            new DateTime(2026, 10, 20)
-        )
-    ];
-
-    private enum UserStatus
+    private async Task<CreateUserDialogResult> CreateSandboxUserAsync(CreateUserRequest request)
     {
-        Active,
-        Disabled
-    }
+        var actorUserKey = AuthState?.Identity?.UserKey;
 
-    private sealed record SandboxUserPreview(
-        string DisplayName,
-        string Username,
-        string Email,
-        bool IsOwner,
-        UserStatus Status,
-        DateTime CreatedAt)
-    {
-        public string Initials =>
-            string.Concat(
-                DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                           .Take(2)
-                           .Select(x => char.ToUpperInvariant(x[0])));
+        if (actorUserKey is null)
+            return CreateUserDialogResult.Failure("You must be signed in.");
+
+        return await SandboxUserService.CreateAsync(actorUserKey.Value, request);
     }
 }

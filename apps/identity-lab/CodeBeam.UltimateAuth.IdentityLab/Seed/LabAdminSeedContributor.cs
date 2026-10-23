@@ -170,6 +170,18 @@ public sealed class LabAdminSeedContributor(
             ct);
     }
 
+    // TODO(Part 3 - Security):
+    // Owner wildcard permission is temporary and intended only
+    // for local Identity Lab happy-path testing.
+    //
+    // Replace wildcard access with resource-scoped authorization:
+    // - Validate sandbox membership and ownership.
+    // - Restrict user operations to the current sandbox.
+    // - Enforce sandbox scope at the UltimateAuth endpoint/request level.
+    // - Prevent cross-sandbox access through direct API calls.
+    // - Replace wildcard with explicit Owner permissions.
+    //
+    // SECURITY: Do not deploy publicly while this wildcard is active.
     private async Task EnsureSystemRolesAsync(TenantKey tenant, CancellationToken ct)
     {
         var roleStore = roleStoreFactory.Create(tenant);
@@ -181,11 +193,15 @@ public sealed class LabAdminSeedContributor(
             if (existing is not null)
                 continue;
 
+            var permissions = roleName is LabRoles.Admin or LabRoles.Owner
+                ? new HashSet<Permission> { Permission.Wildcard }
+                : new HashSet<Permission>();
+
             var role = Role.Create(
                 RoleId.From(Guid.NewGuid()),
                 tenant,
                 roleName,
-                new HashSet<Permission>(),
+                permissions,
                 clock.UtcNow);
 
             await roleStore.AddAsync(role, ct);

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
 {
     [DbContext(typeof(LabDbContext))]
-    [Migration("20261022063638_InitIdentityLab")]
-    partial class InitIdentityLab
+    [Migration("20261023101029_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -80,6 +80,10 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
                         .HasColumnType("character varying(128)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SandboxId")
+                        .IsUnique()
+                        .HasFilter("\"Role\" = 'Owner'");
 
                     b.HasIndex("UserKey")
                         .IsUnique();

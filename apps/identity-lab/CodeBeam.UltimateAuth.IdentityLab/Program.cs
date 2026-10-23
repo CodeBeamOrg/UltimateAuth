@@ -83,6 +83,7 @@ builder.Services.AddScoped<SandboxAdminService>();
 builder.Services.AddScoped<SandboxAccessService>();
 builder.Services.AddScoped<LabRegistrationService>();
 builder.Services.AddScoped<LabDashboardService>();
+builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<LabApiClient>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
 {
     /// <inheritdoc />
-    public partial class InitIdentityLab : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -71,6 +71,13 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
                 table: "LabSandboxes",
                 column: "OwnerUserKey",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LabSandboxMembers_SandboxId",
+                table: "LabSandboxMembers",
+                column: "SandboxId",
+                unique: true,
+                filter: "\"Role\" = 'Owner'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LabSandboxMembers_SandboxId_Role",

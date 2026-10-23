@@ -78,6 +78,10 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SandboxId")
+                        .IsUnique()
+                        .HasFilter("\"Role\" = 'Owner'");
+
                     b.HasIndex("UserKey")
                         .IsUnique();
 

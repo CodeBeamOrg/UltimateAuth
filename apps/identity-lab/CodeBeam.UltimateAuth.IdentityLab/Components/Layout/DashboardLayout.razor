@@ -221,6 +221,19 @@
                 </MudText>
             </MudAlert>
         }
+        else if (AuthState?.Identity?.UserStatus == UserStatus.Suspended || AuthState?.Identity?.UserStatus == UserStatus.Locked)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mx-4 mt-4">
+                <MudText Typo="Typo.subtitle2">
+                    Your account has been suspended
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Your account has been suspended/locked by an administrator.
+                    Some actions are unavailable.
+                    Please contact your system administrator to restore access.
+                </MudText>
+            </MudAlert>
+        }
         @Body
     </MudMainContent>
 
