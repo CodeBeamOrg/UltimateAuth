@@ -28,28 +28,33 @@ internal sealed class EfCoreUAuthAtomicExecutor<TDbContext> : IUAuthAtomicExecut
     public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(operation);
+        ct.ThrowIfCancellationRequested();
 
-        // Participate in an already active transaction.
         if (_db.Database.CurrentTransaction is not null)
-        {
             return await operation(ct);
-        }
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        var strategy = _db.Database.CreateExecutionStrategy();
 
-        try
+        return await strategy.ExecuteAsync(async () =>
         {
-            var result = await operation(ct);
+            await using var transaction =
+                await _db.Database.BeginTransactionAsync(ct);
 
-            await transaction.CommitAsync(ct);
+            try
+            {
+                var result = await operation(ct);
 
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(CancellationToken.None);
+                await _db.SaveChangesAsync(ct);
 
-            throw;
-        }
+                await transaction.CommitAsync(ct);
+
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+        });
     }
 }

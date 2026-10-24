@@ -23,69 +23,73 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
     private DbSet<SessionChainProjection> DbSetChain => _db.Set<SessionChainProjection>();
     private DbSet<SessionRootProjection> DbSetRoot => _db.Set<SessionRootProjection>();
 
-    public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
+    public Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
-        var strategy = _db.Database.CreateExecutionStrategy();
+        ArgumentNullException.ThrowIfNull(action);
 
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
-
-            try
+        return ExecuteAsync<object?>(
+            async innerCt =>
             {
-                _inExecution = true;
-                await action(ct);
-                await _db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                await tx.RollbackAsync(ct);
-                throw new UAuthConcurrencyException("concurrency_conflict");
-            }
-            catch
-            {
-                await tx.RollbackAsync(ct);
-                throw;
-            }
-            finally 
-            {
-                _inExecution = false; 
-            }
-        });
+                await action(innerCt);
+                return null;
+            },
+            ct);
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(action);
+        ct.ThrowIfCancellationRequested();
+
+        // Participate in the existing transaction.
+        if (_db.Database.CurrentTransaction is not null)
+        {
+            return await ExecuteCoreAsync(action, ct);
+        }
+
         var strategy = _db.Database.CreateExecutionStrategy();
 
         return await strategy.ExecuteAsync(async () =>
         {
-            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
 
             try
             {
-                _inExecution = true;
-                var result = await action(ct);
-                await _db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
+                var result = await ExecuteCoreAsync(action, ct);
+                await transaction.CommitAsync(ct);
                 return result;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                await tx.RollbackAsync(ct);
-                throw new UAuthConcurrencyException("concurrency_conflict");
             }
             catch
             {
-                await tx.RollbackAsync(ct);
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw;
             }
-            finally
-            {
-                _inExecution = false;
-            }
         });
+    }
+
+    private async Task<TResult> ExecuteCoreAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct)
+    {
+        if (_inExecution)
+            throw new InvalidOperationException("A session store execution is already active.");
+
+        _inExecution = true;
+
+        try
+        {
+            var result = await action(ct);
+
+            await _db.SaveChangesAsync(ct);
+
+            return result;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new UAuthConcurrencyException("concurrency_conflict");
+        }
+        finally
+        {
+            _inExecution = false;
+        }
     }
 
     public async Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)

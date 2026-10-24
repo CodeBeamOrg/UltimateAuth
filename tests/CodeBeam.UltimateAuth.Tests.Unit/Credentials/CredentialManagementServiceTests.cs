@@ -454,6 +454,12 @@ public sealed class CredentialManagementServiceTests
             Times.Once);
 
         f.CredentialSessionPolicy.Verify(x => x.Resolve(CredentialChangeReason.AdminChange), Times.Once);
+
+        f.SessionStore.Verify(
+            x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ---------------------------------------------------------
@@ -982,6 +988,9 @@ public sealed class CredentialManagementServiceTests
         public Mock<ICredentialSessionPolicy> CredentialSessionPolicy { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<IUAuthAtomicExecutor> AtomicExecutor { get; }
+            = new(MockBehavior.Strict);
+
         public Mock<IClock> Clock { get; }
             = new(MockBehavior.Strict);
 
@@ -1058,6 +1067,13 @@ public sealed class CredentialManagementServiceTests
                 .Setup(x => x.Create(It.IsAny<TenantKey>()))
                 .Returns(SessionStore.Object);
 
+            SessionStore
+                .Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                    (action, ct) => action(ct));
+
             CredentialSessionPolicy
                 .Setup(x => x.Resolve(CredentialChangeReason.SelfChange))
                 .Returns(CredentialSessionBehavior.PreserveCurrent);
@@ -1069,6 +1085,20 @@ public sealed class CredentialManagementServiceTests
             CredentialSessionPolicy
                 .Setup(x => x.Resolve(CredentialChangeReason.Recovery))
                 .Returns(CredentialSessionBehavior.RevokeAll);
+
+            AtomicExecutor
+                .Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task<CredentialChangeResult>>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task<CredentialChangeResult>>, CancellationToken>(
+                    (action, ct) => action(ct));
+
+            AtomicExecutor
+                .Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task<CredentialActionResult>>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task<CredentialActionResult>>, CancellationToken>(
+                    (action, ct) => action(ct));
 
             var options = Options.Create(
                 TestServerOptions.Default());
@@ -1085,6 +1115,7 @@ public sealed class CredentialManagementServiceTests
                 SessionStoreFactory.Object,
                 ResetNotifier.Object,
                 CredentialSessionPolicy.Object,
+                AtomicExecutor.Object,
                 options,
                 Clock.Object);
         }
