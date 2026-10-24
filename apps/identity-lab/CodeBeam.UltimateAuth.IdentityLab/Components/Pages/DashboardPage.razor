@@ -68,11 +68,13 @@
                         <MudIcon Icon="@Icons.Material.Filled.Devices" />
                     </span>
 
-                    <span class="lab-stat-label">My Sessions</span>
+                    <span class="lab-stat-label">Authentication Chains</span>
 
-                    <strong>—</strong>
+                    <strong>
+                        @(_dashboard.ChainCount?.ToString() ?? "—")
+                    </strong>
 
-                    <small>View your active sessions</small>
+                    <small>Total authentication chains</small>
                 </div>
 
                 <div class="lab-stat-card">
@@ -82,9 +84,11 @@
 
                     <span class="lab-stat-label">My Roles</span>
 
-                    <strong>—</strong>
+                    <strong>
+                        @(_dashboard.RoleCount?.ToString() ?? "—")
+                    </strong>
 
-                    <small>Explore your assigned roles</small>
+                    <small>Assigned authorization roles</small>
                 </div>
 
                 <div class="lab-stat-card">
@@ -127,8 +131,15 @@
                         </MudAvatar>
 
                         <div>
-                            <strong>My Identity</strong>
-                            <span>Authenticated account</span>
+                            <strong>
+                                @(!string.IsNullOrWhiteSpace(_dashboard.DisplayName)
+                                    ? _dashboard.DisplayName
+                                    : "My Identity")
+                            </strong>
+
+                            <span>
+                                @(_dashboard.Email ?? "Authenticated account")
+                            </span>
                         </div>
 
                         <MudSpacer />
@@ -137,21 +148,19 @@
                                  Color="Color.Success"
                                  Variant="Variant.Text"
                                  Size="Size.Small">
-                            Authenticated
+                            @(_dashboard.AccountStatus ?? "Authenticated")
                         </MudChip>
 
                     </div>
 
                     <div class="lab-detail-row">
-                        <span>Authentication Status</span>
-                        <strong>
-                            @(IsAuthenticated ? "Authenticated" : "Unavailable")
-                        </strong>
+                        <span>Username</span>
+                        <strong>@(_dashboard.Username ?? "—")</strong>
                     </div>
 
                     <div class="lab-detail-row">
-                        <span>User Identifier</span>
-                        <strong>@CurrentUserIdentifier</strong>
+                        <span>Email</span>
+                        <strong>@(_dashboard.Email ?? "—")</strong>
                     </div>
 
                     <div class="lab-detail-row">
@@ -159,6 +168,21 @@
                         <strong>
                             @(_dashboard.IsOwner ? "Owner" : "Member")
                         </strong>
+                    </div>
+
+                    <div class="lab-detail-row">
+                        <span>Username</span>
+                        <strong>@(_dashboard.Username ?? "—")</strong>
+                    </div>
+
+                    <div class="lab-detail-row">
+                        <span>Email</span>
+                        <strong>@(_dashboard.Email ?? "—")</strong>
+                    </div>
+
+                    <div class="lab-detail-row">
+                        <span>Sandbox Membership</span>
+                        <strong>@(_dashboard.IsOwner ? "Owner" : "Member")</strong>
                     </div>
 
                     <MudButton Href="/dashboard/identity"

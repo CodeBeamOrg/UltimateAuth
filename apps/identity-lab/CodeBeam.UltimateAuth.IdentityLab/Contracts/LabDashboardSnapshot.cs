@@ -6,4 +6,12 @@ public sealed record LabDashboardSnapshot(
     int MaxUsers,
     int MemberCount,
     int RemainingCapacity,
-    bool IsOwner);
+    bool IsOwner,
+
+    string? DisplayName = null,
+    string? Username = null,
+    string? Email = null,
+    string? AccountStatus = null,
+
+    int? ChainCount = null,
+    int? RoleCount = null);
