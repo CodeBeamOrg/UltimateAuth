@@ -35,11 +35,20 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IAuthorizationClient
 {
     /// <summary>
-    /// Evaluates whether the current user is authorized to perform a specific action.
+    /// Evaluates whether the current authenticated user is authorized to perform a specific action.
     /// </summary>
     /// <remarks>
-    /// This method performs a server-side authorization check based on the current session,
-    /// roles, and assigned permissions.
+    /// <para>
+    /// Performs an on-demand, server-side authorization evaluation using the current authentication context and applicable policies.
+    /// </para>
+    /// <para>
+    /// A successful request returns an <see cref="AuthorizationResult"/> even when authorization is denied or reauthentication is required.
+    /// The authorization decision is separate from the API request result.
+    /// </para>
+    /// <para>
+    /// This method does not execute the requested operation or grant authorization for subsequent requests.
+    /// Protected operations must independently enforce authorization when executed.
+    /// </para>
     /// </remarks>
     Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request);
 

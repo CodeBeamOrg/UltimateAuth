@@ -604,7 +604,7 @@ public sealed class AuthorizationManagementTests
     }
 
     [Fact]
-    public async Task AuthorizationCheck_WithoutPermission_ShouldDeny()
+    public async Task AuthorizationCheck_WithoutPermission_ShouldReturnDenial()
     {
         using var factory = NewFactory();
 
@@ -620,7 +620,14 @@ public sealed class AuthorizationManagementTests
                 Resource = "authorization.roles"
             });
 
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<AuthorizationResult>();
+
+        result.Should().NotBeNull();
+        result!.IsAllowed.Should().BeFalse();
+        result.RequiresReauthentication.Should().BeFalse();
     }
 
     [Fact]

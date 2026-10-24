@@ -164,6 +164,44 @@ A wildcard is not a substitute for satisfying independent security policies, aut
 
 ## 4. Check Authorization
 
+`CheckAsync` evaluates whether the current authenticated user is authorized to perform a specific action against a resource.
+
+It provides an **on-demand, server-side authorization decision** based on the current authentication context, permissions, roles, and applicable authorization policies.
+
+Unlike operations that perform protected actions, `CheckAsync` only evaluates access. It does not execute the requested operation, modify permissions, grant access, or reserve authorization for a future request.
+
+### When to Use CheckAsync
+
+Use `CheckAsync` when your application needs to:
+
+- Determine whether an authenticated user can perform an action before presenting it in the UI.
+- Enable, disable, or hide controls based on the current authorization decision.
+- Explain why an operation is unavailable, using the returned denial reason where appropriate.
+- Determine whether an operation requires reauthentication.
+- Evaluate resource-specific access when the applicable policies support it.
+
+For example, an application may check whether the current user can delete a particular order before displaying the Delete button.
+
+### What CheckAsync Does Not Guarantee
+
+**A successful authorization check is not a guarantee that a subsequent operation will succeed.**
+
+Authorization is evaluated against the security context available at the time of the check. That context may change before the actual operation is performed.
+
+For example:
+
+- An administrator may revoke the user's permissions.
+- The user's session may expire or become invalid.
+- The target resource may be deleted or modified.
+- The resource's ownership or tenant context may change.
+- Additional business rules may prevent the operation.
+
+The protected operation must independently enforce authorization using its current context.
+
+**Never use a previous `CheckAsync` result as proof of authorization for a later request.**
+
+`CheckAsync` is primarily a developer-experience and user-experience API. It helps applications understand and present authorization decisions without replacing the security enforcement performed by protected endpoints and application services.
+
 Use `CheckAsync` to ask the server whether the current user is authorized to perform an action.
 
 ```csharp
@@ -229,6 +267,46 @@ Do not assume that sending `ResourceId` automatically enables ownership checking
 | `IsAllowed` | Whether the request was authorized |
 | `RequiresReauthentication` | Whether the decision indicates reauthentication is required |
 | `DenyReason` | Optional denial reason code |
+
+### Authorization Decisions vs. HTTP Results
+
+`CheckAsync` separates the outcome of the API request from the authorization decision itself.
+
+The method returns `UAuthResult<AuthorizationResult>`:
+
+- `UAuthResult.IsSuccess` indicates whether the authorization check request completed successfully.
+- `AuthorizationResult.IsAllowed` indicates whether the requested action is currently authorized.
+- `AuthorizationResult.RequiresReauthentication` indicates whether additional authentication is required.
+- `AuthorizationResult.DenyReason` provides an optional reason for denial.
+
+A denied authorization decision is a valid result of a successful authorization check.
+
+| Scenario | HTTP Status | Authorization Result |
+|---|---|---|
+| Action allowed | `200 OK` | `IsAllowed = true` |
+| Action denied | `200 OK` | `IsAllowed = false` |
+| Reauthentication required | `200 OK` | `RequiresReauthentication = true` |
+| Caller not authenticated | `401 Unauthorized` | No authorization decision |
+| Invalid request | `400 Bad Request` | No authorization decision |
+| Server-side evaluation failure | Appropriate error status | No authorization decision |
+
+**HTTP 200 means the authorization evaluation completed successfully. It does not mean access was granted.**
+
+Only authenticated callers can use the current `CheckAsync` endpoint. However, callers do not need permission to perform the action they are checking.
+
+This distinction is intentional: the purpose of `CheckAsync` is to determine whether the action is permitted.
+
+### Handling Denied Decisions
+
+Applications should distinguish between authorization denial, reauthentication requirements, and request failures.
+
+A denied decision may be used to disable an action or display an appropriate message.
+
+A reauthentication requirement may be used to initiate the application's supported reauthentication flow.
+
+A failed request must not be interpreted as permission to proceed.
+
+**Fail closed:** If the authorization decision is unavailable, treat the operation as unavailable in the UI and rely on server-side authorization when the actual operation is requested.
 
 ### Handle All Decision Outcomes
 

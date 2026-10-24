@@ -739,6 +739,8 @@ That endpoint must independently validate the caller and enforce the required au
 
 For Blazor Server, the same principle applies to sensitive server-side operations, even when they are invoked without an HTTP call from the component.
 
+> Use [UAuthAuthorize] to declare authorization requirements for routed pages and UAuthStateView for conditional UI rendering. Use UAuthClient.Authorization.CheckAsync() when you need an explicit, on-demand server-side authorization decision for a specific action or resource. These mechanisms serve different purposes and do not replace authorization enforcement on protected server operations.
+
 ### UAuthAuthorize is currently a Blazor attribute
 
 The current `[UAuthAuthorize]` attribute is interpreted by UltimateAuth's Blazor authorization pipeline.

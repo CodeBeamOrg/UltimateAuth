@@ -274,4 +274,48 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
         await client.Authorization.DeleteRoleAsync(request);
         Events.Verify(x => x.PublishAsync(It.Is<UAuthStateEventArgs>(e => e.Type == UAuthStateEvent.AuthorizationChanged)), Times.Once);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Check_Should_Return_Structured_Denial(bool requiresReauthentication)
+    {
+        var expected = requiresReauthentication
+            ? AuthorizationResult.ReauthRequired()
+            : AuthorizationResult.Deny("access_denied");
+
+        Request.Setup(x => x.SendJsonAsync(
+                "/auth/me/authorization/check",
+                It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(expected));
+
+        var client = CreateClient();
+
+        var request = new AuthorizationCheckRequest
+        {
+            Action = "orders.delete",
+            Resource = "orders",
+            ResourceId = "order-123"
+        };
+
+        var result = await client.Authorization.CheckAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+
+        result.Value!.IsAllowed.Should().BeFalse();
+        result.Value.RequiresReauthentication
+            .Should().Be(requiresReauthentication);
+
+        result.Value.DenyReason
+            .Should().Be(expected.DenyReason);
+
+        Request.Verify(x => x.SendJsonAsync(
+            "/auth/me/authorization/check",
+            It.Is<AuthorizationCheckRequest>(r =>
+                r.Action == request.Action &&
+                r.Resource == request.Resource &&
+                r.ResourceId == request.ResourceId)),
+            Times.Once);
+    }
 }
