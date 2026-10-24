@@ -4,11 +4,13 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
+using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, SandboxService sandboxService)
+public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, 
+                    SandboxService sandboxService, ActivityLogService activityLogService)
 {
     public async Task<LabRegistrationResult> RegisterAsync(LabRegistrationRequest request, CancellationToken ct = default)
     {
@@ -65,7 +67,9 @@ public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreF
 
             // A sandbox name is presentation data, not an identity key.
             // The owner relationship is established using OwnerUserKey.
-            await sandboxService.CreateAsync(userKey, $"{request.Username.Trim()}'s Sandbox", ct);
+            var sandbox = await sandboxService.CreateAsync(userKey, $"{request.Username.Trim()}'s Sandbox", ct);
+
+            await activityLogService.TryRecordAsync(sandbox.Id, userKey.Value, ActivityEvents.UserCreated, userKey.Value, ct);
 
             return LabRegistrationResult.Success();
         }

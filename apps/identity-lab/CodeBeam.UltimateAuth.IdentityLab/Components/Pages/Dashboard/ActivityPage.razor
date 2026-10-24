@@ -1,9 +1,14 @@
 ﻿@page "/dashboard/activity"
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @layout DashboardLayout
 
-@* TODO: Enable sandbox-scoped authorization.
 @attribute [UAuthAuthorize]
-*@
+@inherits UAuthComponentBase
+
+@inject SandboxService SandboxService
+@inject ActivityLogService ActivityLogService
 
 <PageTitle>Activity · Identity Lab</PageTitle>
 
@@ -16,14 +21,6 @@
                 <h1>Activity</h1>
                 <p>Review identity, session, and authorization activity within your sandbox.</p>
             </div>
-
-            <MudChip T="string"
-                     Color="Color.Info"
-                     Variant="Variant.Outlined"
-                     Icon="@Icons.Material.Filled.Science"
-                     Size="Size.Small">
-                Demo Preview
-            </MudChip>
         </div>
 
         <div class="lab-activity-stats">
@@ -37,15 +34,15 @@
             <div class="lab-activity-stat">
                 <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" />
                 <span>Actors</span>
-                <strong>@_events.Select(x => x.Actor).Distinct().Count()</strong>
+                <strong>@_events.Select(x => x.ActorUserKey).Distinct().Count()</strong>
                 <small>Example users</small>
             </div>
 
             <div class="lab-activity-stat">
                 <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
-                <span>Security Events</span>
-                <strong>@_events.Count(x => x.Category == ActivityCategory.Security)</strong>
-                <small>Illustrative security activity</small>
+                <span>Login Events</span>
+                <strong>@_events.Count(x => x.EventType == ActivityEvents.Login)</strong>
+                <small>Security activity</small>
             </div>
         </div>
 
@@ -77,18 +74,6 @@
                               Class="lab-activity-search" />
 
                 <MudSelect T="string"
-                           @bind-Value="_category"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Class="lab-activity-filter">
-                    <MudSelectItem Value="@("all")">All categories</MudSelectItem>
-                    <MudSelectItem Value="@("identity")">Identity</MudSelectItem>
-                    <MudSelectItem Value="@("session")">Session</MudSelectItem>
-                    <MudSelectItem Value="@("authorization")">Authorization</MudSelectItem>
-                    <MudSelectItem Value="@("security")">Security</MudSelectItem>
-                </MudSelect>
-
-                <MudSelect T="string"
                            @bind-Value="_period"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
@@ -99,9 +84,10 @@
                 </MudSelect>
             </div>
 
-            <MudTable T="ActivityPreview"
+            <MudTable T="ActivityLog"
                       Items="@FilteredEvents"
                       Hover="true"
+                      Loading="@_loading"
                       Breakpoint="Breakpoint.Sm"
                       RowsPerPage="10"
                       Class="lab-activity-table">
@@ -109,61 +95,51 @@
                 <HeaderContent>
                     <MudTh>Event</MudTh>
                     <MudTh>Actor</MudTh>
-                    <MudTh>Category</MudTh>
+                    <MudTh>Target</MudTh>
                     <MudTh>Date</MudTh>
-                    <MudTh Style="text-align:right">Details</MudTh>
                 </HeaderContent>
 
                 <RowTemplate>
+
                     <MudTd DataLabel="Event">
                         <div class="lab-activity-event">
                             <span class="lab-activity-event-icon">
-                                <MudIcon Icon="@GetIcon(context.Category)"
+                                <MudIcon Icon="@GetEventIcon(context.EventType)"
                                          Size="Size.Small" />
                             </span>
+
                             <div>
-                                <strong>@context.Title</strong>
-                                <span>@context.Description</span>
+                                <strong>@GetEventTitle(context.EventType)</strong>
                             </div>
                         </div>
                     </MudTd>
 
                     <MudTd DataLabel="Actor">
-                        <span class="lab-activity-actor">@context.Actor</span>
+                        <span class="lab-activity-actor">
+                            @context.ActorUserKey
+                        </span>
                     </MudTd>
 
-                    <MudTd DataLabel="Category">
-                        <MudChip T="string"
-                                 Size="Size.Small"
-                                 Variant="Variant.Outlined"
-                                 Color="@GetColor(context.Category)">
-                            @context.Category
-                        </MudChip>
+                    <MudTd DataLabel="Target">
+                        @(context.TargetUserKey ?? "—")
                     </MudTd>
 
                     <MudTd DataLabel="Date">
                         <span class="lab-activity-date">
-                            @context.Timestamp.ToString("MMM dd, yyyy")
+                            @context.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")
                         </span>
                     </MudTd>
 
-                    <MudTd DataLabel="Details">
-                        <div class="lab-activity-actions">
-                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           OnClick="@(() => SelectEvent(context))" />
-                        </div>
-                    </MudTd>
                 </RowTemplate>
 
                 <NoRecordsContent>
                     <div class="lab-activity-empty">
-                        <MudIcon Icon="@Icons.Material.Filled.SearchOff"
+                        <MudIcon Icon="@Icons.Material.Filled.History"
                                  Color="Color.Secondary"
                                  Size="Size.Large" />
-                        <strong>No matching events</strong>
-                        <p>Try adjusting your filters.</p>
+
+                        <strong>No activity recorded</strong>
+                        <p>Activity will appear here as users interact with the sandbox.</p>
                     </div>
                 </NoRecordsContent>
 
@@ -174,120 +150,100 @@
             </MudTable>
         </section>
 
-        @if (_selectedEvent is not null)
-        {
-            <section class="lab-activity-details">
-                <div class="lab-activity-details-heading">
-                    <div>
-                        <h2>Event Details</h2>
-                        <p>Example activity record</p>
-                    </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                   OnClick="@(() => _selectedEvent = null)" />
-                </div>
-
-                <div class="lab-activity-detail-grid">
-                    <div><span>Event</span><strong>@_selectedEvent.Title</strong></div>
-                    <div><span>Actor</span><strong>@_selectedEvent.Actor</strong></div>
-                    <div><span>Category</span><strong>@_selectedEvent.Category</strong></div>
-                    <div><span>Timestamp (UTC)</span><strong>@_selectedEvent.Timestamp.ToString("yyyy-MM-dd HH:mm")</strong></div>
-                </div>
-
-                <p class="lab-activity-detail-description">
-                    @_selectedEvent.Description
-                </p>
-            </section>
-        }
-
         <MudAlert Severity="Severity.Info"
                   Variant="Variant.Text"
                   Dense="true"
                   Class="mt-5">
-            Activity records shown here are illustrative. Production activity
-            will require explicit event recording, sandbox isolation, and
-            appropriate data retention rules.
+            Activity records are temporarily stored by Identity Lab.
+            This lightweight activity history will be replaced by UltimateAuth's built-in audit system once it becomes available.
         </MudAlert>
 
     </MudContainer>
 </div>
 
 @code {
+    private readonly List<ActivityLog> _events = [];
+
     private string _search = string.Empty;
-    private string _category = "all";
     private string _period = "all";
 
-    private ActivityPreview? _selectedEvent;
+    private bool _loading;
+    private string? _error;
 
-    private static readonly DateTime PreviewDate =
-        new(2026, 10, 21, 12, 0, 0, DateTimeKind.Utc);
+    private async Task InitializeActivityAsync(UserKey currentUserKey)
+    {
+        var sandbox = await SandboxService.GetByUserAsync(currentUserKey);
 
-    private readonly List<ActivityPreview> _events =
-    [
-        new("User Created", "A new member was added to the sandbox.",
-            "alex", ActivityCategory.Identity, PreviewDate.AddHours(-2)),
+        if (sandbox is null)
+        {
+            _error = "You are not a member of any sandbox.";
+            return;
+        }
 
-        new("Session Revoked", "A remote session was revoked.",
-            "taylor", ActivityCategory.Session, PreviewDate.AddHours(-5)),
+        if (sandbox.Status != SandboxStatus.Active)
+        {
+            _error = "Your sandbox is not active.";
+            return;
+        }
 
-        new("Role Updated", "A sandbox role configuration was changed.",
-            "alex", ActivityCategory.Authorization, PreviewDate.AddDays(-1)),
+        await LoadActivityAsync(currentUserKey);
+    }
 
-        new("Password Changed", "A member updated their credential.",
-            "jordan", ActivityCategory.Security, PreviewDate.AddDays(-2)),
+    private async Task LoadActivityAsync(UserKey currentUserKey)
+    {
+        _loading = true;
+        _error = null;
 
-        new("User Disabled", "A member account was disabled.",
-            "alex", ActivityCategory.Identity, PreviewDate.AddDays(-4)),
+        try
+        {
+            var events = await ActivityLogService.GetRecentAsync(
+                currentUserKey,
+                take: 100);
 
-        new("Session Created", "A new authenticated session was established.",
-            "taylor", ActivityCategory.Session, PreviewDate.AddDays(-9))
-    ];
+            _events.Clear();
+            _events.AddRange(events);
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load activity records.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
-    private IEnumerable<ActivityPreview> FilteredEvents =>
+    private IEnumerable<ActivityLog> FilteredEvents =>
         _events
             .Where(x =>
                 (string.IsNullOrWhiteSpace(_search) ||
-                 x.Title.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-                 x.Description.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-                 x.Actor.Contains(_search, StringComparison.OrdinalIgnoreCase)) &&
-                (_category == "all" ||
-                 x.Category.ToString().Equals(_category, StringComparison.OrdinalIgnoreCase)) &&
+                 x.EventType.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 x.ActorUserKey.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 (x.TargetUserKey?.Contains(
+                     _search,
+                     StringComparison.OrdinalIgnoreCase) ?? false)) &&
                 (_period == "all" ||
                  (int.TryParse(_period, out var days) &&
-                  x.Timestamp >= PreviewDate.AddDays(-days))))
-            .OrderByDescending(x => x.Timestamp);
+                  x.CreatedAt >= DateTimeOffset.UtcNow.AddDays(-days))))
+            .OrderByDescending(x => x.CreatedAt);
 
-    private void SelectEvent(ActivityPreview item) => _selectedEvent = item;
-
-    private static string GetIcon(ActivityCategory category) => category switch
+    private static string GetEventTitle(string eventType) => eventType switch
     {
-        ActivityCategory.Identity => Icons.Material.Filled.PersonOutline,
-        ActivityCategory.Session => Icons.Material.Filled.Devices,
-        ActivityCategory.Authorization => Icons.Material.Filled.Shield,
-        ActivityCategory.Security => Icons.Material.Filled.Security,
-        _ => Icons.Material.Outlined.Info
+        "user.login" => "User Logged In",
+        "user.logout" => "User Logged Out",
+        "user.created" => "User Created",
+        "user.updated" => "User Updated",
+        "user.deleted" => "User Deleted",
+        _ => eventType
     };
 
-    private static Color GetColor(ActivityCategory category) => category switch
+    private static string GetEventIcon(string eventType) => eventType switch
     {
-        ActivityCategory.Identity => Color.Primary,
-        ActivityCategory.Session => Color.Info,
-        ActivityCategory.Authorization => Color.Secondary,
-        ActivityCategory.Security => Color.Warning,
-        _ => Color.Default
+        "user.login" => Icons.Material.Filled.Login,
+        "user.logout" => Icons.Material.Filled.Logout,
+        "user.created" => Icons.Material.Filled.PersonAdd,
+        "user.updated" => Icons.Material.Filled.ManageAccounts,
+        "user.deleted" => Icons.Material.Filled.PersonRemove,
+        _ => Icons.Material.Filled.History
     };
-
-    private enum ActivityCategory
-    {
-        Identity,
-        Session,
-        Authorization,
-        Security
-    }
-
-    private sealed record ActivityPreview(
-        string Title,
-        string Description,
-        string Actor,
-        ActivityCategory Category,
-        DateTime Timestamp);
 }

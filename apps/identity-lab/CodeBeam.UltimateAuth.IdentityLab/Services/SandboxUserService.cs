@@ -9,7 +9,8 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class SandboxUserService(SandboxService sandboxService, SandboxAccessService accessService, IUAuthClient uAuthClient, IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory)
+public sealed class SandboxUserService(SandboxService sandboxService, SandboxAccessService accessService, IUAuthClient uAuthClient, 
+                    IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, ActivityLogService activityLogService)
 {
     public async Task<SandboxUsersSnapshot?> GetUsersAsync(UserKey actorUserKey, CancellationToken ct = default)
     {
@@ -86,6 +87,8 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
                 "User was created, but sandbox membership failed. " +
                 "Manual repair is required.");
         }
+
+        await activityLogService.TryRecordAsync(sandbox.Id, actorUserKey.Value, ActivityEvents.UserCreated, newUserKey.Value, ct);
 
         return CreateUserDialogResult.Success();
     }

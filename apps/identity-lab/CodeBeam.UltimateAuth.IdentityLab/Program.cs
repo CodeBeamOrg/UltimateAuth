@@ -7,6 +7,7 @@ using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
+using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Endpoints;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
 using CodeBeam.UltimateAuth.IdentityLab.Policy;
@@ -16,6 +17,7 @@ using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
@@ -39,6 +41,9 @@ builder.Services.AddScoped<DarkModeManager>();
 var connectionString = builder.Configuration.GetConnectionString("IdentityLab")
     ?? throw new InvalidOperationException("Connection string 'IdentityLab' is missing.");
 
+var activityEventBridge = new LabActivityEventBridge();
+builder.Services.AddSingleton(activityEventBridge);
+
 builder.Services.AddUltimateAuthServer(o =>
 {
     o.Diagnostics.EnableRefreshDetails = true;
@@ -53,6 +58,9 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
     // TODO: Remove it back after fix
     o.CredentialSessionPolicy.OnSelfChange = CredentialSessionBehavior.PreserveAll;
+
+    o.Events.OnUserLoggedIn = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Login);
+    o.Events.OnUserLoggedOut = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Logout);
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
@@ -86,9 +94,11 @@ builder.Services.AddScoped<SandboxAccessService>();
 builder.Services.AddScoped<LabRegistrationService>();
 builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
+builder.Services.AddScoped<ActivityLogService>();
 builder.Services.AddScoped<LabApiClient>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
+builder.Services.AddScoped<LabActivityEventHandler>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
 
@@ -98,6 +108,8 @@ builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
 
 var app = builder.Build();
+
+activityEventBridge.Initialize(app.Services);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

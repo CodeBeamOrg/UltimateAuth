@@ -11,6 +11,8 @@ public sealed class LabDbContext(DbContextOptions<LabDbContext> options) : DbCon
 
     public DbSet<SandboxSettings> SandboxSettings => Set<SandboxSettings>();
 
+    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

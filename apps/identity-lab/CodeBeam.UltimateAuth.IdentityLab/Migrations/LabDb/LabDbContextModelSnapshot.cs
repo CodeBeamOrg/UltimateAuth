@@ -22,6 +22,40 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CodeBeam.UltimateAuth.IdentityLab.Domain.ActivityLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorUserKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SandboxId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetUserKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SandboxId", "ActorUserKey");
+
+                    b.HasIndex("SandboxId", "CreatedAt");
+
+                    b.ToTable("LabActivityLogs", (string)null);
+                });
+
             modelBuilder.Entity("CodeBeam.UltimateAuth.IdentityLab.Domain.Sandbox", b =>
                 {
                     b.Property<Guid>("Id")
@@ -106,6 +140,17 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations.LabDb
                         {
                             t.HasCheckConstraint("CK_LabSandboxSettings_MaxUsers", "\"MaxUsers\" >= 1");
                         });
+                });
+
+            modelBuilder.Entity("CodeBeam.UltimateAuth.IdentityLab.Domain.ActivityLog", b =>
+                {
+                    b.HasOne("CodeBeam.UltimateAuth.IdentityLab.Domain.Sandbox", "Sandbox")
+                        .WithMany()
+                        .HasForeignKey("SandboxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sandbox");
                 });
 
             modelBuilder.Entity("CodeBeam.UltimateAuth.IdentityLab.Domain.SandboxMember", b =>
