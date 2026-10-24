@@ -1,9 +1,13 @@
 ﻿@page "/dashboard/access"
 @layout DashboardLayout
 
-@* TODO: Enable after authentication integration.
 @attribute [UAuthAuthorize]
-*@
+
+@using CodeBeam.UltimateAuth.Authorization.Contracts
+@using CodeBeam.UltimateAuth.Core.Contracts
+
+@inject IUAuthClient UAuthClient
+@inject ISnackbar Snackbar
 
 <PageTitle>My Access · Identity Lab</PageTitle>
 
@@ -35,26 +39,23 @@
                     <MudIcon Icon="@Icons.Material.Filled.Badge" />
                 </span>
                 <span>Assigned Roles</span>
-                <strong>1</strong>
-                <small>Example role assignment</small>
+                <strong>@_totalRoles</strong>
+                <small>Roles assigned to your identity</small>
             </div>
 
-            <div class="lab-access-stat">
+            @* <div class="lab-access-stat">
                 <span class="lab-access-stat-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Key" />
                 </span>
                 <span>Effective Permissions</span>
                 <strong>4</strong>
                 <small>Illustrative permission set</small>
-            </div>
+            </div> *@
 
             <div class="lab-access-stat">
-                <span class="lab-access-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
-                </span>
-                <span>Access Context</span>
-                <strong>Member</strong>
-                <small>Example sandbox role</small>
+                <span>Available Actions</span>
+                <strong>@_availablePermissions.Count</strong>
+                <small>Discoverable authorization actions</small>
             </div>
         </div>
 
@@ -71,21 +72,55 @@
                 </div>
 
                 <div class="lab-role-item">
-                    <span class="lab-role-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Shield" />
-                    </span>
+                    @foreach (var role in _roles)
+                    {
+                        <div class="lab-role-item" @key="role.RoleId">
 
-                    <div>
-                        <strong>Member</strong>
-                        <span>Example sandbox membership role</span>
-                    </div>
+                            <span class="lab-role-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                            </span>
 
-                    <MudChip T="string"
-                             Color="Color.Primary"
-                             Variant="Variant.Outlined"
-                             Size="Size.Small">
-                        Assigned
-                    </MudChip>
+                            <div>
+                                <strong>@role.Name</strong>
+                                <span>
+                                    Assigned @role.AssignedAt.ToLocalTime().ToString("g")
+                                </span>
+                            </div>
+
+                            <MudChip T="string"
+                                     Color="Color.Primary"
+                                     Variant="Variant.Outlined"
+                                     Size="Size.Small">
+                                Assigned
+                            </MudChip>
+
+                        </div>
+                    }
+
+                    @if (!_loading && _totalRoles == 0 && _error is null)
+                    {
+                        <div class="lab-result-empty">
+                            <strong>No roles assigned</strong>
+                            <p>You do not currently have any assigned roles.</p>
+                        </div>
+                    }
+
+                    @if (_error is not null)
+                    {
+                        <MudAlert Severity="Severity.Error">
+                            @_error
+                        </MudAlert>
+                    }
+
+                    @if (_totalRoles > RolePageSize)
+                    {
+                        <MudPagination Count="@TotalRolePages"
+                                       Selected="@_rolePage"
+                                       SelectedChanged="OnRolePageChangedAsync"
+                                       Disabled="@_loading"
+                                       Color="Color.Primary"
+                                       Class="mt-4" />
+                    }
                 </div>
 
                 <MudAlert Severity="Severity.Info"
@@ -98,7 +133,7 @@
                 </MudAlert>
             </section>
 
-            <section class="lab-access-card">
+            @* <section class="lab-access-card">
                 <div class="lab-access-card-heading">
                     <div>
                         <h2>Effective Permissions</h2>
@@ -131,7 +166,7 @@
                         </div>
                     }
                 </div>
-            </section>
+            </section> *@
         </div>
 
         <div class="lab-access-section-heading">
@@ -156,38 +191,41 @@
                 </div>
 
                 <div class="lab-playground-fields">
-                    <MudSelect T="string"
-                               Label="Resource"
-                               Variant="Variant.Outlined"
-                               @bind-Value="_selectedResource">
-                        <MudSelectItem Value="@("users")">Users</MudSelectItem>
-                        <MudSelectItem Value="@("sessions")">Sessions</MudSelectItem>
-                        <MudSelectItem Value="@("credentials")">Credentials</MudSelectItem>
-                    </MudSelect>
 
                     <MudSelect T="string"
-                               Label="Operation"
+                               Label="Permission / Action"
                                Variant="Variant.Outlined"
-                               @bind-Value="_selectedOperation">
-                        <MudSelectItem Value="@("query")">Query</MudSelectItem>
-                        <MudSelectItem Value="@("create")">Create</MudSelectItem>
-                        <MudSelectItem Value="@("update")">Update</MudSelectItem>
-                        <MudSelectItem Value="@("revoke")">Revoke</MudSelectItem>
+                               @bind-Value="_selectedAction"
+                               Searchable="true">
+
+                        @foreach (var permission in _availablePermissions)
+                        {
+                            <MudSelectItem T="string" Value="@permission">
+                                @permission
+                            </MudSelectItem>
+                        }
+
                     </MudSelect>
 
                     <MudTextField T="string"
-                                  Label="Authorization action"
-                                  Value="@($"{_selectedResource}.{_selectedOperation}.self")"
-                                  ReadOnly="true"
+                                  Label="Resource"
                                   Variant="Variant.Outlined"
-                                  HelperText="Illustrative action format; not a live permission check." />
+                                  @bind-Value="_selectedResource" />
+
+                    <MudTextField T="string"
+                                  Label="Resource ID (optional)"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_selectedResourceId" />
 
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                FullWidth="true"
                                StartIcon="@Icons.Material.Filled.PlayArrow"
-                               Disabled="true">
-                        Evaluate Access
+                               Disabled="@(_evaluating || string.IsNullOrWhiteSpace(_selectedAction))"
+                               OnClick="EvaluateAccessAsync">
+
+                        @(_evaluating ? "Evaluating..." : "Evaluate Access")
+
                     </MudButton>
                 </div>
             </section>
@@ -203,16 +241,53 @@
                 </div>
 
                 <div class="lab-result-empty">
-                    <span class="lab-result-empty-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Rule"
-                                 Size="Size.Large" />
-                    </span>
+                    @if (_accessResult is null)
+                    {
+                        <div class="lab-result-empty">
+                            <span class="lab-result-empty-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Rule"
+                                         Size="Size.Large" />
+                            </span>
 
-                    <strong>Ready to evaluate</strong>
-                    <p>
-                        Live access decisions will appear here once
-                        UltimateAuth authorization is connected.
-                    </p>
+                            <strong>Ready to evaluate</strong>
+
+                            <p>
+                                Select a permission to check your current access.
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="@(_accessResult.IsAllowed
+                                                ? Severity.Success
+                                                : Severity.Error)"
+                                  Variant="Variant.Outlined">
+
+                            <strong>
+                                @(_accessResult.IsAllowed
+                                    ? "Access Granted"
+                                    : "Access Denied")
+                            </strong>
+
+                            @if (_accessResult.RequiresReauthentication)
+                            {
+                                <p>Reauthentication is required.</p>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(_accessResult.DenyReason))
+                            {
+                                <p>@_accessResult.DenyReason</p>
+                            }
+                            else
+                            {
+                                <p>
+                                    @(_accessResult.IsAllowed
+                                        ? "Your current session is authorized."
+                                        : "Your current session is not authorized.")
+                                </p>
+                            }
+
+                        </MudAlert>
+                    }
                 </div>
 
                 <div class="lab-result-footer">
@@ -273,18 +348,114 @@
 </div>
 
 @code {
+    private readonly List<UserRoleInfo> _roles = [];
+
+    private bool _loading;
+    private string? _error;
+
+    private int _rolePage = 1;
+    private const int RolePageSize = 10;
+    private int _totalRoles;
+
+    private int TotalRolePages => Math.Max(1, (_totalRoles + RolePageSize - 1) / RolePageSize);
+
+    private string? _selectedAction;
     private string _selectedResource = "users";
-    private string _selectedOperation = "query";
+    private string? _selectedResourceId;
 
-    private readonly List<PermissionPreview> _permissions =
-    [
-        new("users.query.self", "View your own user information"),
-        new("sessions.query.self", "Inspect your own sessions"),
-        new("credentials.update.self", "Manage your own credentials"),
-        new("sessions.revoke.self", "Revoke your own sessions")
-    ];
+    private UltimateAuth.Authorization.Contracts.AuthorizationResult? _accessResult;
+    private bool _evaluating;
 
-    private sealed record PermissionPreview(
-        string Name,
-        string Description);
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.GetMyRolesAsync(
+                new PageRequest
+                {
+                    PageNumber = _rolePage,
+                    PageSize = RolePageSize
+                });
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _error = result.ErrorText ?? "Unable to load your roles.";
+                return;
+            }
+
+            _roles.Clear();
+            _roles.AddRange(result.Value.Roles.Items);
+
+            _totalRoles = result.Value.Roles.TotalCount;
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load your roles.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnRolePageChangedAsync(int page)
+    {
+        _rolePage = page;
+        await LoadRolesAsync();
+    }
+
+    private readonly List<string> _availablePermissions =
+    UAuthPermissionCatalog.GetAdminPermissions()
+        .OrderBy(x => x)
+        .ToList();
+
+    private async Task EvaluateAccessAsync()
+    {
+        if (_evaluating ||
+            string.IsNullOrWhiteSpace(_selectedAction) ||
+            string.IsNullOrWhiteSpace(_selectedResource))
+            return;
+
+        _evaluating = true;
+        _accessResult = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.CheckAsync(
+                new AuthorizationCheckRequest
+                {
+                    Action = _selectedAction,
+                    Resource = _selectedResource.Trim(),
+                    ResourceId = string.IsNullOrWhiteSpace(_selectedResourceId)
+                        ? null
+                        : _selectedResourceId.Trim()
+                });
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Access evaluation failed.",
+                    Severity.Error);
+                return;
+            }
+
+            _accessResult = result.Value;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to evaluate access.", Severity.Error);
+        }
+        finally
+        {
+            _evaluating = false;
+        }
+    }
 }
