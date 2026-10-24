@@ -28,7 +28,7 @@ public sealed class UAuthAccessOrchestrator : IAccessOrchestrator
         context = await EnrichAsync(context, ct);
 
         var policies = _policyProvider.GetPolicies(context);
-        var decision = _authority.Decide(context, policies);
+        var decision = await _authority.DecideAsync(context, policies, ct);
 
         if (decision.RequiresReauthentication)
             throw new UAuthChallengeRequiredException(decision.DenyReason ?? "Requires reauthentication.");
@@ -46,7 +46,7 @@ public sealed class UAuthAccessOrchestrator : IAccessOrchestrator
         context = await EnrichAsync(context, ct);
 
         var policies = _policyProvider.GetPolicies(context);
-        var decision = _authority.Decide(context, policies);
+        var decision = await _authority.DecideAsync(context, policies, ct);
 
         if (decision.RequiresReauthentication)
             throw new UAuthChallengeRequiredException(decision.DenyReason ?? "Requires reauthentication.");

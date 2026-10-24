@@ -11,25 +11,25 @@ public sealed class LabApplicationPolicy(ILabRootResolver rootResolver) : IAcces
             "authorization.roles.",
             StringComparison.Ordinal);
 
-    public AccessDecision Decide(AccessContext context)
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken cancellationToken = default)
     {
         // Trusted internal operations.
         if (context.IsSystemActor)
-            return AccessDecision.Allow();
+            return ValueTask.FromResult(AccessDecision.Allow());
 
         if (!context.IsAuthenticated ||
             context.ActorUserKey is null)
         {
-            return AccessDecision.Deny("lab_authentication_required");
+            return ValueTask.FromResult(AccessDecision.Deny("lab_authentication_required"));
         }
 
         // Ladmin has unrestricted application-level access.
         if (rootResolver.IsLadmin(context))
-            return AccessDecision.Allow();
+            return ValueTask.FromResult(AccessDecision.Allow());
 
         // Role reading is available to authenticated users.
         if (IsReadAction(context.Action))
-            return AccessDecision.Allow();
+            return ValueTask.FromResult(AccessDecision.Allow());
 
         // TODO (v0.2.0):
         // Support sandbox-scoped role assignment and removal.
@@ -43,7 +43,7 @@ public sealed class LabApplicationPolicy(ILabRootResolver rootResolver) : IAcces
         //   operation metadata supplied by UltimateAuth.
         // - Enforce all checks through IAccessAuthority.
 
-        return AccessDecision.Deny("lab_role_management_restricted");
+        return ValueTask.FromResult(AccessDecision.Deny("lab_role_management_restricted"));
     }
 
     private static bool IsReadAction(string action)

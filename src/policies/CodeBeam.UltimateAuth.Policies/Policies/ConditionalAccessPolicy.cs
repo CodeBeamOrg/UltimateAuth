@@ -18,5 +18,6 @@ internal sealed class ConditionalAccessPolicy : IAccessPolicy
 
     public bool AppliesTo(AccessContext context) => _condition(context) == _expected;
 
-    public AccessDecision Decide(AccessContext context) => _inner.Decide(context);
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
+        => _inner.DecideAsync(context, ct);
 }

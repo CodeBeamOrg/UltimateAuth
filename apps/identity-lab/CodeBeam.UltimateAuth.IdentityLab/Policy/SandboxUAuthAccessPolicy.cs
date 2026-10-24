@@ -14,8 +14,12 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
     public bool AppliesTo(AccessContext context)
         => IsProtectedAction(context.Action);
 
-    public AccessDecision Decide(AccessContext context)
+    public async ValueTask<AccessDecision> DecideAsync(
+    AccessContext context,
+    CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var action = context.Action;
 
         // Authentication recovery and registration require
@@ -41,9 +45,10 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (rootResolver.IsLadmin(context))
             return AccessDecision.Allow();
 
-        using var db = dbFactory.CreateDbContext();
+        await using var db = await dbFactory.CreateDbContextAsync(
+            cancellationToken);
 
-        var actor = db.SandboxMembers
+        var actor = await db.SandboxMembers
             .AsNoTracking()
             .Where(x => x.UserKey == actorKey)
             .Select(x => new
@@ -52,7 +57,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
                 x.Role,
                 x.Sandbox.Status
             })
-            .SingleOrDefault();
+            .SingleOrDefaultAsync(cancellationToken);
 
         if (actor is null)
             return AccessDecision.Deny("sandbox_membership_required");
@@ -84,11 +89,12 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
             if (context.TargetUserKey is not UserKey targetKey)
                 return AccessDecision.Deny("sandbox_target_required");
 
-            var belongsToSandbox = db.SandboxMembers
+            var belongsToSandbox = await db.SandboxMembers
                 .AsNoTracking()
-                .Any(x =>
-                    x.UserKey == targetKey &&
-                    x.SandboxId == actor.SandboxId);
+                .AnyAsync(
+                    x => x.UserKey == targetKey &&
+                         x.SandboxId == actor.SandboxId,
+                    cancellationToken);
 
             if (!belongsToSandbox)
                 return AccessDecision.Deny("sandbox_target_out_of_scope");

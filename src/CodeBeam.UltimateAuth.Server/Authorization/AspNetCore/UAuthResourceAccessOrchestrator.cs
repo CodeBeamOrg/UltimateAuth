@@ -32,7 +32,7 @@ public sealed class UAuthResourceAccessOrchestrator : IAccessOrchestrator
         context = EnrichFromClaims(context);
 
         var policies = _policyProvider.GetPolicies(context);
-        var decision = _authority.Decide(context, policies);
+        var decision = await _authority.DecideAsync(context, policies, ct);
 
         if (decision.RequiresReauthentication)
             throw new UAuthChallengeRequiredException();
@@ -50,7 +50,7 @@ public sealed class UAuthResourceAccessOrchestrator : IAccessOrchestrator
         context = EnrichFromClaims(context);
 
         var policies = _policyProvider.GetPolicies(context);
-        var decision = _authority.Decide(context, policies);
+        var decision = await _authority.DecideAsync(context, policies, ct);
 
         if (decision.RequiresReauthentication)
             throw new UAuthChallengeRequiredException();
