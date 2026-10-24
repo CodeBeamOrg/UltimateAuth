@@ -332,6 +332,31 @@
         line-height: 1.5;
     }
 
+
+.lab-device-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.lab-device-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lab-device-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+    .lab-device-meta span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+
 @media (max-width: 1100px) {
     .lab-hierarchy-layout {
         grid-template-columns: 1fr;

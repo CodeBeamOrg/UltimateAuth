@@ -1,16 +1,32 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Infrastructure;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
+using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
+using CodeBeam.UltimateAuth.IdentityLab.Domain;
+using CodeBeam.UltimateAuth.IdentityLab.Endpoints;
+using CodeBeam.UltimateAuth.IdentityLab.Persistence;
+using CodeBeam.UltimateAuth.IdentityLab.Policy;
+using CodeBeam.UltimateAuth.IdentityLab.Seed;
+using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// TODO(Part 3): Protect system roles through UltimateAuth request guards.
+// TODO(Part 3): Add atomic provisioning and recovery for partial failures.
+// TODO(Part 3): Enforce sandbox ownership and user limits across all applicable UltimateAuth operations.
+// TODO(Part 3): Implement authenticated sandbox repair.
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -25,6 +41,9 @@ builder.Services.AddScoped<DarkModeManager>();
 var connectionString = builder.Configuration.GetConnectionString("IdentityLab")
     ?? throw new InvalidOperationException("Connection string 'IdentityLab' is missing.");
 
+var activityEventBridge = new LabActivityEventBridge();
+builder.Services.AddSingleton(activityEventBridge);
+
 builder.Services.AddUltimateAuthServer(o =>
 {
     o.Diagnostics.EnableRefreshDetails = true;
@@ -37,6 +56,11 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.MaxFailedAttempts = 5;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
+    // TODO: Remove it back after fix
+    o.CredentialSessionPolicy.OnSelfChange = CredentialSessionBehavior.PreserveAll;
+
+    o.Events.OnUserLoggedIn = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Login);
+    o.Events.OnUserLoggedOut = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Logout);
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
@@ -50,9 +74,42 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
 });
 
-builder.Services.AddScopedUltimateAuthSampleSeed();
+
+builder.Services.AddDbContextFactory<LabDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, npgsql =>
+    {
+        npgsql.MigrationsAssembly(typeof(LabDbContext).Assembly.GetName().Name);
+        npgsql.MigrationsHistoryTable("__IdentityLabMigrationsHistory");
+    });
+});
+
+builder.Services.AddScoped<ILabAdminGuard, LabAdminGuard>();
+builder.Services.AddScoped<LabAccessContextProvider>();
+builder.Services.AddScoped<LabAdminAuthorizationFilter>();
+builder.Services.AddScoped<LabAdminService>();
+builder.Services.AddScoped<SandboxService>();
+builder.Services.AddScoped<SandboxAdminService>();
+builder.Services.AddScoped<SandboxAccessService>();
+builder.Services.AddScoped<LabRegistrationService>();
+builder.Services.AddScoped<LabDashboardService>();
+builder.Services.AddScoped<SandboxUserService>();
+builder.Services.AddScoped<ActivityLogService>();
+builder.Services.AddScoped<LabApiClient>();
+builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
+builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
+builder.Services.AddScoped<LabActivityEventHandler>();
+
+builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
+
+builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
+
+builder.Services.AddScoped<SeedRunner>();
+builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
 
 var app = builder.Build();
+
+activityEventBridge.Initialize(app.Services);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -68,9 +125,13 @@ app.UseUltimateAuthWithAspNetCore();
 app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
+app.MapLabAdminEndpoints();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
+
+await app.SeedIdentityLabAsync();
 
 app.Run();

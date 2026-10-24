@@ -111,6 +111,23 @@
                 </div>
 
                 <div class="lab-session-history">
+
+                    @foreach (var session in _chainDetail.Sessions
+                        .OrderByDescending(x => x.CreatedAt)
+                        .Skip((_sessionPage - 1) * SessionPageSize)
+                        .Take(SessionPageSize))
+                    {
+                        // Mevcut lab-session-history-item içeriği
+                    }
+
+                    <MudPagination Count="@Math.Max(1,
+                                       (_chainDetail.Sessions.Count() + SessionPageSize - 1)
+                                       / SessionPageSize)"
+                                   Selected="@_sessionPage"
+                                   SelectedChanged="@((int page) => _sessionPage = page)"
+                                   Color="Color.Primary" />
+
+
                     @foreach (var session in _chainDetail.Sessions)
                     {
                         <div class="lab-session-history-item">

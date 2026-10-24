@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -16,12 +17,17 @@ public partial class AccountStatusDialog
     [Parameter]
     public bool PreviewMode { get; set; }
 
+    [Parameter]
+    public bool AllowAccountDeletion { get; set; } = true;
+
     private bool _isSubmitting;
 
     private string AccountName =>
         PreviewMode
             ? "Alex Morgan"
             : AuthState?.Identity?.DisplayName ?? "Your Account";
+
+    private bool IsSelfSuspended => AuthState?.Identity?.UserStatus == UserStatus.SelfSuspended;
 
     private async Task SuspendAccountAsync()
     {
@@ -83,9 +89,23 @@ public partial class AccountStatusDialog
         }
     }
 
+    private async Task ReactivateAccountAsync()
+    {
+        var result = await UAuthClient.Users.ChangeMyStatusAsync(
+            new ChangeUserStatusSelfRequest
+            {
+                NewStatus = SelfAssignableUserStatus.Active
+            });
+
+        if (result.IsSuccess)
+            Snackbar.Add("Account activated successfully.", Severity.Success);
+        else
+            Snackbar.Add(result.ErrorText ?? "Activation failed.", Severity.Error);
+    }
+
     private async Task DeleteAccountAsync()
     {
-        if (PreviewMode || _isSubmitting)
+        if (!AllowAccountDeletion || PreviewMode || _isSubmitting)
             return;
 
         var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -159,6 +179,6 @@ public partial class AccountStatusDialog
     private void Close()
     {
         if (!_isSubmitting)
-            MudDialog.Close();
+            MudDialog.Close(DialogResult.Ok(true));
     }
 }

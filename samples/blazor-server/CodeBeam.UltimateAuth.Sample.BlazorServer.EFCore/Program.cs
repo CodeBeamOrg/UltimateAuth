@@ -1,13 +1,16 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Components;
+using CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Users;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -65,8 +68,15 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
     //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
+// Customize UltimateAuth
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<ICredentialResetNotifier, DevelopmentCredentialResetNotifier>();
+    builder.Services.AddScoped<IUserIdentifierVerifier, DevelopmentBypassUserIdentifierVerifier>();
+}
+
 builder.Services.AddScopedUltimateAuthSampleSeed();
-builder.Services.AddScoped<SampleProductApiService>();
+//builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

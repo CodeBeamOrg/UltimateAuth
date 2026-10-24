@@ -1,6 +1,13 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
+@inject LabDashboardService DashboardService
+@inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
 
 <HeadContent>
@@ -19,7 +26,7 @@
 
             <a href="/dashboard" class="lab-dashboard-brand">
                 <span class="lab-dashboard-brand-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Science" />
+                    <MudImage Src="identity-lab.png" Height="36" Width="36" />
                 </span>
                 <span>
                     <strong>Identity Lab</strong>
@@ -33,7 +40,7 @@
                         Delay="300">
                 <MudIconButton Icon="@(DarkModeManager.IsDarkMode
                                            ? Icons.Material.Filled.LightMode
-                                   : Icons.Material.Filled.DarkMode)"
+                               : Icons.Material.Filled.DarkMode)"
                                Color="Color.Inherit"
                                OnClick="DarkModeManager.ToggleAsync" />
             </MudTooltip>
@@ -45,11 +52,59 @@
                                Color="Color.Inherit" />
             </MudTooltip>
 
-            <MudAvatar Color="Color.Primary"
-                       Size="Size.Medium"
-                       Class="ml-3">
-                <MudIcon Icon="@Icons.Material.Filled.Person" />
-            </MudAvatar>
+            <MudMenu AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight"
+                     Dense="true"
+                     PopoverClass="lab-profile-menu">
+
+                <ActivatorContent>
+                    <MudAvatar Color="Color.Primary"
+                               Size="Size.Medium"
+                               Class="ml-3 lab-profile-avatar"
+                               @onclick="@context.ToggleAsync">
+                        @AvatarInitials
+                    </MudAvatar>
+                </ActivatorContent>
+
+                <ChildContent>
+                    <div class="lab-profile-menu-header">
+                        <MudAvatar Color="Color.Primary"
+                                   Size="Size.Medium"
+                                   Class="lab-profile-menu-avatar">
+                            @AvatarInitials
+                        </MudAvatar>
+
+                        <div class="lab-profile-menu-user">
+                            <div class="lab-profile-menu-name">
+                                @DisplayName
+                            </div>
+
+                            <div class="lab-profile-menu-username">
+                                @@ @UserName
+                            </div>
+                        </div>
+                    </div>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudMenuItem Href="/dashboard/identity"
+                                 Icon="@Icons.Material.Outlined.Badge">
+                        My Identity
+                    </MudMenuItem>
+
+                    <MudMenuItem Href="/dashboard/sessions"
+                                 Icon="@Icons.Material.Outlined.Devices">
+                        My Sessions
+                    </MudMenuItem>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Logout"
+                                 OnClick="LogoutAsync">
+                        Sign Out
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
         </MudAppBar>
     </div>
 
@@ -67,20 +122,24 @@
                     <MudIcon Icon="@Icons.Material.Filled.Science" />
                 </span>
                 <div>
-                    <strong>My Sandbox</strong>
-                    <small>Identity environment</small>
+                    <strong>@(_sandbox?.SandboxName ?? "My Sandbox")</strong>
+                    <small>
+                        @(_sandbox is null ? "Identity environment" : $"{_sandbox.MemberCount} / {_sandbox.MaxUsers} users")
+                    </small>
                 </div>
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                         Color="Color.Success"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
             </div>
 
             <MudNavMenu>
                 <div class="lab-nav-label">WORKSPACE</div>
 
-                <MudNavLink Href="/dashboard"
-                            Match="NavLinkMatch.All"
-                            Icon="@Icons.Material.Filled.Dashboard">
+                <UAuthStateView Roles="Ladmin">
+                    <MudNavLink Href="/admin" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                        Platform Administration
+                    </MudNavLink>
+                </UAuthStateView>
+
+                <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
                     Overview
                 </MudNavLink>
 
@@ -131,6 +190,12 @@
                         Settings
                     </MudNavLink>
                 }
+
+                <MudNavMenu>
+                    <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
+                        Sign Out
+                    </MudNavLink>
+                </MudNavMenu>
             </MudNavMenu>
 
             <MudSpacer />
@@ -144,20 +209,78 @@
     </MudDrawer>
 
     <MudMainContent Class="lab-dashboard-main">
+        @if (AuthState?.Identity?.UserStatus == UserStatus.SelfSuspended)
+        {
+            <MudAlert Severity="Severity.Warning"
+                      Variant="Variant.Outlined"
+                      Class="mx-4 mt-4"
+                      Icon="@Icons.Material.Filled.PauseCircleOutline">
+                <strong>Account Suspended</strong>
+
+                <MudText Typo="Typo.body2">
+                    Your account is currently self-suspended.
+                    Most account operations are restricted.
+                    Reactivate your account from
+                    My Identity → Account Management.
+                </MudText>
+            </MudAlert>
+        }
+        else if (AuthState?.Identity?.UserStatus == UserStatus.Suspended || AuthState?.Identity?.UserStatus == UserStatus.Locked)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mx-4 mt-4">
+                <MudText Typo="Typo.subtitle2">
+                    Your account has been suspended
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Your account has been suspended/locked by an administrator.
+                    Some actions are unavailable.
+                    Please contact your system administrator to restore access.
+                </MudText>
+            </MudAlert>
+        }
         @Body
     </MudMainContent>
 
 </MudLayout>
 
 @code {
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private string UserName => AuthState?.Identity?.PrimaryUserName ?? "User";
+    private string DisplayName => UserName;
+    private string AvatarInitials => GetInitials(DisplayName);
+    private LabDashboardSnapshot? _sandbox;
+    private UserKey? _loadedUserKey;
     private bool _drawerOpen = true;
 
-    // UI preview only. Replace with sandbox-scoped authorization.
-    private bool ShowManagement => true;
+    private bool ShowManagement =>
+        AuthState?.IsInRole(LabRoles.Admin) == true ||
+        (AuthState?.IsInRole(LabRoles.Owner) == true &&
+         _sandbox?.IsOwner == true);
 
     protected override void OnInitialized()
     {
         DarkModeManager.Changed += OnThemeChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _sandbox = null;
+            _loadedUserKey = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+
+        _sandbox = await DashboardService.GetAsync(userKey.Value);
     }
 
     private void OnThemeChanged()
@@ -165,8 +288,28 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
+    private async Task LogoutAsync()
+    {
+        await UAuthClient.Flows.LogoutAsync();
+    }
+
     public void Dispose()
     {
         DarkModeManager.Changed -= OnThemeChanged;
+    }
+
+    private static string GetInitials(string? displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return "?";
+
+        var parts = displayName.Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var initials = parts.Length > 1
+            ? $"{parts[0][0]}{parts[^1][0]}"
+            : new string(parts[0].Take(2).ToArray());
+
+        return initials.ToUpperInvariant();
     }
 }

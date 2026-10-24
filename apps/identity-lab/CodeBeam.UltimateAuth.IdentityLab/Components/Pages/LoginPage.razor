@@ -1,6 +1,8 @@
 ﻿@page "/login"
 @using CodeBeam.UltimateAuth.Core.Contracts
 @layout PublicLayout
+@inject IUAuthClient UAuthClient
+@inject NavigationManager NavigationManager
 
 <PageTitle>Sign In · Identity Lab</PageTitle>
 
@@ -17,55 +19,116 @@
                             YOUR IDENTITY WORKSPACE
                         </span>
 
-                        <h1>Welcome back.</h1>
-                        <p>Sign in to continue to your Identity Lab sandbox.</p>
+                        <h1>
+                            @(AuthState.IsAuthenticated ? "You're signed in." : "Welcome back.")
+                        </h1>
+
+                        <p>
+                            @(AuthState.IsAuthenticated
+                                ? "Continue with your current account or sign out to switch accounts."
+                                : "Sign in to continue to your Identity Lab sandbox.")
+                        </p>
                     </div>
 
                     <div class="lab-login-card">
-                        <UAuthLoginForm Identifier="@_identifier"
-                                        Secret="@_password"
-                                        ReturnUrl="/dashboard"
-                                        OnTryResult="HandleLoginResult">
+                        @if (AuthState.IsAuthenticated)
+                        {
+                            <MudStack Spacing="3" AlignItems="AlignItems.Center">
 
-                            <div class="lab-login-fields">
-                                <MudTextField T="string"
-                                              @bind-Value="_identifier"
-                                              Label="Email or Username"
-                                              Placeholder="Enter your email or username"
-                                              InputType="InputType.Email"
-                                              Variant="Variant.Outlined"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
-                                              Required="true"
-                                              Immediate="true" />
+                                <MudAvatar Color="Color.Primary"
+                                           Size="Size.Large">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
+                                </MudAvatar>
 
-                                <MudPasswordField T="string"
-                                              @bind-Value="_password"
-                                              Label="Password"
-                                              Variant="Variant.Outlined"
-                                              Adornment="Adornment.End"
-                                              Required="true"
-                                              Immediate="true" />
+                                <MudText Typo="Typo.h6">
+                                    @CurrentDisplayName
+                                </MudText>
 
-                                <MudButton ButtonType="ButtonType.Submit"
-                                           Variant="Variant.Filled"
+                                @if (!string.IsNullOrWhiteSpace(CurrentUserName))
+                                {
+                                    <MudText Typo="Typo.body2"
+                                             Color="Color.Secondary">
+                                        @@ @CurrentUserName
+                                    </MudText>
+                                }
+
+                                <MudChip T="string"
+                                         Color="Color.Success"
+                                         Variant="Variant.Outlined"
+                                         Size="Size.Small"
+                                         Icon="@Icons.Material.Filled.VerifiedUser">
+                                    Authenticated Session
+                                </MudChip>
+
+                                <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
-                                           FullWidth="true"
                                            Size="Size.Large"
+                                           FullWidth="true"
+                                           OnClick="ContinueToDashboard"
                                            EndIcon="@Icons.Material.Filled.ArrowForward">
-                                    Sign In
+                                    Continue to Dashboard
                                 </MudButton>
+
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Default"
+                                           Disabled="_signingOut"
+                                           OnClick="SignOutAsync"
+                                           StartIcon="@Icons.Material.Filled.Logout">
+                                    Not you? Sign out
+                                </MudButton>
+
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <UAuthLoginForm Identifier="@_identifier"
+                                            Secret="@_password"
+                                            ReturnUrl="/dashboard"
+                                            OnTryResult="HandleLoginResult">
+
+                                @if (!string.IsNullOrEmpty(_loginError))
+                                {
+                                    <MudAlert Severity="Severity.Error" Dense="true">
+                                        @_loginError
+                                    </MudAlert>
+                                }
+
+                                <div class="lab-login-fields">
+                                    <MudTextField T="string"
+                                                  @bind-Value="_identifier"
+                                                  Label="Email or Username"
+                                                  Placeholder="Enter your email or username"
+                                                  Variant="Variant.Outlined"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Filled.PersonOutline"
+                                                  Required="true"
+                                                  Immediate="true" />
+
+                                    <MudPasswordField T="string"
+                                                      @bind-Value="_password"
+                                                      Label="Password"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      Immediate="true" />
+
+                                    <MudButton ButtonType="ButtonType.Submit"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               FullWidth="true"
+                                               Size="Size.Large"
+                                               EndIcon="@Icons.Material.Filled.ArrowForward">
+                                        Sign In
+                                    </MudButton>
+                                </div>
+                            </UAuthLoginForm>
+
+                            <MudDivider />
+
+                            <div class="lab-login-register mt-4">
+                                <span>New to Identity Lab?</span>
+                                <MudLink Href="/register" Underline="Underline.Hover">Create a sandbox</MudLink>
                             </div>
-                        </UAuthLoginForm>
-
-                        <MudDivider />
-
-                        <div class="lab-login-register mt-4">
-                            <span>New to Identity Lab?</span>
-                            <MudLink Href="/register" Underline="Underline.Hover">
-                                Create a sandbox
-                            </MudLink>
-                        </div>
+                        }
                     </div>
 
                     <div class="lab-login-note">
@@ -128,8 +191,7 @@
                     </div>
 
                     <div class="lab-login-showcase-footer">
-                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome"
-                                 Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
                         Built for developers. Open to everyone.
                     </div>
 
@@ -141,20 +203,54 @@
 </div>
 
 @code {
-    private MudForm? _form;
+    [CascadingParameter]
+    private UAuthState AuthState { get; set; } = default!;
+
     private string _identifier = string.Empty;
     private string _password = string.Empty;
-    private bool _rememberMe;
-    private bool _showPassword;
+    private string? _loginError;
+    private bool _signingOut;
 
-    private void TogglePassword()
+    private string CurrentDisplayName =>
+        AuthState.Identity?.DisplayName
+        ?? AuthState.Identity?.PrimaryUserName
+        ?? "User";
+
+    private string? CurrentUserName =>
+        AuthState.Identity?.PrimaryUserName;
+
+    private void ContinueToDashboard()
     {
-        _showPassword = !_showPassword;
+        NavigationManager.NavigateTo("/dashboard");
+    }
+
+    private async Task SignOutAsync()
+    {
+        if (_signingOut)
+            return;
+
+        _signingOut = true;
+
+        try
+        {
+            await UAuthClient.Flows.LogoutAsync();
+        }
+        finally
+        {
+            _signingOut = false;
+        }
     }
 
     private void HandleLoginResult(IUAuthTryResult result)
     {
-        // Sonraki adımda başarısız giriş mesajlarını
-        // ve hesap kilidi durumunu burada işleyeceğiz.
+        if (result.IsSuccess)
+        {
+            _loginError = null;
+            return;
+        }
+
+        _loginError = result.LockoutUntilUtc is not null
+            ? "Your account is temporarily locked. Please try again later."
+            : "Sign in failed. Please check your credentials.";
     }
 }

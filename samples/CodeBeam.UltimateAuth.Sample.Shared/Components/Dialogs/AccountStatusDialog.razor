@@ -56,29 +56,40 @@
             </div>
 
             <div class="lab-account-status-card">
-                <div class="lab-account-status-card-main">
-                    <div class="lab-account-status-action-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.PauseCircleOutline"
-                                 Size="Size.Medium" />
+                @if (IsSelfSuspended)
+                {
+                    <MudButton Color="Color.Success"
+                               Variant="Variant.Filled"
+                               Disabled="@_isSubmitting"
+                               OnClick="ReactivateAccountAsync">
+                        Reactivate Account
+                    </MudButton>
+                }
+                else
+                {
+                    <div class="lab-account-status-card-main">
+                        <div class="lab-account-status-action-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.PauseCircleOutline" Size="Size.Medium" />
+                        </div>
+
+                        <div class="lab-account-status-card-info">
+                            <strong>Suspend Account</strong>
+                            <span>
+                                Temporarily suspend your account.
+                                Reactivation may be available according
+                                to the application's account policies.
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="lab-account-status-card-info">
-                        <strong>Suspend Account</strong>
-                        <span>
-                            Temporarily suspend your account.
-                            Reactivation may be available according
-                            to the application's account policies.
-                        </span>
-                    </div>
-                </div>
-
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Warning"
-                           StartIcon="@Icons.Material.Filled.PauseCircleOutline"
-                           Disabled="@(_isSubmitting || PreviewMode)"
-                           OnClick="SuspendAccountAsync">
-                    Suspend Account
-                </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               StartIcon="@Icons.Material.Filled.PauseCircleOutline"
+                               Disabled="@(_isSubmitting || PreviewMode)"
+                               OnClick="SuspendAccountAsync">
+                        Suspend Account
+                    </MudButton>
+                }
             </div>
 
             <MudDivider />
@@ -88,31 +99,43 @@
                 <span>Actions that may significantly affect your account.</span>
             </div>
 
-            <div class="lab-account-status-danger">
-                <div class="lab-account-status-card-main">
-                    <div class="lab-account-status-danger-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.DeleteForever"
-                                 Size="Size.Medium" />
+            @if (AllowAccountDeletion)
+            {
+                <div class="lab-account-status-danger">
+                    <div class="lab-account-status-card-main">
+                        <div class="lab-account-status-danger-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.DeleteForever"
+                                     Size="Size.Medium" />
+                        </div>
+
+                        <div class="lab-account-status-card-info">
+                            <strong>Delete Account</strong>
+                            <span>
+                                Delete your account and lose access to its
+                                associated identity. Recovery, if available,
+                                depends on the server's retention policy.
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="lab-account-status-card-info">
-                        <strong>Delete Account</strong>
-                        <span>
-                            Delete your account and lose access to its
-                            associated identity. Recovery, if available,
-                            depends on the server's retention policy.
-                        </span>
-                    </div>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.DeleteOutline"
+                               Disabled="@(_isSubmitting || PreviewMode)"
+                               OnClick="DeleteAccountAsync">
+                        Delete Account
+                    </MudButton>
                 </div>
-
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Error"
-                           StartIcon="@Icons.Material.Filled.DeleteOutline"
-                           Disabled="@(_isSubmitting || PreviewMode)"
-                           OnClick="DeleteAccountAsync">
-                    Delete Account
-                </MudButton>
-            </div>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    The sandbox owner cannot delete their account.
+                    Use Close Sandbox to close the entire sandbox.
+                </MudAlert>
+            }
 
             <div class="lab-account-status-hint">
                 <MudIcon Icon="@Icons.Material.Outlined.Info"

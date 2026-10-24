@@ -1,10 +1,11 @@
 ﻿@page "/dashboard/identity"
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Users.Contracts
 @layout DashboardLayout
+@inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 
-@* TODO: Enable after authentication integration.
 @attribute [UAuthAuthorize]
-*@
 
 <PageTitle>My Identity · Identity Lab</PageTitle>
 
@@ -17,14 +18,27 @@
                 <h1>My Identity</h1>
                 <p>Explore your account, sign-in identifiers, and credential security.</p>
             </div>
-
-            <MudChip T="string" Icon="@Icons.Material.Filled.Science" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
-                Demo Preview
-            </MudChip>
         </div>
 
         <div class="lab-identity-grid">
             <div class="lab-identity-column">
+
+                @*
+                    TODO (v0.2.x): Multi-profile management.
+
+                    UltimateAuth supports multiple profiles per user.
+                    Identity Lab should demonstrate:
+                    - Listing available profiles
+                    - Switching between profiles
+                    - Creating and deleting non-default profiles
+                    - Editing the selected profile
+
+                    Prerequisite:
+                    Add the necessary profile discovery/listing methods
+                    to the UltimateAuth Users Client API.
+
+                    Keep the default profile as the initial implementation.
+                *@
                 <section class="lab-identity-card">
                     <div class="lab-card-header">
                         <div>
@@ -41,41 +55,131 @@
                         </MudAvatar>
 
                         <div>
-                            <strong>Sandbox User</strong>
-                            <span>@@demo-user</span>
+                            <strong>@_profile?.FirstName @_profile?.LastName</strong>
+                            <span>@@ @_profile?.UserName</span>
                         </div>
 
                         <MudSpacer />
 
-                        <MudChip T="string"
-                                 Color="Color.Success"
-                                 Variant="Variant.Text"
-                                 Size="Size.Small">
-                            Active
+                        <MudChip T="string" Color="@(_profile?.Status != UserStatus.Active ? Color.Warning : Color.Success)" Variant="Variant.Text" Size="Size.Small">
+                            @_profile?.Status
                         </MudChip>
                     </div>
 
                     <div class="lab-identity-details">
                         <div class="lab-identity-detail">
                             <span>Display name</span>
-                            <strong>Sandbox User</strong>
+                            <strong>@_profile?.DisplayName</strong>
                         </div>
 
                         <div class="lab-identity-detail">
                             <span>Username</span>
-                            <strong>demo-user</strong>
+                            <strong>@_profile?.UserName</strong>
                         </div>
 
                         <div class="lab-identity-detail">
                             <span>Email</span>
-                            <strong>demo@example.com</strong>
+                            <strong>@_profile?.PrimaryEmail</strong>
                         </div>
 
                         <div class="lab-identity-detail">
-                            <span>Account status</span>
-                            <strong>Active</strong>
+                            <span>Primary phone</span>
+                            <strong>@(_profile?.PrimaryPhone ?? "Not provided")</strong>
+                        </div>
+
+                        <div class="lab-identity-detail">
+                            <span>User Key</span>
+                            <strong>@_profile?.UserKey.Value</strong>
                         </div>
                     </div>
+
+                    <MudDivider Class="my-3" />
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               EndIcon="@(_showDetails
+                                   ? Icons.Material.Filled.ExpandLess
+                                   : Icons.Material.Filled.ExpandMore)"
+                               OnClick="@(() => _showDetails = !_showDetails)">
+                        Additional Details
+                    </MudButton>
+
+                    <MudCollapse Expanded="_showDetails">
+                        <div class="lab-identity-details mt-3">
+                            <div class="lab-identity-detail">
+                                <span>Profile key</span>
+                                <strong>@_profile?.ProfileKey</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>First name</span>
+                                <strong>@FormatValue(_profile?.FirstName)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Last name</span>
+                                <strong>@FormatValue(_profile?.LastName)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Birth date</span>
+                                <strong>@(_profile?.BirthDate?.ToString("d") ?? "Not provided")</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Gender</span>
+                                <strong>@FormatValue(_profile?.Gender)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Bio</span>
+                                <strong>@FormatValue(_profile?.Bio)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Language</span>
+                                <strong>@FormatValue(_profile?.Language)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Culture</span>
+                                <strong>@FormatValue(_profile?.Culture)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Time zone</span>
+                                <strong>@FormatValue(_profile?.TimeZone)</strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Created at</span>
+                                <strong>
+                                    @(_profile?.CreatedAt?.ToLocalTime().ToString("g") ?? "—")
+                                </strong>
+                            </div>
+
+                            <div class="lab-identity-detail">
+                                <span>Metadata</span>
+
+                                @if (_profile?.Metadata is { Count: > 0 } metadata)
+                                {
+                                    <MudStack Spacing="1">
+                                        @foreach (var entry in metadata)
+                                        {
+                                            <MudText Typo="Typo.body2">
+                                                <strong>@entry.Key:</strong> @entry.Value
+                                            </MudText>
+                                        }
+                                    </MudStack>
+                                }
+                                else
+                                {
+                                    <strong>No metadata</strong>
+                                }
+                            </div>
+                        </div>
+                    </MudCollapse>
 
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
@@ -100,52 +204,67 @@
                     </div>
 
                     <div class="lab-identifier-list">
+                        @if (_identifiersLoading)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        }
+                        else if (_identifiersError is not null)
+                        {
+                            <MudAlert Severity="Severity.Error" Dense="true">
+                                @_identifiersError
+                            </MudAlert>
+                        }
+                        else if (_identifiers.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">
+                                No identifiers found.
+                            </MudText>
+                        }
+                        else
+                        {
+                            @foreach (var identifier in _identifiers)
+                            {
+                                <div class="lab-identifier-item" @key="identifier.Id">
+                                    <span class="lab-identifier-icon">
+                                        <MudIcon Icon="@GetIdentifierIcon(identifier.Type)" />
+                                    </span>
 
-                        <div class="lab-identifier-item">
-                            <span class="lab-identifier-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Email" />
-                            </span>
+                                    <div class="lab-identifier-info">
+                                        <strong>@identifier.Value</strong>
+                                        <span>@identifier.Type</span>
+                                    </div>
 
-                            <div class="lab-identifier-info">
-                                <strong>demo@example.com</strong>
-                                <span>Email address</span>
-                            </div>
+                                    @if (identifier.IsPrimary)
+                                    {
+                                        <MudChip T="string"
+                                                 Color="Color.Primary"
+                                                 Variant="Variant.Outlined"
+                                                 Size="Size.Small">
+                                            Primary
+                                        </MudChip>
+                                    }
 
-                            <MudChip T="string"
-                                     Color="Color.Success"
-                                     Variant="Variant.Text"
-                                     Size="Size.Small"
-                                     Icon="@Icons.Material.Filled.Verified">
-                                Verified
-                            </MudChip>
-                        </div>
-
-                        <div class="lab-identifier-item">
-                            <span class="lab-identifier-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Badge" />
-                            </span>
-
-                            <div class="lab-identifier-info">
-                                <strong>demo-user</strong>
-                                <span>Username</span>
-                            </div>
-
-                            <MudChip T="string"
-                                     Color="Color.Default"
-                                     Variant="Variant.Outlined"
-                                     Size="Size.Small">
-                                Primary
-                            </MudChip>
-                        </div>
-
+                                    <MudChip T="string"
+                                             Color="@(identifier.IsVerified ? Color.Success : Color.Default)"
+                                             Variant="Variant.Text"
+                                             Size="Size.Small">
+                                        @(identifier.IsVerified ? "Verified" : "Not verified")
+                                    </MudChip>
+                                </div>
+                            }
+                        }
                     </div>
 
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Add"
+                               StartIcon="@Icons.Material.Filled.ManageAccounts"
                                OnClick="OpenIdentifiersAsync">
-                        Add Identifier
+                        Manage Identifiers
                     </MudButton>
+
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-3">
+                        Email and phone built in verification workflows are coming soon.
+                    </MudAlert>
 
                 </section>
             </div>
@@ -223,66 +342,55 @@
                 </section>
 
                 <section class="lab-identity-card">
-
                     <div class="lab-card-header">
                         <div>
-                            <h2>Authentication Context</h2>
-                            <p>
-                                Understand your UltimateAuth identity.
-                            </p>
+                            <h2>Account Management</h2>
+                            <p>Manage your account status and lifecycle.</p>
                         </div>
 
-                        <MudIcon Icon="@Icons.Material.Filled.AccountTree"
+                        <MudIcon Icon="@Icons.Material.Filled.ManageAccounts"
                                  Color="Color.Primary" />
                     </div>
 
-                    <div class="lab-auth-context">
-                        <div class="lab-auth-context-node">
-                            <span class="lab-auth-context-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" />
-                            </span>
+                    <div class="lab-security-item">
+                        <span class="lab-security-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" />
+                        </span>
 
-                            <div>
-                                <strong>Identity</strong>
-                                <span>Your authenticated account</span>
-                            </div>
+                        <div>
+                            <strong>Account Status</strong>
+                            <p>Manage suspension, reactivation and account access.</p>
                         </div>
 
-                        <div class="lab-auth-context-connector"></div>
-
-                        <div class="lab-auth-context-node">
-                            <span class="lab-auth-context-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Hub" />
-                            </span>
-
-                            <div>
-                                <strong>Authentication Chain</strong>
-                                <span>Explore your authentication lifecycle</span>
-                            </div>
-                        </div>
-
-                        <div class="lab-auth-context-connector"></div>
-
-                        <div class="lab-auth-context-node">
-                            <span class="lab-auth-context-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Devices" />
-                            </span>
-
-                            <div>
-                                <strong>Sessions</strong>
-                                <span>Manage active device sessions</span>
-                            </div>
-                        </div>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   OnClick="OpenAccountManagementAsync">
+                            Manage
+                        </MudButton>
                     </div>
 
-                    <MudAlert Severity="Severity.Info"
-                              Variant="Variant.Text"
-                              Dense="true"
-                              Class="mt-4">
-                        This is an illustrative overview.
-                        Live authentication data will appear after integration.
-                    </MudAlert>
+                    @if (_isSandboxOwner)
+                    {
+                        <MudDivider Class="my-3" />
 
+                        <div class="lab-security-item">
+                            <span class="lab-security-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
+                            </span>
+
+                            <div>
+                                <strong>Close Sandbox</strong>
+                                <p>Close your sandbox and its associated resources.</p>
+                            </div>
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Variant="Variant.Outlined">
+                                Coming Soon
+                            </MudChip>
+                        </div>
+                    }
                 </section>
 
             </div>
@@ -292,43 +400,175 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private UAuthState AuthState { get; set; } = default!;
+
+    private UserView? _profile;
+    private bool _loading = true;
+    private string? _loadError;
+    private bool _showDetails;
+    private readonly List<UserIdentifierInfo> _identifiers = [];
+    private bool _identifiersLoading = true;
+    private string? _identifiersError;
+    private bool _isSandboxOwner;
+
+    private static string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "Not provided" : value;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfileAsync();
+        await LoadIdentifiersAsync();
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        _loading = true;
+        _loadError = null;
+
+        try
+        {
+            var result = await UAuthClient.Users.GetMeAsync();
+
+            if (result.IsSuccess)
+                _profile = result.Value;
+            else
+                _loadError = "Unable to load your profile.";
+        }
+        catch (Exception)
+        {
+            _loadError = "An error occurred while loading your profile.";
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadIdentifiersAsync()
+    {
+        _identifiersLoading = true;
+        _identifiersError = null;
+
+        try
+        {
+            var collected = new List<UserIdentifierInfo>();
+            var pageNumber = 1;
+            const int pageSize = 50;
+
+            while (true)
+            {
+                var result = await UAuthClient.Identifiers.GetMyAsync(
+                    new PageRequest
+                    {
+                        PageNumber = pageNumber,
+                        PageSize = pageSize
+                    });
+
+                if (!result.IsSuccess || result.Value is null)
+                {
+                    _identifiersError =
+                        result.ErrorText ?? "Unable to load identifiers.";
+                    return;
+                }
+
+                collected.AddRange(result.Value.Items);
+
+                if (collected.Count >= result.Value.TotalCount ||
+                    result.Value.Items.Count() == 0)
+                    break;
+
+                pageNumber++;
+            }
+
+            _identifiers.Clear();
+            _identifiers.AddRange(collected);
+        }
+        catch (Exception)
+        {
+            _identifiersError = "Unable to load identifiers.";
+        }
+        finally
+        {
+            _identifiersLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task OpenEditProfileAsync()
     {
-        var parameters = new DialogParameters<ProfileDialog>
-        {
-            { x => x.PreviewMode, true },
-            { x => x.PreviewDisplayName, "Alex Morgan" }
-        };
-
-        await DialogService.ShowAsync<ProfileDialog>(
+        var dialog = await DialogService.ShowAsync<ProfileDialog>(
             "Edit Profile",
-            parameters,
+            new DialogParameters<ProfileDialog>
+            {
+            { x => x.PreviewMode, false }
+            },
             UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadProfileAsync();
     }
 
     private async Task OpenIdentifiersAsync()
     {
-        var parameters = new DialogParameters<IdentifierDialog>
-        {
-            { x => x.PreviewMode, true }
-        };
-
-        await DialogService.ShowAsync<IdentifierDialog>(
+        var dialog = await DialogService.ShowAsync<IdentifierDialog>(
             "Manage Identifiers",
-            parameters,
+            new DialogParameters<IdentifierDialog>
+            {
+                { x => x.PreviewMode, false },
+                { x => x.EnableVerification, false }
+            },
             UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadIdentifiersAsync();
+            await LoadProfileAsync();
+        }
     }
 
     private async Task OpenChangePasswordAsync()
     {
-        var parameters = new DialogParameters<CredentialDialog>
-        {
-            { x => x.PreviewMode, true }
-        };
-
         await DialogService.ShowAsync<CredentialDialog>(
             "Change Password",
-            parameters,
+            new DialogParameters<CredentialDialog>
+            {
+                { x => x.PreviewMode, false }
+            },
             UAuthDialog.GetDialogOptions(MaxWidth.Small));
     }
+
+    private async Task OpenAccountManagementAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AccountStatusDialog>(
+            "Account Management",
+            new DialogParameters<AccountStatusDialog>
+            {
+                { x => x.PreviewMode, false },
+                { x => x.AuthState, AuthState },
+                { x => x.AllowAccountDeletion, !_isSandboxOwner }
+            },
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadIdentifiersAsync();
+            await LoadProfileAsync();
+        }
+    }
+
+    private static string GetIdentifierIcon(UserIdentifierType type)
+        => type switch
+        {
+            UserIdentifierType.Email => Icons.Material.Filled.Email,
+            UserIdentifierType.Phone => Icons.Material.Filled.Phone,
+            UserIdentifierType.Username => Icons.Material.Filled.Badge,
+            _ => Icons.Material.Filled.AlternateEmail
+        };
 }

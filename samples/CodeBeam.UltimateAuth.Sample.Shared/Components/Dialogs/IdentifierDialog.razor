@@ -144,13 +144,25 @@
 
                                 @if (!identifier.IsVerified)
                                 {
-                                    <MudButton Size="Size.Small"
-                                               Variant="Variant.Text"
-                                               Color="Color.Primary"
-                                               Disabled="@(_loading || PreviewMode)"
-                                               OnClick="@(() => VerifyAsync(identifier.Id))">
-                                        Verify
-                                    </MudButton>
+                                    @if (EnableVerification)
+                                    {
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   Disabled="@(_loading || PreviewMode)"
+                                                   OnClick="@(() => VerifyAsync(identifier.Id))">
+                                            Verify
+                                        </MudButton>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Variant="Variant.Outlined"
+                                                 Icon="@Icons.Material.Outlined.Schedule">
+                                            Verification Will be Available Soon
+                                        </MudChip>
+                                    }
                                 }
 
                                 <MudSpacer />
