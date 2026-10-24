@@ -35,6 +35,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
     public async Task<IResult> CheckAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
+
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
@@ -54,12 +55,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var result = await _authorization.AuthorizeAsync(accessContext, ctx.RequestAborted);
 
-        if (result.RequiresReauthentication)
-            return Results.StatusCode(StatusCodes.Status428PreconditionRequired);
-
-        return result.IsAllowed
-            ? Results.Ok(result)
-            : Results.Forbid();
+        return Results.Ok(result);
     }
 
     public async Task<IResult> GetMyRolesAsync(HttpContext ctx)
