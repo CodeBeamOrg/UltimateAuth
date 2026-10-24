@@ -13,19 +13,21 @@ internal sealed class RequireActiveUserPolicy : IAccessPolicy
         _runtime = runtime;
     }
 
-    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
     {
         if (context.ActorUserKey is null)
-            return ValueTask.FromResult(AccessDecision.Deny("missing_actor"));
+            return AccessDecision.Deny("missing_actor");
 
-        var state = _runtime.GetAsync(context.ActorTenant, context.ActorUserKey!.Value).GetAwaiter().GetResult();
+        ct.ThrowIfCancellationRequested();
 
-        if (state == null || !state.Exists || state.IsDeleted)
-            return ValueTask.FromResult(AccessDecision.Deny("user_not_found"));
+        var state = await _runtime.GetAsync(context.ActorTenant, context.ActorUserKey.Value, ct);
+
+        if (state is null || !state.Exists || state.IsDeleted)
+            return AccessDecision.Deny("user_not_found");
 
         return state.IsActive
-            ? ValueTask.FromResult(AccessDecision.Allow())
-            : ValueTask.FromResult(AccessDecision.Deny("user_not_active"));
+            ? AccessDecision.Allow()
+            : AccessDecision.Deny("user_not_active");
     }
 
     public bool AppliesTo(AccessContext context)

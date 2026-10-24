@@ -4,9 +4,9 @@ namespace CodeBeam.UltimateAuth.Core.Abstractions;
 
 public interface IAccessAuthority
 {
-    [Obsolete("Use DecideAsync instead.")]
+    [Obsolete("Synchronous authority evaluation is no longer supported. Use DecideAsync instead.")]
     AccessDecision Decide(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies)
-        => throw new NotSupportedException("Synchronous authorization is not supported by this authority.");
+        => throw new NotSupportedException("Synchronous authority evaluation is not supported. Use DecideAsync.");
 
     ValueTask<AccessDecision> DecideAsync(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies, CancellationToken cancellationToken = default)
     {

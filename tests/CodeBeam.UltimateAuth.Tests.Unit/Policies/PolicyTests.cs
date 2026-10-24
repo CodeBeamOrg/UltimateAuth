@@ -301,7 +301,8 @@ public sealed class PolicyTests
 
         public bool AppliesTo(AccessContext context) => _applies;
 
-        public ValueTask<AccessDecision> DecideAsync(AccessContext context) => ValueTask.FromResult(AccessDecision.Allow());
+        public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
+            => ValueTask.FromResult(AccessDecision.Allow());
     }
 
     private sealed class TestDependency
@@ -320,7 +321,7 @@ public sealed class PolicyTests
         public bool AppliesTo(AccessContext context)
             => true;
 
-        public ValueTask<AccessDecision> DecideAsync(AccessContext context)
+        public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
             => ValueTask.FromResult(AccessDecision.Allow());
     }
 

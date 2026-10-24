@@ -14,16 +14,13 @@ public sealed class UAuthAccessAuthority : IAccessAuthority
         _globalPolicies = globalPolicies ?? Array.Empty<IAccessPolicy>();
     }
 
-    public async ValueTask<AccessDecision> DecideAsync(
-        AccessContext context,
-        IEnumerable<IAccessPolicy> runtimePolicies,
-        CancellationToken cancellationToken = default)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies, CancellationToken ct = default)
     {
         foreach (var invariant in _invariants)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
-            var result = await invariant.DecideAsync(context, cancellationToken);
+            var result = await invariant.DecideAsync(context, ct);
 
             if (!result.IsAllowed)
                 return result;
@@ -31,12 +28,12 @@ public sealed class UAuthAccessAuthority : IAccessAuthority
 
         foreach (var policy in _globalPolicies)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             if (!policy.AppliesTo(context))
                 continue;
 
-            var result = await policy.DecideAsync(context, cancellationToken);
+            var result = await policy.DecideAsync(context, ct);
 
             if (!result.IsAllowed)
                 return result;
@@ -48,12 +45,12 @@ public sealed class UAuthAccessAuthority : IAccessAuthority
 
         foreach (var policy in runtimePolicies)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
             if (!policy.AppliesTo(context))
                 continue;
 
-            var result = await policy.DecideAsync(context, cancellationToken);
+            var result = await policy.DecideAsync(context, ct);
 
             if (result.IsDenied)
                 return result;
