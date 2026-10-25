@@ -1,6 +1,8 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -11,6 +13,8 @@ using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server.Authorization;
 
@@ -117,6 +121,158 @@ public sealed class ResourceAccessContextBuilderTests
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("*TenantContext is missing*");
     }
+
+    [Fact]
+    public async Task Create_WithResourceRuntime_ShouldResolveTrustedActorRolesFromClaims()
+    {
+        // Arrange
+        var tenant = TenantKey.FromExternal("tenant-a");
+        var userKey = UserKey.New();
+
+        var ownerId = RoleId.New();
+        var memberId = RoleId.New();
+
+        var owner = new AccessActorRole(ownerId.ToString(), "Owner");
+        var member = new AccessActorRole(memberId.ToString(), "Member");
+
+        var claims = new[]
+        {
+        new Claim(
+            UAuthConstants.Claims.ActorRole,
+            JsonSerializer.Serialize(owner)),
+
+        new Claim(
+            UAuthConstants.Claims.ActorRole,
+            JsonSerializer.Serialize(member))
+    };
+
+        var identity = new ClaimsIdentity(
+            claims,
+            UAuthConstants.SchemeDefaults.GlobalScheme);
+
+        var principal = new ClaimsPrincipal(identity);
+
+        var currentUser = new Mock<ICurrentUser>();
+
+        currentUser
+            .SetupGet(x => x.IsAuthenticated)
+            .Returns(true);
+
+        currentUser
+            .SetupGet(x => x.UserKey)
+            .Returns(userKey);
+
+        var services = new ServiceCollection();
+
+        services.AddSingleton(currentUser.Object);
+        services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        var http = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+            User = principal
+        };
+
+        http.Items[UAuthConstants.HttpItems.TenantContextKey] =
+            UAuthTenantContext.Resolved(tenant);
+
+        // Act
+        var context = await ResourceAccessContextBuilder.CreateAsync(
+            http,
+            "users.read");
+
+        // Assert
+        context.IsAuthenticated.Should().BeTrue();
+        context.ActorUserKey.Should().Be(userKey);
+        context.ActorTenant.Should().Be(tenant);
+
+        context.ActorRoles.Should().HaveCount(2);
+
+        context.ActorRoles.Should().ContainSingle(
+            x => x.Id == ownerId.ToString() &&
+                 x.Name == "Owner");
+
+        context.ActorRoles.Should().ContainSingle(
+            x => x.Id == memberId.ToString() &&
+                 x.Name == "Member");
+
+        context.Attributes.Should().ContainKey("roles");
+
+        var roleIds = (RoleId[])context.Attributes["roles"];
+
+        roleIds.Should().BeEquivalentTo(
+            new[] { ownerId, memberId });
+    }
+
+    [Fact]
+    public async Task Create_WithResourceRuntime_ShouldIgnoreRolesFromOtherIdentities()
+    {
+        // Arrange
+        var tenant = TenantKey.FromExternal("tenant-a");
+        var userKey = UserKey.New();
+
+        var trustedRoleId = RoleId.New();
+        var untrustedRoleId = RoleId.New();
+
+        var trustedIdentity = new ClaimsIdentity(
+            [
+                new Claim(UAuthConstants.Claims.ActorRole, JsonSerializer.Serialize(new AccessActorRole(trustedRoleId.ToString(), "Member")))
+            ],
+            UAuthConstants.SchemeDefaults.GlobalScheme);
+
+        var untrustedIdentity = new ClaimsIdentity(
+            [
+                new Claim(UAuthConstants.Claims.ActorRole, JsonSerializer.Serialize(new AccessActorRole(untrustedRoleId.ToString(), "Admin")))
+            ],
+            "ExternalScheme");
+
+        var principal = new ClaimsPrincipal([trustedIdentity, untrustedIdentity]);
+
+        var currentUser = new Mock<ICurrentUser>();
+
+        currentUser
+            .SetupGet(x => x.IsAuthenticated)
+            .Returns(true);
+
+        currentUser
+            .SetupGet(x => x.UserKey)
+            .Returns(userKey);
+
+        var services = new ServiceCollection();
+
+        services.AddSingleton(currentUser.Object);
+        services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        var http = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+            User = principal
+        };
+
+        http.Items[UAuthConstants.HttpItems.TenantContextKey] =
+            UAuthTenantContext.Resolved(tenant);
+
+        // Act
+        var context = await ResourceAccessContextBuilder.CreateAsync(
+            http,
+            "users.read");
+
+        // Assert
+        context.ActorRoles.Should().ContainSingle();
+
+        context.ActorRoles.Should().ContainSingle(
+            x => x.Id == trustedRoleId.ToString() &&
+                 x.Name == "Member");
+
+        context.ActorRoles.Should().NotContain(
+            x => x.Id == untrustedRoleId.ToString());
+
+        var roleIds = (RoleId[])context.Attributes["roles"];
+
+        roleIds.Should().ContainSingle()
+            .Which.Should().Be(trustedRoleId);
+    }
+
 
     private static DefaultHttpContext CreateHttpContext(bool authenticated, UserKey? userKey = null, TenantKey? tenant = null)
     {

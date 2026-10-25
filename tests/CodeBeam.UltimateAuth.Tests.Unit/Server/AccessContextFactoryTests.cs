@@ -64,15 +64,9 @@ public sealed class AccessContextFactoryTests
 
         var now = DateTimeOffset.UtcNow;
 
-        var owner = Role.Create(
-            ownerId, tenant, "Owner", null, now);
-
-        var member = Role.Create(
-            memberId, tenant, "Member", null, now);
-
-        var deleted = Role.Create(
-            deletedId, tenant, "Deleted", null, now)
-            .MarkDeleted(now);
+        var owner = Role.Create(ownerId, tenant, "Owner", null, now);
+        var member = Role.Create(memberId, tenant, "Member", null, now);
+        var deleted = Role.Create(deletedId, tenant, "Deleted", null, now).MarkDeleted(now);
 
         roleStore
             .Setup(x => x.GetByIdsAsync(
@@ -117,8 +111,8 @@ public sealed class AccessContextFactoryTests
         var attributeRoles =
             (RoleId[])context.Attributes["roles"];
 
-        attributeRoles.Should().BeEquivalentTo(
-            new[] { ownerId, memberId, deletedId });
+        attributeRoles.Should().BeEquivalentTo(new[] { ownerId, memberId });
+        attributeRoles.Should().NotContain(deletedId);
 
         // Both stores must resolve against the actor tenant.
         userRoleFactory.Verify(
