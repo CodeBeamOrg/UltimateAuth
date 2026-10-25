@@ -5,10 +5,10 @@ namespace CodeBeam.UltimateAuth.Policies;
 
 internal sealed class RequireSystemPolicy : IAccessPolicy
 {
-    public AccessDecision Decide(AccessContext context)
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
         => context.IsSystemActor
-            ? AccessDecision.Allow()
-            : AccessDecision.Deny("system_actor_required");
+            ? ValueTask.FromResult(AccessDecision.Allow())
+            : ValueTask.FromResult(AccessDecision.Deny("system_actor_required"));
 
     public bool AppliesTo(AccessContext context) => context.Action.EndsWith(".system", StringComparison.Ordinal);
 }

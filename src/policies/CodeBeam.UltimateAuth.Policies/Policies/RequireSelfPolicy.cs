@@ -5,14 +5,14 @@ namespace CodeBeam.UltimateAuth.Policies;
 
 internal sealed class RequireSelfPolicy : IAccessPolicy
 {
-    public AccessDecision Decide(AccessContext context)
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
     {
         if (!context.IsAuthenticated)
-            return AccessDecision.Deny("unauthenticated");
+            return ValueTask.FromResult(AccessDecision.Deny("unauthenticated"));
 
         return context.IsSelfAction
-            ? AccessDecision.Allow()
-            : AccessDecision.Deny("not_self");
+            ? ValueTask.FromResult(AccessDecision.Allow())
+            : ValueTask.FromResult(AccessDecision.Deny("not_self"));
     }
 
     public bool AppliesTo(AccessContext context)

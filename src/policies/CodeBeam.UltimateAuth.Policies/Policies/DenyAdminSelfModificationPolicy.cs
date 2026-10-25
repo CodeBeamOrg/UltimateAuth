@@ -5,15 +5,15 @@ namespace CodeBeam.UltimateAuth.Policies;
 
 internal sealed class DenyAdminSelfModificationPolicy : IAccessPolicy
 {
-    public AccessDecision Decide(AccessContext context)
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
     {
         if (!context.IsAuthenticated)
-            return AccessDecision.Deny("unauthenticated");
+            return ValueTask.FromResult(AccessDecision.Deny("unauthenticated"));
 
         if (context.ActorUserKey == context.TargetUserKey)
-            return AccessDecision.Deny("admin_cannot_modify_own_account");
+            return ValueTask.FromResult(AccessDecision.Deny("admin_cannot_modify_own_account"));
 
-        return AccessDecision.Allow();
+        return ValueTask.FromResult(AccessDecision.Allow());
     }
 
     public bool AppliesTo(AccessContext context)

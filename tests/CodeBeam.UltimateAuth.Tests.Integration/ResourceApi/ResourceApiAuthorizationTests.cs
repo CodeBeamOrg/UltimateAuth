@@ -105,9 +105,10 @@ public sealed class ResourceApiAuthorizationTests
             .Be(HttpStatusCode.OK);
 
         authority.Verify(
-            x => x.Decide(
+            x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -145,12 +146,14 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Callback<AccessContext, IEnumerable<IAccessPolicy>>(
-                (context, _) => captured = context)
-            .Returns(CreateAllowedDecision());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AccessContext, IEnumerable<IAccessPolicy>, CancellationToken>(
+                (context, _, _) => captured = context)
+            .Returns(new ValueTask<AccessDecision>(
+                CreateAllowedDecision()));
 
         var policyProvider = CreatePolicyProvider();
 
@@ -201,12 +204,14 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Callback<AccessContext, IEnumerable<IAccessPolicy>>(
-                (context, _) => captured = context)
-            .Returns(CreateAllowedDecision());
+             .Setup(x => x.DecideAsync(
+                 It.IsAny<AccessContext>(),
+                 It.IsAny<IEnumerable<IAccessPolicy>>(),
+                 It.IsAny<CancellationToken>()))
+             .Callback<AccessContext, IEnumerable<IAccessPolicy>, CancellationToken>(
+                 (context, _, _) => captured = context)
+             .Returns(new ValueTask<AccessDecision>(
+                 CreateAllowedDecision()));
 
         var policyProvider = CreatePolicyProvider();
 
@@ -288,12 +293,14 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Callback<AccessContext, IEnumerable<IAccessPolicy>>(
-                (context, _) => captured = context)
-            .Returns(CreateAllowedDecision());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AccessContext, IEnumerable<IAccessPolicy>, CancellationToken>(
+                (context, _, _) => captured = context)
+            .Returns(new ValueTask<AccessDecision>(
+                CreateAllowedDecision()));
 
         var policyProvider = CreatePolicyProvider();
 
@@ -332,10 +339,12 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(AccessDecision.ReauthenticationRequired());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<AccessDecision>(
+                AccessDecision.ReauthenticationRequired()));
 
         var policyProvider = CreatePolicyProvider();
 
@@ -363,9 +372,10 @@ public sealed class ResourceApiAuthorizationTests
         problem.Type.Should().EndWith("/challenge_required");
 
         authority.Verify(
-            x => x.Decide(
+            x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -404,10 +414,12 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(CreateAllowedDecision());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<AccessDecision>(
+                CreateAllowedDecision()));
 
         return authority;
     }
@@ -417,10 +429,12 @@ public sealed class ResourceApiAuthorizationTests
         var authority = new Mock<IAccessAuthority>();
 
         authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(CreateDeniedDecision());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<AccessDecision>(
+                CreateDeniedDecision()));
 
         return authority;
     }

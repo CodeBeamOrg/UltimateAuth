@@ -13,14 +13,16 @@ internal sealed class RequireActiveUserPolicy : IAccessPolicy
         _runtime = runtime;
     }
 
-    public AccessDecision Decide(AccessContext context)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
     {
         if (context.ActorUserKey is null)
             return AccessDecision.Deny("missing_actor");
 
-        var state = _runtime.GetAsync(context.ActorTenant, context.ActorUserKey!.Value).GetAwaiter().GetResult();
+        ct.ThrowIfCancellationRequested();
 
-        if (state == null || !state.Exists || state.IsDeleted)
+        var state = await _runtime.GetAsync(context.ActorTenant, context.ActorUserKey.Value, ct);
+
+        if (state is null || !state.Exists || state.IsDeleted)
             return AccessDecision.Deny("user_not_found");
 
         return state.IsActive

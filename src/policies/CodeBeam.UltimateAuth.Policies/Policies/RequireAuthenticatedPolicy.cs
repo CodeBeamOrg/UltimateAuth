@@ -5,11 +5,11 @@ namespace CodeBeam.UltimateAuth.Policies;
 
 internal sealed class RequireAuthenticatedPolicy : IAccessPolicy
 {
-    public AccessDecision Decide(AccessContext context)
+    public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
     {
         return context.IsAuthenticated
-            ? AccessDecision.Allow()
-            : AccessDecision.Deny("unauthenticated");
+            ? ValueTask.FromResult(AccessDecision.Allow())
+            : ValueTask.FromResult(AccessDecision.Deny("unauthenticated"));
     }
 
     public bool AppliesTo(AccessContext context)
