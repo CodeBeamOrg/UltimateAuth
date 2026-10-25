@@ -23,7 +23,7 @@ public sealed class UAuthSessionOrchestrator : ISessionOrchestrator
 
         _executed = true;
 
-        var decision = _authority.Decide(authContext);
+        var decision = await _authority.DecideAsync(authContext, ct: ct);
 
         switch (decision.Decision)
         {

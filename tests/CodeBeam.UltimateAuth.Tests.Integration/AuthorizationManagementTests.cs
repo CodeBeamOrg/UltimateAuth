@@ -33,8 +33,7 @@ public sealed class AuthorizationManagementTests
         var target = await factory.CreateLoginUserAsync();
         var other = await factory.CreateLoginUserAsync();
 
-        await GrantAsync(factory, admin,
-            UAuthActions.Authorization.Roles.AssignAdmin);
+        await GrantAsync(factory, admin, UAuthActions.Authorization.Roles.AssignAdmin);
 
         var role = await SeedRoleAsync(factory);
 
