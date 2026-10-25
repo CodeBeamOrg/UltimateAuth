@@ -13,6 +13,7 @@ public sealed class AccessContext
     public bool IsAuthenticated { get; init; }
     public bool IsSystemActor { get; init; }
     public SessionChainId? ActorChainId { get; }
+    public IReadOnlyList<AccessActorRole> ActorRoles { get; }
 
     // Target
     public string? Resource { get; init; }
@@ -45,6 +46,7 @@ public sealed class AccessContext
         bool isAuthenticated,
         bool isSystemActor,
         SessionChainId? actorChainId,
+        IReadOnlyList<AccessActorRole> actorRoles,
         string? resource,
         UserKey? targetUserKey,
         TenantKey resourceTenant,
@@ -56,6 +58,7 @@ public sealed class AccessContext
         IsAuthenticated = isAuthenticated;
         IsSystemActor = isSystemActor;
         ActorChainId = actorChainId;
+        ActorRoles = Array.AsReadOnly(actorRoles.ToArray());
 
         Resource = resource;
         TargetUserKey = targetUserKey;
@@ -78,6 +81,7 @@ public sealed class AccessContext
             IsAuthenticated,
             IsSystemActor,
             ActorChainId,
+            ActorRoles,
             Resource,
             TargetUserKey,
             ResourceTenant,

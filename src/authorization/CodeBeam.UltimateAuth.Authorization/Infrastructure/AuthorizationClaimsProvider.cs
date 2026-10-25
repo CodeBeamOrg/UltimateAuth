@@ -32,8 +32,11 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 
         builder.Add(UAuthConstants.Claims.Tenant, tenant.Value);
 
-        foreach (var role in roles)
+        foreach (var role in roles.Where(x => !x.IsDeleted))
+        {
             builder.Add(ClaimTypes.Role, role.Name);
+            builder.Add(UAuthConstants.Claims.ActorRole, $"{role.Id}:{role.Name}");
+        }
 
         foreach (var perm in perms)
             builder.Add(UAuthConstants.Claims.Permission, perm.Value);

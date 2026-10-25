@@ -21,7 +21,7 @@ public sealed class UAuthAuthorizationHandler : AuthorizationHandler<UAuthAction
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, UAuthActionRequirement requirement)
     {
         var http = _httpContextAccessor.HttpContext!;
-        var accessContext = ResourceAccessContextBuilder.Create(http, requirement.Action);
+        var accessContext = await ResourceAccessContextBuilder.CreateAsync(http, requirement.Action, http.RequestAborted);
 
         try
         {
