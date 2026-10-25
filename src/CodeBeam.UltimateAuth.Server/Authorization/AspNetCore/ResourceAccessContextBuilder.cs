@@ -34,18 +34,15 @@ internal static class ResourceAccessContextBuilder
             {
                 // Remote session validation has already produced
                 // the authenticated principal.
-                var principal = http.User;
+                var identity = http.User.Identities.SingleOrDefault(x => x.IsAuthenticated && x.AuthenticationType == UAuthConstants.SchemeDefaults.GlobalScheme);
 
-                if (principal.Identity?.IsAuthenticated != true ||
-                    !principal.Identities.Any(x => x.IsAuthenticated && x.AuthenticationType == UAuthConstants.SchemeDefaults.GlobalScheme))
-                {
+                if (identity is null)
                     throw new InvalidOperationException("Trusted UltimateAuth identity is missing.");
-                }
 
                 var roles = new List<AccessActorRole>();
                 var ids = new List<RoleId>();
 
-                foreach (var claim in principal.FindAll(UAuthConstants.Claims.ActorRole))
+                foreach (var claim in identity.FindAll(UAuthConstants.Claims.ActorRole))
                 {
                     AccessActorRole? role;
 

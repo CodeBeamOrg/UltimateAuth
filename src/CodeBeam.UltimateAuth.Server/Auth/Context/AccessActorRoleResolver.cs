@@ -21,12 +21,19 @@ internal sealed class AccessActorRoleResolver(IUserRoleStoreFactory userRoleFact
 
         var roles = await roleStore.GetByIdsAsync(roleIds, ct);
 
-        var actorRoles = roles
+        var activeRoles = roles
             .Where(x => !x.IsDeleted && x.Tenant == tenant)
+            .ToArray();
+
+        var actorRoles = activeRoles
             .Select(x => new AccessActorRole(x.Id.ToString(), x.Name))
             .ToArray();
 
-        return new ResolvedActorRoles(actorRoles, roleIds);
+        var activeRoleIds = activeRoles
+            .Select(x => x.Id)
+            .ToArray();
+
+        return new ResolvedActorRoles(actorRoles, activeRoleIds);
     }
 }
 
