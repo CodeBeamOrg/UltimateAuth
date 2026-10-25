@@ -14,11 +14,17 @@ public sealed class AuthAuthority : IAuthAuthority
         _policies = policies ?? Array.Empty<IAuthorityPolicy>();
     }
 
-    public AccessDecisionResult Decide(AuthContext context, IEnumerable<IAuthorityPolicy>? policies = null)
+    public async ValueTask<AccessDecisionResult> DecideAsync(AuthContext context, IEnumerable<IAuthorityPolicy>? policies = null, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         foreach (var invariant in _invariants)
         {
-            var result = invariant.Decide(context);
+            ct.ThrowIfCancellationRequested();
+
+            var result = await invariant.DecideAsync(
+                context, ct);
+
             if (!result.IsAllowed)
                 return result;
         }
@@ -29,10 +35,12 @@ public sealed class AuthAuthority : IAuthAuthority
 
         foreach (var policy in effectivePolicies)
         {
+            ct.ThrowIfCancellationRequested();
+
             if (!policy.AppliesTo(context))
                 continue;
 
-            var result = policy.Decide(context);
+            var result = await policy.DecideAsync(context, ct);
 
             if (!result.IsAllowed)
                 return result;
@@ -45,5 +53,4 @@ public sealed class AuthAuthority : IAuthAuthority
             ? AccessDecisionResult.Challenge("Additional verification required.")
             : AccessDecisionResult.Allow();
     }
-
 }

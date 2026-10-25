@@ -6,15 +6,15 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
 public sealed class DeviceRequiredInvariant : IAuthorityInvariant
 {
-    public AccessDecisionResult Decide(AuthContext context)
+    public ValueTask<AccessDecisionResult> DecideAsync(AuthContext context, CancellationToken ct = default)
     {
         if (!RequiresDevice(context))
-            return AccessDecisionResult.Allow();
+            return ValueTask.FromResult(AccessDecisionResult.Allow());
 
         if (!context.Device.HasDeviceId)
-            return AccessDecisionResult.Deny("DeviceId is required for this operation.");
+            return ValueTask.FromResult(AccessDecisionResult.Deny("DeviceId is required for this operation."));
 
-        return AccessDecisionResult.Allow();
+        return ValueTask.FromResult(AccessDecisionResult.Allow());
     }
 
     private static bool RequiresDevice(AuthContext context)
