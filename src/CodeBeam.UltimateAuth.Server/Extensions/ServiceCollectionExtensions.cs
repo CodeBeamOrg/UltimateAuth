@@ -237,6 +237,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
         services.TryAddSingleton<IAuthRedirectResolver, AuthRedirectResolver>();
+        services.TryAddScoped<AccessActorRoleResolver>();
 
         services.TryAddScoped<ISessionTouchService, SessionTouchService>();
         services.TryAddScoped<ISessionQueryService, UAuthSessionQueryService>();

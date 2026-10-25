@@ -592,6 +592,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: null,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: actor,
             resourceTenant: TenantKeys.Single,

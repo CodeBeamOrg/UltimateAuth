@@ -1789,6 +1789,7 @@ public sealed class UserEndpointHandlerTests
             isAuthenticated: f.Flow.IsAuthenticated,
             isSystemActor: false,
             actorChainId: f.Flow.Session?.ChainId,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: targetUserKey ?? f.Flow.UserKey,
             resourceTenant: f.Flow.Tenant,

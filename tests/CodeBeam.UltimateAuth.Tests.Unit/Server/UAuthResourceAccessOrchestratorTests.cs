@@ -469,6 +469,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: null,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: null,
             resourceTenant: default,

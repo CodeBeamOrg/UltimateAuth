@@ -654,6 +654,7 @@ public sealed class SessionEndpointHandlerTests
             isAuthenticated: flow.IsAuthenticated,
             isSystemActor: false,
             actorChainId: flow.Session?.ChainId,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "sessions",
             targetUserKey: targetUser,
             resourceTenant: flow.Tenant,
