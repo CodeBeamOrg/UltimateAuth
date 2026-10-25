@@ -815,6 +815,7 @@ public sealed class SessionApplicationServiceTests
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: actorChainId,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "session",
             targetUserKey: user,
             resourceTenant: TenantKey.Single,

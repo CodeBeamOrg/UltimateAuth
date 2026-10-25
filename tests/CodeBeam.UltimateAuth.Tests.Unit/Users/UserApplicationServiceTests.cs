@@ -1916,6 +1916,7 @@ public sealed class UserApplicationServiceTests
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: null,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: targetUserKey ?? actorUserKey,
             resourceTenant: TenantKey.Single,

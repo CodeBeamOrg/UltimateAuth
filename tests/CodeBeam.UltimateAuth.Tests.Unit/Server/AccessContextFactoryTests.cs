@@ -80,10 +80,13 @@ public sealed class AccessContextFactoryTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { owner, member, deleted });
 
-        var sut = new AccessContextFactory(
+        var resolver = new AccessActorRoleResolver(
             userRoleFactory.Object,
-            Mock.Of<IUserIdConverterResolver>(),
             roleFactory.Object);
+
+        var sut = new AccessContextFactory(
+            resolver,
+            Mock.Of<IUserIdConverterResolver>());
 
         var flow = AuthFlowTestFactory.New(
             tenant: tenant,
@@ -143,10 +146,13 @@ public sealed class AccessContextFactoryTests
         var userRoleFactory = new Mock<IUserRoleStoreFactory>();
         var roleFactory = new Mock<IRoleStoreFactory>();
 
-        var sut = new AccessContextFactory(
+        var resolver = new AccessActorRoleResolver(
             userRoleFactory.Object,
-            Mock.Of<IUserIdConverterResolver>(),
             roleFactory.Object);
+
+        var sut = new AccessContextFactory(
+            resolver,
+            Mock.Of<IUserIdConverterResolver>());
 
         var flow = AuthFlowTestFactory.New(
             isAuthenticated: false);

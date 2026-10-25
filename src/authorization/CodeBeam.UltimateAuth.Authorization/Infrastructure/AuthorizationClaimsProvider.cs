@@ -1,8 +1,10 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Authorization;
 
@@ -32,10 +34,10 @@ public sealed class AuthorizationClaimsProvider : IUserClaimsProvider
 
         builder.Add(UAuthConstants.Claims.Tenant, tenant.Value);
 
-        foreach (var role in roles.Where(x => !x.IsDeleted))
+        foreach (var role in roles.Where(x => !x.IsDeleted && x.Tenant == tenant))
         {
             builder.Add(ClaimTypes.Role, role.Name);
-            builder.Add(UAuthConstants.Claims.ActorRole, $"{role.Id}:{role.Name}");
+            builder.Add(UAuthConstants.Claims.ActorRole, JsonSerializer.Serialize(new AccessActorRole(role.Id.ToString(), role.Name)));
         }
 
         foreach (var perm in perms)
