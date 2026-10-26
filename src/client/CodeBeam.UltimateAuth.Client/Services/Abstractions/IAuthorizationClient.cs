@@ -61,6 +61,21 @@ public interface IAuthorizationClient
     Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null);
 
     /// <summary>
+    /// Retrieves the current user's role-derived permissions.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returns normalized permissions assigned through the user's roles.
+    /// Wildcard permissions are preserved without expansion.
+    /// </para>
+    /// <para>
+    /// This method does not evaluate authorization policies.
+    /// Use <see cref="CheckAsync"/> to evaluate access to a specific action.
+    /// </para>
+    /// </remarks>
+    Task<UAuthResult<UserPermissionsResult>> GetMyPermissionsAsync();
+
+    /// <summary>
     /// Retrieves roles assigned to a specific user.
     /// </summary>
     /// <remarks>

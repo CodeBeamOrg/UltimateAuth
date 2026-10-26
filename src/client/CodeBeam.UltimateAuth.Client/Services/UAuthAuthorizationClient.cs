@@ -36,6 +36,12 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
         return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
+    public async Task<UAuthResult<UserPermissionsResult>> GetMyPermissionsAsync()
+    {
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/permissions/get"), new { });
+        return UAuthResultMapper.FromJson<UserPermissionsResult>(raw);
+    }
+
     public async Task<UAuthResult<UserRolesGetResult>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();

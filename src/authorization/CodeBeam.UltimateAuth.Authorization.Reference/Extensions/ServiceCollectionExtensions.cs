@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthorizationService, AuthorizationService>();
         services.TryAddScoped<IRoleService, RoleService>();
         services.TryAddScoped<IUserRoleService, UserRoleService>();
+        services.TryAddScoped<IUserPermissionService, UserPermissionService>();
         services.TryAddScoped<IUserPermissionStore, UserPermissionStore>();
         services.TryAddScoped<IRolePermissionResolver, RolePermissionResolver>();
         services.TryAddScoped<IAuthorizationEndpointHandler, AuthorizationEndpointHandler>();
