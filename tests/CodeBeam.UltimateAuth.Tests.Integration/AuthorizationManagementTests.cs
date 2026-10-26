@@ -753,6 +753,203 @@ public sealed class AuthorizationManagementTests
         fromB.Should().BeNull();
     }
 
+    [Fact]
+    public async Task GetMyPermissions_WhenRolePermissionsChange_ReturnsUpdatedPermissions()
+    {
+        using var factory = NewFactory();
+
+        var user = await factory.CreateLoginUserAsync();
+
+        var oldPermission = Permission.From("reports.read");
+        var newPermission = Permission.From("reports.export");
+
+        var role = await SeedRoleAsync(
+            factory,
+            [oldPermission]);
+
+        await SeedAssignmentAsync(
+            factory,
+            user.UserKey,
+            role.Id);
+
+        using var client = await AuthenticatedClientAsync(factory, user);
+
+        // First request: the user has the original permission.
+        using (var response = await client.PostAsJsonAsync(
+            $"{SelfBase}/permissions/get",
+            new { }))
+        {
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content
+                .ReadFromJsonAsync<UserPermissionsResult>();
+
+            result.Should().NotBeNull();
+
+            result!.Permissions.Should().Contain(oldPermission);
+            result.Permissions.Should().NotContain(newPermission);
+        }
+
+        // Update the persisted role permissions.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var roleStoreFactory = scope.ServiceProvider
+                .GetRequiredService<IRoleStoreFactory>();
+
+            var store = roleStoreFactory.Create(TenantKeys.Single);
+
+            var stored = await store.GetAsync(new RoleKey(TenantKeys.Single, role.Id));
+
+            stored.Should().NotBeNull();
+
+            var expectedVersion = stored!.Version;
+
+            stored.SetPermissions(
+                [newPermission],
+                factory.Clock.UtcNow);
+
+            // Check the entity immediately after mutation.
+            stored.Permissions.Should().Contain(newPermission);
+            stored.Permissions.Should().NotContain(oldPermission);
+
+            await store.SaveAsync(stored, expectedVersion);
+
+            // Check persistence using a fresh read.
+            var saved = await store.GetAsync(
+                new RoleKey(TenantKeys.Single, role.Id));
+
+            saved.Should().NotBeNull();
+            saved!.Permissions.Should().Contain(newPermission);
+            saved.Permissions.Should().NotContain(oldPermission);
+        }
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var roleStoreFactory = scope.ServiceProvider
+                .GetRequiredService<IRoleStoreFactory>();
+
+            var userRoleStoreFactory = scope.ServiceProvider
+                .GetRequiredService<IUserRoleStoreFactory>();
+
+            var permissionStore = scope.ServiceProvider
+                .GetRequiredService<IUserPermissionStore>();
+
+            var roleStore = roleStoreFactory.Create(TenantKeys.Single);
+
+            var userRoleStore = userRoleStoreFactory.Create(TenantKeys.Single);
+
+            // 1. Was the role updated?
+            var updatedRole = await roleStore.GetAsync(
+                new RoleKey(TenantKeys.Single, role.Id));
+
+            updatedRole.Should().NotBeNull();
+
+            updatedRole!.Permissions.Should().Contain(newPermission);
+            updatedRole.Permissions.Should().NotContain(oldPermission);
+
+            // 2. Does the user still have the role?
+            var assignments = await userRoleStore.GetAssignmentsAsync(
+                user.UserKey);
+
+            assignments.Should().Contain(x => x.RoleId == role.Id);
+
+            // 3. Can the permission store resolve the updated permission?
+            var permissions = await permissionStore.GetPermissionsAsync(
+                TenantKeys.Single,
+                user.UserKey);
+
+            permissions.Should().Contain(newPermission);
+            permissions.Should().NotContain(oldPermission);
+        }
+
+        // Second request: the new permission must be visible.
+        using (var response = await client.PostAsJsonAsync(
+            $"{SelfBase}/permissions/get",
+            new { }))
+        {
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content
+                .ReadFromJsonAsync<UserPermissionsResult>();
+
+            result.Should().NotBeNull();
+
+            result!.Permissions.Should().Contain(newPermission);
+            result.Permissions.Should().NotContain(oldPermission);
+        }
+    }
+
+    [Fact]
+    public async Task GetMyPermissions_Anonymous_ShouldReturnUnauthorized()
+    {
+        using var factory = NewFactory();
+
+        using var client = CreateClient(factory);
+
+        using var response = await client.PostAsJsonAsync(
+            $"{SelfBase}/permissions/get",
+            new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetMyPermissions_WhenNoRoles_ReturnsEmpty()
+    {
+        using var factory = NewFactory();
+
+        var user = await factory.CreateLoginUserAsync();
+
+        using var client = await AuthenticatedClientAsync(factory, user);
+
+        using var response = await client.PostAsJsonAsync(
+            $"{SelfBase}/permissions/get",
+            new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<UserPermissionsResult>();
+
+        result.Should().NotBeNull();
+        result!.Permissions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetMyPermissions_DoesNotReturnOtherUsersPermissions()
+    {
+        using var factory = NewFactory();
+
+        var user = await factory.CreateLoginUserAsync();
+        var other = await factory.CreateLoginUserAsync();
+
+        var permission = Permission.From("reports.export");
+
+        var role = await SeedRoleAsync(
+            factory,
+            [permission]);
+
+        await SeedAssignmentAsync(
+            factory,
+            other.UserKey,
+            role.Id);
+
+        using var client = await AuthenticatedClientAsync(factory, user);
+
+        using var response = await client.PostAsJsonAsync(
+            $"{SelfBase}/permissions/get",
+            new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<UserPermissionsResult>();
+
+        result.Should().NotBeNull();
+
+        result!.Permissions.Should().NotContain(permission);
+    }
+
     // --------------------------------------------------
     // Test infrastructure
     // --------------------------------------------------

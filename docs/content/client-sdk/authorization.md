@@ -473,7 +473,119 @@ The returned role collection is paginated.
 
 Do not assume that the first page contains all assigned roles.
 
-## 8. Get Another User's Roles
+## 8. Get My Permissions
+
+Use `GetMyPermissionsAsync()` to retrieve the permissions assigned to the currently authenticated user through their roles.
+
+Unlike `GetMyRolesAsync()`, which returns role assignments, this method returns the resulting permission collection.
+
+```csharp
+var result = await UAuthClient.Authorization.GetMyPermissionsAsync();
+
+if (result.IsSuccess && result.Value is { } data)
+{
+    foreach (var permission in data.Permissions)
+    {
+        Console.WriteLine(permission.Value);
+    }
+}
+```
+
+The method is self-service and does not require administrative permission.
+
+The user identity and tenant context are derived from the authenticated session. No user identifier or tenant identifier is accepted as a request parameter.
+
+### UserPermissionsResult
+
+The response contains the user's role-derived permissions:
+
+```csharp
+public sealed record UserPermissionsResult
+{
+    public required IReadOnlyList<Permission> Permissions { get; init; }
+}
+```
+
+The returned collection:
+
+- Combines permissions from the user's assigned roles.
+- Removes duplicate permissions.
+- Uses deterministic ordering.
+- Preserves wildcard permissions such as `users.*` and `*`.
+- Returns an empty collection when no permissions are assigned.
+- Reflects the current permissions resolved from the configured authorization stores.
+
+For example, a user assigned multiple roles may receive:
+
+```text
+reports.*
+users.read.admin
+users.update.admin
+```
+
+The result does not identify which role contributed each permission.
+
+### Assigned Permissions vs. Authorization Decisions
+
+**Assigned permissions are not final authorization decisions.**
+
+A user may possess a permission but still be denied access because of an applicable policy, tenant boundary, target restriction, or other security requirement.
+
+For example:
+
+```csharp
+var permissions = await UAuthClient.Authorization.GetMyPermissionsAsync();
+```
+
+This retrieves the user's assigned permissions.
+
+To determine whether a specific operation is currently authorized, use `CheckAsync()`:
+
+```csharp
+var result = await UAuthClient.Authorization.CheckAsync(
+    new AuthorizationCheckRequest
+    {
+        Action = "users.delete.admin",
+        Resource = "users",
+        ResourceId = targetUserKey.Value
+    });
+
+if (result.IsSuccess && result.Value is { } decision)
+{
+    if (decision.IsAllowed)
+    {
+        // The authorization check allowed this operation.
+    }
+}
+```
+
+Even a successful client-side authorization check does not replace authorization enforcement at the server-side operation boundary.
+
+### Wildcard Permissions
+
+Wildcard permissions are returned without expansion.
+
+For example:
+
+```text
+users.*
+```
+
+remains `users.*` rather than being expanded into individual user-management actions.
+
+This preserves the stored permission semantics and avoids depending on a potentially incomplete action catalog.
+
+### Security Considerations
+
+`GetMyPermissionsAsync()` is intended for permission inspection, user interfaces, and administrative transparency.
+
+It must not be used as the sole mechanism for protecting sensitive operations.
+
+The server remains responsible for evaluating authorization policies and enforcing access at the actual execution boundary.
+
+See [Check Authorization](/docs/client-sdk/authorization#4-check-authorization) for policy-aware authorization checks.
+
+## 9. Get Another User's Roles
 
 Administrative interfaces can retrieve the roles assigned to a specific user.
 
@@ -500,7 +612,7 @@ The `UserKey` identifies the target user, not the current actor.
 
 The server determines whether the current actor may inspect that user's role assignments.
 
-## 9. Query Roles
+## 10. Query Roles
 
 Use `QueryRolesAsync` to retrieve roles with pagination and optional filtering.
 
@@ -566,7 +678,7 @@ Use `IncludeDeleted` only where the application needs administrative access to d
 
 The server remains responsible for enforcing the query's permissions and lifecycle rules.
 
-## 10. Understanding RoleInfo
+## 11. Understanding RoleInfo
 
 Each role returned by the SDK is represented by `RoleInfo`.
 
@@ -614,7 +726,7 @@ Use `RoleId` for role management requests.
 
 Do not confuse it with `UserKey` or other identifier types.
 
-## 11. Create a Role
+## 12. Create a Role
 
 Use `CreateRoleAsync` to create a role.
 
@@ -679,7 +791,7 @@ var result = await UAuthClient.Authorization.CreateRoleAsync(
 
 Use role names that describe the responsibility or capability represented by the role.
 
-## 12. Rename a Role
+## 13. Rename a Role
 
 Use `RenameRoleAsync` to change a role's name.
 
@@ -708,7 +820,7 @@ Role renaming does not mean that permissions are automatically changed.
 
 After a successful rename, the SDK publishes an `AuthorizationChanged` state event.
 
-## 13. Set Role Permissions
+## 14. Set Role Permissions
 
 Use `SetRolePermissionsAsync` to configure a role's permissions.
 
@@ -832,7 +944,7 @@ An empty collection requests that the role have no permissions.
 
 The server determines whether the operation is permitted.
 
-## 14. Assign a Role to a User
+## 15. Assign a Role to a User
 
 Use `AssignRoleToUserAsync` to assign an existing role to a user.
 
@@ -885,7 +997,7 @@ This example does not provide transactional, all-or-nothing behavior across the 
 
 For complex provisioning workflows, consider whether the application needs a server-side orchestration operation.
 
-## 15. Remove a Role from a User
+## 16. Remove a Role from a User
 
 Use `RemoveRoleFromUserAsync`:
 
@@ -929,7 +1041,7 @@ Removing `Manager` does not necessarily remove the user's ability to read produc
 
 To determine whether the user may perform an action, rely on the server's authorization decision rather than inspecting one role assignment in isolation.
 
-## 16. Delete a Role
+## 17. Delete a Role
 
 Use `DeleteRoleAsync` to delete a role.
 
@@ -996,7 +1108,7 @@ This can affect multiple users at once.
 
 For that reason, role deletion should be presented as a sensitive administrative operation with appropriate confirmation.
 
-## 17. Build a Role Management Page
+## 18. Build a Role Management Page
 
 The following Blazor example demonstrates querying roles, creating a role, and deleting a selected role.
 
@@ -1144,7 +1256,7 @@ This example demonstrates the SDK integration rather than a complete production 
 
 A production implementation should include pagination, role assignment controls, permission editing, deletion confirmation, and appropriate loading and error handling for every operation.
 
-## 18. Build a User Role Assignment Interface
+## 19. Build a User Role Assignment Interface
 
 An administrative user details page can display assigned roles and allow administrators to add or remove them.
 
@@ -1200,7 +1312,7 @@ This pattern works well alongside `UAuthClient.Users` for building a unified use
 
 See [User Management](/docs/client/user-management).
 
-## 19. Authorization State Events
+## 20. Authorization State Events
 
 The current `UAuthAuthorizationClient` publishes:
 
@@ -1233,7 +1345,7 @@ For example, an administrator assigning a role to another user does not automati
 
 Applications requiring cross-client updates should provide an appropriate synchronization mechanism.
 
-## 20. Authorization Changes and Active Sessions
+## 21. Authorization Changes and Active Sessions
 
 Role and permission changes may affect active users.
 
@@ -1263,7 +1375,7 @@ Applications may combine these operations when security policy requires immediat
 
 See [Session Management](/docs/client/session-management).
 
-## 21. Multi-Tenant Authorization
+## 22. Multi-Tenant Authorization
 
 UltimateAuth authorization operations are scoped to the current tenant context.
 
@@ -1295,7 +1407,7 @@ The server must enforce tenant isolation and administrative authorization.
 
 When implementing multi-tenant administration, do not assume role names or permission configurations are globally shared.
 
-## 22. Handling Authorization Errors
+## 23. Handling Authorization Errors
 
 Authorization methods return `UAuthResult` or `UAuthResult<T>`.
 
@@ -1349,7 +1461,7 @@ Use the server's structured error information for diagnostics where appropriate.
 
 Do not expose sensitive policy internals unnecessarily.
 
-## 23. Security Considerations
+## 24. Security Considerations
 
 ### Server Authorization Is Authoritative
 
@@ -1397,7 +1509,7 @@ Permission changes may not propagate instantly to every active client or cached 
 
 Design sensitive operations around server-side enforcement and appropriate cache invalidation.
 
-## 24. Putting Everything Together
+## 25. Putting Everything Together
 
 A typical administrative authorization workflow may look like this:
 

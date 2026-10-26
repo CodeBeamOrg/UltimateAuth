@@ -18,10 +18,7 @@
             <div>
                 <span class="lab-access-eyebrow">PERSONAL AUTHORIZATION</span>
                 <h1>My Access</h1>
-                <p>
-                    Explore your roles, effective permissions,
-                    and how UltimateAuth evaluates access.
-                </p>
+                <p>Explore your assigned roles and permissions, then evaluate how UltimateAuth makes authorization decisions.</p>
             </div>
 
             <MudChip T="string"
@@ -43,14 +40,15 @@
                 <small>Roles assigned to your identity</small>
             </div>
 
-            @* <div class="lab-access-stat">
+            <div class="lab-access-stat">
                 <span class="lab-access-stat-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Key" />
                 </span>
-                <span>Effective Permissions</span>
-                <strong>4</strong>
-                <small>Illustrative permission set</small>
-            </div> *@
+
+                <span>Assigned Permissions</span>
+                <strong>@(_permissionsLoading ? "..." : _permissions.Count.ToString())</strong>
+                <small>Permissions inherited from your roles</small>
+            </div>
 
             <div class="lab-access-stat">
                 <span>Available Actions</span>
@@ -133,49 +131,71 @@
                 </MudAlert>
             </section>
 
-            @* <section class="lab-access-card">
+            <section class="lab-access-card">
                 <div class="lab-access-card-heading">
                     <div>
-                        <h2>Effective Permissions</h2>
-                        <p>Example permissions available to your identity.</p>
+                        <h2>Assigned Permissions</h2>
+                        <p>Permissions inherited from your assigned roles.</p>
                     </div>
-                    <MudIcon Icon="@Icons.Material.Filled.Key"
-                             Color="Color.Primary" />
+
+                    <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
                 </div>
 
-                <div class="lab-permission-list">
-                    @foreach (var permission in _permissions)
-                    {
-                        <div class="lab-permission-item">
-                            <span class="lab-permission-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Check"
-                                         Size="Size.Small" />
-                            </span>
+                @if (_permissionsLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+                }
+                else if (_permissionsError is not null)
+                {
+                    <MudAlert Severity="Severity.Error">
+                        @_permissionsError
+                    </MudAlert>
+                }
+                else if (_permissions.Count == 0)
+                {
+                    <div class="lab-result-empty">
+                        <span class="lab-result-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Large" />
+                        </span>
 
-                            <div>
-                                <strong>@permission.Name</strong>
-                                <span>@permission.Description</span>
+                        <strong>No permissions assigned</strong>
+                        <p>Your assigned roles do not currently grant any permissions.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="lab-permission-list">
+                        @foreach (var permission in _permissions)
+                        {
+                            <div class="lab-permission-item" @key="permission.Value">
+                                <span class="lab-permission-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small" />
+                                </span>
+
+                                <div>
+                                    <strong>@permission.Value</strong>
+                                </div>
+
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                                    Assigned
+                                </MudChip>
                             </div>
+                        }
+                    </div>
+                }
 
-                            <MudChip T="string"
-                                     Color="Color.Success"
-                                     Variant="Variant.Text"
-                                     Size="Size.Small">
-                                Allowed
-                            </MudChip>
-                        </div>
-                    }
-                </div>
-            </section> *@
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-4">
+                    Assigned permissions do not guarantee access.
+                    Policies and request context may still deny an operation.
+                    Use the Authorization Playground below to evaluate access.
+                </MudAlert>
+            </section>
         </div>
 
         <div class="lab-access-section-heading">
             <span class="lab-access-eyebrow">INTERACTIVE AUTHORIZATION</span>
             <h2>Authorization Playground</h2>
-            <p>
-                Choose a resource and operation to explore
-                how access decisions work.
-            </p>
+            <p>Choose a resource and operation to explore how access decisions work.</p>
         </div>
 
         <div class="lab-playground-grid">
@@ -349,6 +369,10 @@
 
 @code {
     private readonly List<UserRoleInfo> _roles = [];
+    private readonly List<Permission> _permissions = [];
+
+    private bool _permissionsLoading;
+    private string? _permissionsError;
 
     private bool _loading;
     private string? _error;
@@ -368,7 +392,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadRolesAsync();
+        await Task.WhenAll(LoadRolesAsync(), LoadPermissionsAsync());
     }
 
     private async Task LoadRolesAsync()
@@ -403,6 +427,36 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task LoadPermissionsAsync()
+    {
+        _permissionsLoading = true;
+        _permissionsError = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.GetMyPermissionsAsync();
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _permissionsError =
+                    result.ErrorText ?? "Unable to load your permissions.";
+
+                return;
+            }
+
+            _permissions.Clear();
+            _permissions.AddRange(result.Value.Permissions);
+        }
+        catch (Exception)
+        {
+            _permissionsError = "Unable to load your permissions.";
+        }
+        finally
+        {
+            _permissionsLoading = false;
         }
     }
 

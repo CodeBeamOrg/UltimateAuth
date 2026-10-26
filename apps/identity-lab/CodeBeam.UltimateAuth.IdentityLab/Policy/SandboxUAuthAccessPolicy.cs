@@ -190,7 +190,8 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
             UAuthActions.Sessions.GetChainSelf or
             UAuthActions.Sessions.GetChainAdmin or
             UAuthActions.Sessions.ListChainsSelf or
-            UAuthActions.Sessions.ListChainsAdmin;
+            UAuthActions.Sessions.ListChainsAdmin or
+            UAuthActions.Authorization.Permissions.GetSelf;
 
     private static bool IsAdminAction(string action)
     {

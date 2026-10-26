@@ -134,5 +134,10 @@ public static class UAuthActions
             public const string SetPermissionsAdmin = "authorization.roles.permissions.admin";
             public const string QueryAdmin = "authorization.roles.query.admin";
         }
+
+        public static class Permissions
+        {
+            public const string GetSelf = "authorization.permissions.get.self";
+        }
     }
 }
