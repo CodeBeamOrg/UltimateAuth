@@ -819,6 +819,46 @@ internal sealed class UserApplicationService : IUserApplicationService
 
     #endregion
 
+    public async Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default)
+    {
+        var command = new AccessCommand<PagedResult<UserSummary>>(
+            async innerCt =>
+            {
+                var normalized = (UserQuery)(query ?? new UserQuery()).Normalize(_options.Pagination);
+                var store = _queryStoreFactory.Create(context.ResourceTenant);
+
+                return await store.QueryAsync(normalized, innerCt);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
+
+    public async Task<IReadOnlyList<UserSummary>> GetUsersByKeysAsync(AccessContext context, IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(userKeys);
+
+        const int maxBatchSize = 250;
+
+        var keys = userKeys.Distinct().ToArray();
+
+        if (keys.Length > maxBatchSize)
+        {
+            throw new UAuthValidationException("user_batch_size_exceeded");
+        }
+
+        var command = new AccessCommand<IReadOnlyList<UserSummary>>(
+            async innerCt =>
+            {
+                if (keys.Length == 0)
+                    return Array.Empty<UserSummary>();
+
+                var store = _queryStoreFactory.Create(context.ResourceTenant);
+
+                return await store.GetByKeysAsync(keys, innerCt);
+            });
+
+        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+    }
 
     #region Helpers
 
@@ -911,21 +951,6 @@ internal sealed class UserApplicationService : IUserApplicationService
             UserIdentifierType.Phone;
 
     #endregion
-
-    public async Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default)
-    {
-        var command = new AccessCommand<PagedResult<UserSummary>>(
-            async innerCt =>
-            {
-                var normalized = (UserQuery)(query ?? new UserQuery()).Normalize(_options.Pagination);
-                var store = _queryStoreFactory.Create(context.ResourceTenant);
-
-                return await store.QueryAsync(normalized, innerCt);
-            });
-
-        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
-    }
-
 
     private async Task EnsureIdentifierUniquenessAsync(
         IUserIdentifierStore store,

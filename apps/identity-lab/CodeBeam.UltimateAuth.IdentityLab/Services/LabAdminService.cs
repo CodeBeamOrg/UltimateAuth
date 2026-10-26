@@ -5,12 +5,13 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
 public sealed class LabAdminService(IDbContextFactory<LabDbContext> dbFactory, IRoleStoreFactory roleStoreFactory, 
-                                    IUserRoleStoreFactory userRoleStoreFactory, IUAuthClient uAuthClient)
+                                    IUserRoleStoreFactory userRoleStoreFactory, IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory)
 {
     public async Task<bool> IsAdminAsync(UserKey actorUserKey, CancellationToken ct = default)
     {
@@ -30,11 +31,7 @@ public sealed class LabAdminService(IDbContextFactory<LabDbContext> dbFactory, I
             .Create(tenant)
             .GetByIdsAsync(roleIds, ct);
 
-        return roles.Any(x =>
-            string.Equals(
-                x.Name,
-                "Ladmin",
-                StringComparison.OrdinalIgnoreCase));
+        return roles.Any(x => string.Equals(x.Name, "Ladmin", StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task RequireAdminAsync(UserKey actorUserKey, CancellationToken ct)
@@ -142,20 +139,25 @@ public sealed class LabAdminService(IDbContextFactory<LabDbContext> dbFactory, I
     {
         var members = await GetMembersAsync(actorUserKey, sandboxId, ct);
 
-        var result = new List<AdminSandboxMemberItem>();
+        if (members.Count == 0)
+            return Array.Empty<AdminSandboxMemberItem>();
+
+        var keys = members.Select(x => x.UserKey).Distinct().ToArray();
+
+        var store = userSummaryQueryStoreFactory.Create(TenantKeys.Single);
+
+        var summaries = await store.GetByKeysAsync(keys, ct);
+
+        var userMap = summaries.ToDictionary(x => x.UserKey);
+
+        var result = new List<AdminSandboxMemberItem>(members.Count);
 
         foreach (var member in members)
         {
-            var userResult = await uAuthClient.Users.GetUserAsync(
-                member.UserKey);
-
-            if (!userResult.IsSuccess || userResult.Value is null)
+            if (!userMap.TryGetValue(member.UserKey, out var user))
             {
-                throw new InvalidOperationException(
-                    $"Unable to load member {member.UserKey.Value}.");
+                throw new InvalidOperationException($"Unable to load member {member.UserKey.Value}.");
             }
-
-            var user = userResult.Value;
 
             result.Add(new AdminSandboxMemberItem(
                 member.UserKey,

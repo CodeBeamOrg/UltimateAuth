@@ -176,4 +176,121 @@ public sealed class AccessContextFactoryTests
         userRoleFactory.VerifyNoOtherCalls();
         roleFactory.VerifyNoOtherCalls();
     }
+
+    [Fact]
+    public async Task CreateForUserTargetsAsync_ShouldNormalizeAndPreserveTargets()
+    {
+        var tenant = TenantKey.Single;
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        var userRoleFactory = new Mock<IUserRoleStoreFactory>();
+        var roleFactory = new Mock<IRoleStoreFactory>();
+
+        var resolver = new AccessActorRoleResolver(
+            userRoleFactory.Object,
+            roleFactory.Object);
+
+        var sut = new AccessContextFactory(
+            resolver,
+            Mock.Of<IUserIdConverterResolver>());
+
+        var flow = AuthFlowTestFactory.New(
+            tenant: tenant,
+            isAuthenticated: false);
+
+        var context = await sut.CreateForUserTargetsAsync(
+            flow,
+            "users.getbykeys.admin",
+            "users",
+            new[] { first, second, first });
+
+        context.TargetUserKeys.Should().HaveCount(2);
+        context.TargetUserKeys.Should().ContainInOrder(first, second);
+        context.TargetUserKey.Should().BeNull();
+        context.ResourceTenant.Should().Be(tenant);
+        context.IsAdminContext.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateForUserTargetsAsync_ShouldSnapshotInputCollection()
+    {
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        var userRoleFactory = new Mock<IUserRoleStoreFactory>();
+        var roleFactory = new Mock<IRoleStoreFactory>();
+
+        var sut = new AccessContextFactory(
+            new AccessActorRoleResolver(
+                userRoleFactory.Object,
+                roleFactory.Object),
+            Mock.Of<IUserIdConverterResolver>());
+
+        var flow = AuthFlowTestFactory.New(
+            isAuthenticated: false);
+
+        var input = new List<UserKey> { first };
+
+        var context = await sut.CreateForUserTargetsAsync(
+            flow,
+            "users.getbykeys.admin",
+            "users",
+            input);
+
+        input.Add(second);
+
+        context.TargetUserKeys.Should().ContainSingle()
+            .Which.Should().Be(first);
+    }
+
+    [Fact]
+    public async Task CreateForUserTargetsAsync_WithAttribute_ShouldPreserveTargets()
+    {
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        var sut = new AccessContextFactory(
+            new AccessActorRoleResolver(
+                Mock.Of<IUserRoleStoreFactory>(),
+                Mock.Of<IRoleStoreFactory>()),
+            Mock.Of<IUserIdConverterResolver>());
+
+        var flow = AuthFlowTestFactory.New(
+            isAuthenticated: false);
+
+        var context = await sut.CreateForUserTargetsAsync(
+            flow,
+            "users.getbykeys.admin",
+            "users",
+            new[] { first, second });
+
+        var updated = context.WithAttribute("source", "test");
+
+        updated.TargetUserKeys.Should()
+            .BeEquivalentTo(new[] { first, second });
+
+        updated.Attributes["source"].Should().Be("test");
+        updated.TargetUserKey.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateAsync_SingleTargetContext_ShouldHaveEmptyTargetUserKeys()
+    {
+        var sut = new AccessContextFactory(
+            new AccessActorRoleResolver(
+                Mock.Of<IUserRoleStoreFactory>(),
+                Mock.Of<IRoleStoreFactory>()),
+            Mock.Of<IUserIdConverterResolver>());
+
+        var flow = AuthFlowTestFactory.New(
+            isAuthenticated: false);
+
+        var context = await sut.CreateAsync(
+            flow,
+            "users.query.admin",
+            "users");
+
+        context.TargetUserKeys.Should().BeEmpty();
+    }
 }

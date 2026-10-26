@@ -85,6 +85,8 @@ Conceptually, its responsibilities include:
 
 The context is shared across the authorization process so that individual policies do not need to independently reconstruct the operation.
 
+> Authorization contexts can represent either a single target user through TargetUserKey or multiple target users through TargetUserKeys. Multi-target operations use the same authorization pipeline as single-target operations. Application policies are responsible for validating the complete target collection when access depends on membership, ownership, or another resource-specific scope.
+
 ### Actor and Target Separation
 
 Consider the action:

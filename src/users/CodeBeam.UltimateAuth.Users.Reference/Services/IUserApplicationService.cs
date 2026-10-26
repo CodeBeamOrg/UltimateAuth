@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Users.Reference;
@@ -9,6 +10,7 @@ public interface IUserApplicationService
     Task<UserView> GetUserProfileAsync(AccessContext context, ProfileKey? profileKey = null, CancellationToken ct = default);
 
     Task<PagedResult<UserSummary>> QueryUsersAsync(AccessContext context, UserQuery query, CancellationToken ct = default);
+    Task<IReadOnlyList<UserSummary>> GetUsersByKeysAsync(AccessContext context, IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default);
     Task<UserCreateResult> CreateUserAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default);
 
     Task<UserStatusChangeResult> ChangeUserStatusAsync(AccessContext context, object request, CancellationToken ct = default);

@@ -179,6 +179,81 @@ A profile attribute may still be relevant to application authorization or busine
 
 The reference model provides a starting point; applications remain responsible for deciding which additional user attributes belong in their own domain.
 
+## Batch User Summary Retrieval
+
+Applications frequently maintain relationships between users without storing complete user profile information alongside those relationships.
+
+For example, a project management application may store a collection of user keys representing project members.
+
+When displaying those members, the application needs their current names, usernames, and other summary information.
+
+Retrieving each user independently can introduce unnecessary requests and repeated persistence operations.
+
+The Users domain addresses this through batch user summary retrieval.
+
+### IUserSummaryQueryStore
+
+The `IUserSummaryQueryStore` contract supports retrieving user summaries by their keys:
+
+```csharp
+Task<IReadOnlyList<UserSummary>> GetByKeysAsync(IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default);
+```
+
+The operation retrieves summaries for a known collection of users within the store's tenant context.
+
+The reference implementations include support for Entity Framework Core and InMemory persistence.
+
+### Application Service and Authorization
+
+Batch retrieval is exposed through the Users application service:
+
+```csharp
+GetUsersByKeysAsync(AccessContext context, IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default)
+```
+
+The application service coordinates authorization and persistence access.
+
+The operation is executed through the standard `AccessOrchestrator`, ensuring that batch retrieval participates in UltimateAuth's existing authorization pipeline.
+
+The public Client SDK exposes the functionality through:
+
+```csharp
+UAuthClient.Users.GetByKeysAsync(userKeys)
+```
+
+### Target-Aware Access Control
+
+A batch request may target multiple users belonging to different groups, organizations, or application-defined security scopes.
+
+For this reason, UltimateAuth supports multiple target identities in `AccessContext`.
+
+A policy can inspect the complete target collection before allowing the operation.
+
+This makes it possible to implement restrictions such as:
+
+- Allowing access only to members of the actor's organization.
+- Restricting visibility to users assigned to the same project.
+- Limiting member directories to a particular group.
+- Denying requests containing users outside an authorized scope.
+
+The Users domain does not define these application-specific membership rules.
+
+Instead, it provides the batch operation and authorization context needed for applications to enforce them.
+
+See [Policies & Access Control](/docs/plugin-domains/policies) for details.
+
+### Choosing the Appropriate Retrieval Method
+
+Use:
+
+- `GetUserAsync` for detailed information about one user.
+- `QueryAsync` for searching, filtering, sorting, and paginating users.
+- `GetByKeysAsync` for retrieving summaries of a known collection of users.
+
+Batch retrieval supports up to 250 distinct user keys per request.
+
+It is intended for targeted retrieval, not as a replacement for paginated user discovery.
+
 ## Reference Implementation
 
 The Users Plugin Domain includes a reference implementation that demonstrates and provides a practical user management model.

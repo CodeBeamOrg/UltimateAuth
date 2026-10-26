@@ -14,9 +14,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
     public bool AppliesTo(AccessContext context)
         => IsProtectedAction(context.Action);
 
-    public async ValueTask<AccessDecision> DecideAsync(
-    AccessContext context,
-    CancellationToken cancellationToken = default)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,8 +43,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (rootResolver.IsLadmin(context))
             return AccessDecision.Allow();
 
-        await using var db = await dbFactory.CreateDbContextAsync(
-            cancellationToken);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var actor = await db.SandboxMembers
             .AsNoTracking()
@@ -70,16 +67,33 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (operation == SandboxOperation.Denied)
             return AccessDecision.Deny("sandbox_operation_restricted");
 
-        if (actor.Status == SandboxStatus.Passive &&
-            operation != SandboxOperation.Read)
+        if (actor.Status == SandboxStatus.Passive && operation != SandboxOperation.Read)
         {
             return AccessDecision.Deny("sandbox_read_only");
         }
 
-        if (operation == SandboxOperation.Manage &&
-            actor.Role != SandboxMemberRole.Owner)
+        if (operation == SandboxOperation.Manage && actor.Role != SandboxMemberRole.Owner)
         {
             return AccessDecision.Deny("sandbox_owner_required");
+        }
+
+        if (action == UAuthActions.Users.GetByKeysAdmin)
+        {
+            var requestedKeys = context.TargetUserKeys;
+
+            if (requestedKeys.Count == 0)
+                return AccessDecision.Deny("sandbox_targets_required");
+
+            var keys = requestedKeys.Distinct().ToArray();
+
+            var allowedCount = await db.SandboxMembers
+                .AsNoTracking()
+                .CountAsync(x => x.SandboxId == actor.SandboxId && keys.Contains(x.UserKey), cancellationToken);
+
+            if (allowedCount != keys.Length)
+            {
+                return AccessDecision.Deny("sandbox_target_out_of_scope");
+            }
         }
 
         // All target-based admin operations must remain
@@ -91,10 +105,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
 
             var belongsToSandbox = await db.SandboxMembers
                 .AsNoTracking()
-                .AnyAsync(
-                    x => x.UserKey == targetKey &&
-                         x.SandboxId == actor.SandboxId,
-                    cancellationToken);
+                .AnyAsync(x => x.UserKey == targetKey && x.SandboxId == actor.SandboxId, cancellationToken);
 
             if (!belongsToSandbox)
                 return AccessDecision.Deny("sandbox_target_out_of_scope");
@@ -138,18 +149,14 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
     {
         // User creation requires a controlled sandbox
         // creation workflow, including membership and capacity.
-        if (action is
-            UAuthActions.Users.CreateAdmin or
-            UAuthActions.Users.QueryAdmin)
+        if (action is UAuthActions.Users.CreateAdmin or UAuthActions.Users.QueryAdmin)
         {
             return SandboxOperation.Denied;
         }
 
         // Global role definitions and assignments are
         // handled separately by LabApplicationPolicy.
-        if (action.StartsWith(
-            "authorization.roles.",
-            StringComparison.Ordinal))
+        if (action.StartsWith("authorization.roles.", StringComparison.Ordinal))
                 {
                     return action is
                         UAuthActions.Authorization.Roles.GetSelf or
@@ -173,6 +180,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
 
     private static bool IsReadAction(string action)
         => action is
+            UAuthActions.Users.GetByKeysAdmin or
             UAuthActions.UserProfiles.GetSelf or
             UAuthActions.UserProfiles.GetAdmin or
             UAuthActions.UserIdentifiers.GetSelf or
