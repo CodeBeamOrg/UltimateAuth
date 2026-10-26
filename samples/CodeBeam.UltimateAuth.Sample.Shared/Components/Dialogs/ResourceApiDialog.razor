@@ -225,9 +225,8 @@
                 <MudIcon Icon="@Icons.Material.Outlined.Info"
                          Size="Size.Small" />
                 <span>
-                    Resource operations are performed through
-                    SampleProductApiService. Authorization is enforced
-                    by the Resource API, not by this dialog.
+                    Resource operations are performed through IUAuthClient.Resource.
+                    Authentication is handled by UltimateAuth, while authorization is enforced by the Resource API.
                 </span>
             </div>
         </div>
@@ -235,10 +234,7 @@
 
     <DialogActions>
         <div class="lab-resource-actions">
-            <MudButton Variant="Variant.Text"
-                       Color="Color.Default"
-                       Disabled="@_isBusy"
-                       OnClick="Close">
+            <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="@_isBusy" OnClick="Close">
                 Close
             </MudButton>
         </div>

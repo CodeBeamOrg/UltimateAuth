@@ -76,7 +76,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddScopedUltimateAuthSampleSeed();
-//builder.Services.AddScoped<SampleProductApiService>();
+builder.Services.AddScoped<SampleProductApiService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
