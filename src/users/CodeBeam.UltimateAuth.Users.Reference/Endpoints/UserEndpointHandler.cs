@@ -40,6 +40,29 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         return Results.Ok(result);
     }
 
+    public async Task<IResult> GetUsersByKeysAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<GetUsersByKeysRequest>(
+            ctx.RequestAborted);
+
+        if (request is null || request.UserKeys is null)
+            return Results.BadRequest();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            authFlow: flow,
+            action: UAuthActions.Users.GetByKeysAdmin,
+            resource: "users");
+
+        var result = await _users.GetUsersByKeysAsync(accessContext, request.UserKeys, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> CreateAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;

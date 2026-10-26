@@ -10,7 +10,8 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
 public sealed class SandboxUserService(SandboxService sandboxService, SandboxAccessService accessService, IUAuthClient uAuthClient, 
-                    IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, ActivityLogService activityLogService)
+                    IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory,
+                    ActivityLogService activityLogService)
 {
     public async Task<SandboxUsersSnapshot?> GetUsersAsync(UserKey actorUserKey, CancellationToken ct = default)
     {
@@ -25,16 +26,28 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
             throw new UnauthorizedAccessException();
 
         var members = await sandboxService.GetMembersAsync(sandbox.Id, ct);
-        var users = new List<SandboxUserItem>();
+
+        if (members.Count == 0)
+        {
+            return new SandboxUsersSnapshot(sandbox.Id, sandbox.Settings.MaxUsers, Array.Empty<SandboxUserItem>());
+        }
+
+        var keys = members.Select(x => x.UserKey).Distinct().ToArray();
+
+        var store = userSummaryQueryStoreFactory.Create(TenantKeys.Single);
+
+        var summaries = await store.GetByKeysAsync(keys, ct);
+
+        var userMap = summaries.ToDictionary(x => x.UserKey);
+
+        var users = new List<SandboxUserItem>(members.Count);
 
         foreach (var member in members)
         {
-            var result = await uAuthClient.Users.GetUserAsync(member.UserKey);
-
-            if (!result.IsSuccess || result.Value is null)
+            if (!userMap.TryGetValue(member.UserKey, out var user))
+            {
                 throw new InvalidOperationException($"Unable to load user {member.UserKey.Value}.");
-
-            var user = result.Value;
+            }
 
             users.Add(new SandboxUserItem(
                 UserKey: member.UserKey,
@@ -45,7 +58,7 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
                 Email: user.PrimaryEmail ?? "",
                 IsOwner: member.Role == SandboxMemberRole.Owner,
                 Status: user.Status,
-                CreatedAt: user.CreatedAt ?? member.JoinedAt
+                CreatedAt: user.CreatedAt
             ));
         }
 

@@ -14,9 +14,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
     public bool AppliesTo(AccessContext context)
         => IsProtectedAction(context.Action);
 
-    public async ValueTask<AccessDecision> DecideAsync(
-    AccessContext context,
-    CancellationToken cancellationToken = default)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,8 +43,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (rootResolver.IsLadmin(context))
             return AccessDecision.Allow();
 
-        await using var db = await dbFactory.CreateDbContextAsync(
-            cancellationToken);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var actor = await db.SandboxMembers
             .AsNoTracking()
@@ -91,10 +88,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
 
             var belongsToSandbox = await db.SandboxMembers
                 .AsNoTracking()
-                .AnyAsync(
-                    x => x.UserKey == targetKey &&
-                         x.SandboxId == actor.SandboxId,
-                    cancellationToken);
+                .AnyAsync(x => x.UserKey == targetKey && x.SandboxId == actor.SandboxId, cancellationToken);
 
             if (!belongsToSandbox)
                 return AccessDecision.Deny("sandbox_target_out_of_scope");
@@ -140,16 +134,15 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         // creation workflow, including membership and capacity.
         if (action is
             UAuthActions.Users.CreateAdmin or
-            UAuthActions.Users.QueryAdmin)
+            UAuthActions.Users.QueryAdmin or
+            UAuthActions.Users.GetByKeysAdmin)
         {
             return SandboxOperation.Denied;
         }
 
         // Global role definitions and assignments are
         // handled separately by LabApplicationPolicy.
-        if (action.StartsWith(
-            "authorization.roles.",
-            StringComparison.Ordinal))
+        if (action.StartsWith("authorization.roles.", StringComparison.Ordinal))
                 {
                     return action is
                         UAuthActions.Authorization.Roles.GetSelf or

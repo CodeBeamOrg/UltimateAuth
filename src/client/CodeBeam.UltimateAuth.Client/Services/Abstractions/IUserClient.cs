@@ -51,6 +51,14 @@ public interface IUserClient
     Task<UAuthResult<PagedResult<UserSummary>>> QueryAsync(UserQuery query);
 
     /// <summary>
+    /// Retrieves summaries for multiple users by their stable user keys.
+    /// </summary>
+    /// <remarks>
+    /// Requires permission for the administrative batch retrieval action. Missing or deleted users are omitted from the result.
+    /// </remarks>
+    Task<UAuthResult<IReadOnlyList<UserSummary>>> GetByKeysAsync(IReadOnlyCollection<UserKey> userKeys);
+
+    /// <summary>
     /// Creates a new user as the current user context.
     /// </summary>
     /// <remarks>

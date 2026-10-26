@@ -64,6 +64,20 @@ internal sealed class UAuthUserClient : IUserClient
         return UAuthResultMapper.FromJson<PagedResult<UserSummary>>(raw);
     }
 
+    public async Task<UAuthResult<IReadOnlyList<UserSummary>>> GetByKeysAsync(IReadOnlyCollection<UserKey> userKeys)
+    {
+        ArgumentNullException.ThrowIfNull(userKeys);
+
+        var request = new GetUsersByKeysRequest
+        {
+            UserKeys = userKeys.ToArray()
+        };
+
+        var raw = await _request.SendJsonAsync(Url("/admin/users/get-by-keys"), request);
+
+        return UAuthResultMapper.FromJson<IReadOnlyList<UserSummary>>(raw);
+    }
+
     public async Task<UAuthResult> CreateMyProfileAsync(CreateProfileRequest request)
     {
         var raw = await _request.SendJsonAsync(Url("/me/profile/create"), request);
