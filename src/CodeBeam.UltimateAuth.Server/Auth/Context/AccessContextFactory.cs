@@ -31,7 +31,25 @@ internal sealed class AccessContextFactory : IAccessContextFactory
         return await CreateInternalAsync(authFlow, action, resource, resourceTenant, resourceId, attributes, ct);
     }
 
-    private async Task<AccessContext> CreateInternalAsync(AuthFlowContext authFlow, string action, string resource, TenantKey resourceTenant, string? resourceId, IDictionary<string, object>? attributes, CancellationToken ct)
+    public async Task<AccessContext> CreateForUserTargetsAsync(AuthFlowContext authFlow, string action, string resource, IReadOnlyCollection<UserKey> targetUserKeys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(targetUserKeys);
+
+        var normalizedKeys = targetUserKeys.Distinct().ToArray();
+
+        return await CreateInternalAsync(
+            authFlow,
+            action,
+            resource,
+            authFlow.Tenant,
+            resourceId: null,
+            attributes: null,
+            ct: ct,
+            targetUserKeys: normalizedKeys);
+    }
+
+    private async Task<AccessContext> CreateInternalAsync(AuthFlowContext authFlow, string action, string resource, TenantKey resourceTenant, string? resourceId,
+                                                          IDictionary<string, object>? attributes, CancellationToken ct, IReadOnlyCollection<UserKey>? targetUserKeys = null)
     {
         if (string.IsNullOrWhiteSpace(action))
             throw new ArgumentException("Action is required.", nameof(action));
@@ -80,7 +98,8 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             action: action,
             attributes: attrs.Count > 0
                 ? new ReadOnlyDictionary<string, object>(attrs)
-                : EmptyAttributes.Instance
+                : EmptyAttributes.Instance,
+            targetUserKeys: targetUserKeys
         );
     }
 }

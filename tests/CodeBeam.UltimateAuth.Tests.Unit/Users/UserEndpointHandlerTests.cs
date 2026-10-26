@@ -1733,6 +1733,205 @@ public sealed class UserEndpointHandlerTests
         f.Users.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var f = CreateFixture(authenticated: false);
+
+        var result = await f.Sut.GetUsersByKeysAsync(f.HttpContext);
+
+        result.Should().BeOfType<UnauthorizedHttpResult>();
+
+        f.AccessContextFactory.VerifyNoOtherCalls();
+        f.Users.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenOver250DistinctKeys_ReturnsBadRequest()
+    {
+        var f = CreateFixture();
+
+        var keys = Enumerable.Range(0, 251)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        SetJsonBody(
+            f.HttpContext,
+            new GetUsersByKeysRequest { UserKeys = keys });
+
+        var result = await f.Sut.GetUsersByKeysAsync(f.HttpContext);
+
+        result.Should().BeAssignableTo<IStatusCodeHttpResult>()
+            .Which.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+
+        f.AccessContextFactory.VerifyNoOtherCalls();
+        f.Users.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_When250Keys_UsesSameTargetsForAuthorizationAndQuery()
+    {
+        var f = CreateFixture();
+
+        var keys = Enumerable.Range(0, 250)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        SetJsonBody(
+            f.HttpContext,
+            new GetUsersByKeysRequest { UserKeys = keys });
+
+        var accessContext = CreateAccessContext(f);
+
+        f.AccessContextFactory
+            .Setup(x => x.CreateForUserTargetsAsync(
+                f.Flow,
+                UAuthActions.Users.GetByKeysAdmin,
+                "users",
+                It.Is<IReadOnlyCollection<UserKey>>(
+                    x => x.Count == 250 &&
+                         keys.All(x.Contains)),
+                f.HttpContext.RequestAborted))
+            .ReturnsAsync(accessContext);
+
+        IReadOnlyList<UserSummary> expected =
+            Array.Empty<UserSummary>();
+
+        f.Users
+            .Setup(x => x.GetUsersByKeysAsync(
+                accessContext,
+                It.Is<IReadOnlyCollection<UserKey>>(
+                    x => x.Count == 250 &&
+                         keys.All(x.Contains)),
+                f.HttpContext.RequestAborted))
+            .ReturnsAsync(expected);
+
+        var result = await f.Sut.GetUsersByKeysAsync(f.HttpContext);
+
+        var ok = result.Should()
+            .BeOfType<Ok<IReadOnlyList<UserSummary>>>()
+            .Subject;
+
+        ok.Value.Should().BeSameAs(expected);
+
+        f.AccessContextFactory.Verify(x =>
+            x.CreateForUserTargetsAsync(
+                f.Flow,
+                UAuthActions.Users.GetByKeysAdmin,
+                "users",
+                It.IsAny<IReadOnlyCollection<UserKey>>(),
+                f.HttpContext.RequestAborted),
+            Times.Once);
+
+        f.Users.Verify(x =>
+            x.GetUsersByKeysAsync(
+                accessContext,
+                It.IsAny<IReadOnlyCollection<UserKey>>(),
+                f.HttpContext.RequestAborted),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_ShouldRemoveDuplicatesBeforeAuthorization()
+    {
+        var f = CreateFixture();
+
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        SetJsonBody(
+            f.HttpContext,
+            new GetUsersByKeysRequest
+            {
+                UserKeys = new[] { first, first, second }
+            });
+
+        var accessContext = CreateAccessContext(f);
+
+        f.AccessContextFactory
+            .Setup(x => x.CreateForUserTargetsAsync(
+                f.Flow,
+                UAuthActions.Users.GetByKeysAdmin,
+                "users",
+                It.Is<IReadOnlyCollection<UserKey>>(
+                    x => x.Count == 2 &&
+                         x.Contains(first) &&
+                         x.Contains(second)),
+                f.HttpContext.RequestAborted))
+            .ReturnsAsync(accessContext);
+
+        f.Users
+            .Setup(x => x.GetUsersByKeysAsync(
+                accessContext,
+                It.IsAny<IReadOnlyCollection<UserKey>>(),
+                f.HttpContext.RequestAborted))
+            .ReturnsAsync(Array.Empty<UserSummary>());
+
+        await f.Sut.GetUsersByKeysAsync(f.HttpContext);
+
+        f.AccessContextFactory.Verify(x =>
+            x.CreateForUserTargetsAsync(
+                f.Flow,
+                UAuthActions.Users.GetByKeysAdmin,
+                "users",
+                It.Is<IReadOnlyCollection<UserKey>>(x => x.Count == 2),
+                f.HttpContext.RequestAborted),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_ShouldUseSameNormalizedKeysForBothLayers()
+    {
+        var f = CreateFixture();
+
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        SetJsonBody(
+            f.HttpContext,
+            new GetUsersByKeysRequest
+            {
+                UserKeys = new[] { first, second, first }
+            });
+
+        IReadOnlyCollection<UserKey>? authorizedKeys = null;
+        IReadOnlyCollection<UserKey>? queriedKeys = null;
+
+        var accessContext = CreateAccessContext(f);
+
+        f.AccessContextFactory
+            .Setup(x => x.CreateForUserTargetsAsync(
+                f.Flow,
+                UAuthActions.Users.GetByKeysAdmin,
+                "users",
+                It.IsAny<IReadOnlyCollection<UserKey>>(),
+                f.HttpContext.RequestAborted))
+            .Callback<AuthFlowContext, string, string,
+                IReadOnlyCollection<UserKey>, CancellationToken>(
+                (_, _, _, keys, _) => authorizedKeys = keys)
+            .ReturnsAsync(accessContext);
+
+        f.Users
+            .Setup(x => x.GetUsersByKeysAsync(
+                accessContext,
+                It.IsAny<IReadOnlyCollection<UserKey>>(),
+                f.HttpContext.RequestAborted))
+            .Callback<AccessContext, IReadOnlyCollection<UserKey>,
+                CancellationToken>(
+                (_, keys, _) => queriedKeys = keys)
+            .ReturnsAsync(Array.Empty<UserSummary>());
+
+        await f.Sut.GetUsersByKeysAsync(f.HttpContext);
+
+        authorizedKeys.Should().NotBeNull();
+        queriedKeys.Should().NotBeNull();
+
+        ReferenceEquals(authorizedKeys, queriedKeys)
+            .Should().BeTrue();
+
+        queriedKeys.Should().BeEquivalentTo(new[] { first, second });
+    }
+
     // ============================================================
     // Fixture
     // ============================================================
