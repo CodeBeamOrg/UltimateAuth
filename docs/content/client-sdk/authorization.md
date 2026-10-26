@@ -473,6 +473,118 @@ The returned role collection is paginated.
 
 Do not assume that the first page contains all assigned roles.
 
+## 8. Get My Permissions
+
+Use `GetMyPermissionsAsync()` to retrieve the permissions assigned to the currently authenticated user through their roles.
+
+Unlike `GetMyRolesAsync()`, which returns role assignments, this method returns the resulting permission collection.
+
+```csharp
+var result = await UAuthClient.Authorization.GetMyPermissionsAsync();
+
+if (result.IsSuccess && result.Value is { } data)
+{
+    foreach (var permission in data.Permissions)
+    {
+        Console.WriteLine(permission.Value);
+    }
+}
+```
+
+The method is self-service and does not require administrative permission.
+
+The user identity and tenant context are derived from the authenticated session. No user identifier or tenant identifier is accepted as a request parameter.
+
+### UserPermissionsResult
+
+The response contains the user's role-derived permissions:
+
+```csharp
+public sealed record UserPermissionsResult
+{
+    public required IReadOnlyList<Permission> Permissions { get; init; }
+}
+```
+
+The returned collection:
+
+- Combines permissions from the user's assigned roles.
+- Removes duplicate permissions.
+- Uses deterministic ordering.
+- Preserves wildcard permissions such as `users.*` and `*`.
+- Returns an empty collection when no permissions are assigned.
+- Reflects the current permissions resolved from the configured authorization stores.
+
+For example, a user assigned multiple roles may receive:
+
+```text
+reports.*
+users.read.admin
+users.update.admin
+```
+
+The result does not identify which role contributed each permission.
+
+### Assigned Permissions vs. Authorization Decisions
+
+**Assigned permissions are not final authorization decisions.**
+
+A user may possess a permission but still be denied access because of an applicable policy, tenant boundary, target restriction, or other security requirement.
+
+For example:
+
+```csharp
+var permissions = await UAuthClient.Authorization.GetMyPermissionsAsync();
+```
+
+This retrieves the user's assigned permissions.
+
+To determine whether a specific operation is currently authorized, use `CheckAsync()`:
+
+```csharp
+var result = await UAuthClient.Authorization.CheckAsync(
+    new AuthorizationCheckRequest
+    {
+        Action = "users.delete.admin",
+        Resource = "users",
+        ResourceId = targetUserKey.Value
+    });
+
+if (result.IsSuccess && result.Value is { } decision)
+{
+    if (decision.IsAllowed)
+    {
+        // The authorization check allowed this operation.
+    }
+}
+```
+
+Even a successful client-side authorization check does not replace authorization enforcement at the server-side operation boundary.
+
+### Wildcard Permissions
+
+Wildcard permissions are returned without expansion.
+
+For example:
+
+```text
+users.*
+```
+
+remains `users.*` rather than being expanded into individual user-management actions.
+
+This preserves the stored permission semantics and avoids depending on a potentially incomplete action catalog.
+
+### Security Considerations
+
+`GetMyPermissionsAsync()` is intended for permission inspection, user interfaces, and administrative transparency.
+
+It must not be used as the sole mechanism for protecting sensitive operations.
+
+The server remains responsible for evaluating authorization policies and enforcing access at the actual execution boundary.
+
+See [Check Authorization](/docs/client-sdk/authorization#4-check-authorization) for policy-aware authorization checks.
+
 ## 8. Get Another User's Roles
 
 Administrative interfaces can retrieve the roles assigned to a specific user.

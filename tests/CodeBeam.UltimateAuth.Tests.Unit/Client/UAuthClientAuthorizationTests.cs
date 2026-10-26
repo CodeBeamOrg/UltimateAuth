@@ -318,4 +318,61 @@ public class UAuthClientAuthorizationTests : UAuthClientTestBase
                 r.ResourceId == request.ResourceId)),
             Times.Once);
     }
+
+    [Fact]
+    public async Task GetMyPermissions_Should_Call_Self_Endpoint_And_Return_Data()
+    {
+        var response = new UserPermissionsResult
+        {
+            Permissions =
+            [
+                Permission.From("users.read"),
+            Permission.From("reports.*")
+            ]
+        };
+
+        Request.Setup(x => x.SendJsonAsync(
+                "/auth/me/authorization/permissions/get",
+                It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateClient();
+
+        var result = await client.Authorization.GetMyPermissionsAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+
+        result.Value!.Permissions.Select(x => x.Value)
+            .Should().BeEquivalentTo(
+                "users.read",
+                "reports.*");
+
+        Request.Verify(x => x.SendJsonAsync(
+            "/auth/me/authorization/permissions/get",
+            It.IsAny<object>()),
+            Times.Once);
+
+        Events.Verify(x => x.PublishAsync(
+            It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetMyPermissions_WhenRequestFails_ReturnsFailure()
+    {
+        Request.Setup(x => x.SendJsonAsync("/auth/me/authorization/permissions/get", It.IsAny<object>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 401
+            });
+
+        var client = CreateClient();
+
+        var result = await client.Authorization.GetMyPermissionsAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.Value.Should().BeNull();
+    }
 }

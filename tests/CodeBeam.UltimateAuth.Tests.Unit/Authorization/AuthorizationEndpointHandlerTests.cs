@@ -730,6 +730,70 @@ public sealed class AuthorizationEndpointHandlerTests
         restored.IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task GetMyPermissionsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var f = new Fixture(isAuthenticated: false);
+
+        var result = await f.Sut.GetMyPermissionsAsync(f.Http());
+
+        AssertStatusCode(
+            result,
+            StatusCodes.Status401Unauthorized);
+
+        f.AccessContextFactory.VerifyNoOtherCalls();
+        f.UserPermissions.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetMyPermissionsAsync_WhenAuthenticated_UsesCurrentUser()
+    {
+        var f = new Fixture();
+        var ctx = f.Http();
+
+        var accessContext = f.AccessContext(
+            UAuthActions.Authorization.Permissions.GetSelf);
+
+        f.SetupAccessContext(
+            UAuthActions.Authorization.Permissions.GetSelf,
+            "authorization.permissions",
+            f.UserKey.Value,
+            accessContext);
+
+        var expected = new UserPermissionsResult
+        {
+            Permissions =
+            [
+                Permission.From("users.read"),
+            Permission.From("reports.*")
+            ]
+        };
+
+        f.UserPermissions
+            .Setup(x => x.GetMyPermissionsAsync(
+                accessContext,
+                ctx.RequestAborted))
+            .ReturnsAsync(expected);
+
+        var result = await f.Sut.GetMyPermissionsAsync(ctx);
+
+        var ok = result.Should()
+            .BeOfType<Microsoft.AspNetCore.Http.HttpResults.Ok<UserPermissionsResult>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+
+        ok.Value!.Permissions.Select(x => x.Value)
+            .Should().BeEquivalentTo(
+                "users.read",
+                "reports.*");
+
+        f.UserPermissions.Verify(x => x.GetMyPermissionsAsync(
+            accessContext,
+            ctx.RequestAborted),
+            Times.Once);
+    }
+
     // =========================================================
     // Fixture
     // =========================================================
@@ -753,6 +817,9 @@ public sealed class AuthorizationEndpointHandlerTests
         public Mock<IAccessContextFactory> AccessContextFactory { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<IUserPermissionService> UserPermissions { get; }
+            = new(MockBehavior.Strict);
+
         public AuthorizationEndpointHandler Sut { get; }
 
         public Fixture(bool isAuthenticated = true)
@@ -770,7 +837,8 @@ public sealed class AuthorizationEndpointHandlerTests
                 Authorization.Object,
                 UserRoles.Object,
                 Roles.Object,
-                AccessContextFactory.Object);
+                AccessContextFactory.Object,
+                UserPermissions.Object);
         }
 
         public DefaultHttpContext Http()
