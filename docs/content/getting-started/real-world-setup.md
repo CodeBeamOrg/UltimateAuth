@@ -779,56 +779,148 @@ This separation allows the API and authentication infrastructure to be deployed,
 
 ## 9. Calling a Resource API from Blazor
 
-The current samples demonstrate calling a separate Resource API from Blazor applications.
+UltimateAuth provides a unified Resource Client for accessing protected application APIs.
 
-The client integration and the business API's HTTP client are separate concerns.
+Instead of configuring a separate HTTP client and implementing browser credential handling for ordinary resource requests, applications can use `IUAuthClient.Resource`.
 
-### Interactive WASM host
+This keeps authentication, identity operations, and application resource requests accessible through the same client SDK.
 
-In the ASP.NET Core host:
+### Configure the Resource API
 
-```csharp
-builder.Services.AddHttpClient<SampleProductApiService>(
-    client =>
-    {
-        client.BaseAddress = new Uri("https://localhost:6122");
-    });
-```
-
-### Interactive WASM client
-
-Register the same application API service in the `.Client` project:
+For a separate Resource API, configure its origin through the Blazor client registration:
 
 ```csharp
-builder.Services.AddHttpClient<SampleProductApiService>(
-    client =>
-    {
-        client.BaseAddress = new Uri("https://localhost:6122");
-    });
-```
+using CodeBeam.UltimateAuth.Client;
 
-The host and client each require the service when application components or services execute in their respective environments.
-
-`SampleProductApiService` is an example application service, not a required UltimateAuth framework type.
-
-### Standalone WASM
-
-A standalone WASM application can register an HTTP client for its Resource API:
-
-```csharp
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    BaseAddress = new Uri("https://localhost:6120")
+    options.Endpoints.BasePath = "https://localhost:6112/auth";
+
+    options.Resource.BaseAddress = "https://localhost:6122";
+    options.Resource.Credentials = UAuthResourceCredentialsMode.Auto;
 });
 ```
 
-If your application has multiple HTTP clients, prefer explicitly named or typed clients to avoid ambiguity.
+`Endpoints.BasePath` identifies the authentication server.
 
-The current samples also demonstrate browser request credentials handling for cookie-based requests.
+`Resource.BaseAddress` identifies the application Resource API.
 
-For cross-origin cookie authentication, the browser request, API CORS policy, cookie attributes, and Hub configuration must all be compatible.
+These addresses can point to different applications.
 
-Do not assume that registering an `HttpClient` automatically forwards authentication credentials to every remote API.
+If the Resource API shares the application's origin, `Resource.BaseAddress` can remain `null`.
+
+### Call Protected Resources
+
+Inject `IUAuthClient` into a Blazor component:
+
+```razor
+@using CodeBeam.UltimateAuth.Client
+@inject IUAuthClient UAuthClient
+```
+
+Then retrieve application data:
+
+```csharp
+var result = await UAuthClient.Resource.GetAsync<List<Product>>("/api/products");
+
+if (result.IsSuccess && result.Value is not null)
+{
+    products = result.Value;
+}
+```
+
+The Resource Client also supports POST, PUT, PATCH, and DELETE operations.
+
+### Application-Specific API Services
+
+Applications can organize resource operations into small domain-specific services.
+
+For example:
+
+```csharp
+using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Contracts;
+
+public sealed class ProductApiService(IUAuthClient client)
+{
+    public Task<UAuthResult<List<Product>>> GetAllAsync()
+        => client.Resource.GetAsync<List<Product>>("/api/products");
+
+    public Task<UAuthResult<Product>> CreateAsync(Product product)
+        => client.Resource.PostAsync<Product>("/api/products",product);
+
+    public Task<UAuthResult> DeleteAsync(int id)
+        => client.Resource.DeleteAsync($"/api/products/{id}");
+}
+```
+
+Register the application service:
+
+```csharp
+builder.Services.AddScoped<ProductApiService>();
+```
+
+The service uses UltimateAuth's transport and result contracts rather than implementing another HTTP abstraction.
+
+### Interactive WebAssembly
+
+In an Interactive WebAssembly application, configure the UltimateAuth Blazor client in each project where the Resource Client will be used.
+
+The host and `.Client` project have separate dependency injection containers.
+
+A shared application API service may be registered in both projects when components execute in both environments.
+
+The Resource Client uses browser-based transport, including when invoked from an interactive Blazor Server component.
+
+Browser interop must be available before making resource requests. Do not initiate browser-dependent resource requests during static prerendering.
+
+### Standalone WebAssembly
+
+Standalone Blazor WebAssembly applications use the same Resource Client API.
+
+```csharp
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.Endpoints.BasePath = "https://localhost:6112/auth";
+    options.Resource.BaseAddress = "https://localhost:6122";
+});
+```
+
+Once configured, application components can call protected resources through `IUAuthClient.Resource`.
+
+A separate application-specific `HttpClient` is not required for these requests.
+
+### Browser Credentials and CORS
+
+For cross-origin requests, the browser and receiving API must agree on credential handling.
+
+The Resource Client supports `Auto`, `SameOrigin`, `Include`, and `Omit` credential policies.
+
+For cross-origin cookie-based authentication, configure the appropriate credential policy and ensure that the Resource API supports the required CORS and cookie settings.
+
+The Resource Client does not automatically make an API authenticated merely because the user has signed in through UAuthHub.
+
+The receiving API must validate the authentication material associated with the configured authentication mode and enforce its authorization policies.
+
+### Blazor Server and Direct Service Calls
+
+Blazor Server applications can often access application services directly when those services are hosted in the same process.
+
+For example:
+
+```csharp
+var products = await productService.GetAllAsync();
+```
+
+There is no need to introduce an HTTP request solely to use the Resource Client.
+
+Use `IUAuthClient.Resource` when the application actually needs to communicate with a protected Resource API through the browser.
+
+For server-to-server requests, use an appropriate server-side HTTP client and authentication mechanism.
+
+### Learn More
+
+See [Resource API Requests](/docs/client-sdk/resource-api-requests) for supported operations, result handling, credential configuration, security considerations, and request cancellation.
 
 ## 10. Authentication Modes and Client Profiles
 

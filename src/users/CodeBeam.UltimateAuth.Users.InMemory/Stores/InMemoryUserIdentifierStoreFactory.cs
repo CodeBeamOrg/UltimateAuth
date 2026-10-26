@@ -19,7 +19,6 @@ internal sealed class InMemoryUserIdentifierStoreFactory : IUserIdentifierStoreF
     {
         return _stores.GetOrAdd(tenant, t =>
         {
-            Console.WriteLine("New Store Added");
             var tenantContext = new TenantExecutionContext(tenant);
             return ActivatorUtilities.CreateInstance<InMemoryUserIdentifierStore>(_provider, tenantContext);
         });

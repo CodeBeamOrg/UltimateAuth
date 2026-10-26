@@ -1,3 +1,4 @@
+using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
@@ -13,11 +14,9 @@ using CodeBeam.UltimateAuth.IdentityLab.Persistence;
 using CodeBeam.UltimateAuth.IdentityLab.Policy;
 using CodeBeam.UltimateAuth.IdentityLab.Seed;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
-using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 
@@ -72,6 +71,7 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+    o.Resource.Credentials = UAuthResourceCredentialsMode.SameOrigin;
 });
 
 
@@ -95,7 +95,6 @@ builder.Services.AddScoped<LabRegistrationService>();
 builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<ActivityLogService>();
-builder.Services.AddScoped<LabApiClient>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();

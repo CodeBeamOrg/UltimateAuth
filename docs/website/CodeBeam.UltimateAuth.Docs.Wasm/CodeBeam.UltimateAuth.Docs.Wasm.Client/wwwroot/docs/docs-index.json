@@ -203,6 +203,13 @@
     "GroupOrder": 6
   },
   {
+    "Title": "Resource API Requests",
+    "Slug": "client-sdk/resource-api-request",
+    "Order": 8,
+    "Group": "client",
+    "GroupOrder": 6
+  },
+  {
     "Title": "Configuration Overview",
     "Slug": "configuration/overview",
     "Order": 1,

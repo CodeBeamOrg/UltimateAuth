@@ -102,6 +102,7 @@ The client controls the application-side integration.
 | `Reauth` | `UAuthClientReauthOptions` | Reauthentication behavior |
 | `MultiTenant` | `UAuthClientMultiTenantOptions` | Tenant propagation |
 | `StateEvents` | `UAuthStateEventOptions` | Authentication state event handling |
+| `Resource` | `UAuthClientResourceOptions` | Protected Resource API origin and browser credential handling |
 
 These options are configured through the same `UAuthClientOptions` instance.
 
@@ -320,6 +321,94 @@ When using a remote authentication server, also consider:
 - Browser credential policies.
 
 A correct endpoint URL alone does not guarantee that cross-origin authentication will work.
+
+### Resource API Configuration
+
+Authentication endpoints and application resource endpoints serve different purposes.
+
+An application may authenticate through UAuthHub while retrieving business data from a separately deployed Resource API.
+
+UltimateAuth provides `options.Resource` to configure these requests independently.
+
+```csharp
+using CodeBeam.UltimateAuth.Client;
+
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.Endpoints.BasePath = "https://auth.example.com/auth";
+
+    options.Resource.BaseAddress = "https://api.example.com";
+    options.Resource.Credentials = UAuthResourceCredentialsMode.Auto;
+});
+```
+
+The Resource Client is available through `IUAuthClient.Resource`.
+
+```csharp
+var result = await UAuthClient.Resource
+    .GetAsync<List<Product>>("/api/products");
+```
+
+#### Resource Options
+
+| Property | Default | Description |
+|---|---|---|
+| `Resource.BaseAddress` | `null` | Resource API origin; `null` uses the application's origin |
+| `Resource.Credentials` | `Auto` | Browser credential transmission policy |
+
+#### Base Address Validation
+
+When configured, `Resource.BaseAddress` must be an absolute HTTP or HTTPS origin.
+
+HTTPS is required except for loopback development addresses.
+
+The address must not contain an additional path, query string, fragment, or embedded credentials.
+
+For example:
+
+```csharp
+options.Resource.BaseAddress = "https://api.example.com";
+```
+
+Individual resource paths are supplied when making requests:
+
+```csharp
+await UAuthClient.Resource
+    .GetAsync<List<Product>>("/api/products");
+```
+
+#### Credential Modes
+
+`UAuthResourceCredentialsMode` supports four options:
+
+| Mode | Description |
+|---|---|
+| `Auto` | Automatically select the appropriate browser credential policy |
+| `SameOrigin` | Include browser credentials only for same-origin requests |
+| `Include` | Include browser credentials for the configured Resource API origin |
+| `Omit` | Do not include browser credentials |
+
+For example, a separate Resource API that requires cross-origin cookies may use:
+
+```csharp
+options.Resource.Credentials = UAuthResourceCredentialsMode.Include;
+```
+
+The Resource API must permit the relevant browser origin and support the required CORS and cookie configuration.
+
+Credential configuration does not bypass browser security restrictions or replace server-side authentication and authorization.
+
+#### Resource Requests and Authentication Lifecycle
+
+Resource requests use the browser transport in the Blazor integration.
+
+They support request cancellation, origin validation, and redirect protection.
+
+Resource requests return `UAuthResult<T>` or `UAuthResult`, depending on the operation.
+
+The current Resource Client does not automatically refresh authentication and retry a request after receiving a `401 Unauthorized` response.
+
+For a complete explanation, see [Resource API Requests](/docs/client-sdk/resource-api-requests).
 
 ## 6. Login Flow Options
 
@@ -1136,6 +1225,8 @@ The current client registration validates options when they are resolved, rather
 | `MultiTenant.Tenant` | `null` | Tenant identifier |
 | `MultiTenant.Transport` | `None` | Tenant transport |
 | `StateEvents.HandlingMode` | `Patch` | State event handling |
+| `Resource.BaseAddress` | `null` | Resource API origin; defaults to application origin |
+| `Resource.Credentials` | `Auto` | Browser credential handling for resource requests |
 
 `AutoRefresh.Enabled` should be evaluated with the applicable platform and post-configuration behavior rather than inferred solely from its property initializer.
 
