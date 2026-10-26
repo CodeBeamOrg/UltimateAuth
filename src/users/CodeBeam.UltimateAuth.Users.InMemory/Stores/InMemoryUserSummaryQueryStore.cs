@@ -251,7 +251,7 @@ internal sealed class InMemoryUserSummaryQueryStore : IUserSummaryQueryStore
         }
 
         return summaries
-            .OrderBy(x => x.UserKey)
+            .OrderBy(x => x.UserKey.Value, StringComparer.Ordinal)
             .ToArray();
     }
 

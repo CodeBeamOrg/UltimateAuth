@@ -1765,6 +1765,133 @@ public sealed class UserApplicationServiceTests
         result.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenOver250Keys_ThrowsValidationException()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var keys = Enumerable.Range(0, 251)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        var act = () => f.Sut.GetUsersByKeysAsync(context, keys);
+
+        await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        f.QueryStoreFactory.VerifyNoOtherCalls();
+        f.QueryStore.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenEmpty_ReturnsEmptyWithoutStoreAccess()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            Array.Empty<UserKey>());
+
+        result.Should().BeEmpty();
+
+        f.QueryStoreFactory.VerifyNoOtherCalls();
+        f.QueryStore.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_ShouldNormalizeKeysAndUseResourceTenant()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        var expected = new UserSummary[]
+        {
+        new()
+        {
+            UserKey = first,
+            DisplayName = "Alice",
+            Status = UserStatus.Active,
+            CreatedAt = Now
+        },
+        new()
+        {
+            UserKey = second,
+            DisplayName = "Bob",
+            Status = UserStatus.Active,
+            CreatedAt = Now
+        }
+        };
+
+        f.QueryStore
+            .Setup(x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(keys =>
+                    keys.Count == 2 &&
+                    keys.Contains(first) &&
+                    keys.Contains(second)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            [first, first, second]);
+
+        result.Should().BeEquivalentTo(expected);
+
+        f.QueryStoreFactory.Verify(
+            x => x.Create(context.ResourceTenant),
+            Times.Once);
+
+        f.QueryStore.Verify(
+            x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(keys =>
+                    keys.Count == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_When250DistinctKeys_ExecutesSuccessfully()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var keys = Enumerable.Range(0, 250)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        f.QueryStore
+            .Setup(x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(x =>
+                    x.Count == 250),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserSummary>());
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            keys);
+
+        result.Should().BeEmpty();
+
+        f.QueryStore.Verify(x => x.GetByKeysAsync(
+            It.Is<IReadOnlyCollection<UserKey>>(x =>
+                x.Count == 250),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
@@ -1788,8 +1915,13 @@ public sealed class UserApplicationServiceTests
         var queryStoreFactory = new Mock<IUserSummaryQueryStoreFactory>(MockBehavior.Strict);
         var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
         var clock = new Mock<IClock>(MockBehavior.Strict);
+        var queryStore = new Mock<IUserSummaryQueryStore>(MockBehavior.Strict);
 
         clock.SetupGet(x => x.UtcNow).Returns(Now);
+
+        queryStoreFactory
+            .Setup(x => x.Create(It.IsAny<TenantKey>()))
+            .Returns(queryStore.Object);
 
         lifecycleFactory
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
@@ -1862,6 +1994,16 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<UserDeleteResult>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<IReadOnlyList<UserSummary>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext,
+                AccessCommand<IReadOnlyList<UserSummary>>,
+                CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
         atomic
             .Setup(x => x.ExecuteAsync<UserCreateResult>(
                 It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
@@ -1900,7 +2042,9 @@ public sealed class UserApplicationServiceTests
             identifierValidator,
             normalizer,
             identifierVerifier,
-            sessionStore);
+            sessionStore,
+            queryStoreFactory,
+            queryStore);
     }
 
     private static AccessContext CreateContext(
@@ -1930,10 +2074,7 @@ public sealed class UserApplicationServiceTests
             UserName = "alice"
         };
 
-    private static void SetupValidCreate(
-    Fixture f,
-    AccessContext context,
-    CreateUserRequest request)
+    private static void SetupValidCreate(Fixture f, AccessContext context, CreateUserRequest request)
     {
         f.UserCreateValidator
             .Setup(x => x.ValidateAsync(
@@ -2013,9 +2154,7 @@ public sealed class UserApplicationServiceTests
             .Returns(Task.CompletedTask);
     }
 
-    private static void SetupCreateNormalizers(
-    Fixture f,
-    CreateUserRequest request)
+    private static void SetupCreateNormalizers(Fixture f, CreateUserRequest request)
     {
         if (!string.IsNullOrWhiteSpace(request.UserName))
         {
@@ -2068,7 +2207,9 @@ public sealed class UserApplicationServiceTests
         Mock<IUserIdentifierValidator> IdentifierValidator,
         Mock<IIdentifierNormalizer> IdentifierNormalizer,
         Mock<IUserIdentifierVerifier> IdentifierVerifier,
-        Mock<ISessionStore> SessionStore);
+        Mock<ISessionStore> SessionStore,
+        Mock<IUserSummaryQueryStoreFactory> QueryStoreFactory,
+        Mock<IUserSummaryQueryStore> QueryStore);
 
     private static UserIdentifier CreateIdentifier(
     UserKey userKey,
