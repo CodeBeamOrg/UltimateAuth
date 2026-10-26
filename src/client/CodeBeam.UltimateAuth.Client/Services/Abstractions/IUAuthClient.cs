@@ -64,4 +64,9 @@ public interface IUAuthClient
     /// Provides authorization and policy evaluation operations.
     /// </summary>
     IAuthorizationClient Authorization { get; }
+
+    /// <summary>
+    /// Provides authenticated requests to application Resource APIs.
+    /// </summary>
+    IResourceClient Resource { get; }
 }

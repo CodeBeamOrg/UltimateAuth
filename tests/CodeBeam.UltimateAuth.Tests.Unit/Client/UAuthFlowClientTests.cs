@@ -810,7 +810,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IUserClient>(),
             Mock.Of<IUserIdentifierClient>(),
             Mock.Of<ICredentialClient>(),
-            Mock.Of<IAuthorizationClient>());
+            Mock.Of<IAuthorizationClient>(),
+            Mock.Of<IResourceClient>());
 
         client.Flows.Should().Be(flow);
     }

@@ -91,6 +91,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientResourceOptionsValidator>();
 
         services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
@@ -109,8 +110,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserIdentifierClient, UAuthUserIdentifierClient>();
         services.TryAddScoped<ICredentialClient, UAuthCredentialClient>();
         services.TryAddScoped<IAuthorizationClient, UAuthAuthorizationClient>();
+        services.TryAddScoped<IResourceClient, UAuthResourceClient>();
 
-        
         services.TryAddScoped<IUAuthClientBootstrapper, UAuthClientBootstrapper>();
         services.TryAddScoped<IUAuthStateManager, UAuthStateManager>();
         services.TryAddScoped<IDeviceIdProvider, UAuthDeviceIdProvider>();
