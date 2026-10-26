@@ -379,7 +379,7 @@ Such policies should preserve the framework's security boundaries:
 - Do not use broad permission grants to override target or tenant restrictions.
 - Keep policy applicability and evaluation behavior explicit.
 
-Detailed custom policy implementation and registration examples belong in [How-to Guides](/docs/how-to), where they can be presented alongside complete application code.
+For a complete, practical example of implementing and registering custom application policies, see [Define Authorization Policies](/docs/how-to-guides/define-authorization-policies). The guide demonstrates how to enforce Separation of Duties, compose multiple authorization requirements, and simplify application services.
 
 ## Architectural Perspective
 

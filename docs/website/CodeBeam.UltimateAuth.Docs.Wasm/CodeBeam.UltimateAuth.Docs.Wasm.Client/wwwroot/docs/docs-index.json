@@ -273,6 +273,13 @@
     "GroupOrder": 9
   },
   {
+    "Title": "Define Authorization Policies",
+    "Slug": "how-to-guides/define-authorization-policies",
+    "Order": 3,
+    "Group": "how-to-guides",
+    "GroupOrder": 9
+  },
+  {
     "Title": "Migration Guides",
     "Slug": "migration/index",
     "Order": 1,
