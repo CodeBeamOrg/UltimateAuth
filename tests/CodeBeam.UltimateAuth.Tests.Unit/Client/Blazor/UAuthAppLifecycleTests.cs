@@ -2,7 +2,6 @@
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -234,10 +233,89 @@ public sealed class UAuthAppLifecycleTests : BunitContext
             Times.Once);
     }
 
-    private static UAuthState AuthenticatedState(
-        string userKey = "user-1",
-        string? userName = "alice",
-        SessionState sessionState = SessionState.Active)
+    [Fact]
+    public void ReactiveMode_StateChange_RerendersChildContent()
+    {
+        var renderCount = 0;
+
+        var cut = Render<UAuthApp>(p => p
+            .Add(x => x.RenderMode, UAuthRenderMode.Reactive)
+            .Add(x => x.ChildContent, (RenderFragment)(builder =>
+            {
+                renderCount++;
+                builder.AddContent(0, $"Render {renderCount}");
+            })));
+
+        var initialRenderCount = renderCount;
+
+        cut.InvokeAsync(() => ApplyAuthenticatedSnapshot(_state));
+
+        cut.WaitForAssertion(() =>
+            renderCount.Should().BeGreaterThan(initialRenderCount));
+    }
+
+    [Fact]
+    public void ManualMode_StateChange_DoesNotAutomaticallyRerenderChildContent()
+    {
+        var renderCount = 0;
+
+        var cut = Render<UAuthApp>(p => p
+            .Add(x => x.RenderMode, UAuthRenderMode.Manual)
+            .Add(x => x.ChildContent, (RenderFragment)(builder =>
+            {
+                renderCount++;
+                builder.AddContent(0, $"Render {renderCount}");
+            })));
+
+        var initialRenderCount = renderCount;
+
+        cut.InvokeAsync(() => ApplyAuthenticatedSnapshot(_state));
+
+        renderCount.Should().Be(initialRenderCount);
+    }
+
+    [Fact]
+    public async Task Dispose_UnsubscribesFromStateChanges()
+    {
+        var cut = Render<UAuthApp>(p => p
+            .AddChildContent("content"));
+
+        await cut.Instance.DisposeAsync();
+
+        _coordinator.Invocations.Clear();
+
+        ApplyAuthenticatedSnapshot(_state);
+
+        _coordinator.Verify(
+            x => x.StartAsync(),
+            Times.Never);
+    }
+
+    [Fact]
+    public void ManualMode_Touch_RequestsRender()
+    {
+        var renderCount = 0;
+
+        var cut = Render<UAuthApp>(p => p
+            .Add(x => x.RenderMode, UAuthRenderMode.Manual)
+            .Add(x => x.ChildContent, (RenderFragment)(builder =>
+            {
+                renderCount++;
+                builder.AddContent(0, $"Render {renderCount}");
+            })));
+
+        var initialRenderCount = renderCount;
+
+        cut.InvokeAsync(() => _state.Touch(updateState: false));
+
+        cut.WaitForAssertion(() =>
+            renderCount.Should().BeGreaterThan(initialRenderCount));
+
+        _state.IsStale.Should().BeFalse();
+    }
+
+
+    private static UAuthState AuthenticatedState(string userKey = "user-1", string? userName = "alice", SessionState sessionState = SessionState.Active)
     {
         var state = UAuthState.Anonymous();
 
@@ -251,10 +329,7 @@ public sealed class UAuthAppLifecycleTests : BunitContext
         return state;
     }
 
-    private static AuthStateSnapshot CreateAuthSnapshot(
-        string userKey = "user-1",
-        string? userName = "alice",
-        SessionState sessionState = SessionState.Active)
+    private static AuthStateSnapshot CreateAuthSnapshot(string userKey = "user-1", string? userName = "alice", SessionState sessionState = SessionState.Active)
     {
         return new AuthStateSnapshot
         {
@@ -274,8 +349,6 @@ public sealed class UAuthAppLifecycleTests : BunitContext
 
     private static void ApplyAuthenticatedSnapshot(UAuthState state)
     {
-        state.ApplySnapshot(
-            CreateAuthSnapshot(),
-            DateTimeOffset.UtcNow);
+        state.ApplySnapshot(CreateAuthSnapshot(), DateTimeOffset.UtcNow);
     }
 }

@@ -31,23 +31,31 @@ public static class UAuthLoginPageDiscovery
         if (_cached is not null)
             return _cached;
 
-        var candidates = AppDomain.CurrentDomain
-            .GetAssemblies()
+        var resolved = ResolveFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+
+        return _cached = resolved;
+    }
+
+    internal static string ResolveFromAssemblies(
+        IEnumerable<System.Reflection.Assembly> assemblies)
+    {
+        ArgumentNullException.ThrowIfNull(assemblies);
+
+        var candidates = assemblies
             .SelectMany(GetLoadableTypes)
             .Where(HasLoginPageAttribute)
             .ToArray();
 
         if (candidates.Length == 0)
-            return _cached = DefaultLoginRoute;
+            return DefaultLoginRoute;
 
         if (candidates.Length > 1)
         {
-            throw new InvalidOperationException(
-                "Multiple [UAuthLoginPage] components were found. " +
+            throw new InvalidOperationException("Multiple [UAuthLoginPage] components were found. " +
                 "Make sure only one component is marked as the UltimateAuth login page.");
         }
 
-        return _cached = ResolveRoute(candidates[0]);
+        return ResolveRoute(candidates[0]);
     }
 
     internal static string ResolveRoute(Type componentType)

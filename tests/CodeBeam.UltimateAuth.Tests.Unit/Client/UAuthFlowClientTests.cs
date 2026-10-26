@@ -22,7 +22,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 {
     private readonly Mock<IUAuthRequestClient> _mockRequest = new();
 
-    private UAuthFlowClient CreateClient(Mock<IUAuthRequestClient>? requestMock = null)
+    private UAuthFlowClient CreateClient(Mock<IUAuthRequestClient>? requestMock = null, UAuthClientDiagnostics? diagnostics = null)
     {
         var request = requestMock ?? new Mock<IUAuthRequestClient>();
 
@@ -54,15 +54,13 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             }
         });
 
-        var diagnostics = new UAuthClientDiagnostics();
-
         return new UAuthFlowClient(
             request.Object,
             events.Object,
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
-            diagnostics);
+            diagnostics ?? new UAuthClientDiagnostics());
     }
 
     private static UAuthTransportResult TryLoginResponse(bool success, AuthFailureReason? reason = null)
@@ -814,5 +812,142 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IResourceClient>());
 
         client.Flows.Should().Be(flow);
+    }
+
+    [Theory]
+    [InlineData("no-op", RefreshOutcome.NoOp)]
+    [InlineData("touched", RefreshOutcome.Touched)]
+    [InlineData("rotated", RefreshOutcome.Rotated)]
+    [InlineData("reauth-required", RefreshOutcome.ReauthRequired)]
+    public async Task Refresh_Should_Record_Correct_Diagnostic_Outcome(string outcomeHeader, RefreshOutcome expectedOutcome)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var diagnostics = new UAuthClientDiagnostics();
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                RefreshOutcome = outcomeHeader
+            });
+
+        var client = CreateClient(request, diagnostics);
+
+        var result = await client.RefreshAsync(isAuto: true);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Outcome.Should().Be(expectedOutcome);
+
+        diagnostics.RefreshNoOpCount.Should()
+            .Be(expectedOutcome == RefreshOutcome.NoOp ? 1 : 0);
+
+        diagnostics.RefreshTouchedCount.Should()
+            .Be(expectedOutcome == RefreshOutcome.Touched ? 1 : 0);
+
+        diagnostics.RefreshRotatedCount.Should()
+            .Be(expectedOutcome == RefreshOutcome.Rotated ? 1 : 0);
+
+        diagnostics.RefreshReauthRequiredCount.Should()
+            .Be(expectedOutcome == RefreshOutcome.ReauthRequired ? 1 : 0);
+
+        diagnostics.RefreshSuccessCount.Should().Be(0);
+
+        diagnostics.ManualRefreshCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Refresh_Should_Record_Success_Diagnostic()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var diagnostics = new UAuthClientDiagnostics();
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                RefreshOutcome = "success"
+            });
+
+        var client = CreateClient(request, diagnostics);
+
+        var result = await client.RefreshAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Outcome.Should().Be(RefreshOutcome.Success);
+
+        diagnostics.RefreshSuccessCount.Should().Be(1);
+        diagnostics.ManualRefreshCount.Should().Be(1);
+        diagnostics.RefreshAttemptCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData("no-op")]
+    [InlineData("touched")]
+    [InlineData("rotated")]
+    [InlineData("success")]
+    public async Task Refresh_Should_Not_Record_Successful_Outcome_When_Response_Fails(string outcomeHeader)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var diagnostics = new UAuthClientDiagnostics();
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 200,
+                RefreshOutcome = outcomeHeader
+            });
+
+        var client = CreateClient(request, diagnostics);
+
+        var result = await client.RefreshAsync(isAuto: true);
+
+        result.IsSuccess.Should().BeFalse();
+
+        diagnostics.RefreshNoOpCount.Should().Be(0);
+        diagnostics.RefreshTouchedCount.Should().Be(0);
+        diagnostics.RefreshRotatedCount.Should().Be(0);
+        diagnostics.RefreshSuccessCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Refresh_Should_Record_ReauthRequired_On_Failed_Response()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var diagnostics = new UAuthClientDiagnostics();
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 400,
+                RefreshOutcome = "reauth-required"
+            });
+
+        var client = CreateClient(request, diagnostics);
+
+        var result = await client.RefreshAsync(isAuto: true);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Outcome.Should().Be(RefreshOutcome.ReauthRequired);
+
+        diagnostics.RefreshReauthRequiredCount.Should().Be(1);
+
+        diagnostics.RefreshSuccessCount.Should().Be(0);
+        diagnostics.RefreshRotatedCount.Should().Be(0);
     }
 }
