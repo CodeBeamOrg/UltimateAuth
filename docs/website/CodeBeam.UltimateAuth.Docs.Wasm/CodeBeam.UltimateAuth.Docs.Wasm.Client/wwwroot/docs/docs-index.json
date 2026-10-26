@@ -204,7 +204,7 @@
   },
   {
     "Title": "Resource API Requests",
-    "Slug": "client-sdk/resource-api-request",
+    "Slug": "client-sdk/resource-api-requests",
     "Order": 8,
     "Group": "client",
     "GroupOrder": 6
