@@ -24,6 +24,8 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     o.Endpoints.BasePath = "https://localhost:6110/auth"; // UAuthHub URL
+    o.Resource.BaseAddress = "https://localhost:6120"; // Resource API URL
+
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Login.AllowCredentialPost = true;
     o.Pkce.ReturnUrl = "https://localhost:6130/home"; // This application domain + path
@@ -33,12 +35,12 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 
 builder.Services.AddScoped<SampleProductApiService>();
 
-builder.Services.AddScoped(sp =>
-{
-    return new HttpClient
-    {
-        BaseAddress = new Uri("https://localhost:6120") // Resource API URL
-    };
-});
+//builder.Services.AddScoped(sp =>
+//{
+//    return new HttpClient
+//    {
+//        BaseAddress = new Uri("https://localhost:6120") // Resource API URL
+//    };
+//});
 
 await builder.Build().RunAsync();

@@ -10,8 +10,9 @@ internal sealed class UAuthClient : IUAuthClient
     public IUserIdentifierClient Identifiers { get; }
     public ICredentialClient Credentials { get; }
     public IAuthorizationClient Authorization { get; }
+    public IResourceClient Resource { get; }
 
-    public UAuthClient(IFlowClient flows, ISessionClient session, IUserClient users, IUserIdentifierClient identifiers, ICredentialClient credentials, IAuthorizationClient authorization)
+    public UAuthClient(IFlowClient flows, ISessionClient session, IUserClient users, IUserIdentifierClient identifiers, ICredentialClient credentials, IAuthorizationClient authorization, IResourceClient resource)
     {
         Flows = flows;
         Sessions = session;
@@ -19,5 +20,6 @@ internal sealed class UAuthClient : IUAuthClient
         Identifiers = identifiers;
         Credentials = credentials;
         Authorization = authorization;
+        Resource = resource;
     }
 }

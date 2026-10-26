@@ -9,7 +9,13 @@ builder.Services.AddUltimateAuthResourceApi(o =>
     {
         // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.
         o.UAuthHubBaseUrl = "https://localhost:6110";
+        // o.UAuthHubBaseUrl = "https://localhost:7213"; // Comment upper line and uncomment this if you want to try blazor server sample.
+
+        // Standalone WASM
         o.AllowedClientOrigins.Add("https://localhost:6130");
+
+        // Blazor Server
+        o.AllowedClientOrigins.Add("https://localhost:7213");
     });
 
 var app = builder.Build();
