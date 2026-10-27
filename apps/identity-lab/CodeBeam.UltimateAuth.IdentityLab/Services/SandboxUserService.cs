@@ -1,6 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
@@ -10,7 +9,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
 public sealed class SandboxUserService(SandboxService sandboxService, SandboxAccessService accessService, LabUserProvisioningService provisioningService, 
-                    IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory, ActivityLogService activityLogService)
+                    IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory, ActivityLogService activityLogService, ILogger<SandboxUserService> logger)
 {
     public async Task<SandboxUsersSnapshot?> GetUsersAsync(UserKey actorUserKey, CancellationToken ct = default)
     {
@@ -64,13 +63,9 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
         return new SandboxUsersSnapshot(sandbox.Id, sandbox.Settings.MaxUsers, users);
     }
 
-    public async Task<CreateUserDialogResult> CreateAsync(
-    UserKey actorUserKey,
-    CreateUserRequest request,
-    CancellationToken ct = default)
+    public async Task<CreateUserDialogResult> CreateAsync(UserKey actorUserKey, CreateUserRequest request, CancellationToken ct = default)
     {
-        var sandbox = await sandboxService.GetByUserAsync(
-            actorUserKey, ct);
+        var sandbox = await sandboxService.GetByUserAsync(actorUserKey, ct);
 
         if (sandbox is null)
             return CreateUserDialogResult.Failure("Sandbox not found.");
@@ -98,15 +93,57 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
 
             return CreateUserDialogResult.Success();
         }
+        catch (LabPartialProvisioningException)
+        {
+            return CreateUserDialogResult.Failure(
+                "The account was created, but sandbox setup could not be completed. " +
+                "Please contact the administrator for repair.");
+        }
         catch (UnauthorizedAccessException)
         {
             return CreateUserDialogResult.Failure(
                 "You are not allowed to manage this sandbox.");
         }
-        catch (Exception)
+        catch (UAuthValidationException ex)
         {
             return CreateUserDialogResult.Failure(
-                "User provisioning failed. The account may require repair.");
+                FormatValidationError(ex.Message));
         }
+        catch (InvalidOperationException ex)
+            when (ex.Message == "Sandbox user limit reached.")
+        {
+            return CreateUserDialogResult.Failure(
+                "Sandbox user limit reached. Remove a member before adding another.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to create sandbox user.");
+
+            return CreateUserDialogResult.Failure(
+                "Unable to create the user. Please try again.");
+        }
+    }
+
+    private static string FormatValidationError(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "Invalid user information.";
+
+        if (message.Contains("username_unavailable", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This username is already taken.";
+        }
+
+        if (message.Contains("email_unavailable", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This email address is already registered.";
+        }
+
+        if (message.Contains("phone_unavailable", StringComparison.OrdinalIgnoreCase))
+        {
+            return "This phone number is already registered.";
+        }
+
+        return "Please check the user information and try again.";
     }
 }

@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
+using Microsoft.AspNetCore.Identity;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
@@ -13,7 +14,8 @@ public sealed class LabUserProvisioningService(
     SandboxAccessService accessService,
     IUserApplicationService userApplicationService,
     IRoleStoreFactory roleStoreFactory,
-    IUserRoleStoreFactory userRoleStoreFactory)
+    IUserRoleStoreFactory userRoleStoreFactory,
+    ILogger<LabUserProvisioningService> logger)
 {
     public async Task<UserCreateResult> CreateMemberAsync(
         UserKey actorUserKey,
@@ -75,32 +77,48 @@ public sealed class LabUserProvisioningService(
             LabProvisioningGate.AttributeKey,
             LabProvisioningGate.Token);
 
-        var result = await userApplicationService.CreateUserAsync(
-            trustedContext,
-            request,
-            ct);
+        var result = await userApplicationService.CreateUserAsync(trustedContext, request, ct);
 
-        if (!result.IsSuccess ||
-            string.IsNullOrWhiteSpace(result.UserKey))
+        if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.UserKey))
         {
             return result;
         }
 
         var newUserKey = UserKey.FromString(result.UserKey);
 
-        var userRoleStore = userRoleStoreFactory.Create(
-            CodeBeam.UltimateAuth.Core.MultiTenancy.TenantKeys.Single);
+        try
+        {
+            var userRoleStore = userRoleStoreFactory.Create(
+                trustedContext.ResourceTenant);
 
-        await userRoleStore.AssignAsync(
-            newUserKey,
-            role.Id,
-            DateTimeOffset.UtcNow,
-            ct);
+            var assignments = await userRoleStore.GetAssignmentsAsync(
+                newUserKey, ct);
 
-        await sandboxService.AddMemberAsync(
-            authenticatedUserKey,
-            newUserKey,
-            ct);
+            if (!assignments.Any(x => x.RoleId == role.Id))
+            {
+                await userRoleStore.AssignAsync(
+                    newUserKey,
+                    role.Id,
+                    DateTimeOffset.UtcNow,
+                    ct);
+            }
+
+            await sandboxService.AddMemberAsync(
+                authenticatedUserKey,
+                newUserKey,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Partial provisioning failure for user {UserKey}",
+                newUserKey.Value);
+
+            throw new LabPartialProvisioningException(
+                newUserKey.Value,
+                ex);
+        }
 
         return result;
     }

@@ -98,6 +98,8 @@ builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<ActivityLogService>();
 builder.Services.AddScoped<LabUserProvisioningService>();
+builder.Services.AddScoped<LabRepairService>();
+builder.Services.AddScoped<LabOwnerRepairService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();
@@ -108,6 +110,7 @@ builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
 
 builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
+builder.Services.AddLogging();
 
 var app = builder.Build();
 
