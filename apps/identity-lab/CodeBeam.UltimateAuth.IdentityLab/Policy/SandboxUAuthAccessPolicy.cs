@@ -73,6 +73,11 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (actor.Status == SandboxStatus.Suspended)
             return AccessDecision.Deny("sandbox_suspended");
 
+        if (action == UAuthActions.Users.DeleteSelf && actor.Role == SandboxMemberRole.Owner)
+        {
+            return AccessDecision.Deny("sandbox_owner_cannot_delete_self");
+        }
+
         var operation = ClassifyAction(action);
 
         if (operation == SandboxOperation.Denied)
@@ -117,6 +122,20 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
             var belongsToSandbox = await db.SandboxMembers
                 .AsNoTracking()
                 .AnyAsync(x => x.UserKey == targetKey && x.SandboxId == actor.SandboxId, cancellationToken);
+
+            if (action == UAuthActions.Users.DeleteAdmin)
+            {
+                var targetIsOwner = await db.SandboxMembers
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.SandboxId == actor.SandboxId &&
+                        x.UserKey == targetKey &&
+                        x.Role == SandboxMemberRole.Owner,
+                        cancellationToken);
+
+                if (targetIsOwner)
+                    return AccessDecision.Deny("sandbox_owner_cannot_be_deleted");
+            }
 
             if (!belongsToSandbox)
                 return AccessDecision.Deny("sandbox_target_out_of_scope");

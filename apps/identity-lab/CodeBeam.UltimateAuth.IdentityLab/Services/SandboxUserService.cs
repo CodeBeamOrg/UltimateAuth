@@ -1,15 +1,21 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
+using CodeBeam.UltimateAuth.IdentityLab.Persistence;
 using CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class SandboxUserService(SandboxService sandboxService, SandboxAccessService accessService, LabUserProvisioningService provisioningService, 
-                    IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory, ActivityLogService activityLogService, ILogger<SandboxUserService> logger)
+public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClient uAuthClient, IDbContextFactory<LabDbContext> dbFactory, SandboxAccessService accessService, LabUserProvisioningService provisioningService, 
+                    IUserSummaryQueryStoreFactory userSummaryQueryStoreFactory, ActivityLogService activityLogService, IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, ILogger<SandboxUserService> logger)
 {
     public async Task<SandboxUsersSnapshot?> GetUsersAsync(UserKey actorUserKey, CancellationToken ct = default)
     {
@@ -121,6 +127,103 @@ public sealed class SandboxUserService(SandboxService sandboxService, SandboxAcc
 
             return CreateUserDialogResult.Failure(
                 "Unable to create the user. Please try again.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> DeleteAsync(
+    UserKey actorUserKey,
+    UserKey targetUserKey,
+    CancellationToken ct = default)
+    {
+        if (actorUserKey == targetUserKey)
+            return (false, "You cannot delete your own account.");
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+        var sandbox = await db.Sandboxes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.OwnerUserKey == actorUserKey &&
+                     x.Status == SandboxStatus.Active,
+                ct);
+
+        if (sandbox is null)
+            return (false, "You are not the owner of an active sandbox.");
+
+        var owner = await db.SandboxMembers
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.SandboxId == sandbox.Id &&
+                x.UserKey == actorUserKey &&
+                x.Role == SandboxMemberRole.Owner, ct);
+
+        if (!owner)
+            return (false, "Owner membership is required.");
+
+        var member = await db.SandboxMembers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x =>
+                x.SandboxId == sandbox.Id &&
+                x.UserKey == targetUserKey, ct);
+
+        if (member is null || member.Role != SandboxMemberRole.Member)
+            return (false, "The target is not a regular member of your sandbox.");
+
+        // Prevent deleting an account with elevated global roles.
+        var roleStore = roleStoreFactory.Create(TenantKeys.Single);
+        var userRoleStore = userRoleStoreFactory.Create(TenantKeys.Single);
+        var assignments = await userRoleStore.GetAssignmentsAsync(targetUserKey, ct);
+
+        var ownerRole = await roleStore.GetByNameAsync(LabRoles.Owner.ToUpperInvariant(), ct);
+        var adminRole = await roleStore.GetByNameAsync(LabRoles.Admin.ToUpperInvariant(), ct);
+
+        if (ownerRole is null || adminRole is null)
+            return (false, "Required roles are not configured.");
+
+        if (assignments.Any(x =>
+            x.RoleId == ownerRole.Id || x.RoleId == adminRole.Id))
+        {
+            return (false, "Privileged accounts cannot be deleted.");
+        }
+
+        try
+        {
+            var result = await uAuthClient.Users.DeleteUserAsync(
+                targetUserKey,
+                new DeleteUserRequest() { Mode = DeleteMode.Hard });
+
+            if (!result.IsSuccess)
+                return (false, result.ErrorText ?? "User deletion failed.");
+
+            // Remove sandbox membership only after framework deletion succeeds.
+            var currentMember = await db.SandboxMembers
+                .SingleOrDefaultAsync(x =>
+                    x.SandboxId == sandbox.Id &&
+                    x.UserKey == targetUserKey, ct);
+
+            if (currentMember is not null)
+            {
+                db.SandboxMembers.Remove(currentMember);
+                await db.SaveChangesAsync(ct);
+            }
+
+            await activityLogService.TryRecordAsync(
+                sandbox.Id,
+                actorUserKey.Value,
+                ActivityEvents.UserDeleted,
+                targetUserKey.Value,
+                ct);
+
+            return (true, "User permanently deleted.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "Failed to delete sandbox user {TargetUserKey} by {ActorUserKey}",
+                targetUserKey.Value,
+                actorUserKey.Value);
+
+            return (false, "User deletion failed. Check server logs before retrying.");
         }
     }
 
