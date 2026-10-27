@@ -5,7 +5,6 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
@@ -31,6 +30,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+    //.AddCircuitOptions(o => o.DetailedErrors = true);
 
 builder.Services.AddMudServices(o => {
     o.SnackbarConfiguration.PreventDuplicates = false;
@@ -98,8 +98,10 @@ builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<ActivityLogService>();
 builder.Services.AddScoped<LabUserProvisioningService>();
+builder.Services.AddScoped<SandboxAccountDeletionService>();
 builder.Services.AddScoped<LabRepairService>();
 builder.Services.AddScoped<LabOwnerRepairService>();
+builder.Services.AddScoped<SandboxRepairService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();

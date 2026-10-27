@@ -1,6 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;

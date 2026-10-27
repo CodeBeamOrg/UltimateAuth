@@ -9,7 +9,9 @@
 
 @inject SandboxService SandboxService
 @inject SandboxUserService SandboxUserService
+@inject SandboxRepairService SandboxRepairService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <PageTitle>Sandbox Settings · Identity Lab</PageTitle>
 
@@ -257,6 +259,34 @@
                          Color="Color.Error" />
             </div>
 
+            @if (_isOwner)
+            {
+                <div class="lab-settings-danger-action">
+                    <div>
+                        <strong>Repair Sandbox</strong>
+                        <p>
+                            Find and remove stale memberships left behind by
+                            deleted accounts. Active users and their data
+                            will not be modified.
+                        </p>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Build"
+                               Disabled="@(_loading || _repairing)"
+                               OnClick="RepairSandboxAsync">
+                        @if (_repairing)
+                        {
+                            <MudProgressCircular Size="Size.Small"
+                                                 Indeterminate="true"
+                                                 Class="me-2" />
+                        }
+                        Repair Sandbox
+                    </MudButton>
+                </div>
+            }
+
             <div class="lab-settings-danger-action">
                 <div>
                     <strong>Reset Sandbox</strong>
@@ -307,6 +337,7 @@
     private bool _isOwner;
     private bool _saving;
     private bool _loading = true;
+    private bool _repairing;
 
     private bool _hasChanges => _sandbox is not null && !string.Equals(_sandbox.Name, _sandboxName?.Trim(), StringComparison.Ordinal);
 
@@ -428,6 +459,58 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task RepairSandboxAsync()
+    {
+        if (!_isOwner || _sandbox is null || _repairing)
+            return;
+
+        _repairing = true;
+
+        try
+        {
+            var preview = await SandboxRepairService.PreviewAsync(
+                _currentUserKey);
+
+            if (preview.StaleMemberships == 0)
+            {
+                Snackbar.Add(
+                    "No stale memberships found. Your sandbox is healthy.",
+                    Severity.Success);
+                return;
+            }
+
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                "Repair Sandbox?",
+                $"Found {preview.StaleMemberships} stale membership(s). " +
+                "Remove these records and restore available capacity?",
+                yesText: "Repair",
+                cancelText: "Cancel");
+
+            if (confirmed != true)
+                return;
+
+            var result = await SandboxRepairService.RepairAsync(
+                _currentUserKey);
+
+            Snackbar.Add(
+                $"Repair completed. Removed {result.RemovedMemberships} " +
+                "stale membership(s).",
+                Severity.Success);
+
+            await LoadSettingsAsync(_currentUserKey);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to repair sandbox. Check server logs.",
+                Severity.Error);
+        }
+        finally
+        {
+            _repairing = false;
         }
     }
 }

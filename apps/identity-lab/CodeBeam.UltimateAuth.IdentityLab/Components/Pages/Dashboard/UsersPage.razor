@@ -93,15 +93,24 @@
                               AdornmentIcon="@Icons.Material.Filled.Search"
                               Class="lab-users-search" />
 
-                <MudSelect T="string"
+                <MudSelectExtended T="UserStatus?"
                            @bind-Value="_statusFilter"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
+                           Label="Status"
                            Class="lab-users-filter">
-                    <MudSelectItem Value="@("all")">All statuses</MudSelectItem>
-                    <MudSelectItem Value="@("active")">Active</MudSelectItem>
-                    <MudSelectItem Value="@("disabled")">Disabled</MudSelectItem>
-                </MudSelect>
+
+                    <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)null)">
+                        All statuses
+                    </MudSelectItemExtended>
+
+                    @foreach (var status in Enum.GetValues<UserStatus>())
+                    {
+                        <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)status)">
+                            @status
+                        </MudSelectItemExtended>
+                    }
+                </MudSelectExtended>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(_error))
@@ -299,7 +308,7 @@
     }
 
     private string _search = string.Empty;
-    private string _statusFilter = "all";
+    private UserStatus? _statusFilter;
 
     
     private async Task OpenCreateUserDialogAsync()
@@ -357,12 +366,7 @@
                 user.Username.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
                 user.Email.Contains(_search, StringComparison.OrdinalIgnoreCase);
 
-            var matchesStatus = _statusFilter switch
-            {
-                "active" => user.Status == UserStatus.Active,
-                "disabled" => user.Status == UserStatus.Disabled,
-                _ => true
-            };
+            var matchesStatus = !_statusFilter.HasValue || user.Status == _statusFilter.Value;
 
             return matchesSearch && matchesStatus;
         });
