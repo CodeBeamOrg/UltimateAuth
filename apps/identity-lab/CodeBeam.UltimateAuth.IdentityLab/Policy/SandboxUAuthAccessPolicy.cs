@@ -20,8 +20,14 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
 
         var action = context.Action;
 
-        // Authentication recovery and registration require
-        // their own trusted, target-aware protection.
+        // Authentication recovery and registration require their own trusted, target-aware protection.
+        if (action == UAuthActions.Users.CreateAnonymous)
+        {
+            return LabProvisioningGate.IsTrusted(context.Attributes)
+                ? AccessDecision.Allow()
+                : AccessDecision.Deny("lab_registration_required");
+        }
+
         if (action.EndsWith(".anonymous", StringComparison.Ordinal))
             return AccessDecision.Allow();
 
@@ -32,8 +38,13 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
         if (context.IsSystemActor)
             return AccessDecision.Allow();
 
-        if (!context.IsAuthenticated ||
-            context.ActorUserKey is not UserKey actorKey)
+        if (action == UAuthActions.Users.CreateAdmin)
+        {
+            if (!LabProvisioningGate.IsTrusted(context.Attributes))
+                return AccessDecision.Deny("sandbox_provisioning_required");
+        }
+
+        if (!context.IsAuthenticated || context.ActorUserKey is not UserKey actorKey)
         {
             return AccessDecision.Deny("sandbox_actor_required");
         }
@@ -142,29 +153,27 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
             || action is
                 UAuthActions.Flows.LogoutDeviceAdmin or
                 UAuthActions.Flows.LogoutOthersAdmin or
-                UAuthActions.Flows.LogoutAllAdmin;
+                UAuthActions.Flows.LogoutAllAdmin
+            || action == UAuthActions.Authorization.Roles.GetAdmin;
     }
 
     private static SandboxOperation ClassifyAction(string action)
     {
-        // User creation requires a controlled sandbox
-        // creation workflow, including membership and capacity.
-        if (action is UAuthActions.Users.CreateAdmin or UAuthActions.Users.QueryAdmin)
-        {
-            return SandboxOperation.Denied;
-        }
+        if (action == UAuthActions.Users.CreateAdmin)
+            return SandboxOperation.Manage;
 
-        // Global role definitions and assignments are
-        // handled separately by LabApplicationPolicy.
+        if (action == UAuthActions.Users.QueryAdmin)
+            return SandboxOperation.Denied;
+
         if (action.StartsWith("authorization.roles.", StringComparison.Ordinal))
-                {
-                    return action is
-                        UAuthActions.Authorization.Roles.GetSelf or
-                        UAuthActions.Authorization.Roles.GetAdmin or
-                        UAuthActions.Authorization.Roles.QueryAdmin
-                            ? SandboxOperation.Read
-                            : SandboxOperation.Denied;
-                }
+        {
+            return action is
+                UAuthActions.Authorization.Roles.GetSelf or
+                UAuthActions.Authorization.Roles.GetAdmin or
+                UAuthActions.Authorization.Roles.QueryAdmin
+                    ? SandboxOperation.Read
+                    : SandboxOperation.Denied;
+        }
 
         if (IsReadAction(action))
             return SandboxOperation.Read;
