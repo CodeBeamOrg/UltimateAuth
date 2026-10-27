@@ -2,6 +2,7 @@ using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -45,6 +46,8 @@ builder.Services.AddSingleton(activityEventBridge);
 
 builder.Services.AddUltimateAuthServer(o =>
 {
+    // Identity Lab uses its own trusted creation align with Sandbox management.
+    o.Endpoints.DisabledActions.Add(UAuthActions.Users.CreateAnonymous);
     o.Diagnostics.EnableRefreshDetails = true;
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.Lifetime = TimeSpan.FromSeconds(32);
@@ -55,8 +58,7 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.MaxFailedAttempts = 5;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
-    // TODO: Remove it back after fix
-    o.CredentialSessionPolicy.OnSelfChange = CredentialSessionBehavior.PreserveAll;
+
 
     o.Events.OnUserLoggedIn = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Login);
     o.Events.OnUserLoggedOut = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Logout);
@@ -95,6 +97,9 @@ builder.Services.AddScoped<LabRegistrationService>();
 builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<ActivityLogService>();
+builder.Services.AddScoped<LabUserProvisioningService>();
+builder.Services.AddScoped<LabRepairService>();
+builder.Services.AddScoped<LabOwnerRepairService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();
@@ -105,6 +110,7 @@ builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
 
 builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
+builder.Services.AddLogging();
 
 var app = builder.Build();
 

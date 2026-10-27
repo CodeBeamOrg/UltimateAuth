@@ -9,6 +9,8 @@
 @attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
 
 @inject LabDashboardService DashboardService
+@inject LabOwnerRepairService OwnerRepairService
+@inject LabAccessContextProvider ContextProvider
 @inject ISnackbar Snackbar
 
 <PageTitle>Overview · Identity Lab</PageTitle>
@@ -30,9 +32,46 @@
         }
         else if (_dashboard is null)
         {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="my-6">
-                Your sandbox overview is currently unavailable.
-            </MudAlert>
+            @if (_repairStatus?.State == OwnerRepairState.CanRepair)
+            {
+                <MudPaper Outlined="true" Class="pa-6 my-6">
+                    <MudStack Spacing="3">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                            @_repairStatus.Message
+                        </MudAlert>
+
+                        <MudText>
+                            Your account is active, but your sandbox setup is incomplete.
+                            You can safely complete the setup without creating another account.
+                        </MudText>
+
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_repairing"
+                                   OnClick="RepairSandboxAsync">
+                            @if (_repairing)
+                            {
+                                <MudProgressCircular Indeterminate="true"
+                                                     Size="Size.Small"
+                                                     Class="me-2" />
+                            }
+                            Complete Sandbox Setup
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning"
+                          Variant="Variant.Outlined"
+                          Class="my-6">
+                    Your sandbox overview is currently unavailable.
+                    @if (_repairStatus?.State == OwnerRepairState.NotEligible)
+                    {
+                        <span>Please contact the administrator if the problem persists.</span>
+                    }
+                </MudAlert>
+            }
         }
         else
         {
@@ -408,6 +447,9 @@
 
     private string CurrentUserIdentifier => AuthState?.Identity?.UserKey.Value ?? "Unavailable";
 
+    private OwnerRepairStatus? _repairStatus;
+    private bool _repairing;
+
     private bool ShowManagement =>
         AuthState?.IsInRole(LabRoles.Admin) == true ||
         (AuthState?.IsInRole(LabRoles.Owner) == true &&
@@ -433,21 +475,64 @@
         try
         {
             _dashboard = await DashboardService.GetAsync(userKey.Value);
+            _repairStatus = null;
 
-            if (_dashboard is not null)
-                _loadedUserKey = userKey;
+            if (_dashboard is null)
+            {
+                var context = await ContextProvider.CreateAsync("identitylab.owner.repair.status", "identitylab.sandbox");
+                _repairStatus = await OwnerRepairService.GetStatusAsync(context);
+            }
+
+            _loadedUserKey = userKey;
         }
         catch (Exception)
         {
             _dashboard = null;
+            _repairStatus = null;
 
-            Snackbar.Add(
-                "Unable to load your dashboard.",
-                Severity.Error);
+            Snackbar.Add("Unable to load your dashboard.", Severity.Error);
         }
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task RepairSandboxAsync()
+    {
+        if (_repairing)
+            return;
+
+        _repairing = true;
+
+        try
+        {
+            var context = await ContextProvider.CreateAsync("identitylab.owner.repair", "identitylab.sandbox");
+            var result = await OwnerRepairService.RepairAsync(context);
+            Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Warning);
+
+            if (result.Success)
+            {
+                _repairStatus = null;
+
+                var userKey = AuthState?.Identity?.UserKey;
+
+                if (userKey is not null)
+                {
+                    _dashboard = await DashboardService.GetAsync(userKey.Value);
+                    _loadedUserKey = userKey;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to complete sandbox setup. Please contact the administrator.",
+                Severity.Error);
+        }
+        finally
+        {
+            _repairing = false;
         }
     }
 }

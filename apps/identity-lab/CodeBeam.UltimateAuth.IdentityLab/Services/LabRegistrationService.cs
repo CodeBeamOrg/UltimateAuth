@@ -1,16 +1,18 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Users.Reference;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory, 
-                    SandboxService sandboxService, ActivityLogService activityLogService)
+public sealed class LabRegistrationService(LabAccessContextProvider contextProvider, IUserApplicationService userApplicationService, IRoleStoreFactory roleStoreFactory,
+                                           IUserRoleStoreFactory userRoleStoreFactory, SandboxService sandboxService, ActivityLogService activityLogService)
 {
     public async Task<LabRegistrationResult> RegisterAsync(LabRegistrationRequest request, CancellationToken ct = default)
     {
@@ -21,24 +23,27 @@ public sealed class LabRegistrationService(IUAuthClient uAuthClient, IRoleStoreF
             return LabRegistrationResult.Failed("Username, email and password are required.");
         }
 
-        var createResult = await uAuthClient.Users.CreateAsync(
+        var context = await contextProvider.CreateAsync(UAuthActions.Users.CreateAnonymous, "users", ct);
+
+        var trustedContext = context.WithAttribute(LabProvisioningGate.AttributeKey, LabProvisioningGate.Token);
+
+        var createResult = await userApplicationService.CreateUserAsync(
+            trustedContext,
             new CreateUserRequest
             {
                 UserName = request.Username.Trim(),
                 Email = request.Email.Trim(),
                 Password = request.Password
-            });
+            },
+            ct);
 
-        if (!createResult.IsSuccess || createResult.Value is not
-            {
-                IsSuccess: true,
-                UserKey: { Length: > 0 } createdUserKey
-            })
+        if (!createResult.IsSuccess ||
+            string.IsNullOrWhiteSpace(createResult.UserKey))
         {
-            return LabRegistrationResult.Failed(createResult.Value?.FailureReason ?? "Unable to create your account.");
+            return LabRegistrationResult.Failed(createResult.FailureReason ?? "Unable to create your account.");
         }
 
-        var userKey = UserKey.FromString(createdUserKey);
+        var userKey = UserKey.FromString(createResult.UserKey);
 
         // TODO(Part 3): Replace direct role-store provisioning with
         // a trusted UltimateAuth registration/provisioning extension.

@@ -7,6 +7,7 @@
 @layout DashboardLayout
 @inject SandboxUserService SandboxUserService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 @attribute [UAuthAuthorize(Roles = "Ladmin,Owner")]
 
@@ -179,7 +180,14 @@
                                                Size="Size.Small"
                                                Disabled="@context.IsOwner"
                                                OnClick="@(() => OpenUserDetailsAsync(context))" />
+                            </MudTooltip>
 
+                            <MudTooltip Text="Permanently delete user">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => DeleteUserAsync(context))" />
                             </MudTooltip>
                         </div>
                     </MudTd>
@@ -367,5 +375,50 @@
             return CreateUserDialogResult.Failure("You must be signed in.");
 
         return await SandboxUserService.CreateAsync(actorUserKey.Value, request);
+    }
+
+    private async Task DeleteUserAsync(SandboxUserItem user)
+    {
+        if (user.IsOwner)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Permanently delete user?",
+            $"Delete {user.Username} permanently? This action cannot be undone.",
+            yesText: "Delete permanently",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is null)
+            return;
+
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var result = await SandboxUserService.DeleteAsync(actorUserKey.Value, user.UserKey);
+
+            if (!result.Success)
+            {
+                Snackbar.Add("Unable to delete user. Check server logs.", Severity.Error);
+                _error = result.Message;
+                return;
+            }
+
+            await LoadUsersAsync(actorUserKey.Value);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to delete user. Check server logs.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 }

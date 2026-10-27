@@ -250,4 +250,47 @@ public sealed class SandboxService(IDbContextFactory<LabDbContext> dbFactory)
 
         return Math.Max(0, settings.MaxUsers - count);
     }
+
+    public async Task<bool> RemoveMemberAsync(UserKey actorUserKey, UserKey targetUserKey, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+        await using var transaction = await db.Database
+            .BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable, ct);
+
+        var sandbox = await db.Sandboxes
+            .FirstOrDefaultAsync(x => x.OwnerUserKey == actorUserKey, ct);
+
+        if (sandbox is null)
+            throw new UnauthorizedAccessException(
+                "Only the sandbox owner can remove members.");
+
+        if (sandbox.Status != SandboxStatus.Active)
+            throw new InvalidOperationException("Sandbox is not active.");
+
+        if (targetUserKey == sandbox.OwnerUserKey)
+            throw new InvalidOperationException(
+                "Sandbox owner cannot be removed.");
+
+        var member = await db.SandboxMembers
+            .FirstOrDefaultAsync(
+                x => x.SandboxId == sandbox.Id &&
+                     x.UserKey == targetUserKey,
+                ct);
+
+        if (member is null)
+            return false;
+
+        if (member.Role == SandboxMemberRole.Owner)
+            throw new InvalidOperationException(
+                "Owner membership cannot be removed.");
+
+        db.SandboxMembers.Remove(member);
+
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+
+        return true;
+    }
 }

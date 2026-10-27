@@ -21,6 +21,14 @@
                 <h1>Activity</h1>
                 <p>Review identity, session, and authorization activity within your sandbox.</p>
             </div>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@_loading"
+                       OnClick="RefreshActivityAsync">
+                Refresh
+            </MudButton>
         </div>
 
         <div class="lab-activity-stats">
@@ -45,6 +53,15 @@
                 <small>Security activity</small>
             </div>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error"
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                @_error
+            </MudAlert>
+        }
 
         <section class="lab-activity-panel">
 
@@ -170,8 +187,35 @@
     private bool _loading;
     private string? _error;
 
+    private UserKey? _loadedUserKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _events.Clear();
+            _error = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+
+        await InitializeActivityAsync(userKey.Value);
+    }
+
     private async Task InitializeActivityAsync(UserKey currentUserKey)
     {
+        _events.Clear();
+        _error = null;
+
         var sandbox = await SandboxService.GetByUserAsync(currentUserKey);
 
         if (sandbox is null)
@@ -205,12 +249,24 @@
         }
         catch (Exception)
         {
+            _events.Clear();
+            _loadedUserKey = null;
             _error = "Unable to load activity records.";
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task RefreshActivityAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+            return;
+
+        await InitializeActivityAsync(userKey.Value);
     }
 
     private IEnumerable<ActivityLog> FilteredEvents =>
