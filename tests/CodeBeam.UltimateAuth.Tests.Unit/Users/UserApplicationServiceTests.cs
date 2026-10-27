@@ -447,6 +447,16 @@ public sealed class UserApplicationServiceTests
             Now,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.Atomic.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -574,6 +584,144 @@ public sealed class UserApplicationServiceTests
             target,
             mode,
             Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.Atomic.Verify(x => x.ExecuteAsync<UserDeleteResult>(
+            It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
+            target,
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteMeAsync_WhenSessionRevocationFails_PropagatesFailure()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: user,
+            targetUserKey: user,
+            action: UAuthActions.Users.DeleteSelf);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            user,
+            Now.AddDays(-1));
+
+        SetupDeleteSelfPersistence(f, user, lifecycle);
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                user,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException(
+                "Simulated session revocation failure"));
+
+        var act = () => f.Sut.DeleteMeAsync(context);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated session revocation failure");
+
+        f.Atomic.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(DeleteMode.Soft)]
+    [InlineData(DeleteMode.Hard)]
+    public async Task DeleteUserAsync_WhenSessionRevocationFails_PropagatesFailure(DeleteMode mode)
+    {
+        var f = CreateFixture();
+
+        var actor = UserKey.New();
+        var target = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: actor,
+            targetUserKey: target,
+            action: UAuthActions.Users.DeleteAdmin);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            target,
+            Now.AddDays(-1));
+
+        f.LifecycleStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserLifecycleKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lifecycle);
+
+        f.LifecycleStore
+            .Setup(x => x.DeleteAsync(
+                It.IsAny<UserLifecycleKey>(),
+                lifecycle.Version,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.IdentifierStore
+            .Setup(x => x.DeleteByUserAsync(
+                target,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.ProfileStore
+            .Setup(x => x.GetAllProfilesByUserAsync(
+                target,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserProfile>());
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                target,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException(
+                "Simulated session revocation failure"));
+
+        var request = new DeleteUserRequest
+        {
+            Mode = mode
+        };
+
+        var act = () => f.Sut.DeleteUserAsync(context, request);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated session revocation failure");
+
+        f.Atomic.Verify(x => x.ExecuteAsync<UserDeleteResult>(
+            It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -1807,6 +1955,13 @@ public sealed class UserApplicationServiceTests
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
             .Returns(sessionStore.Object);
 
+        sessionStore
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
         /*
          * Unit-test the service command body without mocking its contents.
          * Authorization itself belongs to IAccessOrchestrator tests.
@@ -1867,6 +2022,20 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
                 It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task<UserCreateResult>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
+        atomic
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
+        atomic
+            .Setup(x => x.ExecuteAsync<UserDeleteResult>(
+                It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<UserDeleteResult>>, CancellationToken>(
                 (operation, ct) => operation(ct));
 
         var options = Options.Create(

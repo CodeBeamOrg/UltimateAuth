@@ -21,64 +21,71 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
     private DbSet<RefreshTokenProjection> DbSet => _db.Set<RefreshTokenProjection>();
 
     // TODO: Review execution strategy retries and commit-unknown scenarios.
-    // Ensure failed transaction attempts do not retain stale tracked entities,
-    // and evaluate recovery when the database commit succeeds but the client
-    // does not receive the replacement refresh token.
-    public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
+    // Ensure failed transaction attempts do not retain stale tracked entities and evaluate recovery when the database commit succeeds but the client does not receive the replacement refresh token.
+    public Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
-        var strategy = _db.Database.CreateExecutionStrategy();
+        ArgumentNullException.ThrowIfNull(action);
 
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var tx = await _db.Database.BeginTransactionAsync(ct);
-
-            _inTransaction = true;
-
-            try
+        return ExecuteAsync<object?>(
+            async innerCt =>
             {
-                await action(ct);
-                await _db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
-            }
-            catch
-            {
-                await tx.RollbackAsync(ct);
-                throw;
-            }
-            finally
-            {
-                _inTransaction = false;
-            }
-        });
+                await action(innerCt);
+                return null;
+            },
+            ct);
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(action);
+        ct.ThrowIfCancellationRequested();
+
+        // Participate in the transaction owned by the atomic executor.
+        if (_db.Database.CurrentTransaction is not null)
+            return await ExecuteCoreAsync(action, ct);
+
         var strategy = _db.Database.CreateExecutionStrategy();
 
         return await strategy.ExecuteAsync(async () =>
         {
-            await using var tx = await _db.Database.BeginTransactionAsync(ct);
-
-            _inTransaction = true;
+            await using var transaction =
+                await _db.Database.BeginTransactionAsync(ct);
 
             try
             {
-                var result = await action(ct);
-                await _db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
+                var result = await ExecuteCoreAsync(action, ct);
+
+                await transaction.CommitAsync(ct);
+
                 return result;
             }
             catch
             {
-                await tx.RollbackAsync(ct);
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw;
             }
-            finally
-            {
-                _inTransaction = false;
-            }
         });
+    }
+
+    private async Task<TResult> ExecuteCoreAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct)
+    {
+        if (_inTransaction)
+            throw new InvalidOperationException("A refresh token store execution is already active.");
+
+        _inTransaction = true;
+
+        try
+        {
+            var result = await action(ct);
+
+            await _db.SaveChangesAsync(ct);
+
+            return result;
+        }
+        finally
+        {
+            _inTransaction = false;
+        }
     }
 
     private void EnsureTransaction()

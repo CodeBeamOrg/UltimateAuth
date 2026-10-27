@@ -222,90 +222,155 @@ internal sealed class UserApplicationService : IUserApplicationService
         return await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-
     public async Task DeleteMeAsync(AccessContext context, CancellationToken ct = default)
     {
         var command = new AccessCommand(async innerCt =>
         {
-            var userKey = context.GetTargetUserKey();
-            var now = _clock.UtcNow;
-
-            var lifecycleKey = new UserLifecycleKey(context.ResourceTenant, userKey);
-            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
-            var lifecycle = await lifecycleStore.GetAsync(lifecycleKey, innerCt);
-
-            if (lifecycle is null)
-                throw new UAuthNotFoundException();
-
-            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
-            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-
-            await lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, innerCt);
-            await identifierStore.DeleteByUserAsync(userKey, DeleteMode.Soft, now, innerCt);
-
-            var profiles = await profileStore.GetAllProfilesByUserAsync(userKey, innerCt);
-
-            foreach (var profile in profiles)
+            await _atomicExecutor.ExecuteAsync(async atomicCt =>
             {
-                var key = new UserProfileKey(context.ResourceTenant, userKey, profile.ProfileKey);
-                await profileStore.DeleteAsync(key, profile.Version, DeleteMode.Soft, now, innerCt);
-            }
+                var userKey = context.GetTargetUserKey();
+                var now = _clock.UtcNow;
 
-            foreach (var integration in _integrations)
-            {
-                await integration.OnUserDeletedAsync(context.ResourceTenant, userKey, DeleteMode.Soft, innerCt);
-            }
+                var lifecycleKey = new UserLifecycleKey(context.ResourceTenant, userKey);
 
-            var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
-            await sessionStore.RevokeAllChainsAsync(userKey, now, innerCt);
+                var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
+
+                var lifecycle = await lifecycleStore.GetAsync(lifecycleKey, atomicCt);
+
+                if (lifecycle is null)
+                    throw new UAuthNotFoundException();
+
+                var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+
+                var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
+
+                await lifecycleStore.DeleteAsync(lifecycleKey, lifecycle.Version, DeleteMode.Soft, now, atomicCt);
+
+                await identifierStore.DeleteByUserAsync(userKey, DeleteMode.Soft, now, atomicCt);
+
+                var profiles = await profileStore.GetAllProfilesByUserAsync(userKey, atomicCt);
+
+                foreach (var profile in profiles)
+                {
+                    var key = new UserProfileKey(
+                        context.ResourceTenant,
+                        userKey,
+                        profile.ProfileKey);
+
+                    await profileStore.DeleteAsync(
+                        key,
+                        profile.Version,
+                        DeleteMode.Soft,
+                        now,
+                        atomicCt);
+                }
+
+                foreach (var integration in _integrations)
+                {
+                    await integration.OnUserDeletedAsync(
+                        context.ResourceTenant,
+                        userKey,
+                        DeleteMode.Soft,
+                        atomicCt);
+                }
+
+                var sessionStore = _sessionStoreFactory.Create(
+                    context.ResourceTenant);
+
+                await sessionStore.ExecuteAsync(
+                    sessionCt => sessionStore.RevokeAllChainsAsync(
+                        userKey,
+                        now,
+                        sessionCt),
+                    atomicCt);
+            }, innerCt);
         });
 
         await _accessOrchestrator.ExecuteAsync(context, command, ct);
     }
 
-
     public async Task<UserDeleteResult> DeleteUserAsync(AccessContext context, DeleteUserRequest request, CancellationToken ct = default)
     {
         var command = new AccessCommand<UserDeleteResult>(async innerCt =>
         {
-            var targetUserKey = context.GetTargetUserKey();
-            var now = _clock.UtcNow;
-            var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
-            var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
-            var lifecycle = await lifecycleStore.GetAsync(userLifecycleKey, innerCt);
-
-            if (lifecycle is null)
-                throw new UAuthNotFoundException();
-
-            var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
-            var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
-
-            await lifecycleStore.DeleteAsync(userLifecycleKey, lifecycle.Version, request.Mode, now, innerCt);
-            await identifierStore.DeleteByUserAsync(targetUserKey, request.Mode, now, innerCt);
-            var profiles = await profileStore.GetAllProfilesByUserAsync(targetUserKey, innerCt);
-
-            foreach (var profile in profiles)
+            return await _atomicExecutor.ExecuteAsync(async atomicCt =>
             {
-                var key = new UserProfileKey(context.ResourceTenant, profile.UserKey, profile.ProfileKey);
+                var targetUserKey = context.GetTargetUserKey();
+                var now = _clock.UtcNow;
 
-                await profileStore.DeleteAsync(key, profile.Version, request.Mode, now, innerCt);
-            }
+                var userLifecycleKey = new UserLifecycleKey(context.ResourceTenant, targetUserKey);
 
-            foreach (var integration in _integrations)
-            {
-                await integration.OnUserDeletedAsync(context.ResourceTenant, targetUserKey, request.Mode, innerCt);
-            }
+                var lifecycleStore = _lifecycleStoreFactory.Create(context.ResourceTenant);
 
-            var sessionStore = _sessionStoreFactory.Create(context.ResourceTenant);
+                var lifecycle = await lifecycleStore.GetAsync(userLifecycleKey, atomicCt);
 
-            await sessionStore.RevokeAllChainsAsync(targetUserKey, now, innerCt);
+                if (lifecycle is null)
+                    throw new UAuthNotFoundException();
 
-            return UserDeleteResult.Success(request.Mode);
+                var profileStore = _profileStoreFactory.Create(context.ResourceTenant);
+
+                var identifierStore = _identifierStoreFactory.Create( context.ResourceTenant);
+
+                await lifecycleStore.DeleteAsync(
+                    userLifecycleKey,
+                    lifecycle.Version,
+                    request.Mode,
+                    now,
+                    atomicCt);
+
+                await identifierStore.DeleteByUserAsync(
+                    targetUserKey,
+                    request.Mode,
+                    now,
+                    atomicCt);
+
+                var profiles = await profileStore.GetAllProfilesByUserAsync(
+                    targetUserKey,
+                    atomicCt);
+
+                foreach (var profile in profiles)
+                {
+                    var key = new UserProfileKey(
+                        context.ResourceTenant,
+                        profile.UserKey,
+                        profile.ProfileKey);
+
+                    await profileStore.DeleteAsync(
+                        key,
+                        profile.Version,
+                        request.Mode,
+                        now,
+                        atomicCt);
+                }
+
+                foreach (var integration in _integrations)
+                {
+                    await integration.OnUserDeletedAsync(
+                        context.ResourceTenant,
+                        targetUserKey,
+                        request.Mode,
+                        atomicCt);
+                }
+
+                var sessionStore = _sessionStoreFactory.Create(
+                    context.ResourceTenant);
+
+                await sessionStore.ExecuteAsync(
+                    sessionCt => sessionStore.RevokeAllChainsAsync(
+                        targetUserKey,
+                        now,
+                        sessionCt),
+                    atomicCt);
+
+                return UserDeleteResult.Success(request.Mode);
+            }, innerCt);
         });
 
-        return await _accessOrchestrator.ExecuteAsync(context, command, ct);
+        return await _accessOrchestrator.ExecuteAsync(
+            context,
+            command,
+            ct);
     }
-
 
     #endregion
 
