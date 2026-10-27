@@ -213,6 +213,9 @@
 
     private async Task InitializeActivityAsync(UserKey currentUserKey)
     {
+        _events.Clear();
+        _error = null;
+
         var sandbox = await SandboxService.GetByUserAsync(currentUserKey);
 
         if (sandbox is null)

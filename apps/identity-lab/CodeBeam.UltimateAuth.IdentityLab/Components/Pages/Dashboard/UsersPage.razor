@@ -180,15 +180,14 @@
                                                Size="Size.Small"
                                                Disabled="@context.IsOwner"
                                                OnClick="@(() => OpenUserDetailsAsync(context))" />
+                            </MudTooltip>
 
-                                <MudTooltip Text="Permanently delete user">
-                                    <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
-                                                   Color="Color.Error"
-                                                   Size="Size.Small"
-                                                   Disabled="@context.IsOwner"
-                                                   OnClick="@(() => DeleteUserAsync(context))" />
-                                </MudTooltip>
-
+                            <MudTooltip Text="Permanently delete user">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => DeleteUserAsync(context))" />
                             </MudTooltip>
                         </div>
                     </MudTd>
