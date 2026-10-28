@@ -1,5 +1,4 @@
-﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
-@inject IUAuthClient UAuthClient
+﻿@inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -23,22 +22,18 @@
         <div class="lab-user-role-content">
             @if (PreviewMode)
             {
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Outlined"
-                          Dense="true">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
                     Preview mode is active. Role assignments cannot be changed.
                 </MudAlert>
             }
 
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true"
-                                   Color="Color.Primary" />
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
             }
             else if (_loadError is not null)
             {
-                <MudAlert Severity="Severity.Error"
-                          Variant="Variant.Outlined">
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
                     @_loadError
                 </MudAlert>
             }
@@ -46,9 +41,7 @@
             {
                 <div class="lab-user-role-section">
                     <div class="lab-user-role-section-heading">
-                        <MudIcon Icon="@Icons.Material.Filled.Security"
-                                 Color="Color.Primary"
-                                 Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Small" />
                         <div>
                             <strong>Assigned Roles</strong>
                             <span>Roles currently granted to this identity.</span>
@@ -58,9 +51,7 @@
                     @if (_roles.Count == 0)
                     {
                         <div class="lab-user-role-empty">
-                            <MudIcon Icon="@Icons.Material.Outlined.Shield"
-                                     Color="Color.Secondary"
-                                     Size="Size.Medium" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Shield" Color="Color.Secondary" Size="Size.Medium" />
                             <span>No roles assigned to this user.</span>
                         </div>
                     }
@@ -111,14 +102,14 @@
                             }
                         </MudSelect>
 
-                        <MudButton Variant="Variant.Filled"
+                        <MudLoadingButton Variant="Variant.Filled"
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Add"
                                    Loading="@_isSubmitting"
                                    Disabled="@(_isSubmitting || PreviewMode || string.IsNullOrWhiteSpace(_selectedRole))"
                                    OnClick="AddRoleAsync">
                             Assign Role
-                        </MudButton>
+                        </MudLoadingButton>
                     </div>
 
                     @if (AvailableRoles.Count == 0)
@@ -130,12 +121,10 @@
                 </div>
 
                 <div class="lab-user-role-hint">
-                    <MudIcon Icon="@Icons.Material.Outlined.Info"
-                             Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                     <span>
                         Role assignments affect authorization decisions.
-                        Changes may require a new authentication or authorization
-                        evaluation to be reflected in active sessions.
+                        Changes may require a new authentication or authorization evaluation to be reflected in active sessions.
                     </span>
                 </div>
             }

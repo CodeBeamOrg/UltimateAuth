@@ -1,8 +1,9 @@
 ﻿@page "/login"
-@using CodeBeam.UltimateAuth.Core.Contracts
 @layout PublicLayout
 @inject IUAuthClient UAuthClient
+@inject IOptions<UAuthServerOptions> Options
 @inject NavigationManager NavigationManager
+@implements IDisposable
 
 <PageTitle>Sign In · Identity Lab</PageTitle>
 
@@ -20,127 +21,212 @@
                         </span>
 
                         <h1>
-                            @(AuthState.IsAuthenticated ? "You're signed in." : "Welcome back.")
+                            @(AuthState.IsAuthenticated ? "Good to see you again." : "Welcome back.")
                         </h1>
 
                         <p>
                             @(AuthState.IsAuthenticated
-                                ? "Continue with your current account or sign out to switch accounts."
+                                ? "Pick up right where you left off."
                                 : "Sign in to continue to your Identity Lab sandbox.")
                         </p>
                     </div>
 
                     <div class="lab-login-card">
-                        @if (AuthState.IsAuthenticated)
-                        {
-                            <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                        <UAuthStateView>
+                            <Authorized>
+                            <div class="lab-welcome-card">
+                                <div class="lab-welcome-status">
+                                    <div class="lab-welcome-status-icon">
+                                        <MudIcon Icon="@Icons.Material.Filled.Fingerprint" />
+                                    </div>
 
-                                <MudAvatar Color="Color.Primary"
-                                           Size="Size.Large">
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
-                                </MudAvatar>
+                                    <div class="lab-welcome-status-text">
+                                        <strong>IDENTITY RECOGNIZED</strong>
+                                        <span>Your active session is ready</span>
+                                    </div>
 
-                                <MudText Typo="Typo.h6">
-                                    @CurrentDisplayName
-                                </MudText>
+                                    <MudSpacer />
 
-                                @if (!string.IsNullOrWhiteSpace(CurrentUserName))
-                                {
-                                    <MudText Typo="Typo.body2"
-                                             Color="Color.Secondary">
-                                        @@ @CurrentUserName
-                                    </MudText>
-                                }
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                </div>
 
-                                <MudChip T="string"
-                                         Color="Color.Success"
-                                         Variant="Variant.Outlined"
-                                         Size="Size.Small"
-                                         Icon="@Icons.Material.Filled.VerifiedUser">
-                                    Authenticated Session
-                                </MudChip>
+                                <MudDivider Class="my-4" />
+
+                                <div class="lab-welcome-identity">
+                                    <MudAvatar Color="Color.Primary" Size="Size.Large" Class="lab-welcome-avatar">
+                                        @AvatarInitials
+                                    </MudAvatar>
+
+                                    <div class="lab-welcome-identity-text">
+                                        <span>Welcome back,</span>
+                                        <h2>@CurrentDisplayName.</h2>
+
+                                        @if (!string.IsNullOrWhiteSpace(CurrentUserName))
+                                        {
+                                            <small>@@@CurrentUserName</small>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="lab-welcome-session">
+                                    <div class="lab-welcome-session-title">
+                                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success" Size="Size.Small" />
+                                        <strong>Authenticated session</strong>
+                                    </div>
+
+                                    <p>We recognize your account. Your Identity Lab workspace is ready whenever you are.</p>
+                                </div>
 
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
                                            Size="Size.Large"
                                            FullWidth="true"
+                                           Class="lab-welcome-enter"
                                            OnClick="ContinueToDashboard"
+                                           StartIcon="@Icons.Material.Filled.Dashboard"
                                            EndIcon="@Icons.Material.Filled.ArrowForward">
-                                    Continue to Dashboard
+                                    Enter your workspace
                                 </MudButton>
 
-                                <MudButton Variant="Variant.Text"
-                                           Color="Color.Default"
-                                           Disabled="_signingOut"
-                                           OnClick="SignOutAsync"
-                                           StartIcon="@Icons.Material.Filled.Logout">
-                                    Not you? Sign out
-                                </MudButton>
+                                <div class="lab-welcome-actions">
+                                    <MudLink OnClick="SignOutAsync" Underline="Underline.Hover" Class="lab-welcome-action gap-1 d-flex align-center justify-center">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Logout" Size="Size.Small" />
+                                        <span>Switch account</span>
+                                    </MudLink>
 
-                            </MudStack>
-                        }
-                        else
-                        {
-                            <UAuthLoginForm Identifier="@_identifier"
-                                            Secret="@_password"
-                                            ReturnUrl="/dashboard"
-                                            OnTryResult="HandleLoginResult">
+                                    <span class="lab-welcome-action-separator">·</span>
 
-                                @if (!string.IsNullOrEmpty(_loginError))
-                                {
-                                    <MudAlert Severity="Severity.Error" Dense="true">
-                                        @_loginError
-                                    </MudAlert>
-                                }
+                                    <MudLink OnClick="RegisterAnotherAsync" Underline="Underline.Hover" Class="lab-welcome-action gap-1 d-flex align-center justify-center">
+                                        <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Size="Size.Small" />
+                                        <span>Create another sandbox</span>
+                                    </MudLink>
+                                </div>
+                            </div>
+                            </Authorized>
 
-                                <div class="lab-login-fields">
-                                    <MudTextField T="string"
-                                                  @bind-Value="_identifier"
-                                                  Label="Email or Username"
-                                                  Placeholder="Enter your email or username"
-                                                  Variant="Variant.Outlined"
-                                                  Adornment="Adornment.Start"
-                                                  AdornmentIcon="@Icons.Material.Filled.PersonOutline"
-                                                  Required="true"
-                                                  Immediate="true" />
+                            <NotAuthorized>
+                                <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard" OnTryResult="HandleLoginResult">
 
-                                    <MudPasswordField T="string"
-                                                      @bind-Value="_password"
-                                                      Label="Password"
+                                    @if (IsLockedOut)
+                                    {
+                                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.LockClock" Class="mb-2">
+                                            <MudStack Spacing="2">
+
+                                                <MudText Typo="Typo.subtitle1">
+                                                    Account temporarily locked
+                                                </MudText>
+
+                                                <MudText Typo="Typo.body2">
+                                                    Too many unsuccessful sign-in attempts.
+                                                    Your account is temporarily protected.
+                                                </MudText>
+
+                                                <MudText Typo="Typo.h5" Align="Align.Center">
+                                                    @LockoutCountdown
+                                                </MudText>
+
+                                                <MudProgressLinear Value="@LockoutProgress"
+                                                                   Color="Color.Error"
+                                                                   Size="Size.Medium"
+                                                                   Rounded="true" />
+
+                                                <MudText Typo="Typo.caption" Align="Align.Center">
+                                                    Try again after
+                                                    @_lockoutUntilUtc?.ToLocalTime().ToString("T")
+                                                </MudText>
+
+                                            </MudStack>
+                                        </MudAlert>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(_loginError))
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Shield" Class="mb-2">
+                                            <MudStack Spacing="2">
+                                                <MudText Typo="Typo.subtitle2">Incorrect credentials</MudText>
+                                                <MudText Typo="Typo.body2">@_loginError</MudText>
+
+                                                @if (_remainingAttempts is { } remaining)
+                                                {
+                                                    <MudText Typo="Typo.body2">
+                                                        <strong>@remaining</strong>
+                                                        @(remaining == 1 ? "attempt" : "attempts")
+                                                        remaining
+                                                    </MudText>
+
+                                                    <div class="lab-login-attempts">
+                                                        @for (var i = 0; i < MaxLoginAttempts; i++)
+                                                        {
+                                                            <div class="lab-login-attempt-segment
+                                                                @(i < MaxLoginAttempts - remaining ? "is-used" : "")">
+                                                            </div>
+                                                        }
+                                                    </div>
+
+                                                    @if (remaining == 1)
+                                                    {
+                                                        <MudText Typo="Typo.caption">One more unsuccessful attempt may temporarily lock your account.</MudText>
+                                                    }
+                                                }
+
+                                            </MudStack>
+                                        </MudAlert>
+                                    }
+
+                                    <div class="lab-login-fields">
+
+                                        <MudTextField T="string"
+                                                      @bind-Value="_identifier"
+                                                      Label="Email or Username"
+                                                      Placeholder="Enter your email or username"
                                                       Variant="Variant.Outlined"
+                                                      Adornment="Adornment.Start"
+                                                      AdornmentIcon="@Icons.Material.Filled.PersonOutline"
+                                                      autocomplete="username"
+                                                      MaxLength="256"
                                                       Required="true"
+                                                      RequiredError="Email or username is required."
+                                                      Disabled="IsLockedOut"
                                                       Immediate="true" />
 
-                                    <MudButton ButtonType="ButtonType.Submit"
-                                               Variant="Variant.Filled"
-                                               Color="Color.Primary"
-                                               FullWidth="true"
-                                               Size="Size.Large"
-                                               EndIcon="@Icons.Material.Filled.ArrowForward">
-                                        Sign In
-                                    </MudButton>
+                                        <MudPasswordField T="string"
+                                                          @bind-Value="_password"
+                                                          Label="Password"
+                                                          Variant="Variant.Outlined"
+                                                          autocomplete="current-password"
+                                                          MaxLength="256"
+                                                          Required="true"
+                                                          RequiredError="Password is required."
+                                                          Disabled="IsLockedOut"
+                                                          Immediate="true" />
+
+                                        <MudButton ButtonType="ButtonType.Submit"
+                                                   Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   FullWidth="true"
+                                                   Size="Size.Large"
+                                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                                            @(IsLockedOut ? "Temporarily locked" : "Sign In")
+                                        </MudButton>
+
+                                    </div>
+                                </UAuthLoginForm>
+
+                                <MudDivider />
+
+                                <div class="lab-login-register mt-4">
+                                    <span>New to Identity Lab?</span>
+                                    <MudLink Href="/register" Underline="Underline.Hover">Create a sandbox</MudLink>
                                 </div>
-                            </UAuthLoginForm>
-
-                            <MudDivider />
-
-                            <div class="lab-login-register mt-4">
-                                <span>New to Identity Lab?</span>
-                                <MudLink Href="/register" Underline="Underline.Hover">Create a sandbox</MudLink>
-                            </div>
-                        }
+                            </NotAuthorized>
+                        </UAuthStateView>
                     </div>
 
                     <div class="lab-login-note">
-                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
-                                 Size="Size.Small"
-                                 Color="Color.Success" />
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" Color="Color.Success" />
                         <span>Secure authentication powered by UltimateAuth</span>
                     </div>
-
                 </div>
             </section>
-
 
             <aside class="lab-login-showcase">
                 <div class="lab-login-showcase-inner">
@@ -154,8 +240,7 @@
                         <span>Your control.</span>
                     </MudText>
 
-                    <MudText Typo="Typo.body1"
-                             Class="lab-login-showcase-description">
+                    <MudText Typo="Typo.body1" Class="lab-login-showcase-description">
                         Experience modern authentication, authorization,
                         and session management in one place.
                     </MudText>
@@ -211,6 +296,18 @@
     private string? _loginError;
     private bool _signingOut;
 
+    private int? _remainingAttempts;
+    private DateTimeOffset? _lockoutUntilUtc;
+
+    private bool IsLockedOut => _lockoutUntilUtc is { } until && until > DateTimeOffset.UtcNow;
+
+    private int MaxLoginAttempts => Options.Value.Login.MaxFailedAttempts;
+    private int LockoutDurationSeconds => (int)Options.Value.Login.LockoutDuration.TotalSeconds;
+
+    private DateTimeOffset _now = DateTimeOffset.UtcNow;
+
+    private CancellationTokenSource? _lockoutTimerCts;
+
     private string CurrentDisplayName =>
         AuthState.Identity?.DisplayName
         ?? AuthState.Identity?.PrimaryUserName
@@ -241,16 +338,151 @@
         }
     }
 
+    private double LockoutProgress
+    {
+        get
+        {
+            if (_lockoutUntilUtc is not { } until)
+                return 0;
+
+            var remaining = (until - _now).TotalSeconds;
+
+            return Math.Clamp((LockoutDurationSeconds - remaining) / LockoutDurationSeconds * 100, 0, 100);
+        }
+    }
+
+    private string LockoutCountdown
+    {
+        get
+        {
+            if (_lockoutUntilUtc is not { } until)
+                return "00:00";
+
+            var remaining = Math.Max(0, Math.Ceiling((until - _now).TotalSeconds));
+            var duration = TimeSpan.FromSeconds(remaining);
+            return $"{(int)duration.TotalMinutes:00}:{duration.Seconds:00}";
+        }
+    }
+
     private void HandleLoginResult(IUAuthTryResult result)
     {
+        StopLockoutTimer();
+
         if (result.IsSuccess)
         {
             _loginError = null;
+            _remainingAttempts = null;
+            _lockoutUntilUtc = null;
             return;
         }
 
-        _loginError = result.LockoutUntilUtc is not null
-            ? "Your account is temporarily locked. Please try again later."
-            : "Sign in failed. Please check your credentials.";
+        _now = DateTimeOffset.UtcNow;
+        _remainingAttempts = result.RemainingAttempts;
+        _lockoutUntilUtc = result.LockoutUntilUtc;
+
+        if (_lockoutUntilUtc is { } until && until > _now)
+        {
+            _loginError = null;
+            _password = string.Empty;
+
+            StartLockoutTimer();
+            return;
+        }
+
+        _loginError = "Please check your email or username and password.";
+    }
+
+    private void StartLockoutTimer()
+    {
+        var cts = new CancellationTokenSource();
+        _lockoutTimerCts = cts;
+
+        _ = RunLockoutCountdownAsync(cts);
+    }
+
+    private async Task RunLockoutCountdownAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+            while (await timer.WaitForNextTickAsync(cts.Token))
+            {
+                await InvokeAsync(() =>
+                {
+                    if (cts.IsCancellationRequested)
+                        return;
+
+                    _now = DateTimeOffset.UtcNow;
+
+                    if (!IsLockedOut)
+                    {
+                        _lockoutUntilUtc = null;
+                        _remainingAttempts = null;
+                        _loginError = null;
+                        _password = string.Empty;
+
+                        cts.Cancel();
+                    }
+
+                    StateHasChanged();
+                });
+
+                if (cts.IsCancellationRequested)
+                    break;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the timer is stopped.
+        }
+    }
+
+    private void StopLockoutTimer()
+    {
+        _lockoutTimerCts?.Cancel();
+        _lockoutTimerCts = null;
+    }
+    
+    private string AvatarInitials
+    {
+        get
+        {
+            var name = CurrentDisplayName.Trim();
+
+            if (string.IsNullOrEmpty(name))
+                return "U";
+
+            var parts = name.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+            return parts.Length >= 2
+                ? $"{char.ToUpperInvariant(parts[0][0])}" +
+                  $"{char.ToUpperInvariant(parts[^1][0])}"
+                : char.ToUpperInvariant(parts[0][0]).ToString();
+        }
+    }
+
+    private async Task RegisterAnotherAsync()
+    {
+        if (_signingOut)
+            return;
+
+        _signingOut = true;
+
+        try
+        {
+            NavigationManager.NavigateTo("/register");
+        }
+        finally
+        {
+            _signingOut = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        StopLockoutTimer();
     }
 }

@@ -27,13 +27,20 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
 
         var trustedContext = context.WithAttribute(LabProvisioningGate.AttributeKey, LabProvisioningGate.Token);
 
-        var createResult = await userApplicationService.CreateUserAsync(
-            trustedContext,
+
+        var createResult = await userApplicationService.CreateUserAsync(trustedContext,
             new CreateUserRequest
             {
                 UserName = request.Username.Trim(),
                 Email = request.Email.Trim(),
-                Password = request.Password
+                Password = request.Password,
+                FirstName = string.IsNullOrWhiteSpace(request.FirstName)
+                    ? null
+                    : request.FirstName.Trim(),
+                LastName = string.IsNullOrWhiteSpace(request.LastName)
+                    ? null
+                    : request.LastName.Trim(),
+                BirthDate = request.BirthDate
             },
             ct);
 
@@ -44,10 +51,6 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
         }
 
         var userKey = UserKey.FromString(createResult.UserKey);
-
-        // TODO(Part 3): Replace direct role-store provisioning with
-        // a trusted UltimateAuth registration/provisioning extension.
-        // Handle partial failures and recovery atomically where possible.
 
         try
         {

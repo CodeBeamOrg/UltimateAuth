@@ -37,10 +37,7 @@
                                  Size="Size.Large" />
                     </div>
                     <strong>Forgot your password?</strong>
-                    <span>
-                        Enter your username or email address to request
-                        a password reset code.
-                    </span>
+                    <span>Enter your username or email address to request a password reset code.</span>
                 </div>
 
                 <MudTextField T="string"
@@ -65,16 +62,17 @@
                     </span>
                 </div>
 
-                <MudButton Variant="Variant.Filled"
+                <MudLoadingButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            FullWidth="true"
                            Size="Size.Large"
                            StartIcon="@Icons.Material.Filled.Send"
                            Loading="@_isSubmitting"
                            Disabled="@(_isSubmitting || string.IsNullOrWhiteSpace(_identifier))"
-                           OnClick="RequestResetAsync">
+                           OnClick="RequestResetAsync"
+                           AutoDelay="0">
                     Request Reset Code
-                </MudButton>
+                </MudLoadingButton>
             }
             else
             {

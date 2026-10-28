@@ -1,5 +1,4 @@
-﻿@using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure
-@inject DarkModeManager DarkModeManager
+﻿@inject DarkModeManager DarkModeManager
 
 <header class="lab-header">
     <MudContainer MaxWidth="MaxWidth.Large">
@@ -17,37 +16,21 @@
             </a>
 
             <div class="lab-header-actions">
-
                 <div class="lab-header-github">
                     <MudTooltip Text="View on GitHub" Delay="300">
-                        <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
-                                       Href="https://github.com/CodeBeamOrg/UltimateAuth"
-                                       Target="_blank"
-                                       Color="Color.Inherit"
-                                       Size="Size.Medium"
-                                       aria-label="GitHub" />
+                        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank"
+                                       Color="Color.Inherit" Size="Size.Medium" aria-label="GitHub" />
                     </MudTooltip>
                 </div>
 
-                <MudTooltip Text="@(DarkModeManager.IsDarkMode ? "Switch to light mode" : "Switch to dark mode")"
-                            Delay="300">
-                    <MudIconButton Icon="@(DarkModeManager.IsDarkMode
-                                            ? Icons.Material.Filled.LightMode
-                                        : Icons.Material.Filled.DarkMode)"
-                                   Color="Color.Inherit"
-                                   Size="Size.Medium"
-                                   OnClick="ToggleTheme"
-                                   aria-label="Toggle theme" />
+                <MudTooltip Text="@(DarkModeManager.IsDarkMode ? "Switch to light mode" : "Switch to dark mode")" Delay="300">
+                    <MudIconButton Icon="@(DarkModeManager.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                   Color="Color.Inherit" Size="Size.Medium" OnClick="ToggleTheme" aria-label="Toggle theme" />
                 </MudTooltip>
 
-                <MudButton Href="/login"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.RocketLaunch">
-
+                <MudButton Href="/login" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Science">
                     <span class="d-none d-sm-inline">Launch Lab</span>
                     <span class="d-inline d-sm-none">Launch</span>
-
                 </MudButton>
 
             </div>

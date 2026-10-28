@@ -180,14 +180,15 @@
                 Cancel
             </MudButton>
 
-            <MudButton Variant="Variant.Filled"
+            <MudLoadingButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Save"
                        Loading="@_isSaving"
                        Disabled="@(_isLoading || _loadError is not null || PreviewMode || _isSaving)"
-                       OnClick="SaveAsync">
+                       OnClick="SaveAsync"
+                       AutoDelay="0">
                 Save Changes
-            </MudButton>
+            </MudLoadingButton>
         </div>
     </DialogActions>
 </MudDialog>

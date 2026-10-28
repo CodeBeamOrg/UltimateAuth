@@ -123,13 +123,14 @@
                         }
                     </MudSelect>
 
-                    <MudButton Variant="Variant.Filled"
+                    <MudLoadingButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                Loading="@_isSubmitting"
                                Disabled="@(_isSubmitting || PreviewMode || !HasStatusChange)"
-                               OnClick="ChangeStatusAsync">
+                               OnClick="ChangeStatusAsync"
+                               AutoDelay="0">
                         Update Status
-                    </MudButton>
+                    </MudLoadingButton>
                 </div>
 
                 <MudDivider />

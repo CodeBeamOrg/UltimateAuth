@@ -112,22 +112,12 @@
 
                     @if (_totalRoles > RolePageSize)
                     {
-                        <MudPagination Count="@TotalRolePages"
-                                       Selected="@_rolePage"
-                                       SelectedChanged="OnRolePageChangedAsync"
-                                       Disabled="@_loading"
-                                       Color="Color.Primary"
-                                       Class="mt-4" />
+                        <MudPagination Count="@TotalRolePages" Selected="@_rolePage" SelectedChanged="OnRolePageChangedAsync" Disabled="@_loading" Color="Color.Primary" Class="mt-4" />
                     }
                 </div>
 
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Text"
-                          Dense="true"
-                          Class="mt-4">
-                    Your roles determine which operations you may
-                    perform, together with the applicable policies
-                    and authorization context.
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-4">
+                    Your roles determine which operations you may perform, together with the applicable policies and authorization context.
                 </MudAlert>
             </section>
 
@@ -212,20 +202,20 @@
 
                 <div class="lab-playground-fields">
 
-                    <MudSelect T="string"
+                    <MudSelectExtended T="string"
                                Label="Permission / Action"
                                Variant="Variant.Outlined"
                                @bind-Value="_selectedAction"
-                               Searchable="true">
+                               SearchBox="true">
 
                         @foreach (var permission in _availablePermissions)
                         {
-                            <MudSelectItem T="string" Value="@permission">
+                            <MudSelectItemExtended T="string" Value="@permission">
                                 @permission
-                            </MudSelectItem>
+                            </MudSelectItemExtended>
                         }
 
-                    </MudSelect>
+                    </MudSelectExtended>
 
                     <MudTextField T="string"
                                   Label="Resource"
@@ -278,16 +268,8 @@
                     }
                     else
                     {
-                        <MudAlert Severity="@(_accessResult.IsAllowed
-                                                ? Severity.Success
-                                                : Severity.Error)"
-                                  Variant="Variant.Outlined">
-
-                            <strong>
-                                @(_accessResult.IsAllowed
-                                    ? "Access Granted"
-                                    : "Access Denied")
-                            </strong>
+                        <MudAlert Severity="@(_accessResult.IsAllowed ? Severity.Success : Severity.Error)" Variant="Variant.Outlined">
+                            <strong>@(_accessResult.IsAllowed ? "Access Granted" : "Access Denied")</strong>
 
                             @if (_accessResult.RequiresReauthentication)
                             {
@@ -299,11 +281,7 @@
                             }
                             else
                             {
-                                <p>
-                                    @(_accessResult.IsAllowed
-                                        ? "Your current session is authorized."
-                                        : "Your current session is not authorized.")
-                                </p>
+                                <p>@(_accessResult.IsAllowed ? "Your current session is authorized." : "Your current session is not authorized.")</p>
                             }
 
                         </MudAlert>
@@ -313,8 +291,7 @@
                 <div class="lab-result-footer">
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                     <span>
-                        An authorization decision may depend on roles,
-                        permissions, policies, and request context.
+                        An authorization decision may depend on roles, permissions, policies, and request context.
                     </span>
                 </div>
             </section>

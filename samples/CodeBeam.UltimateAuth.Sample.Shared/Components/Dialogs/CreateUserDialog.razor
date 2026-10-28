@@ -134,14 +134,15 @@
                 Cancel
             </MudButton>
 
-            <MudButton Variant="Variant.Filled"
+            <MudLoadingButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.PersonAdd"
                        Loading="@_isSubmitting"
                        Disabled="@(PreviewMode || _isSubmitting)"
-                       OnClick="CreateUserAsync">
+                       OnClick="CreateUserAsync"
+                       AutoDelay="0">
                 Create User
-            </MudButton>
+            </MudLoadingButton>
         </div>
     </DialogActions>
 

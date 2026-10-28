@@ -22,12 +22,6 @@ using MudExtensions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// TODO(Part 3): Protect system roles through UltimateAuth request guards.
-// TODO(Part 3): Add atomic provisioning and recovery for partial failures.
-// TODO(Part 3): Enforce sandbox ownership and user limits across all applicable UltimateAuth operations.
-// TODO(Part 3): Implement authenticated sandbox repair.
-
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
     //.AddCircuitOptions(o => o.DetailedErrors = true);
@@ -55,7 +49,7 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
     //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
     //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
-    o.Login.MaxFailedAttempts = 5;
+    o.Login.MaxFailedAttempts = 3;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
 
