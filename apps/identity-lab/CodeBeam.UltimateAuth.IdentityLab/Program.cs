@@ -102,9 +102,12 @@ builder.Services.AddScoped<SandboxAccountDeletionService>();
 builder.Services.AddScoped<LabRepairService>();
 builder.Services.AddScoped<LabOwnerRepairService>();
 builder.Services.AddScoped<SandboxRepairService>();
+builder.Services.AddScoped<LabDemoRoleService>();
+builder.Services.AddScoped<LabDemoStoreService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();
+builder.Services.AddScoped<LabProvisioningRollbackGate>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
 
@@ -112,6 +115,7 @@ builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
 
 builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
+builder.Services.AddScoped<ISeedContributor, LabDemoRoleSeedContributor>();
 builder.Services.AddLogging();
 
 var app = builder.Build();

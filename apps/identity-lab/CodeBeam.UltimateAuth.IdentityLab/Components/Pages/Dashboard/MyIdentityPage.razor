@@ -4,6 +4,7 @@
 @using CodeBeam.UltimateAuth.Users.Contracts
 @layout DashboardLayout
 @inject SandboxAccountDeletionService SandboxAccountDeletionService
+@inject LabDashboardService LabDashboardService
 @inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 
@@ -419,6 +420,13 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadProfileAsync();
+
+        if (_profile is not null)
+        {
+            var snapshot = await LabDashboardService.GetAsync(_profile.UserKey);
+            _isSandboxOwner = snapshot?.IsOwner == true;
+        }
+
         await LoadIdentifiersAsync();
     }
 

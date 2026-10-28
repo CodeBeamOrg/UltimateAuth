@@ -1,4 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
@@ -15,6 +17,7 @@ public sealed class LabUserProvisioningService(
     IUserApplicationService userApplicationService,
     IRoleStoreFactory roleStoreFactory,
     IUserRoleStoreFactory userRoleStoreFactory,
+    LabProvisioningRollbackGate rollbackGate,
     ILogger<LabUserProvisioningService> logger)
 {
     public async Task<UserCreateResult> CreateMemberAsync(
@@ -84,7 +87,12 @@ public sealed class LabUserProvisioningService(
             return result;
         }
 
+
         var newUserKey = UserKey.FromString(result.UserKey);
+
+        var rollbackToken = rollbackGate.Register(
+            authenticatedUserKey,
+            newUserKey);
 
         try
         {
@@ -115,9 +123,58 @@ public sealed class LabUserProvisioningService(
                 "Partial provisioning failure for user {UserKey}",
                 newUserKey.Value);
 
+            try
+            {
+                // Do not reuse the cancelled provisioning token.
+                using var cleanupCts =
+                    new CancellationTokenSource(TimeSpan.FromSeconds(15));
+
+                var deleteContext = await contextProvider.CreateForUserAsync(
+                    UAuthActions.Users.DeleteAdmin,
+                    "users",
+                    newUserKey,
+                    cleanupCts.Token);
+
+                if (deleteContext.ActorUserKey != authenticatedUserKey ||
+                    !deleteContext.IsAuthenticated ||
+                    deleteContext.IsSystemActor)
+                {
+                    throw new UnauthorizedAccessException(
+                        "Rollback actor mismatch.");
+                }
+
+                var trustedDeleteContext = deleteContext.WithAttribute(
+                    LabProvisioningRollbackGate.AttributeKey,
+                    rollbackToken);
+
+                await userApplicationService.DeleteUserAsync(
+                    trustedDeleteContext,
+                    new DeleteUserRequest
+                    {
+                        Mode = DeleteMode.Hard
+                    },
+                    cleanupCts.Token);
+
+                logger.LogInformation(
+                    "Provisioning rollback completed for {UserKey}",
+                    newUserKey.Value);
+            }
+            catch (Exception rollbackEx)
+            {
+                logger.LogCritical(
+                    rollbackEx,
+                    "Provisioning rollback failed for {UserKey}. " +
+                    "Manual reconciliation may be required.",
+                    newUserKey.Value);
+            }
+
             throw new LabPartialProvisioningException(
                 newUserKey.Value,
                 ex);
+        }
+        finally
+        {
+            rollbackGate.Revoke(rollbackToken);
         }
 
         return result;

@@ -11,4 +11,11 @@ public sealed class LabAccessContextProvider(IAuthFlow authFlow, IAccessContextF
         var flow = await authFlow.BeginAsync(AuthFlowType.ValidateSession, cancellationToken);
         return await contextFactory.CreateAsync(flow, action, resource, ct: cancellationToken);
     }
+
+
+    public async Task<AccessContext> CreateForUserAsync(string action, string resource, UserKey targetUserKey, CancellationToken ct = default)
+    {
+        var flow = await authFlow.BeginAsync(AuthFlowType.ValidateSession, ct);
+        return await contextFactory.CreateAsync(flow, action, resource, resourceId: targetUserKey.Value, ct: ct);
+    }
 }

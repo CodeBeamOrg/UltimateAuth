@@ -191,6 +191,14 @@
                                                OnClick="@(() => OpenUserDetailsAsync(context))" />
                             </MudTooltip>
 
+                            <MudTooltip Text="Manage sample SaaS application roles">
+                                <MudIconButton Icon="@Icons.Material.Filled.Badge"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => OpenDemoRolesAsync(context))" />
+                            </MudTooltip>
+
                             <MudTooltip Text="Permanently delete user">
                                 <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
                                                Color="Color.Error"
@@ -204,9 +212,7 @@
 
                 <NoRecordsContent>
                     <div class="lab-users-empty">
-                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch"
-                                 Size="Size.Large"
-                                 Color="Color.Secondary" />
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Large" Color="Color.Secondary" />
                         <strong>No users found</strong>
                         <p>Try changing your search or status filter.</p>
                     </div>
@@ -229,19 +235,14 @@
                     <strong>Sandbox isolation</strong>
                     <p>
                         Members belong to a private sandbox.
-                        User management must be scoped to that sandbox,
-                        including all authorization and data operations.
+                        User management must be scoped to that sandbox, including all authorization and data operations.
                     </p>
                 </div>
             </div>
 
-            <MudButton Href="/dashboard/authorization"
-                       Variant="Variant.Outlined"
-                       Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward">
+            <MudButton Href="/dashboard/authorization" Variant="Variant.Outlined" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward">
                 Explore Authorization
             </MudButton>
-
         </div>
 
     </MudContainer>
@@ -355,6 +356,22 @@
 
         if (actorUserKey is not null)
             await LoadUsersAsync(actorUserKey.Value);
+    }
+
+    private async Task OpenDemoRolesAsync(SandboxUserItem user)
+    {
+        var parameters = new DialogParameters<DemoRoleDialog>
+        {
+            { x => x.UserKey, user.UserKey },
+            { x => x.DisplayName, user.DisplayName }
+        };
+
+        var dialog = await DialogService.ShowAsync<DemoRoleDialog>(
+            "Demo Application Roles",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+
+        await dialog.Result;
     }
 
     private IEnumerable<SandboxUserItem> FilteredUsers =>

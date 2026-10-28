@@ -212,7 +212,7 @@
 
         try
         {
-            var result = await RegistrationService.RegisterAsync(new LabRegistrationRequest(_username.Trim(), _email.Trim(), _password.Trim()));
+            var result = await RegistrationService.RegisterAsync(new LabRegistrationRequest(_username.Trim(), _email.Trim(), _password));
 
             if (!result.IsSuccess)
             {

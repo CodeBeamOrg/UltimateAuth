@@ -1,0 +1,203 @@
+﻿@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@inject LabDemoRoleService DemoRoleService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Science"
+                     Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Demo Application Roles</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Manage demonstration roles for @DisplayName.
+            </MudText>
+
+            <MudAlert Severity="Severity.Info"
+                      Variant="Variant.Outlined"
+                      Dense="true">
+                These roles are used exclusively by the sample SaaS
+                application in Identity Lab. They do not grant Sandbox
+                administration privileges or modify system roles.
+            </MudAlert>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" />
+            }
+            else if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error">
+                    @_error
+                </MudAlert>
+
+                <MudButton Variant="Variant.Outlined"
+                           OnClick="LoadAsync">
+                    Retry
+                </MudButton>
+            }
+            else
+            {
+                <MudStack Spacing="2">
+
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudStack Row="true"
+                                  AlignItems="AlignItems.Center"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.subtitle1">
+                                    Manager
+                                </MudText>
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    Sample product management permissions.
+                                </MudText>
+                            </MudStack>
+
+                            <MudSwitchM3 T="bool" Value="@_manager" ValueChanged="OnManagerChangedAsync" Disabled="@_saving" Color="Color.Primary" />
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.subtitle1">Customer</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Sample catalog and ordering permissions.</MudText>
+                            </MudStack>
+
+                            <MudSwitchM3 T="bool" Value="@_customer" ValueChanged="OnCustomerChangedAsync" Disabled="@_saving" Color="Color.Primary" />
+                        </MudStack>
+                    </MudPaper>
+
+                </MudStack>
+
+                @if (_saving)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Changes are saved immediately. A user may have both demo roles.
+                    Neither role affects Sandbox membership or administrative access.
+                </MudText>
+            }
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Disabled="@_saving" OnClick="Close">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public UserKey UserKey { get; set; }
+
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    private bool _manager;
+    private bool _customer;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var roles = await DemoRoleService.GetRolesAsync(UserKey);
+
+            _manager = roles.Contains(
+                LabRoles.Manager,
+                StringComparer.OrdinalIgnoreCase);
+
+            _customer = roles.Contains(
+                LabRoles.Customer,
+                StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load demo role assignments.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Task OnManagerChangedAsync(bool value)
+        => UpdateRoleAsync(LabRoles.Manager, value);
+
+    private Task OnCustomerChangedAsync(bool value)
+        => UpdateRoleAsync(LabRoles.Customer, value);
+
+    private async Task UpdateRoleAsync(string role, bool assigned)
+    {
+        if (_loading || _saving || _error is not null)
+            return;
+
+        _saving = true;
+
+        try
+        {
+            await DemoRoleService.SetRoleAsync(
+                UserKey, role, assigned);
+
+            if (role == LabRoles.Manager)
+                _manager = assigned;
+            else
+                _customer = assigned;
+
+            Snackbar.Add(
+                $"{role} role {(assigned ? "assigned" : "removed")}.",
+                Severity.Success);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Snackbar.Add(
+                "You are not authorized to manage demo roles.",
+                Severity.Error);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to update the demo role.",
+                Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Close()
+    {
+        if (!_saving)
+            MudDialog.Close();
+    }
+}
