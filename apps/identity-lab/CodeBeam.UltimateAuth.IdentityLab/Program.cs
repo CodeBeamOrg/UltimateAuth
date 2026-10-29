@@ -43,12 +43,7 @@ builder.Services.AddUltimateAuthServer(o =>
     // Identity Lab uses its own trusted creation align with Sandbox management.
     o.Endpoints.DisabledActions.Add(UAuthActions.Users.CreateAnonymous);
     o.Diagnostics.EnableRefreshDetails = true;
-    //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
-    //o.Session.Lifetime = TimeSpan.FromSeconds(32);
-    //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
-    //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
-    //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
-    //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
+    o.Session.IdleTimeout = TimeSpan.FromDays(4);
     o.Login.MaxFailedAttempts = 3;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
@@ -59,17 +54,16 @@ builder.Services.AddUltimateAuthServer(o =>
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
-        db.UseNpgsql(connectionString,
-            options => options.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
+        db.UseNpgsql(connectionString, options => options.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
     });
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    o.AutoRefresh.Enabled = true;
+    o.AutoRefresh.Interval = TimeSpan.FromMinutes(10);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Resource.Credentials = UAuthResourceCredentialsMode.SameOrigin;
 });
-
 
 builder.Services.AddDbContextFactory<LabDbContext>(options =>
 {
@@ -98,6 +92,7 @@ builder.Services.AddScoped<LabOwnerRepairService>();
 builder.Services.AddScoped<SandboxRepairService>();
 builder.Services.AddScoped<LabDemoRoleService>();
 builder.Services.AddScoped<LabDemoStoreService>();
+builder.Services.AddScoped<LabSessionDiagnosticsPolicyService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();

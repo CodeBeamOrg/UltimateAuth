@@ -8,6 +8,7 @@ namespace CodeBeam.UltimateAuth.Client.Diagnostics;
 public sealed class UAuthClientDiagnostics
 {
     private int _terminatedCount;
+    private long _nextAutomaticRefreshTicks;
 
     /// <summary>
     /// Occurs when any diagnostic information changes, allowing subscribers to react to updates in the client's state.
@@ -120,6 +121,19 @@ public sealed class UAuthClientDiagnostics
                 ? (StoppedAt ?? TerminatedAt) - StartedAt
                 : DateTimeOffset.UtcNow - StartedAt);
 
+    /// <summary>
+    /// Gets the next scheduled automatic refresh attempt.
+    /// Null when no attempt is currently scheduled.
+    /// </summary>
+    public DateTimeOffset? NextAutomaticRefreshAt
+    {
+        get
+        {
+            var ticks = Interlocked.Read(ref _nextAutomaticRefreshTicks);
+            return ticks == 0 ? null : new DateTimeOffset(ticks, TimeSpan.Zero);
+        }
+    }
+
     internal void MarkStarted()
     {
         StartedAt = DateTimeOffset.UtcNow;
@@ -135,6 +149,7 @@ public sealed class UAuthClientDiagnostics
     {
         StoppedAt = DateTimeOffset.UtcNow;
         StopCount++;
+        SetNextAutomaticRefresh(null);
         Changed?.Invoke();
     }
 
@@ -186,7 +201,15 @@ public sealed class UAuthClientDiagnostics
         IsTerminated = true;
         TerminatedAt = DateTimeOffset.UtcNow;
         TerminationReason = reason;
+        SetNextAutomaticRefresh(null);
         Interlocked.Increment(ref _terminatedCount);
+        Changed?.Invoke();
+    }
+
+    internal void SetNextAutomaticRefresh(DateTimeOffset? scheduledAt)
+    {
+        var ticks = scheduledAt?.UtcTicks ?? 0;
+        Interlocked.Exchange(ref _nextAutomaticRefreshTicks, ticks);
         Changed?.Invoke();
     }
 }

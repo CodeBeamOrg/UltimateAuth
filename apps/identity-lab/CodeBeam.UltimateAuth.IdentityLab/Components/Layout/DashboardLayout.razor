@@ -3,6 +3,7 @@
 @inject LabDashboardService DashboardService
 @inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
+@inject ISnackbar Snackbar
 
 <HeadContent>
     <meta name="robots" content="noindex, nofollow" />
@@ -12,11 +13,7 @@
     <div class="lab-appbar-host">
         <MudAppBar Color="Color.Inherit" Elevation="0" Fixed="true" Class="lab-dashboard-appbar">
 
-            <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                           Edge="Edge.Start"
-                           Color="Color.Inherit"
-                           Class="lab-mobile-menu"
-                           OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Edge="Edge.Start" Color="Color.Inherit" Class="lab-mobile-menu" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
 
             <a href="/dashboard" class="lab-dashboard-brand">
                 <span class="lab-dashboard-brand-icon">
@@ -30,41 +27,25 @@
 
             <MudSpacer />
 
-            <MudTooltip Text="@(DarkModeManager.IsDarkMode ? "Light mode" : "Dark mode")"
-                        Delay="300">
-                <MudIconButton Icon="@(DarkModeManager.IsDarkMode
-                                           ? Icons.Material.Filled.LightMode
-                               : Icons.Material.Filled.DarkMode)"
-                               Color="Color.Inherit"
-                               OnClick="DarkModeManager.ToggleAsync" />
+            <MudTooltip Text="@(DarkModeManager.IsDarkMode ? "Light mode" : "Dark mode")" Delay="300">
+                <MudIconButton Icon="@(DarkModeManager.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" Color="Color.Inherit" OnClick="DarkModeManager.ToggleAsync" />
             </MudTooltip>
 
             <MudTooltip Text="View source on GitHub" Delay="300">
-                <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
-                               Href="https://github.com/CodeBeamOrg/UltimateAuth"
-                               Target="_blank"
-                               Color="Color.Inherit" />
+                <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" Color="Color.Inherit" />
             </MudTooltip>
 
-            <MudMenu AnchorOrigin="Origin.BottomRight"
-                     TransformOrigin="Origin.TopRight"
-                     Dense="true"
-                     PopoverClass="lab-profile-menu">
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true" PopoverClass="lab-profile-menu">
 
                 <ActivatorContent>
-                    <MudAvatar Color="Color.Primary"
-                               Size="Size.Medium"
-                               Class="ml-3 lab-profile-avatar"
-                               @onclick="@context.ToggleAsync">
+                    <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="ml-3 lab-profile-avatar" @onclick="@context.ToggleAsync">
                         @AvatarInitials
                     </MudAvatar>
                 </ActivatorContent>
 
                 <ChildContent>
                     <div class="lab-profile-menu-header">
-                        <MudAvatar Color="Color.Primary"
-                                   Size="Size.Medium"
-                                   Class="lab-profile-menu-avatar">
+                        <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="lab-profile-menu-avatar">
                             @AvatarInitials
                         </MudAvatar>
 
@@ -78,23 +59,34 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <MudDivider Class="my-2" />
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.VerifiedUser" Disabled="_authOperationBusy" OnClick="ValidateSessionAsync">
+                        Validate Session
+                    </MudMenuItem>
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Refresh" Disabled="_authOperationBusy" OnClick="RefreshSessionAsync">
+                        Refresh Session
+                    </MudMenuItem>
+
+                    <MudMenuItem Href="/dashboard/session-diagnostics" Icon="@Icons.Material.Outlined.MonitorHeart">
+                        Session Diagnostics
+                    </MudMenuItem>
 
                     <MudDivider Class="my-2" />
 
-                    <MudMenuItem Href="/dashboard/identity"
-                                 Icon="@Icons.Material.Outlined.Badge">
+                    <MudMenuItem Href="/dashboard/identity" Icon="@Icons.Material.Outlined.Badge">
                         My Identity
                     </MudMenuItem>
 
-                    <MudMenuItem Href="/dashboard/sessions"
-                                 Icon="@Icons.Material.Outlined.Devices">
+                    <MudMenuItem Href="/dashboard/sessions" Icon="@Icons.Material.Outlined.Devices">
                         My Sessions
                     </MudMenuItem>
 
                     <MudDivider Class="my-2" />
 
-                    <MudMenuItem Icon="@Icons.Material.Outlined.Logout"
-                                 OnClick="LogoutAsync">
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Logout" OnClick="LogoutAsync">
                         Sign Out
                     </MudMenuItem>
                 </ChildContent>
@@ -139,24 +131,23 @@
 
                 <div class="lab-nav-label">PERSONAL</div>
 
-                <MudNavLink Href="/dashboard/identity"
-                            Icon="@Icons.Material.Filled.Badge">
+                <MudNavLink Href="/dashboard/identity" Icon="@Icons.Material.Filled.Badge">
                     My Identity
                 </MudNavLink>
 
-                <MudNavLink Href="/dashboard/sessions"
-                            Icon="@Icons.Material.Filled.Devices">
+                <MudNavLink Href="/dashboard/sessions" Icon="@Icons.Material.Filled.Devices">
                     My Sessions
                 </MudNavLink>
 
-                <MudNavLink Href="/dashboard/access"
-                            Icon="@Icons.Material.Filled.VerifiedUser">
+                <MudNavLink Href="/dashboard/session-diagnostics" Icon="@Icons.Material.Filled.MonitorHeart">
+                    Session Diagnostics
+                </MudNavLink>
+
+                <MudNavLink Href="/dashboard/access" Icon="@Icons.Material.Filled.VerifiedUser">
                     My Access
                 </MudNavLink>
 
-                <MudNavLink Href="/dashboard/authorization-lab"
-                            Match="NavLinkMatch.All"
-                            Icon="@Icons.Material.Outlined.Security">
+                <MudNavLink Href="/dashboard/authorization-lab" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Security">
                     Authorization Lab
                 </MudNavLink>
 
@@ -197,7 +188,7 @@
             <MudSpacer />
 
             <div class="lab-sidebar-bottom">
-                <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                <MudImage Src="ultimateauth-logo.png" Width="28" Height="28" />
                 <span>Powered by UltimateAuth</span>
             </div>
         </div>
@@ -233,74 +224,3 @@
     </MudMainContent>
 
 </MudLayout>
-
-@code {
-    [CascadingParameter]
-    private UAuthState? AuthState { get; set; }
-
-    private string UserName => AuthState?.Identity?.PrimaryUserName ?? "User";
-    private string DisplayName => UserName;
-    private string AvatarInitials => GetInitials(DisplayName);
-    private LabDashboardSnapshot? _sandbox;
-    private UserKey? _loadedUserKey;
-    private bool _drawerOpen = true;
-
-    private bool ShowManagement =>
-        AuthState?.IsInRole(LabRoles.Admin) == true ||
-        (AuthState?.IsInRole(LabRoles.Owner) == true &&
-         _sandbox?.IsOwner == true);
-
-    protected override void OnInitialized()
-    {
-        DarkModeManager.Changed += OnThemeChanged;
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        var userKey = AuthState?.Identity?.UserKey;
-
-        if (userKey is null)
-        {
-            _sandbox = null;
-            _loadedUserKey = null;
-            return;
-        }
-
-        if (_loadedUserKey == userKey)
-            return;
-
-        _loadedUserKey = userKey;
-
-        _sandbox = await DashboardService.GetAsync(userKey.Value);
-    }
-
-    private void OnThemeChanged()
-    {
-        _ = InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LogoutAsync()
-    {
-        await UAuthClient.Flows.LogoutAsync();
-    }
-
-    public void Dispose()
-    {
-        DarkModeManager.Changed -= OnThemeChanged;
-    }
-
-    private static string GetInitials(string? displayName)
-    {
-        if (string.IsNullOrWhiteSpace(displayName))
-            return "?";
-
-        var parts = displayName.Trim()
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        var initials = parts.Length > 1
-            ? $"{parts[0][0]}{parts[^1][0]}"
-            : new string(parts[0].Take(2).ToArray());
-
-        return initials.ToUpperInvariant();
-    }
-}
