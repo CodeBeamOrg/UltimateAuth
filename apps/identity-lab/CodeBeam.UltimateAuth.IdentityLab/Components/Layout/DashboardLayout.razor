@@ -1,9 +1,11 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
+@using CodeBeam.UltimateAuth.Core.Runtime
 @inject LabDashboardService DashboardService
 @inject IUAuthClient UAuthClient
 @inject DarkModeManager DarkModeManager
 @inject ISnackbar Snackbar
+@inject IUAuthProductInfoProvider ProductInfoProvider
 
 <HeadContent>
     <meta name="robots" content="noindex, nofollow" />
@@ -189,8 +191,12 @@
 
             <div class="lab-sidebar-bottom">
                 <MudImage Src="ultimateauth-logo.png" Width="28" Height="28" />
-                <span>Powered by UltimateAuth</span>
+                <MudText Typo="Typo.caption">Powered by UltimateAuth</MudText>
             </div>
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.caption">v @UltimateAuthVersion</MudText>
+                <MudText Typo="Typo.caption">.NET @LabVersionInfo.DotNetVersion</MudText>
+            </MudStack>
         </div>
     </MudDrawer>
 

@@ -116,19 +116,14 @@
                                Disabled="@(_isSubmitting || PreviewMode)">
                         @foreach (var status in Enum.GetValues<AdminAssignableUserStatus>())
                         {
-                            <MudSelectItem T="AdminAssignableUserStatus"
-                                           Value="@status">
+                            <MudSelectItem T="AdminAssignableUserStatus" Value="@status">
                                 @status
                             </MudSelectItem>
                         }
                     </MudSelect>
 
-                    <MudLoadingButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Loading="@_isSubmitting"
-                               Disabled="@(_isSubmitting || PreviewMode || !HasStatusChange)"
-                               OnClick="ChangeStatusAsync"
-                               AutoDelay="0">
+                    <MudLoadingButton Variant="Variant.Filled" Color="Color.Primary" Loading="@_isSubmitting" Disabled="@(_isSubmitting || PreviewMode || !HasStatusChange)"
+                                      OnClick="ChangeStatusAsync" AutoDelay="0">
                         Update Status
                     </MudLoadingButton>
                 </div>
@@ -141,40 +136,28 @@
                 </div>
 
                 <div class="lab-user-detail-management">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.PersonOutline"
-                               OnClick="OpenProfileAsync">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonOutline" OnClick="OpenProfileAsync">
                         Profile
                     </MudButton>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.AlternateEmail"
-                               OnClick="OpenIdentifiersAsync">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AlternateEmail" OnClick="OpenIdentifiersAsync">
                         Identifiers
                     </MudButton>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Key"
-                               OnClick="OpenCredentialsAsync">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Key" OnClick="OpenCredentialsAsync">
                         Credentials
                     </MudButton>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Devices"
-                               OnClick="OpenSessionsAsync">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Devices" OnClick="OpenSessionsAsync">
                         Sessions
                     </MudButton>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.AdminPanelSettings"
-                               OnClick="OpenRolesAsync">
-                        Roles
-                    </MudButton>
+                    @if (AllowRoleManagement)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick="OpenRolesAsync">
+                            Roles
+                        </MudButton>
+                    }
                 </div>
             }
         </div>

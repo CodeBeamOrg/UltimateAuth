@@ -97,10 +97,10 @@
                            @bind-Value="_statusFilter"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
-                           Label="Status"
+                           Placeholder="Status"
                            Class="lab-users-filter">
 
-                    <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)null)">
+                    <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)null)" Text="All Statuses">
                         All statuses
                     </MudSelectItemExtended>
 
@@ -345,6 +345,7 @@
         {
             { x => x.AuthState, AuthState },
             { x => x.UserKey, user.UserKey },
+            { x => x.AllowRoleManagement, false },
             { x => x.PreviewMode, false }
         };
 

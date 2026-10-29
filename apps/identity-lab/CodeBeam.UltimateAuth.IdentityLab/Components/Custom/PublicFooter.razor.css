@@ -104,6 +104,17 @@
     }
 }
 
+.lab-footer-versions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: .7rem;
+    color: var(--mud-palette-text-secondary);
+}
+
 @media (max-width: 380px) {
     .lab-footer-main {
         flex-direction: column;

@@ -22,6 +22,8 @@ public partial class DashboardLayout
     private bool _drawerOpen = true;
     private bool _authOperationBusy;
 
+    private string UltimateAuthVersion => ProductInfoProvider.Get().DisplayVersion;
+
     private bool ShowManagement =>
         AuthState?.IsInRole(LabRoles.Admin) == true ||
         (AuthState?.IsInRole(LabRoles.Owner) == true &&
