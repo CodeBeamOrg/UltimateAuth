@@ -93,6 +93,7 @@ builder.Services.AddScoped<SandboxRepairService>();
 builder.Services.AddScoped<LabDemoRoleService>();
 builder.Services.AddScoped<LabDemoStoreService>();
 builder.Services.AddScoped<LabSessionDiagnosticsPolicyService>();
+builder.Services.AddScoped<LabRegistrationAvailabilityService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();

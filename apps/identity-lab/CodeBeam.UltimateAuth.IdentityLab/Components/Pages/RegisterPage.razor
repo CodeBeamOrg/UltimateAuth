@@ -1,6 +1,10 @@
 ﻿@page "/register"
 @layout PublicLayout
+@implements IDisposable
+
 @inject LabRegistrationService RegistrationService
+@inject LabRegistrationAvailabilityService AvailabilityService
+@inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <PageTitle>Create Sandbox · Identity Lab</PageTitle>
@@ -79,28 +83,35 @@
 
                                     <MudTextField T="string"
                                                   @bind-Value="_username"
+                                                  @bind-Value:after="OnUsernameChangedAsync"
+                                                  Immediate="true"
                                                   Label="Username"
                                                   Placeholder="Choose a username"
                                                   Variant="Variant.Outlined"
                                                   Adornment="Adornment.Start"
                                                   AdornmentIcon="@Icons.Material.Filled.PersonOutline"
+                                                  AdornmentColor="@GetAvailabilityColor(_usernameAvailability)"
                                                   Required="true"
                                                   RequiredError="Username is required."
-                                                  autocomplete="off"
-                                                  Disabled="_isSubmitting" />
+                                                  Disabled="_isSubmitting"
+                                                  HelperText="@GetAvailabilityMessage(_usernameAvailability, "Username")" />
 
                                     <MudTextField T="string"
                                                   @bind-Value="_email"
+                                                  @bind-Value:after="OnEmailChangedAsync"
                                                   Label="Email address"
                                                   Placeholder="you@example.com"
                                                   InputType="InputType.Email"
                                                   Variant="Variant.Outlined"
                                                   Adornment="Adornment.Start"
                                                   AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                                  AdornmentColor="@GetAvailabilityColor(_emailAvailability)"
+                                                  Immediate="true"
                                                   Required="true"
                                                   RequiredError="Email address is required."
                                                   Validation="@(new Func<string, string?>(ValidateEmail))"
-                                                  Disabled="_isSubmitting" />
+                                                  Disabled="_isSubmitting"
+                                                  HelperText="@GetAvailabilityMessage(_emailAvailability, "Email")" />
 
                                     <MudPasswordField @bind-Value="_password"
                                                       Label="Password"
@@ -291,12 +302,23 @@
     private DateTime? _birthDate;
 
     private bool _isSubmitting;
+    private bool _disposed;
     private bool _registered;
     private bool _requiresRepair;
     private bool _showOptionalFields;
 
     private string? _errorMessage;
     private MudForm? _form;
+
+    private LabIdentifierAvailability _usernameAvailability = LabIdentifierAvailability.Unknown;
+
+    private LabIdentifierAvailability _emailAvailability = LabIdentifierAvailability.Unknown;
+
+    private CancellationTokenSource? _usernameCheckCts;
+    private CancellationTokenSource? _emailCheckCts;
+
+    private int _usernameVersion;
+    private int _emailVersion;
 
     private static string? ValidateEmail(string value)
     {
@@ -330,9 +352,211 @@
             : "Passwords do not match.";
     }
 
+    private static Color GetAvailabilityColor(
+       LabIdentifierAvailability state)
+       => state switch
+       {
+           LabIdentifierAvailability.Available => Color.Success,
+           LabIdentifierAvailability.Taken => Color.Error,
+           LabIdentifierAvailability.Invalid => Color.Error,
+           LabIdentifierAvailability.Unavailable => Color.Warning,
+           _ => Color.Secondary
+       };
+
+    private static string GetAvailabilityMessage(LabIdentifierAvailability state, string label)
+        => state switch
+        {
+            LabIdentifierAvailability.Checking =>
+                "Checking availability...",
+
+            LabIdentifierAvailability.Available =>
+                $"{label} is available.",
+
+            LabIdentifierAvailability.Taken =>
+                $"{label} is already in use.",
+
+            LabIdentifierAvailability.Invalid =>
+                $"Enter a valid {label.ToLowerInvariant()}.",
+
+            LabIdentifierAvailability.Unavailable =>
+                "Availability could not be checked. Please try again.",
+
+            _ => string.Empty
+        };
+
+    private Task OnUsernameChangedAsync()
+    {
+        _usernameCheckCts?.Cancel();
+
+        var version = ++_usernameVersion;
+        var value = _username.Trim();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _usernameAvailability = LabIdentifierAvailability.Unknown;
+            return Task.CompletedTask;
+        }
+
+        _usernameAvailability = LabIdentifierAvailability.Checking;
+
+        var cts = new CancellationTokenSource();
+        _usernameCheckCts = cts;
+
+        _ = CheckUsernameAsync(value, version, cts);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnEmailChangedAsync()
+    {
+        _emailCheckCts?.Cancel();
+
+        var version = ++_emailVersion;
+        var value = _email.Trim();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _emailAvailability = LabIdentifierAvailability.Unknown;
+            return Task.CompletedTask;
+        }
+
+        if (ValidateEmail(value) is not null)
+        {
+            _emailAvailability = LabIdentifierAvailability.Invalid;
+            return Task.CompletedTask;
+        }
+
+        _emailAvailability = LabIdentifierAvailability.Checking;
+
+        var cts = new CancellationTokenSource();
+        _emailCheckCts = cts;
+
+        _ = CheckEmailAsync(value, version, cts);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CheckUsernameAsync(
+        string value,
+        int version,
+        CancellationTokenSource cts)
+    {
+        var token = cts.Token;
+
+        try
+        {
+            await Task.Delay(500, token);
+
+            var result = await AvailabilityService.CheckAsync(
+                UserIdentifierType.Username,
+                value,
+                token);
+
+            if (_disposed || token.IsCancellationRequested ||
+                version != _usernameVersion)
+                return;
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed &&
+                    !token.IsCancellationRequested &&
+                    version == _usernameVersion)
+                {
+                    _usernameAvailability = result;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            if (!_disposed && version == _usernameVersion)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed && version == _usernameVersion)
+                    {
+                        _usernameAvailability =
+                            LabIdentifierAvailability.Unavailable;
+
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_usernameCheckCts, cts))
+                _usernameCheckCts = null;
+
+            cts.Dispose();
+        }
+    }
+
+    private async Task CheckEmailAsync(
+        string value,
+        int version,
+        CancellationTokenSource cts)
+    {
+        var token = cts.Token;
+
+        try
+        {
+            await Task.Delay(500, token);
+
+            var result = await AvailabilityService.CheckAsync(
+                UserIdentifierType.Email,
+                value,
+                token);
+
+            if (_disposed || token.IsCancellationRequested ||
+                version != _emailVersion)
+                return;
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed &&
+                    !token.IsCancellationRequested &&
+                    version == _emailVersion)
+                {
+                    _emailAvailability = result;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            if (!_disposed && version == _emailVersion)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed && version == _emailVersion)
+                    {
+                        _emailAvailability =
+                            LabIdentifierAvailability.Unavailable;
+
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_emailCheckCts, cts))
+                _emailCheckCts = null;
+
+            cts.Dispose();
+        }
+    }
+
     private async Task SubmitAsync()
     {
-        if (_form is null || _isSubmitting || _registered)
+        if (_form is null || _isSubmitting || _registered || _disposed)
             return;
 
         _errorMessage = null;
@@ -352,28 +576,53 @@
 
         _isSubmitting = true;
 
+        // Pending debounce sonuçlarının form durumunu değiştirmesini önle.
+        ++_usernameVersion;
+        ++_emailVersion;
+
+        _usernameCheckCts?.Cancel();
+        _emailCheckCts?.Cancel();
+
         try
         {
+            var username = _username.Trim();
+            var email = _email.Trim();
+
+            var usernameAvailability = await AvailabilityService.CheckAsync(UserIdentifierType.Username, username);
+
+            var emailAvailability = await AvailabilityService.CheckAsync(UserIdentifierType.Email, email);
+
+            _usernameAvailability = usernameAvailability;
+            _emailAvailability = emailAvailability;
+
+            if (usernameAvailability == LabIdentifierAvailability.Taken ||
+                emailAvailability == LabIdentifierAvailability.Taken)
+            {
+                _errorMessage = "The username or email address is already in use. Please choose different credentials.";
+
+                return;
+            }
+
+            if (usernameAvailability != LabIdentifierAvailability.Available || emailAvailability != LabIdentifierAvailability.Available)
+            {
+                _errorMessage = "We could not verify your username or email address. Please check your details and try again.";
+
+                return;
+            }
+
             var request = new LabRegistrationRequest(
-                Username: _username.Trim(),
-                Email: _email.Trim(),
+                Username: username,
+                Email: email,
                 Password: _password,
-                FirstName: string.IsNullOrWhiteSpace(_firstName)
-                    ? null
-                    : _firstName.Trim(),
-                LastName: string.IsNullOrWhiteSpace(_lastName)
-                    ? null
-                    : _lastName.Trim(),
-                BirthDate: _birthDate is { } date
-                    ? DateOnly.FromDateTime(date)
-                    : null);
+                FirstName: string.IsNullOrWhiteSpace(_firstName) ? null : _firstName.Trim(),
+                LastName: string.IsNullOrWhiteSpace(_lastName) ? null : _lastName.Trim(),
+                BirthDate: _birthDate is { } date ? DateOnly.FromDateTime(date) : null);
 
             var result = await RegistrationService.RegisterAsync(request);
 
             if (!result.IsSuccess)
             {
-                _errorMessage = result.ErrorMessage
-                    ?? "Registration could not be completed.";
+                _errorMessage = result.ErrorMessage ?? "Registration could not be completed.";
 
                 _requiresRepair = result.RequiresRepair;
                 return;
@@ -383,13 +632,24 @@
         }
         catch (Exception)
         {
-            _errorMessage =
-                "An unexpected error occurred. If you already submitted " +
-                "your registration, try signing in before registering again.";
+            _errorMessage = "An unexpected error occurred. If you already submitted your registration, try signing in before registering again.";
         }
         finally
         {
             _isSubmitting = false;
+            Snackbar.Add(_errorMessage ?? string.Empty, Severity.Error);
         }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+
+        ++_usernameVersion;
+        ++_emailVersion;
+
+        // Each running task owns disposal of its CTS.
+        _usernameCheckCts?.Cancel();
+        _emailCheckCts?.Cancel();
     }
 }

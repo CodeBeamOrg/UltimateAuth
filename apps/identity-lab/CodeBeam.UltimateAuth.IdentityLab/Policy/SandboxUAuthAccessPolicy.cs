@@ -28,6 +28,11 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
                 : AccessDecision.Deny("lab_registration_required");
         }
 
+        if (action == UAuthActions.UserIdentifiers.CheckAvailability && !context.IsAuthenticated)
+        {
+            return AccessDecision.Allow();
+        }
+
         if (action.EndsWith(".anonymous", StringComparison.Ordinal))
             return AccessDecision.Allow();
 

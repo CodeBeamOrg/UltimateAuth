@@ -106,6 +106,7 @@
                                           Margin="Margin.Dense"
                                           Required="true"
                                           RequiredError="Password is required."
+                                          autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
 
                         <MudPasswordField @bind-Value="_passwordCheck"
@@ -116,6 +117,7 @@
                                           RequiredError="Please confirm the password."
                                           Immediate="true"
                                           Validation="@(new Func<string?, string?>(PasswordMatch))"
+                                          autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
                     </div>
 
