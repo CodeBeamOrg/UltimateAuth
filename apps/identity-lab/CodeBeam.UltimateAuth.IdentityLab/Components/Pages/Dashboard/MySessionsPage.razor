@@ -1,14 +1,12 @@
 ﻿@page "/dashboard/sessions"
 @layout DashboardLayout
-@attribute [UAuthAuthorize]
-@using CodeBeam.UltimateAuth.Client
-@using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Core.Domain
-@using CodeBeam.UltimateAuth.Users.Contracts
+
 @inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
 
 <PageTitle>My Sessions · Identity Lab</PageTitle>
 
@@ -226,7 +224,7 @@
                             <div class="lab-tree-node" @key="_currentChain.ChainId">
                                 <span class="lab-tree-icon"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /></span>
                                 <div><strong>@DeviceName(_currentChain)</strong><span>Current · @_currentChain.State</span></div>
-                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Style="text-transform: none !important"
                                            OnClick="@(() => OpenSessionManagementAsync(_currentChain.ChainId))">Sessions</MudButton>
                             </div>
                         }
@@ -234,15 +232,21 @@
                         {
                             <div class="lab-tree-node" @key="chain.ChainId">
                                 <span class="lab-tree-icon"><MudIcon Icon="@Icons.Material.Filled.AccountTree" /></span>
-                                <div><strong>@DeviceName(chain)</strong><span>@chain.State · @chain.ChainId</span></div>
-                                <MudButton Size="Size.Small" Variant="Variant.Text"
-                                           OnClick="@(() => OpenSessionManagementAsync(chain.ChainId))">Sessions</MudButton>
+                                <div class="lab-tree-content">
+                                    <strong>@DeviceName(chain)</strong>
+
+                                    <span class="lab-tree-chain-id" title="@chain.ChainId">
+                                        @chain.State · @chain.ChainId
+                                    </span>
+                                </div>
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Style="text-transform: none !important" Disabled="@_busy" OnClick="@(() => OpenSessionManagementAsync(chain.ChainId))">
+                                    Sessions
+                                </MudButton>
                             </div>
                         }
                         @if (_chains.Count(x => !x.IsCurrentDevice) > _treeVisibleCount)
                         {
-                            <MudButton Size="Size.Small" Variant="Variant.Text"
-                                       OnClick="ExpandTree">Show more chains</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ExpandTree">Show more chains</MudButton>
                         }
                         @if (_totalChains > PageSize)
                         {
@@ -357,7 +361,7 @@
         {
             for (var page = 1; page <= TotalPages; page++)
             {
-                var result = await UAuthClient.Sessions.GetMyChainsAsync(CreateChainsRequest(_page));
+                var result = await UAuthClient.Sessions.GetMyChainsAsync(CreateChainsRequest(page));
 
                 if (!result.IsSuccess || result.Value is null)
                 {

@@ -427,3 +427,20 @@
         padding: 10px;
     }
 }
+
+.lab-tree-node {
+    min-width: 0;
+}
+
+.lab-tree-content {
+    flex: 1;
+    min-width: 0;
+}
+
+    .lab-tree-content strong,
+    .lab-tree-chain-id {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }

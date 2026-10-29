@@ -263,6 +263,133 @@
         line-height: 1.7;
     }
 
+.lab-role-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lab-role-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    min-width: 0;
+}
+
+.lab-role-details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .lab-role-details strong {
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .lab-role-details span {
+        font-size: 0.8rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-role-row .mud-chip {
+    flex-shrink: 0;
+}
+
+.lab-decision-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    min-width: 0;
+}
+
+.lab-decision-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 14px;
+    background: var(--mud-palette-surface);
+}
+
+    .lab-decision-heading > div {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .lab-decision-heading h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .lab-decision-heading p {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-decision-details {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.lab-decision-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+    .lab-decision-detail + .lab-decision-detail {
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .lab-decision-detail > span {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .lab-decision-detail strong {
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .lab-decision-detail code {
+        font-size: 0.8rem;
+        padding: 5px 9px;
+        border-radius: 6px;
+        background: var(--mud-palette-background-gray);
+        overflow-wrap: anywhere;
+    }
+
+@media (max-width: 600px) {
+    .lab-decision-detail {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .lab-role-row {
+        gap: 10px;
+        padding: 12px;
+    }
+}
+
 @media (max-width: 960px) {
     .lab-access-grid,
     .lab-playground-grid {

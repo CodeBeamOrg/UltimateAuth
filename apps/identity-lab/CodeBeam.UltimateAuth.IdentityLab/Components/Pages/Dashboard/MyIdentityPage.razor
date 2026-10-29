@@ -8,7 +8,7 @@
 @inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 
-@attribute [UAuthAuthorize]
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
 
 <PageTitle>My Identity · Identity Lab</PageTitle>
 
