@@ -1,5 +1,6 @@
 ﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudDialog Class="lab-create-user-dialog uauth-shared-dialog">
     <TitleContent>
@@ -55,6 +56,7 @@
 
                         <MudTextField T="string"
                                       @bind-Value="_username"
+                                      @bind-Value:after="OnUsernameChanged"
                                       Label="Username"
                                       Placeholder="e.g. alex"
                                       Variant="Variant.Outlined"
@@ -65,8 +67,11 @@
                                       Disabled="@_isSubmitting"
                                       MaxLength="100" />
 
+                        <IdentifierAvailabilityHint State="_usernameAvailability" Label="Username" />
+
                         <MudTextField T="string"
                                       @bind-Value="_email"
+                                      @bind-Value:after="OnEmailChanged"
                                       Label="Email Address"
                                       Placeholder="e.g. alex@example.com"
                                       InputType="InputType.Email"
@@ -78,6 +83,8 @@
                                       Immediate="true"
                                       Disabled="@_isSubmitting"
                                       MaxLength="254" />
+
+                        <IdentifierAvailabilityHint State="_emailAvailability" Label="Email" />
                     </div>
                 </div>
 
@@ -115,8 +122,7 @@
                     <div class="lab-create-user-hint">
                         <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                         <span>
-                            Password requirements are enforced by the
-                            configured UltimateAuth credential policy.
+                            Password requirements are enforced by the configured UltimateAuth credential policy.
                         </span>
                     </div>
                 </div>

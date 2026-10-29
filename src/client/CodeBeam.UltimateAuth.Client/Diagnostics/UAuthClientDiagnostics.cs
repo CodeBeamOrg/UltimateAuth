@@ -149,7 +149,7 @@ public sealed class UAuthClientDiagnostics
     {
         StoppedAt = DateTimeOffset.UtcNow;
         StopCount++;
-        SetNextAutomaticRefresh(null);
+        Interlocked.Exchange(ref _nextAutomaticRefreshTicks, 0);
         Changed?.Invoke();
     }
 
@@ -201,7 +201,7 @@ public sealed class UAuthClientDiagnostics
         IsTerminated = true;
         TerminatedAt = DateTimeOffset.UtcNow;
         TerminationReason = reason;
-        SetNextAutomaticRefresh(null);
+        Interlocked.Exchange(ref _nextAutomaticRefreshTicks, 0);
         Interlocked.Increment(ref _terminatedCount);
         Changed?.Invoke();
     }
@@ -209,7 +209,9 @@ public sealed class UAuthClientDiagnostics
     internal void SetNextAutomaticRefresh(DateTimeOffset? scheduledAt)
     {
         var ticks = scheduledAt?.UtcTicks ?? 0;
-        Interlocked.Exchange(ref _nextAutomaticRefreshTicks, ticks);
-        Changed?.Invoke();
+        var previous = Interlocked.Exchange(ref _nextAutomaticRefreshTicks, ticks);
+
+        if (previous != ticks)
+            Changed?.Invoke();
     }
 }
