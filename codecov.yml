@@ -5,7 +5,6 @@ coverage:
   status:
     project:
       default: false
-
       framework:
         flags:
           - framework
@@ -14,7 +13,6 @@ coverage:
 
     patch:
       default: false
-
       framework:
         flags:
           - framework
@@ -26,11 +24,8 @@ flags:
     paths:
       - src/
 
-  identitylab:
-    paths:
-      - apps/identity-lab/
-
 ignore:
   - "samples/**"
   - "tests/**"
+  - "apps/**"
   - "**/Migrations/**"
