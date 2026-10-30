@@ -2,25 +2,27 @@
 <!-- Please complete the following checklist to help us review your PR effectively.-->
 
 
-## 📘 Summary
+## Summary
 <!-- Describe what this PR does and why it’s needed. -->
 
 
-## 🔍 Details
+## Details
 <!-- Explain any important implementation details, design decisions, or considerations. -->
 
 
-## 🧩 Related Issues
-Link any related issues:
+## Related Issues
+<!-- Link any related issues: -->
 <!-- Example: Fixes #42 -->
 
 
-## 🛠 Changes
-- [ ] New feature
+## Changes
 - [ ] Bug fix
+- [ ] New feature
 - [ ] Refactoring - Improvement
 - [ ] Documentation
 - [ ] Samples
+- [ ] Tests
+- [ ] Identity Lab
 - [ ] Breaking change
 
 ---

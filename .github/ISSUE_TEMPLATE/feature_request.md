@@ -7,27 +7,27 @@ assignees: ""
 ---
 
 ## ✨ Feature Description
-Describe the feature you'd like to see.
+<!-- Describe the feature you'd like to see. -->
 
 ---
 
-## 💡 Why Is This Needed?
-Explain the problem this feature solves or the value it provides.
+## Why Is This Needed?
+<!-- Explain the problem this feature solves or the value it provides. -->
 
 ---
 
-## 🛠 Suggested Implementation
-If you have any implementation ideas, describe them:
+## Suggested Implementation
+<!-- If you have any implementation ideas, describe them:
 - Proposed API shape
 - Example usage
-- Integration points
+- Integration points -->
 
 ---
 
-## 🔗 Related Issues / Discussions
-(Optional) Link any related issues or design proposals.
+## Related Issues / Discussions
+<!-- (Optional) Link any related issues or design proposals. -->
 
 ---
 
-## ✔ Additional Notes
-Anything else we should know?
+## Additional Notes
+<!-- Anything else we should know? -->
