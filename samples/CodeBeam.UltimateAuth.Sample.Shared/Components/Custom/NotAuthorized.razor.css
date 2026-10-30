@@ -1,0 +1,111 @@
+::deep .lab-denied-page {
+    min-height: 100vh;
+    padding: 32px 16px;
+    background: radial-gradient( ellipse at 50% 15%, rgba(22, 163, 74, .07), transparent 55% );
+}
+
+.lab-denied-container {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+}
+
+::deep .lab-denied-card {
+    padding: 44px 40px 28px;
+    border-radius: 20px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    text-align: center;
+}
+
+.lab-denied-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.lab-denied-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border-radius: 30px;
+    background: rgba(22, 163, 74, .09);
+    color: #16a34a;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .7px;
+    margin-bottom: 18px;
+}
+
+.lab-denied-title {
+    font-weight: 800;
+    letter-spacing: -.8px;
+    margin-bottom: 14px;
+}
+
+.lab-denied-description {
+    max-width: 390px;
+    margin: 0 auto;
+    color: var(--mud-palette-text-secondary);
+    line-height: 1.8;
+}
+
+.lab-denied-explanation {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 28px;
+    padding: 16px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    background: var(--mud-palette-background-gray);
+    text-align: left;
+}
+
+    .lab-denied-explanation span {
+        color: var(--mud-palette-text-secondary);
+        font-size: .76rem;
+        line-height: 1.7;
+    }
+
+.lab-denied-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.lab-denied-button {
+    min-width: 140px;
+    text-transform: none;
+    font-weight: 650;
+    border-radius: 9px;
+}
+
+.lab-denied-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 32px;
+    padding-top: 22px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-secondary);
+    font-size: .7rem;
+}
+
+@media (max-width: 600px) {
+    .lab-denied-card {
+        padding: 32px 22px 24px;
+    }
+
+    .lab-denied-actions {
+        flex-direction: column;
+    }
+
+    .lab-denied-button {
+        width: 100%;
+    }
+}

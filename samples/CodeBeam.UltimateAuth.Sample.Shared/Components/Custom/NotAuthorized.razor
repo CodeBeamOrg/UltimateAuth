@@ -1,27 +1,69 @@
 ﻿@inject NavigationManager Nav
 
-<MudPage Class="d-flex align-center justify-center" FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1">
-    <MudPaper Class="pa-8" Style="max-width: 520px; width: 100%;" Elevation="0" Outlined="true">
-        <MudStack Spacing="3" AlignItems="AlignItems.Center">
-            <UAuthLogo Size="72" />
+<MudPage FullScreen="FullScreen.FullWithoutAppbar" Column="1" Row="1" Class="lab-denied-page">
+    <div class="lab-denied-container">
 
-            <MudText Typo="Typo.h5"><b>Access Denied</b></MudText>
+        <MudPaper Outlined="true" Elevation="0" Class="lab-denied-card">
 
-            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
-                You don’t have permission to view this page.
-                If you think this is a mistake, sign in with a different account or request access.
+            <div class="lab-denied-logo">
+                <UAuthLogo Size="64" Variant="UAuthLogoVariant.Brand" ShieldColor="#16A34A" KeyColor="#F0FDF4" />
+            </div>
+
+            <div class="lab-denied-status">
+                <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                <span>403 · ACCESS RESTRICTED</span>
+            </div>
+
+            <MudText Typo="Typo.h4"
+                     Class="lab-denied-title">
+                Access Denied
             </MudText>
 
-            <MudStack Row="true" Spacing="2" Class="mt-2">
-                <MudButton Href="@LoginHref" Color="Color.Primary" Variant="Variant.Filled">Sign In</MudButton>
-                <MudButton OnClick="@GoBack" Color="Color.Primary" Variant="Variant.Outlined">Go Back</MudButton>
-            </MudStack>
-
-            <MudDivider Class="my-2" />
-
-            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                UltimateAuth protects this resource based on your session and permissions.
+            <MudText Typo="Typo.body2"
+                     Class="lab-denied-description">
+                Your current account doesn't have permission
+                to access this resource.
             </MudText>
-        </MudStack>
-    </MudPaper>
+
+            <div class="lab-denied-explanation">
+                <MudIcon Icon="@Icons.Material.Outlined.Info"
+                         Color="Color.Info"
+                         Size="Size.Small" />
+
+                <span>
+                    Access is controlled by your assigned permissions, authorization policies and current session.
+                    You may need a different account or additional access.
+                </span>
+            </div>
+
+            <div class="lab-denied-actions">
+                <MudButton Href="@LoginHref"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Login"
+                           Class="lab-denied-button">
+                    Sign In
+                </MudButton>
+
+                <MudButton OnClick="@GoBack"
+                           Color="Color.Primary"
+                           Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           Class="lab-denied-button">
+                    Go Back
+                </MudButton>
+            </div>
+
+            <div class="lab-denied-footer">
+                <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser" Size="Size.Small" />
+                <span>Protected by UltimateAuth</span>
+            </div>
+
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mt-5">
+            Identity Lab · Secure sandbox environment
+        </MudText>
+
+    </div>
 </MudPage>

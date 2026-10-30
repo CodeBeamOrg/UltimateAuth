@@ -1,7 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
@@ -17,21 +17,24 @@ public sealed class LabAdminService(IDbContextFactory<LabDbContext> dbFactory, I
     {
         var tenant = TenantKeys.Single;
 
-        var assignments = await userRoleStoreFactory.Create(tenant).GetAssignmentsAsync(actorUserKey, ct);
-
-        if (assignments.Count == 0)
-            return false;
-
-        var roleIds = assignments
-            .Select(x => x.RoleId)
-            .Distinct()
-            .ToArray();
-
         var roles = await roleStoreFactory
             .Create(tenant)
-            .GetByIdsAsync(roleIds, ct);
+            .GetByIdsAsync([LabRoleIds.Admin], ct);
 
-        return roles.Any(x => string.Equals(x.Name, "Ladmin", StringComparison.OrdinalIgnoreCase));
+        var adminRole = roles.FirstOrDefault(x =>
+            x.Id == LabRoleIds.Admin &&
+            x.Tenant == tenant &&
+            !x.IsDeleted);
+
+        if (adminRole is null)
+            return false;
+
+        var assignments = await userRoleStoreFactory
+            .Create(tenant)
+            .GetAssignmentsAsync(actorUserKey, ct);
+
+        return assignments.Any(x =>
+            x.RoleId == LabRoleIds.Admin);
     }
 
     private async Task RequireAdminAsync(UserKey actorUserKey, CancellationToken ct)

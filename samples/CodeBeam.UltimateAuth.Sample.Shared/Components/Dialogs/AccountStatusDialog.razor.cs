@@ -20,6 +20,9 @@ public partial class AccountStatusDialog
     [Parameter]
     public bool AllowAccountDeletion { get; set; } = true;
 
+    [Parameter]
+    public Func<Task<bool>>? OnDeleteAccountAsync { get; set; }
+
     private bool _isSubmitting;
 
     private string AccountName =>
@@ -148,20 +151,32 @@ public partial class AccountStatusDialog
 
         try
         {
-            var result = await UAuthClient.Users.DeleteMeAsync();
+            bool success;
 
-            if (!result.IsSuccess)
+            if (OnDeleteAccountAsync is not null)
             {
-                Snackbar.Add(
-                    result.ErrorText ?? "Failed to delete account.",
-                    Severity.Error);
+                success = await OnDeleteAccountAsync();
+            }
+            else
+            {
+                var result = await UAuthClient.Users.DeleteMeAsync();
+
+                if (!result.IsSuccess)
+                {
+                    Snackbar.Add(result.ErrorText ?? "Failed to delete account.", Severity.Error);
+                    return;
+                }
+
+                success = true;
+            }
+
+            if (!success)
+            {
+                Snackbar.Add("Failed to delete account.", Severity.Error);
                 return;
             }
 
-            Snackbar.Add(
-                "Your account has been deleted.",
-                Severity.Success);
-
+            Snackbar.Add("Your account has been deleted.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception)

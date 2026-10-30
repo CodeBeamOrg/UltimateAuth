@@ -1,12 +1,11 @@
-﻿
-using CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using System.Net.Mail;
 
 namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 
-public partial class CreateUserDialog
+public partial class CreateUserDialog : IDisposable
 {
     private MudForm _form = null!;
 
@@ -46,6 +45,12 @@ public partial class CreateUserDialog
 
         if (!_form.IsValid)
             return;
+
+        if (!IdentifiersAvailable)
+        {
+            Snackbar.Add("Please wait until username and email availability checks are complete.", Severity.Warning);
+            return;
+        }
 
         if (_password != _passwordCheck)
         {
@@ -138,5 +143,194 @@ public partial class CreateUserDialog
     {
         if (!_isSubmitting)
             MudDialog.Cancel();
+    }
+
+
+    private IdentifierAvailabilityState _usernameAvailability =
+        IdentifierAvailabilityState.Empty;
+
+    private IdentifierAvailabilityState _emailAvailability =
+        IdentifierAvailabilityState.Empty;
+
+    private CancellationTokenSource? _usernameCheckCts;
+    private CancellationTokenSource? _emailCheckCts;
+
+    private int _usernameVersion;
+    private int _emailVersion;
+
+    private bool _disposed;
+
+    private bool IdentifiersAvailable =>
+        _usernameAvailability == IdentifierAvailabilityState.Available &&
+        _emailAvailability == IdentifierAvailabilityState.Available;
+
+    private Task OnUsernameChanged()
+    {
+        _usernameCheckCts?.Cancel();
+
+        var version = ++_usernameVersion;
+
+        _usernameAvailability = string.IsNullOrWhiteSpace(_username)
+            ? IdentifierAvailabilityState.Empty
+            : IdentifierAvailabilityState.Checking;
+
+        if (string.IsNullOrWhiteSpace(_username))
+            return Task.CompletedTask;
+
+        var cts = new CancellationTokenSource();
+        _usernameCheckCts = cts;
+
+        _ = CheckIdentifierAsync(
+            UserIdentifierType.Username,
+            _username.Trim(),
+            version,
+            cts);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnEmailChanged()
+    {
+        _emailCheckCts?.Cancel();
+
+        var version = ++_emailVersion;
+
+        _emailAvailability = string.IsNullOrWhiteSpace(_email)
+            ? IdentifierAvailabilityState.Empty
+            : IdentifierAvailabilityState.Checking;
+
+        if (string.IsNullOrWhiteSpace(_email))
+            return Task.CompletedTask;
+
+        if (ValidateEmail(_email) is not null)
+        {
+            _emailAvailability = IdentifierAvailabilityState.Invalid;
+            return Task.CompletedTask;
+        }
+
+        var cts = new CancellationTokenSource();
+        _emailCheckCts = cts;
+
+        _ = CheckIdentifierAsync(
+            UserIdentifierType.Email,
+            _email.Trim(),
+            version,
+            cts);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CheckIdentifierAsync(
+        UserIdentifierType type,
+        string value,
+        int version,
+        CancellationTokenSource cts)
+    {
+        try
+        {
+            var token = cts.Token;
+
+            await Task.Delay(450, token);
+
+            if (token.IsCancellationRequested || _disposed)
+                return;
+
+            var result = await UAuthClient.Identifiers.CheckAvailabilityAsync(
+                new CheckUserIdentifierAvailabilityRequest
+                {
+                    Type = type,
+                    Value = value
+                });
+
+            if (token.IsCancellationRequested || _disposed)
+                return;
+
+            var state = !result.IsSuccess || result.Value is null
+                ? IdentifierAvailabilityState.Error
+                : !result.Value.IsValid
+                    ? IdentifierAvailabilityState.Invalid
+                    : result.Value.IsAvailable
+                        ? IdentifierAvailabilityState.Available
+                        : IdentifierAvailabilityState.Unavailable;
+
+            await InvokeAsync(() =>
+            {
+                if (_disposed || token.IsCancellationRequested)
+                    return;
+
+                if (type == UserIdentifierType.Username)
+                {
+                    if (version != _usernameVersion)
+                        return;
+
+                    _usernameAvailability = state;
+                }
+                else
+                {
+                    if (version != _emailVersion)
+                        return;
+
+                    _emailAvailability = state;
+                }
+
+                StateHasChanged();
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer input superseded this check.
+        }
+        catch (Exception)
+        {
+            if (!_disposed && !cts.IsCancellationRequested)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (_disposed)
+                        return;
+
+                    if (type == UserIdentifierType.Username &&
+                        version == _usernameVersion)
+                    {
+                        _usernameAvailability = IdentifierAvailabilityState.Error;
+                    }
+                    else if (type == UserIdentifierType.Email &&
+                             version == _emailVersion)
+                    {
+                        _emailAvailability = IdentifierAvailabilityState.Error;
+                    }
+
+                    StateHasChanged();
+                });
+            }
+        }
+        finally
+        {
+            // The asynchronous operation owns its CTS.
+            // Dispose only after the operation has finished.
+            if (type == UserIdentifierType.Username)
+            {
+                if (ReferenceEquals(_usernameCheckCts, cts))
+                    _usernameCheckCts = null;
+            }
+            else
+            {
+                if (ReferenceEquals(_emailCheckCts, cts))
+                    _emailCheckCts = null;
+            }
+
+            cts.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+
+        _usernameCheckCts?.Cancel();
+        _emailCheckCts?.Cancel();
+
+        // CTS instances are disposed by their own
+        // CheckIdentifierAsync finally blocks.
     }
 }

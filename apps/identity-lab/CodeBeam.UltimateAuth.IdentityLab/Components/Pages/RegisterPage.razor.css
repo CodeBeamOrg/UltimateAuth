@@ -249,6 +249,29 @@
     color: var(--mud-palette-text-secondary);
 }
 
+.lab-login-grid {
+    align-items: start;
+}
+
+.lab-login-form-section,
+.lab-login-showcase {
+    min-width: 0;
+}
+
+@media (min-width: 960px) {
+    .lab-login-showcase {
+        align-self: start;
+        position: sticky;
+        top: 24px;
+    }
+}
+
+@media (max-width: 959.98px) {
+    .lab-login-showcase {
+        position: static;
+    }
+}
+
 @media (max-width: 600px) {
     .lab-login-intro {
         margin-bottom: 22px;

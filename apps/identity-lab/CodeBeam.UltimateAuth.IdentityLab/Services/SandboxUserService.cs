@@ -50,14 +50,13 @@ public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClie
         {
             if (!userMap.TryGetValue(member.UserKey, out var user))
             {
-                throw new InvalidOperationException($"Unable to load user {member.UserKey.Value}.");
+                logger.LogWarning("Sandbox member {UserKey} in sandbox {SandboxId} has no active user summary.", member.UserKey.Value ,sandbox.Id);
+                continue;
             }
 
             users.Add(new SandboxUserItem(
                 UserKey: member.UserKey,
-                DisplayName: user.DisplayName
-                    ?? user.UserName
-                    ?? "Unknown user",
+                DisplayName: user.DisplayName ?? user.UserName ?? "Unknown user",
                 Username: user.UserName ?? "",
                 Email: user.PrimaryEmail ?? "",
                 IsOwner: member.Role == SandboxMemberRole.Owner,

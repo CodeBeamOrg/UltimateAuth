@@ -27,6 +27,9 @@ public partial class UserDetailDialog
     public UserKey UserKey { get; set; }
 
     [Parameter]
+    public bool AllowRoleManagement { get; set; } = true;
+
+    [Parameter]
     public bool PreviewMode { get; set; }
 
     private string DisplayName =>

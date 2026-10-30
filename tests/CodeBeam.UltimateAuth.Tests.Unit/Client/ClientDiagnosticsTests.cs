@@ -80,14 +80,21 @@ public class ClientDiagnosticsTests
     public void ChangedEvent_ShouldFire_OnStateChanges()
     {
         var diagnostics = new UAuthClientDiagnostics();
-        int changeCount = 0;
+        var changeCount = 0;
 
         diagnostics.Changed += () => changeCount++;
 
         diagnostics.MarkStarted();
+        Assert.Equal(1, changeCount);
+
         diagnostics.MarkManualRefresh();
+        Assert.Equal(2, changeCount);
+
         diagnostics.MarkRefreshTouched();
-        diagnostics.MarkTerminated(CoordinatorTerminationReason.ReauthRequired);
+        Assert.Equal(3, changeCount);
+
+        diagnostics.MarkTerminated(
+            CoordinatorTerminationReason.ReauthRequired);
 
         Assert.Equal(4, changeCount);
     }
@@ -101,5 +108,28 @@ public class ClientDiagnosticsTests
 
         Assert.True(diagnostics.IsTerminated);
         Assert.Equal(2, diagnostics.TerminatedCount);
+    }
+
+    [Fact]
+    public void SetNextAutomaticRefresh_ShouldNotifyOnlyWhenChanged()
+    {
+        var diagnostics = new UAuthClientDiagnostics();
+        var changeCount = 0;
+
+        diagnostics.Changed += () => changeCount++;
+
+        var scheduledAt = DateTimeOffset.UtcNow.AddMinutes(5);
+
+        diagnostics.SetNextAutomaticRefresh(scheduledAt);
+        Assert.Equal(1, changeCount);
+
+        diagnostics.SetNextAutomaticRefresh(scheduledAt);
+        Assert.Equal(1, changeCount);
+
+        diagnostics.SetNextAutomaticRefresh(null);
+        Assert.Equal(2, changeCount);
+
+        diagnostics.SetNextAutomaticRefresh(null);
+        Assert.Equal(2, changeCount);
     }
 }

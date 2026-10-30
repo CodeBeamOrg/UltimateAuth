@@ -1,8 +1,9 @@
 ﻿@page "/register"
-@using CodeBeam.UltimateAuth.IdentityLab.Contracts
-@using CodeBeam.UltimateAuth.IdentityLab.Services
 @layout PublicLayout
+@implements IDisposable
+
 @inject LabRegistrationService RegistrationService
+@inject LabRegistrationAvailabilityService AvailabilityService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -22,79 +23,200 @@
                         </span>
 
                         <h1>Create your sandbox.</h1>
-                        <p>Set up your account and start exploring UltimateAuth in your own workspace.</p>
+                        <p>Set up your account and start exploring UltimateAuth in your own workspace.
+                        </p>
                     </div>
 
-                    
                     <div class="lab-login-card">
-                        <MudForm @ref="_form">
-                            <div class="lab-login-fields">
 
-                                <MudTextField T="string"
-                                              @bind-Value="_username"
-                                              Label="Username"
-                                              Placeholder="Choose a username"
-                                              Variant="Variant.Outlined"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Filled.PersonOutline"
-                                              Required="true"
-                                              RequiredError="Username is required." />
+                        @if (_registered)
+                        {
+                            <MudStack Spacing="3">
+                                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                                    <MudText Typo="Typo.h6">Your sandbox is ready!</MudText>
+                                    <MudText>Your UltimateAuth account and private sandbox have been created successfully.</MudText>
+                                </MudAlert>
 
-                                <MudTextField T="string"
-                                              @bind-Value="_email"
-                                              Label="Email address"
-                                              Placeholder="you@example.com"
-                                              InputType="InputType.Email"
-                                              Variant="Variant.Outlined"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
-                                              Required="true"
-                                              RequiredError="Email address is required."
-                                              Validation="@(new Func<string, string?>(ValidateEmail))" />
+                                <MudText>
+                                    You can now sign in using your username or email address and password.
+                                </MudText>
 
-                                <MudPasswordField @bind-Value="_password"
-                                                  Label="Password"
-                                                  Variant="Variant.Outlined"
-                                                  Required="true"
-                                                  RequiredError="Password is required."
-                                                  Immediate="true"
-                                                  Validation="@(new Func<string, string?>(ValidatePassword))" />
-
-                                <MudPasswordField @bind-Value="_confirmPassword"
-                                                  Label="Confirm password"
-                                                  Variant="Variant.Outlined"
-                                                  Required="true"
-                                                  RequiredError="Please confirm your password."
-                                                  Immediate="true"
-                                                  Validation="@(new Func<string, string?>(ValidateConfirmPassword))" />
-
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           FullWidth="true"
-                                           Size="Size.Large"
-                                           Disabled="@_isSubmitting"
-                                           OnClick="SubmitAsync"
-                                           EndIcon="@Icons.Material.Filled.ArrowForward">
-                                    @(_isSubmitting ? "Creating..." : "Create Sandbox")
+                                <MudButton Href="/login" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" EndIcon="@Icons.Material.Filled.Login">
+                                    Sign in
                                 </MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudForm @ref="_form">
+                                <div class="lab-login-fields">
 
+                                    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                                    {
+                                        <MudAlert Severity="@(_requiresRepair ? Severity.Warning : Severity.Error)" Variant="Variant.Outlined">
+                                            <MudStack Spacing="2">
+                                                <MudText>
+                                                    @_errorMessage
+                                                </MudText>
+
+                                                @if (_requiresRepair)
+                                                {
+                                                    <MudText>
+                                                        Your account may already exist. Do not register again with the same credentials.
+                                                    </MudText>
+
+                                                    <MudText>
+                                                        Sign in to check whether your sandbox can be recovered. If recovery is unavailable, contact the administrator.
+                                                    </MudText>
+
+                                                    <MudButton Href="/login" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                                        Go to sign in
+                                                    </MudButton>
+                                                }
+                                            </MudStack>
+                                        </MudAlert>
+                                    }
+
+                                    <MudText Typo="Typo.subtitle2">
+                                        Account credentials
+                                    </MudText>
+
+                                    <MudTextField T="string"
+                                                  @bind-Value="_username"
+                                                  @bind-Value:after="OnUsernameChangedAsync"
+                                                  Immediate="true"
+                                                  Label="Username"
+                                                  Placeholder="Choose a username"
+                                                  Variant="Variant.Outlined"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Filled.PersonOutline"
+                                                  AdornmentColor="@GetAvailabilityColor(_usernameAvailability)"
+                                                  Required="true"
+                                                  RequiredError="Username is required."
+                                                  Disabled="_isSubmitting"
+                                                  HelperText="@GetAvailabilityMessage(_usernameAvailability, "Username")" />
+
+                                    <MudTextField T="string"
+                                                  @bind-Value="_email"
+                                                  @bind-Value:after="OnEmailChangedAsync"
+                                                  Label="Email address"
+                                                  Placeholder="you@example.com"
+                                                  InputType="InputType.Email"
+                                                  Variant="Variant.Outlined"
+                                                  Adornment="Adornment.Start"
+                                                  AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                                  AdornmentColor="@GetAvailabilityColor(_emailAvailability)"
+                                                  Immediate="true"
+                                                  Required="true"
+                                                  RequiredError="Email address is required."
+                                                  Validation="@(new Func<string, string?>(ValidateEmail))"
+                                                  Disabled="_isSubmitting"
+                                                  HelperText="@GetAvailabilityMessage(_emailAvailability, "Email")" />
+
+                                    <MudPasswordField @bind-Value="_password"
+                                                      Label="Password"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="Password is required."
+                                                      Immediate="true"
+                                                      autocomplete="new-password"
+                                                      Validation="@(new Func<string, string?>(ValidatePassword))"
+                                                      Disabled="_isSubmitting" />
+
+                                    <MudPasswordField @bind-Value="_confirmPassword"
+                                                      Label="Confirm password"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="Please confirm your password."
+                                                      Immediate="true"
+                                                      autocomplete="new-password"
+                                                      Validation="@(new Func<string, string?>(ValidateConfirmPassword))"
+                                                      Disabled="_isSubmitting" />
+
+                                                      
+                                    <MudDivider Class="my-2" />
+
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth="true" Disabled="_isSubmitting"
+                                               EndIcon="@(_showOptionalFields
+                                                    ? Icons.Material.Filled.ExpandLess
+                                                    : Icons.Material.Filled.ExpandMore)"
+                                               OnClick="@(() => _showOptionalFields = !_showOptionalFields)">
+                                        Additional information (Optional)
+                                    </MudButton>
+
+                                    <MudCollapse Expanded="_showOptionalFields">
+                                        <MudStack Spacing="3" Class="pt-3">
+
+                                            <MudGrid Spacing="2">
+                                                <MudItem xs="12" sm="6">
+                                                    <MudTextField T="string"
+                                                                  @bind-Value="_firstName"
+                                                                  Label="First name"
+                                                                  Variant="Variant.Outlined"
+                                                                  Disabled="_isSubmitting" />
+                                                </MudItem>
+
+                                                <MudItem xs="12" sm="6">
+                                                    <MudTextField T="string"
+                                                                  @bind-Value="_lastName"
+                                                                  Label="Last name"
+                                                                  Variant="Variant.Outlined"
+                                                                  Disabled="_isSubmitting" />
+                                                </MudItem>
+                                            </MudGrid>
+
+                                            <MudDatePicker @bind-Date="_birthDate"
+                                                           Label="Date of birth"
+                                                           Variant="Variant.Outlined"
+                                                           MaxDate="@DateTime.Today"
+                                                           DateFormat="yyyy-MM-dd"
+                                                           Clearable="true"
+                                                           Disabled="_isSubmitting" />
+
+                                        </MudStack>
+                                    </MudCollapse>
+
+                                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                                        Registration creates an UltimateAuth account and a private sandbox with
+                                        your own users, sessions and authorization environment.
+                                    </MudAlert>
+
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               FullWidth="true"
+                                               Size="Size.Large"
+                                               Disabled="_isSubmitting"
+                                               OnClick="SubmitAsync"
+                                               EndIcon="@Icons.Material.Filled.ArrowForward">
+                                        @if (_isSubmitting)
+                                        {
+                                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
+                                            <span>Creating your sandbox...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Create Sandbox</span>
+                                        }
+                                    </MudButton>
+                                </div>
+                            </MudForm>
+
+                            <div class="lab-login-register">
+                                <span>Already have an account?</span>
+                                <MudLink Href="/login"
+                                         Underline="Underline.Hover">
+                                    Sign in
+                                </MudLink>
                             </div>
-                        </MudForm>
-
-                        <div class="lab-login-register">
-                            <span>Already have an account?</span>
-                            <MudLink Href="/login" Underline="Underline.Hover">
-                                Sign in
-                            </MudLink>
-                        </div>
+                        }
                     </div>
-
 
                     <div class="lab-login-note">
                         <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" Color="Color.Success" />
-                        <span>Free, open source, and powered by UltimateAuth</span>
+                        <span>
+                            Free, open source, and powered by UltimateAuth
+                        </span>
                     </div>
-
                 </div>
             </section>
 
@@ -110,8 +232,11 @@
                         <span>Explore freely.</span>
                     </MudText>
 
-                    <MudText Typo="Typo.body1" Class="lab-login-showcase-description">
-                        Create a private sandbox to experience authentication, sessions, and authorization in a real application.
+                    <MudText Typo="Typo.body1"
+                             Class="lab-login-showcase-description">
+                        Create a private sandbox to experience
+                        authentication, sessions, and authorization
+                        in a real application.
                     </MudText>
 
                     <div class="lab-login-feature">
@@ -120,7 +245,10 @@
                         </span>
                         <div>
                             <strong>Your own users</strong>
-                            <p>Create and manage up to five sandbox members, including yourself.</p>
+                            <p>
+                                Create and manage up to five sandbox
+                                members, including yourself.
+                            </p>
                         </div>
                     </div>
 
@@ -130,7 +258,10 @@
                         </span>
                         <div>
                             <strong>Real session management</strong>
-                            <p>Explore device sessions, authentication lifecycle, and revocation.</p>
+                            <p>
+                                Explore device sessions, authentication
+                                lifecycle, and revocation.
+                            </p>
                         </div>
                     </div>
 
@@ -140,7 +271,10 @@
                         </span>
                         <div>
                             <strong>Roles &amp; permissions</strong>
-                            <p>Experiment with access control inside your sandbox.</p>
+                            <p>
+                                Experiment with access control inside
+                                your sandbox.
+                            </p>
                         </div>
                     </div>
 
@@ -162,18 +296,39 @@
     private string _email = string.Empty;
     private string _password = string.Empty;
     private string _confirmPassword = string.Empty;
-    private bool _showPassword;
+
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private DateTime? _birthDate;
+
     private bool _isSubmitting;
+    private bool _disposed;
+    private bool _registered;
+    private bool _requiresRepair;
+    private bool _showOptionalFields;
+
+    private string? _errorMessage;
     private MudForm? _form;
+
+    private LabIdentifierAvailability _usernameAvailability = LabIdentifierAvailability.Unknown;
+
+    private LabIdentifierAvailability _emailAvailability = LabIdentifierAvailability.Unknown;
+
+    private CancellationTokenSource? _usernameCheckCts;
+    private CancellationTokenSource? _emailCheckCts;
+
+    private int _usernameVersion;
+    private int _emailVersion;
 
     private static string? ValidateEmail(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return "Email address is required.";
 
-        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(value)
-            ? null
-            : "Enter a valid email address.";
+        return new System.ComponentModel.DataAnnotations
+            .EmailAddressAttribute().IsValid(value)
+                ? null
+                : "Enter a valid email address.";
     }
 
     private static string? ValidatePassword(string value)
@@ -192,45 +347,309 @@
         if (string.IsNullOrWhiteSpace(value))
             return "Please confirm your password.";
 
-        if (value != _password)
-            return "Passwords do not match.";
+        return value == _password
+            ? null
+            : "Passwords do not match.";
+    }
 
-        return null;
+    private static Color GetAvailabilityColor(
+       LabIdentifierAvailability state)
+       => state switch
+       {
+           LabIdentifierAvailability.Available => Color.Success,
+           LabIdentifierAvailability.Taken => Color.Error,
+           LabIdentifierAvailability.Invalid => Color.Error,
+           LabIdentifierAvailability.Unavailable => Color.Warning,
+           _ => Color.Secondary
+       };
+
+    private static string GetAvailabilityMessage(LabIdentifierAvailability state, string label)
+        => state switch
+        {
+            LabIdentifierAvailability.Checking =>
+                "Checking availability...",
+
+            LabIdentifierAvailability.Available =>
+                $"{label} is available.",
+
+            LabIdentifierAvailability.Taken =>
+                $"{label} is already in use.",
+
+            LabIdentifierAvailability.Invalid =>
+                $"Enter a valid {label.ToLowerInvariant()}.",
+
+            LabIdentifierAvailability.Unavailable =>
+                "Availability could not be checked. Please try again.",
+
+            _ => string.Empty
+        };
+
+    private Task OnUsernameChangedAsync()
+    {
+        _usernameCheckCts?.Cancel();
+
+        var version = ++_usernameVersion;
+        var value = _username.Trim();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _usernameAvailability = LabIdentifierAvailability.Unknown;
+            return Task.CompletedTask;
+        }
+
+        _usernameAvailability = LabIdentifierAvailability.Checking;
+
+        var cts = new CancellationTokenSource();
+        _usernameCheckCts = cts;
+
+        _ = CheckUsernameAsync(value, version, cts);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnEmailChangedAsync()
+    {
+        _emailCheckCts?.Cancel();
+
+        var version = ++_emailVersion;
+        var value = _email.Trim();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _emailAvailability = LabIdentifierAvailability.Unknown;
+            return Task.CompletedTask;
+        }
+
+        if (ValidateEmail(value) is not null)
+        {
+            _emailAvailability = LabIdentifierAvailability.Invalid;
+            return Task.CompletedTask;
+        }
+
+        _emailAvailability = LabIdentifierAvailability.Checking;
+
+        var cts = new CancellationTokenSource();
+        _emailCheckCts = cts;
+
+        _ = CheckEmailAsync(value, version, cts);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CheckUsernameAsync(
+        string value,
+        int version,
+        CancellationTokenSource cts)
+    {
+        var token = cts.Token;
+
+        try
+        {
+            await Task.Delay(500, token);
+
+            var result = await AvailabilityService.CheckAsync(
+                UserIdentifierType.Username,
+                value,
+                token);
+
+            if (_disposed || token.IsCancellationRequested ||
+                version != _usernameVersion)
+                return;
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed &&
+                    !token.IsCancellationRequested &&
+                    version == _usernameVersion)
+                {
+                    _usernameAvailability = result;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            if (!_disposed && version == _usernameVersion)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed && version == _usernameVersion)
+                    {
+                        _usernameAvailability =
+                            LabIdentifierAvailability.Unavailable;
+
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_usernameCheckCts, cts))
+                _usernameCheckCts = null;
+
+            cts.Dispose();
+        }
+    }
+
+    private async Task CheckEmailAsync(
+        string value,
+        int version,
+        CancellationTokenSource cts)
+    {
+        var token = cts.Token;
+
+        try
+        {
+            await Task.Delay(500, token);
+
+            var result = await AvailabilityService.CheckAsync(
+                UserIdentifierType.Email,
+                value,
+                token);
+
+            if (_disposed || token.IsCancellationRequested ||
+                version != _emailVersion)
+                return;
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed &&
+                    !token.IsCancellationRequested &&
+                    version == _emailVersion)
+                {
+                    _emailAvailability = result;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            if (!_disposed && version == _emailVersion)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed && version == _emailVersion)
+                    {
+                        _emailAvailability =
+                            LabIdentifierAvailability.Unavailable;
+
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_emailCheckCts, cts))
+                _emailCheckCts = null;
+
+            cts.Dispose();
+        }
     }
 
     private async Task SubmitAsync()
     {
-        if (_form is null || _isSubmitting)
+        if (_form is null || _isSubmitting || _registered || _disposed)
             return;
+
+        _errorMessage = null;
+        _requiresRepair = false;
 
         await _form.ValidateAsync();
 
         if (!_form.IsValid)
             return;
 
+        if (_birthDate is { } birthDate &&
+            birthDate.Date > DateTime.Today)
+        {
+            _errorMessage = "Date of birth cannot be in the future.";
+            return;
+        }
+
         _isSubmitting = true;
+
+        // Pending debounce sonuçlarının form durumunu değiştirmesini önle.
+        ++_usernameVersion;
+        ++_emailVersion;
+
+        _usernameCheckCts?.Cancel();
+        _emailCheckCts?.Cancel();
 
         try
         {
-            var result = await RegistrationService.RegisterAsync(new LabRegistrationRequest(_username.Trim(), _email.Trim(), _password.Trim()));
+            var username = _username.Trim();
+            var email = _email.Trim();
 
-            if (!result.IsSuccess)
+            var usernameAvailability = await AvailabilityService.CheckAsync(UserIdentifierType.Username, username);
+
+            var emailAvailability = await AvailabilityService.CheckAsync(UserIdentifierType.Email, email);
+
+            _usernameAvailability = usernameAvailability;
+            _emailAvailability = emailAvailability;
+
+            if (usernameAvailability == LabIdentifierAvailability.Taken ||
+                emailAvailability == LabIdentifierAvailability.Taken)
             {
-                Snackbar.Add(result.ErrorMessage ?? "Registration failed.", Severity.Error);
+                _errorMessage = "The username or email address is already in use. Please choose different credentials.";
+
                 return;
             }
 
-            Snackbar.Add("Your sandbox has been created successfully.", Severity.Success);
+            if (usernameAvailability != LabIdentifierAvailability.Available || emailAvailability != LabIdentifierAvailability.Available)
+            {
+                _errorMessage = "We could not verify your username or email address. Please check your details and try again.";
 
-            Navigation.NavigateTo("/login");
+                return;
+            }
+
+            var request = new LabRegistrationRequest(
+                Username: username,
+                Email: email,
+                Password: _password,
+                FirstName: string.IsNullOrWhiteSpace(_firstName) ? null : _firstName.Trim(),
+                LastName: string.IsNullOrWhiteSpace(_lastName) ? null : _lastName.Trim(),
+                BirthDate: _birthDate is { } date ? DateOnly.FromDateTime(date) : null);
+
+            var result = await RegistrationService.RegisterAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                _errorMessage = result.ErrorMessage ?? "Registration could not be completed.";
+
+                _requiresRepair = result.RequiresRepair;
+                return;
+            }
+
+            _registered = true;
         }
         catch (Exception)
         {
-            Snackbar.Add("An unexpected error occurred during registration.", Severity.Error);
+            _errorMessage = "An unexpected error occurred. If you already submitted your registration, try signing in before registering again.";
         }
         finally
         {
             _isSubmitting = false;
+            Snackbar.Add(_errorMessage ?? string.Empty, Severity.Error);
         }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+
+        ++_usernameVersion;
+        ++_emailVersion;
+
+        // Each running task owns disposal of its CTS.
+        _usernameCheckCts?.Cancel();
+        _emailCheckCts?.Cancel();
     }
 }

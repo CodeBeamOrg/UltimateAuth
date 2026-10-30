@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.IdentityLab.Domain;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Authorization;
 
@@ -17,18 +18,27 @@ public sealed class LabAdminGuard(IRoleStoreFactory roleStoreFactory, IUserRoleS
             return false;
         }
 
-        var roleStore = roleStoreFactory.Create(context.ActorTenant);
+        var tenant = context.ActorTenant;
+        var roleStore = roleStoreFactory.Create(tenant);
 
-        var adminRole = await roleStore.GetByNameAsync(LabRoles.Admin.ToUpperInvariant(), ct);
+        var roles = await roleStore.GetByIdsAsync(
+            [LabRoleIds.Admin], ct);
+
+        var adminRole = roles.FirstOrDefault(x =>
+            x.Id == LabRoleIds.Admin &&
+            x.Tenant == tenant &&
+            !x.IsDeleted);
 
         if (adminRole is null)
             return false;
 
-        var userRoleStore = userRoleStoreFactory.Create(context.ActorTenant);
+        var userRoleStore = userRoleStoreFactory.Create(tenant);
 
-        var assignments = await userRoleStore.GetAssignmentsAsync(context.ActorUserKey.Value, ct);
+        var assignments = await userRoleStore
+            .GetAssignmentsAsync(context.ActorUserKey.Value, ct);
 
-        return assignments.Any(x => x.RoleId == adminRole.Id);
+        return assignments.Any(x =>
+            x.RoleId == LabRoleIds.Admin);
     }
 
     public async Task EnsureAdminAsync(AccessContext context, CancellationToken ct = default)

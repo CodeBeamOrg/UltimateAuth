@@ -170,8 +170,6 @@ public sealed class LabAdminSeedContributor(
             ct);
     }
 
-    // TODO(Part 3 - Security):
-    // Owner wildcard permission is restricked with SandboxUAuthAccessPolicy, but not tested.
     private async Task EnsureSystemRolesAsync(TenantKey tenant, CancellationToken ct)
     {
         var roleStore = roleStoreFactory.Create(tenant);

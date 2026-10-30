@@ -1,0 +1,110 @@
+﻿@using MudExtensions
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<MudPopup Open="@_open" PopupPosition="PopupPosition.Bottom" Padding="16" Elevation="6" EnableAnimation="true" Class="lab-cookie-popup">
+
+    <ChildContent>
+        <div class="lab-cookie-layout">
+
+            <div class="lab-cookie-content">
+                <div class="lab-cookie-icon">
+                    <MudIcon Icon="@Icons.Material.Outlined.Shield" Size="Size.Medium" />
+                </div>
+
+                <div class="lab-cookie-copy">
+                    <strong>Essential cookies</strong>
+
+                    <p>
+                        Identity Lab uses essential cookies to keep authentication sessions secure and the application working correctly.
+                        These cookies are necessary for the service to function.
+                    </p>
+                </div>
+            </div>
+
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_saving" OnClick="AcknowledgeAsync" Class="lab-cookie-button">
+                Got it
+            </MudButton>
+
+        </div>
+    </ChildContent>
+
+</MudPopup>
+
+
+@code {
+    private const string StorageKey = "identitylab.cookies.notice.v1";
+
+    private bool _open;
+    private bool _saving;
+    private bool _initialized;
+    private bool _disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        try
+        {
+            var acknowledged = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+
+            if (_disposed)
+                return;
+
+            _open = acknowledged != "acknowledged";
+            _initialized = true;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (JSException)
+        {
+            // Storage may be unavailable in restricted browsers.
+            // Show the notice without persistence.
+            _open = true;
+            _initialized = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit has disconnected.
+        }
+    }
+
+    private async Task AcknowledgeAsync()
+    {
+        if (_saving)
+            return;
+
+        _saving = true;
+
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, "acknowledged");
+        }
+        catch (JSException)
+        {
+            // Dismiss for this circuit even if storage is unavailable.
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser connection was lost.
+        }
+        finally
+        {
+            _open = false;
+            _saving = false;
+
+            if (!_disposed)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        return ValueTask.CompletedTask;
+    }
+}

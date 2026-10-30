@@ -1,0 +1,430 @@
+﻿@page "/dashboard/session-diagnostics"
+@layout DashboardLayout
+@implements IAsyncDisposable
+
+@inject IUAuthClient UAuthClient
+@inject LabSessionDiagnosticsPolicyService PolicyService
+@inject UAuthClientDiagnostics Diagnostics
+@inject ISnackbar Snackbar
+
+<PageTitle>Session Diagnostics · Identity Lab</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+
+    <MudStack Spacing="4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.overline" Color="Color.Primary">ULTIMATEAUTH / SESSION LIFECYCLE</MudText>
+                <MudText Typo="Typo.h4">Session Diagnostics</MudText>
+                <MudText Color="Color.Secondary">Explore the real lifecycle of your current authentication session.</MudText>
+            </MudStack>
+
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Disabled="_busy" OnClick="LoadAsync" />
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                @_error
+            </MudAlert>
+        }
+        else if (_session is not null && _chain is not null)
+        {
+            <MudPaper Outlined="true" Class="pa-5">
+                <MudStack Spacing="3">
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1">
+                                Current authentication
+                            </MudText>
+
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Server-managed session lifecycle
+                            </MudText>
+                        </MudStack>
+
+                        <MudChip T="string"
+                                 Color="@(_session.IsRevoked ? Color.Error : IsExpired ? Color.Warning : Color.Success)"
+                                 Variant="Variant.Outlined"
+                                 Size="Size.Small">
+                            @(_session.IsRevoked ? "Revoked" : IsExpired ? "Expired" : "Session active")
+                        </MudChip>
+                    </MudStack>
+
+                    <MudGrid Spacing="3">
+
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background:var(--mud-palette-background-gray);height:100%">
+
+                                <MudStack Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" />
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudText Typo="Typo.caption">
+                                            SESSION EXPIRES IN
+                                        </MudText>
+
+                                        <LabOptionInfo Title="Session Expire"
+                                                       Description="Defines how long a session can remain without sliding expiration."
+                                                       OptionPath="o.Session.Lifetime"
+                                                       CurrentValue="@(_policy?.SessionLifetime.ToString() ?? "Disabled")" />
+
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.h4" Style="font-variant-numeric:tabular-nums">
+                                        @SessionCountdown
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @_session.ExpiresAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm:ss")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background:var(--mud-palette-background-gray);height:100%">
+
+                                <MudStack Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.TouchApp" Color="Color.Primary" />
+
+                                    <MudText Typo="Typo.caption">
+                                        LAST RECORDED ACTIVITY
+                                    </MudText>
+
+                                    <MudText Typo="Typo.h5" Style="font-variant-numeric:tabular-nums">
+                                        @LastSeenText
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Activity timestamps update according to the server touch policy.
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-4" Elevation="0"
+                                      Style="background:var(--mud-palette-background-gray);height:100%">
+                                <MudStack Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.TouchApp"
+                                             Color="Color.Primary" />
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudText Typo="Typo.caption">
+                                            NEXT ELIGIBLE TOUCH
+                                        </MudText>
+
+                                        <LabOptionInfo Title="Touch Interval"
+                                                       Description="Defines time interval that possible reactive refresh processes."
+                                                       OptionPath="o.Session.TouchInterval"
+                                                       CurrentValue="@(_policy?.TouchInterval.ToString() ?? "Disabled")" />
+
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.h4">
+                                        @TouchCountdown
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Minimum interval between recorded touches.
+                                        This is not a scheduled request.
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-4" Elevation="0"
+                                      Style="background:var(--mud-palette-background-gray);height:100%">
+                                <MudStack Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.HourglassBottom" Color="Color.Primary" />
+
+                                    <MudStack Row="true"
+                                              AlignItems="AlignItems.Center"
+                                              Spacing="1">
+
+                                        <MudText Typo="Typo.caption">
+                                            IDLE EXPIRATION
+                                        </MudText>
+
+                                        <LabOptionInfo Title="Idle Timeout"
+                                                       Description="Defines how long a session can remain without recorded activity before idle expiration applies."
+                                                       OptionPath="o.Session.IdleTimeout"
+                                                       CurrentValue="@(_policy?.IdleTimeout?.ToString() ?? "Disabled")" />
+
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.h4">
+                                        @IdleCountdown
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Based on the last recorded activity. Successful refreshes may reset this deadline.
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        
+                        <MudItem xs="12" sm="6">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background:var(--mud-palette-background-gray);height:100%">
+                                <MudStack Spacing="2">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Autorenew" Color="Color.Primary" />
+
+                                    <MudText Typo="Typo.caption">
+                                        NEXT AUTOMATIC REFRESH
+                                    </MudText>
+
+                                    <MudText Typo="Typo.h4" Style="font-variant-numeric:tabular-nums">
+                                        @AutomaticRefreshCountdown
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Client coordinator · Every 10 minutes
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Automatic attempts: @Diagnostics.AutomaticRefreshCount
+                                    </MudText>
+
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider />
+
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.subtitle2">
+                                Session lifetime
+                            </MudText>
+
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Variant="Variant.Outlined"
+                                     Color="@(_policy?.SlidingExpiration == true
+                                     ? Color.Success
+                                     : Color.Default)">
+                                @(_policy?.SlidingExpiration == true
+                                    ? "Sliding enabled"
+                                    : "Fixed expiration")
+                            </MudChip>
+                        </MudStack>
+
+                        <div class="lab-session-timeline">
+
+                            <div class="lab-session-timeline-track">
+
+                                <div class="lab-session-timeline-elapsed"
+                                     style="width:@(NowPosition.ToString(System.Globalization.CultureInfo.InvariantCulture))%">
+                                </div>
+
+                                @if (ExtensionWidth > 0)
+                                {
+                                    <div class="lab-session-timeline-extension"
+                                         style="left:@(ExtensionStartPosition.ToString(System.Globalization.CultureInfo.InvariantCulture))%;
+                                        width:@(ExtensionWidth.ToString(System.Globalization.CultureInfo.InvariantCulture))%">
+                                    </div>
+                                }
+
+                                <div class="lab-session-timeline-now"
+                                     style="left:@(NowPosition.ToString(System.Globalization.CultureInfo.InvariantCulture))%">
+                                </div>
+
+                            </div>
+
+                            <MudStack Row="true" Spacing="3" Wrap="Wrap.Wrap" Class="mt-3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    ● Elapsed
+                                </MudText>
+
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    ○ Remaining
+                                </MudText>
+
+                                @if (ExtensionWidth > 0)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Success">
+                                        ● Sliding extension
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </div>
+
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.caption">
+                                @_session.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                @_session.ExpiresAt.ToLocalTime().ToString("dd MMM HH:mm")
+                            </MudText>
+                        </MudStack>
+
+                        <MudGrid Spacing="2" Class="mt-2">
+
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Original expiration
+                                </MudText>
+
+                                <MudText Typo="Typo.body2">
+                                    @(_initialExpiresAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm")
+                                        ?? "Not available")
+                                </MudText>
+                            </MudItem>
+
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Current expiration
+                                </MudText>
+
+                                <MudText Typo="Typo.body2">
+                                    @_session.ExpiresAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")
+                                </MudText>
+                            </MudItem>
+
+                        </MudGrid>
+
+                        @if (SlidingExtension > TimeSpan.Zero)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Success">
+                                    Session extended by @SlidingExtensionText
+                                </MudText>
+                            </MudStack>
+                        }
+                    </MudStack>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Touch count
+                        </MudText>
+                        <MudText Typo="Typo.h4">@_chain.TouchCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Rotations
+                        </MudText>
+                        <MudText Typo="Typo.h4">@_chain.RotationCount</MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Chain state
+                        </MudText>
+                        <MudText Typo="Typo.h5">@_chain.State</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Outlined="true" Class="pa-5">
+                <MudStack Spacing="3">
+
+                    <MudText Typo="Typo.h6">
+                        Authentication Playground
+                    </MudText>
+
+                    <MudText Color="Color.Secondary">
+                        Execute real UltimateAuth authentication flows and inspect their results.
+                    </MudText>
+
+                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.VerifiedUser"
+                                   Disabled="_busy"
+                                   OnClick="ValidateAsync">
+                            Validate session
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   Disabled="_busy"
+                                   OnClick="RefreshAsync">
+                            Refresh session
+                        </MudButton>
+
+                    </MudStack>
+
+                    
+                    @if (_lastRefresh is not null)
+                    {
+                        <MudPaper Outlined="true" Class="pa-3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+                                <MudIcon Icon="@_lastRefresh.Icon" Color="@_lastRefresh.Color" />
+
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2">
+                                        @_lastRefresh.Title
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @_lastRefresh.Description
+                                    </MudText>
+                                </MudStack>
+
+                                <MudSpacer />
+
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _lastRefresh = null)" />
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                        Validation checks session validity.
+                        Refresh follows the active authentication mode and does not necessarily rotate a token.
+                    </MudAlert>
+
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-5">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h6">
+                        Understanding your session
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        UltimateAuth separates authentication into a root, a device-associated chain, and individual sessions.
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        The expiration shown above belongs to the active session returned by the server.
+                        Touch activity and session rotation are independent lifecycle operations.
+                    </MudText>
+
+                    <MudText Typo="Typo.body2">
+                        A valid session may become invalid earlier because of revocation, idle expiration, device checks, or other server policies.
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+
+    </MudStack>
+</MudContainer>

@@ -5,7 +5,6 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Components;
@@ -23,14 +22,9 @@ using MudExtensions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// TODO(Part 3): Protect system roles through UltimateAuth request guards.
-// TODO(Part 3): Add atomic provisioning and recovery for partial failures.
-// TODO(Part 3): Enforce sandbox ownership and user limits across all applicable UltimateAuth operations.
-// TODO(Part 3): Implement authenticated sandbox repair.
-
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+    //.AddCircuitOptions(o => o.DetailedErrors = true);
 
 builder.Services.AddMudServices(o => {
     o.SnackbarConfiguration.PreventDuplicates = false;
@@ -49,13 +43,8 @@ builder.Services.AddUltimateAuthServer(o =>
     // Identity Lab uses its own trusted creation align with Sandbox management.
     o.Endpoints.DisabledActions.Add(UAuthActions.Users.CreateAnonymous);
     o.Diagnostics.EnableRefreshDetails = true;
-    //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
-    //o.Session.Lifetime = TimeSpan.FromSeconds(32);
-    //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
-    //o.Session.IdleTimeout = TimeSpan.FromSeconds(15);
-    //o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
-    //o.Token.RefreshTokenLifetime = TimeSpan.FromSeconds(32);
-    o.Login.MaxFailedAttempts = 5;
+    o.Session.IdleTimeout = TimeSpan.FromDays(4);
+    o.Login.MaxFailedAttempts = 3;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
 
@@ -65,17 +54,16 @@ builder.Services.AddUltimateAuthServer(o =>
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
-        db.UseNpgsql(connectionString,
-            options => options.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
+        db.UseNpgsql(connectionString, options => options.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
     });
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
+    o.AutoRefresh.Enabled = true;
+    o.AutoRefresh.Interval = TimeSpan.FromMinutes(10);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Resource.Credentials = UAuthResourceCredentialsMode.SameOrigin;
 });
-
 
 builder.Services.AddDbContextFactory<LabDbContext>(options =>
 {
@@ -98,11 +86,18 @@ builder.Services.AddScoped<LabDashboardService>();
 builder.Services.AddScoped<SandboxUserService>();
 builder.Services.AddScoped<ActivityLogService>();
 builder.Services.AddScoped<LabUserProvisioningService>();
+builder.Services.AddScoped<SandboxAccountDeletionService>();
 builder.Services.AddScoped<LabRepairService>();
 builder.Services.AddScoped<LabOwnerRepairService>();
+builder.Services.AddScoped<SandboxRepairService>();
+builder.Services.AddScoped<LabDemoRoleService>();
+builder.Services.AddScoped<LabDemoStoreService>();
+builder.Services.AddScoped<LabSessionDiagnosticsPolicyService>();
+builder.Services.AddScoped<LabRegistrationAvailabilityService>();
 builder.Services.AddScoped<IAccessPolicy, SandboxUAuthAccessPolicy>();
 builder.Services.AddScoped<IAccessPolicy, LabApplicationPolicy>();
 builder.Services.AddScoped<LabActivityEventHandler>();
+builder.Services.AddScoped<LabProvisioningRollbackGate>();
 
 builder.Services.Configure<LabAdminOptions>(builder.Configuration.GetSection(LabAdminOptions.SectionName));
 
@@ -110,6 +105,7 @@ builder.Services.AddScoped<ILabRootResolver, LabRootResolver>();
 
 builder.Services.AddScoped<SeedRunner>();
 builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
+builder.Services.AddScoped<ISeedContributor, LabDemoRoleSeedContributor>();
 builder.Services.AddLogging();
 
 var app = builder.Build();

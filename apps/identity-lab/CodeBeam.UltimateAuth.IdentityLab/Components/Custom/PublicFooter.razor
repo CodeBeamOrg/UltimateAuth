@@ -1,11 +1,13 @@
-﻿<footer class="lab-footer">
+﻿@using CodeBeam.UltimateAuth.Core.Runtime
+@inject IUAuthProductInfoProvider ProductInfoProvider
+
+<footer class="lab-footer">
     <MudContainer MaxWidth="MaxWidth.Large">
 
         <div class="lab-footer-main">
             <div class="lab-footer-brand">
                 <span class="lab-footer-symbol">
-                    <MudIcon Icon="@Icons.Material.Filled.Science"
-                             Size="Size.Medium" />
+                    <MudImage Src="identity-lab.png" Height="32" Width="32" />
                 </span>
 
                 <div class="lab-footer-brand-text">
@@ -16,27 +18,15 @@
 
             <div class="lab-footer-links">
                 <MudTooltip Text="UltimateAuth Documentation" Delay="300">
-                    <MudIconButton Icon="@Icons.Material.Filled.MenuBook"
-                                   Href="https://ultimateauth.com/docs"
-                                   Target="_blank"
-                                   Color="Color.Inherit"
-                                   aria-label="Documentation" />
+                    <MudIconButton Icon="@Icons.Material.Filled.MenuBook" Href="https://ultimateauth.com/docs" Target="_blank" Color="Color.Inherit" aria-label="Documentation" />
                 </MudTooltip>
 
                 <MudTooltip Text="UltimateAuth on GitHub" Delay="300">
-                    <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
-                                   Href="https://github.com/CodeBeamOrg/UltimateAuth"
-                                   Target="_blank"
-                                   Color="Color.Inherit"
-                                   aria-label="GitHub" />
+                    <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" Color="Color.Inherit" aria-label="GitHub" />
                 </MudTooltip>
 
                 <MudTooltip Text="UltimateAuth Website" Delay="300">
-                    <MudIconButton Icon="@Icons.Material.Filled.Language"
-                                   Href="https://ultimateauth.com"
-                                   Target="_blank"
-                                   Color="Color.Inherit"
-                                   aria-label="UltimateAuth Website" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Language" Href="https://ultimateauth.com" Target="_blank" Color="Color.Inherit" aria-label="UltimateAuth Website" />
                 </MudTooltip>
             </div>
         </div>
@@ -44,22 +34,31 @@
         <div class="lab-footer-bottom">
             <span>
                 © @DateTime.UtcNow.Year
-                <a href="https://github.com/CodeBeamOrg"
-                   target="_blank"
-                   rel="noopener noreferrer">CodeBeam</a>.
+                <a href="https://github.com/CodeBeamOrg" target="_blank" rel="noopener noreferrer">CodeBeam</a>.
                 Free & OpenSource.
             </span>
 
             <span class="lab-footer-powered">
                 Built with
-                <a href="https://ultimateauth.com"
-                   target="_blank"
-                   rel="noopener noreferrer">UltimateAuth</a>
-                <MudIcon Icon="@Icons.Material.Filled.Favorite"
-                         Size="Size.Small"
-                         Color="Color.Primary" />
+                <a href="https://ultimateauth.com" target="_blank" rel="noopener noreferrer">UltimateAuth</a>
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" Size="Size.Small" Color="Color.Primary" />
             </span>
         </div>
 
+        <div class="lab-footer-versions">
+            <span>
+                UltimateAuth v @UltimateAuthVersion
+            </span>
+
+            <span class="lab-footer-separator">·</span>
+
+            <span>
+                .NET @LabVersionInfo.DotNetVersion
+            </span>
+        </div>
     </MudContainer>
 </footer>
+
+@code {
+    private string UltimateAuthVersion => ProductInfoProvider.Get().DisplayVersion;
+}

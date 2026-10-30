@@ -23,6 +23,25 @@ public sealed class UAuthClientProductInfo
     /// </summary>
     public string? InformationalVersion { get; init; }
 
+    /// <summary>
+    /// Gets the display version string, preferring InformationalVersion split at '+' over the Version property.
+    /// </summary>
+    /// <remarks>
+    /// InformationalVersion is preferred as it may contain additional metadata.
+    /// If InformationalVersion is null or empty, or if splitting at '+' yields no first part, the Version property is returned.
+    /// </remarks>
+    public string DisplayVersion
+    {
+        get
+        {
+            var version = InformationalVersion?.Split('+', 2)[0];
+
+            return string.IsNullOrWhiteSpace(version)
+                ? Version
+                : version;
+        }
+    }
+
 
     /// <summary>
     /// Gets the client profile associated with the UltimateAuth client. This is a required property that must be initialized with a valid UAuthClientProfile value.

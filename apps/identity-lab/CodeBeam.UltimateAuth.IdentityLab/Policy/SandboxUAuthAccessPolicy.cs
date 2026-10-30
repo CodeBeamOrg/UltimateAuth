@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Policy;
 
-public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbFactory, ILabRootResolver rootResolver) : IAccessPolicy
+public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbFactory, ILabRootResolver rootResolver, LabProvisioningRollbackGate rollbackGate) : IAccessPolicy
 {
     public bool AppliesTo(AccessContext context)
         => IsProtectedAction(context.Action);
@@ -26,6 +26,11 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
             return LabProvisioningGate.IsTrusted(context.Attributes)
                 ? AccessDecision.Allow()
                 : AccessDecision.Deny("lab_registration_required");
+        }
+
+        if (action == UAuthActions.UserIdentifiers.CheckAvailability && !context.IsAuthenticated)
+        {
+            return AccessDecision.Allow();
         }
 
         if (action.EndsWith(".anonymous", StringComparison.Ordinal))
@@ -123,6 +128,7 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
                 .AsNoTracking()
                 .AnyAsync(x => x.UserKey == targetKey && x.SandboxId == actor.SandboxId, cancellationToken);
 
+
             if (action == UAuthActions.Users.DeleteAdmin)
             {
                 var targetIsOwner = await db.SandboxMembers
@@ -134,11 +140,33 @@ public sealed class SandboxUAuthAccessPolicy(IDbContextFactory<LabDbContext> dbF
                         cancellationToken);
 
                 if (targetIsOwner)
-                    return AccessDecision.Deny("sandbox_owner_cannot_be_deleted");
+                    return AccessDecision.Deny(
+                        "sandbox_owner_cannot_be_deleted");
+
+                if (!belongsToSandbox &&
+                    actor.Role == SandboxMemberRole.Owner &&
+                    actor.Status == SandboxStatus.Active)
+                {
+                    // Never use rollback to delete an existing sandbox member.
+                    var hasAnyMembership = await db.SandboxMembers
+                        .AsNoTracking()
+                        .AnyAsync(x => x.UserKey == targetKey,
+                            cancellationToken);
+
+                    if (!hasAnyMembership &&
+                        rollbackGate.Consume(
+                            context.Attributes,
+                            actorKey,
+                            targetKey))
+                    {
+                        return AccessDecision.Allow();
+                    }
+                }
             }
 
             if (!belongsToSandbox)
                 return AccessDecision.Deny("sandbox_target_out_of_scope");
+
         }
 
         return AccessDecision.Allow();

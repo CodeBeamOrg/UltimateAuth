@@ -1,579 +1,342 @@
 ﻿@page "/dashboard/authorization"
 @layout DashboardLayout
-
 @attribute [UAuthAuthorize]
 
-@using CodeBeam.UltimateAuth.Authorization.Contracts
-@using CodeBeam.UltimateAuth.Core.Contracts
-
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<PageTitle>Authorization · Identity Lab</PageTitle>
+<PageTitle>Authorization Management · Identity Lab</PageTitle>
 
 <div class="lab-authz-page">
     <MudContainer MaxWidth="MaxWidth.ExtraLarge">
-
-        <div class="lab-authz-heading">
+        <header class="lab-authz-heading">
             <div>
                 <span class="lab-authz-eyebrow">SANDBOX MANAGEMENT</span>
-                <h1>Authorization</h1>
-                <p>Explore roles, permission assignments and access control within your sandbox.</p>
+                <h1>Authorization Management</h1>
+                <p>Manage roles, understand their grants, and explore the UltimateAuth permission model.</p>
             </div>
-
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenRoleManagementAsync">
-                Create Role
-            </MudButton>
-        </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Settings"
+                       OnClick="OpenRoleManagementAsync">Manage Roles</MudButton>
+        </header>
 
         <div class="lab-authz-stats">
-            <div class="lab-authz-stat">
-                <span class="lab-authz-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
-                </span>
-                <span>Roles</span>
-                <strong>@_totalRoles</strong>
-                <small>Total roles</small>
-            </div>
-
-            <div class="lab-authz-stat">
-                <span class="lab-authz-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Key" />
-                </span>
-                <span>Permissions</span>
-                <strong>@_permissions.Count</strong>
-                <small>Available permissions</small>
-            </div>
-
-            @* <div class="lab-authz-stat">
-                <span class="lab-authz-stat-icon">
-                    <MudIcon Icon="@Icons.Material.Filled.Groups" />
-                </span>
-                <span>Role Assignments</span>
-                <strong>3</strong>
-                <small>Example assignments</small>
-            </div> *@
+            <div class="lab-authz-stat"><span>Roles</span><strong>@_totalRoles</strong><small>Available roles</small></div>
+            <div class="lab-authz-stat"><span>UltimateAuth actions</span><strong>@FrameworkPermissions.Count</strong><small>Framework catalog</small></div>
+            <div class="lab-authz-stat"><span>Identity Lab permissions</span><strong>@DemoPermissions.Count</strong><small>Demo application</small></div>
         </div>
 
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">@_error</MudAlert>
+        }
+
         <div class="lab-authz-section-heading">
-            <div>
-                <h2>Roles &amp; Permissions</h2>
-                <p>
-                    Select a role to inspect its assigned permissions.
-                </p>
-            </div>
+            <div><h2>Role Management</h2><p>Select a role to inspect its permission scope and manage assignments.</p></div>
         </div>
 
         <div class="lab-authz-main-grid">
-
-            <section class="lab-authz-card lab-roles-card">
+            <section class="lab-authz-card">
                 <div class="lab-authz-card-heading">
-                    <div>
-                        <h3>Sandbox Roles</h3>
-                        <p>Available authorization roles.</p>
-                    </div>
-                    <MudIcon Icon="@Icons.Material.Filled.Shield"
-                             Color="Color.Primary" />
+                    <div><h3>Roles</h3><p>System, demo, and custom roles.</p></div>
+                    <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" />
                 </div>
-
+                @if (_loading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+                }
                 <div class="lab-authz-role-list">
                     @foreach (var role in _roles)
                     {
-                        <button type="button"
-                                @key="role.Id"
+                        <button type="button" @key="role.Id"
                                 class="lab-authz-role @(SelectedRole?.Id == role.Id ? "selected" : "")"
                                 @onclick="() => SelectRole(role)">
-
-                            <span class="lab-authz-role-icon">
-                                <MudIcon Icon="@Icons.Material.Filled.Shield" />
-                            </span>
-
+                            <span class="lab-authz-role-icon"><MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small" /></span>
                             <span class="lab-authz-role-content">
                                 <strong>@role.Name</strong>
-
-                                <small>
-                                    Created @role.CreatedAt.ToLocalTime().ToString("g")
-                                </small>
-
-                                <span>
-                                    @PermissionExpander.Expand(
-                                        role.Permissions,
-                                        UAuthPermissionCatalog.GetAdminPermissions()).Count
-                                    permissions
-                                </span>
+                                <small>@RoleKind(role.Name) role</small>
+                                <small>@RoleGrantSummary(role)</small>
                             </span>
-
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
                         </button>
                     }
-
                     @if (!_loading && _roles.Count == 0)
                     {
-                        <div class="lab-authz-empty">
-                            No roles found.
-                        </div>
+                        <div class="lab-authz-empty">No roles available.</div>
                     }
                 </div>
-
-                <div class="d-flex justify-center my-4">
-                    <MudPagination Count="@TotalPages"
-                                   Selected="@_page"
-                                   SelectedChanged="OnPageChangedAsync"
-                                   Disabled="@_loading"
-                                   Color="Color.Primary"
-                                   Variant="Variant.Outlined" />
-                </div>
-            </section>
-
-            <section class="lab-authz-card lab-permissions-card">
-
-                <div class="lab-authz-card-heading">
-                    <div>
-                        <h3>@(SelectedRole?.Name ?? "Role") Permissions</h3>
-                        <p>Permissions assigned to the selected role.</p>
-                    </div>
-
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               Disabled="@(_loading || SelectedRole is null)"
-                               OnClick="EditPermissionsAsync">
-                        Edit
-                    </MudButton>
-                </div>
-
-                @if (SelectedRole is not null)
+                @if (TotalPages > 1)
                 {
-                    <MudTextField T="string"
-                                  @bind-Value="_permissionSearch"
-                                  Immediate="true"
-                                  Placeholder="Search permissions"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Class="mb-4" />
-
-                    <div class="lab-authz-permission-list">
-
-                        @foreach (var permission in FilteredPermissions)
-                        {
-                            var granted = GrantedPermissions.Contains(permission);
-
-                            <div class="lab-authz-permission" @key="permission">
-
-                                <span class="lab-authz-permission-icon">
-                                    <MudIcon Icon="@Icons.Material.Filled.Key"
-                                             Size="Size.Small" />
-                                </span>
-
-                                <div>
-                                    <strong>@permission</strong>
-                                </div>
-
-                                <MudChip T="string"
-                                         Color="@(granted ? Color.Success : Color.Default)"
-                                         Variant="Variant.Text"
-                                         Size="Size.Small">
-                                    @(granted ? "Granted" : "Not granted")
-                                </MudChip>
-
-                            </div>
-                        }
-
-                        @if (!FilteredPermissions.Any())
-                        {
-                            <div class="lab-authz-empty">
-                                No permissions match your search.
-                            </div>
-                        }
+                    <div class="d-flex justify-center mt-4">
+                        <MudPagination Count="@TotalPages" Selected="@_page"
+                                       SelectedChanged="OnPageChangedAsync" Disabled="@_loading"
+                                       Color="Color.Primary" Variant="Variant.Outlined" />
                     </div>
                 }
-                else
-                {
-                    <div class="lab-authz-empty">
-                        Select a role to inspect its permissions.
-                    </div>
-                }
-
             </section>
-        </div>
-
-        <div class="lab-authz-section-heading lab-authz-playground-heading">
-            <div>
-                <span class="lab-authz-eyebrow">AUTHORIZATION EXPLORER</span>
-                <h2>Policy Playground</h2>
-                <p>
-                    Preview how role selection and access requests
-                    can be evaluated.
-                </p>
-            </div>
-        </div>
-
-        <div class="lab-authz-playground-grid">
 
             <section class="lab-authz-card">
                 <div class="lab-authz-card-heading">
                     <div>
-                        <h3>Access Request</h3>
-                        <p>Evaluate authorization for your current session.</p>
+                        <h3>@(SelectedRole is null ? "Role Permissions" : SelectedRole.Name)</h3>
+                        <p>Assigned grants, grouped by domain.</p>
                     </div>
-
-                    <MudIcon Icon="@Icons.Material.Filled.Tune"
-                             Color="Color.Primary" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               Disabled="@(_loading || SelectedRole is null || IsSystemRole(SelectedRole.Name))"
+                               OnClick="EditPermissionsAsync">Manage Permissions</MudButton>
                 </div>
-
-                <div class="lab-authz-fields">
-
-                    <MudSelect T="string"
-                               Label="Action"
-                               Variant="Variant.Outlined"
-                               @bind-Value="_playgroundAction">
-
-                        @foreach (var permission in _permissions)
-                        {
-                            <MudSelectItem T="string" Value="@permission">
-                                @permission
-                            </MudSelectItem>
-                        }
-
-                    </MudSelect>
-
-                    <MudTextField T="string"
-                                  Label="Resource"
-                                  Variant="Variant.Outlined"
-                                  @bind-Value="_playgroundResource"
-                                  HelperText="Resource being accessed, such as users or sessions." />
-
-                    <MudTextField T="string"
-                                  Label="Resource ID (optional)"
-                                  Variant="Variant.Outlined"
-                                  @bind-Value="_playgroundResourceId"
-                                  HelperText="Optional identifier of the target resource." />
-
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.PlayArrow"
-                               Disabled="@(_evaluating || string.IsNullOrWhiteSpace(_playgroundAction) || string.IsNullOrWhiteSpace(_playgroundResource))"
-                               OnClick="EvaluatePolicyAsync">
-
-                        @if (_evaluating)
-                        {
-                            <MudProgressCircular Indeterminate="true"
-                                                 Size="Size.Small"
-                                                 Class="mr-2" />
-                        }
-
-                        Evaluate Policy
-                    </MudButton>
-
-                </div>
-            </section>
-
-            <section class="lab-authz-card lab-authz-result-card">
-
-                <div class="lab-authz-card-heading">
-                    <div>
-                        <h3>Evaluation Result</h3>
-                        <p>Server-side authorization decision.</p>
-                    </div>
-
-                    <MudIcon Icon="@Icons.Material.Filled.FactCheck"
-                             Color="Color.Primary" />
-                </div>
-
-                @if (_evaluationResult is null)
+                @if (SelectedRole is null)
                 {
-                    <div class="lab-authz-result-empty">
-                        <span>
-                            <MudIcon Icon="@Icons.Material.Filled.Rule"
-                                     Size="Size.Large" />
-                        </span>
-
-                        <strong>Ready to evaluate</strong>
-
-                        <p>
-                            Select an action and resource to evaluate
-                            access using your current authentication context.
-                        </p>
-                    </div>
+                    <div class="lab-authz-empty">Select a role to view its grants.</div>
                 }
                 else
                 {
-                    <MudAlert Severity="@(_evaluationResult.IsAllowed
-                                            ? Severity.Success
-                                            : Severity.Error)"
-                              Variant="Variant.Outlined"
-                              Class="mb-4">
-
-                        <strong>
-                            @(_evaluationResult.IsAllowed
-                                ? "Access Granted"
-                                : "Access Denied")
-                        </strong>
-
-                        <div class="mt-2">
-                            @(_evaluationResult.IsAllowed
-                                ? "The current session is authorized to perform this action."
-                                : "The current session is not authorized to perform this action.")
-                        </div>
-
-                    </MudAlert>
-
-                    <div class="lab-session-detail-grid">
-
-                        <div class="lab-session-detail-item">
-                            <span>Action</span>
-                            <strong>@_evaluatedAction</strong>
-                        </div>
-
-                        <div class="lab-session-detail-item">
-                            <span>Resource</span>
-                            <strong>@_evaluatedResource</strong>
-                        </div>
-
-                        <div class="lab-session-detail-item">
-                            <span>Decision</span>
-                            <strong>
-                                @(_evaluationResult.IsAllowed ? "Allow" : "Deny")
-                            </strong>
-                        </div>
-
-                        <div class="lab-session-detail-item">
-                            <span>Reauthentication</span>
-                            <strong>
-                                @(_evaluationResult.RequiresReauthentication
-                                    ? "Required"
-                                    : "Not required")
-                            </strong>
-                        </div>
-
-                        @if (!string.IsNullOrWhiteSpace(_evaluationResult.DenyReason))
-                        {
-                            <div class="lab-session-detail-item">
-                                <span>Denial Reason</span>
-                                <strong>@_evaluationResult.DenyReason</strong>
-                            </div>
-                        }
-
+                    <div class="lab-authz-role-summary">
+                        <span class="lab-authz-pill">@RoleKind(SelectedRole.Name) role</span>
+                        <span class="lab-authz-pill">@RoleGrantSummary(SelectedRole)</span>
                     </div>
+                    @if (HasWildcard(SelectedRole))
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                            This role contains the wildcard grant (*). It is not limited to the permissions shown in this catalog.
+                            Applicable authorization policies still determine access.
+                        </MudAlert>
+                    }
+                    @if (IsSystemRole(SelectedRole.Name))
+                    {
+                        <MudAlert Severity="Severity.Normal" Variant="Variant.Text" Dense="true" Class="mb-4">
+                            System role permissions are managed by Identity Lab, not from this page.
+                        </MudAlert>
+                    }
+                    @foreach (var group in GrantedGroups)
+                    {
+                        <div class="lab-authz-grant-group" @key="group.Name">
+                            <div class="lab-authz-grant-title">
+                                <strong>@GroupTitle(group.Name)</strong>
+                                <span>@group.Values.Count grant(s)</span>
+                            </div>
+                            <div class="lab-authz-grant-chips">
+                                @foreach (var permission in group.Values)
+                                {
+                                    <span class="lab-authz-grant-chip" title="@permission">@ActionLabel(permission)</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (!HasWildcard(SelectedRole) && !GrantedGroups.Any())
+                    {
+                        <div class="lab-authz-empty">No explicit permission grants.</div>
+                    }
+                    <p class="lab-authz-footnote">Role grants do not bypass sandbox restrictions or other authorization policies.</p>
                 }
-
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Text"
-                          Dense="true"
-                          Class="mt-4">
-                    Authorization is evaluated by UltimateAuth on the server.
-                    The result reflects your current authentication context,
-                    not a simulated role.
-                </MudAlert>
-
             </section>
-
         </div>
 
+        <div class="lab-authz-section-heading">
+            <div><h2>Permission Catalog</h2><p>Browse known operations by domain. This is a reference catalog, not an access decision.</p></div>
+        </div>
+        <section class="lab-authz-card">
+            <div class="lab-authz-catalog-tools">
+                <MudTextField T="string" @bind-Value="_catalogSearch" Immediate="true"
+                              Placeholder="Search operations or permission keys" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudSelect T="string" @bind-Value="_catalogSource" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@("all")">All sources</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("framework")">UltimateAuth</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("demo")">Identity Lab</MudSelectItem>
+                </MudSelect>
+            </div>
+            <div class="lab-authz-catalog-grid">
+                @foreach (var group in CatalogGroups)
+                {
+                    <details class="lab-authz-catalog-group" @key="group.Key">
+                        <summary>
+                            <span><strong>@GroupTitle(group.Key)</strong><small>@GroupDescription(group.Key)</small></span>
+                            <span class="lab-authz-pill">@group.Count() actions</span>
+                        </summary>
+                        <div class="lab-authz-catalog-items">
+                            @foreach (var entry in group)
+                            {
+                                <div class="lab-authz-catalog-item" @key="entry.Value">
+                                    <div><strong>@ActionLabel(entry.Value)</strong><code>@entry.Value</code></div>
+                                    <span class="lab-authz-pill">@(entry.IsDemo ? "Identity Lab" : "UltimateAuth")</span>
+                                </div>
+                            }
+                        </div>
+                    </details>
+                }
+                @if (!CatalogGroups.Any())
+                {
+                    <div class="lab-authz-empty">No permissions match your filters.</div>
+                }
+            </div>
+        </section>
+
+        <div class="lab-authz-next-step">
+            <MudIcon Icon="@Icons.Material.Filled.Rule" Color="Color.Primary" />
+            <div>
+                <strong>Want to evaluate an authorization decision?</strong>
+                <p>Use My Access to test an operation against your current identity and sandbox policies.</p>
+            </div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/dashboard/access"
+                       EndIcon="@Icons.Material.Filled.ArrowForward">My Access</MudButton>
+        </div>
     </MudContainer>
 </div>
 
 @code {
     private const int PageSize = 10;
+    private sealed record CatalogEntry(string Value, bool IsDemo);
+    private sealed record GrantGroup(string Name, IReadOnlyList<string> Values);
+
+    private static readonly IReadOnlyList<string> FrameworkPermissions = UAuthPermissionCatalog.GetAll()
+        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+    private static readonly IReadOnlyList<string> DemoPermissions = LabDemoPermissions.Manager
+        .Concat(LabDemoPermissions.Customer)
+        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+    private static readonly IReadOnlyList<CatalogEntry> Catalog = FrameworkPermissions
+        .Select(x => new CatalogEntry(x, false))
+        .Concat(DemoPermissions.Select(x => new CatalogEntry(x, true)))
+        .GroupBy(x => x.Value, StringComparer.OrdinalIgnoreCase)
+        .Select(x => x.First())
+        .OrderBy(x => x.Value, StringComparer.OrdinalIgnoreCase).ToArray();
 
     private readonly List<RoleInfo> _roles = [];
-    private readonly List<string> _permissions = [];
-
     private RoleId? _selectedRoleId;
-    private string _permissionSearch = string.Empty;
-
     private int _page = 1;
     private int _totalRoles;
-
     private bool _loading;
     private string? _error;
+    private string _catalogSearch = string.Empty;
+    private string _catalogSource = "all";
 
-    private string? _playgroundAction;
-    private string _playgroundResource = "users";
-    private string? _playgroundResourceId;
+    private int TotalPages => Math.Max(1, (_totalRoles + PageSize - 1) / PageSize);
+    private RoleInfo? SelectedRole => _roles.FirstOrDefault(x => x.Id == _selectedRoleId);
+    private IEnumerable<IGrouping<string, CatalogEntry>> CatalogGroups => Catalog
+        .Where(x => (_catalogSource == "all" || (_catalogSource == "demo") == x.IsDemo)
+            && (string.IsNullOrWhiteSpace(_catalogSearch)
+                || x.Value.Contains(_catalogSearch, StringComparison.OrdinalIgnoreCase)
+                || GroupTitle(Domain(x.Value)).Contains(_catalogSearch, StringComparison.OrdinalIgnoreCase)))
+        .GroupBy(x => Domain(x.Value))
+        .OrderBy(x => x.Key);
 
-    private bool _evaluating;
+    private IReadOnlyList<GrantGroup> GrantedGroups => SelectedRole is null ? [] : SelectedRole.Permissions
+        .Select(x => x.Value)
+        .Where(x => x != "*")
+        .GroupBy(Domain)
+        .OrderBy(x => x.Key)
+        .Select(x => new GrantGroup(x.Key, x.OrderBy(v => v, StringComparer.OrdinalIgnoreCase).ToArray()))
+        .ToArray();
 
-    private UltimateAuth.Authorization.Contracts.AuthorizationResult? _evaluationResult;
-
-    private string? _evaluatedAction;
-    private string? _evaluatedResource;
-
-    private int TotalPages =>
-        Math.Max(1, (_totalRoles + PageSize - 1) / PageSize);
-
-    private RoleInfo? SelectedRole =>
-        _roles.FirstOrDefault(x => x.Id == _selectedRoleId);
-
-    private IEnumerable<string> FilteredPermissions =>
-        _permissions.Where(x =>
-            string.IsNullOrWhiteSpace(_permissionSearch) ||
-            x.Contains(_permissionSearch, StringComparison.OrdinalIgnoreCase));
-
-    private HashSet<string> GrantedPermissions =>
-        SelectedRole is null
-            ? []
-            : PermissionExpander
-                .Expand(
-                    SelectedRole.Permissions,
-                    UAuthPermissionCatalog.GetAdminPermissions())
-                .Select(x => x.Value)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    protected override async Task OnInitializedAsync()
+    private static bool HasWildcard(RoleInfo role) => role.Permissions.Any(x => x.Value == "*");
+    private static bool IsSystemRole(string name) => name is "Ladmin" or "Owner" or "User";
+    private static string RoleKind(string name) => IsSystemRole(name) ? "System" : name is "Manager" or "Customer" ? "Demo" : "Custom";
+    private static string RoleGrantSummary(RoleInfo role) => HasWildcard(role) ? "Wildcard (*)" : $"{role.Permissions.Count} stored grants";
+    private static string Domain(string permission)
     {
-        _permissions.AddRange(
-            UAuthPermissionCatalog.GetAdminPermissions()
-                .OrderBy(x => x));
-
-        await LoadRolesAsync();
+        var parts = permission.Split('.');
+        return parts.Length > 1 && parts[0] == "demo" ? $"demo.{parts[1]}" : parts[0];
     }
+    private static string GroupTitle(string key) => key switch
+    {
+        "users" => "Users & Profiles",
+        "credentials" => "Credentials",
+        "sessions" => "Sessions",
+        "authorization" => "Authorization",
+        "flows" => "Authentication Flows",
+        "demo.products" => "Demo Products",
+        "demo.orders" => "Demo Orders",
+        _ => key
+    };
+    private static string GroupDescription(string key) => key switch
+    {
+        "users" => "User lifecycle, profiles and identifiers",
+        "credentials" => "Credential and password operations",
+        "sessions" => "Session chains and revocation",
+        "authorization" => "Roles, permissions and authorization checks",
+        "flows" => "Authentication flow operations",
+        "demo.products" => "Product access in the sample SaaS domain",
+        "demo.orders" => "Order operations in the sample SaaS domain",
+        _ => "Available actions and permission keys"
+    };
+    private static string ActionLabel(string value)
+    {
+        if (value == "*") return "All permissions";
+        var part = value.Split('.').Last();
+        if (part == "admin" || part == "self")
+        {
+            var pieces = value.Split('.');
+            if (pieces.Length > 1) part = pieces[^2] + " (" + part + ")";
+        }
+        return string.Join(" ", part.Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => char.ToUpperInvariant(x[0]) + x[1..]));
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadRolesAsync();
 
     private async Task LoadRolesAsync()
     {
-        if (_loading)
-            return;
-
+        if (_loading) return;
         _loading = true;
         _error = null;
-
         try
         {
-            var result = await UAuthClient.Authorization.QueryRolesAsync(
-                new RoleQuery
-                {
-                    PageNumber = _page,
-                    PageSize = PageSize,
-                    SortBy = nameof(RoleInfo.CreatedAt),
-                    Descending = true
-                });
-
+            var result = await UAuthClient.Authorization.QueryRolesAsync(new RoleQuery
+            {
+                PageNumber = _page,
+                PageSize = PageSize,
+                SortBy = nameof(RoleInfo.CreatedAt),
+                Descending = true
+            });
             if (!result.IsSuccess || result.Value is null)
             {
                 _error = result.ErrorText ?? "Unable to load roles.";
                 return;
             }
-
             _roles.Clear();
             _roles.AddRange(result.Value.Items);
             _totalRoles = result.Value.TotalCount;
-
-            if (SelectedRole is null)
-                _selectedRoleId = _roles.FirstOrDefault()?.Id;
+            if (SelectedRole is null) _selectedRoleId = _roles.FirstOrDefault()?.Id;
         }
-        catch (Exception)
-        {
-            _error = "Authorization service is unavailable.";
-        }
-        finally
-        {
-            _loading = false;
-        }
+        catch (Exception) { _error = "Authorization service is unavailable."; }
+        finally { _loading = false; }
     }
 
-    private async Task OnPageChangedAsync(int page)
-    {
-        _page = page;
-        await LoadRolesAsync();
-    }
-
-    private void SelectRole(RoleInfo role)
-    {
-        _selectedRoleId = role.Id;
-    }
+    private async Task OnPageChangedAsync(int page) { _page = page; await LoadRolesAsync(); }
+    private void SelectRole(RoleInfo role) => _selectedRoleId = role.Id;
 
     private async Task OpenRoleManagementAsync()
     {
-        var parameters = new DialogParameters<RoleDialog>
-        {
-            { x => x.PreviewMode, false }
-        };
-
-        var dialog = await DialogService.ShowAsync<RoleDialog>(
-            "Role Management",
-            parameters,
+        var parameters = new DialogParameters<RoleDialog> { { x => x.PreviewMode, false } };
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Role Management", parameters,
             UAuthDialog.GetDialogOptions(MaxWidth.Large));
-
         await dialog.Result;
-
         await LoadRolesAsync();
     }
 
     private async Task EditPermissionsAsync()
     {
-        if (SelectedRole is null)
-            return;
-
+        if (SelectedRole is null || IsSystemRole(SelectedRole.Name)) return;
         var parameters = new DialogParameters<PermissionDialog>
         {
             { x => x.Role, SelectedRole },
-            { x => x.PreviewMode, false }
+            { x => x.PreviewMode, false },
+            { x => x.AvailablePermissions, EditablePermissions }
         };
-
-        var dialog = await DialogService.ShowAsync<PermissionDialog>(
-            "Edit Permissions",
-            parameters,
+        var dialog = await DialogService.ShowAsync<PermissionDialog>("Manage Permissions", parameters,
             UAuthDialog.GetDialogOptions(MaxWidth.Large));
-
         await dialog.Result;
-
         await LoadRolesAsync();
     }
 
-    private async Task EvaluatePolicyAsync()
-    {
-        if (_evaluating ||
-            string.IsNullOrWhiteSpace(_playgroundAction) ||
-            string.IsNullOrWhiteSpace(_playgroundResource))
-            return;
-
-        _evaluating = true;
-        _evaluationResult = null;
-
-        try
-        {
-            var request = new AuthorizationCheckRequest
-            {
-                Action = _playgroundAction.Trim(),
-                Resource = _playgroundResource.Trim(),
-                ResourceId = string.IsNullOrWhiteSpace(_playgroundResourceId)
-                    ? null
-                    : _playgroundResourceId.Trim()
-            };
-
-            var result = await UAuthClient.Authorization.CheckAsync(request);
-
-            if (!result.IsSuccess || result.Value is null)
-            {
-                Snackbar.Add(
-                    result.ErrorText ?? "Authorization evaluation failed.",
-                    Severity.Error);
-
-                return;
-            }
-
-            _evaluationResult = result.Value;
-            _evaluatedAction = request.Action;
-            _evaluatedResource = request.Resource;
-        }
-        catch (Exception)
-        {
-            Snackbar.Add(
-                "Unable to evaluate authorization.",
-                Severity.Error);
-        }
-        finally
-        {
-            _evaluating = false;
-        }
-    }
+    // The management dialog is intentionally limited to admin actions and demo grants.
+    // The full catalog above is informational; self actions are not automatically editable.
+    private static readonly IReadOnlyList<string> EditablePermissions = UAuthPermissionCatalog.GetAdminPermissions()
+        .Concat(DemoPermissions)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
 }

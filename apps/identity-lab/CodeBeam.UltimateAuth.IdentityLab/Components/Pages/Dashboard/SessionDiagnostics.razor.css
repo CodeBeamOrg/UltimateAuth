@@ -1,0 +1,42 @@
+.lab-session-timeline-track {
+    position: relative;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--mud-palette-action-default-hover);
+}
+
+.lab-session-timeline-elapsed {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--mud-palette-text-secondary);
+    border-radius: inherit;
+}
+
+.lab-session-timeline-extension {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(13, 148, 136, .65);
+    border-radius: 999px;
+}
+
+.lab-session-timeline-now {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 2px;
+    background: var(--mud-palette-primary);
+    transform: translateX(-50%);
+}
+
+.lab-session-timeline-extension {
+    z-index: 1;
+}
+
+.lab-session-timeline-elapsed {
+    z-index: 2;
+}
+
+.lab-session-timeline-now {
+    z-index: 3;
+}

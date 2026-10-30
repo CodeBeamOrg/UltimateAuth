@@ -1,5 +1,4 @@
-﻿@using CodeBeam.UltimateAuth.Authorization.Contracts
-@inject IUAuthClient UAuthClient
+﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 
 <MudDialog Class="lab-permission-dialog uauth-shared-dialog">
@@ -22,11 +21,8 @@
         <div class="lab-permission-content">
             @if (PreviewMode)
             {
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Outlined"
-                          Dense="true">
-                    Preview mode is active. You can explore permission
-                    selection, but changes cannot be saved.
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Preview mode is active. You can explore permission selection, but changes cannot be saved.
                 </MudAlert>
             }
 
@@ -114,13 +110,11 @@
             </div>
 
             <div class="lab-permission-hint">
-                <MudIcon Icon="@Icons.Material.Outlined.Info"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                 <span>
                     Permission groups are organized by resource.
                     Selecting a group selects its catalog permissions.
-                    Changes take effect according to the authorization
-                    evaluation and caching policies of the application.
+                    Changes take effect according to the authorization evaluation and caching policies of the application.
                 </span>
             </div>
         </div>
@@ -135,14 +129,15 @@
                 Cancel
             </MudButton>
 
-            <MudButton Variant="Variant.Filled"
+            <MudLoadingButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Save"
                        Loading="@_isSaving"
                        Disabled="@(PreviewMode || _isSaving || !HasChanges)"
-                       OnClick="SaveAsync">
+                       OnClick="SaveAsync"
+                       AutoDelay="0">
                 Save Permissions
-            </MudButton>
+            </MudLoadingButton>
         </div>
     </DialogActions>
 </MudDialog>

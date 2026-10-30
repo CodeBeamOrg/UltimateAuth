@@ -1,5 +1,6 @@
 ﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudDialog Class="lab-create-user-dialog uauth-shared-dialog">
     <TitleContent>
@@ -55,6 +56,7 @@
 
                         <MudTextField T="string"
                                       @bind-Value="_username"
+                                      @bind-Value:after="OnUsernameChanged"
                                       Label="Username"
                                       Placeholder="e.g. alex"
                                       Variant="Variant.Outlined"
@@ -65,8 +67,11 @@
                                       Disabled="@_isSubmitting"
                                       MaxLength="100" />
 
+                        <IdentifierAvailabilityHint State="_usernameAvailability" Label="Username" />
+
                         <MudTextField T="string"
                                       @bind-Value="_email"
+                                      @bind-Value:after="OnEmailChanged"
                                       Label="Email Address"
                                       Placeholder="e.g. alex@example.com"
                                       InputType="InputType.Email"
@@ -78,6 +83,8 @@
                                       Immediate="true"
                                       Disabled="@_isSubmitting"
                                       MaxLength="254" />
+
+                        <IdentifierAvailabilityHint State="_emailAvailability" Label="Email" />
                     </div>
                 </div>
 
@@ -99,6 +106,7 @@
                                           Margin="Margin.Dense"
                                           Required="true"
                                           RequiredError="Password is required."
+                                          autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
 
                         <MudPasswordField @bind-Value="_passwordCheck"
@@ -109,14 +117,14 @@
                                           RequiredError="Please confirm the password."
                                           Immediate="true"
                                           Validation="@(new Func<string?, string?>(PasswordMatch))"
+                                          autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
                     </div>
 
                     <div class="lab-create-user-hint">
                         <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
                         <span>
-                            Password requirements are enforced by the
-                            configured UltimateAuth credential policy.
+                            Password requirements are enforced by the configured UltimateAuth credential policy.
                         </span>
                     </div>
                 </div>
@@ -134,14 +142,15 @@
                 Cancel
             </MudButton>
 
-            <MudButton Variant="Variant.Filled"
+            <MudLoadingButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.PersonAdd"
                        Loading="@_isSubmitting"
                        Disabled="@(PreviewMode || _isSubmitting)"
-                       OnClick="CreateUserAsync">
+                       OnClick="CreateUserAsync"
+                       AutoDelay="0">
                 Create User
-            </MudButton>
+            </MudLoadingButton>
         </div>
     </DialogActions>
 

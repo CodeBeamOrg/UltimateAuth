@@ -1,11 +1,14 @@
 ﻿@page "/dashboard/identity"
 @using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
 @using CodeBeam.UltimateAuth.Users.Contracts
 @layout DashboardLayout
+@inject SandboxAccountDeletionService SandboxAccountDeletionService
+@inject LabDashboardService LabDashboardService
 @inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 
-@attribute [UAuthAuthorize]
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
 
 <PageTitle>My Identity · Identity Lab</PageTitle>
 
@@ -49,144 +52,187 @@
                         <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Color="Color.Primary" />
                     </div>
 
-                    <div class="lab-identity-profile">
-                        <MudAvatar Color="Color.Primary" Size="Size.Large">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" />
-                        </MudAvatar>
+                    @if (_loading)
+                    {
+                        <MudStack Spacing="3" Class="py-4">
+                            <MudSkeleton SkeletonType="SkeletonType.Circle"
+                                         Width="56px"
+                                         Height="56px" />
 
-                        <div>
-                            <strong>@_profile?.FirstName @_profile?.LastName</strong>
-                            <span>@@ @_profile?.UserName</span>
+                            <MudSkeleton SkeletonType="SkeletonType.Text"
+                                         Width="60%" />
+
+                            <MudSkeleton SkeletonType="SkeletonType.Text"
+                                         Width="85%" />
+
+                            <MudSkeleton SkeletonType="SkeletonType.Text"
+                                         Width="75%" />
+
+                            <MudSkeleton SkeletonType="SkeletonType.Text"
+                                         Width="90%" />
+                        </MudStack>
+                    }
+                    else if (_loadError is not null)
+                    {
+                        <MudAlert Severity="Severity.Error"
+                                  Variant="Variant.Outlined"
+                                  Class="my-3">
+                            @_loadError
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   OnClick="LoadProfileAsync">
+                            Try Again
+                        </MudButton>
+                    }
+                    else if (_profile is null)
+                    {
+                        <MudAlert Severity="Severity.Warning"
+                                  Variant="Variant.Outlined"
+                                  Class="my-3">
+                            Profile information is currently unavailable.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                         <div class="lab-identity-profile">
+                            <MudAvatar Color="Color.Primary" Size="Size.Large">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" />
+                            </MudAvatar>
+
+                            <div>
+                                <strong>@_profile?.FirstName @_profile?.LastName</strong>
+                                <span>@@ @_profile?.UserName</span>
+                            </div>
+
+                            <MudSpacer />
+
+                            <MudChip T="string" Color="@(_profile?.Status != UserStatus.Active ? Color.Warning : Color.Success)" Variant="Variant.Text" Size="Size.Small">
+                                @_profile?.Status
+                            </MudChip>
                         </div>
 
-                        <MudSpacer />
-
-                        <MudChip T="string" Color="@(_profile?.Status != UserStatus.Active ? Color.Warning : Color.Success)" Variant="Variant.Text" Size="Size.Small">
-                            @_profile?.Status
-                        </MudChip>
-                    </div>
-
-                    <div class="lab-identity-details">
-                        <div class="lab-identity-detail">
-                            <span>Display name</span>
-                            <strong>@_profile?.DisplayName</strong>
-                        </div>
-
-                        <div class="lab-identity-detail">
-                            <span>Username</span>
-                            <strong>@_profile?.UserName</strong>
-                        </div>
-
-                        <div class="lab-identity-detail">
-                            <span>Email</span>
-                            <strong>@_profile?.PrimaryEmail</strong>
-                        </div>
-
-                        <div class="lab-identity-detail">
-                            <span>Primary phone</span>
-                            <strong>@(_profile?.PrimaryPhone ?? "Not provided")</strong>
-                        </div>
-
-                        <div class="lab-identity-detail">
-                            <span>User Key</span>
-                            <strong>@_profile?.UserKey.Value</strong>
-                        </div>
-                    </div>
-
-                    <MudDivider Class="my-3" />
-
-                    <MudButton Variant="Variant.Text"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               EndIcon="@(_showDetails
-                                   ? Icons.Material.Filled.ExpandLess
-                                   : Icons.Material.Filled.ExpandMore)"
-                               OnClick="@(() => _showDetails = !_showDetails)">
-                        Additional Details
-                    </MudButton>
-
-                    <MudCollapse Expanded="_showDetails">
-                        <div class="lab-identity-details mt-3">
+                        <div class="lab-identity-details">
                             <div class="lab-identity-detail">
-                                <span>Profile key</span>
-                                <strong>@_profile?.ProfileKey</strong>
+                                <span>Display name</span>
+                                <strong>@_profile?.DisplayName</strong>
                             </div>
 
                             <div class="lab-identity-detail">
-                                <span>First name</span>
-                                <strong>@FormatValue(_profile?.FirstName)</strong>
+                                <span>Username</span>
+                                <strong>@_profile?.UserName</strong>
                             </div>
 
                             <div class="lab-identity-detail">
-                                <span>Last name</span>
-                                <strong>@FormatValue(_profile?.LastName)</strong>
+                                <span>Email</span>
+                                <strong>@_profile?.PrimaryEmail</strong>
                             </div>
 
                             <div class="lab-identity-detail">
-                                <span>Birth date</span>
-                                <strong>@(_profile?.BirthDate?.ToString("d") ?? "Not provided")</strong>
+                                <span>Primary phone</span>
+                                <strong>@(_profile?.PrimaryPhone ?? "Not provided")</strong>
                             </div>
 
                             <div class="lab-identity-detail">
-                                <span>Gender</span>
-                                <strong>@FormatValue(_profile?.Gender)</strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Bio</span>
-                                <strong>@FormatValue(_profile?.Bio)</strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Language</span>
-                                <strong>@FormatValue(_profile?.Language)</strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Culture</span>
-                                <strong>@FormatValue(_profile?.Culture)</strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Time zone</span>
-                                <strong>@FormatValue(_profile?.TimeZone)</strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Created at</span>
-                                <strong>
-                                    @(_profile?.CreatedAt?.ToLocalTime().ToString("g") ?? "—")
-                                </strong>
-                            </div>
-
-                            <div class="lab-identity-detail">
-                                <span>Metadata</span>
-
-                                @if (_profile?.Metadata is { Count: > 0 } metadata)
-                                {
-                                    <MudStack Spacing="1">
-                                        @foreach (var entry in metadata)
-                                        {
-                                            <MudText Typo="Typo.body2">
-                                                <strong>@entry.Key:</strong> @entry.Value
-                                            </MudText>
-                                        }
-                                    </MudStack>
-                                }
-                                else
-                                {
-                                    <strong>No metadata</strong>
-                                }
+                                <span>User Key</span>
+                                <strong>@_profile?.UserKey.Value</strong>
                             </div>
                         </div>
-                    </MudCollapse>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="OpenEditProfileAsync">
-                        Edit Profile
-                    </MudButton>
+                        <MudDivider Class="my-3" />
+
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                       EndIcon="@(_showDetails ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                       OnClick="@(() => _showDetails = !_showDetails)">
+                                Additional Details
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="OpenEditProfileAsync">
+                                Edit Profile
+                            </MudButton>
+                        </MudStack>
+
+                        <MudCollapse Expanded="_showDetails">
+                            <div class="lab-identity-details mt-3">
+                                <div class="lab-identity-detail">
+                                    <span>Profile key</span>
+                                    <strong>@_profile?.ProfileKey</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>First name</span>
+                                    <strong>@FormatValue(_profile?.FirstName)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Last name</span>
+                                    <strong>@FormatValue(_profile?.LastName)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Birth date</span>
+                                    <strong>@(_profile?.BirthDate?.ToString("d") ?? "Not provided")</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Gender</span>
+                                    <strong>@FormatValue(_profile?.Gender)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Bio</span>
+                                    <strong>@FormatValue(_profile?.Bio)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Language</span>
+                                    <strong>@FormatValue(_profile?.Language)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Culture</span>
+                                    <strong>@FormatValue(_profile?.Culture)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Time zone</span>
+                                    <strong>@FormatValue(_profile?.TimeZone)</strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Created at</span>
+                                    <strong>
+                                        @(_profile?.CreatedAt?.ToLocalTime().ToString("g") ?? "—")
+                                    </strong>
+                                </div>
+
+                                <div class="lab-identity-detail">
+                                    <span>Metadata</span>
+
+                                    @if (_profile?.Metadata is { Count: > 0 } metadata)
+                                    {
+                                        <MudStack Spacing="1">
+                                            @foreach (var entry in metadata)
+                                            {
+                                                <MudText Typo="Typo.body2">
+                                                    <strong>@entry.Key:</strong> @entry.Value
+                                                </MudText>
+                                            }
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <strong>No metadata</strong>
+                                    }
+                                </div>
+                            </div>
+                        </MudCollapse>
+                    }
+                    
                 </section>
 
                 <section class="lab-identity-card">
@@ -417,6 +463,13 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadProfileAsync();
+
+        if (_profile is not null)
+        {
+            var snapshot = await LabDashboardService.GetAsync(_profile.UserKey);
+            _isSandboxOwner = snapshot?.IsOwner == true;
+        }
+
         await LoadIdentifiersAsync();
     }
 
@@ -424,6 +477,7 @@
     {
         _loading = true;
         _loadError = null;
+        _profile = null;
 
         try
         {
@@ -550,7 +604,8 @@
             {
                 { x => x.PreviewMode, false },
                 { x => x.AuthState, AuthState },
-                { x => x.AllowAccountDeletion, !_isSandboxOwner }
+                { x => x.AllowAccountDeletion, !_isSandboxOwner },
+                { x => x.OnDeleteAccountAsync, DeleteMySandboxAccountAsync }
             },
             UAuthDialog.GetDialogOptions(MaxWidth.Medium));
 
@@ -561,6 +616,16 @@
             await LoadIdentifiersAsync();
             await LoadProfileAsync();
         }
+    }
+
+    private async Task<bool> DeleteMySandboxAccountAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null || _isSandboxOwner)
+            return false;
+
+        return await SandboxAccountDeletionService.DeleteMemberAsync(userKey.Value);
     }
 
     private static string GetIdentifierIcon(UserIdentifierType type)

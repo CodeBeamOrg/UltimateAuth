@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -27,13 +26,20 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
 
         var trustedContext = context.WithAttribute(LabProvisioningGate.AttributeKey, LabProvisioningGate.Token);
 
-        var createResult = await userApplicationService.CreateUserAsync(
-            trustedContext,
+
+        var createResult = await userApplicationService.CreateUserAsync(trustedContext,
             new CreateUserRequest
             {
                 UserName = request.Username.Trim(),
                 Email = request.Email.Trim(),
-                Password = request.Password
+                Password = request.Password,
+                FirstName = string.IsNullOrWhiteSpace(request.FirstName)
+                    ? null
+                    : request.FirstName.Trim(),
+                LastName = string.IsNullOrWhiteSpace(request.LastName)
+                    ? null
+                    : request.LastName.Trim(),
+                BirthDate = request.BirthDate
             },
             ct);
 
@@ -44,10 +50,6 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
         }
 
         var userKey = UserKey.FromString(createResult.UserKey);
-
-        // TODO(Part 3): Replace direct role-store provisioning with
-        // a trusted UltimateAuth registration/provisioning extension.
-        // Handle partial failures and recovery atomically where possible.
 
         try
         {
@@ -88,5 +90,18 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
 
             return LabRegistrationResult.Failed("Your account was created, but sandbox setup could not be completed. Please contact support before registering again.", requiresRepair: true);
         }
+    }
+
+    public async Task<UserIdentifierAvailabilityResult> CheckAvailabilityAsync(UserIdentifierType type, string value, CancellationToken ct = default)
+    {
+        var context = await contextProvider.CreateAsync(UAuthActions.UserIdentifiers.CheckAvailability, "users", ct);
+
+        return await userApplicationService.CheckIdentifierAvailabilityAsync(context,
+            new CheckUserIdentifierAvailabilityRequest
+            {
+                Type = type,
+                Value = value
+            },
+            ct);
     }
 }

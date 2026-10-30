@@ -131,7 +131,7 @@
 
 .lab-user-detail-status {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
 }
 
@@ -142,7 +142,6 @@
 
     .lab-user-detail-status ::deep .mud-button-root {
         flex-shrink: 0;
-        min-height: 40px;
     }
 
 .lab-user-detail-management {

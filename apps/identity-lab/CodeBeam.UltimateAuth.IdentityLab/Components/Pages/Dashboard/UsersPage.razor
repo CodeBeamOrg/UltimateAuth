@@ -93,15 +93,24 @@
                               AdornmentIcon="@Icons.Material.Filled.Search"
                               Class="lab-users-search" />
 
-                <MudSelect T="string"
+                <MudSelectExtended T="UserStatus?"
                            @bind-Value="_statusFilter"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
+                           Placeholder="Status"
                            Class="lab-users-filter">
-                    <MudSelectItem Value="@("all")">All statuses</MudSelectItem>
-                    <MudSelectItem Value="@("active")">Active</MudSelectItem>
-                    <MudSelectItem Value="@("disabled")">Disabled</MudSelectItem>
-                </MudSelect>
+
+                    <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)null)" Text="All Statuses">
+                        All statuses
+                    </MudSelectItemExtended>
+
+                    @foreach (var status in Enum.GetValues<UserStatus>())
+                    {
+                        <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)status)">
+                            @status
+                        </MudSelectItemExtended>
+                    }
+                </MudSelectExtended>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(_error))
@@ -182,6 +191,14 @@
                                                OnClick="@(() => OpenUserDetailsAsync(context))" />
                             </MudTooltip>
 
+                            <MudTooltip Text="Manage sample SaaS application roles">
+                                <MudIconButton Icon="@Icons.Material.Filled.Badge"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => OpenDemoRolesAsync(context))" />
+                            </MudTooltip>
+
                             <MudTooltip Text="Permanently delete user">
                                 <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
                                                Color="Color.Error"
@@ -195,9 +212,7 @@
 
                 <NoRecordsContent>
                     <div class="lab-users-empty">
-                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch"
-                                 Size="Size.Large"
-                                 Color="Color.Secondary" />
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Large" Color="Color.Secondary" />
                         <strong>No users found</strong>
                         <p>Try changing your search or status filter.</p>
                     </div>
@@ -220,19 +235,14 @@
                     <strong>Sandbox isolation</strong>
                     <p>
                         Members belong to a private sandbox.
-                        User management must be scoped to that sandbox,
-                        including all authorization and data operations.
+                        User management must be scoped to that sandbox, including all authorization and data operations.
                     </p>
                 </div>
             </div>
 
-            <MudButton Href="/dashboard/authorization"
-                       Variant="Variant.Outlined"
-                       Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward">
+            <MudButton Href="/dashboard/authorization" Variant="Variant.Outlined" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward">
                 Explore Authorization
             </MudButton>
-
         </div>
 
     </MudContainer>
@@ -299,7 +309,7 @@
     }
 
     private string _search = string.Empty;
-    private string _statusFilter = "all";
+    private UserStatus? _statusFilter;
 
     
     private async Task OpenCreateUserDialogAsync()
@@ -335,6 +345,7 @@
         {
             { x => x.AuthState, AuthState },
             { x => x.UserKey, user.UserKey },
+            { x => x.AllowRoleManagement, false },
             { x => x.PreviewMode, false }
         };
 
@@ -348,6 +359,22 @@
             await LoadUsersAsync(actorUserKey.Value);
     }
 
+    private async Task OpenDemoRolesAsync(SandboxUserItem user)
+    {
+        var parameters = new DialogParameters<DemoRoleDialog>
+        {
+            { x => x.UserKey, user.UserKey },
+            { x => x.DisplayName, user.DisplayName }
+        };
+
+        var dialog = await DialogService.ShowAsync<DemoRoleDialog>(
+            "Demo Application Roles",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+
+        await dialog.Result;
+    }
+
     private IEnumerable<SandboxUserItem> FilteredUsers =>
         _users.Where(user =>
         {
@@ -357,12 +384,7 @@
                 user.Username.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
                 user.Email.Contains(_search, StringComparison.OrdinalIgnoreCase);
 
-            var matchesStatus = _statusFilter switch
-            {
-                "active" => user.Status == UserStatus.Active,
-                "disabled" => user.Status == UserStatus.Disabled,
-                _ => true
-            };
+            var matchesStatus = !_statusFilter.HasValue || user.Status == _statusFilter.Value;
 
             return matchesSearch && matchesStatus;
         });
