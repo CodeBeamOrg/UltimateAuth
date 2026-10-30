@@ -51,6 +51,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: CodeBeamOrg/UltimateAuth
+        flags: framework
 
   identity-lab-security:
     name: Identity Lab security (PostgreSQL)
