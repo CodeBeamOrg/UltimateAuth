@@ -2,12 +2,6 @@
 @layout DashboardLayout
 @attribute [UAuthAuthorize(Roles = "Ladmin")]
 
-@using CodeBeam.UltimateAuth.Core.Domain
-@using CodeBeam.UltimateAuth.IdentityLab.Contracts
-@using CodeBeam.UltimateAuth.IdentityLab.Domain
-@using CodeBeam.UltimateAuth.IdentityLab.Services
-@using CodeBeam.UltimateAuth.IdentityLab.Components.Pages.Dialogs
-
 @inject LabAdminService AdminService
 @inject IDialogService DialogService
 
@@ -37,8 +31,7 @@
         }
         else if (!string.IsNullOrWhiteSpace(_error))
         {
-            <MudAlert Severity="Severity.Error"
-                      Variant="Variant.Outlined">
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
                 @_error
             </MudAlert>
         }
@@ -104,8 +97,7 @@
                             All Sandboxes
                         </MudText>
 
-                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
-                                       OnClick="LoadAsync" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync" />
                     </MudStack>
 
                     <MudGrid Spacing="2">
@@ -124,10 +116,7 @@
                         </MudItem>
 
                         <MudItem xs="12" md="4">
-                            <MudSelect T="string"
-                                       @bind-Value="_statusFilter"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense">
+                            <MudSelect T="string" @bind-Value="_statusFilter" Variant="Variant.Outlined" Margin="Margin.Dense">
 
                                 <MudSelectItem Value="@("all")">
                                     All statuses
@@ -150,12 +139,7 @@
 
                     </MudGrid>
 
-                    <MudTable T="AdminSandboxItem"
-                              ServerData="LoadSandboxTableAsync"
-                              Hover="true"
-                              RowsPerPage="10"
-                              Breakpoint="Breakpoint.Sm"
-                              @ref="_table">
+                    <MudTable T="AdminSandboxItem" ServerData="LoadSandboxTableAsync" Hover="true" RowsPerPage="10" Breakpoint="Breakpoint.Sm" @ref="_table">
 
                         <HeaderContent>
                             <MudTh>Sandbox</MudTh>
@@ -181,25 +165,20 @@
                             </MudTd>
 
                             <MudTd DataLabel="Status">
-                                <MudChip T="string"
-                                         Size="Size.Small"
-                                         Color="@GetStatusColor(context.Status)">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
                                     @context.Status
                                 </MudChip>
                             </MudTd>
 
                             <MudTd DataLabel="Actions">
                                 <MudTooltip Text="Manage sandbox">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Settings"
-                                                   Color="Color.Primary"
-                                                   OnClick="@(() => OpenManageAsync(context))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" OnClick="@(() => OpenManageAsync(context))" />
                                 </MudTooltip>
                             </MudTd>
                         </RowTemplate>
 
                         <NoRecordsContent>
-                            <MudText Class="pa-4"
-                                     Color="Color.Secondary">
+                            <MudText Class="pa-4" Color="Color.Secondary">
                                 No sandboxes found.
                             </MudText>
                         </NoRecordsContent>

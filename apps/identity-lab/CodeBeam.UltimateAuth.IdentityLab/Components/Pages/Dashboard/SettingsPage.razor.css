@@ -214,6 +214,27 @@
         line-height: 1.6;
     }
 
+.lab-settings-environment-group {
+    margin: 20px 0 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    color: var(--mud-palette-primary);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+    .lab-settings-environment-group:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+.lab-settings-detail-row strong {
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
 @media (max-width: 960px) {
     .lab-settings-grid {
         grid-template-columns: 1fr;

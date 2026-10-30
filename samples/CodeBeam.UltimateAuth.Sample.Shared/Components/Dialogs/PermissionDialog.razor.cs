@@ -13,10 +13,13 @@ public partial class PermissionDialog
     public RoleInfo? Role { get; set; }
 
     [Parameter]
-    public bool PreviewMode { get; set; }
+    public string PreviewRoleName { get; set; } = "Editor";
 
     [Parameter]
-    public string PreviewRoleName { get; set; } = "Editor";
+    public IReadOnlyList<string>? AvailablePermissions { get; set; }
+
+    [Parameter]
+    public bool PreviewMode { get; set; }
 
     private List<PermissionGroup> _groups = [];
     private HashSet<string> _originalSelection = [];
@@ -52,7 +55,7 @@ public partial class PermissionDialog
 
     protected override void OnInitialized()
     {
-        var catalog = UAuthPermissionCatalog.GetAdminPermissions();
+        var catalog = AvailablePermissions ?? UAuthPermissionCatalog.GetAdminPermissions();
 
         HashSet<string> selected;
 
