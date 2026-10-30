@@ -1,0 +1,36 @@
+comment:
+  require_changes: yes
+
+coverage:
+  status:
+    project:
+      default: false
+
+      framework:
+        flags:
+          - framework
+        target: 80%
+        threshold: 2%
+
+    patch:
+      default: false
+
+      framework:
+        flags:
+          - framework
+        target: 80%
+        threshold: 10%
+
+flags:
+  framework:
+    paths:
+      - src/
+
+  identitylab:
+    paths:
+      - apps/identity-lab/
+
+ignore:
+  - "samples/**"
+  - "tests/**"
+  - "**/Migrations/**"

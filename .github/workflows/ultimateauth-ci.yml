@@ -43,6 +43,7 @@ jobs:
         dotnet test \
           --configuration Release \
           --no-build \
+          --filter "FullyQualifiedName!~CodeBeam.UltimateAuth.IdentityLab.Tests" \
           --collect:"XPlat Code Coverage"
 
     - name: Upload coverage reports to Codecov
@@ -50,3 +51,42 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: CodeBeamOrg/UltimateAuth
+        flags: framework
+
+  identity-lab-security:
+    name: Identity Lab security (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run Identity Lab tests with coverage
+        run: >-
+          dotnet test tests/CodeBeam.UltimateAuth.IdentityLab.Tests
+          --configuration Release
+          --collect:"XPlat Code Coverage"
+          --logger "trx;LogFileName=identity-lab.trx"
+          --results-directory TestResults/IdentityLab
+
+      - name: Upload Identity Lab coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: CodeBeamOrg/UltimateAuth
+          directory: TestResults/IdentityLab
+          flags: identitylab
+          fail_ci_if_error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-lab-test-results
+          path: TestResults/IdentityLab
