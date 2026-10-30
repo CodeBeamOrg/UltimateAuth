@@ -7,27 +7,27 @@ assignees: ""
 ---
 
 ## 🐞 Bug Description
-A clear and concise description of the issue.
+<!-- A clear and concise description of the issue. -->
 
 
 
-## 📌 Steps to Reproduce
-1. Go to '...'
+## Steps to Reproduce
+<!-- 1. Go to '...'
 2. Call method '...'
-3. Observe behavior '...'
+3. Observe behavior '...' -->
 
 
 
-## 🧪 Expected Behavior
-What should have happened?
+## Expected Behavior
+<!-- What should have happened? -->
 
 
-## 📷 Screenshots / Logs (if applicable)
-Paste stack traces, console logs, or screenshots.
+## Screenshots / Logs (if applicable)
+<!-- Paste stack traces, console logs, or screenshots. -->
 
 
 
-## 🧩 Environment
+## Environment
 - UltimateAuth version:
 - .NET version:
 - Platform: (Blazor / MAUI / ASP.NET Core / Other)
@@ -35,5 +35,5 @@ Paste stack traces, console logs, or screenshots.
 
 
 
-## ✔ Additional Context
-Add any other relevant context about the problem here.
+## Additional Context
+<!-- Add any other relevant context about the problem here. -->

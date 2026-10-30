@@ -53,6 +53,7 @@ jobs:
         slug: CodeBeamOrg/UltimateAuth
         flags: framework
 
+  
   identity-lab-security:
     name: Identity Lab security (PostgreSQL)
     runs-on: ubuntu-latest
@@ -75,18 +76,68 @@ jobs:
           --logger "trx;LogFileName=identity-lab.trx"
           --results-directory TestResults/IdentityLab
 
-      - name: Upload Identity Lab coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: CodeBeamOrg/UltimateAuth
-          directory: TestResults/IdentityLab
-          flags: identitylab
-          fail_ci_if_error: true
+      - name: Generate Identity Lab coverage summary
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
 
-      - name: Upload test results
+          reports = glob.glob(
+              "TestResults/IdentityLab/**/coverage.cobertura.xml",
+              recursive=True
+          )
+
+          summary_path = os.environ["GITHUB_STEP_SUMMARY"]
+
+          with open(summary_path, "a", encoding="utf-8") as output:
+              output.write("## Identity Lab Coverage\n\n")
+
+              if not reports:
+                  output.write("Coverage report was not generated.\n")
+                  raise SystemExit(0)
+
+              reports = [
+                  path for path in reports
+                  if "/In/" not in path.replace("\\", "/")
+              ]
+
+              if not reports:
+                  output.write("No usable coverage report found.\n")
+                  raise SystemExit(0)
+
+              report = ET.parse(reports[0]).getroot()
+
+              line_rate = float(report.attrib.get("line-rate", 0))
+              branch_rate = float(report.attrib.get("branch-rate", 0))
+              lines_valid = int(report.attrib.get("lines-valid", 0))
+              lines_covered = int(report.attrib.get("lines-covered", 0))
+              branches_valid = int(report.attrib.get("branches-valid", 0))
+              branches_covered = int(report.attrib.get("branches-covered", 0))
+
+              output.write("| Metric | Coverage |\n")
+              output.write("|---|---:|\n")
+              output.write(f"| Lines | {line_rate:.2%} |\n")
+              output.write(f"| Branches | {branch_rate:.2%} |\n")
+              output.write(
+                  f"| Covered lines | {lines_covered:,} / {lines_valid:,} |\n"
+              )
+              output.write(
+                  f"| Covered branches | {branches_covered:,} / {branches_valid:,} |\n"
+              )
+              output.write("\n")
+              output.write(
+                  "Coverage is reported separately from UltimateAuth "
+                  "framework coverage.\n"
+              )
+          PY
+
+      - name: Upload Identity Lab test and coverage results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: identity-lab-test-results
           path: TestResults/IdentityLab
+
