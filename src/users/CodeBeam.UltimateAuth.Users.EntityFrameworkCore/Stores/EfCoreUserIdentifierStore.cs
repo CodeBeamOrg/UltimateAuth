@@ -44,8 +44,7 @@ internal sealed class EfCoreUserIdentifierStore<TDbContext> : IUserIdentifierSto
             .Where(x =>
                 x.Tenant == _tenant &&
                 x.Type == query.Type &&
-                x.NormalizedValue == query.NormalizedValue &&
-                x.DeletedAt == null);
+                x.NormalizedValue == query.NormalizedValue);
 
         if (query.ExcludeIdentifierId.HasValue)
             q = q.Where(x => x.Id != query.ExcludeIdentifierId.Value);

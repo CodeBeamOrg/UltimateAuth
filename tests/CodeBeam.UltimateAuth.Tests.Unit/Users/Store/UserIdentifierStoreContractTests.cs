@@ -598,37 +598,62 @@ public abstract class UserIdentifierStoreContractTests
         await store.AddAsync(identifier);
 
         var result = await store.ExistsAsync(
-    new IdentifierExistenceQuery(
-        identifier.Type,
-        identifier.NormalizedValue,
-        IdentifierExistenceScope.TenantAny,
-        ExcludeIdentifierId: identifier.Id));
+        new IdentifierExistenceQuery(
+            identifier.Type,
+            identifier.NormalizedValue,
+            IdentifierExistenceScope.TenantAny,
+            ExcludeIdentifierId: identifier.Id));
 
         result.Exists.Should().BeFalse();
     }
 
-    [Fact]
-    public async Task ExistsAsync_DoesNotMatchDeletedIdentifier()
+
+    [Theory]
+    [InlineData(UserIdentifierType.Username, "alice", "ALICE")]
+    [InlineData(UserIdentifierType.Email, "alice@example.com", "ALICE@EXAMPLE.COM")]
+    public async Task ExistsAsync_SoftDeletedIdentifier_RemainsReserved(UserIdentifierType type, string value, string normalizedValue)
     {
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(TenantA);
 
-        var identifier = CreateIdentifier(TenantA);
+        var identifier = CreateIdentifier(
+            TenantA,
+            type: type,
+            value: value,
+            normalizedValue: normalizedValue,
+            isPrimary: true);
+
         await store.AddAsync(identifier);
 
         await store.DeleteAsync(
             identifier.Id,
-            0,
+            expectedVersion: 0,
             DeleteMode.Soft,
             Now.AddHours(1));
 
-        var result = await store.ExistsAsync(
-        new IdentifierExistenceQuery(
-            identifier.Type,
-            identifier.NormalizedValue,
-            IdentifierExistenceScope.TenantAny));
+        // A deleted identifier still reserves its normalized value.
+        var exists = await store.ExistsAsync(
+            new IdentifierExistenceQuery(
+                type,
+                normalizedValue,
+                IdentifierExistenceScope.TenantAny));
 
-        result.Exists.Should().BeFalse();
+        exists.Exists.Should().BeTrue();
+        exists.OwnerIdentifierId.Should().Be(identifier.Id);
+
+        // Ordinary lookup must not resolve deleted identifiers.
+        var lookup = await store.GetAsync(type, normalizedValue);
+        lookup.Should().BeNull();
+
+        // Excluding the matching identifier must still work.
+        var excluded = await store.ExistsAsync(
+            new IdentifierExistenceQuery(
+                type,
+                normalizedValue,
+                IdentifierExistenceScope.TenantAny,
+                ExcludeIdentifierId: identifier.Id));
+
+        excluded.Exists.Should().BeFalse();
     }
 
     [Fact]
@@ -919,4 +944,104 @@ public abstract class UserIdentifierStoreContractTests
                 "B@EXAMPLE.COM",
                 "C@EXAMPLE.COM");
     }
+
+    // TODO: Think these about with UniquenessScope
+    //[Fact]
+    //public async Task AddAsync_DuplicateNormalizedValue_IsRejected()
+    //{
+    //    await using var db = await CreateDatabaseAsync();
+    //    var store = db.CreateStore(TenantA);
+
+    //    var first = CreateIdentifier(
+    //        TenantA,
+    //        userKey: UserKey.New(),
+    //        value: "first@example.com",
+    //        normalizedValue: "SAME@EXAMPLE.COM");
+
+    //    var second = CreateIdentifier(
+    //        TenantA,
+    //        userKey: UserKey.New(),
+    //        value: "second@example.com",
+    //        normalizedValue: "SAME@EXAMPLE.COM");
+
+    //    await store.AddAsync(first);
+
+    //    var act = () => store.AddAsync(second);
+
+    //    await act.Should().ThrowAsync<Exception>();
+
+    //    (await store.GetByIdAsync(first.Id))
+    //        .Should().NotBeNull();
+
+    //    (await store.GetByIdAsync(second.Id))
+    //        .Should().BeNull();
+    //}
+
+    //[Fact]
+    //public async Task AddAsync_SoftDeletedNormalizedValue_RemainsReserved()
+    //{
+    //    await using var db = await CreateDatabaseAsync();
+    //    var store = db.CreateStore(TenantA);
+
+    //    var first = CreateIdentifier(
+    //        TenantA,
+    //        normalizedValue: "RESERVED@EXAMPLE.COM");
+
+    //    await store.AddAsync(first);
+
+    //    await store.DeleteAsync(
+    //        first.Id,
+    //        expectedVersion: 0,
+    //        DeleteMode.Soft,
+    //        Now.AddHours(1));
+
+    //    var second = CreateIdentifier(
+    //        TenantA,
+    //        userKey: UserKey.New(),
+    //        value: "reserved@example.com",
+    //        normalizedValue: "RESERVED@EXAMPLE.COM");
+
+    //    var act = () => store.AddAsync(second);
+
+    //    await act.Should().ThrowAsync<Exception>();
+
+    //    (await store.GetByIdAsync(second.Id))
+    //        .Should().BeNull();
+    //}
+
+    //[Fact]
+    //public async Task SaveAsync_DuplicateNormalizedValue_IsRejected()
+    //{
+    //    await using var db = await CreateDatabaseAsync();
+    //    var store = db.CreateStore(TenantA);
+
+    //    var first = CreateIdentifier(
+    //        TenantA,
+    //        value: "first@example.com",
+    //        normalizedValue: "FIRST@EXAMPLE.COM");
+
+    //    var second = CreateIdentifier(
+    //        TenantA,
+    //        value: "second@example.com",
+    //        normalizedValue: "SECOND@EXAMPLE.COM");
+
+    //    await store.AddAsync(first);
+    //    await store.AddAsync(second);
+
+    //    second.ChangeValue(
+    //        "first@example.com",
+    //        "FIRST@EXAMPLE.COM",
+    //        Now.AddMinutes(1));
+
+    //    var act = () => store.SaveAsync(
+    //        second,
+    //        expectedVersion: 0);
+
+    //    await act.Should().ThrowAsync<Exception>();
+
+    //    var persisted = await store.GetByIdAsync(second.Id);
+
+    //    persisted.Should().NotBeNull();
+    //    persisted!.NormalizedValue.Should().Be("SECOND@EXAMPLE.COM");
+    //}
 }
