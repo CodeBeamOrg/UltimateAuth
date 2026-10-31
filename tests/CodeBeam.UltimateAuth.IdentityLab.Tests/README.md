@@ -1,12 +1,12 @@
 # Identity Lab security suite
 
-Requires .NET 10 SDK and Docker with permission to start containers. Run from the repository root:
+The security and integration tests require .NET 10 SDK and Docker with permission to start containers. Run from the repository root:
 
 ```sh
 dotnet test tests/CodeBeam.UltimateAuth.IdentityLab.Tests -c Release --logger trx
 ```
 
-By default, each database test class starts PostgreSQL 17 through Testcontainers. Every test gets a new database, applies the actual LabDbContext migrations, and drops its database on disposal. Tests never use EF InMemory. Nothing connects to application production databases.
+By default, each database test class starts PostgreSQL 17 through Testcontainers. Every test gets a new database, applies the actual LabDbContext migrations, and drops its database on disposal. Security and integration tests never use EF InMemory. Nothing connects to application production databases.
 
 Alternatively set `IDENTITYLAB_TEST_POSTGRES` to a connection string for a **dedicated test PostgreSQL instance**. Its login needs CREATE DATABASE and permission to drop the databases it creates. Only databases named `identitylab_test_<generated GUID>` are created/dropped. This setting bypasses Docker; it does not bypass relational tests. Missing infrastructure fails fixture initialization rather than silently skipping tests.
 
@@ -15,3 +15,17 @@ Tests replace authenticated-context sources and selected framework store/client 
 `Regression/SystemRoleIdentityTests.cs` records an expected rejection that the inspected implementation does not enforce. It is intentionally neither skipped nor inverted to accept unsafe behavior. The `KnownDefect=SystemRoleIdentity` trait identifies it; normal local and CI runs include it. Expect that regression to fail until separately approved production work addresses the issue. Do not enable this suite as a required green check before defect triage.
 
 See [coverage matrix](docs/security-coverage.md) and [execution report](docs/execution-report.md). The project is included in the solution. Repository CI excludes it from the general matrix test step and runs it in a dedicated .NET 10 PostgreSQL job; the dedicated job uploads TRX results even on failure.
+
+## Page render suite
+
+The `Rendering` tests use bUnit and need only the .NET 10 SDK; no Docker or PostgreSQL is required:
+
+```sh
+dotnet test tests/CodeBeam.UltimateAuth.IdentityLab.Tests/CodeBeam.UltimateAuth.IdentityLab.Tests.csproj -c Release --filter Category=Render
+```
+
+The real pages and child components render with MudBlazor services and a popover provider. External client calls use explicit Moq responses. Dashboard initialization uses real Lab services with a uniquely named EF InMemory LabDbContext store; this verifies component initialization and navigation branches, not relational behavior. Existing service regression tests and their PostgreSQL fixtures are unchanged. Direct page rendering does not exercise router authorization or layouts.
+
+All 24 routable application page components have smoke test mappings (28 page-render cases and one route inventory guard). New pages need a real render test annotated with `[SmokeTestFor(typeof(PageComponent))]`; the route guard reports missing types and their route aliases. Existing behavioral render cases are preserved. No additional dependencies were introduced by the completion phase.
+
+See [page inventory and validation limits](docs/page-render-coverage.md).
