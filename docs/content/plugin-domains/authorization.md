@@ -293,6 +293,8 @@ Authorization succeeds only when the required conditions are satisfied.
 
 This approach allows UltimateAuth to separate reusable security requirements from the business operation being protected.
 
+> **Want to build your own authorization policies?** Follow [Define Authorization Policies](/docs/how-to-guides/define-authorization-policies) for a practical example of enforcing Separation of Duties, composing policies, and keeping authorization rules separate from application services.
+
 ## AccessContext and AccessOrchestrator
 
 Authorization needs a trustworthy representation of the operation being evaluated.

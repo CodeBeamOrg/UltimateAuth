@@ -585,7 +585,141 @@ if (result.IsSuccess && result.Value is { } page)
 
 Use `PagedResult<T>` rather than assuming every query returns the complete user collection.
 
-## 13. Get a Specific User
+## 13. Retrieve Users by Keys
+
+Use `GetByKeysAsync` to retrieve multiple user summaries when their `UserKey` values are already known.
+
+Unlike `QueryAsync`, which searches and paginates users, `GetByKeysAsync` retrieves a specific collection of users in a single request.
+
+This is particularly useful for applications that maintain relationships between users, such as:
+
+- Team members.
+- Organization members.
+- Project participants.
+- Group memberships.
+- Users assigned to a particular resource.
+
+Instead of requesting each user's information separately, the application can retrieve the required summaries in one operation.
+
+### Basic Usage
+
+```csharp
+var userKeys = new[]
+{
+    firstUserKey,
+    secondUserKey,
+    thirdUserKey
+};
+
+var result = await UAuthClient.Users.GetByKeysAsync(userKeys);
+
+if (result.IsSuccess && result.Value is { } users)
+{
+    foreach (var user in users)
+    {
+        Console.WriteLine($"{user.DisplayName} ({user.UserName})");
+    }
+}
+```
+
+The method returns:
+
+```csharp
+UAuthResult<IReadOnlyList<UserSummary>>
+```
+
+Each returned item uses the same `UserSummary` model described above.
+
+### Batch Size and Behavior
+
+A single request supports up to **250 distinct user keys**.
+
+The operation:
+
+- Accepts a collection of strongly typed `UserKey` values.
+- Removes duplicate keys.
+- Returns existing, non-deleted users within the applicable tenant.
+- Omits user keys that do not match an available user.
+- Returns an empty collection when no users match.
+- Does not use pagination.
+- Does not guarantee that the response follows the order of the requested keys.
+
+Requests exceeding 250 distinct keys are rejected with the `user_batch_size_exceeded` validation error.
+
+For larger collections, split the keys into batches:
+
+```csharp
+var allUsers = new List<UserSummary>();
+
+foreach (var batch in userKeys.Distinct().Chunk(250))
+{
+    var result = await UAuthClient.Users.GetByKeysAsync(batch);
+
+    if (!result.IsSuccess || result.Value is null)
+    {
+        // Handle the failed batch.
+        return;
+    }
+
+    allUsers.AddRange(result.Value);
+}
+```
+
+For large datasets that require searching, filtering, sorting, or pagination, use `QueryAsync` instead.
+
+### QueryAsync vs. GetByKeysAsync
+
+| Capability | QueryAsync | GetByKeysAsync |
+|---|---|---|
+| Search users | Yes | No |
+| Retrieve known user keys | Indirectly | Yes |
+| Pagination | Yes | No |
+| Filtering and sorting | Yes | No |
+| Multiple specific users | Not optimized for this purpose | Yes |
+| Maximum batch size | Pagination limits | 250 distinct keys |
+| Response | `PagedResult<UserSummary>` | `IReadOnlyList<UserSummary>` |
+
+### Authorization
+
+`GetByKeysAsync` is a protected operation.
+
+It uses the action:
+
+```csharp
+UAuthActions.Users.GetByKeysAdmin
+```
+
+The corresponding permission value is:
+
+```text
+users.getbykeys.admin
+```
+
+Although the action uses the `.admin` suffix, access is determined by the server's authorization policies and the actor's effective permissions.
+
+Applications can authorize non-administrator users to retrieve specific groups of users when their policies explicitly allow it.
+
+For example, an application may allow team members to retrieve summaries of other members belonging to the same team while denying access to users outside that team.
+
+The server exposes the requested users through `AccessContext.TargetUserKeys`, allowing application policies to validate the complete target collection.
+
+**Important:** Possessing the `users.getbykeys.admin` permission does not automatically establish that every requested user belongs to an allowed group. Applications requiring group, organization, or resource-level isolation must enforce those restrictions through server-side authorization policies.
+
+For details, see [Policies & Access Control](/docs/plugin-domains/policies).
+
+### Performance Considerations
+
+Batch retrieval avoids issuing a separate client request for every user.
+
+The reference persistence implementations support retrieving multiple user summaries through a single batch operation.
+
+Actual database query counts and execution costs depend on the configured persistence provider.
+
+For example, an application displaying 50 team members can request their summaries together rather than making 50 individual `GetUserAsync` calls.
+
+Use `GetByKeysAsync` when user keys are already available. Use `GetUserAsync` when the application needs the detailed profile of one specific user.
+
+## 14. Get a Specific User
 
 Use `GetUserAsync` to retrieve a user's profile through the administrative API.
 
@@ -618,7 +752,7 @@ var result = await UAuthClient.Users.GetUserAsync(
 
 The actor must have permission to access the target user's requested information.
 
-## 14. Update Another User's Profile
+## 15. Update Another User's Profile
 
 Use `UpdateUserProfileAsync` to update a selected user's profile.
 
@@ -659,7 +793,7 @@ var result = await UAuthClient.Users.UpdateUserProfileAsync(userKey,
 
 Administrative profile updates require the appropriate authorization for the target user.
 
-## 15. Manage Another User's Profiles
+## 16. Manage Another User's Profiles
 
 Administrators can create and delete profiles for a selected user.
 
@@ -694,7 +828,7 @@ Administrative profile operations do not automatically publish the same local `P
 
 Refresh affected administrative UI data explicitly when needed.
 
-## 16. Understanding User Status
+## 17. Understanding User Status
 
 UltimateAuth separates account lifecycle status from profile information.
 
@@ -742,7 +876,7 @@ They do not mean every transition is permitted in every application context.
 
 The server validates the requested transition.
 
-## 17. Change Your Own Status
+## 18. Change Your Own Status
 
 Use `ChangeMyStatusAsync` for supported self-service status transitions.
 
@@ -800,7 +934,7 @@ This is the current client event behavior, even though the operation changes acc
 
 Applications should not assume that a status change always produces a dedicated `AuthorizationChanged` event.
 
-## 18. Change Another User's Status
+## 19. Change Another User's Status
 
 Use `ChangeUserStatusAsync` for administrative lifecycle management.
 
@@ -843,7 +977,7 @@ Whether a particular transition is permitted depends on the server's lifecycle r
 
 Do not assume that setting `Active` automatically restores every form of previously revoked authentication state.
 
-## 19. Delete the Current User
+## 20. Delete the Current User
 
 Use `DeleteMeAsync` to request deletion of the current account.
 
@@ -872,7 +1006,7 @@ Before exposing a delete-account action, applications should provide an appropri
 
 The server remains responsible for authorization, data cleanup, and deletion policy enforcement.
 
-## 20. Administrative User Deletion
+## 21. Administrative User Deletion
 
 Administrators can delete users through `DeleteUserAsync`.
 
@@ -943,7 +1077,7 @@ A previously deleted account may produce an operation-level success result indic
 
 Do not infer the complete persistence or retention behavior from the `DeleteMode` value alone.
 
-## 21. Build a User Administration Table
+## 22. Build a User Administration Table
 
 The following example demonstrates a basic Blazor user list using `QueryAsync`.
 
@@ -1076,7 +1210,7 @@ A production administration interface should additionally include loading indica
 
 All administrative operations must remain protected by server-side authorization.
 
-## 22. Handling User Operation Results
+## 23. Handling User Operation Results
 
 UltimateAuth uses structured result contracts for user operations.
 
@@ -1143,7 +1277,7 @@ Additional diagnostic fields include `CorrelationId`, `TraceId`, `Problem`, and 
 
 Avoid exposing sensitive internal failure details directly to end users.
 
-## 23. Client State Events
+## 24. Client State Events
 
 `UAuthUserClient` publishes state events for successful self-service operations.
 
@@ -1163,7 +1297,7 @@ For example, after updating another user's profile, an administration panel shou
 
 Client events help synchronize application state, but they do not replace authoritative server-side account status or permission checks.
 
-## 24. Security and Lifecycle Considerations
+## 25. Security and Lifecycle Considerations
 
 ### Self-Service and Administrative Boundaries
 

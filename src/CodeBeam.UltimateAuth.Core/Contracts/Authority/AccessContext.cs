@@ -13,10 +13,21 @@ public sealed class AccessContext
     public bool IsAuthenticated { get; init; }
     public bool IsSystemActor { get; init; }
     public SessionChainId? ActorChainId { get; }
+    public IReadOnlyList<AccessActorRole> ActorRoles { get; }
 
     // Target
     public string? Resource { get; init; }
     public UserKey? TargetUserKey { get; init; }
+
+    /// <summary>
+    /// Gets the target users of a batch operation.
+    /// </summary>
+    /// <remarks>
+    /// The collection is normalized and immutable.
+    /// A batch operation may target multiple users without
+    /// having a single <see cref="TargetUserKey"/>.
+    /// </remarks>
+    public IReadOnlyList<UserKey> TargetUserKeys { get; }
     public TenantKey ResourceTenant { get; init; }
 
     public string Action { get; init; } = default!;
@@ -26,6 +37,7 @@ public sealed class AccessContext
     public bool IsSelfAction => ActorUserKey != null && TargetUserKey != null && string.Equals(ActorUserKey.Value, TargetUserKey.Value, StringComparison.Ordinal);
     public bool HasActor => ActorUserKey != null;
     public bool HasTarget => TargetUserKey != null;
+    public bool HasMultipleTargets => TargetUserKeys.Count > 0;
 
     public bool IsAdminContext => Action.EndsWith(".admin", StringComparison.Ordinal);
     public bool IsSelfContext => Action.EndsWith(".self", StringComparison.Ordinal);
@@ -45,20 +57,25 @@ public sealed class AccessContext
         bool isAuthenticated,
         bool isSystemActor,
         SessionChainId? actorChainId,
+        IReadOnlyList<AccessActorRole> actorRoles,
         string? resource,
         UserKey? targetUserKey,
         TenantKey resourceTenant,
         string action,
-        IReadOnlyDictionary<string, object> attributes)
+        IReadOnlyDictionary<string, object> attributes,
+        IReadOnlyCollection<UserKey>? targetUserKeys = null)
     {
         ActorUserKey = actorUserKey;
         ActorTenant = actorTenant;
         IsAuthenticated = isAuthenticated;
         IsSystemActor = isSystemActor;
         ActorChainId = actorChainId;
+        ActorRoles = Array.AsReadOnly(actorRoles.ToArray());
 
         Resource = resource;
         TargetUserKey = targetUserKey;
+        TargetUserKeys = Array.AsReadOnly((targetUserKeys ?? Array.Empty<UserKey>()).Distinct().ToArray());
+
         ResourceTenant = resourceTenant;
 
         Action = action;
@@ -78,11 +95,13 @@ public sealed class AccessContext
             IsAuthenticated,
             IsSystemActor,
             ActorChainId,
+            ActorRoles,
             Resource,
             TargetUserKey,
             ResourceTenant,
             Action,
-            merged
+            merged,
+            TargetUserKeys
         );
     }
 }

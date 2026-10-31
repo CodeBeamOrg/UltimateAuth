@@ -80,6 +80,168 @@ The actor and target are expected to represent the same identity.
 
 That relationship must be established from trusted context, not assumed from the action suffix.
 
+### Multi-Target Authorization
+
+Some operations affect or retrieve multiple users within a single request.
+
+For example, an application may need to retrieve the summaries of several users belonging to a team.
+
+A traditional single-target authorization context identifies one target user:
+
+```csharp
+context.TargetUserKey
+```
+
+Batch operations may not have a single target.
+
+UltimateAuth therefore also provides:
+
+```csharp
+context.TargetUserKeys
+```
+
+This property contains the user keys associated with a multi-target operation.
+
+The collection is normalized, immutable, and available to authorization policies.
+
+| Property | Purpose |
+|---|---|
+| `TargetUserKey` | Identifies a single target user |
+| `TargetUserKeys` | Identifies multiple target users |
+| `HasTarget` | Indicates whether a single target is present |
+| `HasMultipleTargets` | Indicates whether a batch target collection is present |
+
+Single-target and multi-target operations remain distinct.
+
+An operation targeting multiple users does not automatically become a self-service operation, even when the actor is included in the requested collection.
+
+### Creating a Multi-Target Context
+
+Server-side operations can construct a multi-target authorization context through `IAccessContextFactory`:
+
+```csharp
+var accessContext =
+    await accessContextFactory.CreateForUserTargetsAsync(
+        authFlow: authFlow,
+        action: UAuthActions.Users.GetByKeysAdmin,
+        resource: "users",
+        targetUserKeys: userKeys,
+        ct: cancellationToken);
+```
+
+The factory preserves the existing actor, tenant, role resolution, and authorization context construction mechanisms.
+
+The requested target collection is supplied explicitly.
+
+The resulting context can be evaluated by the existing authorization pipeline without introducing a separate authorization mechanism.
+
+### Example: Restrict Batch Access to Group Members
+
+Consider an application where users belong to groups.
+
+A member may retrieve the summaries of other users in the same group, but must not retrieve users belonging to another group.
+
+The application can implement this restriction through an `IAccessPolicy`.
+
+The following example illustrates the target validation logic inside a policy:
+
+```csharp
+if (context.Action == UAuthActions.Users.GetByKeysAdmin)
+{
+    var requestedKeys = context.TargetUserKeys;
+
+    if (requestedKeys.Count == 0)
+    {
+        return AccessDecision.Deny("batch_targets_required");
+    }
+
+    var keys = requestedKeys.Distinct().ToArray();
+
+    var allowedCount = await db.GroupMembers
+        .AsNoTracking()
+        .CountAsync(
+            member =>
+                member.GroupId == actorGroupId &&
+                keys.Contains(member.UserKey),
+            cancellationToken);
+
+    if (allowedCount != keys.Length)
+    {
+        return AccessDecision.Deny("batch_target_out_of_scope");
+    }
+
+    return AccessDecision.Allow();
+}
+```
+
+Here, `db`, `actorGroupId`, and `cancellationToken` represent application-specific dependencies and values resolved by the surrounding policy.
+
+The example assumes that each user has at most one membership record within the selected group.
+
+The policy verifies that every requested user belongs to the actor's authorized group.
+
+If any target falls outside the permitted scope, the entire operation is denied.
+
+This prevents a request from mixing authorized and unauthorized users to obtain information about another group.
+
+### Authorization Must Cover the Complete Batch
+
+A secure multi-target policy should evaluate every requested target.
+
+Checking only the first user or allowing the operation because at least one user is authorized is insufficient.
+
+For example:
+
+```text
+Requested users:
+  User A — Group 1
+  User B — Group 1
+  User C — Group 2
+
+Actor:
+  Member of Group 1
+
+Decision:
+  Deny
+```
+
+The entire request is denied because User C is outside the actor's permitted scope.
+
+Applications should not silently return unauthorized users or assume that a batch operation is safe merely because its action permission was granted.
+
+### Permission and Scope Are Separate Requirements
+
+The batch user retrieval action is:
+
+```text
+users.getbykeys.admin
+```
+
+An application may grant this permission to ordinary users when group-level access is required.
+
+However, permission evaluation and target scope validation solve different problems.
+
+- **Permission:** May this actor perform batch user retrieval?
+- **Scope policy:** May this actor retrieve these particular users?
+
+Both requirements must be satisfied.
+
+An application's authorization policy must enforce the relevant target restrictions.
+
+### Trusted Target Collections
+
+Target keys originate from an operation request, but they are not automatically trusted authorization facts.
+
+The server must validate and normalize the requested keys before constructing the authorization context.
+
+The same normalized collection must be used for authorization and execution.
+
+Otherwise, a policy could approve one collection while the application service retrieves another.
+
+Applications should also ensure that batch authorization fails closed when required target information is missing.
+
+`TargetUserKeys` makes multi-target authorization possible; it does not automatically enforce group membership, ownership, or other application-specific restrictions.
+
 ### Trusted Context Construction
 
 Authorization decisions are only as reliable as the information supplied to them.
@@ -379,7 +541,7 @@ Such policies should preserve the framework's security boundaries:
 - Do not use broad permission grants to override target or tenant restrictions.
 - Keep policy applicability and evaluation behavior explicit.
 
-Detailed custom policy implementation and registration examples belong in [How-to Guides](/docs/how-to), where they can be presented alongside complete application code.
+For a complete, practical example of implementing and registering custom application policies, see [Define Authorization Policies](/docs/how-to-guides/define-authorization-policies). The guide demonstrates how to enforce Separation of Duties, compose multiple authorization requirements, and simplify application services.
 
 ## Architectural Perspective
 

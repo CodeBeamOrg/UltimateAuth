@@ -40,6 +40,43 @@ public sealed class UserEndpointHandler : IUserEndpointHandler
         return Results.Ok(result);
     }
 
+    public async Task<IResult> GetUsersByKeysAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        if (!flow.IsAuthenticated)
+            return Results.Unauthorized();
+
+        var request = await ctx.ReadJsonAsync<GetUsersByKeysRequest>(ctx.RequestAborted);
+
+        if (request?.UserKeys is null)
+            return Results.BadRequest();
+
+        const int maxBatchSize = 250;
+
+        var keys = request.UserKeys.Distinct().ToArray();
+
+        if (keys.Length > maxBatchSize)
+        {
+            return Results.BadRequest(new
+            {
+                Error = "user_batch_size_exceeded"
+            });
+        }
+
+        var accessContext =
+            await _accessContextFactory.CreateForUserTargetsAsync(
+                authFlow: flow,
+                action: UAuthActions.Users.GetByKeysAdmin,
+                resource: "users",
+                targetUserKeys: keys,
+                ct: ctx.RequestAborted);
+
+        var result = await _users.GetUsersByKeysAsync(accessContext, keys, ctx.RequestAborted);
+
+        return Results.Ok(result);
+    }
+
     public async Task<IResult> CreateAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;

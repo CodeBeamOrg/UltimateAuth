@@ -1,0 +1,327 @@
+﻿@page "/dashboard/demo-store"
+@layout DashboardLayout
+@attribute [UAuthAuthorize]
+
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@inject LabDemoStoreService DemoStoreService
+@inject ISnackbar Snackbar
+
+<PageTitle>Demo Store · Identity Lab</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+
+    <MudStack Spacing="4">
+
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.overline" Color="Color.Primary">SAAS PLAYGROUND</MudText>
+            <MudText Typo="Typo.h4">Demo Store</MudText>
+            <MudText Color="Color.Secondary">Explore how UltimateAuth roles and permissions affect a sample SaaS application.</MudText>
+        </MudStack>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            This is a demonstration application.
+            Product changes and cart operations are temporary.
+            They do not affect your Sandbox, system roles or other users.
+        </MudAlert>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @_error
+            </MudAlert>
+
+            <MudButton Variant="Variant.Outlined"
+                       OnClick="RefreshAccessAsync">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle1">
+                        Your Demo Access
+                    </MudText>
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudChip T="string"
+                                 Color="@(CanManage ? Color.Success : Color.Default)"
+                                 Variant="Variant.Outlined">
+                            Manager: @(CanManage ? "Enabled" : "Disabled")
+                        </MudChip>
+
+                        <MudChip T="string"
+                                 Color="@(CanOrder ? Color.Success : Color.Default)"
+                                 Variant="Variant.Outlined">
+                            Customer: @(CanOrder ? "Enabled" : "Disabled")
+                        </MudChip>
+                    </MudStack>
+
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               OnClick="RefreshAccessAsync">
+                        Refresh Permissions
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            @if (!CanRead)
+            {
+                <MudAlert Severity="Severity.Warning"
+                          Variant="Variant.Outlined">
+                    You do not currently have access to the demo catalog.
+                    Ask your Sandbox Owner to assign the Manager or Customer demo role.
+                </MudAlert>
+            }
+            else
+            {
+                <MudStack Row="true"
+                          AlignItems="AlignItems.Center"
+                          Justify="Justify.SpaceBetween">
+
+                    <MudText Typo="Typo.h6">
+                        Products
+                    </MudText>
+
+                    @if (CanCreate)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddProductAsync">
+                            Add Product
+                        </MudButton>
+                    }
+                </MudStack>
+
+                <MudGrid>
+                    @foreach (var product in _products)
+                    {
+                        <MudItem xs="12" sm="6" md="4" @key="product.Id">
+                            <MudPaper Outlined="true" Class="pa-4">
+                                <MudStack Spacing="2">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory2"
+                                             Size="Size.Large"
+                                             Color="Color.Primary" />
+
+                                    <MudText Typo="Typo.subtitle1">
+                                        @product.Name
+                                    </MudText>
+
+                                    <MudText Typo="Typo.h6">
+                                        @product.Price.ToString("C")
+                                    </MudText>
+
+                                    @if (CanUpdate || CanDelete)
+                                    {
+                                        <MudStack Row="true" Spacing="1">
+                                            @if (CanUpdate)
+                                            {
+                                                <MudButton Variant="Variant.Outlined"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => EditProductAsync(product))">
+                                                    Edit
+                                                </MudButton>
+                                            }
+
+                                            @if (CanDelete)
+                                            {
+                                                <MudButton Variant="Variant.Outlined"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => DeleteProductAsync(product))">
+                                                    Delete
+                                                </MudButton>
+                                            }
+                                        </MudStack>
+                                    }
+
+                                    @if (CanOrder)
+                                    {
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                                   OnClick="@(() => AddToCartAsync(product))">
+                                            Add to Cart
+                                        </MudButton>
+                                    }
+
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                @if (CanOrder)
+                {
+                    <MudPaper Outlined="true" Class="pa-4">
+                        <MudStack Row="true"
+                                  AlignItems="AlignItems.Center"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudText Typo="Typo.subtitle1">
+                                Shopping Cart
+                            </MudText>
+
+                            <MudChip T="string" Color="Color.Primary">
+                                @_cartCount items
+                            </MudChip>
+                        </MudStack>
+                    </MudPaper>
+                }
+            }
+        }
+
+    </MudStack>
+</MudContainer>
+
+@code {
+    private readonly List<DemoProduct> _products =
+    [
+        new(1, "Wireless Headphones", 89),
+        new(2, "Smart Watch", 149),
+        new(3, "Laptop Stand", 39),
+        new(4, "Desk Lamp", 59)
+    ];
+
+    private IReadOnlySet<string> _permissions =
+        new HashSet<string>();
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private int _nextId = 5;
+    private int _cartCount;
+
+    private bool CanRead =>
+        Has(LabDemoPermissions.ProductsRead);
+
+    private bool CanCreate =>
+        Has(LabDemoPermissions.ProductsCreate);
+
+    private bool CanUpdate =>
+        Has(LabDemoPermissions.ProductsUpdate);
+
+    private bool CanDelete =>
+        Has(LabDemoPermissions.ProductsDelete);
+
+    private bool CanManage =>
+        CanCreate || CanUpdate || CanDelete;
+
+    private bool CanOrder =>
+        Has(LabDemoPermissions.OrdersCreate);
+
+    private bool Has(string permission) =>
+        _permissions.Contains(permission);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAccessAsync();
+    }
+
+    private async Task RefreshAccessAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _permissions =
+                await DemoStoreService.GetPermissionsAsync();
+        }
+        catch (Exception)
+        {
+            _permissions = new HashSet<string>();
+            _error = "Unable to evaluate demo permissions.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ExecuteAsync(
+        string permission,
+        Action operation,
+        string successMessage)
+    {
+        if (_busy)
+            return;
+
+        _busy = true;
+
+        try
+        {
+            await DemoStoreService.RequireAsync(permission);
+
+            operation();
+
+            Snackbar.Add(successMessage, Severity.Success);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Snackbar.Add(
+                "Permission denied. Your demo role may have changed.",
+                Severity.Warning);
+
+            await RefreshAccessAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Demo operation failed.",
+                Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task AddProductAsync()
+        => ExecuteAsync(
+            LabDemoPermissions.ProductsCreate,
+            () =>
+            {
+                var id = _nextId++;
+                _products.Add(
+                    new DemoProduct(id, $"Demo Product {id}", 25));
+            },
+            "Sample product created.");
+
+    private Task EditProductAsync(DemoProduct product)
+        => ExecuteAsync(
+            LabDemoPermissions.ProductsUpdate,
+            () =>
+            {
+                var index = _products.FindIndex(x => x.Id == product.Id);
+
+                if (index >= 0)
+                {
+                    _products[index] = product with
+                    {
+                        Price = product.Price + 10
+                    };
+                }
+            },
+            "Sample product price updated.");
+
+    private Task DeleteProductAsync(DemoProduct product)
+        => ExecuteAsync(
+            LabDemoPermissions.ProductsDelete,
+            () => _products.RemoveAll(x => x.Id == product.Id),
+            "Sample product deleted.");
+
+    private Task AddToCartAsync(DemoProduct product)
+        => ExecuteAsync(
+            LabDemoPermissions.OrdersCreate,
+            () => _cartCount++,
+            $"{product.Name} added to the demo cart.");
+}

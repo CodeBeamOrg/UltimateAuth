@@ -10,39 +10,69 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 public partial class SessionDialog
 {
     private MudDataGrid<SessionChainSummary>? _grid;
-    private bool _loading = false;
-    private bool _reloadQueued;
     private SessionChainDetail? _chainDetail;
+
+    private bool _loading;
+    private bool _reloadQueued;
+    private const int SessionPageSize = 10;
+    private int _sessionPage = 1;
+
+    private readonly List<PreviewDevice> _previewDevices =
+    [
+        new(
+            "Windows Desktop",
+            "Windows",
+            "Edge",
+            "Just now",
+            true,
+            Icons.Material.Filled.Computer),
+        new(
+            "Mobile Device",
+            "Android",
+            "Chrome",
+            "2 hours ago",
+            false,
+            Icons.Material.Filled.Smartphone),
+        new(
+            "MacBook",
+            "macOS",
+            "Safari",
+            "Yesterday",
+            false,
+            Icons.Material.Filled.LaptopMac)
+    ];
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
     [Parameter]
     public UserKey? UserKey { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
+    [Parameter]
+    public SessionChainId? InitialChainId { get; set; }
 
-        if (firstRender)
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!PreviewMode && InitialChainId is { } chainId)
         {
-            var result = await UAuthClient.Sessions.GetMyChainsAsync();
-            if (result != null && result.IsSuccess && result.Value != null)
-            {
-                await ReloadAsync();
-                StateHasChanged();
-            }
+            await ShowChainDetailsAsync(chainId);
         }
     }
 
     private async Task<GridData<SessionChainSummary>> LoadServerData(GridState<SessionChainSummary> state, CancellationToken ct)
     {
+        if (PreviewMode)
+            return EmptyGrid();
+
         var sort = state.SortDefinitions?.FirstOrDefault();
 
-        var req = new PageRequest
+        var request = new PageRequest
         {
             PageNumber = state.Page + 1,
             PageSize = state.PageSize,
@@ -50,49 +80,53 @@ public partial class SessionDialog
             Descending = sort?.Descending ?? false
         };
 
-        UAuthResult<PagedResult<SessionChainSummary>> res;
+        try
+        {
+            UAuthResult<PagedResult<SessionChainSummary>> result =
+                UserKey is null
+                    ? await UAuthClient.Sessions.GetMyChainsAsync(request)
+                    : await UAuthClient.Sessions.GetUserChainsAsync(
+                        UserKey.Value, request);
 
-        if (UserKey is null)
-        {
-            res = await UAuthClient.Sessions.GetMyChainsAsync(req);
-        }
-        else
-        {
-            res = await UAuthClient.Sessions.GetUserChainsAsync(UserKey.Value, req);
-        }
-
-        if (!res.IsSuccess || res.Value is null)
-        {
-            Snackbar.Add(res.Problem?.Title ?? "Failed", Severity.Error);
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to load sessions.",
+                    Severity.Error);
+                return EmptyGrid();
+            }
 
             return new GridData<SessionChainSummary>
             {
-                Items = Array.Empty<SessionChainSummary>(),
-                TotalItems = 0
+                Items = result.Value.Items,
+                TotalItems = result.Value.TotalCount
             };
         }
-
-        return new GridData<SessionChainSummary>
+        catch (Exception)
         {
-            Items = res.Value.Items,
-            TotalItems = res.Value.TotalCount
-        };
+            Snackbar.Add("Unable to load sessions.", Severity.Error);
+            return EmptyGrid();
+        }
     }
+
+    private static GridData<SessionChainSummary> EmptyGrid() => new()
+    {
+        Items = Array.Empty<SessionChainSummary>(),
+        TotalItems = 0
+    };
 
     private async Task ReloadAsync()
     {
+        if (PreviewMode || _grid is null)
+            return;
+
         if (_loading)
         {
             _reloadQueued = true;
             return;
         }
 
-        if (_grid is null)
-            return;
-
         _loading = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(300);
 
         try
         {
@@ -101,184 +135,270 @@ public partial class SessionDialog
         finally
         {
             _loading = false;
-
-            if (_reloadQueued)
-            {
-                _reloadQueued = false;
-                await ReloadAsync();
-            }
-
-            await InvokeAsync(StateHasChanged);
         }
+
+        if (_reloadQueued)
+        {
+            _reloadQueued = false;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task<bool> ConfirmAsync(
+        string title,
+        string message,
+        string confirmText)
+    {
+        if (PreviewMode || _loading)
+            return false;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            title,
+            message,
+            yesText: confirmText,
+            noText: "Cancel");
+
+        return confirmed == true;
     }
 
     private async Task LogoutAllAsync()
     {
-        UAuthResult result;
+        if (!await ConfirmAsync(
+            "Logout All Devices",
+            "All devices will be signed out, including the current device.",
+            "Logout All"))
+            return;
 
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Flows.LogoutAllMyDevicesAsync();
-        }
-        else
-        {
-            result = await UAuthClient.Flows.LogoutAllUserDevicesAsync(UserKey.Value);
-        }
-
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Logged out of all devices.", Severity.Success);
-            if (UserKey is null)
-                Nav.NavigateTo("/login");
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Failed to logout.", Severity.Error);
-        }
+        await ExecuteAsync(
+            () => UserKey is null
+                ? UAuthClient.Flows.LogoutAllMyDevicesAsync()
+                : UAuthClient.Flows.LogoutAllUserDevicesAsync(UserKey.Value),
+            "All devices logged out.",
+            navigateOnSuccess: UserKey is null);
     }
 
     private async Task LogoutOthersAsync()
     {
-        var result = await UAuthClient.Flows.LogoutMyOtherDevicesAsync();
+        if (!await ConfirmAsync(
+            "Logout Other Devices",
+            "Other devices will be signed out. Your current device will remain signed in.",
+            "Logout Others"))
+            return;
 
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Logged out of other devices.", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add(result?.ErrorText ?? "Failed to logout", Severity.Error);
-        }
-    }
-
-    private async Task LogoutDeviceAsync(SessionChainId chainId)
-    {
-        LogoutDeviceRequest request = new() { ChainId = chainId };
-        UAuthResult<RevokeResult> result;
-
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Flows.LogoutMyDeviceAsync(request);
-        }
-        else
-        {
-            result = await UAuthClient.Flows.LogoutUserDeviceAsync(UserKey.Value, request);
-        }
-
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Logged out of device.", Severity.Success);
-            if (result?.Value?.CurrentChain == true)
-            {
-                Nav.NavigateTo("/login");
-                return;
-            }
-            await ReloadAsync();
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Failed to logout.", Severity.Error);
-        }
+        await ExecuteAsync(
+            () => UAuthClient.Flows.LogoutMyOtherDevicesAsync(),
+            "Other devices logged out.");
     }
 
     private async Task RevokeAllAsync()
     {
-        UAuthResult result;
+        if (!await ConfirmAsync(
+            "Revoke All Devices",
+            "All device chains will be revoked. This action may terminate your current session.",
+            "Revoke All"))
+            return;
 
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Sessions.RevokeAllMyChainsAsync();
-        }
-        else
-        {
-            result = await UAuthClient.Sessions.RevokeAllUserChainsAsync(UserKey.Value);
-        }
-
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Logged out of all devices.", Severity.Success);
-
-            if (UserKey is null)
-                Nav.NavigateTo("/login");
-        }
-        else
-        {
-            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
-        }
+        await ExecuteAsync(
+            () => UserKey is null
+                ? UAuthClient.Sessions.RevokeAllMyChainsAsync()
+                : UAuthClient.Sessions.RevokeAllUserChainsAsync(UserKey.Value),
+            "All device chains revoked.",
+            navigateOnSuccess: UserKey is null);
     }
 
     private async Task RevokeOthersAsync()
     {
-        var result = await UAuthClient.Sessions.RevokeMyOtherChainsAsync();
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Revoked all other devices.", Severity.Success);
-            await ReloadAsync();
-        }
-        else
-        {
-            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
-        }
+        if (!await ConfirmAsync(
+            "Revoke Other Devices",
+            "All device chains except the current one will be revoked.",
+            "Revoke Others"))
+            return;
+
+        await ExecuteAsync(
+            () => UAuthClient.Sessions.RevokeMyOtherChainsAsync(),
+            "Other device chains revoked.");
+    }
+
+    private async Task LogoutDeviceAsync(SessionChainId chainId)
+    {
+        if (!await ConfirmAsync(
+            "Logout Device",
+            "Sign out the selected device?",
+            "Logout"))
+            return;
+
+        var request = new LogoutDeviceRequest { ChainId = chainId };
+
+        await ExecuteRevokeAsync(
+            () => UserKey is null
+                ? UAuthClient.Flows.LogoutMyDeviceAsync(request)
+                : UAuthClient.Flows.LogoutUserDeviceAsync(
+                    UserKey.Value, request),
+            "Device logged out.");
     }
 
     private async Task RevokeChainAsync(SessionChainId chainId)
     {
-        UAuthResult<RevokeResult> result;
+        if (!await ConfirmAsync(
+            "Revoke Device",
+            "Revoke this device chain and invalidate its access?",
+            "Revoke"))
+            return;
 
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Sessions.RevokeMyChainAsync(chainId);
-        }
-        else
-        {
-            result = await UAuthClient.Sessions.RevokeUserChainAsync(UserKey.Value, chainId);
-        }
+        await ExecuteRevokeAsync(
+            () => UserKey is null
+                ? UAuthClient.Sessions.RevokeMyChainAsync(chainId)
+                : UAuthClient.Sessions.RevokeUserChainAsync(
+                    UserKey.Value, chainId),
+            "Device revoked.");
+    }
 
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Device revoked successfully.", Severity.Success);
+    private async Task ExecuteAsync(
+        Func<Task<UAuthResult>> operation,
+        string successMessage,
+        bool navigateOnSuccess = false)
+    {
+        if (PreviewMode || _loading)
+            return;
 
-            if (result?.Value?.CurrentChain == true)
+        _loading = true;
+        var succeeded = false;
+
+        try
+        {
+            var result = await operation();
+
+            if (!result.IsSuccess)
             {
-                Nav.NavigateTo("/login");
+                Snackbar.Add(
+                    result.ErrorText ?? "Session operation failed.",
+                    Severity.Error);
                 return;
             }
-            await ReloadAsync();
+
+            succeeded = true;
+            Snackbar.Add(successMessage, Severity.Success);
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to logout.", Severity.Error);
+            Snackbar.Add("Session operation failed.", Severity.Error);
         }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (!succeeded)
+            return;
+
+        if (navigateOnSuccess)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ExecuteRevokeAsync(
+        Func<Task<UAuthResult<RevokeResult>>> operation,
+        string successMessage)
+    {
+        if (PreviewMode || _loading)
+            return;
+
+        _loading = true;
+        bool currentChain = false;
+        bool succeeded = false;
+
+        try
+        {
+            var result = await operation();
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Session operation failed.",
+                    Severity.Error);
+                return;
+            }
+
+            succeeded = true;
+            currentChain = result.Value?.CurrentChain == true;
+
+            Snackbar.Add(successMessage, Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Session operation failed.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (!succeeded)
+            return;
+
+        if (currentChain)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        _chainDetail = null;
+        await ReloadAsync();
     }
 
     private async Task ShowChainDetailsAsync(SessionChainId chainId)
     {
-        UAuthResult<SessionChainDetail> result;
+        if (PreviewMode || _loading)
+            return;
 
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Sessions.GetMyChainDetailAsync(chainId);
-        }
-        else
-        {
-            result = await UAuthClient.Sessions.GetUserChainDetailAsync(UserKey.Value, chainId);
-        }
+        _loading = true;
 
-        if (result.IsSuccess)
+        try
         {
+            UAuthResult<SessionChainDetail> result =
+                UserKey is null
+                    ? await UAuthClient.Sessions.GetMyChainDetailAsync(chainId)
+                    : await UAuthClient.Sessions.GetUserChainDetailAsync(
+                        UserKey.Value, chainId);
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to load device details.",
+                    Severity.Error);
+                return;
+            }
+
             _chainDetail = result.Value;
+            _sessionPage = 1;
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result?.ErrorText ?? "Failed to fetch chain details.", Severity.Error);
-            _chainDetail = null;
+            Snackbar.Add("Failed to load device details.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
-    private void ClearDetail()
+    private void ClearDetail() => _chainDetail = null;
+
+    private void Cancel()
     {
-        _chainDetail = null;
+        if (!_loading)
+            MudDialog.Cancel();
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private sealed record PreviewDevice(
+        string Name,
+        string Platform,
+        string Browser,
+        string LastSeen,
+        bool IsCurrent,
+        string Icon);
 }

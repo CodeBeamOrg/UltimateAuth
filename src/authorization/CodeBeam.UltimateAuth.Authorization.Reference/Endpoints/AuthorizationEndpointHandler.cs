@@ -16,25 +16,29 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
     private readonly IUserRoleService _userRoles;
     private readonly IRoleService _roles;
     private readonly IAccessContextFactory _accessContextFactory;
+    private readonly IUserPermissionService _userPermissions;
 
     public AuthorizationEndpointHandler(
         IAuthFlowContextAccessor authFlow,
         IAuthorizationService authorization,
         IUserRoleService userRoles,
         IRoleService roles,
-        IAccessContextFactory accessContextFactory)
+        IAccessContextFactory accessContextFactory,
+        IUserPermissionService userPermissions)
     {
         _authFlow = authFlow;
         _authorization = authorization;
         _userRoles = userRoles;
         _roles = roles;
         _accessContextFactory = accessContextFactory;
+        _userPermissions = userPermissions;
     }
 
 
     public async Task<IResult> CheckAsync(HttpContext ctx)
     {
         var flow = _authFlow.Current;
+
         if (!flow.IsAuthenticated)
             return Results.Unauthorized();
 
@@ -54,12 +58,7 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
 
         var result = await _authorization.AuthorizeAsync(accessContext, ctx.RequestAborted);
 
-        if (result.RequiresReauthentication)
-            return Results.StatusCode(StatusCodes.Status428PreconditionRequired);
-
-        return result.IsAllowed
-            ? Results.Ok(result)
-            : Results.Forbid();
+        return Results.Ok(result);
     }
 
     public async Task<IResult> GetMyRolesAsync(HttpContext ctx)
@@ -287,5 +286,24 @@ public sealed class AuthorizationEndpointHandler : IAuthorizationEndpointHandler
             result.Descending);
 
         return Results.Ok(response);
+    }
+
+    public async Task<IResult> GetMyPermissionsAsync(HttpContext ctx)
+    {
+        var flow = _authFlow.Current;
+
+        if (!flow.IsAuthenticated || flow.UserKey is null)
+            return Results.Unauthorized();
+
+        var accessContext = await _accessContextFactory.CreateAsync(
+            flow,
+            action: UAuthActions.Authorization.Permissions.GetSelf,
+            resource: "authorization.permissions",
+            resourceId: flow.UserKey.Value,
+            ct: ctx.RequestAborted);
+
+        var result = await _userPermissions.GetMyPermissionsAsync(accessContext, ctx.RequestAborted);
+
+        return Results.Ok(result);
     }
 }

@@ -1,0 +1,240 @@
+﻿.lab-identity-page {
+    padding: 42px 0 80px;
+}
+
+.lab-identity-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.lab-identity-eyebrow {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--mud-palette-primary);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.lab-identity-header h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.lab-identity-header p {
+    margin: 9px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: .85rem;
+    line-height: 1.6;
+}
+
+.lab-identity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+}
+
+.lab-identity-column {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+}
+
+.lab-identity-card {
+    padding: 26px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 17px;
+}
+
+.lab-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+    .lab-card-header h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 750;
+        letter-spacing: -.3px;
+    }
+
+    .lab-card-header p {
+        margin: 5px 0 0;
+        color: var(--mud-palette-text-secondary);
+        font-size: .76rem;
+        line-height: 1.5;
+    }
+
+.lab-identity-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 23px;
+}
+
+    .lab-identity-profile > div:nth-child(2),
+    .lab-identifier-info {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+    }
+
+        .lab-identity-profile strong,
+        .lab-identifier-info strong {
+            font-size: .85rem;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .lab-identity-profile span,
+        .lab-identifier-info span {
+            color: var(--mud-palette-text-secondary);
+            font-size: .73rem;
+        }
+
+.lab-identity-details {
+    margin-bottom: 20px;
+}
+
+.lab-identity-detail {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 13px 0;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    font-size: .8rem;
+}
+
+    .lab-identity-detail > span {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .lab-identity-detail strong {
+        font-weight: 650;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+.lab-identifier-list {
+    margin-bottom: 22px;
+}
+
+.lab-identifier-item {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 16px 0;
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.lab-identifier-info {
+    flex: 1;
+}
+
+.lab-identifier-icon,
+.lab-security-icon,
+.lab-auth-context-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: var(--mud-palette-primary);
+    background: var(--mud-palette-primary-hover);
+}
+
+.lab-security-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 0;
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+    .lab-security-item > div:nth-child(2) {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .lab-security-item strong {
+        font-size: .83rem;
+        font-weight: 700;
+    }
+
+    .lab-security-item p {
+        margin: 5px 0 0;
+        color: var(--mud-palette-text-secondary);
+        font-size: .73rem;
+        line-height: 1.5;
+    }
+
+.lab-auth-context {
+    padding: 8px 0;
+}
+
+.lab-auth-context-node {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+    .lab-auth-context-node > div:last-child {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .lab-auth-context-node strong {
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .lab-auth-context-node span {
+        color: var(--mud-palette-text-secondary);
+        font-size: .72rem;
+    }
+
+.lab-auth-context-connector {
+    width: 2px;
+    height: 24px;
+    margin: 5px 0 5px 20px;
+    background: var(--mud-palette-lines-default);
+}
+
+@media (max-width: 960px) {
+    .lab-identity-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-identity-page {
+        padding: 28px 0 52px;
+    }
+
+    .lab-identity-header {
+        flex-direction: column;
+    }
+
+    .lab-identity-card {
+        padding: 20px;
+    }
+
+    .lab-security-item {
+        gap: 10px;
+    }
+}

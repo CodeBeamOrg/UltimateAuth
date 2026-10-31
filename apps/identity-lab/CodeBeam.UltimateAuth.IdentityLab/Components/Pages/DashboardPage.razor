@@ -1,0 +1,552 @@
+﻿@page "/dashboard"
+@layout DashboardLayout
+
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
+
+@inject LabDashboardService DashboardService
+@inject LabOwnerRepairService OwnerRepairService
+@inject LabAccessContextProvider ContextProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Overview · Identity Lab</PageTitle>
+
+<div class="lab-home">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true"
+                               Color="Color.Primary"
+                               Class="my-6" />
+        }
+        else if (_dashboard is null)
+        {
+            <div class="lab-home-heading">
+                <span class="lab-home-eyebrow">IDENTITY LAB</span>
+                <h1>Your workspace</h1>
+                <p>Your sandbox information is not available yet.</p>
+            </div>
+
+            @if (_repairStatus?.State == OwnerRepairState.CanRepair)
+            {
+                <MudPaper Outlined="true" Class="pa-6 my-6">
+                    <MudStack Spacing="3">
+                        <MudAlert Severity="Severity.Warning"
+                                  Variant="Variant.Outlined">
+                            @_repairStatus.Message
+                        </MudAlert>
+
+                        <MudText>
+                            Your account is active, but your sandbox
+                            setup is incomplete. You can complete
+                            the setup without creating another account.
+                        </MudText>
+
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_repairing"
+                                   OnClick="RepairSandboxAsync">
+                            @if (_repairing)
+                            {
+                                <MudProgressCircular Indeterminate="true"
+                                                     Size="Size.Small"
+                                                     Class="me-2" />
+                            }
+                            Complete Sandbox Setup
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning"
+                          Variant="Variant.Outlined"
+                          Class="my-6">
+                    Your sandbox overview is currently unavailable.
+                    Please contact the administrator if the problem persists.
+                </MudAlert>
+            }
+        }
+        else
+        {
+            <!-- HEADER -->
+            <header class="lab-home-heading">
+                <div>
+                    <span class="lab-home-eyebrow">
+                        ULTIMATEAUTH / IDENTITY LAB
+                    </span>
+
+                    <h1>Your identity workspace.</h1>
+
+                    <p>
+                        One identity. Connected security experiences.
+                    </p>
+                </div>
+
+                <MudChip T="string"
+                         Variant="Variant.Outlined"
+                         Color="Color.Primary">
+                    Live Sandbox
+                </MudChip>
+            </header>
+
+            <!-- IDENTITY HERO -->
+            <section class="lab-home-hero">
+                <div class="lab-home-hero-main">
+                    <div class="lab-home-identity">
+                        <MudAvatar Size="Size.Large"
+                                   Color="Color.Primary">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" />
+                        </MudAvatar>
+
+                        <div class="lab-home-identity-copy">
+                            <span class="lab-home-kicker">
+                                YOUR IDENTITY
+                            </span>
+
+                            <h2>@DisplayName</h2>
+
+                            <p>@IdentitySubtitle</p>
+                        </div>
+                    </div>
+
+                    <div class="lab-home-status">
+                        <MudIcon Icon="@(IsAuthenticated ? Icons.Material.Filled.VerifiedUser : Icons.Material.Outlined.Info)"
+                                 Color="@(IsAuthenticated ? Color.Success : Color.Warning)" />
+
+                        <div>
+                            <strong>@(IsAuthenticated ? "Authenticated" : "Authentication unavailable")</strong>
+                            <span>@(_dashboard.AccountStatus is { Length: > 0 } ? $"Account status: {_dashboard.AccountStatus}" : "UltimateAuth identity state")</span>
+                        </div>
+                    </div>
+
+                    <div class="lab-home-hero-actions">
+                        <MudButton Href="/dashboard/identity" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward">
+                            Explore Identity
+                        </MudButton>
+
+                        <MudButton Href="/dashboard/sessions" Variant="Variant.Outlined" Color="Color.Primary">
+                            View Sessions
+                        </MudButton>
+                    </div>
+                </div>
+
+                <div class="lab-home-hero-context">
+                    <span class="lab-home-kicker">YOUR ENVIRONMENT</span>
+
+                    <h3>@_dashboard.SandboxName</h3>
+
+                    <div class="lab-home-context-row">
+                        <span>Membership</span>
+                        <strong>@MembershipLabel</strong>
+                    </div>
+
+                    <div class="lab-home-context-row">
+                        <span>Members</span>
+                        <strong>
+                            @_dashboard.MemberCount / @_dashboard.MaxUsers
+                        </strong>
+                    </div>
+
+                    <div class="lab-home-context-row">
+                        <span>Available slots</span>
+                        <strong>@_dashboard.RemainingCapacity</strong>
+                    </div>
+
+                    <div class="lab-home-capacity-track">
+                        <div class="lab-home-capacity-fill"
+                             style="width:@CapacityPercent%"></div>
+                    </div>
+
+                    <span class="lab-home-context-note">
+                        Your isolated UltimateAuth playground
+                    </span>
+                </div>
+            </section>
+
+            <!-- REAL METRICS -->
+            <section class="lab-home-metrics">
+                <div class="lab-home-metric">
+                    <span class="lab-home-metric-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                    </span>
+                    <div>
+                        <strong>
+                            @(_dashboard.ChainCount?.ToString() ?? "—")
+                        </strong>
+                        <span>Authentication chains</span>
+                    </div>
+                </div>
+
+                <div class="lab-home-metric">
+                    <span class="lab-home-metric-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                    </span>
+                    <div>
+                        <strong>
+                            @(_dashboard.RoleCount?.ToString() ?? "—")
+                        </strong>
+                        <span>Assigned roles</span>
+                    </div>
+                </div>
+
+                <div class="lab-home-metric">
+                    <span class="lab-home-metric-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.People" />
+                    </span>
+                    <div>
+                        <strong>@_dashboard.MemberCount</strong>
+                        <span>Sandbox members</span>
+                    </div>
+                </div>
+
+                <div class="lab-home-metric">
+                    <span class="lab-home-metric-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
+                    </span>
+                    <div>
+                        <strong>@_dashboard.RemainingCapacity</strong>
+                        <span>Remaining capacity</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONNECTED SECURITY MODEL -->
+            <section class="lab-home-section">
+                <div class="lab-home-section-heading">
+                    <div>
+                        <span class="lab-home-eyebrow">
+                            THE CONNECTED MODEL
+                        </span>
+
+                        <h2>One identity. Multiple dimensions.</h2>
+
+                        <p>
+                            Your identity, access decisions and sessions are part of one authentication experience.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="lab-home-model">
+                    <a href="/dashboard/identity"
+                       class="lab-home-model-node">
+                        <span class="lab-home-model-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Fingerprint" />
+                        </span>
+
+                        <span class="lab-home-model-content">
+                            <strong>Identity</strong>
+                            <small>Who you are</small>
+                            <span>@DisplayName</span>
+                        </span>
+
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small"
+                                 Class="lab-home-node-arrow" />
+                    </a>
+
+                    <div class="lab-home-model-connector">
+                        <MudIcon Icon="@Icons.Material.Filled.SyncAlt" />
+                    </div>
+
+                    <a href="/dashboard/access"
+                       class="lab-home-model-node">
+                        <span class="lab-home-model-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.GppGood" />
+                        </span>
+
+                        <span class="lab-home-model-content">
+                            <strong>Authorization</strong>
+                            <small>What you can do</small>
+                            <span>
+                                @(_dashboard.RoleCount?.ToString() ?? "—")
+                                assigned roles
+                            </span>
+                        </span>
+
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small"
+                                 Class="lab-home-node-arrow" />
+                    </a>
+
+                    <div class="lab-home-model-connector">
+                        <MudIcon Icon="@Icons.Material.Filled.SyncAlt" />
+                    </div>
+
+                    <a href="/dashboard/sessions"
+                       class="lab-home-model-node">
+                        <span class="lab-home-model-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                        </span>
+
+                        <span class="lab-home-model-content">
+                            <strong>Sessions</strong>
+                            <small>How you stay authenticated</small>
+                            <span>
+                                @(_dashboard.ChainCount?.ToString() ?? "—")
+                                authentication chains
+                            </span>
+                        </span>
+
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small"
+                                 Class="lab-home-node-arrow" />
+                    </a>
+                </div>
+
+                <div class="lab-home-model-caption">
+                    <MudIcon Icon="@Icons.Material.Filled.Hub"
+                             Size="Size.Small" />
+                    <span>
+                        UltimateAuth connects identity management,
+                        authorization policies and session lifecycle
+                        through a unified authentication model.
+                    </span>
+                </div>
+            </section>
+
+            <!-- WORKSPACE NAVIGATION -->
+            <section class="lab-home-section">
+                <div class="lab-home-section-heading">
+                    <div>
+                        <span class="lab-home-eyebrow">
+                            EXPLORE YOUR WORKSPACE
+                        </span>
+
+                        <h2>Go deeper.</h2>
+
+                        <p>
+                            Each area reveals a different part of
+                            your live UltimateAuth environment.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="lab-home-explore-grid">
+                    <a href="/dashboard/identity"
+                       class="lab-home-explore-card">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                 Color="Color.Primary" />
+                        <strong>Identity</strong>
+                        <p>Profiles, identifiers and account lifecycle.</p>
+                        <span>Explore identity →</span>
+                    </a>
+
+                    <a href="/dashboard/sessions"
+                       class="lab-home-explore-card">
+                        <MudIcon Icon="@Icons.Material.Filled.Devices"
+                                 Color="Color.Primary" />
+                        <strong>Sessions</strong>
+                        <p>Authentication chains and session control.</p>
+                        <span>Explore sessions →</span>
+                    </a>
+
+                    <a href="/dashboard/authorization"
+                       class="lab-home-explore-card">
+                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings"
+                                 Color="Color.Primary" />
+                        <strong>Authorization</strong>
+                        <p>Roles, permissions and access decisions.</p>
+                        <span>Explore access →</span>
+                    </a>
+
+                    @if (ShowManagement)
+                    {
+                        <a href="/dashboard/users"
+                           class="lab-home-explore-card">
+                            <MudIcon Icon="@Icons.Material.Filled.People"
+                                     Color="Color.Primary" />
+                            <strong>Users</strong>
+                            <p>Manage identities inside your sandbox.</p>
+                            <span>Manage users →</span>
+                        </a>
+                    }
+
+                    <a href="/dashboard/activity"
+                       class="lab-home-explore-card">
+                        <MudIcon Icon="@Icons.Material.Filled.History"
+                                 Color="Color.Primary" />
+                        <strong>Activity</strong>
+                        <p>Review authentication and sandbox events.</p>
+                        <span>Explore activity →</span>
+                    </a>
+
+                    @if (ShowManagement)
+                    {
+                        <a href="/dashboard/settings"
+                           class="lab-home-explore-card">
+                            <MudIcon Icon="@Icons.Material.Filled.Tune"
+                                     Color="Color.Primary" />
+                            <strong>Settings</strong>
+                            <p>Sandbox configuration and management.</p>
+                            <span>Manage sandbox →</span>
+                        </a>
+                    }
+                </div>
+            </section>
+
+            <!-- FOOTER -->
+            <footer class="lab-home-footer">
+                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome"
+                         Color="Color.Primary" />
+
+                <div>
+                    <strong>Powered by UltimateAuth</strong>
+                    <span>
+                        A real identity environment built to explore
+                        modern authentication for .NET.
+                    </span>
+                </div>
+
+                <MudButton Href="https://ultimateauth.com/docs"
+                           Target="_blank"
+                           Variant="Variant.Text"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.OpenInNew">
+                    Documentation
+                </MudButton>
+            </footer>
+        }
+    </MudContainer>
+</div>
+
+@code {
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private LabDashboardSnapshot? _dashboard;
+    private UserKey? _loadedUserKey;
+    private OwnerRepairStatus? _repairStatus;
+
+    private bool _loading = true;
+    private bool _repairing;
+
+    private bool IsAuthenticated =>
+        AuthState?.Identity?.UserKey is not null;
+
+    private bool ShowManagement =>
+        AuthState?.IsInRole(LabRoles.Admin) == true ||
+        (AuthState?.IsInRole(LabRoles.Owner) == true &&
+         _dashboard?.IsOwner == true);
+
+    private string DisplayName =>
+        !string.IsNullOrWhiteSpace(_dashboard?.DisplayName)
+            ? _dashboard.DisplayName
+            : !string.IsNullOrWhiteSpace(_dashboard?.Username)
+                ? _dashboard.Username
+                : "My Identity";
+
+    private string IdentitySubtitle =>
+        !string.IsNullOrWhiteSpace(_dashboard?.Email)
+            ? _dashboard.Email
+            : _dashboard?.Username ?? "UltimateAuth account";
+
+    private string MembershipLabel =>
+        _dashboard?.IsOwner == true ? "Owner" : "Member";
+
+    private int CapacityPercent =>
+        _dashboard is { MaxUsers: > 0 } dashboard
+            ? Math.Clamp(
+                (int)Math.Round(
+                    dashboard.MemberCount * 100.0 / dashboard.MaxUsers),
+                0,
+                100)
+            : 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _dashboard = null;
+            _loadedUserKey = null;
+            _loading = false;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loading = true;
+
+        try
+        {
+            _dashboard = await DashboardService.GetAsync(userKey.Value);
+            _repairStatus = null;
+
+            if (_dashboard is null)
+            {
+                var context = await ContextProvider.CreateAsync(
+                    "identitylab.owner.repair.status",
+                    "identitylab.sandbox");
+
+                _repairStatus = await OwnerRepairService.GetStatusAsync(context);
+            }
+
+            _loadedUserKey = userKey;
+        }
+        catch (Exception)
+        {
+            _dashboard = null;
+            _repairStatus = null;
+
+            Snackbar.Add(
+                "Unable to load your dashboard.",
+                Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RepairSandboxAsync()
+    {
+        if (_repairing)
+            return;
+
+        _repairing = true;
+
+        try
+        {
+            var context = await ContextProvider.CreateAsync(
+                "identitylab.owner.repair",
+                "identitylab.sandbox");
+
+            var result = await OwnerRepairService.RepairAsync(context);
+
+            Snackbar.Add(
+                result.Message,
+                result.Success ? Severity.Success : Severity.Warning);
+
+            if (result.Success)
+            {
+                _repairStatus = null;
+
+                var userKey = AuthState?.Identity?.UserKey;
+
+                if (userKey is not null)
+                {
+                    _dashboard = await DashboardService.GetAsync(userKey.Value);
+                    _loadedUserKey = userKey;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to complete sandbox setup. Please contact the administrator.",
+                Severity.Error);
+        }
+        finally
+        {
+            _repairing = false;
+        }
+    }
+}

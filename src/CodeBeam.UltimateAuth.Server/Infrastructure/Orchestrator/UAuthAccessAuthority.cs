@@ -14,36 +14,43 @@ public sealed class UAuthAccessAuthority : IAccessAuthority
         _globalPolicies = globalPolicies ?? Array.Empty<IAccessPolicy>();
     }
 
-    public AccessDecision Decide(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies)
+    public async ValueTask<AccessDecision> DecideAsync(AccessContext context, IEnumerable<IAccessPolicy> runtimePolicies, CancellationToken ct = default)
     {
         foreach (var invariant in _invariants)
         {
-            var result = invariant.Decide(context);
+            ct.ThrowIfCancellationRequested();
+
+            var result = await invariant.DecideAsync(context, ct);
+
             if (!result.IsAllowed)
                 return result;
         }
 
         foreach (var policy in _globalPolicies)
         {
+            ct.ThrowIfCancellationRequested();
+
             if (!policy.AppliesTo(context))
                 continue;
 
-            var result = policy.Decide(context);
+            var result = await policy.DecideAsync(context, ct);
 
             if (!result.IsAllowed)
                 return result;
 
-            // Allow here means "no objection", NOT permission
+            // Allow here means "no objection", NOT permission.
         }
 
         bool requiresReauth = false;
 
         foreach (var policy in runtimePolicies)
         {
+            ct.ThrowIfCancellationRequested();
+
             if (!policy.AppliesTo(context))
                 continue;
 
-            var result = policy.Decide(context);
+            var result = await policy.DecideAsync(context, ct);
 
             if (result.IsDenied)
                 return result;

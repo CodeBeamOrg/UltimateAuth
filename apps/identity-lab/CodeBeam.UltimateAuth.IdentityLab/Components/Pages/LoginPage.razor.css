@@ -1,0 +1,474 @@
+﻿.lab-login-page {
+    padding: 64px 0 80px;
+    background: var(--mud-palette-background);
+}
+
+.lab-login-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+    gap: 72px;
+    align-items: center;
+}
+
+.lab-login-form-section {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+}
+
+.lab-login-form-wrap {
+    width: 100%;
+    max-width: 440px;
+}
+
+.lab-login-intro {
+    margin-bottom: 28px;
+}
+
+.lab-login-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 14px;
+    color: var(--mud-palette-primary);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1.2px;
+}
+
+.lab-login-intro h1 {
+    margin: 0;
+    color: var(--mud-palette-text-primary);
+    font-size: clamp(1.8rem, 3vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    line-height: 1.2;
+}
+
+.lab-login-intro p {
+    margin: 10px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.lab-login-title {
+    font-weight: 800;
+    letter-spacing: -1.4px;
+}
+
+.lab-login-subtitle {
+    margin-top: 10px;
+    margin-bottom: 28px;
+}
+
+.lab-login-card {
+    padding: 30px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 18px;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 12px 36px rgba(0, 30, 55, .035);
+}
+
+.lab-login-card-content {
+    padding: 32px;
+}
+
+.lab-login-form-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.lab-login-divider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 26px 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+    .lab-login-divider::before,
+    .lab-login-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--mud-palette-lines-default);
+    }
+
+.lab-login-note {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.lab-login-showcase {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    background: linear-gradient( 145deg, var(--mud-palette-secondary), #087f7b );
+    color: #ffffff;
+}
+
+    .lab-login-showcase::before {
+        content: "";
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        right: -140px;
+        top: -140px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .07);
+    }
+
+    .lab-login-showcase::after {
+        content: "";
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        left: -150px;
+        bottom: -150px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .05);
+    }
+
+.lab-login-showcase-inner {
+    position: relative;
+    z-index: 1;
+    padding: 52px 42px;
+}
+
+.lab-login-showcase-label {
+    margin-bottom: 20px;
+    color: #a5f1e6;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.lab-login-showcase-title {
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+    .lab-login-showcase-title span {
+        display: block;
+        color: #a5f1e6;
+    }
+
+.lab-login-showcase-description {
+    max-width: 380px;
+    margin-top: 18px;
+    margin-bottom: 36px;
+    color: rgba(255, 255, 255, .82);
+    line-height: 1.7;
+}
+
+.lab-login-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 17px 0;
+    border-top: 1px solid rgba(255, 255, 255, .18);
+}
+
+.lab-login-feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .12);
+    color: #ffffff;
+}
+
+.lab-login-feature strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.lab-login-feature p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, .76);
+}
+
+.lab-login-showcase-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, .18);
+    font-size: 12px;
+    color: #a5f1e6;
+}
+
+.lab-login-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lab-login-register {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 24px;
+    padding-top: 22px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    font-size: 0.82rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.lab-login-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 20px;
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.lab-login-attempts {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.lab-login-attempt-segment {
+    flex: 1;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--mud-palette-lines-default);
+    transition: background-color 250ms ease;
+}
+
+    .lab-login-attempt-segment.is-used {
+        background: var(--mud-palette-warning);
+    }
+
+
+.lab-welcome-card {
+    width: 100%;
+}
+
+.lab-welcome-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lab-welcome-status-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(0, 137, 123, 0.10);
+    color: var(--mud-palette-primary);
+}
+
+.lab-welcome-status-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+    .lab-welcome-status-text strong {
+        color: var(--mud-palette-primary);
+        font-size: 0.72rem;
+        letter-spacing: 0.07em;
+    }
+
+    .lab-welcome-status-text span {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.8rem;
+    }
+
+.lab-welcome-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.lab-welcome-avatar {
+    width: 64px !important;
+    height: 64px !important;
+    flex-shrink: 0;
+    font-size: 1.25rem !important;
+    font-weight: 700;
+    border-radius: 16px !important;
+}
+
+.lab-welcome-identity-text {
+    min-width: 0;
+}
+
+    .lab-welcome-identity-text > span {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.95rem;
+    }
+
+    .lab-welcome-identity-text h2 {
+        margin: 2px 0 4px;
+        color: var(--mud-palette-text-primary);
+        font-size: clamp(1.3rem, 2vw, 1.65rem);
+        font-weight: 750;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .lab-welcome-identity-text small {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.85rem;
+    }
+
+.lab-welcome-session {
+    padding: 16px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    background: rgba(0, 137, 123, 0.06);
+}
+
+.lab-welcome-session-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--mud-palette-success);
+    font-size: 0.85rem;
+}
+
+.lab-welcome-session p {
+    margin: 8px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.6;
+}
+
+.lab-welcome-enter {
+    min-height: 48px;
+    border-radius: 10px !important;
+}
+
+.lab-welcome-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.lab-welcome-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: none;
+    white-space: nowrap;
+    color: var(--mud-palette-text-secondary);
+}
+
+    .lab-welcome-action:hover {
+        color: var(--mud-palette-primary);
+    }
+
+.lab-welcome-action-separator {
+    color: var(--mud-palette-text-disabled);
+}
+
+@media (max-width: 600px) {
+    .lab-welcome-actions {
+        gap: 8px;
+    }
+
+    .lab-welcome-action {
+        font-size: 0.76rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-welcome-identity {
+        gap: 12px;
+    }
+
+    .lab-welcome-avatar {
+        width: 52px !important;
+        height: 52px !important;
+    }
+
+    .lab-welcome-actions {
+        flex-direction: column;
+    }
+
+    .lab-welcome-action-separator {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-login-intro {
+        margin-bottom: 22px;
+    }
+
+    .lab-login-card {
+        padding: 22px;
+    }
+
+    .lab-login-fields {
+        gap: 16px;
+    }
+}
+
+@media (max-width: 960px) {
+    .lab-login-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .lab-login-showcase {
+        display: none;
+    }
+
+    .lab-login-page {
+        padding: 48px 0 64px;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-login-page {
+        padding: 32px 0 48px;
+    }
+
+    .lab-login-card-content {
+        padding: 22px;
+    }
+
+    .lab-login-title {
+        letter-spacing: -0.8px;
+    }
+}

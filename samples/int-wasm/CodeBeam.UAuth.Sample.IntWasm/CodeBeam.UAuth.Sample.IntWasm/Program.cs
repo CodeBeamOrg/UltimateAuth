@@ -28,6 +28,7 @@ builder.Services.AddScoped<DarkModeManager>();
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     o.Endpoints.BasePath = "https://localhost:6112/auth"; // UAuthHub EFCore URL
+    o.Resource.BaseAddress = "https://localhost:6122";
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Login.AllowCredentialPost = true;
     o.Pkce.ReturnUrl = "https://localhost:6132/home"; // This application domain + path
@@ -39,10 +40,7 @@ builder.Services.AddUltimateAuthAspNetCoreCompatibility();
 // It gives full AspNetCore compatibility but decreases performance significantly.
 //builder.Services.AddUltimateAuthResourceApi(o => o.UAuthHubBaseUrl = "https://localhost:6112/auth");
 
-builder.Services.AddHttpClient<SampleProductApiService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:6122"); // EFCore Resource API URL
-});
+builder.Services.AddScoped<SampleProductApiService>();
 
 var app = builder.Build();
 

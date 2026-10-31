@@ -1,0 +1,244 @@
+﻿@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@inject LabRepairService RepairService
+@inject LabAccessContextProvider ContextProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudPaper Outlined="true" Class="pa-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true"
+                  AlignItems="AlignItems.Center"
+                  Justify="Justify.SpaceBetween">
+
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h6">
+                    Provisioning &amp; Repair
+                </MudText>
+                <MudText Color="Color.Secondary">
+                    Detect incomplete accounts and orphaned sandboxes.
+                </MudText>
+            </MudStack>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Disabled="_busy"
+                       OnClick="LoadAsync">
+                Scan
+            </MudButton>
+        </MudStack>
+
+        @if (_busy)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error">
+                @_error
+            </MudAlert>
+        }
+
+        @if (_snapshot is not null)
+        {
+            @if (!_snapshot.UserScanComplete)
+            {
+                <MudAlert Severity="Severity.Warning">
+                    User scan was limited. Results may be incomplete.
+                </MudAlert>
+            }
+
+            <MudText Typo="Typo.subtitle1">
+                Unlinked Users (@_snapshot.OrphanUsers.Count)
+            </MudText>
+
+            <MudTable Items="_snapshot.OrphanUsers"
+                      Hover="true"
+                      Dense="true"
+                      RowsPerPage="10">
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Recovery</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="User">
+                        @context.DisplayName
+                    </MudTd>
+
+                    <MudTd DataLabel="Email">
+                        @context.Email
+                    </MudTd>
+
+                    <MudTd DataLabel="Role">
+                        @context.Role
+                    </MudTd>
+
+                    <MudTd DataLabel="Recovery">
+                        @if (context.Role == LabRoles.Owner)
+                        {
+                            <MudButton Size="Size.Small"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       Disabled="_busy"
+                                       OnClick="@(() => RepairOwnerAsync(context))">
+                                Repair Owner
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary">
+                                Manual review required
+                            </MudText>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle1">
+                Empty Sandboxes (@_snapshot.EmptySandboxes.Count)
+            </MudText>
+
+            <MudTable Items="_snapshot.EmptySandboxes"
+                      Hover="true"
+                      Dense="true"
+                      RowsPerPage="10">
+                <HeaderContent>
+                    <MudTh>Sandbox</MudTh>
+                    <MudTh>Owner Key</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Action</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Sandbox">
+                        @context.Name
+                    </MudTd>
+
+                    <MudTd DataLabel="Owner Key">
+                        @context.OwnerUserKey.Value
+                    </MudTd>
+
+                    <MudTd DataLabel="Status">
+                        @context.Status
+                    </MudTd>
+
+                    <MudTd DataLabel="Action">
+                        <MudButton Size="Size.Small"
+                                   Color="Color.Error"
+                                   Variant="Variant.Outlined"
+                                   Disabled="_busy"
+                                   OnClick="@(() => DeleteSandboxAsync(context))">
+                            Delete
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    private RepairSnapshot? _snapshot;
+    private bool _busy;
+    private string? _error;
+
+    private async Task<CodeBeam.UltimateAuth.Core.Contracts.AccessContext>
+        GetContextAsync()
+    {
+        return await ContextProvider.CreateAsync(
+            "identitylab.repair.admin",
+            "identitylab.repair");
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var context = await GetContextAsync();
+            _snapshot = await RepairService.GetSnapshotAsync(context);
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load repair information.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RepairOwnerAsync(OrphanUserItem user)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Repair Owner",
+            $"Repair the Sandbox membership for {user.DisplayName}?",
+            yesText: "Repair",
+            cancelText: "Cancel");
+
+        if (confirm != true)
+            return;
+
+        await ExecuteAsync(async () =>
+        {
+            var context = await GetContextAsync();
+            return await RepairService.RepairOwnerAsync(context, user.UserKey);
+        });
+    }
+
+    private async Task DeleteSandboxAsync(EmptySandboxItem sandbox)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Delete Empty Sandbox",
+            $"Permanently delete '{sandbox.Name}'? This cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirm != true)
+            return;
+
+        await ExecuteAsync(async () =>
+        {
+            var context = await GetContextAsync();
+            return await RepairService.DeleteEmptySandboxAsync(context, sandbox.SandboxId);
+        });
+    }
+
+    private async Task ExecuteAsync(Func<Task<RepairOperationResult>> operation)
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var result = await operation();
+            Snackbar.Add(result.Message, result.Success ? Severity.Success : Severity.Warning);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Repair operation failed. No further changes should be made until the state is reviewed.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
+}

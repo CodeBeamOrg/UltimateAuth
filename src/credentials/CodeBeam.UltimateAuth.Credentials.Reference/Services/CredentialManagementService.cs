@@ -27,6 +27,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly ISessionStoreFactory _sessionFactory;
     private readonly ICredentialResetNotifier _resetNotifier;
     private readonly ICredentialSessionPolicy _credentialSessionPolicy;
+    private readonly IUAuthAtomicExecutor _atomicExecutor;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -42,6 +43,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         ISessionStoreFactory sessionFactory,
         ICredentialResetNotifier resetNotifier,
         ICredentialSessionPolicy credentialSessionPolicy,
+        IUAuthAtomicExecutor atomicExecutor,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -56,6 +58,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _sessionFactory = sessionFactory;
         _resetNotifier = resetNotifier;
         _credentialSessionPolicy = credentialSessionPolicy;
+        _atomicExecutor = atomicExecutor;
         _options = options.Value;
         _clock = clock;
     }
@@ -125,48 +128,49 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     {
         ct.ThrowIfCancellationRequested();
 
-        var cmd = new AccessCommand<CredentialChangeResult>(async innerCt =>
-        {
-            var subjectUser = context.GetTargetUserKey();
-            var now = _clock.UtcNow;
-
-            var store = _credentialsFactory.Create(context.ResourceTenant);
-            var credentials = await store.GetByUserAsync(subjectUser, innerCt);
-            var pwd = credentials.OfType<PasswordCredential>().Where(c => c.Security.IsUsable(now)).FirstOrDefault();
-
-            if (pwd is null)
-                throw new UAuthNotFoundException("credential_not_found");
-
-            if (pwd.UserKey != subjectUser)
-                throw new UAuthNotFoundException("credential_not_found");
-
-            if (string.IsNullOrWhiteSpace(request.NewSecret))
-                throw new UAuthValidationException("new_secret_required");
-
-            if (context.IsSelfAction)
+        var cmd = new AccessCommand<CredentialChangeResult>(
+            innerCt => _atomicExecutor.ExecuteAsync(async atomicCt =>
             {
-                if (string.IsNullOrWhiteSpace(request.CurrentSecret))
-                    throw new UAuthValidationException("current_secret_required");
+                var subjectUser = context.GetTargetUserKey();
+                var now = _clock.UtcNow;
 
-                if (!_hasher.Verify(pwd.SecretHash, request.CurrentSecret))
-                    throw new UAuthConflictException("invalid_credentials");
-            }
+                var store = _credentialsFactory.Create(context.ResourceTenant);
+                var credentials = await store.GetByUserAsync(subjectUser, atomicCt);
+                var pwd = credentials.OfType<PasswordCredential>().Where(c => c.Security.IsUsable(now)).FirstOrDefault();
 
-            if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
-                throw new UAuthValidationException("credential_secret_same");
+                if (pwd is null)
+                    throw new UAuthNotFoundException("credential_not_found");
 
-            var oldVersion = pwd.Version;
-            var newHash = _hasher.Hash(request.NewSecret);
-            var updated = pwd.ChangeSecret(newHash, now);
-            await store.SaveAsync(updated, oldVersion, innerCt);
+                if (pwd.UserKey != subjectUser)
+                    throw new UAuthNotFoundException("credential_not_found");
 
-            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant, subjectUser, context.IsSelfAction 
-                    ? CredentialChangeReason.SelfChange
-                    : CredentialChangeReason.AdminChange,
-                context.ActorChainId, now, innerCt);
+                if (string.IsNullOrWhiteSpace(request.NewSecret))
+                    throw new UAuthValidationException("new_secret_required");
 
-            return CredentialChangeResult.Success(pwd.Type);
-        });
+                if (context.IsSelfAction)
+                {
+                    if (string.IsNullOrWhiteSpace(request.CurrentSecret))
+                        throw new UAuthValidationException("current_secret_required");
+
+                    if (!_hasher.Verify(pwd.SecretHash, request.CurrentSecret))
+                        throw new UAuthConflictException("invalid_credentials");
+                }
+
+                if (_hasher.Verify(pwd.SecretHash, request.NewSecret))
+                    throw new UAuthValidationException("credential_secret_same");
+
+                var oldVersion = pwd.Version;
+                var newHash = _hasher.Hash(request.NewSecret);
+                var updated = pwd.ChangeSecret(newHash, now);
+                await store.SaveAsync(updated, oldVersion, atomicCt);
+
+                await ApplyCredentialSessionPolicyAsync(context.ResourceTenant, subjectUser, context.IsSelfAction
+                        ? CredentialChangeReason.SelfChange
+                        : CredentialChangeReason.AdminChange,
+                    context.ActorChainId, now, atomicCt);
+
+                return CredentialChangeResult.Success(pwd.Type);
+            }, innerCt));
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
     }
@@ -372,18 +376,24 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 return CredentialActionResult.Success();
             }
 
-            var version3 = state.SecurityVersion;
-            state = state.ConsumeReset(now);
-            await _authenticationSecurityManager.UpdateAsync(state, version3, innerCt);
+            return await _atomicExecutor.ExecuteAsync(async atomicCt =>
+            {
+                var version = state.SecurityVersion;
+                var consumed = state.ConsumeReset(now);
 
-            var oldVersion = pwd.Version;
-            var newHash = _hasher.Hash(request.NewSecret);
-            var updated = pwd.ChangeSecret(newHash, now);
+                await _authenticationSecurityManager.UpdateAsync(consumed, version, atomicCt);
 
-            await store.SaveAsync(updated, oldVersion, innerCt);
-            await ApplyCredentialSessionPolicyAsync(context.ResourceTenant ,userKey, CredentialChangeReason.Recovery, actorChainId: null, now, innerCt);
+                var oldVersion = pwd.Version;
+                var newHash = _hasher.Hash(request.NewSecret);
+                var updated = pwd.ChangeSecret(newHash, now);
 
-            return CredentialActionResult.Success();
+                await store.SaveAsync(updated, oldVersion, atomicCt);
+
+                await ApplyCredentialSessionPolicyAsync(context.ResourceTenant, userKey, CredentialChangeReason.Recovery, actorChainId: null,
+                                                        now, atomicCt);
+
+                return CredentialActionResult.Success();
+            }, innerCt);
         });
 
         return await _accessOrchestrator.ExecuteAsync(context, cmd, ct);
@@ -456,7 +466,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     // HELPERS
     // ----------------------------------------
     private async Task ApplyCredentialSessionPolicyAsync(TenantKey tenant, UserKey subjectUser, CredentialChangeReason reason,
-                       SessionChainId? actorChainId, DateTimeOffset now, CancellationToken ct)
+                                                         SessionChainId? actorChainId, DateTimeOffset now, CancellationToken ct)
     {
         var behavior = _credentialSessionPolicy.Resolve(reason);
 
@@ -465,21 +475,22 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
         var sessionStore = _sessionFactory.Create(tenant);
 
-        switch (behavior)
+        await sessionStore.ExecuteAsync(async innerCt =>
         {
-            case CredentialSessionBehavior.PreserveCurrent
-                when reason == CredentialChangeReason.SelfChange && actorChainId is SessionChainId chainId:
-                await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, ct);
-                break;
+            switch (behavior)
+            {
+                case CredentialSessionBehavior.PreserveCurrent when reason == CredentialChangeReason.SelfChange && actorChainId is SessionChainId chainId:
+                    await sessionStore.RevokeOtherChainsAsync(subjectUser, chainId, now, innerCt);
+                    break;
 
-            case CredentialSessionBehavior.PreserveCurrent:
-            case CredentialSessionBehavior.RevokeAll:
+                case CredentialSessionBehavior.PreserveCurrent:
+                case CredentialSessionBehavior.RevokeAll:
+                    await sessionStore.RevokeAllChainsAsync(subjectUser, now, innerCt);
+                    break;
 
-                await sessionStore.RevokeAllChainsAsync(subjectUser, now, ct);
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unsupported credential session behavior: {behavior}");
-        }
+                default:
+                    throw new InvalidOperationException($"Unsupported credential session behavior: {behavior}");
+            }
+        }, ct);
     }
 }

@@ -70,10 +70,12 @@ builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
+    o.Resource.BaseAddress = "https://localhost:6120";
     //o.UAuthStateRefreshMode = UAuthStateRefreshMode.Validate;
 });
 
 builder.Services.AddUltimateAuthSampleSeed();
+builder.Services.AddScoped<SampleProductApiService>();
 
 //builder.Services.AddHttpClient<SampleProductApiService>(client =>
 //{

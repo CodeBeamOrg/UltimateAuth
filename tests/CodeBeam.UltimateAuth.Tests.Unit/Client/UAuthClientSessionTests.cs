@@ -37,7 +37,8 @@ public class UAuthClientSessionTests
             users: Mock.Of<IUserClient>(),
             identifiers: Mock.Of<IUserIdentifierClient>(),
             credentials: Mock.Of<ICredentialClient>(),
-            authorization: Mock.Of<IAuthorizationClient>());
+            authorization: Mock.Of<IAuthorizationClient>(),
+            resource: Mock.Of<IResourceClient>());
     }
 
     private static UAuthTransportResult Success()

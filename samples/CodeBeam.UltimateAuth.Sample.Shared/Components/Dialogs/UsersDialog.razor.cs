@@ -11,22 +11,79 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 public partial class UsersDialog
 {
     private MudDataGrid<UserSummary>? _grid;
+
     private bool _loading;
-    private string? _search;
     private bool _reloadQueued;
+    private string? _search;
     private UserStatus? _statusFilter;
 
     [CascadingParameter]
-    IMudDialogInstance MudDialog { get; set; } = default!;
+    private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
-    private async Task<GridData<UserSummary>> LoadUsers(GridState<UserSummary> state, CancellationToken ct)
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
+    private readonly List<PreviewUser> _previewUsers =
+    [
+        new(
+            "preview-001",
+            "Alex Morgan",
+            "alex.morgan",
+            "alex@example.com",
+            UserStatus.Active,
+            "Oct 12, 2026"),
+        new(
+            "preview-002",
+            "Taylor Reed",
+            "taylor.reed",
+            "taylor@example.com",
+            UserStatus.Active,
+            "Oct 14, 2026"),
+        new(
+            "preview-003",
+            "Jordan Lee",
+            "jordan.lee",
+            "jordan@example.com",
+            UserStatus.Suspended,
+            "Oct 15, 2026"),
+        new(
+            "preview-004",
+            "Casey Parker",
+            "casey.parker",
+            "casey@example.com",
+            UserStatus.Disabled,
+            "Oct 16, 2026")
+    ];
+
+    private List<PreviewUser> FilteredPreviewUsers =>
+        _previewUsers
+            .Where(user =>
+                (!_statusFilter.HasValue ||
+                 user.Status == _statusFilter.Value) &&
+                (string.IsNullOrWhiteSpace(_search) ||
+                 user.DisplayName.Contains(
+                     _search, StringComparison.OrdinalIgnoreCase) ||
+                 user.UserName.Contains(
+                     _search, StringComparison.OrdinalIgnoreCase) ||
+                 user.Email.Contains(
+                     _search, StringComparison.OrdinalIgnoreCase) ||
+                 user.Key.Contains(
+                     _search, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+    private async Task<GridData<UserSummary>> LoadUsers(
+        GridState<UserSummary> state,
+        CancellationToken ct)
     {
+        if (PreviewMode)
+            return EmptyGrid();
+
         var sort = state.SortDefinitions?.FirstOrDefault();
 
-        var req = new UserQuery
+        var request = new UserQuery
         {
             PageNumber = state.Page + 1,
             PageSize = state.PageSize,
@@ -36,39 +93,50 @@ public partial class UsersDialog
             Descending = sort?.Descending ?? false
         };
 
-        var res = await UAuthClient.Users.QueryAsync(req);
-
-        if (!res.IsSuccess || res.Value == null)
+        try
         {
-            Snackbar.Add(res.ErrorText ?? "Failed to load users.", Severity.Error);
+            var result = await UAuthClient.Users.QueryAsync(request);
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to load users.",
+                    Severity.Error);
+
+                return EmptyGrid();
+            }
 
             return new GridData<UserSummary>
             {
-                Items = Array.Empty<UserSummary>(),
-                TotalItems = 0
+                Items = result.Value.Items,
+                TotalItems = result.Value.TotalCount
             };
         }
-
-        return new GridData<UserSummary>
+        catch (Exception)
         {
-            Items = res.Value.Items,
-            TotalItems = res.Value.TotalCount
-        };
+            Snackbar.Add("Unable to load users.", Severity.Error);
+            return EmptyGrid();
+        }
     }
+
+    private static GridData<UserSummary> EmptyGrid() => new()
+    {
+        Items = Array.Empty<UserSummary>(),
+        TotalItems = 0
+    };
 
     private async Task ReloadAsync()
     {
+        if (PreviewMode || _grid is null)
+            return;
+
         if (_loading)
         {
             _reloadQueued = true;
             return;
         }
 
-        if (_grid is null)
-            return;
-
         _loading = true;
-        await InvokeAsync(StateHasChanged);
 
         try
         {
@@ -77,84 +145,137 @@ public partial class UsersDialog
         finally
         {
             _loading = false;
+        }
 
-            if (_reloadQueued)
-            {
-                _reloadQueued = false;
-                await ReloadAsync();
-            }
-
-            await InvokeAsync(StateHasChanged);
+        if (_reloadQueued)
+        {
+            _reloadQueued = false;
+            await ReloadAsync();
         }
     }
 
-    private async Task OnStatusChanged(UserStatus? status)
+    private async Task OnSearchChanged(string? value)
     {
-        _statusFilter = status;
-        await ReloadAsync();
+        _search = value;
+
+        if (!PreviewMode)
+            await ReloadAsync();
     }
 
-    private async Task OpenUser(UserKey userKey)
+    private async Task OnStatusChanged(UserStatus? value)
     {
-        var dialog = await DialogService.ShowAsync<UserDetailDialog>("User", UAuthDialog.GetDialogParameters(AuthState, userKey), UAuthDialog.GetDialogOptions());
+        _statusFilter = value;
+
+        if (!PreviewMode)
+            await ReloadAsync();
+    }
+
+    private async Task OpenPreviewUserAsync()
+    {
+        var parameters = new DialogParameters<UserDetailDialog>
+        {
+            { x => x.PreviewMode, true }
+        };
+
+        await DialogService.ShowAsync<UserDetailDialog>(
+            "User Management",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+    }
+
+    private async Task OpenUserAsync(UserKey userKey)
+    {
+        if (PreviewMode || _loading)
+            return;
+
+        var parameters = new DialogParameters<UserDetailDialog>
+        {
+            { x => x.UserKey, userKey },
+            { x => x.AuthState, AuthState }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDetailDialog>(
+            "User Management",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Medium));
+
         await dialog.Result;
         await ReloadAsync();
     }
 
-    private async Task OpenCreateUser()
+    private async Task OpenCreateUserAsync()
     {
+        if (_loading)
+            return;
+
+        var parameters = new DialogParameters<CreateUserDialog>
+        {
+            { x => x.PreviewMode, PreviewMode }
+        };
+
         var dialog = await DialogService.ShowAsync<CreateUserDialog>(
             "Create User",
-            new DialogOptions
-            {
-                MaxWidth = MaxWidth.Small,
-                FullWidth = true,
-                CloseButton = true
-            });
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
 
         var result = await dialog.Result;
 
-        if (result?.Canceled == false)
+        if (!PreviewMode && result?.Canceled == false)
             await ReloadAsync();
     }
 
     private async Task DeleteUserAsync(UserSummary user)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            title: "Delete user",
-            markupMessage: (MarkupString)$"""
-            Are you sure you want to delete <b>{user.DisplayName ?? user.UserName ?? user.PrimaryEmail ?? user.UserKey}</b>?
-            <br/><br/>
-            This operation is intended for admin usage.
-            """,
-            yesText: "Delete",
-            cancelText: "Cancel",
-            options: new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                BackgroundClass = "uauth-blur-slight"
-            });
-
-        if (confirm != true)
+        if (PreviewMode || _loading)
             return;
 
-        var req = new DeleteUserRequest
-        {
-            Mode = DeleteMode.Soft
-        };
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete User",
+            $"Delete '{user.DisplayName ?? user.UserName ?? user.PrimaryEmail}'? " +
+            "This operation uses soft deletion.",
+            yesText: "Delete",
+            noText: "Cancel");
 
-        var result = await UAuthClient.Users.DeleteUserAsync(user.UserKey, req);
+        if (confirmed != true || _loading)
+            return;
 
-        if (result.IsSuccess)
+        _loading = true;
+        bool success = false;
+
+        try
         {
-            Snackbar.Add("User deleted successfully.", Severity.Success);
+            var request = new DeleteUserRequest
+            {
+                Mode = DeleteMode.Soft
+            };
+
+            var result = await UAuthClient.Users
+                .DeleteUserAsync(user.UserKey, request);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to delete user.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            Snackbar.Add(
+                "User deleted successfully.",
+                Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to delete user.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (success)
             await ReloadAsync();
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Failed to delete user.", Severity.Error);
-        }
     }
 
     private static Color GetStatusColor(UserStatus status)
@@ -171,6 +292,15 @@ public partial class UsersDialog
 
     private void Close()
     {
-        MudDialog.Close();
+        if (!_loading)
+            MudDialog.Close();
     }
+
+    private sealed record PreviewUser(
+        string Key,
+        string DisplayName,
+        string UserName,
+        string Email,
+        UserStatus Status,
+        string CreatedAt);
 }

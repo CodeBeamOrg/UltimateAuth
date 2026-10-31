@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Apps/">
+    <Project Path="apps/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj" Id="ae45cd5c-2a32-42d2-aad8-f10c4bb9fba3" />
+  </Folder>
   <Folder Name="/Docs/">
     <Project Path="docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.Client/CodeBeam.UltimateAuth.Docs.Wasm.Client.csproj" Id="1976793c-a84c-4009-96c5-1fb8c7657c5e" />
     <Project Path="docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.csproj" Id="629c8d74-d253-4ef2-9f26-47a405d9d7a6" />
@@ -28,6 +31,7 @@
     <File Path="Roadmap.md" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/CodeBeam.UltimateAuth.IdentityLab.Tests/CodeBeam.UltimateAuth.IdentityLab.Tests.csproj" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration.EfCore/CodeBeam.UltimateAuth.Tests.Integration.EfCore.csproj" Id="51652abe-8f77-4150-94ea-976ca41c8b91" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration/CodeBeam.UltimateAuth.Tests.Integration.csproj" Id="fe34a0b1-8038-400d-b8ab-02dad7051f2d" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Unit/CodeBeam.UltimateAuth.Tests.Unit.csproj" Id="6f4b22da-849a-4a79-b5c5-aee7cb1429a6" />

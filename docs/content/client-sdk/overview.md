@@ -27,6 +27,7 @@ It brings together several responsibilities:
 - **Authorization management** — Work with roles, permissions, and other exposed authorization operations.
 - **Structured results** — Receive operation results through the SDK's response contracts.
 - **Client state integration** — Coordinate supported authentication state changes and notifications.
+- **Resource API requests** — Access protected application APIs through unified HTTP operations and structured results.
 
 The SDK helps applications interact with UltimateAuth consistently while keeping the server responsible for authentication and authorization enforcement.
 
@@ -44,7 +45,7 @@ Conceptually:
 Application
     |
     v
-UAuthClient
+IUAuthClient
     |
     +-- Flows
     |     Login, logout, refresh, PKCE
@@ -62,7 +63,10 @@ UAuthClient
     |     Credential management and recovery
     |
     +-- Authorization
-          Roles, permissions, and access management
+    |     Roles, permissions, and access management
+    |
+    +-- Resource
+          Authenticated application API requests
 ```
 
 These represent functional responsibilities. The precise available members and operations depend on the installed packages and supported SDK contracts.
@@ -204,22 +208,32 @@ Applications should continue to treat the server as authoritative wherever the s
 
 ## Calling Protected Resource APIs
 
-Authentication is often only the first step.
+Authentication is only the beginning of an application.
 
-Applications also need to call protected business APIs after the user has authenticated.
+After signing in, users still need to retrieve data, create records, and interact with protected application resources.
 
-UltimateAuth supports integration with protected resource requests, allowing the client application to use the authentication mechanisms appropriate to its configured environment.
+Without a unified integration, developers often configure authentication through one SDK and then build a separate HTTP abstraction for their application APIs.
 
-A protected resource request involves two distinct responsibilities:
+UltimateAuth addresses this through `IUAuthClient.Resource`.
 
-1. The client sends the request with the appropriate authentication material.
-2. The receiving server validates authentication and enforces authorization.
+```csharp
+var result = await UAuthClient.Resource.GetAsync<List<Product>>("/api/products");
 
-The Client SDK can help with the client-side responsibility.
+if (result.IsSuccess && result.Value is not null)
+{
+    products = result.Value;
+}
+```
 
-It cannot grant access to an operation that the receiving server does not authorize.
+Resource requests use the same client entry point and structured result model as other UltimateAuth operations.
 
-When building applications with separate resource APIs, developers must configure the relevant API integration and server-side authentication enforcement.
+The Blazor integration provides browser-based transport, configurable resource origins, credential handling, and request cancellation without requiring application-specific JavaScript wrappers.
+
+The Resource Client supports GET, POST, PUT, PATCH, and DELETE operations.
+
+It does not replace server-side authentication or authorization. The receiving Resource API remains responsible for validating requests and enforcing access policies.
+
+For configuration, examples, security considerations, and supported behavior, see [Resource API Requests](/docs/client-sdk/resource-api-requests).
 
 ## Client SDK Guides
 
@@ -233,7 +247,7 @@ The following guides cover the major client responsibilities with practical C# e
 | **Identifiers** | Manage email addresses, usernames, phone numbers, and verification workflows |
 | **Credentials** | Add, change, revoke, and recover credentials |
 | **Authorization** | Work with roles, permissions, and exposed authorization management operations |
-| **Resource API Requests** | Call protected application APIs using the appropriate authentication integration |
+| [Resource API Requests](/docs/client-sdk/resource-api-requests) | Call protected application APIs through the unified Resource Client |
 
 Each guide focuses on a specific developer task and includes the relevant SDK methods, request models, response handling, and implementation considerations.
 

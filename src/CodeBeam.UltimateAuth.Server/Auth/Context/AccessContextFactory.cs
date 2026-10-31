@@ -9,12 +9,12 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AccessContextFactory : IAccessContextFactory
 {
-    private readonly IUserRoleStoreFactory _userRoleFactory;
+    private readonly AccessActorRoleResolver _roleResolver;
     private readonly IUserIdConverterResolver _converterResolver;
 
-    public AccessContextFactory(IUserRoleStoreFactory userRoleFactory, IUserIdConverterResolver converterResolver)
+    public AccessContextFactory(AccessActorRoleResolver roleResolver, IUserIdConverterResolver converterResolver)
     {
-        _userRoleFactory = userRoleFactory;
+        _roleResolver = roleResolver;
         _converterResolver = converterResolver;
     }
 
@@ -31,7 +31,25 @@ internal sealed class AccessContextFactory : IAccessContextFactory
         return await CreateInternalAsync(authFlow, action, resource, resourceTenant, resourceId, attributes, ct);
     }
 
-    private async Task<AccessContext> CreateInternalAsync(AuthFlowContext authFlow, string action, string resource, TenantKey resourceTenant, string? resourceId, IDictionary<string, object>? attributes, CancellationToken ct)
+    public async Task<AccessContext> CreateForUserTargetsAsync(AuthFlowContext authFlow, string action, string resource, IReadOnlyCollection<UserKey> targetUserKeys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(targetUserKeys);
+
+        var normalizedKeys = targetUserKeys.Distinct().ToArray();
+
+        return await CreateInternalAsync(
+            authFlow,
+            action,
+            resource,
+            authFlow.Tenant,
+            resourceId: null,
+            attributes: null,
+            ct: ct,
+            targetUserKeys: normalizedKeys);
+    }
+
+    private async Task<AccessContext> CreateInternalAsync(AuthFlowContext authFlow, string action, string resource, TenantKey resourceTenant, string? resourceId,
+                                                          IDictionary<string, object>? attributes, CancellationToken ct, IReadOnlyCollection<UserKey>? targetUserKeys = null)
     {
         if (string.IsNullOrWhiteSpace(action))
             throw new ArgumentException("Action is required.", nameof(action));
@@ -39,17 +57,19 @@ internal sealed class AccessContextFactory : IAccessContextFactory
         if (string.IsNullOrWhiteSpace(resource))
             throw new ArgumentException("Resource is required.", nameof(resource));
 
+        IReadOnlyList<AccessActorRole> actorRoles = Array.Empty<AccessActorRole>();
+
         var attrs = attributes != null
             ? new Dictionary<string, object>(attributes)
             : new Dictionary<string, object>();
 
+        attrs.Remove("roles");
+
         if (authFlow.IsAuthenticated && authFlow.UserKey is not null)
         {
-            var userRoleStore = _userRoleFactory.Create(authFlow.Tenant);
-            var assignments = await userRoleStore.GetAssignmentsAsync(authFlow.UserKey.Value, ct);
-            var roleIds = assignments.Select(x => x.RoleId).ToArray();
-
-            attrs["roles"] = roleIds;
+            var resolved = await _roleResolver.ResolveAsync(authFlow.Tenant, authFlow.UserKey.Value, ct);
+            actorRoles = resolved.ActorRoles;
+            attrs["roles"] = resolved.RoleIds.ToArray();
         }
 
         UserKey? targetUserKey = null;
@@ -71,13 +91,15 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             isAuthenticated: authFlow.IsAuthenticated,
             isSystemActor: authFlow.Tenant.IsSystem,
             actorChainId: authFlow.Session?.ChainId,
+            actorRoles: actorRoles,
             resource: resource,
             targetUserKey: targetUserKey,
             resourceTenant: resourceTenant,
             action: action,
             attributes: attrs.Count > 0
                 ? new ReadOnlyDictionary<string, object>(attrs)
-                : EmptyAttributes.Instance
+                : EmptyAttributes.Instance,
+            targetUserKeys: targetUserKeys
         );
     }
 }

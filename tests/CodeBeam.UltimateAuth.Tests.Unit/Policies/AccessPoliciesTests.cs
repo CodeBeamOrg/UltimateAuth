@@ -37,20 +37,20 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_UnauthenticatedActor_ShouldDeny()
+        public async Task Decide_UnauthenticatedActor_ShouldDeny()
         {
             var sut = new RequireAuthenticatedPolicy();
 
             var context = TestAccessContext.WithAction("users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
         }
 
         [Fact]
-        public void Decide_AuthenticatedActor_ShouldAllow()
+        public async Task Decide_AuthenticatedActor_ShouldAllow()
         {
             var sut = new RequireAuthenticatedPolicy();
 
@@ -58,7 +58,7 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
         }
@@ -78,21 +78,19 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_SameTenant_ShouldAllow()
+        public async Task Decide_SameTenant_ShouldAllow()
         {
             var sut = new DenyCrossTenantPolicy();
 
-            var context = TestAccessContext.ForUser(
-                UserKey.New(),
-                "users.get.self");
+            var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
         }
 
         [Fact]
-        public void Decide_CrossTenant_ShouldDeny()
+        public async Task Decide_CrossTenant_ShouldDeny()
         {
             var sut = new DenyCrossTenantPolicy();
 
@@ -105,13 +103,14 @@ public sealed class AccessPoliciesTests
                 isAuthenticated: true,
                 isSystemActor: false,
                 actorChainId: null,
+                actorRoles: Array.Empty<AccessActorRole>(),
                 resource: "users",
                 targetUserKey: null,
                 resourceTenant: resourceTenant,
                 action: "users.get.admin",
                 attributes: EmptyAttributes.Instance);
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("cross_tenant_access_denied");
@@ -146,21 +145,20 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_UnauthenticatedActor_ShouldDeny()
+        public async Task Decide_UnauthenticatedActor_ShouldDeny()
         {
             var sut = new RequireSelfPolicy();
 
-            var context =
-                TestAccessContext.WithAction("users.update.self");
+            var context = TestAccessContext.WithAction("users.update.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
         }
 
         [Fact]
-        public void Decide_WhenActorIsTarget_ShouldAllow()
+        public async Task Decide_WhenActorIsTarget_ShouldAllow()
         {
             var sut = new RequireSelfPolicy();
 
@@ -171,14 +169,14 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.update.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
         }
 
         [Fact]
-        public void Decide_WhenActorIsNotTarget_ShouldDeny()
+        public async Task Decide_WhenActorIsNotTarget_ShouldDeny()
         {
             var sut = new RequireSelfPolicy();
 
@@ -191,7 +189,7 @@ public sealed class AccessPoliciesTests
                     target,
                     "users.update.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("not_self");
@@ -219,28 +217,27 @@ public sealed class AccessPoliciesTests
         {
             var sut = new RequireSystemPolicy();
 
-            var context =
-                TestAccessContext.WithAction(action);
+            var context = TestAccessContext.WithAction(action);
 
             sut.AppliesTo(context).Should().BeFalse();
         }
 
         [Fact]
-        public void Decide_NormalActor_ShouldDeny()
+        public async Task Decide_NormalActor_ShouldDeny()
         {
             var sut = new RequireSystemPolicy();
 
             var context =
                 TestAccessContext.WithAction("users.repair.system");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("system_actor_required");
         }
 
         [Fact]
-        public void Decide_SystemActor_ShouldAllow()
+        public async Task Decide_SystemActor_ShouldAllow()
         {
             var sut = new RequireSystemPolicy();
 
@@ -250,13 +247,14 @@ public sealed class AccessPoliciesTests
                 isAuthenticated: false,
                 isSystemActor: true,
                 actorChainId: null,
+                actorRoles: Array.Empty<AccessActorRole>(),
                 resource: "users",
                 targetUserKey: null,
                 resourceTenant: TenantKey.Single,
                 action: "users.repair.system",
                 attributes: EmptyAttributes.Instance);
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -336,21 +334,21 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_UnauthenticatedActor_ShouldDeny()
+        public async Task Decide_UnauthenticatedActor_ShouldDeny()
         {
             var sut = new DenyAdminSelfModificationPolicy();
 
             var context =
                 TestAccessContext.WithAction("users.update.admin");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
         }
 
         [Fact]
-        public void Decide_AdminModifyingOwnAccount_ShouldDeny()
+        public async Task Decide_AdminModifyingOwnAccount_ShouldDeny()
         {
             var sut = new DenyAdminSelfModificationPolicy();
 
@@ -362,7 +360,7 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.update.admin");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should()
@@ -370,7 +368,7 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_AdminDeletingOwnAccount_ShouldDeny()
+        public async Task Decide_AdminDeletingOwnAccount_ShouldDeny()
         {
             var sut = new DenyAdminSelfModificationPolicy();
 
@@ -382,7 +380,7 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.delete.admin");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should()
@@ -390,7 +388,7 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_AdminModifyingDifferentUser_ShouldAllow()
+        public async Task Decide_AdminModifyingDifferentUser_ShouldAllow()
         {
             var sut = new DenyAdminSelfModificationPolicy();
 
@@ -403,7 +401,7 @@ public sealed class AccessPoliciesTests
                     target,
                     "users.update.admin");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -501,20 +499,16 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_ShouldDelegateToInnerPolicy()
+        public async Task Decide_ShouldDelegateToInnerPolicy()
         {
-            var inner = new TestPolicy(
-                AccessDecision.Deny("inner_denied"));
+            var inner = new TestPolicy(AccessDecision.Deny("inner_denied"));
 
             var sut = new ConditionalAccessPolicy(
-                _ => true,
-                expected: true,
-                inner);
+                _ => true, expected: true, inner);
 
-            var context =
-                TestAccessContext.WithAction("users.get.self");
+            var context = TestAccessContext.WithAction("users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("inner_denied");
@@ -524,7 +518,7 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_ShouldReturnInnerAllowDecision()
+        public async Task Decide_ShouldReturnInnerAllowDecision()
         {
             var inner = new TestPolicy(
                 AccessDecision.Allow());
@@ -537,7 +531,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
             inner.DecideCallCount.Should().Be(1);
@@ -551,8 +545,7 @@ public sealed class AccessPoliciesTests
 
             public AccessContext? LastContext { get; private set; }
 
-            public TestPolicy()
-                : this(AccessDecision.Allow())
+            public TestPolicy() : this(AccessDecision.Allow())
             {
             }
 
@@ -566,12 +559,12 @@ public sealed class AccessPoliciesTests
                 return true;
             }
 
-            public AccessDecision Decide(AccessContext context)
+            public ValueTask<AccessDecision> DecideAsync(AccessContext context, CancellationToken ct = default)
             {
                 DecideCallCount++;
                 LastContext = context;
 
-                return _decision;
+                return ValueTask.FromResult(_decision);
             }
         }
     }
@@ -616,32 +609,27 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_WhenPermissionsAttributeIsMissing_ShouldDeny()
+        public async Task Decide_WhenPermissionsAttributeIsMissing_ShouldDeny()
         {
             var sut = new MustHavePermissionPolicy();
 
             var context =
                 TestAccessContext.WithAction("users.update.admin");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_permission");
         }
 
         [Fact]
-        public void Decide_WhenPermissionsAttributeHasWrongType_ShouldDeny()
+        public async Task Decide_WhenPermissionsAttributeHasWrongType_ShouldDeny()
         {
             var sut = new MustHavePermissionPolicy();
 
-            var context =
-                TestAccessContext
-                    .WithAction("users.update.admin")
-                    .WithAttribute(
-                        UAuthConstants.Access.Permissions,
-                        "invalid-permissions");
+            var context = TestAccessContext.WithAction("users.update.admin") .WithAttribute(UAuthConstants.Access.Permissions, "invalid-permissions");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_permission");
@@ -649,7 +637,7 @@ public sealed class AccessPoliciesTests
     }
 
     [Fact]
-    public void Decide_WhenPermissionAllowsAction_ShouldAllow()
+    public async Task Decide_WhenPermissionAllowsAction_ShouldAllow()
     {
         var sut = new MustHavePermissionPolicy();
 
@@ -663,13 +651,13 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = sut.Decide(context);
+        var result = await sut.DecideAsync(context);
 
         result.IsAllowed.Should().BeTrue();
     }
 
     [Fact]
-    public void Decide_WhenPermissionDoesNotAllowAction_ShouldDeny()
+    public async Task Decide_WhenPermissionDoesNotAllowAction_ShouldDeny()
     {
         var sut = new MustHavePermissionPolicy();
 
@@ -683,14 +671,14 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = sut.Decide(context);
+        var result = await sut.DecideAsync(context);
 
         result.IsAllowed.Should().BeFalse();
         result.DenyReason.Should().Be("missing_permission");
     }
 
     [Fact]
-    public void Decide_WhenPermissionAllowsExactAction_ShouldAllow()
+    public async Task Decide_WhenPermissionAllowsExactAction_ShouldAllow()
     {
         var sut = new MustHavePermissionPolicy();
 
@@ -704,7 +692,7 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = sut.Decide(context);
+        var result = await sut.DecideAsync(context);
 
         result.IsAllowed.Should().BeTrue();
         result.DenyReason.Should().BeNull();
@@ -770,6 +758,7 @@ public sealed class AccessPoliciesTests
                 isAuthenticated: true,
                 isSystemActor: true,
                 actorChainId: null,
+                actorRoles: Array.Empty<AccessActorRole>(),
                 resource: "users",
                 targetUserKey: null,
                 resourceTenant: TenantKey.System,
@@ -780,7 +769,7 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_WhenActorIsMissing_ShouldDeny()
+        public async Task Decide_WhenActorIsMissing_ShouldDeny()
         {
             var runtime = new TestUserRuntimeStateProvider();
             var sut = new RequireActiveUserPolicy(runtime);
@@ -788,7 +777,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_actor");
@@ -797,7 +786,7 @@ public sealed class AccessPoliciesTests
         }
 
         [Fact]
-        public void Decide_WhenRuntimeStateIsMissing_ShouldDeny()
+        public async Task Decide_WhenRuntimeStateIsMissing_ShouldDeny()
         {
             var runtime = new TestUserRuntimeStateProvider
             {
@@ -806,18 +795,16 @@ public sealed class AccessPoliciesTests
 
             var sut = new RequireActiveUserPolicy(runtime);
 
-            var context = TestAccessContext.ForUser(
-                UserKey.New(),
-                "users.get.self");
+            var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
         }
 
         [Fact]
-        public void Decide_WhenUserDoesNotExist_ShouldDeny()
+        public async Task Decide_WhenUserDoesNotExist_ShouldDeny()
         {
             var runtime = new TestUserRuntimeStateProvider
             {
@@ -829,18 +816,16 @@ public sealed class AccessPoliciesTests
 
             var sut = new RequireActiveUserPolicy(runtime);
 
-            var context = TestAccessContext.ForUser(
-                UserKey.New(),
-                "users.get.self");
+            var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
         }
 
         [Fact]
-        public void Decide_WhenUserIsDeleted_ShouldDeny()
+        public async Task Decide_WhenUserIsDeleted_ShouldDeny()
         {
             var runtime = new TestUserRuntimeStateProvider
             {
@@ -856,14 +841,14 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
         }
 
         [Fact]
-        public void Decide_WhenUserIsInactive_ShouldDeny()
+        public async Task Decide_WhenUserIsInactive_ShouldDeny()
         {
             var runtime = new TestUserRuntimeStateProvider
             {
@@ -879,14 +864,14 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_active");
         }
 
         [Fact]
-        public void Decide_WhenUserIsActive_ShouldAllow()
+        public async Task Decide_WhenUserIsActive_ShouldAllow()
         {
             var runtime = new TestUserRuntimeStateProvider
             {
@@ -902,14 +887,14 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
         }
 
         [Fact]
-        public void Decide_ShouldQueryRuntimeUsingActorTenantAndUserKey()
+        public async Task Decide_ShouldQueryRuntimeUsingActorTenantAndUserKey()
         {
             var userKey = UserKey.New();
             var tenant = TenantKey.FromExternal("tenant-a");
@@ -926,7 +911,7 @@ public sealed class AccessPoliciesTests
             var sut = new RequireActiveUserPolicy(runtime);
             var context = TestAccessContext.ForUser(userKey, "users.get.self", tenant);
 
-            sut.Decide(context);
+            var result = await sut.DecideAsync(context);
 
             runtime.LastTenant.Should().Be(tenant);
             runtime.LastUserKey.Should().Be(userKey);

@@ -5,13 +5,14 @@ namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
 public sealed class TenantResolvedInvariant : IAuthorityInvariant
 {
-    public AccessDecisionResult Decide(AuthContext context)
+    public ValueTask<AccessDecisionResult> DecideAsync(AuthContext context, CancellationToken ct = default)
     {
-        if (context.Tenant.IsUnresolved)
-        {
-            return AccessDecisionResult.Deny("Tenant is not resolved.");
-        }
+        ct.ThrowIfCancellationRequested();
 
-        return AccessDecisionResult.Allow();
+        var result = context.Tenant.IsUnresolved
+            ? AccessDecisionResult.Deny("Tenant is not resolved.")
+            : AccessDecisionResult.Allow();
+
+        return ValueTask.FromResult(result);
     }
 }

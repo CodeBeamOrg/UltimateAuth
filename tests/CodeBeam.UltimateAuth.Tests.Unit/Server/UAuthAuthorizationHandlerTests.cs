@@ -1,12 +1,16 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Authorization;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authorization;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -199,13 +203,44 @@ public sealed class UAuthAuthorizationHandlerTests
                 .Returns(userKey.Value);
         }
 
+        var userRoleStore = new Mock<IUserRoleStore>();
+        var roleStore = new Mock<IRoleStore>();
+
+        var userRoleFactory = new Mock<IUserRoleStoreFactory>();
+        var roleFactory = new Mock<IRoleStoreFactory>();
+
+        userRoleFactory
+            .Setup(x => x.Create(It.IsAny<TenantKey>()))
+            .Returns(userRoleStore.Object);
+
+        roleFactory
+            .Setup(x => x.Create(It.IsAny<TenantKey>()))
+            .Returns(roleStore.Object);
+
+        userRoleStore
+            .Setup(x => x.GetAssignmentsAsync(
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserRole>());
+
         var services = new ServiceCollection();
 
         services.AddSingleton(currentUser.Object);
 
+        // Normal UltimateAuth Server runtime
+        services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
+        // Trusted actor role resolution
+        services.AddSingleton(userRoleFactory.Object);
+        services.AddSingleton(roleFactory.Object);
+        services.AddScoped<AccessActorRoleResolver>();
+
+        // Build provider after all registrations
+        var provider = services.BuildServiceProvider();
+
         var http = new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider()
+            RequestServices = provider
         };
 
         var resolvedTenant =

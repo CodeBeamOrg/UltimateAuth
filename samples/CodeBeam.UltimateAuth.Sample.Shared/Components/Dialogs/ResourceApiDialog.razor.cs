@@ -11,82 +11,218 @@ public partial class ResourceApiDialog
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
-    private List<SampleProduct> _products = new List<SampleProduct>();
-    private string? _newName = null;
+    [Parameter]
+    public bool PreviewMode { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private List<SampleProduct> _products = [];
+    private string? _newName;
+
+    private SampleProduct? _editingProduct;
+    private string? _editingName;
+
+    private bool _isLoading;
+    private bool _isBusy;
+    private string? _loadError;
+
+    private readonly List<PreviewProduct> _previewProducts =
+    [
+        new(1, "Sample Laptop"),
+        new(2, "Wireless Keyboard"),
+        new(3, "USB-C Hub"),
+        new(4, "External Monitor")
+    ];
+
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
+        if (PreviewMode)
+            return;
+
+        await GetProductsAsync();
+    }
+
+    private async Task GetProductsAsync()
+    {
+        if (PreviewMode || _isBusy)
+            return;
+
+        _isLoading = true;
+        _loadError = null;
+
+        try
         {
-            _products = (await Api.GetAllAsync()).Value ?? new();
-            StateHasChanged();
+            var result = await Api.GetAllAsync();
+
+            if (!result.IsSuccess)
+            {
+                _loadError = result.ErrorText ??
+                    "Failed to load products.";
+                return;
+            }
+
+            _products = result.Value ?? [];
+        }
+        catch (Exception)
+        {
+            _loadError = "Unable to load resource data.";
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
-    private async Task<DataGridEditFormAction> CommittedItemChanges(SampleProduct item)
+    private void BeginEdit(SampleProduct product)
     {
-        var result = await Api.UpdateAsync(item.Id, item);
+        if (PreviewMode || _isBusy)
+            return;
 
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Product updated successfully", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add(result?.ErrorText ?? "Failed to update product.", Severity.Error);
-        }
-
-        return DataGridEditFormAction.Close;
+        _editingProduct = product;
+        _editingName = product.Name;
     }
 
-    private async Task GetProducts()
+    private void CancelEdit()
     {
-        var result = await Api.GetAllAsync();
-
-        if (result.IsSuccess)
-        {
-            _products = result.Value ?? new();
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
-        }
+        _editingProduct = null;
+        _editingName = null;
     }
 
-    private async Task CreateProduct()
+    private async Task SaveProductAsync()
     {
-        var product = new SampleProduct
-        {
-            Name = _newName
-        };
+        if (PreviewMode || _isBusy || _editingProduct is null ||
+            string.IsNullOrWhiteSpace(_editingName))
+            return;
 
-        var result = await Api.CreateAsync(product);
+        _isBusy = true;
+        bool success = false;
 
-        if (result.IsSuccess)
+        try
         {
-            Snackbar.Add("New product created.");
-            _products = (await Api.GetAllAsync()).Value ?? new();
+            var product = new SampleProduct
+            {
+                Id = _editingProduct.Id,
+                Name = _editingName.Trim()
+            };
+
+            var result = await Api.UpdateAsync(product.Id, product);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to update product.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            Snackbar.Add(
+                "Product updated successfully.",
+                Severity.Success);
+            CancelEdit();
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
+            Snackbar.Add("Unable to update product.", Severity.Error);
         }
+        finally
+        {
+            _isBusy = false;
+        }
+
+        if (success)
+            await GetProductsAsync();
     }
 
-    private async Task DeleteProduct(int id)
+    private async Task CreateProductAsync()
     {
-        var result = await Api.DeleteAsync(id);
+        if (PreviewMode || _isBusy ||
+            string.IsNullOrWhiteSpace(_newName))
+            return;
 
-        if (result.IsSuccess)
+        _isBusy = true;
+        bool success = false;
+
+        try
         {
-            Snackbar.Add("Product deleted succesfully.", Severity.Success);
-            _products = (await Api.GetAllAsync()).Value ?? new();
+            var product = new SampleProduct
+            {
+                Name = _newName.Trim()
+            };
+
+            var result = await Api.CreateAsync(product);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to create product.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            _newName = null;
+
+            Snackbar.Add(
+                "Product created successfully.",
+                Severity.Success);
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result.ErrorText ?? "Process failed.", Severity.Error);
+            Snackbar.Add("Unable to create product.", Severity.Error);
         }
+        finally
+        {
+            _isBusy = false;
+        }
+
+        if (success)
+            await GetProductsAsync();
     }
+
+    private async Task DeleteProductAsync(int id)
+    {
+        if (PreviewMode || _isBusy)
+            return;
+
+        _isBusy = true;
+        bool success = false;
+
+        try
+        {
+            var result = await Api.DeleteAsync(id);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to delete product.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            Snackbar.Add(
+                "Product deleted successfully.",
+                Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to delete product.", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+
+        if (success)
+            await GetProductsAsync();
+    }
+
+    private void Close()
+    {
+        if (!_isBusy)
+            MudDialog.Close();
+    }
+
+    private sealed record PreviewProduct(int Id, string Name);
 }

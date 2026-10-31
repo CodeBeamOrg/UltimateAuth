@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using AwesomeAssertions;
+using Microsoft.AspNetCore.Components;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Infrastructure;
 
@@ -215,5 +216,46 @@ public sealed class UAuthLoginPageDiscoveryTests
             });
 
         result.Should().Be("/a");
+    }
+
+    [Fact]
+    public void ResolveRoute_Type_ShouldResolvePreferredRoute()
+    {
+        var result = UAuthLoginPageDiscovery.ResolveRoute(
+            typeof(TestLoginPage));
+
+        result.Should().Be("/sign-in");
+    }
+
+    [Fact]
+    public void ResolveRoute_Type_WithoutAttribute_ShouldThrow()
+    {
+        var act = () => UAuthLoginPageDiscovery.ResolveRoute(
+            typeof(TestPageWithoutLoginAttribute));
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*not decorated with [UAuthLoginPage]*");
+    }
+
+    [Fact]
+    public void ResolveRoute_Type_WhenNull_ShouldThrow()
+    {
+        var act = () => UAuthLoginPageDiscovery.ResolveRoute(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+
+    [UAuthLoginPage("/sign-in")]
+    [Route("/")]
+    [Route("/sign-in")]
+    private sealed class TestLoginPage : ComponentBase
+    {
+    }
+
+    [Route("/login")]
+    private sealed class TestPageWithoutLoginAttribute : ComponentBase
+    {
     }
 }

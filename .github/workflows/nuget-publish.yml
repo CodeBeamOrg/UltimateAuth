@@ -16,8 +16,8 @@ jobs:
       - name: Verify release tag
         shell: bash
         run: |
-          if [[ ! "$GITHUB_REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::NuGet publishing requires a stable release tag (vX.Y.Z)."
+          if [[ ! "$GITHUB_REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]]; then
+            echo "::error::NuGet publishing requires a release tag (vX.Y.Z or vX.Y.Z-prerelease)."
             exit 1
           fi
     

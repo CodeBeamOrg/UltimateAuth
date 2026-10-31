@@ -35,11 +35,20 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IAuthorizationClient
 {
     /// <summary>
-    /// Evaluates whether the current user is authorized to perform a specific action.
+    /// Evaluates whether the current authenticated user is authorized to perform a specific action.
     /// </summary>
     /// <remarks>
-    /// This method performs a server-side authorization check based on the current session,
-    /// roles, and assigned permissions.
+    /// <para>
+    /// Performs an on-demand, server-side authorization evaluation using the current authentication context and applicable policies.
+    /// </para>
+    /// <para>
+    /// A successful request returns an <see cref="AuthorizationResult"/> even when authorization is denied or reauthentication is required.
+    /// The authorization decision is separate from the API request result.
+    /// </para>
+    /// <para>
+    /// This method does not execute the requested operation or grant authorization for subsequent requests.
+    /// Protected operations must independently enforce authorization when executed.
+    /// </para>
     /// </remarks>
     Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request);
 
@@ -50,6 +59,21 @@ public interface IAuthorizationClient
     /// Results may be paginated. Use <paramref name="request"/> to control paging behavior.
     /// </remarks>
     Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null);
+
+    /// <summary>
+    /// Retrieves the current user's role-derived permissions.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returns normalized permissions assigned through the user's roles.
+    /// Wildcard permissions are preserved without expansion.
+    /// </para>
+    /// <para>
+    /// This method does not evaluate authorization policies.
+    /// Use <see cref="CheckAsync"/> to evaluate access to a specific action.
+    /// </para>
+    /// </remarks>
+    Task<UAuthResult<UserPermissionsResult>> GetMyPermissionsAsync();
 
     /// <summary>
     /// Retrieves roles assigned to a specific user.

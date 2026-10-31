@@ -31,7 +31,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
         lock (_ensureLock)
         {
-            if (_ensureTask != null)
+            if (_ensureTask is { IsCompleted: false })
                 return _ensureTask;
 
             _ensureTask = EnsureInternalAsync(ct);
@@ -45,13 +45,15 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
         {
             var result = await _client.Flows.ValidateAsync();
 
-            if (!result.IsValid || result.Snapshot == null)
+            if (!result.IsValid)
             {
-                if (State.IsAuthenticated)
-                    State.MarkStale();
-                else
-                    State.Clear();
+                State.Clear();
+                return;
+            }
 
+            if (result.Snapshot is null)
+            {
+                State.MarkStale();
                 return;
             }
 

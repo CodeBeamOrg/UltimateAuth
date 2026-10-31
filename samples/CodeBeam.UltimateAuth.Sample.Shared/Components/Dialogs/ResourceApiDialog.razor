@@ -2,53 +2,241 @@
 @inject SampleProductApiService Api
 @inject ISnackbar Snackbar
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
-
+<MudDialog Class="lab-resource-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Resource Api</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Sample demonstration of a resource.</MudText>
+        <div class="lab-resource-header">
+            <div class="lab-resource-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Api"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-resource-header-text">
+                <MudText Typo="Typo.h6">Resource API</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Explore authenticated API resource operations.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudButton OnClick="GetProducts">Reload</MudButton>
+        <div class="lab-resource-content">
+            @if (PreviewMode)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Products are examples and
+                    no API requests will be sent.
+                </MudAlert>
+            }
 
-        <MudDataGrid Items="@_products" Dense="true" Striped="true" Hover="true"
-                     EditMode="DataGridEditMode.Form" ReadOnly="false" CommittedItemChanges="@CommittedItemChanges">
-            <Columns>
-                <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-                <PropertyColumn Property="x => x.Name" Title="Name" />
-                <TemplateColumn Title="Actions" Editable="false">
-                    <CellTemplate>
-                        <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                            <MudTooltip Text="Edit" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@context.Actions.StartEditingItemAsync" />
-                            </MudTooltip>
+            <div class="lab-resource-overview">
+                <div class="lab-resource-overview-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.CloudQueue"
+                             Size="Size.Medium" />
+                </div>
 
-                            <MudTooltip Text="Delete" Color="Color.Error" Delay="300" ShowOnFocus="false">
-                                <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="@(() => DeleteProduct(context.Item.Id))" />
-                            </MudTooltip>
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="SampleProduct" PageSizeOptions="new int[] { 5, 10, 20 }" />
-            </PagerContent>
-        </MudDataGrid>
+                <div class="lab-resource-overview-info">
+                    <strong>Protected Resource</strong>
+                    <span>
+                        This sample demonstrates how an authenticated
+                        client interacts with a protected Resource API.
+                    </span>
+                </div>
 
-        <MudExpansionPanels Class="mt-4" Elevation="0">
-            <MudExpansionPanel Style="background: var(--mud-palette-background-gray)" Text="Add New Product" Expanded="false">
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_newName" Variant="Variant.Outlined" Label="Name" />
-                    </MudItem>
+                <MudChip T="string"
+                         Color="Color.Primary"
+                         Variant="Variant.Outlined"
+                         Size="Size.Small">
+                    API
+                </MudChip>
+            </div>
 
-                    <MudItem xs="12">
-                        <MudButton Style="width: fit-content" Color="Color.Primary" Variant="Variant.Outlined" OnClick="CreateProduct">Add</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
+            <div class="lab-resource-toolbar">
+                <div class="lab-resource-section-heading">
+                    <strong>Products</strong>
+                    <span>Browse and manage sample resource records.</span>
+                </div>
+
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@(_isBusy || PreviewMode)"
+                               OnClick="GetProductsAsync"
+                               aria-label="Refresh products" />
+            </div>
+
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true"
+                                   Color="Color.Primary" />
+            }
+            else if (_loadError is not null)
+            {
+                <MudAlert Severity="Severity.Error"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    @_loadError
+                </MudAlert>
+            }
+            else if (PreviewMode)
+            {
+                <div class="lab-resource-list">
+                    @foreach (var product in _previewProducts)
+                    {
+                        <div class="lab-resource-card" @key="product.Id">
+                            <div class="lab-resource-card-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Inventory2"
+                                         Size="Size.Small" />
+                            </div>
+
+                            <div class="lab-resource-card-info">
+                                <strong>@product.Name</strong>
+                                <span>Product #@product.Id</span>
+                            </div>
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           Disabled="true" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           Disabled="true" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <MudDataGrid T="SampleProduct"
+                             Items="@_products"
+                             Dense="true"
+                             Hover="true"
+                             Elevation="0"
+                             Bordered="false"
+                             Striped="false"
+                             ReadOnly="true"
+                             Filterable="false"
+                             Class="lab-resource-grid">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Id"
+                                        Title="ID"
+                                        Editable="false" />
+
+                        <TemplateColumn Title="Product">
+                            <CellTemplate>
+                                <div class="lab-resource-grid-product">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory2"
+                                             Size="Size.Small"
+                                             Color="Color.Primary" />
+                                    <strong>@context.Item.Name</strong>
+                                </div>
+                            </CellTemplate>
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="Actions">
+                            <CellTemplate>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="Edit Product">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       Disabled="@_isBusy"
+                                                       OnClick="@(() => BeginEdit(context.Item))" />
+                                    </MudTooltip>
+
+                                    <MudTooltip Text="Delete Product">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       Disabled="@_isBusy"
+                                                       OnClick="@(() => DeleteProductAsync(context.Item.Id))" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+
+                    <PagerContent>
+                        <MudDataGridPager T="SampleProduct"
+                                          PageSizeOptions="new int[] { 5, 10, 20 }" />
+                    </PagerContent>
+                </MudDataGrid>
+            }
+
+            @if (_editingProduct is not null)
+            {
+                <div class="lab-resource-edit">
+                    <div class="lab-resource-section-heading">
+                        <strong>Edit Product</strong>
+                        <span>Update the selected resource record.</span>
+                    </div>
+
+                    <MudTextField @bind-Value="_editingName"
+                                  Label="Product Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Disabled="@_isBusy" />
+
+                    <div class="lab-resource-edit-actions">
+                        <MudButton Variant="Variant.Text"
+                                   Disabled="@_isBusy"
+                                   OnClick="CancelEdit">
+                            Cancel
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_editingName))"
+                                   OnClick="SaveProductAsync">
+                            Save Changes
+                        </MudButton>
+                    </div>
+                </div>
+            }
+
+            <MudDivider />
+
+            <div class="lab-resource-section-heading">
+                <strong>Create Product</strong>
+                <span>Add a new record to the protected resource.</span>
+            </div>
+
+            <div class="lab-resource-create">
+                <MudTextField @bind-Value="_newName"
+                              Label="Product Name"
+                              Placeholder="Enter a product name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Disabled="@(_isBusy || PreviewMode)" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@(_isBusy || PreviewMode || string.IsNullOrWhiteSpace(_newName))"
+                           OnClick="CreateProductAsync">
+                    Add Product
+                </MudButton>
+            </div>
+
+            <div class="lab-resource-hint">
+                <MudIcon Icon="@Icons.Material.Outlined.Info"
+                         Size="Size.Small" />
+                <span>
+                    Resource operations are performed through IUAuthClient.Resource.
+                    Authentication is handled by UltimateAuth, while authorization is enforced by the Resource API.
+                </span>
+            </div>
+        </div>
     </DialogContent>
 
+    <DialogActions>
+        <div class="lab-resource-actions">
+            <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="@_isBusy" OnClick="Close">
+                Close
+            </MudButton>
+        </div>
+    </DialogActions>
 </MudDialog>

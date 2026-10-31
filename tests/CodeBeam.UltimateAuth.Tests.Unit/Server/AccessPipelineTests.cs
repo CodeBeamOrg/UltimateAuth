@@ -174,7 +174,7 @@ public sealed class AccessPipelineTests
         executed.Should().BeTrue();
 
         skipped.Verify(
-            p => p.Decide(It.IsAny<AccessContext>()),
+            p => p.DecideAsync(It.IsAny<AccessContext>()),
             Times.Never);
     }
 
@@ -301,7 +301,7 @@ public sealed class AccessPipelineTests
     }
 
     [Fact]
-    public void Runtime_reauthentication_should_be_reported_by_authority()
+    public async Task Runtime_reauthentication_should_be_reported_by_authority()
     {
         var first = Policy(
             _ => true,
@@ -315,7 +315,7 @@ public sealed class AccessPipelineTests
             Array.Empty<IAccessInvariant>(),
             Array.Empty<IAccessPolicy>());
 
-        var decision = authority.Decide(
+        var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.update"),
             new[] { first.Object, second.Object });
 
@@ -324,7 +324,7 @@ public sealed class AccessPipelineTests
     }
 
     [Fact]
-    public void Runtime_denial_should_take_priority_over_earlier_reauthentication()
+    public async Task Runtime_denial_should_take_priority_over_earlier_reauthentication()
     {
         var reauth = Policy(
             _ => true,
@@ -338,7 +338,7 @@ public sealed class AccessPipelineTests
             Array.Empty<IAccessInvariant>(),
             Array.Empty<IAccessPolicy>());
 
-        var decision = authority.Decide(
+        var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.update"),
             new[] { reauth.Object, deny.Object });
 
@@ -606,14 +606,14 @@ public sealed class AccessPipelineTests
     }
 
     [Fact]
-    public void Authority_should_allow_when_no_policies_exist()
+    public async Task Authority_should_allow_when_no_policies_exist()
     {
         // Documents current default-allow behavior.
         var authority = new UAuthAccessAuthority(
             Array.Empty<IAccessInvariant>(),
             Array.Empty<IAccessPolicy>());
 
-        var decision = authority.Decide(
+        var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.delete"),
             Array.Empty<IAccessPolicy>());
 
@@ -621,13 +621,13 @@ public sealed class AccessPipelineTests
     }
 
     [Fact]
-    public void Authority_should_treat_null_global_collections_as_empty()
+    public async Task Authority_should_treat_null_global_collections_as_empty()
     {
         var authority = new UAuthAccessAuthority(
             null!,
             null!);
 
-        var decision = authority.Decide(
+        var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.read"),
             Array.Empty<IAccessPolicy>());
 
@@ -681,8 +681,11 @@ public sealed class AccessPipelineTests
     {
         var mock = new Mock<IAccessInvariant>();
 
-        mock.Setup(i => i.Decide(It.IsAny<AccessContext>()))
-            .Returns((AccessContext context) => decide(context));
+        mock.Setup(p => p.DecideAsync(
+            It.IsAny<AccessContext>(),
+            It.IsAny<CancellationToken>()))
+            .Returns((AccessContext context, CancellationToken _) =>
+                ValueTask.FromResult(decide(context)));
 
         return mock;
     }
@@ -696,8 +699,11 @@ public sealed class AccessPipelineTests
         mock.Setup(p => p.AppliesTo(It.IsAny<AccessContext>()))
             .Returns((AccessContext context) => appliesTo(context));
 
-        mock.Setup(p => p.Decide(It.IsAny<AccessContext>()))
-            .Returns((AccessContext context) => decide(context));
+        mock.Setup(p => p.DecideAsync(
+            It.IsAny<AccessContext>(),
+            It.IsAny<CancellationToken>()))
+            .Returns((AccessContext context, CancellationToken _) =>
+                ValueTask.FromResult(decide(context)));
 
         return mock;
     }

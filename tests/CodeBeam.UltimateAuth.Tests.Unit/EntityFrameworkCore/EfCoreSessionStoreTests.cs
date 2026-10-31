@@ -901,4 +901,35 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             result.IsRevoked.Should().BeTrue();
         }
     }
+
+    [Fact]
+    public async Task ExecuteAsync_Should_Join_Existing_Transaction()
+    {
+        using var connection = CreateOpenConnection();
+        await using var db = CreateDb(connection);
+
+        var store = new EfCoreSessionStore<UAuthSessionDbContext>(
+            db,
+            new TenantExecutionContext(TenantKeys.Single));
+
+        await using var transaction =
+            await db.Database.BeginTransactionAsync();
+
+        var originalTransaction = db.Database.CurrentTransaction;
+
+        await store.ExecuteAsync(async ct =>
+        {
+            Assert.Same(
+                originalTransaction,
+                db.Database.CurrentTransaction);
+
+            await Task.CompletedTask;
+        });
+
+        Assert.Same(
+            originalTransaction,
+            db.Database.CurrentTransaction);
+
+        await transaction.RollbackAsync();
+    }
 }

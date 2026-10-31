@@ -115,4 +115,9 @@ public sealed class UAuthClientOptions
     /// Controls how tenant information is resolved and included in requests.
     /// </remarks>
     public UAuthClientMultiTenantOptions MultiTenant { get; set; } = new();
+
+    /// <summary>
+    /// Configures requests to UltimateAuth-protected application resources.
+    /// </summary>
+    public UAuthClientResourceOptions Resource { get; set; } = new();
 }

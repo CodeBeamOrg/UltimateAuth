@@ -16,6 +16,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 public abstract class UAuthClientTestBase
 {
     protected readonly Mock<IUAuthRequestClient> Request = new();
+    protected readonly Mock<IUAuthResourceRequestClient> ResourceRequest = new();
     protected readonly Mock<IUAuthClientEvents> Events = new();
 
     protected IUAuthClient CreateClient(
@@ -24,7 +25,8 @@ public abstract class UAuthClientTestBase
         ICredentialClient? credentials = null,
         IAuthorizationClient? authorization = null,
         IFlowClient? flows = null,
-        IUserIdentifierClient? identifiers = null)
+        IUserIdentifierClient? identifiers = null,
+        IResourceClient? resource = null)
     {
         var options = Options.Create(new UAuthClientOptions
         {
@@ -40,7 +42,8 @@ public abstract class UAuthClientTestBase
             users ?? new UAuthUserClient(Request.Object, Events.Object, options),
             identifiers ?? Mock.Of<IUserIdentifierClient>(),
             credentials ?? new UAuthCredentialClient(Request.Object, Events.Object, options),
-            authorization ?? new UAuthAuthorizationClient(Request.Object, Events.Object, options)
+            authorization ?? new UAuthAuthorizationClient(Request.Object, Events.Object, options),
+            resource ?? new UAuthResourceClient(ResourceRequest.Object)
         );
     }
 
@@ -105,7 +108,8 @@ public abstract class UAuthClientTestBase
             users: Mock.Of<IUserClient>(),
             identifiers: Mock.Of<IUserIdentifierClient>(),
             credentials: new UAuthCredentialClient(Request.Object, Events.Object, options),
-            authorization: Mock.Of<IAuthorizationClient>());
+            authorization: Mock.Of<IAuthorizationClient>(),
+            resource: Mock.Of<IResourceClient>());
     }
 
     protected IUAuthClient CreateUserClient()
@@ -124,7 +128,8 @@ public abstract class UAuthClientTestBase
             users: new UAuthUserClient(Request.Object, Events.Object, options),
             identifiers: Mock.Of<IUserIdentifierClient>(),
             credentials: Mock.Of<ICredentialClient>(),
-            authorization: Mock.Of<IAuthorizationClient>());
+            authorization: Mock.Of<IAuthorizationClient>(),
+            resource: Mock.Of<IResourceClient>());
     }
 
     protected IUAuthClient CreateIdentifierClient()
@@ -143,7 +148,8 @@ public abstract class UAuthClientTestBase
             users: Mock.Of<IUserClient>(),
             identifiers: new UAuthUserIdentifierClient(Request.Object, Events.Object, options),
             credentials: Mock.Of<ICredentialClient>(),
-            authorization: Mock.Of<IAuthorizationClient>());
+            authorization: Mock.Of<IAuthorizationClient>(),
+            resource: Mock.Of<IResourceClient>());
     }
 
     protected static UAuthTransportResult Success()

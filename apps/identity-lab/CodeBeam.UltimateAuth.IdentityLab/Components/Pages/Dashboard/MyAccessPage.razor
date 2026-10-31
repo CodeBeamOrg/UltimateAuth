@@ -1,0 +1,841 @@
+﻿@page "/dashboard/access"
+@using CodeBeam.UltimateAuth.IdentityLab.Authorization
+@layout DashboardLayout
+
+@attribute [UAuthAuthorize]
+
+@inject IUAuthClient UAuthClient
+@inject SandboxUserService SandboxUserService
+@inject ISnackbar Snackbar
+
+<PageTitle>My Access · Identity Lab</PageTitle>
+
+<div class="lab-access-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-access-heading">
+            <div>
+                <span class="lab-access-eyebrow">PERSONAL AUTHORIZATION</span>
+                <h1>My Access</h1>
+                <p>Explore your assigned roles and permissions, then evaluate how UltimateAuth makes authorization decisions.</p>
+            </div>
+        </div>
+
+        <div class="lab-access-stats">
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" />
+                </span>
+                <span>Assigned Roles</span>
+                <strong>@_totalRoles</strong>
+                <small>Roles assigned to your identity</small>
+            </div>
+
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Key" />
+                </span>
+
+                <span>Assigned Permissions</span>
+                <strong>@(_permissionsLoading ? "..." : _permissions.Any(x => x.Value == "*") ? "Wildcard (*)" : _permissions.Count.ToString())
+                </strong>
+                <small>Permissions inherited from your roles</small>
+            </div>
+
+            <div class="lab-access-stat">
+                <span class="lab-access-stat-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.GridView" />
+                </span>
+
+                <span>Playground Scenarios</span>
+                <strong>@Scenarios.Count</strong>
+                <small>Predefined authorization checks</small>
+            </div>
+        </div>
+
+        <div class="lab-access-grid">
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>My Roles</h2>
+                        <p>Roles assigned to your identity.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Primary" />
+                </div>
+
+                <div class="lab-role-list">
+                    @foreach (var role in _roles)
+                    {
+                        <div class="lab-role-row" @key="role.RoleId">
+                            <span class="lab-role-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Shield"
+                                         Size="Size.Medium" />
+                            </span>
+
+                            <div class="lab-role-details">
+                                <strong>@role.Name</strong>
+                                <span>
+                                    Assigned @role.AssignedAt.ToLocalTime().ToString("g")
+                                </span>
+                            </div>
+
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                Assigned
+                            </MudChip>
+                        </div>
+                    }
+
+                    @if (!_loading && _totalRoles == 0 && _error is null)
+                    {
+                        <div class="lab-result-empty">
+                            <strong>No roles assigned</strong>
+                            <p>You do not currently have any assigned roles.</p>
+                        </div>
+                    }
+
+                    @if (_error is not null)
+                    {
+                        <MudAlert Severity="Severity.Error">
+                            @_error
+                        </MudAlert>
+                    }
+
+                    @if (_totalRoles > RolePageSize)
+                    {
+                        <MudPagination Count="@TotalRolePages" Selected="@_rolePage" SelectedChanged="OnRolePageChangedAsync" Disabled="@_loading" Color="Color.Primary" Class="mt-4" />
+                    }
+                </div>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-4">
+                    Your roles determine which operations you may perform, together with the applicable policies and authorization context.
+                </MudAlert>
+            </section>
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Assigned Permissions</h2>
+                        <p>Permissions inherited from your assigned roles.</p>
+                    </div>
+
+                    <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
+                </div>
+
+                @if (_permissionsLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+                }
+                else if (_permissionsError is not null)
+                {
+                    <MudAlert Severity="Severity.Error">
+                        @_permissionsError
+                    </MudAlert>
+                }
+                else if (_permissions.Count == 0)
+                {
+                    <div class="lab-result-empty">
+                        <span class="lab-result-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Large" />
+                        </span>
+
+                        <strong>No permissions assigned</strong>
+                        <p>Your assigned roles do not currently grant any permissions.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="lab-permission-list">
+                        @foreach (var permission in _permissions)
+                        {
+                            <div class="lab-permission-item" @key="permission.Value">
+                                <span class="lab-permission-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small" />
+                                </span>
+
+                                <div>
+                                    <strong>@(permission.Value == "*" ? "All Permissions (*)" : permission.Value)</strong>
+
+                                    @if (permission.Value == "*")
+                                    {
+                                        <span>
+                                            Wildcard permission. Access remains subject to applicable authorization policies.
+                                        </span>
+                                    }
+                                </div>
+
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                                    Assigned
+                                </MudChip>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-4">
+                    Assigned permissions do not guarantee access.
+                    Policies and request context may still deny an operation.
+                    Use the Authorization Playground below to evaluate access.
+                </MudAlert>
+            </section>
+        </div>
+
+        <div class="lab-access-section-heading">
+            <span class="lab-access-eyebrow">INTERACTIVE AUTHORIZATION</span>
+            <h2>Authorization Playground</h2>
+            <p>Choose a resource and operation to explore how access decisions work.</p>
+        </div>
+
+        <div class="lab-playground-grid">
+
+            <section class="lab-access-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Access Request</h2>
+                        <p>Configure an authorization check.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Tune"
+                             Color="Color.Primary" />
+                </div>
+
+                <div class="lab-playground-fields">
+
+                    <MudSelectExtended T="string"
+                               Label="Choose an operation"
+                               Variant="Variant.Outlined"
+                               Value="@_selectedScenarioId"
+                               ValueChanged="OnScenarioChanged"
+                               AnchorOrigin="Origin.BottomCenter"
+                               TransformOrigin="Origin.TopCenter"
+                               Color="Color.Primary">
+
+                        @foreach (var group in Scenarios.GroupBy(x => x.Group))
+                        {
+                            <MudSelectItemGroupExtended T="string" Value="@($"__group_{group.Key}")" Disabled="true" Text="@group.Key">
+                                @foreach (var scenario in group)
+                                {
+                                    <MudSelectItemExtended T="string" Value="@scenario.Id" Text="@scenario.Title">
+                                        @scenario.Title
+                                    </MudSelectItemExtended>
+                                }
+                            </MudSelectItemGroupExtended>
+                        }
+                    </MudSelectExtended>
+
+                    @if (RequiresMemberTarget)
+                    {
+                        <MudSelectExtended T="string"
+                                   Label="Target user"
+                                   Variant="Variant.Outlined"
+                                   Value="@_selectedSandboxMemberUserKey"
+                                   ValueChanged="OnTargetChanged"
+                                   Disabled="@_sandboxUsersLoading"
+                                   HelperText="Select a user to evaluate the operation against."
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   TransformOrigin="Origin.TopCenter"
+                                   Color="Color.Primary">
+
+                            @foreach (var user in AvailableTargets)
+                            {
+                                <MudSelectItemExtended T="string" Value="@user.UserKey.Value" Text="@($"{user.DisplayName} - {user.Username}")">
+
+                                    @user.DisplayName
+                                    (@user.Username)
+                                    @(user.UserKey == AuthState.Identity?.UserKey ? "— You" : "")
+                                    @(user.IsOwner ? "— Owner" : "")
+
+                                </MudSelectItemExtended>
+                            }
+                        </MudSelectExtended>
+
+                        @if (_sandboxUsersLoading)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        }
+                        else if (_sandboxUsersError is not null)
+                        {
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                                @_sandboxUsersError
+                            </MudAlert>
+                        }
+                        else if (_sandboxUsers.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                No sandbox members are available.
+                            </MudAlert>
+                        }
+                    }
+
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @SelectedScenario.Description
+                    </MudText>
+
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">
+                                Request Preview
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                Action: @SelectedScenario.Action
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                Resource: @SelectedScenario.Resource
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                Target: @(ResolveResourceId(SelectedScenario) ?? "Not specified")
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               Disabled="@(_evaluating || _sandboxUsersLoading || (RequiresMemberTarget && string.IsNullOrWhiteSpace(_selectedSandboxMemberUserKey)))"
+                               OnClick="EvaluateAccessAsync">
+                        @(_evaluating ? "Evaluating..." : "Evaluate Access")
+                    </MudButton>
+                </div>
+            </section>
+
+            <section class="lab-access-card lab-result-card">
+                <div class="lab-access-card-heading">
+                    <div>
+                        <h2>Evaluation Result</h2>
+                        <p>Authorization decision and explanation.</p>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                             Color="Color.Primary" />
+                </div>
+
+                @if (_accessResult is null)
+                {
+                    <div class="lab-result-empty">
+                        <span class="lab-result-empty-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Rule"
+                                     Size="Size.Large" />
+                        </span>
+
+                        <strong>Ready to evaluate</strong>
+
+                        <p>
+                            Select an operation and target to evaluate access.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="lab-decision-panel">
+
+                        <div class="lab-decision-heading">
+                            <MudIcon Icon="@(_accessResult.IsAllowed ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                     Color="@(_accessResult.IsAllowed ? Color.Success : Color.Error)"
+                                     Size="Size.Large" />
+
+                            <div>
+                                <h3>
+                                    @(_accessResult.IsAllowed ? "Access Granted" : "Access Denied")
+                                </h3>
+
+                                <p>
+                                    @if (_accessResult.RequiresReauthentication)
+                                    {
+                                        <span>Reauthentication is required.</span>
+                                    }
+                                    else if (_accessResult.IsAllowed)
+                                    {
+                                        <span>
+                                            The authorization request passed the applicable checks.
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>@ExplainDecision(_accessResult.DenyReason)</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="lab-decision-details">
+
+                            <div class="lab-decision-detail">
+                                <span>Decision</span>
+
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(_accessResult.IsAllowed ? Color.Success : Color.Error)"
+                                         Variant="Variant.Outlined">
+
+                                    @(_accessResult.IsAllowed ? "Allowed" : "Denied")
+
+                                </MudChip>
+                            </div>
+
+                            @if (!_accessResult.IsAllowed)
+                            {
+                                <div class="lab-decision-detail">
+                                    <span>Reason source</span>
+
+                                    <strong>
+                                        @GetDecisionSource(_accessResult.DenyReason)
+                                    </strong>
+                                </div>
+
+                                <div class="lab-decision-detail">
+                                    <span>Technical reason</span>
+
+                                    <code>
+                                        @(_accessResult.DenyReason ?? "Not specified")
+                                    </code>
+                                </div>
+                            }
+
+                        </div>
+
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-3">
+                            This is an authorization check only.
+                            No operation has been executed.
+                        </MudAlert>
+
+                    </div>
+                }
+
+                <div class="lab-result-footer">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
+                    <span>
+                        An authorization decision may depend on roles, permissions, policies, and request context.
+                    </span>
+                </div>
+            </section>
+
+        </div>
+
+        <div class="lab-access-section-heading lab-model-heading">
+            <span class="lab-access-eyebrow">ULTIMATEAUTH CONCEPTS</span>
+            <h2>Understanding Access Control</h2>
+            <p>
+                Three concepts work together to protect resources.
+            </p>
+        </div>
+
+        <div class="lab-access-concepts">
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                </span>
+                <strong>Roles</strong>
+                <p>
+                    Group authorization responsibilities and
+                    organize access assignments.
+                </p>
+            </div>
+
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" />
+                </span>
+                <strong>Permissions</strong>
+                <p>
+                    Represent actions that an identity may be
+                    authorized to perform.
+                </p>
+            </div>
+
+            <div class="lab-concept-card">
+                <span class="lab-concept-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.Policy" />
+                </span>
+                <strong>Policies</strong>
+                <p>
+                    Evaluate authorization requirements using
+                    the relevant access context.
+                </p>
+            </div>
+        </div>
+
+    </MudContainer>
+</div>
+
+@code {
+    [CascadingParameter]
+    private UAuthState AuthState { get; set; } = default!;
+
+    private readonly List<UserRoleInfo> _roles = [];
+    private readonly List<Permission> _permissions = [];
+
+    private bool _permissionsLoading;
+    private string? _permissionsError;
+
+    private bool _loading;
+    private string? _error;
+
+    private int _rolePage = 1;
+    private const int RolePageSize = 10;
+    private int _totalRoles;
+
+    private int TotalRolePages => Math.Max(1, (_totalRoles + RolePageSize - 1) / RolePageSize);
+
+    private UltimateAuth.Authorization.Contracts.AuthorizationResult? _accessResult;
+    private bool _evaluating;
+
+    private readonly List<SandboxUserItem> _sandboxUsers = [];
+
+    private string? _selectedSandboxMemberUserKey;
+    private bool _sandboxUsersLoading;
+    private string? _sandboxUsersError;
+
+    private bool RequiresMemberTarget =>
+        SelectedScenario.Target == ScenarioTarget.SandboxMember;
+
+    private IEnumerable<SandboxUserItem> AvailableTargets => _sandboxUsers.OrderByDescending(x => x.IsOwner).ThenBy(x => x.DisplayName);
+
+    private UserKey? _loadedUserKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _sandboxUsers.Clear();
+            _selectedSandboxMemberUserKey = null;
+            _accessResult = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+
+        await Task.WhenAll(
+            LoadRolesAsync(),
+            LoadPermissionsAsync(),
+            LoadSandboxUsersAsync(userKey.Value));
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.GetMyRolesAsync(
+                new PageRequest
+                {
+                    PageNumber = _rolePage,
+                    PageSize = RolePageSize
+                });
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _error = result.ErrorText ?? "Unable to load your roles.";
+                return;
+            }
+
+            _roles.Clear();
+            _roles.AddRange(result.Value.Roles.Items);
+
+            _totalRoles = result.Value.Roles.TotalCount;
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load your roles.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadPermissionsAsync()
+    {
+        _permissionsLoading = true;
+        _permissionsError = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.GetMyPermissionsAsync();
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                _permissionsError =
+                    result.ErrorText ?? "Unable to load your permissions.";
+
+                return;
+            }
+
+            _permissions.Clear();
+            _permissions.AddRange(result.Value.Permissions);
+        }
+        catch (Exception)
+        {
+            _permissionsError = "Unable to load your permissions.";
+        }
+        finally
+        {
+            _permissionsLoading = false;
+        }
+    }
+
+    private async Task OnRolePageChangedAsync(int page)
+    {
+        _rolePage = page;
+        await LoadRolesAsync();
+    }
+
+    // private readonly List<string> _availablePermissions = UAuthPermissionCatalog.GetAdminPermissions().OrderBy(x => x).ToList();
+
+    private static readonly IReadOnlyList<string> AvailablePermissions =
+        UAuthPermissionCatalog.GetAll()
+            .Concat(LabDemoPermissions.Manager)
+            .Concat(LabDemoPermissions.Customer)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToArray();
+
+    private string? ResolveResourceId(AccessScenario scenario)
+    {
+        return scenario.Target switch
+        {
+            ScenarioTarget.Self => AuthState.Identity?.UserKey.Value,
+            ScenarioTarget.SandboxMember => _selectedSandboxMemberUserKey,
+
+            _ => null
+        };
+    }
+
+    private async Task EvaluateAccessAsync()
+    {
+        if (_evaluating)
+            return;
+
+        var scenario = SelectedScenario;
+        var resourceId = ResolveResourceId(scenario);
+
+        if (scenario.Target != ScenarioTarget.None &&
+            string.IsNullOrWhiteSpace(resourceId))
+        {
+            Snackbar.Add("A valid target is required.", Severity.Warning);
+            return;
+        }
+
+        if (scenario.Target == ScenarioTarget.SandboxMember &&
+            !AvailableTargets.Any(x => x.UserKey.Value == resourceId))
+        {
+            Snackbar.Add("Select a valid sandbox member.", Severity.Warning);
+            return;
+        }
+
+        _evaluating = true;
+        _accessResult = null;
+
+        try
+        {
+            var result = await UAuthClient.Authorization.CheckAsync(
+                new AuthorizationCheckRequest
+                {
+                    Action = scenario.Action,
+                    Resource = scenario.Resource,
+                    ResourceId = resourceId
+                });
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(result.ErrorText ?? "Access evaluation failed.", Severity.Error);
+                return;
+            }
+
+            _accessResult = result.Value;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to evaluate access.", Severity.Error);
+        }
+        finally
+        {
+            _evaluating = false;
+        }
+    }
+
+    private enum ScenarioTarget
+    {
+        None,
+        Self,
+        SandboxMember
+    }
+
+    private sealed record AccessScenario(
+        string Id,
+        string Group,
+        string Title,
+        string Description,
+        string Action,
+        string Resource,
+        ScenarioTarget Target = ScenarioTarget.None);
+
+    private static readonly IReadOnlyList<AccessScenario> Scenarios =
+    [
+        new("profile-read", "My Account",
+        "View my profile", "Read your own profile.",
+        UAuthActions.UserProfiles.GetSelf, "users.profile", ScenarioTarget.Self),
+
+    new("permissions-read", "My Account",
+        "View my permissions", "Read your inherited permissions.",
+        UAuthActions.Authorization.Permissions.GetSelf,
+        "authorization.permissions", ScenarioTarget.Self),
+
+    new("sessions-read", "My Account",
+        "View my sessions", "List your session chains.",
+        UAuthActions.Sessions.ListChainsSelf, "sessions", ScenarioTarget.Self),
+
+    new("member-profile-read", "Sandbox Administration",
+        "View member profile", "Read another sandbox member's profile.",
+        UAuthActions.UserProfiles.GetAdmin, "users.profile", ScenarioTarget.SandboxMember),
+
+    new("member-identifiers-read", "Sandbox Administration",
+        "View member identifiers", "Read another member's identifiers.",
+        UAuthActions.UserIdentifiers.GetAdmin, "users.identifiers", ScenarioTarget.SandboxMember),
+
+    new("member-credentials-read", "Sandbox Administration",
+        "List member credentials", "Read a member's credentials.",
+        UAuthActions.Credentials.ListAdmin, "credentials", ScenarioTarget.SandboxMember),
+
+    new("member-sessions-read", "Sandbox Administration",
+        "List member sessions", "Read a member's session chains.",
+        UAuthActions.Sessions.ListChainsAdmin, "sessions", ScenarioTarget.SandboxMember),
+
+    new("member-profile-update", "Sandbox Administration",
+        "Update member profile", "Test an Owner-only management operation.",
+        UAuthActions.UserProfiles.UpdateAdmin, "users.profile", ScenarioTarget.SandboxMember),
+
+    new("member-delete", "Sandbox Administration",
+        "Delete member", "Test an Owner-only destructive operation. No deletion occurs.",
+        UAuthActions.Users.DeleteAdmin, "users", ScenarioTarget.SandboxMember),
+
+    new("users-query", "Restricted Operations",
+        "Query all users", "Intentionally blocked by the Identity Lab sandbox.",
+        UAuthActions.Users.QueryAdmin, "users"),
+
+    new("roles-assign", "Restricted Operations",
+        "Assign a role", "Role assignment is restricted by Identity Lab.",
+        UAuthActions.Authorization.Roles.AssignAdmin, "authorization.roles"),
+
+    new("roles-delete", "Restricted Operations",
+        "Delete a role", "Role deletion is restricted by Identity Lab.",
+        UAuthActions.Authorization.Roles.DeleteAdmin, "authorization.roles")
+    ];
+
+    private static string ExplainDecision(string? reason) => reason switch
+    {
+        "sandbox_operation_restricted" => "This operation is intentionally restricted in Identity Lab.",
+
+        "sandbox_target_required" => "This operation requires a specific target user.",
+
+        "sandbox_targets_required" => "One or more target users must be specified.",
+
+        "sandbox_target_out_of_scope" => "The target user does not belong to your sandbox.",
+
+        "sandbox_owner_required" => "Only the sandbox Owner may perform this operation.",
+
+        "sandbox_membership_required" => "Your account must belong to a sandbox.",
+
+        "sandbox_read_only" => "This sandbox currently allows read-only operations.",
+
+        "sandbox_suspended" => "This sandbox is suspended.",
+
+        "sandbox_actor_required" => "An authenticated user is required.",
+
+        "sandbox_owner_cannot_delete_self" => "The sandbox Owner cannot delete their account while owning a sandbox.",
+
+        null or "" => "The authorization requirements were not satisfied.",
+
+        _ => "The request was denied by an authorization rule."
+    };
+
+    private string _selectedScenarioId = "profile-read";
+
+    private AccessScenario SelectedScenario => Scenarios.First(x => x.Id == _selectedScenarioId);
+
+    private Task OnScenarioChanged(string scenarioId)
+    {
+        if (!Scenarios.Any(x => x.Id == scenarioId))
+            return Task.CompletedTask;
+
+        _selectedScenarioId = scenarioId;
+        _accessResult = null;
+
+        if (RequiresMemberTarget &&
+            !AvailableTargets.Any(x =>
+                x.UserKey.Value == _selectedSandboxMemberUserKey))
+        {
+            _selectedSandboxMemberUserKey =
+                AvailableTargets.FirstOrDefault()?.UserKey.Value;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnTargetChanged(string? userKey)
+    {
+        _selectedSandboxMemberUserKey = userKey;
+        _accessResult = null;
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadSandboxUsersAsync(UserKey actorUserKey)
+    {
+        _sandboxUsersLoading = true;
+        _sandboxUsersError = null;
+        _selectedSandboxMemberUserKey = null;
+        _sandboxUsers.Clear();
+
+        try
+        {
+            var snapshot = await SandboxUserService.GetUsersAsync(actorUserKey);
+
+            if (snapshot is null)
+            {
+                _sandboxUsersError = "No sandbox is associated with this account.";
+                return;
+            }
+
+            _sandboxUsers.AddRange(snapshot.Users);
+
+            // Admin scenarios default to another member when possible.
+            var preferredTarget = _sandboxUsers
+                .FirstOrDefault(x => x.UserKey != actorUserKey)
+                ?? _sandboxUsers.FirstOrDefault();
+
+            _selectedSandboxMemberUserKey = preferredTarget?.UserKey.Value;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _sandboxUsersError = "You are not authorized to browse sandbox members.";
+        }
+        catch (Exception)
+        {
+            _sandboxUsersError = "Unable to load sandbox members.";
+        }
+        finally
+        {
+            _sandboxUsersLoading = false;
+        }
+    }
+
+    private static string GetDecisionSource(string? reason)
+    {
+        if (!string.IsNullOrWhiteSpace(reason) &&
+            reason.StartsWith("sandbox_", StringComparison.Ordinal))
+        {
+            return "Identity Lab Sandbox Policy";
+        }
+
+        return "UltimateAuth Authorization";
+    }
+}

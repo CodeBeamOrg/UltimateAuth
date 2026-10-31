@@ -1,0 +1,258 @@
+﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+
+@inject LabAdminService AdminService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h6">
+                    Manage Sandbox
+                </MudText>
+
+                <MudText Typo="Typo.body2"
+                         Color="Color.Secondary">
+                    Update sandbox settings and inspect members.
+                </MudText>
+            </MudStack>
+
+            <MudTabs Rounded="true" Elevation="0" KeepPanelsAlive="true">
+                <MudTabPanel Text="General">
+
+                    <MudStack Spacing="3" Class="pt-4">
+
+                        <MudTextField T="string"
+                                      Label="Sandbox Name"
+                                      @bind-Value="_name"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+
+                        <MudTextField T="string"
+                                      Label="Owner User Key"
+                                      Value="@Sandbox.OwnerUserKey.Value"
+                                      ReadOnly="true"
+                                      Variant="Variant.Outlined" />
+
+                        <MudNumericField T="int"
+                                         Label="Maximum Users"
+                                         @bind-Value="_maxUsers"
+                                         Min="1"
+                                         Max="@SandboxLimits.AbsoluteMaxUsers"
+                                         Variant="Variant.Outlined" />
+
+                        <MudSelect T="SandboxStatus"
+                                   Label="Sandbox Status"
+                                   @bind-Value="_status"
+                                   Variant="Variant.Outlined">
+
+                            <MudSelectItem Value="SandboxStatus.Active">
+                                Active
+                            </MudSelectItem>
+
+                            <MudSelectItem Value="SandboxStatus.Passive">
+                                Passive
+                            </MudSelectItem>
+
+                            <MudSelectItem Value="SandboxStatus.Suspended">
+                                Suspended
+                            </MudSelectItem>
+
+                        </MudSelect>
+
+                        @if (_status != SandboxStatus.Active)
+                        {
+                            <MudAlert Severity="Severity.Warning"
+                                      Variant="Variant.Outlined">
+                                Changing the sandbox status may restrict
+                                member access. User account statuses will
+                                not be changed.
+                            </MudAlert>
+                        }
+
+                    </MudStack>
+
+                </MudTabPanel>
+
+                <MudTabPanel Text="Members">
+                    <MudTable T="AdminSandboxMemberItem" Items="_members" Hover="true" Dense="true" Class="mt-4">
+
+                        <HeaderContent>
+                            <MudTh>User</MudTh>
+                            <MudTh>Role</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="User">
+                                <MudText Typo="Typo.subtitle2">
+                                    @context.DisplayName
+                                </MudText>
+                                <MudText Typo="Typo.caption"
+                                         Color="Color.Secondary">
+                                    @context.Email
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Role">
+                                @context.Role
+                            </MudTd>
+
+                            <MudTd DataLabel="Status">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(context.Status == UserStatus.Active
+                                             ? Color.Success : Color.Warning)">
+                                    @context.Status
+                                </MudChip>
+                            </MudTd>
+
+                            <MudTd DataLabel="Actions">
+                                <MudTooltip Text="Manage user">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts"
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => ManageMemberAsync(context))" />
+                                </MudTooltip>
+                            </MudTd>
+                        </RowTemplate>
+
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudTabPanel>
+
+            </MudTabs>
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error"
+                          Variant="Variant.Outlined">
+                    @_error
+                </MudAlert>
+            }
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Disabled="_saving">
+            Cancel
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="_saving"
+                   OnClick="SaveAsync">
+            Save Changes
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [CascadingParameter]
+    private UAuthState AuthState { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public AdminSandboxItem Sandbox { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public UserKey ActorUserKey { get; set; }
+
+    private string _name = string.Empty;
+    private int _maxUsers;
+    private SandboxStatus _status;
+
+    private List<AdminSandboxMemberItem> _members = [];
+
+    private bool _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _name = Sandbox.Name;
+        _maxUsers = Sandbox.MaxUsers;
+        _status = Sandbox.Status;
+
+        await LoadMembersAsync();
+    }
+
+    private async Task LoadMembersAsync()
+    {
+        try
+        {
+            _members = (await AdminService.GetMemberDetailsAsync(ActorUserKey, Sandbox.SandboxId)).ToList();
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load sandbox members.";
+        }
+
+    }
+
+    private async Task ManageMemberAsync(AdminSandboxMemberItem item)
+    {
+        var parameters = new DialogParameters<UserDetailDialog>
+        {
+            { x => x.AuthState, AuthState },
+            { x => x.UserKey, item.UserKey },
+            { x => x.PreviewMode, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDetailDialog>("Manage User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Large));
+
+        await dialog.Result;
+
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is not null)
+            await LoadMembersAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving)
+            return;
+
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            await AdminService.UpdateSandboxAsync(
+                ActorUserKey,
+                Sandbox.SandboxId,
+                new UpdateSandboxRequest(
+                    _name,
+                    _maxUsers,
+                    _status));
+
+            Snackbar.Add(
+                "Sandbox updated successfully.",
+                Severity.Success);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -177,16 +177,90 @@ internal sealed class InMemoryUserSummaryQueryStore : IUserSummaryQueryStore
             query.Descending);
     }
 
-    private static bool Contains(string? value, string search)
+    public async Task<IReadOnlyList<UserSummary>> GetByKeysAsync(IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default)
     {
-        return value?.Contains(
-            search,
-            StringComparison.InvariantCultureIgnoreCase) ?? false;
+        ArgumentNullException.ThrowIfNull(userKeys);
+        ct.ThrowIfCancellationRequested();
+
+        var keys = userKeys.Distinct().ToArray();
+
+        if (keys.Length == 0)
+            return Array.Empty<UserSummary>();
+
+        var requested = keys.ToHashSet();
+
+        // Reuse the existing lifecycle query to obtain active users.
+        var lifecycles = new List<UserLifecycle>();
+        var page = 1;
+
+        const int pageSize = 500;
+
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var result = await _lifecycles.QueryAsync(
+                new UserLifecycleQuery
+                {
+                    PageNumber = page,
+                    PageSize = pageSize,
+                    IncludeDeleted = false
+                },
+                ct);
+
+            lifecycles.AddRange(result.Items.Where(x => requested.Contains(x.UserKey)));
+
+            if (!result.HasNext)
+                break;
+
+            page++;
+        }
+
+        if (lifecycles.Count == 0)
+            return Array.Empty<UserSummary>();
+
+        var foundKeys = lifecycles.Select(x => x.UserKey).ToArray();
+
+        var profiles = await _profiles.GetByUsersAsync(foundKeys, ProfileKey.Default, ct);
+        var identifiers = await _identifiers.GetByUsersAsync(foundKeys, ct);
+        var profileMap = profiles.ToDictionary(x => x.UserKey);
+
+        var identifierGroups = identifiers
+            .GroupBy(x => x.UserKey)
+            .ToDictionary(x => x.Key, x => x.ToList());
+
+        var summaries = new List<UserSummary>(lifecycles.Count);
+
+        foreach (var lifecycle in lifecycles)
+        {
+            profileMap.TryGetValue(lifecycle.UserKey, out var profile);
+
+            identifierGroups.TryGetValue(lifecycle.UserKey, out var ids);
+
+            summaries.Add(new UserSummary
+            {
+                UserKey = lifecycle.UserKey,
+                Status = lifecycle.Status,
+                CreatedAt = lifecycle.CreatedAt,
+
+                DisplayName = profile?.DisplayName,
+                UserName = PrimaryValue(ids, UserIdentifierType.Username),
+                PrimaryEmail = PrimaryValue(ids, UserIdentifierType.Email),
+                PrimaryPhone = PrimaryValue(ids, UserIdentifierType.Phone)
+            });
+        }
+
+        return summaries
+            .OrderBy(x => x.UserKey.Value, StringComparer.Ordinal)
+            .ToArray();
     }
 
-    private static string? PrimaryValue(
-        IReadOnlyList<UserIdentifier>? identifiers,
-        UserIdentifierType type)
+    private static bool Contains(string? value, string search)
+    {
+        return value?.Contains(search, StringComparison.InvariantCultureIgnoreCase) ?? false;
+    }
+
+    private static string? PrimaryValue(IReadOnlyList<UserIdentifier>? identifiers, UserIdentifierType type)
     {
         return identifiers?
             .Where(x => x.Type == type && x.IsPrimary)

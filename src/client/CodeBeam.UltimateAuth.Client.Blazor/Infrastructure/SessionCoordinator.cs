@@ -53,7 +53,9 @@ internal sealed class SessionCoordinator : ISessionCoordinator
         {
             while (!ct.IsCancellationRequested)
             {
+                _diagnostics.SetNextAutomaticRefresh(_clock.UtcNow.Add(interval));
                 await Task.Delay(interval, ct);
+                _diagnostics.SetNextAutomaticRefresh(null);
                 await TickAsync();
 
                 if (_diagnostics.IsTerminated)
@@ -62,6 +64,11 @@ internal sealed class SessionCoordinator : ISessionCoordinator
         }
         catch (OperationCanceledException)
         {
+            // Normal coordinator shutdown.
+        }
+        finally
+        {
+            _diagnostics.SetNextAutomaticRefresh(null);
         }
     }
 

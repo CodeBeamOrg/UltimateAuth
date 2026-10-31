@@ -7,39 +7,39 @@ assignees: ""
 ---
 
 ## 🧠 Summary
-Briefly describe the concept or design you're proposing.
+<!-- Briefly describe the concept or design you're proposing. -->
 
 ---
 
-## 🎯 Goals
-What problem does this design solve?
-What are the objectives?
+## Goals
+<!-- What problem does this design solve?
+What are the objectives? -->
 
 ---
 
-## 🧩 Proposed Architecture
-Describe how this feature or change should work:
+## Proposed Architecture
+<!-- Describe how this feature or change should work:
 - Components involved  
 - Flow diagrams (optional)  
 - Key abstractions  
-- Input/output expectations
+- Input/output expectations -->
 
 ---
 
-## 🧪 Alternatives Considered
-List alternative designs and why they were not chosen.
+## Alternatives Considered
+<!-- List alternative designs and why they were not chosen. -->
 
 ---
 
-## 🔥 Risks / Trade-offs
-Any potential drawbacks or complexities?
+## Risks / Trade-offs
+<!-- Any potential drawbacks or complexities? -->
 
 ---
 
-## 🔗 Related Issues
-(Optional) Provide related bugs, features, or discussions.
+## Related Issues
+<!-- (Optional) Provide related bugs, features, or discussions. -->
 
 ---
 
-## ✔ Additional Notes
-Add anything else that may help the maintainers evaluate this proposal.
+## Additional Notes
+<!-- Add anything else that may help the maintainers evaluate this proposal. -->

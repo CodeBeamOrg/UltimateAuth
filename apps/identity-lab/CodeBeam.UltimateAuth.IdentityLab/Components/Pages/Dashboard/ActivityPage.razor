@@ -1,0 +1,305 @@
+﻿@page "/dashboard/activity"
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+@layout DashboardLayout
+
+@attribute [UAuthAuthorize]
+@inherits UAuthComponentBase
+
+@inject SandboxService SandboxService
+@inject ActivityLogService ActivityLogService
+
+<PageTitle>Activity · Identity Lab</PageTitle>
+
+<div class="lab-activity-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-activity-heading">
+            <div>
+                <span class="lab-activity-eyebrow">SANDBOX MANAGEMENT</span>
+                <h1>Activity</h1>
+                <p>Review identity, session, and authorization activity within your sandbox.</p>
+            </div>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@_loading"
+                       OnClick="RefreshActivityAsync">
+                Refresh
+            </MudButton>
+        </div>
+
+        <div class="lab-activity-stats">
+            <div class="lab-activity-stat">
+                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" />
+                <span>Recorded Events</span>
+                <strong>@_events.Count</strong>
+                <small>Example activity records</small>
+            </div>
+
+            <div class="lab-activity-stat">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" />
+                <span>Actors</span>
+                <strong>@_events.Select(x => x.ActorUserKey).Distinct().Count()</strong>
+                <small>Example users</small>
+            </div>
+
+            <div class="lab-activity-stat">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
+                <span>Login Events</span>
+                <strong>@_events.Count(x => x.EventType == ActivityEvents.Login)</strong>
+                <small>Security activity</small>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error"
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                @_error
+            </MudAlert>
+        }
+
+        <section class="lab-activity-panel">
+
+            <div class="lab-activity-panel-heading">
+                <div>
+                    <h2>Activity Log</h2>
+                    <p>Explore events recorded within this sandbox.</p>
+                </div>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.FileDownload"
+                           Disabled="true">
+                    Export
+                </MudButton>
+            </div>
+
+            <div class="lab-activity-toolbar">
+                <MudTextField T="string"
+                              @bind-Value="_search"
+                              Immediate="true"
+                              Placeholder="Search events or users"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="lab-activity-search" />
+
+                <MudSelect T="string"
+                           @bind-Value="_period"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="lab-activity-filter">
+                    <MudSelectItem Value="@("all")">All dates</MudSelectItem>
+                    <MudSelectItem Value="@("7")">Last 7 days</MudSelectItem>
+                    <MudSelectItem Value="@("30")">Last 30 days</MudSelectItem>
+                </MudSelect>
+            </div>
+
+            <MudTable T="ActivityLog"
+                      Items="@FilteredEvents"
+                      Hover="true"
+                      Loading="@_loading"
+                      Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10"
+                      Class="lab-activity-table">
+
+                <HeaderContent>
+                    <MudTh>Event</MudTh>
+                    <MudTh>Actor</MudTh>
+                    <MudTh>Target</MudTh>
+                    <MudTh>Date</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+
+                    <MudTd DataLabel="Event">
+                        <div class="lab-activity-event">
+                            <span class="lab-activity-event-icon">
+                                <MudIcon Icon="@GetEventIcon(context.EventType)"
+                                         Size="Size.Small" />
+                            </span>
+
+                            <div>
+                                <strong>@GetEventTitle(context.EventType)</strong>
+                            </div>
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Actor">
+                        <span class="lab-activity-actor">
+                            @context.ActorUserKey
+                        </span>
+                    </MudTd>
+
+                    <MudTd DataLabel="Target">
+                        @(context.TargetUserKey ?? "—")
+                    </MudTd>
+
+                    <MudTd DataLabel="Date">
+                        <span class="lab-activity-date">
+                            @context.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")
+                        </span>
+                    </MudTd>
+
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="lab-activity-empty">
+                        <MudIcon Icon="@Icons.Material.Filled.History"
+                                 Color="Color.Secondary"
+                                 Size="Size.Large" />
+
+                        <strong>No activity recorded</strong>
+                        <p>Activity will appear here as users interact with the sandbox.</p>
+                    </div>
+                </NoRecordsContent>
+
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+
+            </MudTable>
+        </section>
+
+        <MudAlert Severity="Severity.Info"
+                  Variant="Variant.Text"
+                  Dense="true"
+                  Class="mt-5">
+            Activity records are temporarily stored by Identity Lab.
+            This lightweight activity history will be replaced by UltimateAuth's built-in audit system once it becomes available.
+        </MudAlert>
+
+    </MudContainer>
+</div>
+
+@code {
+    private readonly List<ActivityLog> _events = [];
+
+    private string _search = string.Empty;
+    private string _period = "all";
+
+    private bool _loading;
+    private string? _error;
+
+    private UserKey? _loadedUserKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _events.Clear();
+            _error = null;
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        _loadedUserKey = userKey;
+
+        await InitializeActivityAsync(userKey.Value);
+    }
+
+    private async Task InitializeActivityAsync(UserKey currentUserKey)
+    {
+        _events.Clear();
+        _error = null;
+
+        var sandbox = await SandboxService.GetByUserAsync(currentUserKey);
+
+        if (sandbox is null)
+        {
+            _error = "You are not a member of any sandbox.";
+            return;
+        }
+
+        if (sandbox.Status != SandboxStatus.Active)
+        {
+            _error = "Your sandbox is not active.";
+            return;
+        }
+
+        await LoadActivityAsync(currentUserKey);
+    }
+
+    private async Task LoadActivityAsync(UserKey currentUserKey)
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var events = await ActivityLogService.GetRecentAsync(
+                currentUserKey,
+                take: 100);
+
+            _events.Clear();
+            _events.AddRange(events);
+        }
+        catch (Exception)
+        {
+            _events.Clear();
+            _loadedUserKey = null;
+            _error = "Unable to load activity records.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RefreshActivityAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+            return;
+
+        await InitializeActivityAsync(userKey.Value);
+    }
+
+    private IEnumerable<ActivityLog> FilteredEvents =>
+        _events
+            .Where(x =>
+                (string.IsNullOrWhiteSpace(_search) ||
+                 x.EventType.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 x.ActorUserKey.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 (x.TargetUserKey?.Contains(
+                     _search,
+                     StringComparison.OrdinalIgnoreCase) ?? false)) &&
+                (_period == "all" ||
+                 (int.TryParse(_period, out var days) &&
+                  x.CreatedAt >= DateTimeOffset.UtcNow.AddDays(-days))))
+            .OrderByDescending(x => x.CreatedAt);
+
+    private static string GetEventTitle(string eventType) => eventType switch
+    {
+        "user.login" => "User Logged In",
+        "user.logout" => "User Logged Out",
+        "user.created" => "User Created",
+        "user.updated" => "User Updated",
+        "user.deleted" => "User Deleted",
+        _ => eventType
+    };
+
+    private static string GetEventIcon(string eventType) => eventType switch
+    {
+        "user.login" => Icons.Material.Filled.Login,
+        "user.logout" => Icons.Material.Filled.Logout,
+        "user.created" => Icons.Material.Filled.PersonAdd,
+        "user.updated" => Icons.Material.Filled.ManageAccounts,
+        "user.deleted" => Icons.Material.Filled.PersonRemove,
+        _ => Icons.Material.Filled.History
+    };
+}

@@ -1,216 +1,358 @@
 ﻿@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.Users.Contracts
 @inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IUAuthStateManager StateManager
 @inject NavigationManager Nav
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-session-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Session Management</MudText>
-        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
-            @if (UserKey is null)
-            {
-                <text>User: @AuthState?.Identity?.DisplayName</text>
-            }
-            else
-            {
-                <text>UserKey: @UserKey.Value</text>
-            }
-        </MudText>
+        <div class="lab-session-header">
+            <div class="lab-session-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Devices"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-session-header-text">
+                <MudText Typo="Typo.h6">Session Management</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Review connected devices, session activity and access.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
-    <DialogContent>
-        @if (_chainDetail is not null)
-        {
-            <MudPaper Class="pa-4 mud-width-full" Elevation="0" >
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" Variant="Variant.Filled" OnClick="ClearDetail" />
-                    <MudText Typo="Typo.h6">Device Details</MudText>
 
-                    <MudSpacer />
+    <DialogContent>
+        <div class="lab-session-content">
+            @if (PreviewMode)
+            {
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. Session actions are disabled.
+                </MudAlert>
+            }
+
+            @if (_chainDetail is not null)
+            {
+                <div class="lab-session-detail-toolbar">
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               OnClick="ClearDetail">
+                        All Devices
+                    </MudButton>
 
                     @if (!_chainDetail.IsRevoked)
                     {
-                        <MudButton StartIcon="@Icons.Material.Filled.Logout" Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => RevokeChainAsync(_chainDetail.ChainId))">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Block"
+                                   Disabled="@_loading"
+                                   OnClick="@(() => RevokeChainAsync(_chainDetail.ChainId))">
                             Revoke Device
                         </MudButton>
                     }
-                </MudStack>
+                </div>
 
-                <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
-                    <MudGrid Spacing="3">
+                <div class="lab-session-section-heading">
+                    <strong>Device Details</strong>
+                    <span>Information recorded for this authentication chain.</span>
+                </div>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Device Type</MudText>
-                            <MudText>@_chainDetail.DeviceType</MudText>
-                        </MudItem>
+                <div class="lab-session-detail-grid">
+                    <div class="lab-session-detail-item">
+                        <span>Device Type</span>
+                        <strong>@_chainDetail.DeviceType</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Platform</span>
+                        <strong>@_chainDetail.Platform</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Operating System</span>
+                        <strong>@_chainDetail.OperatingSystem</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Browser</span>
+                        <strong>@_chainDetail.Browser</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Created</span>
+                        <strong>@_chainDetail.CreatedAt.ToLocalTime().ToString("g")</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Last Seen</span>
+                        <strong>@_chainDetail.LastSeenAt.ToLocalTime().ToString("g")</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>State</span>
+                        <strong>@_chainDetail.State</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Active Session</span>
+                        <strong class="lab-session-break">@_chainDetail.ActiveSessionId</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Rotation Count</span>
+                        <strong>@_chainDetail.RotationCount</strong>
+                    </div>
+                    <div class="lab-session-detail-item">
+                        <span>Touch Count</span>
+                        <strong>@_chainDetail.TouchCount</strong>
+                    </div>
+                </div>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Platform</MudText>
-                            <MudText>@_chainDetail.Platform</MudText>
-                        </MudItem>
+                <MudDivider />
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Operating System</MudText>
-                            <MudText>@_chainDetail.OperatingSystem</MudText>
-                        </MudItem>
+                <div class="lab-session-section-heading">
+                    <strong>Session History</strong>
+                    <span>Sessions associated with this device chain.</span>
+                </div>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Browser</MudText>
-                            <MudText>@_chainDetail.Browser</MudText>
-                        </MudItem>
+                <div class="lab-session-history">
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Created</MudText>
-                            <MudText>@_chainDetail.CreatedAt.ToLocalTime()</MudText>
-                        </MudItem>
+                    @foreach (var session in _chainDetail.Sessions
+                        .OrderByDescending(x => x.CreatedAt)
+                        .Skip((_sessionPage - 1) * SessionPageSize)
+                        .Take(SessionPageSize))
+                    {
+                        // Mevcut lab-session-history-item içeriği
+                    }
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Last Seen</MudText>
-                            <MudText>@_chainDetail.LastSeenAt.ToLocalTime()</MudText>
-                        </MudItem>
+                    <MudPagination Count="@Math.Max(1,
+                                       (_chainDetail.Sessions.Count() + SessionPageSize - 1)
+                                       / SessionPageSize)"
+                                   Selected="@_sessionPage"
+                                   SelectedChanged="@((int page) => _sessionPage = page)"
+                                   Color="Color.Primary" />
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">State</MudText>
-                            <MudChip T="string" Class="ml-n1" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
-                                @_chainDetail.State
-                            </MudChip>
-                        </MudItem>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Active Session</MudText>
-                            <MudText>@_chainDetail.ActiveSessionId</MudText>
-                        </MudItem>
+                    @foreach (var session in _chainDetail.Sessions)
+                    {
+                        <div class="lab-session-history-item">
+                            <div class="lab-session-history-top">
+                                <span class="lab-session-break">
+                                    @session.SessionId
+                                </span>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Rotation Count</MudText>
-                            <MudText>@_chainDetail.RotationCount</MudText>
-                        </MudItem>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(session.IsRevoked ? Color.Error : Color.Success)"
+                                         Variant="Variant.Outlined">
+                                    @(session.IsRevoked ? "Revoked" : "Not Revoked")
+                                </MudChip>
+                            </div>
+                            <div class="lab-session-history-dates">
+                                <span>Created: @session.CreatedAt.ToLocalTime().ToString("g")</span>
+                                <span>Expires: @session.ExpiresAt.ToLocalTime().ToString("g")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="lab-session-section-heading">
+                    <strong>Device Access</strong>
+                    <span>Manage active device chains and terminate access when needed.</span>
+                </div>
 
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle2" Style="color: var(--mud-palette-text-secondary)">Touch Count</MudText>
-                            <MudText>@_chainDetail.TouchCount</MudText>
-                        </MudItem>
+                <div class="lab-session-bulk-actions">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@(_loading || PreviewMode)"
+                               OnClick="LogoutAllAsync">
+                        Logout All
+                    </MudButton>
 
-                    </MudGrid>
-                </MudPaper>
+                    @if (UserKey is null)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Disabled="@(_loading || PreviewMode)"
+                                   OnClick="LogoutOthersAsync">
+                            Logout Others
+                        </MudButton>
+                    }
 
-                <MudText Typo="Typo.h6" Class="mb-2">Session History</MudText>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               Disabled="@(_loading || PreviewMode)"
+                               OnClick="RevokeAllAsync">
+                        Revoke All
+                    </MudButton>
 
-                <MudTable Items="_chainDetail.Sessions" Dense="true" Hover="true" Bordered="true" Striped="true">
-                    <HeaderContent>
-                        <MudTh>Session Id</MudTh>
-                        <MudTh>Created</MudTh>
-                        <MudTh>Expires</MudTh>
-                        <MudTh>Status</MudTh>
-                    </HeaderContent>
+                    @if (UserKey is null)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   Disabled="@(_loading || PreviewMode)"
+                                   OnClick="RevokeOthersAsync">
+                            Revoke Others
+                        </MudButton>
+                    }
+                </div>
 
-                    <RowTemplate>
-                        <MudTd>@context.SessionId</MudTd>
-                        <MudTd>@context.CreatedAt.ToLocalTime()</MudTd>
-                        <MudTd>@context.ExpiresAt.ToLocalTime()</MudTd>
-                        <MudTd>
-                            @if (context.IsRevoked)
-                            {
-                                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small">Revoked</MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">Active</MudChip>
-                            }
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </MudPaper>
-        }
-        else
-        {
-            <MudStack Class="mud-width-full mb-4" Row="true">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="LogoutAllAsync">Logout All Devices</MudButton>
-                @if (UserKey == null)
+                <MudDivider />
+
+                <div class="lab-session-list-heading">
+                    <div class="lab-session-section-heading">
+                        <strong>Connected Devices</strong>
+                        <span>Authentication chains associated with this identity.</span>
+                    </div>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Disabled="@(_loading || PreviewMode)"
+                                   OnClick="ReloadAsync"
+                                   aria-label="Refresh sessions" />
+                </div>
+
+                @if (PreviewMode)
                 {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="LogoutOthersAsync">Logout Other Devices</MudButton>
+                    <div class="lab-session-device-list">
+                        @foreach (var device in _previewDevices)
+                        {
+                            <div class="lab-session-device-card">
+                                <div class="lab-session-device-top">
+                                    <div class="lab-session-device-icon">
+                                        <MudIcon Icon="@device.Icon"
+                                                 Size="Size.Medium" />
+                                    </div>
+                                    <div class="lab-session-device-info">
+                                        <strong>@device.Name</strong>
+                                        <span>@device.Platform · @device.Browser</span>
+                                    </div>
+                                    @if (device.IsCurrent)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="Color.Primary"
+                                                 Variant="Variant.Outlined">
+                                            Current
+                                        </MudChip>
+                                    }
+                                </div>
+                                <div class="lab-session-device-bottom">
+                                    <span>Last seen: @device.LastSeen</span>
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Text"
+                                               Disabled="true">
+                                        Details
+                                    </MudButton>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 }
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="RevokeAllAsync">Revoke All Devices</MudButton>
-                @if (UserKey == null)
+                else
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.SensorsOff" OnClick="RevokeOthersAsync">Revoke Other Devices</MudButton>
+                    <MudDataGrid @ref="_grid"
+                                 T="SessionChainSummary"
+                                 ServerData="LoadServerData"
+                                 Loading="@_loading"
+                                 Dense="true"
+                                 Hover="true"
+                                 Elevation="0"
+                                 Bordered="false"
+                                 Striped="false"
+                                 Filterable="false"
+                                 ReadOnly="true"
+                                 Class="lab-session-grid">
+                        <Columns>
+                            <TemplateColumn Title="Device">
+                                <CellTemplate>
+                                    <div class="lab-session-grid-device">
+                                        <strong>@context.Item.OperatingSystem</strong>
+                                        <span>@context.Item.Platform · @context.Item.Browser</span>
+                                    </div>
+                                </CellTemplate>
+                            </TemplateColumn>
+
+                            <TemplateColumn Title="State">
+                                <CellTemplate>
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Variant="Variant.Outlined">
+                                        @context.Item.State
+                                    </MudChip>
+                                </CellTemplate>
+                            </TemplateColumn>
+
+                            <TemplateColumn Title="Current">
+                                <CellTemplate>
+                                    @if (context.Item.IsCurrentDevice)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="Color.Primary"
+                                                 Variant="Variant.Outlined">
+                                            Current
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption">—</MudText>
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+
+                            <PropertyColumn Property="x => x.LastSeenAt"
+                                            Title="Last Seen"
+                                            Editable="false" />
+
+                            <TemplateColumn Title="Actions">
+                                <CellTemplate>
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudTooltip Text="Device Details">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                           Size="Size.Small"
+                                                           Color="Color.Primary"
+                                                           Disabled="@_loading"
+                                                           OnClick="@(() => ShowChainDetailsAsync(context.Item.ChainId))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Logout Device">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                                                           Size="Size.Small"
+                                                           Disabled="@_loading"
+                                                           OnClick="@(() => LogoutDeviceAsync(context.Item.ChainId))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Revoke Device">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           Disabled="@_loading"
+                                                           OnClick="@(() => RevokeChainAsync(context.Item.ChainId))" />
+                                        </MudTooltip>
+                                    </MudStack>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+
+                        <PagerContent>
+                            <MudDataGridPager T="SessionChainSummary"
+                                              PageSizeOptions="new int[] { 5, 10, 20 }" />
+                        </PagerContent>
+                    </MudDataGrid>
                 }
-            </MudStack>
-            <MudDataGrid @ref="@_grid" T="SessionChainSummary" ServerData="LoadServerData" Hover="true" Bordered="true" Striped="true" Dense="true" Elevation="0"
-                         EditMode="DataGridEditMode.Form" ReadOnly="false" Loading="@_loading" Filterable="false">
-                <ToolBarContent>
-                    <MudText>Sessions</MudText>
-                    <MudSpacer />
-                    <MudDivider Style="width: 30%" />
-                    <MudSpacer />
-                    <MudIconButton Variant="Variant.Filled" Color="Color.Primary" Icon="@Icons.Material.Filled.Refresh" OnClick="ReloadAsync" />
-                </ToolBarContent>
-                <Columns>
-                    <HierarchyColumn T="SessionChainSummary" />
-                    <PropertyColumn Property="x => x.State" Title="State" Editable="false">
-                        <CellTemplate>
-                            <MudChip T="string" Class="ml-n1" Size="Size.Small" Text="@context.Item.State.ToDescriptionString()" />
-                        </CellTemplate>
-                    </PropertyColumn>
-                    <PropertyColumn Property="x => x.IsCurrentDevice" Title="Current Device" Editable="false">
-                        <CellTemplate>
-                            <MudIcon Size="Size.Small" Icon="@(context.Item.IsCurrentDevice ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
-                        </CellTemplate>
-                    </PropertyColumn>
-                    <PropertyColumn Property="x => x.OperatingSystem" Title="Operating System" Editable="false" />
-                    <PropertyColumn Property="x => x.Platform" Title="Platform" Editable="false" />
-                    <PropertyColumn Property="x => x.Browser" Title="Browser" Editable="false" />
-                    <PropertyColumn Property="x => x.LastSeenAt" Title="Last Seen At" Editable="false" />
-                    <TemplateColumn Title="Actions" Editable="false" StickyRight="true">
-                        <CellTemplate>
-                            <MudStack Style="min-width: 120px" Row="true" Spacing="2" Wrap="Wrap.Wrap">
-                                <MudTooltip Text="Details" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.ViewList" Size="Size.Small" OnClick="@(() => ShowChainDetailsAsync(context.Item.ChainId))" />
-                                </MudTooltip>
-
-                                <MudTooltip Text="Logout Device" Color="Color.Primary" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Logout" Size="Size.Small" OnClick="@(() => LogoutDeviceAsync(context.Item.ChainId))" />
-                                </MudTooltip>
-
-                                <MudTooltip Text="Revoke Device" Color="Color.Error" Delay="300" ShowOnFocus="false">
-                                    <MudIconButton Color="Color.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.SensorsOff" Size="Size.Small" OnClick="@(() => RevokeChainAsync(context.Item.ChainId))" />
-                                </MudTooltip>
-                            </MudStack>
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-                <ChildRowContent>
-                    <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6">
-                            <MudText Typo="Typo.subtitle2">Id</MudText>
-                            <MudText>@context.Item.ChainId</MudText>
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudText Typo="Typo.subtitle2">Created At</MudText>
-                            <MudText>@context.Item.CreatedAt</MudText>
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudText Typo="Typo.subtitle2">Touch Count</MudText>
-                            <MudText>@context.Item.TouchCount</MudText>
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudText Typo="Typo.subtitle2">Rotation Count</MudText>
-                            <MudText>@context.Item.RotationCount</MudText>
-                        </MudItem>
-                    </MudGrid>
-                    
-                </ChildRowContent>
-                <PagerContent>
-                    <MudDataGridPager T="SessionChainSummary" PageSizeOptions="new int[] { 5, 10, 20 }" />
-                </PagerContent>
-            </MudDataGrid>
-        }
+            }
+        </div>
     </DialogContent>
+
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <div class="lab-session-footer">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_loading"
+                       OnClick="Cancel">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

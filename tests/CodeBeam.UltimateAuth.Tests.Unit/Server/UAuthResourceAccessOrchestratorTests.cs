@@ -46,11 +46,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Allow());
+        SetupAuthority(AccessDecision.Allow());
 
         var executions = 0;
 
@@ -75,11 +71,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Deny("permission_required"));
+        SetupAuthority(AccessDecision.Deny("permission_required"));
 
         var command = new AccessCommand(_ => Task.CompletedTask);
 
@@ -100,11 +92,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Deny("denied"));
+        SetupAuthority(AccessDecision.Deny("denied"));
 
         var executed = false;
 
@@ -132,11 +120,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Deny(null));
+        SetupAuthority(AccessDecision.Deny(null));
 
         var command = new AccessCommand(_ => Task.CompletedTask);
 
@@ -157,11 +141,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.ReauthenticationRequired());
+        SetupAuthority(AccessDecision.ReauthenticationRequired());
 
         var executed = false;
 
@@ -194,11 +174,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Callback<AccessContext>(x => captured = x)
             .Returns(Array.Empty<IAccessPolicy>());
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(AccessDecision.Allow());
+        SetupAuthority(AccessDecision.Allow());
 
         await _sut.ExecuteAsync(
             original,
@@ -226,11 +202,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Callback<AccessContext>(x => captured = x)
             .Returns(Array.Empty<IAccessPolicy>());
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(AccessDecision.Allow());
+        SetupAuthority(AccessDecision.Allow());
 
         await _sut.ExecuteAsync(
             CreateContext(),
@@ -256,11 +228,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Callback<AccessContext>(x => captured = x)
             .Returns(Array.Empty<IAccessPolicy>());
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()))
-            .Returns(AccessDecision.Allow());
+        SetupAuthority(AccessDecision.Allow());
 
         await _sut.ExecuteAsync(
             CreateContext(),
@@ -287,12 +255,14 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Returns(policies);
 
         _authority
-            .Setup(x => x.Decide(
+            .Setup(x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                policies))
-            .Callback<AccessContext, IEnumerable<IAccessPolicy>>(
-                (context, _) => authorityContext = context)
-            .Returns(AccessDecision.Allow());
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AccessContext, IEnumerable<IAccessPolicy>, CancellationToken>(
+                (context, _, _) => authorityContext = context)
+            .Returns(new ValueTask<AccessDecision>(
+                AccessDecision.Allow()));
 
         await _sut.ExecuteAsync(
             CreateContext(),
@@ -315,11 +285,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Allow());
+        SetupAuthority(AccessDecision.Allow());
 
         var command = new AccessCommand<string>(
             _ => Task.FromResult("result"));
@@ -339,11 +305,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.Deny("forbidden"));
+        SetupAuthority(AccessDecision.Deny("forbidden"));
 
         var executed = false;
 
@@ -383,9 +345,10 @@ public sealed class UAuthResourceAccessOrchestratorTests
             Times.Never);
 
         _authority.Verify(
-            x => x.Decide(
+            x => x.DecideAsync(
                 It.IsAny<AccessContext>(),
-                It.IsAny<IEnumerable<IAccessPolicy>>()),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -398,11 +361,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
             .Returns(policies);
 
-        _authority
-            .Setup(x => x.Decide(
-                It.IsAny<AccessContext>(),
-                policies))
-            .Returns(AccessDecision.ReauthenticationRequired());
+        SetupAuthority(AccessDecision.ReauthenticationRequired());
 
         var executed = false;
 
@@ -424,6 +383,74 @@ public sealed class UAuthResourceAccessOrchestratorTests
         executed.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task ExecuteAsync_ShouldForwardCancellationTokenToAuthority()
+    {
+        using var cts = new CancellationTokenSource();
+
+        CancellationToken receivedToken = default;
+
+        _policyProvider
+            .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
+            .Returns(Array.Empty<IAccessPolicy>());
+
+        _authority
+            .Setup(x => x.DecideAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AccessContext, IEnumerable<IAccessPolicy>, CancellationToken>(
+                (_, _, ct) => receivedToken = ct)
+            .Returns(new ValueTask<AccessDecision>(
+                AccessDecision.Allow()));
+
+        await _sut.ExecuteAsync(
+            CreateContext(),
+            new AccessCommand(_ => Task.CompletedTask),
+            cts.Token);
+
+        receivedToken.Should().Be(cts.Token);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldAwaitAuthorityBeforeExecutingCommand()
+    {
+        var completion = new TaskCompletionSource<AccessDecision>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _policyProvider
+            .Setup(x => x.GetPolicies(It.IsAny<AccessContext>()))
+            .Returns(Array.Empty<IAccessPolicy>());
+
+        _authority
+            .Setup(x => x.DecideAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() => new ValueTask<AccessDecision>(
+                completion.Task));
+
+        var executed = false;
+
+        var command = new AccessCommand(_ =>
+        {
+            executed = true;
+            return Task.CompletedTask;
+        });
+
+        var executionTask = _sut.ExecuteAsync(
+            CreateContext(),
+            command);
+
+        executed.Should().BeFalse();
+
+        completion.SetResult(AccessDecision.Allow());
+
+        await executionTask;
+
+        executed.Should().BeTrue();
+    }
+
 
     private static ClaimsPrincipal CreatePrincipal(
         params (string Type, string Value)[] claims)
@@ -442,11 +469,22 @@ public sealed class UAuthResourceAccessOrchestratorTests
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: null,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: null,
             resourceTenant: default,
             action: "users.read",
             attributes: EmptyAttributes.Instance);
+    }
+
+    private void SetupAuthority(AccessDecision decision)
+    {
+        _authority
+            .Setup(x => x.DecideAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<IEnumerable<IAccessPolicy>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<AccessDecision>(decision));
     }
 
     private static CompiledPermissionSet GetCompiledPermissions(

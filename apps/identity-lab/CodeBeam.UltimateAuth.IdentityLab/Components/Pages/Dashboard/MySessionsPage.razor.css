@@ -1,0 +1,446 @@
+﻿.lab-sessions-page {
+    padding: 42px 0 80px;
+}
+
+.lab-sessions-heading,
+.lab-sessions-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.lab-sessions-heading {
+    margin-bottom: 30px;
+}
+
+.lab-sessions-eyebrow {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--mud-palette-primary);
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.lab-sessions-heading h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.lab-sessions-heading p,
+.lab-sessions-section-heading p {
+    margin: 8px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: .83rem;
+    line-height: 1.6;
+}
+
+.lab-sessions-section-heading {
+    align-items: center;
+    margin: 34px 0 19px;
+}
+
+    .lab-sessions-section-heading h2 {
+        margin: 0;
+        font-size: 1.12rem;
+        font-weight: 750;
+        letter-spacing: -.4px;
+    }
+
+.lab-sessions-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.lab-session-stat,
+.lab-sessions-panel,
+.lab-device-card,
+.lab-session-actions {
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 16px;
+}
+
+.lab-session-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 23px;
+}
+
+.lab-session-stat-icon,
+.lab-device-icon,
+.lab-session-action-icon,
+.lab-tree-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+}
+
+.lab-session-stat > span:nth-child(2) {
+    margin-top: 18px;
+    font-size: .77rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.lab-session-stat strong {
+    margin-top: 5px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.lab-session-stat small {
+    margin-top: 5px;
+    font-size: .72rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.lab-device-list {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.lab-device-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 23px;
+}
+
+.lab-device-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.lab-device-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+    .lab-device-title strong {
+        font-size: .92rem;
+        font-weight: 750;
+    }
+
+.lab-device-main > p {
+    margin: 5px 0 12px;
+    color: var(--mud-palette-text-secondary);
+    font-size: .76rem;
+}
+
+.lab-device-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+    .lab-device-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--mud-palette-text-secondary);
+        font-size: .72rem;
+    }
+
+.lab-sessions-hierarchy-heading {
+    margin-top: 48px;
+}
+
+.lab-hierarchy-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.lab-sessions-panel {
+    min-width: 0;
+    padding: 26px;
+}
+
+.lab-panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+}
+
+    .lab-panel-title h3 {
+        margin: 0;
+        font-size: .98rem;
+        font-weight: 750;
+    }
+
+.lab-hierarchy-tree {
+    padding: 4px 0;
+}
+
+.lab-tree-node,
+.lab-tree-leaf {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+    .lab-tree-node > div,
+    .lab-tree-leaf > div {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .lab-tree-node strong,
+    .lab-tree-leaf strong {
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .lab-tree-node span,
+    .lab-tree-leaf span {
+        font-size: .71rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-tree-root {
+    padding: 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+}
+
+.lab-tree-branch {
+    margin: 0 0 0 32px;
+    padding: 20px 0 0 24px;
+    border-left: 2px solid var(--mud-palette-lines-default);
+}
+
+    .lab-tree-branch > .lab-tree-node {
+        position: relative;
+        margin-bottom: 12px;
+    }
+
+        .lab-tree-branch > .lab-tree-node::before {
+            content: "";
+            position: absolute;
+            left: -24px;
+            top: 22px;
+            width: 20px;
+            height: 2px;
+            background: var(--mud-palette-lines-default);
+        }
+
+.lab-tree-leaf {
+    margin: 0 0 25px 21px;
+    padding: 13px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 11px;
+    background: var(--mud-palette-background);
+}
+
+    .lab-tree-leaf:last-child {
+        margin-bottom: 0;
+    }
+
+.lab-explanation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+}
+
+.lab-explanation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.lab-explanation-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.lab-explanation-item strong {
+    font-size: .85rem;
+    font-weight: 750;
+}
+
+.lab-explanation-item p {
+    margin: 5px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: .76rem;
+    line-height: 1.65;
+}
+
+.lab-sessions-security-heading {
+    margin-top: 48px;
+}
+
+.lab-session-actions {
+    overflow: hidden;
+}
+
+.lab-session-action {
+    display: flex;
+    align-items: center;
+    gap: 17px;
+    padding: 22px 25px;
+}
+
+    .lab-session-action + .lab-session-action {
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .lab-session-action > div:nth-child(2) {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .lab-session-action strong {
+        font-size: .86rem;
+        font-weight: 750;
+    }
+
+    .lab-session-action p {
+        margin: 5px 0 0;
+        color: var(--mud-palette-text-secondary);
+        font-size: .75rem;
+        line-height: 1.5;
+    }
+
+
+.lab-device-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.lab-device-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lab-device-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+    .lab-device-meta span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+
+@media (max-width: 1100px) {
+    .lab-hierarchy-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .lab-sessions-page {
+        padding: 28px 0 52px;
+    }
+
+    .lab-sessions-heading,
+    .lab-sessions-section-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .lab-sessions-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .lab-device-card {
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 19px;
+    }
+
+    .lab-device-main {
+        flex-basis: calc(100% - 65px);
+    }
+
+    .lab-device-card > .mud-button {
+        margin-left: auto;
+    }
+
+    .lab-session-action {
+        flex-wrap: wrap;
+        padding: 20px;
+    }
+
+        .lab-session-action > div:nth-child(2) {
+            flex-basis: calc(100% - 65px);
+        }
+
+        .lab-session-action > .mud-button {
+            margin-left: auto;
+        }
+}
+
+@media (max-width: 480px) {
+    .lab-sessions-panel {
+        padding: 18px;
+    }
+
+    .lab-tree-branch {
+        margin-left: 16px;
+        padding-left: 16px;
+    }
+
+        .lab-tree-branch > .lab-tree-node::before {
+            left: -16px;
+            width: 13px;
+        }
+
+    .lab-tree-leaf {
+        margin-left: 8px;
+        padding: 10px;
+    }
+}
+
+.lab-tree-node {
+    min-width: 0;
+}
+
+.lab-tree-content {
+    flex: 1;
+    min-width: 0;
+}
+
+    .lab-tree-content strong,
+    .lab-tree-chain-id {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }

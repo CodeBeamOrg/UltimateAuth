@@ -1,34 +1,140 @@
 ﻿@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@inject IUAuthStateManager StateManager
 @inject NavigationManager Nav
 
-<MudDialog Class="mud-width-full" ContentClass="uauth-dialog">
+<MudDialog Class="lab-reset-dialog uauth-shared-dialog">
     <TitleContent>
-        <MudText>Reset Credential</MudText>
+        <div class="lab-reset-header">
+            <div class="lab-reset-header-icon">
+                <MudIcon Icon="@Icons.Material.Filled.LockReset"
+                         Size="Size.Medium" />
+            </div>
+            <div class="lab-reset-header-text">
+                <MudText Typo="Typo.h6">Reset Password</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Recover access to your account securely.
+                </MudText>
+            </div>
+        </div>
     </TitleContent>
 
     <DialogContent>
-        <MudStack Class="mud-width-full">
-            <MudAlert Severity="Severity.Info">
-                In this development sample, reset codes are written to the server console by a custom ICredentialResetNotifier.
-                Production applications should send them through a trusted email or SMS channel.
-            </MudAlert>
-            <MudAlert Severity="Severity.Warning">
-                Reset request always returns ok even with not found users due to security reasons.
-            </MudAlert>
-            <MudTextField @bind-Value="@_identifier" Label="Username or Email" Variant="Variant.Outlined" />
-            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RequestResetAsync">Request Reset</MudButton>
-            @if (_resetRequested)
+        <div class="lab-reset-content">
+            @if (PreviewMode)
             {
-                <MudText Align="Align.Center">Your reset code is on the server console.</MudText>
-                <MudText Align="Align.Center"><MudLink Class="cursor-pointer" Href="@($"/reset?uauth_identifier={_identifier}")">Use Reset Code</MudLink></MudText>
+                <MudAlert Severity="Severity.Info"
+                          Variant="Variant.Outlined"
+                          Dense="true">
+                    Preview mode is active. No reset request will be sent.
+                </MudAlert>
             }
-        </MudStack>
+
+            @if (!_resetRequested)
+            {
+                <div class="lab-reset-intro">
+                    <div class="lab-reset-illustration">
+                        <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead"
+                                 Size="Size.Large" />
+                    </div>
+                    <strong>Forgot your password?</strong>
+                    <span>Enter your username or email address to request a password reset code.</span>
+                </div>
+
+                <MudTextField T="string"
+                              @bind-Value="_identifier"
+                              Label="Username or Email"
+                              Placeholder="Enter your username or email"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                              Disabled="@_isSubmitting"
+                              Immediate="true"
+                              Required="true"
+                              OnKeyDown="HandleKeyDownAsync" />
+
+                <div class="lab-reset-security-note">
+                    <MudIcon Icon="@Icons.Material.Outlined.Shield"
+                             Size="Size.Small" />
+                    <span>
+                        For security, reset requests do not disclose
+                        whether an account exists.
+                    </span>
+                </div>
+
+                <MudLoadingButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Send"
+                           Loading="@_isSubmitting"
+                           Disabled="@(_isSubmitting || string.IsNullOrWhiteSpace(_identifier))"
+                           OnClick="RequestResetAsync"
+                           AutoDelay="0">
+                    Request Reset Code
+                </MudLoadingButton>
+            }
+            else
+            {
+                <div class="lab-reset-success">
+                    <div class="lab-reset-success-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                 Size="Size.Large" />
+                    </div>
+
+                    <strong>Reset Request Received</strong>
+
+                    <span>
+                        If an eligible account matches the information
+                        provided, a reset code will be generated.
+                    </span>
+
+                    <div class="lab-reset-identifier">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
+                                 Size="Size.Small" />
+                        <span>@_identifier</span>
+                    </div>
+                </div>
+
+                @if (!PreviewMode)
+                {
+                    <MudAlert Severity="Severity.Info"
+                              Variant="Variant.Outlined"
+                              Dense="true">
+                        In this development sample, reset codes are
+                        written to the server console by the configured
+                        credential reset notifier. Production applications
+                        should deliver codes through a trusted channel.
+                    </MudAlert>
+                }
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="ContinueResetAsync">
+                    Continue to Password Reset
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           OnClick="StartOver">
+                    Use a Different Identifier
+                </MudButton>
+            }
+        </div>
     </DialogContent>
 
     <DialogActions>
-        <MudButton OnClick="Cancel">Close</MudButton>
+        <div class="lab-reset-actions">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
+                       Disabled="@_isSubmitting"
+                       OnClick="Cancel">
+                Close
+            </MudButton>
+        </div>
     </DialogActions>
 </MudDialog>

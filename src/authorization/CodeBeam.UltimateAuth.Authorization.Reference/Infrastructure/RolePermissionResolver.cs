@@ -24,6 +24,9 @@ internal sealed class RolePermissionResolver : IRolePermissionResolver
 
         foreach (var role in roles)
         {
+            if (role.IsDeleted || role.Tenant != tenant)
+                continue;
+
             foreach (var perm in role.Permissions)
                 permissions.Add(perm);
         }

@@ -204,6 +204,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
                 adminUsers.MapPost("/query", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.QueryUsersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
 
+            if (Enabled(UAuthActions.Users.GetByKeysAdmin))
+                adminUsers.MapPost("/get-by-keys", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
+                => await h.GetUsersByKeysAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+
             if (Enabled(UAuthActions.Users.CreateAdmin))
                 adminUsers.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
                 => await h.CreateAdminAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
@@ -380,6 +384,10 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             if (Enabled(UAuthActions.Authorization.Roles.GetSelf))
                 selfAuthz.MapPost("/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
                 => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+
+            if (Enabled(UAuthActions.Authorization.Permissions.GetSelf))
+                selfAuthz.MapPost("/permissions/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
+                => await h.GetMyPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
 
 
             if (Enabled(UAuthActions.Authorization.Roles.GetAdmin))

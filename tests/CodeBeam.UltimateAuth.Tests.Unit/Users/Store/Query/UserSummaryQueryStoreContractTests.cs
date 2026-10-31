@@ -485,6 +485,295 @@ public abstract class UserSummaryQueryStoreContractTests
         result.Items.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task GetByKeysAsync_WhenEmpty_ReturnsEmpty()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync(Array.Empty<UserKey>());
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_WhenKeysAreDuplicated_ReturnsEachUserOnce()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(first, "Alice"),
+        CreateUser(second, "Bob")
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([first, first, second, second]);
+
+        result.Should().HaveCount(2);
+
+        result.Select(x => x.UserKey)
+            .Should().BeEquivalentTo([first, second]);
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_WhenSomeKeysDoNotExist_ReturnsOnlyExistingUsers()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var existing = UserKey.New();
+        var missing = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(existing, "Existing User")
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([existing, missing]);
+
+        result.Should().ContainSingle();
+
+        result[0].UserKey.Should().Be(existing);
+        result[0].DisplayName.Should().Be("Existing User");
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_ExcludesDeletedUsers()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var active = UserKey.New();
+        var deleted = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(active, "Active"),
+        CreateUser(deleted, "Deleted") with
+        {
+            IsDeleted = true
+        }
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([active, deleted]);
+
+        result.Should().ContainSingle();
+
+        result[0].UserKey.Should().Be(active);
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_IsTenantIsolated()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var sharedKey = UserKey.New();
+        var tenantAOnly = UserKey.New();
+        var tenantBOnly = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(sharedKey, "Tenant A Shared"),
+        CreateUser(tenantAOnly, "Tenant A Only")
+        ]);
+
+        await db.SeedAsync(TenantB,
+        [
+            CreateUser(sharedKey, "Tenant B Shared"),
+        CreateUser(tenantBOnly, "Tenant B Only")
+        ]);
+
+        var requested = new[]
+        {
+        sharedKey,
+        tenantAOnly,
+        tenantBOnly
+    };
+
+        var resultA = await db.CreateStore(TenantA)
+            .GetByKeysAsync(requested);
+
+        var resultB = await db.CreateStore(TenantB)
+            .GetByKeysAsync(requested);
+
+        resultA.Should().HaveCount(2);
+        resultB.Should().HaveCount(2);
+
+        resultA.Select(x => x.UserKey)
+            .Should().BeEquivalentTo([sharedKey, tenantAOnly]);
+
+        resultB.Select(x => x.UserKey)
+            .Should().BeEquivalentTo([sharedKey, tenantBOnly]);
+
+        resultA.Single(x => x.UserKey == sharedKey)
+            .DisplayName.Should().Be("Tenant A Shared");
+
+        resultB.Single(x => x.UserKey == sharedKey)
+            .DisplayName.Should().Be("Tenant B Shared");
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_ReturnsCompleteUserSummary()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var key = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            new UserSummarySeed
+        {
+            UserKey = key,
+            CreatedAt = Now,
+            Status = UserStatus.Active,
+            DisplayName = "John Doe",
+            UserName = "johndoe",
+            Email = "john@example.com",
+            Phone = "5551234567"
+        }
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([key]);
+
+        var user = result.Should().ContainSingle().Subject;
+
+        user.UserKey.Should().Be(key);
+        user.DisplayName.Should().Be("John Doe");
+        user.UserName.Should().Be("johndoe");
+        user.PrimaryEmail.Should().Be("john@example.com");
+        user.PrimaryPhone.Should().Be("5551234567");
+        user.Status.Should().Be(UserStatus.Active);
+        user.CreatedAt.Should().Be(Now);
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_WhenProfileDoesNotExist_ReturnsUserWithoutDisplayName()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var key = UserKey.New();
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(key, "Not Persisted") with
+        {
+            HasProfile = false
+        }
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([key]);
+
+        result.Should().ContainSingle();
+
+        result[0].UserKey.Should().Be(key);
+        result[0].DisplayName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_UsesDefaultProfileOnly()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var key = UserKey.New();
+
+        var customProfile = ProfileKey.Parse("business", null);
+
+        await db.SeedAsync(TenantA,
+        [
+            CreateUser(key, "Business Display") with
+        {
+            ProfileKey = customProfile
+        }
+        ]);
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync([key]);
+
+        result.Should().ContainSingle();
+        result[0].DisplayName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_With250Keys_ReturnsAllUsers()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var users = Enumerable.Range(1, 250)
+            .Select(i => CreateUser(
+                UserKey.New(),
+                $"User {i:D3}",
+                Now.AddSeconds(i)))
+            .ToArray();
+
+        await db.SeedAsync(TenantA, users);
+
+        var keys = users
+            .Select(x => x.UserKey)
+            .ToArray();
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync(keys);
+
+        result.Should().HaveCount(250);
+
+        result.Select(x => x.UserKey)
+            .Should().BeEquivalentTo(keys);
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_FindsUsersBeyondFirstLifecyclePage()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var users = Enumerable.Range(1, 1001)
+            .Select(i => CreateUser(
+                UserKey.New(),
+                $"User {i:D4}",
+                Now.AddSeconds(i)))
+            .ToArray();
+
+        await db.SeedAsync(TenantA, users);
+
+        var requested = new[]
+        {
+        users[0].UserKey,
+        users[500].UserKey,
+        users[1000].UserKey
+    };
+
+        var result = await db.CreateStore(TenantA)
+            .GetByKeysAsync(requested);
+
+        result.Should().HaveCount(3);
+
+        result.Select(x => x.UserKey)
+            .Should().BeEquivalentTo(requested);
+    }
+
+    [Fact]
+    public async Task GetByKeysAsync_WhenCancelled_Throws()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var store = db.CreateStore(TenantA);
+
+        var act = () => store.GetByKeysAsync(
+            [UserKey.New()],
+            cts.Token);
+
+        await act.Should()
+            .ThrowAsync<OperationCanceledException>();
+    }
+
 
     private static UserSummarySeed CreateUser(
         UserKey key,

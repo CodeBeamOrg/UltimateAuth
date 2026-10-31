@@ -16,6 +16,7 @@ public static class UAuthConstants
     {
         public const string Tenant = "uauth:tenant";
         public const string Permission = "uauth:permission";
+        public const string ActorRole = "uauth:actor_role";
     }
 
     public static class HttpItems

@@ -1,0 +1,477 @@
+﻿@page "/dashboard/settings"
+@using CodeBeam.UltimateAuth.IdentityLab.Persistence
+@using CodeBeam.UltimateAuth.Core.Runtime
+@using Microsoft.EntityFrameworkCore
+@layout DashboardLayout
+
+@attribute [UAuthAuthorize]
+@inherits UAuthComponentBase
+
+@inject SandboxService SandboxService
+@inject SandboxUserService SandboxUserService
+@inject SandboxRepairService SandboxRepairService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IUAuthProductInfoProvider ProductInfoProvider
+@inject IDbContextFactory<LabDbContext> DbContextFactory
+
+<PageTitle>Sandbox Settings · Identity Lab</PageTitle>
+
+<div class="lab-settings-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-settings-heading">
+            <div>
+                <span class="lab-settings-eyebrow">SANDBOX MANAGEMENT</span>
+                <h1>Sandbox Settings</h1>
+                <p>Review your sandbox configuration, membership limits and security boundaries.</p>
+            </div>
+        </div>
+
+        <div class="lab-settings-grid">
+
+            <div class="lab-settings-column">
+
+                <section class="lab-settings-card">
+                    <div class="lab-settings-card-heading">
+                        <div>
+                            <h2>General</h2>
+                            <p>Basic information about your sandbox.</p>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-settings-fields">
+
+                        <MudTextField T="string"
+                                      @bind-Value="_sandboxName"
+                                      Label="Sandbox Name"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="@(!_isOwner)"
+                                      MaxLength="150"
+                                      Immediate="true"
+                                      HelperText="Names are for display and do not need to be unique." />
+
+                        <MudTextField T="string"
+                                      Value="@(_sandbox?.Id.ToString() ?? "")"
+                                      Label="Sandbox Identifier"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      HelperText="Unique identifier assigned to your sandbox." />
+
+                        <MudTextField T="string" Value="@_ownerName" Label="Sandbox Owner" Variant="Variant.Outlined" ReadOnly="true" />
+
+                        @if (_isOwner)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="@(_loading || _saving || !_hasChanges)" OnClick="SaveChangesAsync">
+                                @if (_saving)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                                }
+
+                                Save Changes
+                            </MudButton>
+                        }
+
+                    </div>
+                </section>
+
+                <section class="lab-settings-card">
+                    <div class="lab-settings-card-heading">
+                        <div>
+                            <h2>Membership &amp; Capacity</h2>
+                            <p>Available identities in this environment.</p>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-settings-capacity">
+
+                        <div class="lab-settings-capacity-header">
+                            <span>Occupied user slots</span>
+                            <strong>@_memberCount / @_maxUsers</strong>
+                        </div>
+
+                        <MudProgressLinear Value="@_capacityPercentage" Rounded="true" Size="Size.Medium" Color="Color.Primary" Class="my-3" />
+                        <p>Your sandbox supports up to @_maxUsers accounts, including the owner.</p>
+
+                    </div>
+
+                    <div class="lab-settings-detail-row">
+                        <span>Maximum Users</span>
+                        <strong>@_maxUsers</strong>
+                    </div>
+
+                    <div class="lab-settings-detail-row">
+                        <span>Available Slots</span>
+                        <strong>@_availableSlots</strong>
+                    </div>
+
+                    <div class="lab-settings-detail-row">
+                        <span>Membership Model</span>
+                        <strong>Owner + Members</strong>
+                    </div>
+
+                    <MudButton Href="/dashboard/users" Variant="Variant.Outlined" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Class="mt-4">
+                        Manage Users
+                    </MudButton>
+                </section>
+
+            </div>
+
+            <div class="lab-settings-column">
+
+                <section class="lab-settings-card">
+                    <div class="lab-settings-card-heading">
+                        <div>
+                            <h2>Security Boundaries</h2>
+                            <p>Rules that protect sandbox isolation.</p>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-settings-security-list">
+
+                        <div class="lab-settings-security-item">
+                            <span class="lab-settings-security-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                            </span>
+                            <div>
+                                <strong>Private Sandbox</strong>
+                                <p>Sandbox membership determines which users and resources belong to this environment.</p>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        </div>
+
+                        <div class="lab-settings-security-item">
+                            <span class="lab-settings-security-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+                            </span>
+                            <div>
+                                <strong>Scoped Administration</strong>
+                                <p>Sandbox owners can manage their sandbox through application-level access controls.</p>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        </div>
+
+                        <div class="lab-settings-security-item">
+                            <span class="lab-settings-security-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" />
+                            </span>
+                            <div>
+                                <strong>Membership Limit</strong>
+                                <p>Each sandbox supports up to @_maxUsers accounts, including the owner.</p>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        </div>
+
+                    </div>
+
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Text" Dense="true" Class="mt-4">
+                        Identity Lab applies application-level sandbox access controls.
+                        Sandbox isolation must also be enforced by every operation
+                        that accesses or modifies shared UltimateAuth resources.
+                    </MudAlert>
+                </section>
+
+                <section class="lab-settings-card">
+                    <div class="lab-settings-card-heading">
+                        <div>
+                            <h2>Environment</h2>
+                            <p>Application, runtime and sandbox configuration.</p>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
+                    </div>
+
+                    <div class="lab-settings-environment-group">APPLICATION</div>
+                    <div class="lab-settings-detail-row"><span>Application</span><strong>Identity Lab</strong></div>
+                    <div class="lab-settings-detail-row"><span>Framework</span><strong>UltimateAuth</strong></div>
+                    <div class="lab-settings-detail-row"><span>UltimateAuth Version</span><strong>@UltimateAuthVersion</strong></div>
+                    <div class="lab-settings-detail-row"><span>Hosting Model</span><strong>Blazor Server (Interactive Server)</strong></div>
+
+                    <div class="lab-settings-environment-group">RUNTIME</div>
+                    <div class="lab-settings-detail-row"><span>.NET Runtime</span><strong>@Environment.Version.ToString()</strong></div>
+                    <div class="lab-settings-detail-row"><span>Authentication Mode</span><strong>PureOpaque</strong></div>
+                    <div class="lab-settings-detail-row"><span>Persistence</span><strong>Entity Framework Core</strong></div>
+                    <div class="lab-settings-detail-row"><span>Database Provider</span><strong>@_databaseProvider</strong></div>
+
+                    <div class="lab-settings-environment-group">SANDBOX</div>
+                    <div class="lab-settings-detail-row"><span>Status</span><strong>@(_sandbox?.Status.ToString() ?? "Unavailable")</strong></div>
+                    <div class="lab-settings-detail-row"><span>Created</span><strong>@(_sandbox?.CreatedAt.ToLocalTime().ToString("g") ?? "Unavailable")</strong></div>
+                    <div class="lab-settings-detail-row"><span>Your Access</span><strong>@(_sandbox is null ? "Unavailable" : _isOwner ? "Owner" : "Member")</strong></div>
+                    <div class="lab-settings-detail-row"><span>Capacity</span><strong>@_memberCount / @_maxUsers users</strong></div>
+                    <div class="lab-settings-detail-row">
+                        <span>Source</span>
+                        <MudLink Href="https://github.com/CodeBeamOrg/UltimateAuth" Target="_blank" Underline="Underline.Hover">GitHub Repository</MudLink>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+        <section class="lab-settings-card lab-settings-danger">
+            <div class="lab-settings-card-heading">
+                <div>
+                    <h2>Danger Zone</h2>
+                    <p>Destructive operations affecting your sandbox.</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Error" />
+            </div>
+
+            @if (_isOwner)
+            {
+                <div class="lab-settings-danger-action">
+                    <div>
+                        <strong>Repair Sandbox</strong>
+                        <p>Find and remove stale memberships left behind by deleted accounts. Active users and their data will not be modified.</p>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Build" Disabled="@(_loading || _repairing)" OnClick="RepairSandboxAsync">
+                        @if (_repairing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        }
+                        Repair Sandbox
+                    </MudButton>
+                </div>
+
+                <div class="lab-settings-danger-action">
+                    <div>
+                        <strong>Reset Sandbox</strong>
+                        <p>Remove sandbox-created resources and restore the environment to its initial configuration.</p>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="true">
+                        Reset Sandbox
+                    </MudButton>
+                </div>
+
+                <div class="lab-settings-danger-action">
+                    <div>
+                        <strong>Delete Sandbox</strong>
+                        <p>
+                            Permanently delete the sandbox and its associated application resources.
+                        </p>
+                    </div>
+
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="true">
+                        Delete Sandbox
+                    </MudButton>
+                </div>
+            }
+        </section>
+    </MudContainer>
+</div>
+
+@code {
+    private Sandbox? _sandbox;
+    private string _databaseProvider = "Unavailable";
+
+    private string UltimateAuthVersion
+    {
+        get
+        {
+            var info = ProductInfoProvider.Get();
+            var version = info.InformationalVersion?.Split('+', 2)[0];
+            return string.IsNullOrWhiteSpace(version) ? info.Version : version;
+        }
+    }
+
+
+    private UserKey _currentUserKey;
+
+    private string _sandboxName = string.Empty;
+    private string _ownerName = string.Empty;
+
+    private int _memberCount;
+    private int _maxUsers;
+
+    private bool _isOwner;
+    private bool _saving;
+    private bool _loading = true;
+    private bool _repairing;
+
+    private bool _hasChanges => _sandbox is not null && !string.Equals(_sandbox.Name, _sandboxName?.Trim(), StringComparison.Ordinal);
+
+    private int _availableSlots => Math.Max(0, _maxUsers - _memberCount);
+
+    private double _capacityPercentage => _maxUsers > 0 ? Math.Min(100d, _memberCount * 100d / _maxUsers) : 0;
+
+    private string? _loadedUserKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (AuthState?.Identity?.UserKey is not UserKey userKey)
+        {
+            _sandbox = null;
+            _loadedUserKey = null;
+            _isOwner = false;
+            _loading = false;
+            return;
+        }
+
+        if (_loadedUserKey == userKey.Value)
+            return;
+
+        await LoadSettingsAsync(userKey);
+
+        if (_sandbox is not null)
+            _loadedUserKey = userKey.Value;
+    }
+
+    private async Task SaveChangesAsync()
+    {
+        if (!_isOwner || _sandbox is null || _saving)
+            return;
+
+        var name = _sandboxName.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            Snackbar.Add("Sandbox name is required.", Severity.Warning);
+            return;
+        }
+
+        if (name.Length > 150)
+        {
+            Snackbar.Add("Sandbox name cannot exceed 150 characters.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+
+        try
+        {
+            var updated = await SandboxService.RenameAsync(
+                _currentUserKey,
+                name);
+
+            if (!updated)
+            {
+                Snackbar.Add("Unable to update sandbox.", Severity.Error);
+                return;
+            }
+
+            _sandbox.Name = name;
+            _sandboxName = name;
+
+            Snackbar.Add("Sandbox settings updated.", Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to save sandbox settings.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task LoadSettingsAsync(UserKey currentUserKey)
+    {
+        _loading = true;
+
+        try
+        {
+            _currentUserKey = currentUserKey;
+
+            _sandbox = await SandboxService.GetByUserAsync(currentUserKey);
+
+            await using (var db = await DbContextFactory.CreateDbContextAsync())
+            {
+                var provider = db.Database.ProviderName;
+                _databaseProvider = provider?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true
+                    ? "PostgreSQL (Npgsql)"
+                    : provider ?? "Unavailable";
+            }
+
+            if (_sandbox is null)
+            {
+                Snackbar.Add("Sandbox not found.", Severity.Warning);
+                return;
+            }
+
+            _sandboxName = _sandbox.Name;
+
+            _isOwner = _sandbox.OwnerUserKey == currentUserKey;
+
+            var members = await SandboxService.GetMembersAsync(_sandbox.Id);
+
+            _memberCount = members.Count;
+
+            _maxUsers = Math.Min(
+                _sandbox.Settings.MaxUsers,
+                SandboxLimits.AbsoluteMaxUsers);
+
+            var snapshot = await SandboxUserService.GetUsersAsync(currentUserKey);
+
+            var owner = snapshot?.Users.FirstOrDefault(x => x.IsOwner);
+
+            _ownerName = owner?.DisplayName
+                ?? _sandbox.OwnerUserKey.Value;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to load sandbox settings.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RepairSandboxAsync()
+    {
+        if (!_isOwner || _sandbox is null || _repairing)
+            return;
+
+        _repairing = true;
+
+        try
+        {
+            var preview = await SandboxRepairService.PreviewAsync(
+                _currentUserKey);
+
+            if (preview.StaleMemberships == 0)
+            {
+                Snackbar.Add(
+                    "No stale memberships found. Your sandbox is healthy.",
+                    Severity.Success);
+                return;
+            }
+
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                "Repair Sandbox?",
+                $"Found {preview.StaleMemberships} stale membership(s). " +
+                "Remove these records and restore available capacity?",
+                yesText: "Repair",
+                cancelText: "Cancel");
+
+            if (confirmed != true)
+                return;
+
+            var result = await SandboxRepairService.RepairAsync(
+                _currentUserKey);
+
+            Snackbar.Add(
+                $"Repair completed. Removed {result.RemovedMemberships} " +
+                "stale membership(s).",
+                Severity.Success);
+
+            await LoadSettingsAsync(_currentUserKey);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to repair sandbox. Check server logs.",
+                Severity.Error);
+        }
+        finally
+        {
+            _repairing = false;
+        }
+    }
+}

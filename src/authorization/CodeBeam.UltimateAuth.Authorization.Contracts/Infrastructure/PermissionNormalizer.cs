@@ -4,40 +4,49 @@ public static class PermissionNormalizer
 {
     public static IReadOnlyCollection<Permission> Normalize(IEnumerable<Permission> permissions, IEnumerable<string> catalog)
     {
-        var selected = new HashSet<string>(permissions.Select(p => p.Value), StringComparer.OrdinalIgnoreCase);
+        var selected = new HashSet<string>(
+            permissions.Select(p => p.Value),
+            StringComparer.OrdinalIgnoreCase);
 
         if (selected.Contains("*"))
-            return new[] { Permission.Wildcard };
+            return [Permission.Wildcard];
 
-        if (selected.Count == catalog.Count() && catalog.All(selected.Contains))
-        {
-            return new[] { Permission.Wildcard };
-        }
+        var catalogItems = catalog.ToHashSet(
+            StringComparer.OrdinalIgnoreCase);
 
-        var result = new HashSet<string>();
+        // Only collapse to "*" when there are no additional
+        // permissions outside the known catalog.
+        if (selected.SetEquals(catalogItems))
+            return [Permission.Wildcard];
 
-        var catalogGroups = catalog.GroupBy(p => p.Split('.')[0]);
+        // Preserve all permissions, including custom ones.
+        var result = new HashSet<string>(
+            selected,
+            StringComparer.OrdinalIgnoreCase);
+
+        var catalogGroups = catalogItems.GroupBy(
+            p => p.Split('.')[0]);
 
         foreach (var group in catalogGroups)
         {
             var prefix = group.Key;
 
-            var allPermissions = group.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var groupPermissions = group.ToHashSet(
+                StringComparer.OrdinalIgnoreCase);
 
             var selectedInGroup = selected
-                .Where(p => p.StartsWith(prefix + ".", StringComparison.OrdinalIgnoreCase))
+                .Where(p => groupPermissions.Contains(p))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            if (selectedInGroup.SetEquals(allPermissions))
+            if (selectedInGroup.SetEquals(groupPermissions))
             {
+                result.ExceptWith(groupPermissions);
                 result.Add(prefix + ".*");
-            }
-            else
-            {
-                result.UnionWith(selectedInGroup);
             }
         }
 
-        return result.Select(Permission.From).ToArray();
+        return result
+            .Select(Permission.From)
+            .ToArray();
     }
 }

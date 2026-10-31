@@ -1,0 +1,446 @@
+﻿@page "/dashboard/users"
+@using CodeBeam.UltimateAuth.Core.Contracts
+@using CodeBeam.UltimateAuth.Core.Domain
+@using CodeBeam.UltimateAuth.IdentityLab.Contracts
+@using CodeBeam.UltimateAuth.IdentityLab.Services
+@using CodeBeam.UltimateAuth.Users.Contracts
+@layout DashboardLayout
+@inject SandboxUserService SandboxUserService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@attribute [UAuthAuthorize(Roles = "Ladmin,Owner")]
+
+<PageTitle>Users · Identity Lab</PageTitle>
+
+<div class="lab-users-page">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+        <div class="lab-users-heading">
+            <div>
+                <span class="lab-users-eyebrow">SANDBOX MANAGEMENT</span>
+                <h1>Users</h1>
+                <p>Manage identities, account status, and membership within your sandbox.</p>
+            </div>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateUserDialogAsync">
+                Create User
+            </MudButton>
+        </div>
+
+        <div class="lab-users-summary">
+
+            <section class="lab-users-capacity">
+                <div class="lab-capacity-heading">
+                    <div>
+                        <span>Sandbox Capacity</span>
+                        <strong>@_users.Count / @MaxUsers users</strong>
+                    </div>
+                </div>
+
+                <MudProgressLinear Value="@CapacityPercentage" Color="Color.Primary" Rounded="true" Size="Size.Medium" Class="my-4" />
+
+                <p>@_users.Count of @MaxUsers available user slots are occupied, including the sandbox owner.</p>
+            </section>
+
+            <section class="lab-users-summary-card">
+                <span class="lab-users-summary-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.People" />
+                </span>
+                <span>Total Users</span>
+                <strong>@_users.Count</strong>
+                <small>Sandbox members</small>
+            </section>
+
+            <section class="lab-users-summary-card">
+                <span class="lab-users-summary-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                </span>
+                <span>Active Users</span>
+                <strong>@_users.Count(x => x.Status == UserStatus.Active)</strong>
+                <small>Active accounts</small>
+            </section>
+
+        </div>
+
+        <section class="lab-users-panel">
+
+            <div class="lab-users-panel-heading">
+                <div>
+                    <h2>Sandbox Members</h2>
+                    <p>
+                        Browse and manage the identities
+                        belonging to this environment.
+                    </p>
+                </div>
+
+                <MudChip T="string"
+                         Color="Color.Default"
+                         Variant="Variant.Outlined"
+                         Size="Size.Small">
+                    @FilteredUsers.Count() results
+                </MudChip>
+            </div>
+
+            <div class="lab-users-toolbar">
+                <MudTextField T="string"
+                              @bind-Value="_search"
+                              Immediate="true"
+                              Placeholder="Search by name, username or email"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Class="lab-users-search" />
+
+                <MudSelectExtended T="UserStatus?"
+                           @bind-Value="_statusFilter"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Placeholder="Status"
+                           Class="lab-users-filter">
+
+                    <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)null)" Text="All Statuses">
+                        All statuses
+                    </MudSelectItemExtended>
+
+                    @foreach (var status in Enum.GetValues<UserStatus>())
+                    {
+                        <MudSelectItemExtended T="UserStatus?" Value="@((UserStatus?)status)">
+                            @status
+                        </MudSelectItemExtended>
+                    }
+                </MudSelectExtended>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">
+                    @_error
+                </MudAlert>
+            }
+
+            <MudTable T="SandboxUserItem"
+                      Items="@FilteredUsers"
+                      Hover="true"
+                      Dense="false"
+                      Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10"
+                      Loading="@_loading"
+                      Class="lab-users-table">
+
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="User">
+                        <div class="lab-user-cell">
+                            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                @context.Initials
+                            </MudAvatar>
+
+                            <div>
+                                <strong>@context.DisplayName</strong>
+                                <span>@context.Email</span>
+                                <small>@@@context.Username</small>
+                            </div>
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Role">
+                        <MudChip T="string"
+                                 Color="@(context.IsOwner ? Color.Primary : Color.Default)"
+                                 Variant="Variant.Outlined"
+                                 Size="Size.Small">
+                            @(context.IsOwner ? "Owner" : "Member")
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string"
+                                 Color="@(context.Status == UserStatus.Active
+                                              ? Color.Success
+                                              : Color.Warning)"
+                                 Variant="Variant.Text"
+                                 Size="Size.Small">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Created">
+                        <span class="lab-user-date">
+                            @context.CreatedAt.ToString("MMM dd, yyyy")
+                        </span>
+                    </MudTd>
+
+                    <MudTd DataLabel="Actions">
+                        <div class="lab-user-actions">
+                            <MudTooltip Text="@(context.IsOwner
+                                        ? "Manage your own account in My Identity."
+                                        : "Manage user")">
+
+                                <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => OpenUserDetailsAsync(context))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Manage sample SaaS application roles">
+                                <MudIconButton Icon="@Icons.Material.Filled.Badge"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => OpenDemoRolesAsync(context))" />
+                            </MudTooltip>
+
+                            <MudTooltip Text="Permanently delete user">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Disabled="@context.IsOwner"
+                                               OnClick="@(() => DeleteUserAsync(context))" />
+                            </MudTooltip>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="lab-users-empty">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Large" Color="Color.Secondary" />
+                        <strong>No users found</strong>
+                        <p>Try changing your search or status filter.</p>
+                    </div>
+                </NoRecordsContent>
+
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+
+            </MudTable>
+
+        </section>
+
+        <div class="lab-users-bottom">
+
+            <div class="lab-users-info">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
+
+                <div>
+                    <strong>Sandbox isolation</strong>
+                    <p>
+                        Members belong to a private sandbox.
+                        User management must be scoped to that sandbox, including all authorization and data operations.
+                    </p>
+                </div>
+            </div>
+
+            <MudButton Href="/dashboard/authorization" Variant="Variant.Outlined" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward">
+                Explore Authorization
+            </MudButton>
+        </div>
+
+    </MudContainer>
+</div>
+
+@code {
+    [CascadingParameter]
+    private UAuthState? AuthState { get; set; }
+
+    private SandboxUsersSnapshot? _snapshot;
+    private List<SandboxUserItem> _users = [];
+
+    private UserKey? _loadedUserKey;
+    private bool _loading;
+    private string? _error;
+
+    private int MaxUsers => _snapshot?.MaxUsers ?? 0;
+
+    private double CapacityPercentage => _snapshot?.CapacityPercentage ?? 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userKey = AuthState?.Identity?.UserKey;
+
+        if (userKey is null)
+        {
+            _loadedUserKey = null;
+            _snapshot = null;
+            _users.Clear();
+            return;
+        }
+
+        if (_loadedUserKey == userKey)
+            return;
+
+        await LoadUsersAsync(userKey.Value);
+    }
+
+    private async Task LoadUsersAsync(UserKey userKey)
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var snapshot = await SandboxUserService.GetUsersAsync(
+                userKey);
+
+            _snapshot = snapshot;
+            _users = snapshot?.Users.ToList() ?? [];
+
+            _loadedUserKey = userKey;
+        }
+        catch (Exception)
+        {
+            _error = "Unable to load sandbox users.";
+            _snapshot = null;
+            _users.Clear();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string _search = string.Empty;
+    private UserStatus? _statusFilter;
+
+    
+    private async Task OpenCreateUserDialogAsync()
+    {
+        var parameters = new DialogParameters<CreateUserDialog>
+        {
+            { x => x.PreviewMode, false },
+            { x => x.OnCreateUserAsync, CreateSandboxUserAsync }
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>(
+            "Create User",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            var userKey = AuthState?.Identity?.UserKey;
+
+            if (userKey is not null)
+                await LoadUsersAsync(userKey.Value);
+        }
+    }
+
+    private async Task OpenUserDetailsAsync(SandboxUserItem user)
+    {
+        if (user.IsOwner)
+            return;
+
+        var parameters = new DialogParameters<UserDetailDialog>
+        {
+            { x => x.AuthState, AuthState },
+            { x => x.UserKey, user.UserKey },
+            { x => x.AllowRoleManagement, false },
+            { x => x.PreviewMode, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDetailDialog>("Manage User", parameters, UAuthDialog.GetDialogOptions(MaxWidth.Large));
+
+        await dialog.Result;
+
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is not null)
+            await LoadUsersAsync(actorUserKey.Value);
+    }
+
+    private async Task OpenDemoRolesAsync(SandboxUserItem user)
+    {
+        var parameters = new DialogParameters<DemoRoleDialog>
+        {
+            { x => x.UserKey, user.UserKey },
+            { x => x.DisplayName, user.DisplayName }
+        };
+
+        var dialog = await DialogService.ShowAsync<DemoRoleDialog>(
+            "Demo Application Roles",
+            parameters,
+            UAuthDialog.GetDialogOptions(MaxWidth.Small));
+
+        await dialog.Result;
+    }
+
+    private IEnumerable<SandboxUserItem> FilteredUsers =>
+        _users.Where(user =>
+        {
+            var matchesSearch =
+                string.IsNullOrWhiteSpace(_search) ||
+                user.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                user.Username.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                user.Email.Contains(_search, StringComparison.OrdinalIgnoreCase);
+
+            var matchesStatus = !_statusFilter.HasValue || user.Status == _statusFilter.Value;
+
+            return matchesSearch && matchesStatus;
+        });
+
+    private async Task<CreateUserDialogResult> CreateSandboxUserAsync(CreateUserRequest request)
+    {
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is null)
+            return CreateUserDialogResult.Failure("You must be signed in.");
+
+        return await SandboxUserService.CreateAsync(actorUserKey.Value, request);
+    }
+
+    private async Task DeleteUserAsync(SandboxUserItem user)
+    {
+        if (user.IsOwner)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Permanently delete user?",
+            $"Delete {user.Username} permanently? This action cannot be undone.",
+            yesText: "Delete permanently",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+            return;
+
+        var actorUserKey = AuthState?.Identity?.UserKey;
+
+        if (actorUserKey is null)
+            return;
+
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var result = await SandboxUserService.DeleteAsync(actorUserKey.Value, user.UserKey);
+
+            if (!result.Success)
+            {
+                Snackbar.Add("Unable to delete user. Check server logs.", Severity.Error);
+                _error = result.Message;
+                return;
+            }
+
+            await LoadUsersAsync(actorUserKey.Value);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to delete user. Check server logs.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

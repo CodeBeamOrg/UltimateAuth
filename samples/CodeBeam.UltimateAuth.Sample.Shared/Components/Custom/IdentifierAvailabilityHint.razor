@@ -1,0 +1,54 @@
+﻿@using MudBlazor
+
+@if (State != IdentifierAvailabilityState.Empty)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+
+        @switch (State)
+        {
+            case IdentifierAvailabilityState.Checking:
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Checking availability...
+                </MudText>
+                break;
+
+            case IdentifierAvailabilityState.Available:
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Color="Color.Success">
+                    @Label is available
+                </MudText>
+                break;
+
+            case IdentifierAvailabilityState.Unavailable:
+                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Color="Color.Error">
+                    @Label is already in use
+                </MudText>
+                break;
+
+            case IdentifierAvailabilityState.Invalid:
+                <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Warning" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Color="Color.Warning">
+                    Enter a valid @Label.ToLowerInvariant().
+                </MudText>
+                break;
+
+            case IdentifierAvailabilityState.Error:
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Color="Color.Warning">
+                    Unable to check @Label.ToLowerInvariant() availability.
+                </MudText>
+                break;
+        }
+
+    </MudStack>
+}
+
+@code {
+    [Parameter]
+    public IdentifierAvailabilityState State { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Identifier";
+}

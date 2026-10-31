@@ -8,20 +8,39 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 public partial class RoleDialog
 {
     private MudDataGrid<RoleInfo>? _grid;
+
     private bool _loading;
     private string? _newRoleName;
+    private RoleInfo? _editingRole;
+    private string? _editingName;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
-    private async Task<GridData<RoleInfo>> LoadServerData(GridState<RoleInfo> state, CancellationToken ct)
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
+    private readonly List<PreviewRole> _previewRoles =
+    [
+        new("Admin", "Full administrative access.", 24),
+        new("Editor", "Manage application content.", 8),
+        new("User", "Standard user permissions.", 3),
+        new("Viewer", "Read-only access.", 2)
+    ];
+
+    private async Task<GridData<RoleInfo>> LoadServerData(
+        GridState<RoleInfo> state,
+        CancellationToken ct)
     {
+        if (PreviewMode)
+            return EmptyGrid();
+
         var sort = state.SortDefinitions?.FirstOrDefault();
 
-        var req = new RoleQuery
+        var request = new RoleQuery
         {
             PageNumber = state.Page + 1,
             PageSize = state.PageSize,
@@ -29,109 +48,220 @@ public partial class RoleDialog
             Descending = sort?.Descending ?? false
         };
 
-        var res = await UAuthClient.Authorization.QueryRolesAsync(req);
-
-        if (!res.IsSuccess || res.Value == null)
+        try
         {
-            Snackbar.Add(res.ErrorText ?? "Failed", Severity.Error);
+            var result = await UAuthClient.Authorization
+                .QueryRolesAsync(request);
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to load roles.",
+                    Severity.Error);
+
+                return EmptyGrid();
+            }
 
             return new GridData<RoleInfo>
             {
-                Items = Array.Empty<RoleInfo>(),
-                TotalItems = 0
+                Items = result.Value.Items,
+                TotalItems = result.Value.TotalCount
             };
         }
-
-        return new GridData<RoleInfo>
+        catch (Exception)
         {
-            Items = res.Value.Items,
-            TotalItems = res.Value.TotalCount
-        };
+            Snackbar.Add("Unable to load roles.", Severity.Error);
+            return EmptyGrid();
+        }
     }
 
-    private async Task<DataGridEditFormAction> CommittedItemChanges(RoleInfo role)
+    private static GridData<RoleInfo> EmptyGrid() => new()
     {
-        var req = new RenameRoleRequest
-        {
-            Id = role.Id,
-            Name = role.Name
-        };
+        Items = Array.Empty<RoleInfo>(),
+        TotalItems = 0
+    };
 
-        var result = await UAuthClient.Authorization.RenameRoleAsync(req);
-
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Role renamed", Severity.Success);
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Rename failed", Severity.Error);
-        }
-
-        await ReloadAsync();
-        return DataGridEditFormAction.Close;
-    }
-
-    private async Task CreateRole()
+    private async Task ReloadAsync()
     {
-        if (string.IsNullOrWhiteSpace(_newRoleName))
-        {
-            Snackbar.Add("Role name required.", Severity.Warning);
+        if (PreviewMode || _grid is null || _loading)
             return;
-        }
 
-        var req = new CreateRoleRequest
-        {
-            Name = _newRoleName
-        };
-
-        var res = await UAuthClient.Authorization.CreateRoleAsync(req);
-
-        if (res.IsSuccess)
-        {
-            Snackbar.Add("Role created.", Severity.Success);
-            await ReloadAsync();
-        }
-        else
-        {
-            Snackbar.Add(res.ErrorText ?? "Creation failed.", Severity.Error);
-        }
+        await _grid.ReloadServerData();
     }
 
-    private async Task DeleteRole(RoleId roleId)
+    private void BeginRename(RoleInfo role)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            "Delete role",
-            "Are you sure?",
+        if (PreviewMode || _loading)
+            return;
+
+        _editingRole = role;
+        _editingName = role.Name;
+    }
+
+    private void CancelRename()
+    {
+        _editingRole = null;
+        _editingName = null;
+    }
+
+    private async Task SaveRenameAsync()
+    {
+        if (PreviewMode || _loading || _editingRole is null ||
+            string.IsNullOrWhiteSpace(_editingName))
+            return;
+
+        var request = new RenameRoleRequest
+        {
+            Id = _editingRole.Id,
+            Name = _editingName.Trim()
+        };
+
+        _loading = true;
+        bool success = false;
+
+        try
+        {
+            var result = await UAuthClient.Authorization
+                .RenameRoleAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to rename role.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            Snackbar.Add("Role renamed successfully.", Severity.Success);
+            CancelRename();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to rename role.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (success)
+            await ReloadAsync();
+    }
+
+    private async Task CreateRoleAsync()
+    {
+        if (PreviewMode || _loading ||
+            string.IsNullOrWhiteSpace(_newRoleName))
+            return;
+
+        var request = new CreateRoleRequest
+        {
+            Name = _newRoleName.Trim()
+        };
+
+        _loading = true;
+        bool success = false;
+
+        try
+        {
+            var result = await UAuthClient.Authorization
+                .CreateRoleAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to create role.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+            _newRoleName = null;
+            Snackbar.Add("Role created successfully.", Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to create role.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (success)
+            await ReloadAsync();
+    }
+
+    private async Task DeleteRoleAsync(RoleInfo role)
+    {
+        if (PreviewMode || _loading)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Role",
+            $"Delete the '{role.Name}' role? Existing assignments " +
+            "to users may also be removed.",
             yesText: "Delete",
-            cancelText: "Cancel",
-            options: new DialogOptions() { MaxWidth = MaxWidth.Medium, FullWidth = true, BackgroundClass = "uauth-blur-slight" });
+            noText: "Cancel");
 
-        if (confirm != true)
+        if (confirmed != true || _loading)
             return;
 
-        var req = new DeleteRoleRequest() { Id = roleId };
-        var result = await UAuthClient.Authorization.DeleteRoleAsync(req);
+        _loading = true;
+        bool success = false;
 
-        if (result.IsSuccess)
+        try
         {
-            Snackbar.Add($"Role deleted, assignments removed from {result.Value?.RemovedAssignments.ToString() ?? "unknown"} users.", Severity.Success);
+            var request = new DeleteRoleRequest
+            {
+                Id = role.Id
+            };
+
+            var result = await UAuthClient.Authorization
+                .DeleteRoleAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to delete role.",
+                    Severity.Error);
+                return;
+            }
+
+            success = true;
+
+            Snackbar.Add(
+                $"Role deleted. Assignments removed from " +
+                $"{result.Value?.RemovedAssignments.ToString() ?? "unknown"} users.",
+                Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to delete role.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        if (success)
             await ReloadAsync();
-        }
-        else
-        {
-            Snackbar.Add(result.ErrorText ?? "Deletion failed.", Severity.Error);
-        }
     }
 
     private async Task EditPermissions(RoleInfo role)
     {
+        if (PreviewMode || _loading)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { nameof(PermissionDialog.Role), role }
+        };
+
         var dialog = await DialogService.ShowAsync<PermissionDialog>(
             "Edit Permissions",
-            new DialogParameters
-            {
-            { nameof(PermissionDialog.Role), role }
-            },
+            parameters,
             new DialogOptions
             {
                 CloseButton = true,
@@ -139,26 +269,27 @@ public partial class RoleDialog
                 FullWidth = true
             });
 
-        var result = await dialog.Result;
+        await dialog.Result;
         await ReloadAsync();
     }
 
-    private async Task ReloadAsync()
+    private static int GetPermissionCount(RoleInfo role)
     {
-        _loading = true;
-        await Task.Delay(300);
-        if (_grid is null)
-            return;
+        var expanded = PermissionExpander.Expand(
+            role.Permissions,
+            UAuthPermissionCatalog.GetAdminPermissions());
 
-        await _grid.ReloadServerData();
-        _loading = false;
-    }
-
-    private int GetPermissionCount(RoleInfo role)
-    {
-        var expanded = PermissionExpander.Expand(role.Permissions, UAuthPermissionCatalog.GetAdminPermissions());
         return expanded.Count;
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Close()
+    {
+        if (!_loading)
+            MudDialog.Close();
+    }
+
+    private sealed record PreviewRole(
+        string Name,
+        string Description,
+        int PermissionCount);
 }

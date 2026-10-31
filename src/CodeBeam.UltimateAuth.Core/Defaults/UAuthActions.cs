@@ -54,6 +54,7 @@ public static class UAuthActions
         public const string Wildcard = "users.*";
 
         public const string QueryAdmin = "users.query.admin";
+        public const string GetByKeysAdmin = "users.getbykeys.admin";
         public const string CreateAnonymous = "users.create.anonymous";
         public const string CreateAdmin = "users.create.admin";
         public const string DeleteSelf = "users.delete.self";
@@ -132,6 +133,11 @@ public static class UAuthActions
             public const string DeleteAdmin = "authorization.roles.delete.admin";
             public const string SetPermissionsAdmin = "authorization.roles.permissions.admin";
             public const string QueryAdmin = "authorization.roles.query.admin";
+        }
+
+        public static class Permissions
+        {
+            public const string GetSelf = "authorization.permissions.get.self";
         }
     }
 }

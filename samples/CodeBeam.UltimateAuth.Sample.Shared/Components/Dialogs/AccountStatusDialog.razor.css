@@ -1,0 +1,197 @@
+.lab-account-status-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lab-account-status-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+}
+
+.lab-account-status-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+    .lab-account-status-header-text ::deep .mud-typography-h6 {
+        font-size: 1rem;
+        font-weight: 750;
+        line-height: 1.3;
+    }
+
+    .lab-account-status-header-text ::deep .mud-typography-body2 {
+        font-size: .73rem;
+        line-height: 1.4;
+    }
+
+.lab-account-status-content {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+    min-width: 0;
+}
+
+.lab-account-status-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    background: var(--mud-palette-background);
+}
+
+.lab-account-status-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 43px;
+    height: 43px;
+    border-radius: 11px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+}
+
+.lab-account-status-identity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+}
+
+    .lab-account-status-identity-info strong {
+        font-size: .86rem;
+        font-weight: 750;
+    }
+
+    .lab-account-status-identity-info span {
+        font-size: .73rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-account-status-section-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .lab-account-status-section-heading strong {
+        font-size: .85rem;
+        font-weight: 750;
+    }
+
+    .lab-account-status-section-heading span {
+        font-size: .73rem;
+        line-height: 1.5;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-account-status-card,
+.lab-account-status-danger {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 16px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+}
+
+.lab-account-status-card-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.lab-account-status-action-icon,
+.lab-account-status-danger-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+
+.lab-account-status-action-icon {
+    background: var(--mud-palette-warning-hover);
+    color: var(--mud-palette-warning);
+}
+
+.lab-account-status-danger {
+    border-color: var(--mud-palette-error);
+}
+
+.lab-account-status-danger-icon {
+    background: var(--mud-palette-error-hover);
+    color: var(--mud-palette-error);
+}
+
+.lab-account-status-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+    .lab-account-status-card-info strong {
+        font-size: .84rem;
+        font-weight: 750;
+    }
+
+    .lab-account-status-card-info span {
+        font-size: .74rem;
+        line-height: 1.6;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-account-status-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 12px 14px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 11px;
+    background: var(--mud-palette-background);
+    color: var(--mud-palette-text-secondary);
+}
+
+    .lab-account-status-hint span {
+        font-size: .72rem;
+        line-height: 1.6;
+    }
+
+.lab-account-status-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .lab-account-status-card,
+    .lab-account-status-danger {
+        padding: 13px;
+    }
+
+    .lab-account-status-identity {
+        flex-wrap: wrap;
+    }
+
+    .lab-account-status-card ::deep .mud-button-root,
+    .lab-account-status-danger ::deep .mud-button-root {
+        width: 100%;
+    }
+}

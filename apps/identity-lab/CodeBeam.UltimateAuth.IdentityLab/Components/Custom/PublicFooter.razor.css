@@ -1,0 +1,123 @@
+﻿.lab-footer {
+    padding: 36px 0 24px;
+    background: var(--mud-palette-surface);
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.lab-footer-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 30px;
+}
+
+.lab-footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.lab-footer-symbol {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+    flex-shrink: 0;
+}
+
+.lab-footer-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+    .lab-footer-brand-text strong {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .lab-footer-brand-text span {
+        font-size: 0.8rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+.lab-footer-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lab-footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    font-size: 0.75rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+    .lab-footer-bottom a {
+        color: var(--mud-palette-text-primary);
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+        .lab-footer-bottom a:hover {
+            color: var(--mud-palette-primary);
+        }
+
+.lab-footer-powered {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+@media (max-width: 600px) {
+    .lab-footer {
+        padding: 28px 0 20px;
+    }
+
+    .lab-footer-main {
+        gap: 16px;
+        padding-bottom: 22px;
+    }
+
+    .lab-footer-brand-text span {
+        font-size: 0.72rem;
+    }
+
+    .lab-footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+.lab-footer-versions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: .7rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+@media (max-width: 380px) {
+    .lab-footer-main {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -10,83 +10,99 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 public partial class CredentialDialog
 {
     private MudForm _form = null!;
+
     private string? _oldPassword;
     private string? _newPassword;
     private string? _newPasswordCheck;
-    private bool _passwordMode1 = false;
-    private bool _passwordMode2 = false;
-    private bool _passwordMode3 = true;
+
+    private bool _isSubmitting;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public UAuthState AuthState { get; set; } = default!;
+    public UAuthState? AuthState { get; set; }
 
     [Parameter]
     public UserKey? UserKey { get; set; }
 
+    [Parameter]
+    public bool PreviewMode { get; set; }
+
     private async Task ChangePasswordAsync()
     {
-        if (_form is null)
+        if (PreviewMode || _isSubmitting || _form is null)
             return;
 
         await _form.ValidateAsync();
+
         if (!_form.IsValid)
-        {
-            Snackbar.Add("Form is not valid.", Severity.Error);
             return;
-        }
 
         if (_newPassword != _newPasswordCheck)
         {
-            Snackbar.Add("New password and check do not match", Severity.Error);
+            Snackbar.Add("Passwords don't match.", Severity.Error);
             return;
         }
 
-        ChangeCredentialRequest request;
-
-        if (UserKey is null)
+        var request = new ChangeCredentialRequest
         {
-            request = new ChangeCredentialRequest
+            CurrentSecret = UserKey is null ? _oldPassword : null,
+            NewSecret = _newPassword!
+        };
+
+        _isSubmitting = true;
+
+        try
+        {
+            UAuthResult<CredentialChangeResult> result =
+                UserKey is null
+                    ? await UAuthClient.Credentials.ChangeMyAsync(request)
+                    : await UAuthClient.Credentials.ChangeUserAsync(
+                        UserKey.Value, request);
+
+            if (!result.IsSuccess)
             {
-                CurrentSecret = _oldPassword!,
-                NewSecret = _newPassword!
-            };
-        }
-        else
-        {
-            request = new ChangeCredentialRequest
-            {
-                NewSecret = _newPassword!
-            };
-        }
+                Snackbar.Add(
+                    result.ErrorText ?? "Failed to update password.",
+                    Severity.Error);
+                return;
+            }
 
-        UAuthResult<CredentialChangeResult> result;
-        if (UserKey is null)
-        {
-            result = await UAuthClient.Credentials.ChangeMyAsync(request);
-        }
-        else
-        {
-            result = await UAuthClient.Credentials.ChangeUserAsync(UserKey.Value, request);
-        }
-
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Password changed successfully", Severity.Success);
             _oldPassword = null;
             _newPassword = null;
             _newPasswordCheck = null;
+
+            Snackbar.Add(
+                UserKey is null
+                    ? "Password changed successfully."
+                    : "User password updated successfully.",
+                Severity.Success);
+
             MudDialog.Close(DialogResult.Ok(true));
         }
-        else
+        catch (Exception)
         {
-            Snackbar.Add(result.ErrorText ?? "An error occurred while changing password", Severity.Error);
+            Snackbar.Add(
+                "An unexpected error occurred while updating the password.",
+                Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
         }
     }
 
-    private string PasswordMatch(string arg) => _newPassword != arg ? "Passwords don't match" : string.Empty;
+    private string? PasswordMatch(string? value)
+    {
+        return _newPassword == value
+            ? null
+            : "Passwords don't match.";
+    }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        if (!_isSubmitting)
+            MudDialog.Cancel();
+    }
 }

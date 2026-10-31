@@ -195,6 +195,76 @@ internal sealed class EfCoreUserSummaryQueryStore<TDbContext> : IUserSummaryQuer
             query.Descending);
     }
 
+    public async Task<IReadOnlyList<UserSummary>> GetByKeysAsync(IReadOnlyCollection<UserKey> userKeys, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(userKeys);
+        ct.ThrowIfCancellationRequested();
+
+        var keys = userKeys.Distinct().ToArray();
+
+        if (keys.Length == 0)
+            return Array.Empty<UserSummary>();
+
+        var profileKey = ProfileKey.Default;
+
+        var lifecycles = _db.Set<UserLifecycleProjection>()
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.DeletedAt == null &&
+                keys.Contains(x.UserKey));
+
+        var profiles = _db.Set<UserProfileProjection>()
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.ProfileKey == profileKey &&
+                x.DeletedAt == null);
+
+        var identifiers = _db.Set<UserIdentifierProjection>()
+            .AsNoTracking()
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.DeletedAt == null &&
+                x.IsPrimary);
+
+        return await lifecycles
+            .Select(l => new UserSummary
+            {
+                UserKey = l.UserKey,
+                Status = l.Status,
+                CreatedAt = l.CreatedAt,
+
+                DisplayName = profiles
+                    .Where(p => p.UserKey == l.UserKey)
+                    .Select(p => p.DisplayName)
+                    .FirstOrDefault(),
+
+                UserName = identifiers
+                    .Where(i => i.UserKey == l.UserKey && i.Type == UserIdentifierType.Username)
+                    .OrderBy(i => i.CreatedAt)
+                    .ThenBy(i => i.Id)
+                    .Select(i => i.Value)
+                    .FirstOrDefault(),
+
+                PrimaryEmail = identifiers
+                    .Where(i => i.UserKey == l.UserKey && i.Type == UserIdentifierType.Email)
+                    .OrderBy(i => i.CreatedAt)
+                    .ThenBy(i => i.Id)
+                    .Select(i => i.Value)
+                    .FirstOrDefault(),
+
+                PrimaryPhone = identifiers
+                    .Where(i => i.UserKey == l.UserKey && i.Type == UserIdentifierType.Phone)
+                    .OrderBy(i => i.CreatedAt)
+                    .ThenBy(i => i.Id)
+                    .Select(i => i.Value)
+                    .FirstOrDefault()
+            })
+            .OrderBy(x => x.UserKey)
+            .ToListAsync(ct);
+    }
+
     private static string EscapeLike(string value)
     {
         return value

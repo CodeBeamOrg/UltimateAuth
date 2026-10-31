@@ -118,7 +118,7 @@ public sealed class AuthorizationEndpointHandlerTests
     }
 
     [Fact]
-    public async Task CheckAsync_WhenDenied_ReturnsForbidden()
+    public async Task CheckAsync_WhenDenied_ReturnsOkWithDenial()
     {
         var f = new Fixture();
         var accessContext = f.AccessContext("orders.delete");
@@ -144,7 +144,14 @@ public sealed class AuthorizationEndpointHandlerTests
 
         var result = await f.Sut.CheckAsync(ctx);
 
-        result.Should().BeOfType<Microsoft.AspNetCore.Http.HttpResults.ForbidHttpResult>();
+        var ok = result.Should()
+            .BeOfType<Microsoft.AspNetCore.Http.HttpResults.Ok<AuthorizationResult>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+        ok.Value!.IsAllowed.Should().BeFalse();
+        ok.Value.DenyReason.Should().Be("access_denied");
+        ok.Value.RequiresReauthentication.Should().BeFalse();
 
         f.Authorization.Verify(x => x.AuthorizeAsync(
             accessContext,
@@ -153,7 +160,7 @@ public sealed class AuthorizationEndpointHandlerTests
     }
 
     [Fact]
-    public async Task CheckAsync_WhenReauthenticationIsRequired_Returns428()
+    public async Task CheckAsync_WhenReauthenticationIsRequired_ReturnsOkWithReauthentication()
     {
         var f = new Fixture();
         var accessContext = f.AccessContext("orders.delete");
@@ -179,9 +186,18 @@ public sealed class AuthorizationEndpointHandlerTests
 
         var result = await f.Sut.CheckAsync(ctx);
 
-        AssertStatusCode(
-            result,
-            StatusCodes.Status428PreconditionRequired);
+        var ok = result.Should()
+            .BeOfType<Microsoft.AspNetCore.Http.HttpResults.Ok<AuthorizationResult>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+        ok.Value!.IsAllowed.Should().BeFalse();
+        ok.Value.RequiresReauthentication.Should().BeTrue();
+
+        f.Authorization.Verify(x => x.AuthorizeAsync(
+            accessContext,
+            ctx.RequestAborted),
+            Times.Once);
     }
 
     // =========================================================
@@ -714,6 +730,70 @@ public sealed class AuthorizationEndpointHandlerTests
         restored.IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task GetMyPermissionsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var f = new Fixture(isAuthenticated: false);
+
+        var result = await f.Sut.GetMyPermissionsAsync(f.Http());
+
+        AssertStatusCode(
+            result,
+            StatusCodes.Status401Unauthorized);
+
+        f.AccessContextFactory.VerifyNoOtherCalls();
+        f.UserPermissions.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetMyPermissionsAsync_WhenAuthenticated_UsesCurrentUser()
+    {
+        var f = new Fixture();
+        var ctx = f.Http();
+
+        var accessContext = f.AccessContext(
+            UAuthActions.Authorization.Permissions.GetSelf);
+
+        f.SetupAccessContext(
+            UAuthActions.Authorization.Permissions.GetSelf,
+            "authorization.permissions",
+            f.UserKey.Value,
+            accessContext);
+
+        var expected = new UserPermissionsResult
+        {
+            Permissions =
+            [
+                Permission.From("users.read"),
+            Permission.From("reports.*")
+            ]
+        };
+
+        f.UserPermissions
+            .Setup(x => x.GetMyPermissionsAsync(
+                accessContext,
+                ctx.RequestAborted))
+            .ReturnsAsync(expected);
+
+        var result = await f.Sut.GetMyPermissionsAsync(ctx);
+
+        var ok = result.Should()
+            .BeOfType<Microsoft.AspNetCore.Http.HttpResults.Ok<UserPermissionsResult>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+
+        ok.Value!.Permissions.Select(x => x.Value)
+            .Should().BeEquivalentTo(
+                "users.read",
+                "reports.*");
+
+        f.UserPermissions.Verify(x => x.GetMyPermissionsAsync(
+            accessContext,
+            ctx.RequestAborted),
+            Times.Once);
+    }
+
     // =========================================================
     // Fixture
     // =========================================================
@@ -737,6 +817,9 @@ public sealed class AuthorizationEndpointHandlerTests
         public Mock<IAccessContextFactory> AccessContextFactory { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<IUserPermissionService> UserPermissions { get; }
+            = new(MockBehavior.Strict);
+
         public AuthorizationEndpointHandler Sut { get; }
 
         public Fixture(bool isAuthenticated = true)
@@ -754,7 +837,8 @@ public sealed class AuthorizationEndpointHandlerTests
                 Authorization.Object,
                 UserRoles.Object,
                 Roles.Object,
-                AccessContextFactory.Object);
+                AccessContextFactory.Object,
+                UserPermissions.Object);
         }
 
         public DefaultHttpContext Http()

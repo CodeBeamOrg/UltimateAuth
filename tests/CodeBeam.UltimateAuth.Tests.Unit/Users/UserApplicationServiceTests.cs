@@ -447,6 +447,16 @@ public sealed class UserApplicationServiceTests
             Now,
             It.IsAny<CancellationToken>()),
             Times.Once);
+
+        f.Atomic.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -574,6 +584,144 @@ public sealed class UserApplicationServiceTests
             target,
             mode,
             Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.Atomic.Verify(x => x.ExecuteAsync<UserDeleteResult>(
+            It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
+            target,
+            Now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteMeAsync_WhenSessionRevocationFails_PropagatesFailure()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: user,
+            targetUserKey: user,
+            action: UAuthActions.Users.DeleteSelf);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            user,
+            Now.AddDays(-1));
+
+        SetupDeleteSelfPersistence(f, user, lifecycle);
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                user,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException(
+                "Simulated session revocation failure"));
+
+        var act = () => f.Sut.DeleteMeAsync(context);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated session revocation failure");
+
+        f.Atomic.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(DeleteMode.Soft)]
+    [InlineData(DeleteMode.Hard)]
+    public async Task DeleteUserAsync_WhenSessionRevocationFails_PropagatesFailure(DeleteMode mode)
+    {
+        var f = CreateFixture();
+
+        var actor = UserKey.New();
+        var target = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: actor,
+            targetUserKey: target,
+            action: UAuthActions.Users.DeleteAdmin);
+
+        var lifecycle = UserLifecycle.Create(
+            context.ResourceTenant,
+            target,
+            Now.AddDays(-1));
+
+        f.LifecycleStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserLifecycleKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lifecycle);
+
+        f.LifecycleStore
+            .Setup(x => x.DeleteAsync(
+                It.IsAny<UserLifecycleKey>(),
+                lifecycle.Version,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.IdentifierStore
+            .Setup(x => x.DeleteByUserAsync(
+                target,
+                mode,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.ProfileStore
+            .Setup(x => x.GetAllProfilesByUserAsync(
+                target,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserProfile>());
+
+        f.SessionStore
+            .Setup(x => x.RevokeAllChainsAsync(
+                target,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException(
+                "Simulated session revocation failure"));
+
+        var request = new DeleteUserRequest
+        {
+            Mode = mode
+        };
+
+        var act = () => f.Sut.DeleteUserAsync(context, request);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated session revocation failure");
+
+        f.Atomic.Verify(x => x.ExecuteAsync<UserDeleteResult>(
+            It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.SessionStore.Verify(x => x.ExecuteAsync(
+            It.IsAny<Func<CancellationToken, Task>>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -1765,6 +1913,133 @@ public sealed class UserApplicationServiceTests
         result.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenOver250Keys_ThrowsValidationException()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var keys = Enumerable.Range(0, 251)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        var act = () => f.Sut.GetUsersByKeysAsync(context, keys);
+
+        await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        f.QueryStoreFactory.VerifyNoOtherCalls();
+        f.QueryStore.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_WhenEmpty_ReturnsEmptyWithoutStoreAccess()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            Array.Empty<UserKey>());
+
+        result.Should().BeEmpty();
+
+        f.QueryStoreFactory.VerifyNoOtherCalls();
+        f.QueryStore.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_ShouldNormalizeKeysAndUseResourceTenant()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var first = UserKey.New();
+        var second = UserKey.New();
+
+        var expected = new UserSummary[]
+        {
+        new()
+        {
+            UserKey = first,
+            DisplayName = "Alice",
+            Status = UserStatus.Active,
+            CreatedAt = Now
+        },
+        new()
+        {
+            UserKey = second,
+            DisplayName = "Bob",
+            Status = UserStatus.Active,
+            CreatedAt = Now
+        }
+        };
+
+        f.QueryStore
+            .Setup(x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(keys =>
+                    keys.Count == 2 &&
+                    keys.Contains(first) &&
+                    keys.Contains(second)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            [first, first, second]);
+
+        result.Should().BeEquivalentTo(expected);
+
+        f.QueryStoreFactory.Verify(
+            x => x.Create(context.ResourceTenant),
+            Times.Once);
+
+        f.QueryStore.Verify(
+            x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(keys =>
+                    keys.Count == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsersByKeysAsync_When250DistinctKeys_ExecutesSuccessfully()
+    {
+        var f = CreateFixture();
+
+        var context = CreateContext(
+            action: UAuthActions.Users.GetByKeysAdmin);
+
+        var keys = Enumerable.Range(0, 250)
+            .Select(_ => UserKey.New())
+            .ToArray();
+
+        f.QueryStore
+            .Setup(x => x.GetByKeysAsync(
+                It.Is<IReadOnlyCollection<UserKey>>(x =>
+                    x.Count == 250),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserSummary>());
+
+        var result = await f.Sut.GetUsersByKeysAsync(
+            context,
+            keys);
+
+        result.Should().BeEmpty();
+
+        f.QueryStore.Verify(x => x.GetByKeysAsync(
+            It.Is<IReadOnlyCollection<UserKey>>(x =>
+                x.Count == 250),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
@@ -1788,8 +2063,13 @@ public sealed class UserApplicationServiceTests
         var queryStoreFactory = new Mock<IUserSummaryQueryStoreFactory>(MockBehavior.Strict);
         var sessionStore = new Mock<ISessionStore>(MockBehavior.Strict);
         var clock = new Mock<IClock>(MockBehavior.Strict);
+        var queryStore = new Mock<IUserSummaryQueryStore>(MockBehavior.Strict);
 
         clock.SetupGet(x => x.UtcNow).Returns(Now);
+
+        queryStoreFactory
+            .Setup(x => x.Create(It.IsAny<TenantKey>()))
+            .Returns(queryStore.Object);
 
         lifecycleFactory
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
@@ -1806,6 +2086,13 @@ public sealed class UserApplicationServiceTests
         sessionFactory
             .Setup(x => x.Create(It.IsAny<TenantKey>()))
             .Returns(sessionStore.Object);
+
+        sessionStore
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                (operation, ct) => operation(ct));
 
         /*
          * Unit-test the service command body without mocking its contents.
@@ -1862,11 +2149,35 @@ public sealed class UserApplicationServiceTests
             .Returns<AccessContext, AccessCommand<UserDeleteResult>, CancellationToken>(
                 (_, command, ct) => command.ExecuteAsync(ct));
 
+        access
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<AccessContext>(),
+                It.IsAny<AccessCommand<IReadOnlyList<UserSummary>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<AccessContext,
+                AccessCommand<IReadOnlyList<UserSummary>>,
+                CancellationToken>(
+                (_, command, ct) => command.ExecuteAsync(ct));
+
         atomic
             .Setup(x => x.ExecuteAsync<UserCreateResult>(
                 It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
                 It.IsAny<CancellationToken>()))
             .Returns<Func<CancellationToken, Task<UserCreateResult>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
+        atomic
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
+        atomic
+            .Setup(x => x.ExecuteAsync<UserDeleteResult>(
+                It.IsAny<Func<CancellationToken, Task<UserDeleteResult>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<UserDeleteResult>>, CancellationToken>(
                 (operation, ct) => operation(ct));
 
         var options = Options.Create(
@@ -1900,7 +2211,9 @@ public sealed class UserApplicationServiceTests
             identifierValidator,
             normalizer,
             identifierVerifier,
-            sessionStore);
+            sessionStore,
+            queryStoreFactory,
+            queryStore);
     }
 
     private static AccessContext CreateContext(
@@ -1916,6 +2229,7 @@ public sealed class UserApplicationServiceTests
             isAuthenticated: true,
             isSystemActor: false,
             actorChainId: null,
+            actorRoles: Array.Empty<AccessActorRole>(),
             resource: "users",
             targetUserKey: targetUserKey ?? actorUserKey,
             resourceTenant: TenantKey.Single,
@@ -1929,10 +2243,7 @@ public sealed class UserApplicationServiceTests
             UserName = "alice"
         };
 
-    private static void SetupValidCreate(
-    Fixture f,
-    AccessContext context,
-    CreateUserRequest request)
+    private static void SetupValidCreate(Fixture f, AccessContext context, CreateUserRequest request)
     {
         f.UserCreateValidator
             .Setup(x => x.ValidateAsync(
@@ -2012,9 +2323,7 @@ public sealed class UserApplicationServiceTests
             .Returns(Task.CompletedTask);
     }
 
-    private static void SetupCreateNormalizers(
-    Fixture f,
-    CreateUserRequest request)
+    private static void SetupCreateNormalizers(Fixture f, CreateUserRequest request)
     {
         if (!string.IsNullOrWhiteSpace(request.UserName))
         {
@@ -2067,7 +2376,9 @@ public sealed class UserApplicationServiceTests
         Mock<IUserIdentifierValidator> IdentifierValidator,
         Mock<IIdentifierNormalizer> IdentifierNormalizer,
         Mock<IUserIdentifierVerifier> IdentifierVerifier,
-        Mock<ISessionStore> SessionStore);
+        Mock<ISessionStore> SessionStore,
+        Mock<IUserSummaryQueryStoreFactory> QueryStoreFactory,
+        Mock<IUserSummaryQueryStore> QueryStore);
 
     private static UserIdentifier CreateIdentifier(
     UserKey userKey,
