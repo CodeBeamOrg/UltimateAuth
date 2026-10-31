@@ -27,8 +27,7 @@ public sealed class InMemoryUserIdentifierStore : InMemoryTenantVersionedStore<U
         var candidates = TenantValues()
             .Where(x =>
                 x.Type == query.Type &&
-                x.NormalizedValue == query.NormalizedValue &&
-                !x.IsDeleted);
+                x.NormalizedValue == query.NormalizedValue);
 
         if (query.ExcludeIdentifierId.HasValue)
             candidates = candidates.Where(x => x.Id != query.ExcludeIdentifierId.Value);
