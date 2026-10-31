@@ -76,6 +76,8 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
             }
 
+            EnsureCreateUserIdentifierLimits(request);
+
             return await _atomicExecutor.ExecuteAsync(
             async atomicCt =>
             {
@@ -623,6 +625,10 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var existing = await identifierStore.GetByUserAsync(userKey, innerCt);
             EnsureMultipleIdentifierAllowed(request.Type, existing);
+
+            // TODO: Enforce identifier limits atomically for concurrent additions.
+            // The current read-check-insert sequence can exceed configured limits when multiple requests add identifiers to the same user simultaneously.
+            // Introduce per-user synchronization or a persistence-level guarantee for both EF Core and InMemory implementations.
             EnsureIdentifierLimits(request.Type, existing);
 
             var userScopeResult = await identifierStore.ExistsAsync(
@@ -1076,6 +1082,35 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (result.Exists)
         {
             throw new UAuthIdentifierConflictException("identifier_already_exists");
+        }
+    }
+
+    private void EnsureCreateUserIdentifierLimits(CreateUserRequest request)
+    {
+        var behavior = _options.Identifiers.Behavior;
+
+        var types = new List<UserIdentifierType>(3);
+
+        if (!string.IsNullOrWhiteSpace(request.UserName))
+            types.Add(UserIdentifierType.Username);
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            types.Add(UserIdentifierType.Email);
+
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+            types.Add(UserIdentifierType.Phone);
+
+        if (types.Count > behavior.MaxIdentifiersPerUser)
+        {
+            throw new UAuthIdentifierValidationException("identifier_total_limit_exceeded");
+        }
+
+        foreach (var group in types.GroupBy(type => type))
+        {
+            if (behavior.MaxIdentifiersPerType.TryGetValue(group.Key, out var maxPerType) && group.Count() > maxPerType)
+            {
+                throw new UAuthIdentifierValidationException("identifier_type_limit_exceeded");
+            }
         }
     }
 
