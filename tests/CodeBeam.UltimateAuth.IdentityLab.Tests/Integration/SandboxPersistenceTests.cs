@@ -96,4 +96,40 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         Assert.Equal(1, await verify.SandboxSettings.CountAsync());
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Ensure_restores_owner_relationship_without_changing_existing_sandbox(bool missingMembership)
+    {
+        await using var db = await postgres.CreateAsync();
+        await db.SeedAsync();
+        var service = new SandboxService(db);
+        var original = (await service.GetByUserAsync(LabDatabase.OwnerA))!;
+        await using (var setup = db.CreateDbContext())
+        {
+            var owner = await setup.SandboxMembers.SingleAsync(x => x.UserKey == LabDatabase.OwnerA);
+            if (missingMembership)
+                setup.SandboxMembers.Remove(owner);
+            else
+                owner.Role = SandboxMemberRole.Member;
+            await setup.SaveChangesAsync();
+        }
+        var repaired = await service.EnsureAsync(LabDatabase.OwnerA, "Must not replace existing name");
+        Assert.Equal(original.Id, repaired.Id);
+        Assert.Equal(original.Name, repaired.Name);
+        Assert.Equal(original.Settings.MaxUsers, repaired.Settings.MaxUsers);
+        var beforeRepeat = await db.SnapshotAsync();
+        await service.EnsureAsync(LabDatabase.OwnerA, "Still must not rename");
+        Assert.Equal(beforeRepeat, await db.SnapshotAsync());
+        await using var verify = db.CreateDbContext();
+        var members = await verify.SandboxMembers.ToListAsync();
+        Assert.Equal(4, members.Count);
+        Assert.Equal(SandboxMemberRole.Owner, Assert.Single(members, x => x.UserKey == LabDatabase.OwnerA).Role);
+        Assert.Contains(members, x => x.UserKey == LabDatabase.MemberA && x.SandboxId == original.Id);
+        Assert.Contains(members, x => x.UserKey == LabDatabase.OwnerB && x.Role == SandboxMemberRole.Owner);
+        Assert.Contains(members, x => x.UserKey == LabDatabase.MemberB && x.SandboxId != original.Id);
+        Assert.Equal(2, await verify.Sandboxes.CountAsync());
+        Assert.Equal(2, await verify.SandboxSettings.CountAsync());
+    }
+
 }
