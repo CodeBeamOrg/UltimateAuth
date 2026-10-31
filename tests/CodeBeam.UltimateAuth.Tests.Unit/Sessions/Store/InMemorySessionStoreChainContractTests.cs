@@ -4,8 +4,7 @@ using CodeBeam.UltimateAuth.Sessions.InMemory;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Sessions.Contracts;
 
-public sealed class InMemorySessionStoreChainContractTests
-    : SessionStoreChainContractTests
+public sealed class InMemorySessionStoreChainContractTests : SessionStoreChainContractTests
 {
     protected override Task<ISessionStoreTestDatabase>
         CreateDatabaseAsync()

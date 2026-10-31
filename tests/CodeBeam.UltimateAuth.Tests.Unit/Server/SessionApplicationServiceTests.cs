@@ -737,6 +737,68 @@ public sealed class SessionApplicationServiceTests
         (await store.GetChainAsync(secondChain.ChainId))!.IsRevoked.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task GetUserChainsAsync_ReturnsTotalSessionCountPerChain()
+    {
+        var (sut, store) = CreateSut();
+        var user = UserKey.New();
+        var root = await CreateRootAsync(store, user);
+
+        var firstChain = CreateChain(root, Now.AddMinutes(-30));
+        var secondChain = CreateChain(root, Now.AddMinutes(-20));
+
+        await store.CreateChainAsync(firstChain);
+        await store.CreateChainAsync(secondChain);
+
+        var firstSession = CreateSession(
+            user, firstChain.ChainId, Now.AddMinutes(-25), "first-1");
+
+        var rotatedSession = CreateSession(
+            user, firstChain.ChainId, Now.AddMinutes(-15), "first-2");
+
+        var secondSession = CreateSession(
+            user, secondChain.ChainId, Now.AddMinutes(-10), "second-1");
+
+        await store.CreateSessionAsync(firstSession);
+        await store.CreateSessionAsync(rotatedSession);
+        await store.CreateSessionAsync(secondSession);
+
+        var result = await sut.GetUserChainsAsync(
+            Context(user),
+            user,
+            new PageRequest { PageNumber = 1, PageSize = 10 });
+
+        result.Items.Single(x => x.ChainId == firstChain.ChainId)
+            .SessionCount.Should().Be(2);
+
+        result.Items.Single(x => x.ChainId == secondChain.ChainId)
+            .SessionCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetUserChainsAsync_RevokedSessionsRemainCounted()
+    {
+        var (sut, store) = CreateSut();
+        var user = UserKey.New();
+        var root = await CreateRootAsync(store, user);
+
+        var chain = CreateChain(root, Now.AddMinutes(-30));
+        await store.CreateChainAsync(chain);
+
+        var first = CreateSession(user, chain.ChainId, Now.AddMinutes(-20), "revoked-1");
+
+        var second = CreateSession(user, chain.ChainId, Now.AddMinutes(-10), "revoked-2");
+
+        await store.CreateSessionAsync(first);
+        await store.CreateSessionAsync(second);
+
+        await store.RevokeChainCascadeAsync(chain.ChainId, Now);
+
+        var result = await sut.GetUserChainsAsync(Context(user), user, new PageRequest { PageNumber = 1, PageSize = 10 });
+
+        result.Items.Single(x => x.ChainId == chain.ChainId).SessionCount.Should().Be(2);
+    }
+
     // ---------------------------------------------------------------------
     // Infrastructure / Helpers
     // ---------------------------------------------------------------------
