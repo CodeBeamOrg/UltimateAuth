@@ -71,8 +71,6 @@ public static class UserProfileSafetyValidation
         var errors = Validate(profile);
 
         if (errors.Count > 0)
-        {
-            throw new UAuthValidationException(string.Join(", ", errors));
-        }
+            throw new UAuthValidationException(errors[0].Code);
     }
 }

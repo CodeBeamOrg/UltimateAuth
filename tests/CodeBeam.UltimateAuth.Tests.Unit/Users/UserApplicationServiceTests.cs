@@ -2227,7 +2227,7 @@ public sealed class UserApplicationServiceTests
         var act = () => f.Sut.CreateUserAsync(context, request);
 
         var exception = await act.Should().ThrowAsync<UAuthValidationException>();
-        exception.Which.Code.Contains("profile_field_too_long");
+        exception.Which.Code.Should().Be("profile_field_too_long");
 
         f.LifecycleStore.Verify(
             x => x.AddAsync(
@@ -2289,7 +2289,7 @@ public sealed class UserApplicationServiceTests
         var act = () => f.Sut.CreateProfileAsync(context, request);
 
         var exception = await act.Should().ThrowAsync<UAuthValidationException>();
-        exception.Which.Code.Contains("profile_metadata_entries_exceeded");
+        exception.Which.Code.Should().Be("profile_metadata_entries_exceeded");
 
         f.ProfileStore.Verify(
             x => x.AddAsync(
@@ -2338,7 +2338,7 @@ public sealed class UserApplicationServiceTests
         var act = () => f.Sut.UpdateUserProfileAsync(context, request);
 
         var exception = await act.Should().ThrowAsync<UAuthValidationException>();
-        exception.Which.Code.Contains("profile_field_too_long");
+        exception.Which.Code.Should().Be("profile_field_too_long");
 
         // The existing tracked entity must remain unchanged.
         profile.FirstName.Should().Be("Alice");
