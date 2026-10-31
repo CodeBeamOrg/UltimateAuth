@@ -80,9 +80,10 @@ internal sealed class SessionApplicationService : ISessionApplicationService
 
             var total = chains.Count;
 
-            var pageItems = chains
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
+            var pageChains = chains.Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize).ToList();
+            var sessionCounts = await store.GetSessionCountsByChainsAsync(pageChains.Select(c => c.ChainId).ToArray(), innerCt);
+
+            var pageItems = pageChains
                 .Select(c => new SessionChainSummary
                 {
                     ChainId = c.ChainId,
@@ -94,11 +95,13 @@ internal sealed class SessionApplicationService : ISessionApplicationService
                     LastSeenAt = c.LastSeenAt,
                     RotationCount = c.RotationCount,
                     TouchCount = c.TouchCount,
+                    SessionCount = sessionCounts.GetValueOrDefault(c.ChainId),
                     IsRevoked = c.IsRevoked,
                     RevokedAt = c.RevokedAt,
                     ActiveSessionId = c.ActiveSessionId,
-                    IsCurrentDevice = actorChainId.HasValue && c.ChainId == actorChainId.Value,
-                    State = c.State,
+                    IsCurrentDevice =
+                        actorChainId.HasValue && c.ChainId == actorChainId.Value,
+                    State = c.State
                 })
                 .ToList();
 

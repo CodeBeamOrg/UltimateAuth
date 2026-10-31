@@ -867,4 +867,21 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         rootDomain.UpdateProjection(rootProjection);
         rootProjection.Version++;
     }
+
+    public async Task<IReadOnlyDictionary<SessionChainId, int>> GetSessionCountsByChainsAsync(IReadOnlyCollection<SessionChainId> chainIds, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (chainIds.Count == 0)
+            return new Dictionary<SessionChainId, int>();
+
+        var ids = chainIds.Distinct().ToArray();
+
+        return await DbSetSession
+            .AsNoTracking()
+            .Where(s => s.Tenant == _tenant && ids.Contains(s.ChainId))
+            .GroupBy(s => s.ChainId)
+            .Select(g => new { ChainId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ChainId, x => x.Count, ct);
+    }
 }

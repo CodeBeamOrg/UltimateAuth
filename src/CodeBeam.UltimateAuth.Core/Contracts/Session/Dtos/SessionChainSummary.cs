@@ -13,6 +13,7 @@ public sealed record SessionChainSummary
     public DateTimeOffset? LastSeenAt { get; init; }
     public int RotationCount { get; init; }
     public int TouchCount { get; init; }
+    public int SessionCount { get; init; }
     public bool IsRevoked { get; init; }
     public DateTimeOffset? RevokedAt { get; init; }
     public AuthSessionId? ActiveSessionId { get; init; }

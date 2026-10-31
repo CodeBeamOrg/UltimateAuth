@@ -101,6 +101,7 @@ Each summary provides information suitable for building a device management inte
 | `LastSeenAt` | `DateTimeOffset?` | Last recorded activity |
 | `RotationCount` | `int` | Recorded rotation count |
 | `TouchCount` | `int` | Recorded touch count |
+| `SessionCount` | `int` | Total number of session records in the chain, including historical and revoked sessions |
 | `IsRevoked` | `bool` | Whether the chain is revoked |
 | `RevokedAt` | `DateTimeOffset?` | Revocation timestamp |
 | `ActiveSessionId` | `AuthSessionId?` | Associated active session identifier |
