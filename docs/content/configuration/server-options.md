@@ -920,6 +920,69 @@ Identifier normalization and uniqueness are particularly important because they 
 
 Use the provided options rather than implementing inconsistent normalization independently in the client.
 
+### Identifier Limits
+
+UltimateAuth supports configurable limits on the number of identifiers associated with each user.
+
+By default, a user can have up to **10 active identifiers**, regardless of their type.
+
+```csharp
+options.Identifiers.Behavior.MaxIdentifiersPerUser = 10;
+```
+
+This is a global per-user limit. It applies to the combined number of usernames, email addresses, phone numbers, and custom identifiers.
+
+#### Optional Per-Type Limits
+
+Applications can optionally define limits for individual identifier types:
+
+```csharp
+options.Identifiers.Behavior.MaxIdentifiersPerUser = 10;
+
+options.Identifiers.Behavior.MaxIdentifiersPerType = new()
+{
+    [UserIdentifierType.Username] = 2,
+    [UserIdentifierType.Email] = 5,
+    [UserIdentifierType.Phone] = 3
+};
+```
+
+**Per-type limits are not configured by default.**
+
+When no per-type limit is specified, only the global limit applies.
+
+For example, with the configuration above, a user may have up to five email addresses, but the combined number of all active identifiers cannot exceed ten.
+
+#### Default Behavior
+
+| Option | Default | Description |
+|---|---|---|
+| `MaxIdentifiersPerUser` | `10` | Maximum total active identifiers per user |
+| `MaxIdentifiersPerType` | Empty dictionary | Optional limits for individual identifier types |
+
+The following rules apply:
+
+- Primary and non-primary identifiers count equally.
+- Soft-deleted identifiers do not count toward active limits.
+- Self-service and administrative operations follow the same limits.
+- Per-type limits do not override the global limit.
+- Existing identifier behavior options remain applicable.
+
+For example, `AllowMultipleUsernames = false` still prevents multiple usernames, even when the configured username limit is greater than one.
+
+#### Limit Validation
+
+When an identifier addition exceeds a configured limit, the operation is rejected with a validation error.
+
+| Error Code | Meaning |
+|---|---|
+| `identifier_total_limit_exceeded` | The user has reached the global identifier limit |
+| `identifier_type_limit_exceeded` | The user has reached the configured limit for that identifier type |
+
+Applications should handle these errors and display appropriate feedback.
+
+Identifier limits are enforced by the Users application layer rather than individual persistence stores.
+
 ## 18. User Profile Options
 
 `options.UserProfile` controls profile-related capabilities.

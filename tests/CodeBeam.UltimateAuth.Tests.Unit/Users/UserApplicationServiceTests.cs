@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -7,12 +8,13 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users;
 
@@ -2040,11 +2042,182 @@ public sealed class UserApplicationServiceTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_global_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerUser = 1;
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Phone,
+                Value = "+905551234567"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_total_limit_exceeded*");
+    }
+
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_type_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerType = new()
+            {
+                [UserIdentifierType.Email] = 1
+            };
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Email,
+                Value = "another@example.com"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_type_limit_exceeded*");
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenGlobalIdentifierLimitExceeded_ThrowsWithoutPersisting()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.Identifiers.Behavior.MaxIdentifiersPerUser = 2;
+        });
+
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com",
+            Phone = "+905551112233"
+        };
+
+        SetupValidCreate(f, context, request);
+
+        var act = () => f.Sut.CreateUserAsync(context, request);
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_total_limit_exceeded*");
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenIdentifierCountEqualsLimit_Succeeds()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.Identifiers.Behavior.MaxIdentifiersPerUser = 2;
+        });
+
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com"
+        };
+
+        SetupValidCreate(f, context, request);
+        SetupSuccessfulCreatePersistence(f);
+
+        var result = await f.Sut.CreateUserAsync(context, request);
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WithDefaultLimit_AllowsThreeInitialIdentifiers()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com",
+            Phone = "+905551112233"
+        };
+
+        SetupValidCreate(f, context, request);
+        SetupSuccessfulCreatePersistence(f);
+
+        var result = await f.Sut.CreateUserAsync(context, request);
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
 
     private static Fixture CreateFixture(params IUserLifecycleIntegration[] integrations)
+        => CreateFixtureWithOptions(null, integrations);
+
+    private static Fixture CreateFixtureWithOptions(Action<UAuthServerOptions>? configureOptions, params IUserLifecycleIntegration[] integrations)
     {
         var access = new Mock<IAccessOrchestrator>(MockBehavior.Strict);
         var atomic = new Mock<IUAuthAtomicExecutor>(MockBehavior.Strict);
@@ -2180,8 +2353,10 @@ public sealed class UserApplicationServiceTests
             .Returns<Func<CancellationToken, Task<UserDeleteResult>>, CancellationToken>(
                 (operation, ct) => operation(ct));
 
-        var options = Options.Create(
-            new UAuthServerOptions());
+        var serverOptions = new UAuthServerOptions();
+        configureOptions?.Invoke(serverOptions);
+
+        var options = Options.Create(serverOptions);
 
         var sut = new UserApplicationService(
             access.Object,
