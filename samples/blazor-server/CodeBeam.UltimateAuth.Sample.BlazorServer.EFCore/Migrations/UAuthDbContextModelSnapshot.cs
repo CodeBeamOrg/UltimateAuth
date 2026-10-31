@@ -628,6 +628,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Bio")
+                        .HasMaxLength(4096)
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("BirthDate")
@@ -637,24 +638,30 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Culture")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("DisplayName")
+                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Gender")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Language")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Metadata")
@@ -671,6 +678,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TimeZone")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
