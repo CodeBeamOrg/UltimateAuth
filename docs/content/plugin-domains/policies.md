@@ -1,6 +1,6 @@
 ---
 title: Policies & Access Control
-order: 5
+order: 6
 group: plugin-domains
 ---
 

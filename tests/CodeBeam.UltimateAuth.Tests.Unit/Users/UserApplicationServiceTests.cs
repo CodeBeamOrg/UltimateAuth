@@ -20,8 +20,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Users;
 
 public sealed class UserApplicationServiceTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
 
     // ============================================================
     // Create
@@ -2208,6 +2207,153 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<UserIdentifier>(),
                 It.IsAny<CancellationToken>()),
             Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenProfileFieldExceedsLimit_DoesNotPersist()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            FirstName = new string('x', UserProfileLimits.FirstName + 1)
+        };
+
+        // Simulate an application validator that accepts the request.
+        SetupValidCreate(f, context, request);
+
+        var act = () => f.Sut.CreateUserAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Contains("profile_field_too_long");
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.Atomic.Verify(
+            x => x.ExecuteAsync<UserCreateResult>(
+                It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateProfileAsync_WhenMetadataExceedsLimit_DoesNotPersist()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.UserProfile.EnableMultiProfile = true;
+        });
+
+        var userKey = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: userKey,
+            targetUserKey: userKey);
+
+        var profileKey = ProfileKey.Parse("secondary", null);
+
+        var request = new CreateProfileRequest
+        {
+            ProfileKey = profileKey,
+            Metadata = Enumerable
+                .Range(0, UserProfileLimits.MetadataEntries + 1)
+                .ToDictionary(
+                    x => $"key{x}",
+                    _ => "value")
+        };
+
+        f.ProfileStore
+            .Setup(x => x.ExistsAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var act = () => f.Sut.CreateProfileAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Contains("profile_metadata_entries_exceeded");
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserProfileAsync_WhenFieldExceedsLimit_DoesNotMutateOrPersist()
+    {
+        var f = CreateFixture();
+
+        var userKey = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: userKey,
+            targetUserKey: userKey);
+
+        var profile = UserProfile.Create(
+            Guid.NewGuid(),
+            context.ResourceTenant,
+            userKey,
+            ProfileKey.Default,
+            Now.AddDays(-1),
+            firstName: "Alice",
+            lastName: "Smith",
+            displayName: "Alice Smith");
+
+        var originalVersion = profile.Version;
+        var originalUpdatedAt = profile.UpdatedAt;
+
+        f.ProfileStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+
+        var request = new UpdateProfileRequest
+        {
+            FirstName = new string('x', UserProfileLimits.FirstName + 1),
+            LastName = "Changed",
+            DisplayName = "Changed Name"
+        };
+
+        var act = () => f.Sut.UpdateUserProfileAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Contains("profile_field_too_long");
+
+        // The existing tracked entity must remain unchanged.
+        profile.FirstName.Should().Be("Alice");
+        profile.LastName.Should().Be("Smith");
+        profile.DisplayName.Should().Be("Alice Smith");
+
+        profile.Version.Should().Be(originalVersion);
+        profile.UpdatedAt.Should().Be(originalUpdatedAt);
+
+        f.ProfileStore.Verify(
+            x => x.SaveAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // ============================================================

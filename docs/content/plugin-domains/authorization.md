@@ -1,6 +1,6 @@
 ---
 title: Authorization
-order: 4
+order: 5
 group: plugin-domains
 ---
 

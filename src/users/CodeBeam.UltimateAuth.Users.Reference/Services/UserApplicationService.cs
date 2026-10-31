@@ -76,6 +76,20 @@ internal sealed class UserApplicationService : IUserApplicationService
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
             }
 
+            UserProfileSafetyValidation.EnsureValid(new UserProfileInfo
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture,
+                Metadata = request.Metadata
+            });
+
             EnsureCreateUserIdentifierLimits(request);
 
             return await _atomicExecutor.ExecuteAsync(
@@ -466,6 +480,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     metadata: request.Metadata);
             }
 
+            UserProfileSafetyValidation.EnsureValid(profile.ToDto());
             await store.AddAsync(profile, innerCt);
         });
 
@@ -490,6 +505,21 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (!_options.UserProfile.EnableMultiProfile && profileKey != ProfileKey.Default)
                 throw new UAuthConflictException("multi_profile_disabled");
+
+            UserProfileSafetyValidation.EnsureValid(new UserProfileInfo
+            {
+                ProfileKey = profileKey,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = request.DisplayName,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture,
+                Metadata = request.Metadata
+            });
 
             var expectedVersion = profile.Version;
 

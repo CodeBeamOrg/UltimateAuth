@@ -1,6 +1,6 @@
 ---
 title: Credentials
-order: 3
+order: 4
 group: plugin-domains
 ---
 
