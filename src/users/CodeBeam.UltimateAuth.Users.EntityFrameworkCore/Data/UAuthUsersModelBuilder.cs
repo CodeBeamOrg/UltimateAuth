@@ -117,6 +117,15 @@ public static class UAuthUsersModelBuilder
                 .HasMaxLength(64)
                 .IsRequired();
 
+            e.Property(x => x.FirstName).HasMaxLength(UserProfileLimits.FirstName);
+            e.Property(x => x.LastName).HasMaxLength(UserProfileLimits.LastName);
+            e.Property(x => x.DisplayName).HasMaxLength(UserProfileLimits.DisplayName);
+            e.Property(x => x.Gender).HasMaxLength(UserProfileLimits.Gender);
+            e.Property(x => x.Bio).HasMaxLength(UserProfileLimits.Bio);
+            e.Property(x => x.Language).HasMaxLength(UserProfileLimits.Language);
+            e.Property(x => x.TimeZone).HasMaxLength(UserProfileLimits.TimeZone);
+            e.Property(x => x.Culture).HasMaxLength(UserProfileLimits.Culture);
+
             e.Property(x => x.Metadata)
                 .HasConversion(new NullableJsonValueConverter<Dictionary<string, string>>())
                 .Metadata.SetValueComparer(JsonValueComparers.Create<Dictionary<string, string>>());

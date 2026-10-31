@@ -9,6 +9,10 @@ public sealed class UserProfileValidator : IUserProfileValidator
     {
         ct.ThrowIfCancellationRequested();
 
-        return Task.FromResult(UserProfileValidationResult.Success());
+        var errors = UserProfileSafetyValidation.Validate(profile);
+
+        return Task.FromResult(errors.Count == 0
+            ? UserProfileValidationResult.Success()
+            : UserProfileValidationResult.Failed(errors));
     }
 }

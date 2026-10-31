@@ -1,4 +1,5 @@
-﻿@inject IUAuthClient UAuthClient
+﻿@using CodeBeam.UltimateAuth.Users.Contracts
+@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 
 <MudDialog Class="lab-profile-dialog uauth-shared-dialog">
@@ -11,9 +12,7 @@
 
             <div class="lab-profile-header-text">
                 <MudText Typo="Typo.h6">Edit Profile</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Update identity details and personal preferences.
-                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Update identity details and personal preferences.</MudText>
             </div>
         </div>
     </TitleContent>
@@ -21,8 +20,7 @@
     <DialogContent>
         @if (_isLoading)
         {
-            <MudProgressLinear Indeterminate="true"
-                               Color="Color.Primary" />
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
         }
         else if (_loadError is not null)
         {
@@ -36,9 +34,7 @@
                 <div class="lab-profile-content">
                     @if (PreviewMode)
                     {
-                        <MudAlert Severity="Severity.Info"
-                                  Variant="Variant.Outlined"
-                                  Dense="true">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
                             Preview mode is active. Profile changes cannot be saved.
                         </MudAlert>
                     }
@@ -51,9 +47,7 @@
 
                     <div class="lab-profile-section">
                         <div class="lab-profile-section-heading">
-                            <MudIcon Icon="@Icons.Material.Filled.Badge"
-                                     Color="Color.Primary"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Small" />
                             <div>
                                 <strong>Basic Information</strong>
                                 <span>How this identity appears throughout the application.</span>
@@ -65,12 +59,18 @@
                                           Label="First Name"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
+                                          MaxLength="@UserProfileLimits.FirstName"
+                                          Counter="@UserProfileLimits.FirstName"
+                                          Immediate="true"
                                           Disabled="@_isSaving" />
 
                             <MudTextField @bind-Value="_lastName"
                                           Label="Last Name"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
+                                          MaxLength="@UserProfileLimits.LastName"
+                                          Counter="@UserProfileLimits.LastName"
+                                          Immediate="true"
                                           Disabled="@_isSaving" />
 
                             <div class="lab-profile-full">
@@ -78,6 +78,9 @@
                                               Label="Display Name"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense"
+                                              MaxLength="@UserProfileLimits.DisplayName"
+                                              Counter="@UserProfileLimits.DisplayName"
+                                              Immediate="true"
                                               Disabled="@_isSaving" />
                             </div>
                         </div>
@@ -87,9 +90,7 @@
 
                     <div class="lab-profile-section">
                         <div class="lab-profile-section-heading">
-                            <MudIcon Icon="@Icons.Material.Filled.PersonOutline"
-                                     Color="Color.Primary"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Color="Color.Primary" Size="Size.Small" />
                             <div>
                                 <strong>Personal Details</strong>
                                 <span>Optional information associated with this profile.</span>
@@ -107,6 +108,9 @@
                                           Label="Gender"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
+                                          MaxLength="@UserProfileLimits.Gender"
+                                          Counter="@UserProfileLimits.Gender"
+                                          Immediate="true"
                                           Disabled="@_isSaving" />
 
                             <div class="lab-profile-full">
@@ -115,6 +119,9 @@
                                               Lines="3"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense"
+                                              MaxLength="@UserProfileLimits.Bio"
+                                              Counter="@UserProfileLimits.Bio"
+                                              Immediate="true"
                                               Disabled="@_isSaving" />
                             </div>
                         </div>
@@ -124,9 +131,7 @@
 
                     <div class="lab-profile-section">
                         <div class="lab-profile-section-heading">
-                            <MudIcon Icon="@Icons.Material.Filled.Language"
-                                     Color="Color.Primary"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" Size="Size.Small" />
                             <div>
                                 <strong>Localization</strong>
                                 <span>Language, time zone and culture preferences.</span>
@@ -139,6 +144,9 @@
                                           Placeholder="e.g. en"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
+                                          MaxLength="@UserProfileLimits.Language"
+                                          Counter="@UserProfileLimits.Language"
+                                          Immediate="true"
                                           Disabled="@_isSaving" />
 
                             <MudTextField @bind-Value="_culture"
@@ -146,6 +154,9 @@
                                           Placeholder="e.g. en-US"
                                           Variant="Variant.Outlined"
                                           Margin="Margin.Dense"
+                                          MaxLength="@UserProfileLimits.Culture"
+                                          Counter="@UserProfileLimits.Culture"
+                                          Immediate="true"
                                           Disabled="@_isSaving" />
 
                             <div class="lab-profile-full">
@@ -155,6 +166,9 @@
                                                    Variant="Variant.Outlined"
                                                    Margin="Margin.Dense"
                                                    SearchBox="true"
+                                                   MaxLength="@UserProfileLimits.TimeZone"
+                                                   Counter="@UserProfileLimits.TimeZone"
+                                                   Immediate="true"
                                                    Disabled="@_isSaving">
                                     @foreach (var tz in _timeZones)
                                     {
@@ -173,20 +187,12 @@
 
     <DialogActions>
         <div class="lab-profile-actions">
-            <MudButton Variant="Variant.Text"
-                       Color="Color.Default"
-                       Disabled="@_isSaving"
-                       OnClick="Cancel">
+            <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="@_isSaving" OnClick="Cancel">
                 Cancel
             </MudButton>
 
-            <MudLoadingButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       Loading="@_isSaving"
-                       Disabled="@(_isLoading || _loadError is not null || PreviewMode || _isSaving)"
-                       OnClick="SaveAsync"
-                       AutoDelay="0">
+            <MudLoadingButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Loading="@_isSaving"
+                              Disabled="@(_isLoading || _loadError is not null || PreviewMode || _isSaving)" OnClick="SaveAsync" AutoDelay="0">
                 Save Changes
             </MudLoadingButton>
         </div>

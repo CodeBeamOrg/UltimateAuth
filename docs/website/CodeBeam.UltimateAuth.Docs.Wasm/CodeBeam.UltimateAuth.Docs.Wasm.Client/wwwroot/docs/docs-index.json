@@ -133,23 +133,30 @@
     "GroupOrder": 5
   },
   {
+    "Title": "Profile Validation \u0026 Limits",
+    "Slug": "plugin-domains/profile-validation-limits",
+    "Order": 3,
+    "Group": "plugin-domains",
+    "GroupOrder": 5
+  },
+  {
     "Title": "Credentials",
     "Slug": "plugin-domains/credentials",
-    "Order": 3,
+    "Order": 4,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },
   {
     "Title": "Authorization",
     "Slug": "plugin-domains/authorization",
-    "Order": 4,
+    "Order": 5,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },
   {
     "Title": "Policies \u0026 Access Control",
     "Slug": "plugin-domains/policies",
-    "Order": 5,
+    "Order": 6,
     "Group": "plugin-domains",
     "GroupOrder": 5
   },

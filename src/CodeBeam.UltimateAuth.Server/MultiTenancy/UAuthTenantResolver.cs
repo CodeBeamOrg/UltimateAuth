@@ -1,9 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
-using CodeBeam.UltimateAuth.Core.Options;
-using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.MultiTenancy;
 
