@@ -113,6 +113,26 @@ UltimateAuth treats identifiers as independent identity records rather than assu
 
 This supports applications with different identity requirements without changing the underlying authentication model.
 
+### Identifier Capacity and Limits
+
+UltimateAuth allows users to maintain multiple identifiers while providing configurable limits to prevent uncontrolled identifier growth.
+
+The default configuration allows **10 active identifiers per user**, shared across all identifier types.
+
+Applications can optionally configure additional per-type limits when their identity model requires them.
+
+For example, an application may allow several email addresses and phone numbers while restricting the number of usernames.
+
+Identifier limits are independent of identifier uniqueness, ownership verification, and primary designation.
+
+A primary identifier consumes the same capacity as a non-primary identifier. Soft-deleted identifiers do not consume active capacity, although their normalized values may remain reserved under the configured uniqueness rules.
+
+Limits apply consistently to self-service and administrative identifier additions.
+
+These rules belong to the Users application layer, keeping persistence implementations independent of application-specific identifier policies.
+
+See [Server Options](/docs/configuration/server-options) for configuration examples.
+
 ### Identifier Properties
 
 The reference identifier model distinguishes several important properties:

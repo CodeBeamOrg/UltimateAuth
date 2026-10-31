@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
-using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
 
@@ -624,6 +623,7 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var existing = await identifierStore.GetByUserAsync(userKey, innerCt);
             EnsureMultipleIdentifierAllowed(request.Type, existing);
+            EnsureIdentifierLimits(request.Type, existing);
 
             var userScopeResult = await identifierStore.ExistsAsync(
                 new IdentifierExistenceQuery(request.Type, normalized.Normalized, IdentifierExistenceScope.WithinUser, UserKey: userKey), innerCt);
@@ -978,6 +978,28 @@ internal sealed class UserApplicationService : IUserApplicationService
 
         if (type == UserIdentifierType.Phone && !_options.Identifiers.Behavior.AllowMultiplePhone)
             throw new UAuthValidationException("multiple_phones_not_allowed");
+    }
+
+    private void EnsureIdentifierLimits(UserIdentifierType type, IReadOnlyList<UserIdentifier> existing)
+    {
+        var behavior = _options.Identifiers.Behavior;
+
+        var activeIdentifiers = existing.Where(i => !i.IsDeleted).ToList();
+
+        if (activeIdentifiers.Count >= behavior.MaxIdentifiersPerUser)
+        {
+            throw new UAuthIdentifierValidationException("identifier_total_limit_exceeded");
+        }
+
+        if (behavior.MaxIdentifiersPerType.TryGetValue(type, out var maxPerType))
+        {
+            var activeTypeCount = activeIdentifiers.Count(i => i.Type == type);
+
+            if (activeTypeCount >= maxPerType)
+            {
+                throw new UAuthIdentifierValidationException("identifier_type_limit_exceeded");
+            }
+        }
     }
 
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)

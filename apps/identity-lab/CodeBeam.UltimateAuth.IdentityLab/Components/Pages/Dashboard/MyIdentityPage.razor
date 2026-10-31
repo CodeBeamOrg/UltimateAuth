@@ -1,8 +1,8 @@
 ﻿@page "/dashboard/identity"
-@using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.IdentityLab.Services
-@using CodeBeam.UltimateAuth.Users.Contracts
+@using CodeBeam.UltimateAuth.Server.Options
+@using Microsoft.Extensions.Options
 @layout DashboardLayout
+@inject IOptions<UAuthServerOptions> ServerOptions
 @inject SandboxAccountDeletionService SandboxAccountDeletionService
 @inject LabDashboardService LabDashboardService
 @inject IUAuthClient UAuthClient
@@ -55,43 +55,26 @@
                     @if (_loading)
                     {
                         <MudStack Spacing="3" Class="py-4">
-                            <MudSkeleton SkeletonType="SkeletonType.Circle"
-                                         Width="56px"
-                                         Height="56px" />
-
-                            <MudSkeleton SkeletonType="SkeletonType.Text"
-                                         Width="60%" />
-
-                            <MudSkeleton SkeletonType="SkeletonType.Text"
-                                         Width="85%" />
-
-                            <MudSkeleton SkeletonType="SkeletonType.Text"
-                                         Width="75%" />
-
-                            <MudSkeleton SkeletonType="SkeletonType.Text"
-                                         Width="90%" />
+                            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="56px" Height="56px" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="60%" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="85%" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="75%" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="90%" />
                         </MudStack>
                     }
                     else if (_loadError is not null)
                     {
-                        <MudAlert Severity="Severity.Error"
-                                  Variant="Variant.Outlined"
-                                  Class="my-3">
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="my-3">
                             @_loadError
                         </MudAlert>
 
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Refresh"
-                                   OnClick="LoadProfileAsync">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadProfileAsync">
                             Try Again
                         </MudButton>
                     }
                     else if (_profile is null)
                     {
-                        <MudAlert Severity="Severity.Warning"
-                                  Variant="Variant.Outlined"
-                                  Class="my-3">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="my-3">
                             Profile information is currently unavailable.
                         </MudAlert>
                     }
@@ -239,14 +222,22 @@
 
                     <div class="lab-card-header">
                         <div>
-                            <h2>Sign-in Identifiers</h2>
-                            <p>
-                                Identifiers associated with your account.
-                            </p>
+                            <h2>
+                                Sign-in Identifiers
+
+                                @if (!_identifiersLoading && _identifiersError is null)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="@(IdentifierLimitReached ? Color.Warning : Color.Default)"
+                                             Variant="Variant.Outlined" Class="ml-2">
+                                        @ActiveIdentifierCount/@MaxIdentifiers
+                                    </MudChip>
+                                }
+                            </h2>
+
+                            <p>Identifiers associated with your account.</p>
                         </div>
 
-                        <MudIcon Icon="@Icons.Material.Filled.AlternateEmail"
-                                 Color="Color.Primary" />
+                        <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" Color="Color.Primary" />
                     </div>
 
                     <div class="lab-identifier-list">
@@ -457,6 +448,10 @@
     private bool _identifiersLoading = true;
     private string? _identifiersError;
     private bool _isSandboxOwner;
+
+    private int MaxIdentifiers => ServerOptions.Value.Identifiers.Behavior.MaxIdentifiersPerUser;
+    private int ActiveIdentifierCount => _identifiers.Count;
+    private bool IdentifierLimitReached => ActiveIdentifierCount >= MaxIdentifiers;
 
     private static string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "Not provided" : value;
 

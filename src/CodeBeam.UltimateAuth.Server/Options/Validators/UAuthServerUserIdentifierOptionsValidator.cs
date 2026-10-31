@@ -6,12 +6,38 @@ public sealed class UAuthServerUserIdentifierOptionsValidator : IValidateOptions
 {
     public ValidateOptionsResult Validate(string? name, UAuthServerOptions options)
     {
+        var errors = new List<string>();
+
         if (!options.Identifiers.Behavior.AllowAdminOverride && !options.Identifiers.Behavior.AllowUserOverride)
         {
-            return ValidateOptionsResult.Fail("Both AllowAdminOverride and AllowUserOverride cannot be false. " +
+            errors.Add("Both AllowAdminOverride and AllowUserOverride cannot be false. " +
                 "At least one actor must be able to manage user identifiers.");
         }
 
-        return ValidateOptionsResult.Success;
+        var behavior = options.Identifiers.Behavior;
+
+        if (behavior.MaxIdentifiersPerUser < 1)
+        {
+            errors.Add("Identifiers.Behavior.MaxIdentifiersPerUser must be greater than zero.");
+        }
+
+        if (behavior.MaxIdentifiersPerType is null)
+        {
+            errors.Add("Identifiers.Behavior.MaxIdentifiersPerType cannot be null.");
+        }
+        else
+        {
+            foreach (var (type, limit) in behavior.MaxIdentifiersPerType)
+            {
+                if (!Enum.IsDefined(type) || limit < 1)
+                {
+                    errors.Add($"Invalid identifier limit for {type}. Limit must be greater than zero.");
+                }
+            }
+        }
+
+        return errors.Count == 0
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(errors);
     }
 }

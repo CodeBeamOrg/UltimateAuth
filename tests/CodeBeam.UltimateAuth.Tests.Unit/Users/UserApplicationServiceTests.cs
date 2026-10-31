@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -7,12 +8,13 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users;
 
@@ -2038,6 +2040,61 @@ public sealed class UserApplicationServiceTests
                 x.Count == 250),
             It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_global_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerUser = 1;
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Phone,
+                Value = "+905551234567"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_total_limit_exceeded*");
+    }
+
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_type_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerType = new()
+            {
+                [UserIdentifierType.Email] = 1
+            };
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Email,
+                Value = "another@example.com"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_type_limit_exceeded*");
     }
 
     // ============================================================
