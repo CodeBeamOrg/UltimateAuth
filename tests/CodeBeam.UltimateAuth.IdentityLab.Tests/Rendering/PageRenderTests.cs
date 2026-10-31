@@ -15,9 +15,9 @@ public sealed class PageRenderTests
 {
     [Fact]
     [SmokeTestFor(typeof(LoginPage))]
-    public void Anonymous_login_renders_the_real_login_form()
+    public async Task Anonymous_login_renders_the_real_login_form()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         var page = context.RenderPage<LoginPage>();
 
         page.WaitForAssertion(() =>
@@ -29,9 +29,9 @@ public sealed class PageRenderTests
     }
 
     [Fact]
-    public void Authenticated_login_renders_workspace_entry_instead_of_form()
+    public async Task Authenticated_login_renders_workspace_entry_instead_of_form()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         var page = context.RenderPage<LoginPage>(PageRenderContext.Authenticated("Owner"));
 
         page.WaitForAssertion(() =>
@@ -43,9 +43,9 @@ public sealed class PageRenderTests
 
     [Fact]
     [SmokeTestFor(typeof(RegisterPage))]
-    public void Anonymous_registration_renders_without_an_existing_session()
+    public async Task Anonymous_registration_renders_without_an_existing_session()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddLabServices();
         var page = context.RenderPage<RegisterPage>();
 
@@ -59,9 +59,9 @@ public sealed class PageRenderTests
 
     [Fact]
     [SmokeTestFor(typeof(LandingPage))]
-    public void Landing_page_renders_registration_entry()
+    public async Task Landing_page_renders_registration_entry()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         var page = context.RenderPage<LandingPage>();
         Assert.Contains(page.FindAll("a"), link =>
             link.GetAttribute("href") == "/register" && link.TextContent.Contains("Create Your Sandbox"));
@@ -73,7 +73,7 @@ public sealed class PageRenderTests
     [SmokeTestFor(typeof(DashboardPage))]
     public async Task Dashboard_renders_owner_and_member_navigation(bool owner)
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddLabServices();
         context.Users.Setup(x => x.GetMeAsync(It.IsAny<GetProfileRequest>()))
             .ReturnsAsync(PageRenderContext.Success(new UserView { DisplayName = "Render Person" }));
@@ -103,9 +103,9 @@ public sealed class PageRenderTests
 
     [Fact]
     [SmokeTestFor(typeof(MySessionsPage))]
-    public void Sessions_render_empty_service_result()
+    public async Task Sessions_render_empty_service_result()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.Sessions.Setup(x => x.GetMyChainsAsync(It.IsAny<PageRequest>()))
             .ReturnsAsync(PageRenderContext.Success(PageRenderContext.Empty<SessionChainSummary>()));
         var page = context.RenderPage<MySessionsPage>(PageRenderContext.Authenticated("User"));
@@ -116,9 +116,9 @@ public sealed class PageRenderTests
     }
 
     [Fact]
-    public void Sessions_render_loading_then_explicit_service_failure()
+    public async Task Sessions_render_loading_then_explicit_service_failure()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         var response = new TaskCompletionSource<UAuthResult<PagedResult<SessionChainSummary>>>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         context.Sessions.Setup(x => x.GetMyChainsAsync(It.IsAny<PageRequest>())).Returns(response.Task);
@@ -137,9 +137,9 @@ public sealed class PageRenderTests
     [InlineData(false, "No roles available.")]
     [InlineData(true, "Authorization service is unavailable.")]
     [SmokeTestFor(typeof(AuthorizationPage))]
-    public void Authorization_management_renders_empty_and_failure_states(bool failure, string expected)
+    public async Task Authorization_management_renders_empty_and_failure_states(bool failure, string expected)
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         var query = context.Authorization.Setup(x => x.QueryRolesAsync(It.IsAny<RoleQuery>()));
         if (failure)
             query.ThrowsAsync(new HttpRequestException("Simulated unavailable service"));

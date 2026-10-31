@@ -15,7 +15,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(UsersPage))]
     public async Task Owner_can_render_sandbox_users()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddManagementServices();
         await context.SeedSandboxAsync(owner: true);
         var page = AssertPage<UsersPage>(context, "Users", "Owner");
@@ -25,7 +25,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(MyIdentityPage))]
     public async Task User_can_render_profile_identifiers_and_credentials()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddManagementServices();
         context.SetupProfileAndAccess();
         await context.SeedSandboxAsync(owner: false);
@@ -40,7 +40,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(MyAccessPage))]
     public async Task User_can_render_access_with_no_assigned_roles_or_permissions()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddManagementServices();
         context.SetupProfileAndAccess();
         await context.SeedSandboxAsync(owner: false);
@@ -56,7 +56,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(SettingsPage))]
     public async Task Owner_can_render_sandbox_settings()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddManagementServices();
         await context.SeedSandboxAsync(owner: true);
         var page = AssertPage<SettingsPage>(context, "Sandbox Settings", "Owner");
@@ -66,7 +66,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(ActivityPage))]
     public async Task User_can_render_empty_sandbox_activity()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddLabServices();
         await context.SeedSandboxAsync(owner: false);
         var page = AssertPage<ActivityPage>(context, "Activity", "User");
@@ -74,9 +74,9 @@ public sealed class RemainingPageRenderTests
     }
 
     [Fact, SmokeTestFor(typeof(AdminPage))]
-    public void Ladmin_can_render_administration_and_repair_panel()
+    public async Task Ladmin_can_render_administration_and_repair_panel()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddAdminServices();
         var page = AssertPage<AdminPage>(context, "Sandbox Management", "Ladmin");
         page.WaitForAssertion(() =>
@@ -98,7 +98,7 @@ public sealed class RemainingPageRenderTests
     [Fact, SmokeTestFor(typeof(DemoStorePage))]
     public async Task User_can_render_store_without_demo_role_grants()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         context.AddDemoStoreServices();
         await context.SeedSandboxAsync(owner: false);
         var page = AssertPage<DemoStorePage>(context, "Demo Store", "User");
@@ -106,77 +106,76 @@ public sealed class RemainingPageRenderTests
     }
 
     [Fact, SmokeTestFor(typeof(AuthorizationLabPage))]
-    public void User_can_render_authorization_lab_index()
+    public async Task User_can_render_authorization_lab_index()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<AuthorizationLabPage>(context, "Authorization Lab", "User");
     }
 
     [Fact, SmokeTestFor(typeof(Error))]
-    public void Error_page_renders_without_a_request_context()
+    public async Task Error_page_renders_without_a_request_context()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<Error>(context, "Error.");
     }
 
     [Fact, SmokeTestFor(typeof(PublicPage))]
-    public void Public_authorization_sample_renders()
+    public async Task Public_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<PublicPage>(context, "Public Access");
     }
 
     [Fact, SmokeTestFor(typeof(AuthenticatedPage))]
-    public void Authenticated_authorization_sample_renders()
+    public async Task Authenticated_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<AuthenticatedPage>(context, "Authenticated Page", "User");
     }
 
     [Fact, SmokeTestFor(typeof(AdminRolePage))]
-    public void Admin_role_authorization_sample_renders()
+    public async Task Admin_role_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<AdminRolePage>(context, "Admin Role", "Admin");
     }
 
     [Fact, SmokeTestFor(typeof(AdminPermissionPage))]
-    public void Admin_permission_authorization_sample_renders()
+    public async Task Admin_permission_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<AdminPermissionPage>(context, "Admin Permission", "Admin", adminPermission: true);
     }
 
     [Fact, SmokeTestFor(typeof(AspNetAuthorizePage))]
-    public void Aspnet_authorization_sample_renders()
+    public async Task Aspnet_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<AspNetAuthorizePage>(context, "ASP.NET Core Authorize", "User");
     }
 
     [Fact, SmokeTestFor(typeof(CombinedAuthorizationPage))]
-    public void Combined_authorization_sample_renders()
+    public async Task Combined_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<CombinedAuthorizationPage>(context, "Combined Authorization", "Admin", adminPermission: true);
     }
 
     [Fact, SmokeTestFor(typeof(StateViewPage))]
-    public void State_view_authorization_sample_renders()
+    public async Task State_view_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<StateViewPage>(context, "UAuthStateView", "Admin", authorizationExamples: true);
     }
 
     [Fact, SmokeTestFor(typeof(MatchModesPage))]
-    public void Match_modes_authorization_sample_renders()
+    public async Task Match_modes_authorization_sample_renders()
     {
-        using var context = new PageRenderContext();
+        await using var context = new PageRenderContext();
         AssertPage<MatchModesPage>(context, "Authorization Match Modes", "Admin", authorizationExamples: true);
     }
 
-    private static IRenderedComponent<T> AssertPage<T>(PageRenderContext context, string expected, string? role = null, bool authorizationExamples = false, bool adminPermission = false)
-        where T : IComponent
+    private static IRenderedComponent<T> AssertPage<T>(PageRenderContext context, string expected, string? role = null, bool authorizationExamples = false, bool adminPermission = false) where T : IComponent
     {
         var page = context.RenderPage<T>(role is null ? null : PageRenderContext.Authenticated(role, adminPermission ? new[] { UAuthActions.Users.QueryAdmin } : Array.Empty<string>()));
         page.WaitForAssertion(() =>
@@ -185,7 +184,7 @@ public sealed class RemainingPageRenderTests
             // A heading must not mask initialization falling into an error fallback.
             // These two sample pages deliberately show denied authorization examples.
             if (!authorizationExamples)
-                Assert.DoesNotContain(page.FindComponents<MudAlert>(), alert => alert.Instance.Severity == Severity.Error);
+                Assert.Empty(page.FindAll(".mud-alert-error"));
         });
         return page;
     }

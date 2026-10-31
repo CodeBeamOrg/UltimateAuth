@@ -94,8 +94,8 @@ internal sealed partial class PageRenderContext : BunitContext
                     SessionState = SessionState.Active,
                     UserStatus = UserStatus.Active
                 },
-                Claims = ClaimsSnapshot.From(new[] { (ClaimTypes.Role, role) }
-                    .Concat(permissions.Select(permission => ("uauth:permission", permission))))
+                Claims = ClaimsSnapshot.From(new[] { (Type: ClaimTypes.Role, Value: role) }
+                    .Concat(permissions.Select(permission => (Type: "uauth:permission", Value: permission))).ToArray())
             }, DateTimeOffset.UtcNow]);
         return state;
     }
