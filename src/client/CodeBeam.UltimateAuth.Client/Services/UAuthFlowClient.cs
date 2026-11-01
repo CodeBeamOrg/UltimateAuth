@@ -118,16 +118,18 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
-    public async Task LogoutAsync()
+    public async Task LogoutAsync(bool navigate = true)
     {
         var url = Url(_options.Endpoints.Logout);
-        var raw = await _post.SendFormAsync(url, null, navigateOnSuccess: true);
+        var raw = await _post.SendFormAsync(url, null, navigateOnSuccess: navigate);
+
         EnsureValidHttpStatus(raw);
+
         if (raw.Status is < 200 or >= 300)
             throw new UAuthTransportException("Server logout did not succeed.", (HttpStatusCode)raw.Status);
+
         await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
-
 
     public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {

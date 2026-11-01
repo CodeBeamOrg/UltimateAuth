@@ -69,19 +69,26 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
     public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, bool navigateOnSuccess, CancellationToken ct = default)
     {
-        if (!navigateOnSuccess) return await SendFormAsync(endpoint, form, ct);
         ct.ThrowIfCancellationRequested();
+
         await _bootstrapper.EnsureStartedAsync();
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
-        {
-            url = endpoint,
-            mode = "logout",
-            data = form,
-            clientProfile = _options.ClientProfile.ToString(),
-            trustedOrigin = ResolveTrustedOrigin()
-        });
-        if (result is null) throw new UAuthProtocolException("Invalid logout transport response.");
-        if (result.Status == 0) throw new UAuthTransportException("Could not confirm server logout.");
+
+        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
+            new
+            {
+                url = endpoint,
+                mode = navigateOnSuccess ? "logout" : "logout-observe",
+                data = form,
+                clientProfile = _options.ClientProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
+
+        if (result is null)
+            throw new UAuthProtocolException("Invalid logout transport response.");
+
+        if (result.Status == 0)
+            throw new UAuthTransportException("Could not confirm server logout.");
+
         return result;
     }
 

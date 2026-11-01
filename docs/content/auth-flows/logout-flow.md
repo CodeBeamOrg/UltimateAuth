@@ -153,6 +153,33 @@ With redirect disabled, the ordinary endpoint returns:
 
 With redirect enabled, it returns an HTTP redirect to the resolved target instead. Applications should not expect the JSON success body in that case.
 
+### Client-controlled navigation
+
+The UltimateAuth Client API allows applications to control navigation after a successful logout through the optional `navigate` parameter.
+
+By default, logout follows the server-configured redirect behavior:
+
+```csharp
+await UAuthClient.Flows.LogoutAsync();
+```
+
+To complete logout without automatic navigation, set `navigate` to `false`:
+
+```csharp
+await UAuthClient.Flows.LogoutAsync(navigate: false);
+
+// Perform application-specific cleanup after logout.
+await YourApplicationCleanupAsync();
+
+Navigation.NavigateTo("/goodbye");
+```
+
+When `navigate` is `false`, UltimateAuth still performs the server-side logout, clears applicable authentication cookies, and publishes the logout event so the client authentication state can be cleared. Only automatic navigation is suppressed.
+
+This is useful when an application needs to clear its own state, perform additional cleanup, display a confirmation, or choose a destination after logout.
+
+**Important:** The `navigate` parameter controls client-side navigation, not session termination or server-side redirect configuration. If logout fails, including with HTTP 429, the operation does not publish a successful logout event. Applications should perform post-logout actions only after `LogoutAsync` completes successfully.
+
 ## Why redirect matters
 
 A redirect is **not required to invalidate authentication state**. It is a navigation concern that becomes important in browser-based authentication flows.
