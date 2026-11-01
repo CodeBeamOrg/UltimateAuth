@@ -344,16 +344,38 @@ test("429 try-and-commit returns throttle metadata without committing or reading
 
 test("logout 429 is observable and never navigates or changes stored tokens", async () => {
     let calls = 0;
+
     const uauth = createEnvironment(async (_url, request) => {
         calls++;
-        assert.equal(request.redirect, "follow");
-        return { ok: false, status: 429, redirected: false, headers: { get: () => null }, text: async () => "" };
+
+        assert.equal(request.redirect, "error");
+        assert.equal(
+            request.headers["X-UAuth-Logout-Mode"],
+            "observe"
+        );
+
+        return {
+            ok: false,
+            status: 429,
+            redirected: false,
+            headers: {
+                get: name => name === "Retry-After" ? "15" : null
+            },
+            text: async () => ""
+        };
     }, () => assert.fail("Rejected logout must not navigate"));
+
     uauth.storage.set("local", "access", "still-valid-access");
     uauth.storage.set("session", "refresh", "still-valid-refresh");
-    const result = await uauth.post({ url: "/auth/logout", mode: "logout", clientProfile: "BlazorServer" });
+
+    const result = await uauth.post({
+        url: "/auth/logout",
+        mode: "logout",
+        clientProfile: "BlazorServer"
+    });
+
     assert.equal(result.status, 429);
-    assert.equal(result.retryAfter, null);
+    assert.equal(result.retryAfter, "15");
     assert.equal(uauth.storage.get("local", "access"), "still-valid-access");
     assert.equal(uauth.storage.get("session", "refresh"), "still-valid-refresh");
     assert.equal(calls, 1);
@@ -384,16 +406,66 @@ test("resource 429 preserves Retry-After without automatic retry", async () => {
     assert.equal(uauth.storage.get("local", "access"), "valid-access");
     assert.equal(uauth.storage.get("session", "refresh"), "valid-refresh");
     assert.equal(calls, 1);
-});
+ });
 
-test("successful observed logout follows server navigation without replaying POST", async () => {
+test("successful observed logout navigates after confirmed success without replaying POST", async () => {
     let calls = 0;
     let navigation = null;
-    const uauth = createEnvironment(async () => {
+
+    const uauth = createEnvironment(async (_url, request) => {
         calls++;
-        return { ok: true, status: 200, redirected: true, url: "https://localhost:6130/login", headers: { get: () => null }, text: async () => "<html>login</html>" };
+
+        assert.equal(request.redirect, "error");
+        assert.equal(
+            request.headers["X-UAuth-Logout-Mode"],
+            "observe"
+        );
+
+        return {
+            ok: true,
+            status: 200,
+            redirected: false,
+            headers: { get: () => null },
+            text: async () => JSON.stringify({
+                isSuccess: true,
+                redirectUrl: "https://localhost:6130/login"
+            })
+        };
     }, url => navigation = url);
-    await uauth.post({ url: "/auth/logout", mode: "logout", clientProfile: "BlazorServer" });
+
+    const result = await uauth.post({
+        url: "/auth/logout",
+        mode: "logout",
+        clientProfile: "BlazorWasm"
+    });
+
+    assert.equal(result.status, 200);
     assert.equal(navigation, "https://localhost:6130/login");
     assert.equal(calls, 1);
+});
+
+test("observed logout rejects unsafe redirect protocols", async () => {
+    let navigation = null;
+
+    const uauth = createEnvironment(async () => ({
+        ok: true,
+        status: 200,
+        redirected: false,
+        headers: { get: () => null },
+        text: async () => JSON.stringify({
+            isSuccess: true,
+            redirectUrl: "javascript:alert(1)"
+        })
+    }), url => navigation = url);
+
+    await assert.rejects(
+        uauth.post({
+            url: "/auth/logout",
+            mode: "logout",
+            clientProfile: "BlazorWasm"
+        }),
+        /Invalid logout redirect protocol/
+    );
+
+    assert.equal(navigation, null);
 });

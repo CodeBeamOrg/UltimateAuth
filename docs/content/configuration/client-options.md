@@ -1237,5 +1237,3 @@ The current client registration validates options when they are resolved, rather
 - **Advanced Configuration** — Explore effective options, mode resolution, and extension points.
 - **Client Authentication** — Implement login, PKCE, refresh, and logout flows.
 - **Client Session Management** — Manage authenticated sessions and revocation.
-
-See [Client HTTP 429](../security/client-rate-limiting.md) for temporary throttling, Retry-After guidance, maintenance cooldowns and navigation boundaries.

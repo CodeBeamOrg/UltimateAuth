@@ -14,7 +14,7 @@ UltimateAuth composes its Core-defined options directly into `UAuthServerOptions
 
 This guide covers the available configuration groups, their defaults, practical examples, and the distinction between configured and effective runtime behavior.
 
-Built-in HTTP throttling is configured through `options.RateLimiting`. See [Rate Limiting](../security/rate-limiting.md) for defaults, middleware ownership, proxy configuration and native-policy integration.
+Built-in HTTP throttling is configured through `options.RateLimiting`. See [Rate Limiting](/docs/security/rate-limiting) for defaults, middleware ownership, proxy configuration and native-policy integration.
 
 ## 1. Register UltimateAuth Server
 

@@ -252,24 +252,54 @@ public class RateLimitingTests
     }
 
     [Fact]
-    public void OriginalHelperSignaturesAndCallFormsRemainAvailable()
+    public void MiddlewareHelperSignaturesAndCallFormsRemainAvailable()
     {
         var type = typeof(UltimateAuthApplicationBuilderExtensions);
-        Assert.NotNull(type.GetMethod("UseUltimateAuth", new[] { typeof(IApplicationBuilder) }));
-        Assert.NotNull(type.GetMethod("UseUltimateAuthWithAspNetCore", new[] { typeof(IApplicationBuilder), typeof(bool?) }));
-        // Compiled coverage: preserve positional bool as enableCors, plus named and explicit integration calls.
+
+        Assert.NotNull(type.GetMethod(
+            "UseUltimateAuth",
+            new[] { typeof(IApplicationBuilder) }));
+
+        Assert.NotNull(type.GetMethod(
+            "UseUltimateAuth",
+            new[] { typeof(IApplicationBuilder), typeof(bool) }));
+
+        var method = type.GetMethod(
+            "UseUltimateAuthWithAspNetCore",
+            new[]
+            {
+            typeof(IApplicationBuilder),
+            typeof(bool?),
+            typeof(bool)
+            });
+
+        Assert.NotNull(method);
+
+        var parameters = method.GetParameters();
+
+        Assert.True(parameters[1].IsOptional);
+        Assert.Null(parameters[1].DefaultValue);
+
+        Assert.True(parameters[2].IsOptional);
+        Assert.Equal(true, parameters[2].DefaultValue);
+
+        // Compile-time coverage for the supported public API.
         static void Calls(IApplicationBuilder app)
         {
             app.UseUltimateAuth();
             app.UseUltimateAuth(true);
             app.UseUltimateAuth(useRateLimiting: false);
+
             app.UseUltimateAuthWithAspNetCore();
             app.UseUltimateAuthWithAspNetCore(false);
             app.UseUltimateAuthWithAspNetCore(null);
             app.UseUltimateAuthWithAspNetCore(enableCors: true);
             app.UseUltimateAuthWithAspNetCore(null, false);
-            app.UseUltimateAuthWithAspNetCore(enableCors: null, useRateLimiting: false);
+            app.UseUltimateAuthWithAspNetCore(
+                enableCors: null,
+                useRateLimiting: false);
         }
+
         Action<IApplicationBuilder> compiled = Calls;
         Assert.NotNull(compiled);
     }

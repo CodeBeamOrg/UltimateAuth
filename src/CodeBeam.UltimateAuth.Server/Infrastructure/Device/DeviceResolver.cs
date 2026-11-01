@@ -9,7 +9,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-// TODO: Consider creating a seperate package with a library like UA Parser, WURFL or DeviceAtlas for more accurate device detection.
+// TODO: Consider creating a alternative package with a library like UA Parser, WURFL or DeviceAtlas for more accurate device detection.
 public sealed class DeviceResolver : IDeviceResolver
 {
     private readonly IUserAgentParser _userAgentParser;
@@ -40,7 +40,7 @@ public sealed class DeviceResolver : IDeviceResolver
             OperatingSystem = parsed.OperatingSystem,
             Browser = parsed.Browser,
             UserAgent = ua,
-            IpAddress = ResolveIp(context)
+            IpAddress = ClientIpAddress.Resolve(context)
         };
 
         return deviceInfo;
@@ -67,10 +67,5 @@ public sealed class DeviceResolver : IDeviceResolver
             return cookie;
 
         return null;
-    }
-
-    private static string? ResolveIp(HttpContext context)
-    {
-        return ClientIpAddress.Resolve(context);
     }
 }
