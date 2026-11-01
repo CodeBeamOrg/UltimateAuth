@@ -28,6 +28,10 @@ public interface IUAuthRequestClient
     Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default);
 
 
+    /// <summary>Observes logout before following successful browser redirects. Existing adapters may delegate to their form transport.</summary>
+    Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, bool navigateOnSuccess, CancellationToken ct = default)
+        => SendFormAsync(endpoint, form, ct);
+
     /// <summary>
     /// Sends a JSON payload to the specified endpoint and returns the result of the operation.
     /// </summary>

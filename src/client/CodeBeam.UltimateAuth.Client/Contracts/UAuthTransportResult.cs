@@ -18,6 +18,10 @@ public sealed class UAuthTransportResult
     [JsonPropertyName("ok")]
     public bool Ok { get; init; }
 
+    /// <summary>Raw Retry-After header, when exposed by the server/CORS policy.</summary>
+    [JsonPropertyName("retryAfter")]
+    public string? RetryAfter { get; init; }
+
     /// <summary>
     /// Gets the HTTP status code returned by the request.
     /// </summary>

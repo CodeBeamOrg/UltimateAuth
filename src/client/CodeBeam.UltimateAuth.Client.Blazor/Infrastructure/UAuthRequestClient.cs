@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using System.Net;
+using System.Text.Json;
 
 // TODO: Add fluent helper API like RequiredOk
 namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
@@ -66,6 +67,24 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         return result;
     }
 
+    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, bool navigateOnSuccess, CancellationToken ct = default)
+    {
+        if (!navigateOnSuccess) return await SendFormAsync(endpoint, form, ct);
+        ct.ThrowIfCancellationRequested();
+        await _bootstrapper.EnsureStartedAsync();
+        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
+        {
+            url = endpoint,
+            mode = "logout",
+            data = form,
+            clientProfile = _options.ClientProfile.ToString(),
+            trustedOrigin = ResolveTrustedOrigin()
+        });
+        if (result is null) throw new UAuthProtocolException("Invalid logout transport response.");
+        if (result.Status == 0) throw new UAuthTransportException("Could not confirm server logout.");
+        return result;
+    }
+
     public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -95,7 +114,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         await _bootstrapper.EnsureStartedAsync();
 
-        var response = await _js.InvokeAsync<TTryResult>(
+        var response = await _js.InvokeAsync<JsonElement>(
             "uauth.tryAndCommit",
             ct,
             new
@@ -107,10 +126,16 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
-        if (response is null)
+        if (response.ValueKind != JsonValueKind.Object)
             throw new UAuthProtocolException("Invalid tryAndCommit response.");
-
-        return response;
+        if (response.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.Number && status.TryGetInt32(out var code) && code == 429)
+            throw UAuthRateLimit.Exception(response.TryGetProperty("retryAfter", out var retry) && retry.ValueKind == JsonValueKind.String ? retry.GetString() : null);
+        try
+        {
+            return response.Deserialize<TTryResult>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                ?? throw new UAuthProtocolException("Invalid tryAndCommit response.");
+        }
+        catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
 
     private string? ResolveTrustedOrigin()

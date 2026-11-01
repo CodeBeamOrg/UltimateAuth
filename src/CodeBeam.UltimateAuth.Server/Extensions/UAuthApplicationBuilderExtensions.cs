@@ -10,17 +10,29 @@ namespace CodeBeam.UltimateAuth.Server.Extensions;
 
 public static class UltimateAuthApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseUltimateAuth(this IApplicationBuilder app)
+    /// <summary>Installs UltimateAuth context middleware. Optional throttling requires routing first.</summary>
+    /// <remarks>Do not combine helper-owned throttling with an independent UseRateLimiter call.</remarks>
+    public static IApplicationBuilder UseUltimateAuth(this IApplicationBuilder app) =>
+        UseUltimateAuth(app, useRateLimiting: false);
+
+    public static IApplicationBuilder UseUltimateAuth(this IApplicationBuilder app, bool useRateLimiting)
     {
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
         app.UseMiddleware<SessionResolutionMiddleware>();
         app.UseMiddleware<UserMiddleware>();
+        if (useRateLimiting) UseOwnedRateLimiter(app);
 
         return app;
     }
 
-    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors = null)
+    /// <summary>Installs context, authentication, optional native throttling, then authorization.</summary>
+    /// <remarks>Run routing and trusted forwarding first. Set useRateLimiting to false when the host owns UseRateLimiter.</remarks>
+    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors = null) =>
+        UseUltimateAuthWithAspNetCore(app, enableCors, useRateLimiting: true);
+
+    // Both arguments are required to preserve positional bool calls as the original enableCors argument.
+    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors, bool useRateLimiting)
     {
         var logger = app.ApplicationServices
             .GetRequiredService<ILoggerFactory>()
@@ -39,8 +51,18 @@ public static class UltimateAuthApplicationBuilderExtensions
 
         app.UseUltimateAuth();
         app.UseAuthentication();
+        if (useRateLimiting) UseOwnedRateLimiter(app);
         app.UseAuthorization();
         return app;
+    }
+
+    private const string OwnedRateLimiterKey = "CodeBeam.UltimateAuth.RateLimiterInstalled";
+
+    private static void UseOwnedRateLimiter(IApplicationBuilder app)
+    {
+        if (app.Properties.TryGetValue(OwnedRateLimiterKey, out var owner) && ReferenceEquals(owner, app)) return;
+        app.Properties[OwnedRateLimiterKey] = app;
+        app.UseRateLimiter();
     }
 
     public static IApplicationBuilder UseUltimateAuthResourceApi(this IApplicationBuilder app)

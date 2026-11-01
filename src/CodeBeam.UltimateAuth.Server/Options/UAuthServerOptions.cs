@@ -52,6 +52,9 @@ public sealed class UAuthServerOptions
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
 
+    /// <summary>Startup-only native endpoint throttling; application policies take precedence.</summary>
+    public RateLimiting.UAuthRateLimitingOptions RateLimiting { get; set; } = new();
+
     /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
     /// This is a safety guardrail, not a mode selection mechanism.
@@ -144,6 +147,7 @@ public sealed class UAuthServerOptions
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
 
+            RateLimiting = RateLimiting.Clone(),
             Login = Login.Clone(),
             Session = Session.Clone(),
             Token = Token.Clone(),

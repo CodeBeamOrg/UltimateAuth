@@ -27,6 +27,8 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
+    private DateTimeOffset _refreshNotBefore;
+    private RefreshResult? _refreshThrottle;
 
     public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
     {
@@ -65,6 +67,7 @@ internal class UAuthFlowClient : IFlowClient
                 {
                     var raw = await _post.SendJsonAsync(tryUrl, payload);
 
+                    if (raw.Status == 429) return new TryLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow) };
                     EnsureValidHttpStatus(raw);
 
                     if (raw.Status is >= 400 and < 500)
@@ -102,7 +105,10 @@ internal class UAuthFlowClient : IFlowClient
             case UAuthSubmitMode.TryAndCommit:
             default:
                 {
-                    var result = await _post.TryAndCommitAsync<TryLoginResult>(tryUrl, commitUrl, payload);
+                    TryLoginResult result;
+                    try { result = await _post.TryAndCommitAsync<TryLoginResult>(tryUrl, commitUrl, payload); }
+                    catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
+                    { return new TryLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = ex.RetryAfter }; }
 
                     if (result is null)
                         throw new UAuthProtocolException("Invalid try-login result.");
@@ -115,7 +121,11 @@ internal class UAuthFlowClient : IFlowClient
     public async Task LogoutAsync()
     {
         var url = Url(_options.Endpoints.Logout);
-        await _post.NavigateAsync(url);
+        var raw = await _post.SendFormAsync(url, null, navigateOnSuccess: true);
+        EnsureValidHttpStatus(raw);
+        if (raw.Status is < 200 or >= 300)
+            throw new UAuthTransportException("Server logout did not succeed.", (HttpStatusCode)raw.Status);
+        await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
 
 
@@ -126,7 +136,24 @@ internal class UAuthFlowClient : IFlowClient
             _diagnostics.MarkManualRefresh();
         }
 
+        var now = DateTimeOffset.UtcNow;
+        if (_refreshThrottle is not null && now < _refreshNotBefore)
+            return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
         var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
+        if (raw.Status == 429)
+        {
+            _refreshThrottle = new RefreshResult
+            {
+                Status = 429,
+                IsSuccess = false,
+                Outcome = RefreshOutcome.None,
+                ErrorCode = "rate_limited",
+                RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
+            };
+            _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
+            return _refreshThrottle;
+        }
+        _refreshThrottle = null;
 
         // 401 is a normal authentication outcome for refresh.
         if (raw.Status == 401)
@@ -197,6 +224,7 @@ internal class UAuthFlowClient : IFlowClient
         var url = Url(_options.Endpoints.Validate);
         var raw = await _post.SendFormAsync(url);
 
+        if (raw.Status == 429) throw UAuthRateLimit.Exception(raw.RetryAfter);
         if (raw.Status == 0)
             throw new UAuthTransportException("Network error during validation.");
 
@@ -335,6 +363,7 @@ internal class UAuthFlowClient : IFlowClient
             case UAuthSubmitMode.TryOnly:
                 {
                     var raw = await _post.SendJsonAsync(tryUrl, request);
+                    if (raw.Status == 429) return new TryPkceLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow) };
 
                     EnsureValidHttpStatus(raw);
 
@@ -367,7 +396,10 @@ internal class UAuthFlowClient : IFlowClient
             case UAuthSubmitMode.TryAndCommit:
             default:
                 {
-                    var result = await _post.TryAndCommitAsync<TryPkceLoginResult>(tryUrl, commitUrl, payload);
+                    TryPkceLoginResult result;
+                    try { result = await _post.TryAndCommitAsync<TryPkceLoginResult>(tryUrl, commitUrl, payload); }
+                    catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
+                    { return new TryPkceLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = ex.RetryAfter }; }
 
                     if (result is null)
                         throw new UAuthProtocolException("Invalid PKCE try result.");
@@ -530,6 +562,7 @@ internal class UAuthFlowClient : IFlowClient
         if (raw is null)
             throw new UAuthProtocolException("Transport client returned a null response.");
 
+        if (raw.Status == 429) throw UAuthRateLimit.Exception(raw.RetryAfter);
         if (raw.Status == 0)
             throw new UAuthTransportException("Network error.");
 

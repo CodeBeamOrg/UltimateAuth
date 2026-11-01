@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
+﻿using Microsoft.AspNetCore.Builder;
+using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
@@ -66,6 +67,7 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddUltimateAuthServerInternal();
+        services.AddRateLimiter(_ => { });
 
         return services;
     }

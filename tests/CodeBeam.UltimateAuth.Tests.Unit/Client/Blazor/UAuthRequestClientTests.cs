@@ -144,6 +144,40 @@ public sealed class UAuthRequestClientTests : BunitContext
         JSInterop.Invocations.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task TryAndCommitThrottleKeepsStatusAndRetryGuidance()
+    {
+        JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
+            .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { status = 429, retryAfter = "45", isSuccess = false }));
+        var error = await Assert.ThrowsAsync<UAuthTransportException>(() =>
+            CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }));
+        Assert.Equal(System.Net.HttpStatusCode.TooManyRequests, error.StatusCode);
+        Assert.Equal("rate_limited", error.Code);
+        Assert.Equal(TimeSpan.FromSeconds(45), error.RetryAfter);
+    }
+
+    [Fact]
+    public async Task TryAndCommitStillDeserializesSuccessfulPreview()
+    {
+        JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
+            .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { isSuccess = true, previewReceipt = "receipt" }));
+        var result = await CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { });
+        Assert.True(result.IsSuccess);
+        Assert.Equal("receipt", result.PreviewReceipt);
+    }
+
+    [Fact]
+    public async Task ObservedLogoutReturnsHttpRejectionRatherThanSubmittingAnUnobservedForm()
+    {
+        JSInterop.Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult { Status = 429, RetryAfter = "15" });
+        var result = await CreateSut().SendFormAsync("/auth/logout", null, navigateOnSuccess: true);
+        Assert.Equal(429, result.Status);
+        Assert.Equal("15", result.RetryAfter);
+        var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
+        Assert.Equal("logout", GetProperty<string>(invocation.Arguments.Single()!, "mode"));
+    }
+
     private sealed class TestTryResult
     {
     }

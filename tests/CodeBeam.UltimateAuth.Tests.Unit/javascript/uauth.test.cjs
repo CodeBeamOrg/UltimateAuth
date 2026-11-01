@@ -18,10 +18,17 @@ function createEnvironment(fetchImpl = async () => ({
         get: () => "application/json"
     },
     text: async () => '{"id":1}'
-})) {
+}), onNavigate = () => {}) {
+    const memoryStorage = () => {
+        const values = new Map();
+        return { setItem: (key, value) => values.set(key, value), getItem: key => values.get(key) ?? null, removeItem: key => values.delete(key) };
+    };
     const window = {
+        localStorage: memoryStorage(),
+        sessionStorage: memoryStorage(),
         location: {
-            origin: "https://localhost:6130"
+            origin: "https://localhost:6130",
+            assign: url => onNavigate(url)
         }
     };
 
@@ -319,4 +326,74 @@ test("cancelResourceRequest aborts active request", async () => {
         uauth.resourceRequests.has("cancel-1"),
         false
     );
+});
+
+test("429 try-and-commit returns throttle metadata without committing or reading an auth-result body", async () => {
+    let calls = 0;
+    const uauth = createEnvironment(async () => {
+        calls++;
+        return { ok: false, status: 429, headers: { get: name => name === "Retry-After" ? "90" : null }, text: async () => "not-json" };
+    });
+    const result = await uauth.tryAndCommit({ tryUrl: "/auth/try-login", commitUrl: "/auth/login", data: {}, clientProfile: "BlazorServer" });
+    assert.equal(result.status, 429);
+    assert.equal(result.errorCode, "rate_limited");
+    assert.equal(result.retryAfter, "90");
+    assert.equal(result.isSuccess, false);
+    assert.equal(calls, 1);
+});
+
+test("logout 429 is observable and never navigates or changes stored tokens", async () => {
+    let calls = 0;
+    const uauth = createEnvironment(async (_url, request) => {
+        calls++;
+        assert.equal(request.redirect, "follow");
+        return { ok: false, status: 429, redirected: false, headers: { get: () => null }, text: async () => "" };
+    }, () => assert.fail("Rejected logout must not navigate"));
+    uauth.storage.set("local", "access", "still-valid-access");
+    uauth.storage.set("session", "refresh", "still-valid-refresh");
+    const result = await uauth.post({ url: "/auth/logout", mode: "logout", clientProfile: "BlazorServer" });
+    assert.equal(result.status, 429);
+    assert.equal(result.retryAfter, null);
+    assert.equal(uauth.storage.get("local", "access"), "still-valid-access");
+    assert.equal(uauth.storage.get("session", "refresh"), "still-valid-refresh");
+    assert.equal(calls, 1);
+});
+
+test("resource 429 preserves Retry-After without automatic retry", async () => {
+    let calls = 0;
+    const uauth = createEnvironment(async () => {
+        calls++;
+        return { ok: false, status: 429, headers: { get: name => name === "Retry-After" ? "Sun, 01 Nov 2026 12:01:00 GMT" : null }, text: async () => "" };
+    });
+    const result = await uauth.resourceRequest({ url: "/api/data", method: "GET" });
+    assert.equal(result.status, 429);
+    assert.equal(result.retryAfter, "Sun, 01 Nov 2026 12:01:00 GMT");
+    assert.equal(calls, 1);
+});
+
+ test("refresh 429 leaves stored credentials untouched and sends only once", async () => {
+    let calls = 0;
+    const uauth = createEnvironment(async () => {
+        calls++;
+        return { ok: false, status: 429, headers: { get: () => null }, text: async () => "" };
+    });
+    uauth.storage.set("local", "access", "valid-access");
+    uauth.storage.set("session", "refresh", "valid-refresh");
+    const result = await uauth.post({ url: "/auth/refresh", mode: "fetch", clientProfile: "BlazorWasm" });
+    assert.equal(result.status, 429);
+    assert.equal(uauth.storage.get("local", "access"), "valid-access");
+    assert.equal(uauth.storage.get("session", "refresh"), "valid-refresh");
+    assert.equal(calls, 1);
+});
+
+test("successful observed logout follows server navigation without replaying POST", async () => {
+    let calls = 0;
+    let navigation = null;
+    const uauth = createEnvironment(async () => {
+        calls++;
+        return { ok: true, status: 200, redirected: true, url: "https://localhost:6130/login", headers: { get: () => null }, text: async () => "<html>login</html>" };
+    }, url => navigation = url);
+    await uauth.post({ url: "/auth/logout", mode: "logout", clientProfile: "BlazorServer" });
+    assert.equal(navigation, "https://localhost:6130/login");
+    assert.equal(calls, 1);
 });

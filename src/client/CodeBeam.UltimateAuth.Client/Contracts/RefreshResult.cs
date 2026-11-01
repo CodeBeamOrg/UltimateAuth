@@ -7,6 +7,8 @@ namespace CodeBeam.UltimateAuth.Client.Contracts;
 /// </summary>
 public sealed record RefreshResult
 {
+    public string? ErrorCode { get; init; }
+    public TimeSpan? RetryAfter { get; init; }
     /// <summary>
     /// Gets a value indicating whether the refresh operation completed successfully.
     /// </summary>
