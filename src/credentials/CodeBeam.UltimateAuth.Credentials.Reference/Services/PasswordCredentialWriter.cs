@@ -12,10 +12,9 @@ internal sealed class PasswordCredentialWriter(
     IPasswordValidationPipeline pipeline,
     IPasswordCredentialStoreFactory credentialStores,
     IPasswordHistoryStoreFactory historyStores,
-    IUAuthPasswordHasher hasher,
-    EffectivePasswordPolicyOptions options)
+    IUAuthPasswordHasher hasher)
 {
-    public async Task<PasswordCredential> CreateAsync(TenantKey tenant, UserKey userKey, string password, PasswordPolicyContext context,
+    public async Task<PasswordCredential> CreateAsync(TenantKey tenant, UserKey userKey, string password, PasswordPolicyContext context, EffectivePasswordPolicyOptions options,
                                                       DateTimeOffset now, CancellationToken ct)
     {
         var result = await pipeline.ValidateAsync(
@@ -23,6 +22,7 @@ internal sealed class PasswordCredentialWriter(
             {
                 Context = context with { Password = password }
             },
+            options,
             ct);
 
         EnsureValid(result);
@@ -41,7 +41,7 @@ internal sealed class PasswordCredentialWriter(
         return credential;
     }
 
-    public async Task<PasswordCredential> ChangeAsync(PasswordCredential credential, string newPassword, PasswordPolicyContext context,
+    public async Task<PasswordCredential> ChangeAsync(PasswordCredential credential, string newPassword, PasswordPolicyContext context, EffectivePasswordPolicyOptions options,
                                                       DateTimeOffset now, CancellationToken ct)
     {
         var key = new CredentialKey(credential.Tenant, credential.Id);
@@ -55,6 +55,7 @@ internal sealed class PasswordCredentialWriter(
                 },
                 ExistingCredentialKey = key
             },
+            options,
             ct);
 
         EnsureValid(result);

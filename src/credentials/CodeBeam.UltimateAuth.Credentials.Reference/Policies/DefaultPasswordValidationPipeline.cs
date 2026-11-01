@@ -4,9 +4,9 @@ using CodeBeam.UltimateAuth.Credentials.Policies;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class DefaultPasswordValidationPipeline(IPasswordStrengthPolicy strengthPolicy, IPasswordHistoryValidator historyValidator, EffectivePasswordPolicyOptions options) : IPasswordValidationPipeline
+public sealed class DefaultPasswordValidationPipeline(IPasswordStrengthPolicy strengthPolicy, IPasswordHistoryValidator historyValidator) : IPasswordValidationPipeline
 {
-    public async Task<PasswordPolicyResult> ValidateAsync(PasswordValidationRequest request, CancellationToken ct = default)
+    public async Task<PasswordPolicyResult> ValidateAsync(PasswordValidationRequest request, EffectivePasswordPolicyOptions options, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Context);
