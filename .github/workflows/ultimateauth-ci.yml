@@ -55,7 +55,7 @@ jobs:
 
   
   identity-lab-security:
-    name: Identity Lab security (PostgreSQL)
+    name: Identity Lab security
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -75,6 +75,7 @@ jobs:
           --collect:"XPlat Code Coverage"
           --logger "trx;LogFileName=identity-lab.trx"
           --results-directory TestResults/IdentityLab
+          --settings tests/CodeBeam.UltimateAuth.IdentityLab.Tests/identity-lab.runsettings
 
       - name: Generate Identity Lab coverage summary
         if: always()
