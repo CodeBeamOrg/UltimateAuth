@@ -91,6 +91,9 @@ window.uauth.tryAndCommit = async function (options) {
     }
 
     const status = tryResponse.status;
+    if (status === 429) {
+        return { isSuccess: false, status: 429, errorCode: "rate_limited", retryAfter: tryResponse.retryAfter ?? null };
+    }
     const isHttpSuccess = status >= 200 && status < 300;
     const isClientError = status >= 400 && status < 500;
 
@@ -214,7 +217,9 @@ window.uauth.post = async function (options) {
         clientProfile,
         contentType: "form",
         credentials: "include",
-        allowCrossOriginCredentials: true
+        allowCrossOriginCredentials: true,
+        navigateOnSuccess: mode === "logout",
+        headers: mode === "logout" ? { "X-UAuth-Logout-Mode": "observe" } : {}
     });
 };
 
@@ -237,6 +242,8 @@ window.uauth.postJson = function (options) {
 
 window.uauth.request = async function (options) {
     const {
+        followRedirects = false,
+        navigateOnSuccess = false,
         url,
         method = "GET",
         payload = null,
@@ -314,7 +321,7 @@ window.uauth.request = async function (options) {
         response = await fetch(requestUrl.href, {
             method: requestMethod,
             credentials,
-            redirect: "error",
+            redirect: followRedirects ? "follow" : "error",
             headers,
             body
         });
@@ -347,7 +354,24 @@ window.uauth.request = async function (options) {
         }
     }
 
+    // Only the observed logout transport follows a successful server redirect.
+    // A rejected POST never navigates, clears storage, or causes a second POST.
+    if (navigateOnSuccess && response.ok) {
+        const redirectUrl = responseBody?.redirectUrl;
+
+        if (typeof redirectUrl === "string" && redirectUrl.length > 0) {
+            const target = new URL(redirectUrl, window.location.origin);
+
+            if (!["http:", "https:"].includes(target.protocol)) {
+                throw new Error("Invalid logout redirect protocol.");
+            }
+
+            window.location.assign(target.href);
+        }
+    }
+
     return {
+        retryAfter: response.headers.get("Retry-After"),
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
@@ -490,6 +514,7 @@ window.uauth.resourceRequest = async function (options) {
         }
 
         return {
+            retryAfter: response.headers.get("Retry-After"),
             ok: response.ok,
             status: response.status,
             body: responseBody,

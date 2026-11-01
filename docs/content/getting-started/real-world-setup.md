@@ -4,7 +4,7 @@ order: 4
 group: getting-started
 ---
 
-# 🏗️ Real-World Setup
+# Real-World Setup
 
 **One authentication framework. Different deployment models.**
 
@@ -1008,7 +1008,45 @@ Remember that effective mode defaults and mode-specific overrides are applied af
 
 For detailed configuration behavior, see Server Options and Advanced Configuration.
 
-## 12. Development and Production Differences
+## 12. Client IP Address & Reverse Proxy
+
+UltimateAuth uses ASP.NET Core's resolved client IP address for device information and IP-based rate limiting. It does not directly trust `X-Forwarded-For` or `CF-Connecting-IP` headers.
+
+If your application runs behind Caddy, Nginx, or another reverse proxy, configure ASP.NET Core to trust that proxy.
+
+In `Program.cs`, before `builder.Build()`:
+
+```csharp
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+
+    // Replace with your actual Caddy or Nginx proxy IP.
+    options.KnownProxies.Add(IPAddress.Parse("172.20.0.5"));
+});
+```
+
+Then enable the middleware **before** UltimateAuth and HTTPS redirection:
+
+```csharp
+app.UseForwardedHeaders();
+
+app.UseHttpsRedirection();
+app.UseUltimateAuthWithAspNetCore();
+```
+
+The example IP `172.20.0.5` represents a trusted reverse proxy, not the visitor's IP address. Replace it with your actual proxy IP. For Docker deployments, ensure the proxy address is stable or configure a narrowly scoped trusted network.
+
+**Important:** Never trust arbitrary forwarded headers or clear the trusted proxy lists to accept all sources. If your application connects directly to Kestrel without a reverse proxy, no forwarded headers configuration is required.
+
+For multi-proxy deployments, configure the complete trusted proxy chain and forwarding behavior according to your infrastructure.
+
+## 13. Development and Production Differences
 
 The samples intentionally prioritize visibility and repeatability.
 
@@ -1049,7 +1087,7 @@ Configure persistent signing keys for authentication modes that issue JWTs.
 
 Development signing key providers are not a substitute for production key management.
 
-## 13. Deployment Checklist
+## 14. Deployment Checklist
 
 Before deploying, verify the following:
 
@@ -1064,9 +1102,10 @@ Before deploying, verify the following:
 - [ ] Client and server endpoint URLs match the deployment.
 - [ ] Session expiration, refresh, logout, and revocation have been tested.
 - [ ] Protected resources enforce server-side authorization.
+- [ ] Reverse proxy headers are configured correctly if applicable.
 - [ ] Authentication state and persistence survive the expected application lifecycle.
 
-## 14. Choosing Your Architecture
+## 15. Choosing Your Architecture
 
 **Start with one server and one client. Connect more clients whenever you need them.**
 

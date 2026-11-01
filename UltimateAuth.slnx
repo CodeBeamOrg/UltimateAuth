@@ -31,6 +31,7 @@
     <File Path="Roadmap.md" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/CodeBeam.UltimateAuth.Tests.RateLimiting.Compatibility/CodeBeam.UltimateAuth.Tests.RateLimiting.Compatibility.csproj" />
     <Project Path="tests/CodeBeam.UltimateAuth.IdentityLab.Tests/CodeBeam.UltimateAuth.IdentityLab.Tests.csproj" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration.EfCore/CodeBeam.UltimateAuth.Tests.Integration.EfCore.csproj" Id="51652abe-8f77-4150-94ea-976ca41c8b91" />
     <Project Path="tests/CodeBeam.UltimateAuth.Tests.Integration/CodeBeam.UltimateAuth.Tests.Integration.csproj" Id="fe34a0b1-8038-400d-b8ab-02dad7051f2d" />

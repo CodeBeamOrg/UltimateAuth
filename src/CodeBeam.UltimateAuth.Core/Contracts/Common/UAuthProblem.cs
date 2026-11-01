@@ -7,6 +7,7 @@ public sealed class UAuthProblem
     public string? Title { get; set; }
     public int? Status { get; set; }
     public string? Detail { get; set; }
+    public TimeSpan? RetryAfter { get; set; }
     public string? TraceId { get; set; }
 
     public Dictionary<string, object>? Extensions { get; init; }

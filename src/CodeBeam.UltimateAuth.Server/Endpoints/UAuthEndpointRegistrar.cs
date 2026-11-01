@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+﻿using CodeBeam.UltimateAuth.Server.RateLimiting;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -37,6 +38,11 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             : rootGroup.MapGroup("/" + basePrefix);
 
         group.AddEndpointFilter<AuthFlowEndpointFilter>();
+        ((IEndpointConventionBuilder)group).Finally(endpoint =>
+        {
+            if (!endpoint.Metadata.OfType<UAuthRateLimitMetadata>().Any())
+                throw new InvalidOperationException("Every UltimateAuth endpoint must declare a rate limiting classification.");
+        });
 
         //var user = group.MapGroup("");
         var self = group.MapGroup("/me");
@@ -45,32 +51,32 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         if (options.Endpoints.Authentication != false)
         {
             group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
-                => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+                => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.Login);
 
             group.MapPost("/try-login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
-                => await h.TryLoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+                => await h.TryLoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.TryLogin);
 
             group.MapPost("/validate", async ([FromServices] IValidateEndpointHandler h, HttpContext ctx)
-                => await h.ValidateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.ValidateSession));
+                => await h.ValidateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.ValidateSession)).WithUAuthRateLimit(UAuthEndpoint.Validate);
 
             if (Enabled(UAuthActions.Flows.LogoutSelf))
                 group.MapPost("/logout", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
-                => await h.LogoutAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.Logout);
 
             if (Enabled(UAuthActions.Flows.LogoutDeviceSelf))
                 self.MapPost("/logout-device", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
-                => await h.LogoutDeviceSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutDeviceSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutDeviceSelf);
 
             if (Enabled(UAuthActions.Flows.LogoutOthersSelf))
                 self.MapPost("/logout-others", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
-                => await h.LogoutOthersSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutOthersSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutOthersSelf);
 
             if (Enabled(UAuthActions.Flows.LogoutAllSelf))
                 self.MapPost("/logout-all", async ([FromServices] ILogoutEndpointHandler h, HttpContext ctx)
-                => await h.LogoutAllSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutAllSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutAllSelf);
 
             group.MapPost("/refresh", async ([FromServices] IRefreshEndpointHandler h, HttpContext ctx)
-                => await h.RefreshAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshSession));
+                => await h.RefreshAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RefreshSession)).WithUAuthRateLimit(UAuthEndpoint.Refresh);
 
             //group.MapPost("/reauth", async ([FromServices] IReauthEndpointHandler h, HttpContext ctx)
             //    => await h.ReauthAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Reauthentication));
@@ -78,15 +84,15 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Flows.LogoutDeviceAdmin))
                 admin.MapPost("/users/{userKey}/logout-device", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.LogoutDeviceAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutDeviceAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutDeviceAdmin);
 
             if (Enabled(UAuthActions.Flows.LogoutOthersAdmin))
                 admin.MapPost("/users/{userKey}/logout-others", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.LogoutOthersAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutOthersAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutOthersAdmin);
 
             if (Enabled(UAuthActions.Flows.LogoutAllAdmin))
                 admin.MapPost("/users/{userKey}/logout-all", async ([FromServices] ILogoutEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.LogoutAllAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout));
+                => await h.LogoutAllAdminAsync(ctx, userKey)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Logout)).WithUAuthRateLimit(UAuthEndpoint.LogoutAllAdmin);
         }
 
         if (options.Endpoints.Pkce != false)
@@ -94,13 +100,13 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             var pkce = group.MapGroup("/pkce");
 
             pkce.MapPost("/authorize", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.AuthorizeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+                    => await h.AuthorizeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.PkceAuthorize);
 
             pkce.MapPost("/complete", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.CompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+                    => await h.CompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.PkceComplete);
 
             pkce.MapPost("/try-complete", async ([FromServices] IPkceEndpointHandler h, HttpContext ctx)
-                    => await h.TryCompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login));
+                    => await h.TryCompleteAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.PkceTryComplete);
         }
 
         //if (options.Endpoints.Token != false)
@@ -127,48 +133,48 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Sessions.ListChainsSelf))
                 selfSession.MapPost("/chains", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.GetMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+                => await h.GetMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetMyChains);
 
             if (Enabled(UAuthActions.Sessions.GetChainSelf))
                 selfSession.MapPost("/chains/{chainId}", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
-                => await h.GetMyChainDetailAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+                => await h.GetMyChainDetailAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetMyChainDetail);
 
             if (Enabled(UAuthActions.Sessions.RevokeChainSelf))
                 selfSession.MapPost("/chains/{chainId}/revoke", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
-                => await h.RevokeMyChainAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeMyChainAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeMyChain);
 
             if (Enabled(UAuthActions.Sessions.RevokeOtherChainsSelf))
                 selfSession.MapPost("/revoke-others",async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.RevokeOtherChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeOtherChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeOtherChains);
 
             if (Enabled(UAuthActions.Sessions.RevokeAllChainsSelf))
                 selfSession.MapPost("/revoke-all", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.RevokeAllMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeAllMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeAllMyChains);
 
 
             if (Enabled(UAuthActions.Sessions.ListChainsAdmin))
                 adminSession.MapPost("/chains", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.GetUserChainsAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+                => await h.GetUserChainsAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetUserChains);
 
             if (Enabled(UAuthActions.Sessions.GetChainAdmin))
                 adminSession.MapPost("/chains/{chainId}", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, SessionChainId chainId, HttpContext ctx)
-                => await h.GetUserChainDetailAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession));
+                => await h.GetUserChainDetailAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetUserChainDetail);
 
             if (Enabled(UAuthActions.Sessions.RevokeSessionAdmin))
                 adminSession.MapPost("/{sessionId}/revoke", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, AuthSessionId sessionId, HttpContext ctx)
-                => await h.RevokeUserSessionAsync(userKey, sessionId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeUserSessionAsync(userKey, sessionId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeUserSession);
 
             if (Enabled(UAuthActions.Sessions.RevokeChainAdmin))
                 adminSession.MapPost("/chains/{chainId}/revoke", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, SessionChainId chainId, HttpContext ctx)
-                => await h.RevokeUserChainAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeUserChainAsync(userKey, chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeUserChain);
 
             if (Enabled(UAuthActions.Sessions.RevokeRootAdmin))
                 adminSession.MapPost("/revoke-root", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.RevokeRootAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeRootAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeRoot);
 
             if (Enabled(UAuthActions.Sessions.RevokeAllChainsAdmin))
                 adminSession.MapPost("/revoke-all", async ([FromServices] ISessionEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.RevokeAllChainsAsync(userKey, null, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession));
+                => await h.RevokeAllChainsAsync(userKey, null, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession)).WithUAuthRateLimit(UAuthEndpoint.RevokeAllChains);
         }
 
         //if (options.EnableUserInfoEndpoints != false)
@@ -189,136 +195,136 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         {
             if (Enabled(UAuthActions.Users.CreateAnonymous))
                 group.MapPost("/users/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.CreateAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.UserCreateAnonymous);
 
             if (Enabled(UAuthActions.Users.ChangeStatusSelf))
                 self.MapPost("/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.ChangeStatusSelf);
 
             if (Enabled(UAuthActions.Users.DeleteSelf))
                 self.MapPost("/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.DeleteMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.UserDeleteSelf);
 
 
             if (Enabled(UAuthActions.Users.QueryAdmin))
                 adminUsers.MapPost("/query", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.QueryUsersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.QueryUsersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.QueryUsers);
 
             if (Enabled(UAuthActions.Users.GetByKeysAdmin))
                 adminUsers.MapPost("/get-by-keys", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.GetUsersByKeysAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.GetUsersByKeysAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.GetUsersByKeys);
 
             if (Enabled(UAuthActions.Users.CreateAdmin))
                 adminUsers.MapPost("/create", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.CreateAdminAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.CreateAdminAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.UserCreateAdmin);
 
             if (Enabled(UAuthActions.Users.ChangeStatusAdmin))
                 adminUsers.MapPost("/{userKey}/status", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.ChangeStatusAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.ChangeStatusAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.ChangeStatusAdmin);
 
             if (Enabled(UAuthActions.Users.DeleteAdmin))
                 adminUsers.MapPost("/{userKey}/delete", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.DeleteAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement));
+                => await h.DeleteAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.UserDeleteAdmin);
         }
 
         if (options.Endpoints.UserProfile != false)
         {
             if (Enabled(UAuthActions.UserProfiles.GetSelf))
                 self.MapPost("/profile/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.ProfileGetSelf);
 
             if (Enabled(UAuthActions.UserProfiles.CreateSelf))
                 self.MapPost("/profile/create", async (IUserEndpointHandler h, HttpContext ctx)
-                => await h.CreateProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.CreateProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.CreateProfileSelf);
 
             if (Enabled(UAuthActions.UserProfiles.UpdateSelf))
                 self.MapPost("/profile/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.ProfileUpdateSelf);
 
             if (Enabled(UAuthActions.UserProfiles.DeleteSelf))
                 self.MapPost("/profile/delete", async (IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.DeleteProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.DeleteProfileSelf);
 
 
             if (Enabled(UAuthActions.UserProfiles.GetAdmin))
                 adminUsers.MapPost("/{userKey}/profile/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.GetUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.GetUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.ProfileGetAdmin);
 
             if (Enabled(UAuthActions.UserProfiles.CreateAdmin))
                 adminUsers.MapPost("/{userKey}/profile/create", async (IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.CreateProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.CreateProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.CreateProfileAdmin);
 
             if (Enabled(UAuthActions.UserProfiles.UpdateAdmin))
                 adminUsers.MapPost("/{userKey}/profile/update", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.UpdateUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.UpdateUserAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.ProfileUpdateAdmin);
 
             if (Enabled(UAuthActions.UserProfiles.DeleteAdmin))
                 adminUsers.MapPost("/{userKey}/profile/delete", async (IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.DeleteProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement));
+                => await h.DeleteProfileAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.DeleteProfileAdmin);
         }
 
         if (options.Endpoints.UserIdentifier != false)
         {
             if (Enabled(UAuthActions.UserIdentifiers.GetSelf))
                 self.MapPost("/identifiers/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyIdentifiers);
 
             if (Enabled(UAuthActions.UserIdentifiers.AddSelf))
                 self.MapPost("/identifiers/add", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.AddUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.AddUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.AddUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.UpdateSelf))
                 self.MapPost("/identifiers/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UpdateUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.UpdateUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.UpdateUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.SetPrimarySelf))
                 self.MapPost("/identifiers/set-primary",async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.SetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.SetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.SetPrimaryUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.UnsetPrimarySelf))
                 self.MapPost("/identifiers/unset-primary", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UnsetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.UnsetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.UnsetPrimaryUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.VerifySelf))
                 self.MapPost("/identifiers/verify", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.VerifyUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.VerifyUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.VerifyUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.DeleteSelf))
                 self.MapPost("/identifiers/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.DeleteUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.DeleteUserIdentifierSelf);
 
 
             if (Enabled(UAuthActions.UserIdentifiers.GetAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/get", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.GetUserIdentifiersAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.GetUserIdentifiersAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.GetUserIdentifiers);
 
             if (Enabled(UAuthActions.UserIdentifiers.AddAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/add", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.AddUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.AddUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.AddUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.UpdateAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/update", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.UpdateUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.UpdateUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.UpdateUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.SetPrimaryAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/set-primary", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.SetPrimaryUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.SetPrimaryUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.SetPrimaryUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.UnsetPrimaryAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/unset-primary", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.UnsetPrimaryUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.UnsetPrimaryUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.UnsetPrimaryUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.VerifyAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/verify", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.VerifyUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.VerifyUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.VerifyUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.DeleteAdmin))
                 adminUsers.MapPost("/{userKey}/identifiers/delete", async ([FromServices] IUserEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.DeleteUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.DeleteUserIdentifierAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.DeleteUserIdentifierAdmin);
 
             if (Enabled(UAuthActions.UserIdentifiers.CheckAvailability))
                 self.MapPost("/identifiers/check-availability", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.CheckIdentifierAvailabilityAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement));
+                => await h.CheckIdentifierAvailabilityAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.CheckIdentifierAvailability);
         }
 
         if (options.Endpoints.Credentials != false)
@@ -328,48 +334,48 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Credentials.AddSelf))
                 selfCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialAddSelf);
 
             if (Enabled(UAuthActions.Credentials.ChangeSelf))
                 selfCredentials.MapPost("/change", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.ChangeSecretAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.ChangeSecretAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialChangeSelf);
 
             if (Enabled(UAuthActions.Credentials.RevokeSelf))
                 selfCredentials.MapPost("/revoke", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialRevokeSelf);
 
             if (Enabled(UAuthActions.Credentials.BeginResetAnonymous))
                 selfCredentials.MapPost("/reset/begin", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.BeginResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.BeginResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialResetBeginAnonymous);
 
             if (Enabled(UAuthActions.Credentials.CompleteResetAnonymous))
                 selfCredentials.MapPost("/reset/complete", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.CompleteResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.CompleteResetAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialResetCompleteAnonymous);
 
 
             if (Enabled(UAuthActions.Credentials.AddAdmin))
                 adminCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.AddAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.AddAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialAddAdmin);
 
             if (Enabled(UAuthActions.Credentials.ChangeAdmin))
                 adminCredentials.MapPost("/change", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.ChangeSecretAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.ChangeSecretAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialChangeAdmin);
 
             if (Enabled(UAuthActions.Credentials.RevokeAdmin))
                 adminCredentials.MapPost("/revoke", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.RevokeAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.RevokeAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialRevokeAdmin);
 
             if (Enabled(UAuthActions.Credentials.BeginResetAdmin))
                 adminCredentials.MapPost("/reset/begin", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.BeginResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.BeginResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialResetBeginAdmin);
 
             if (Enabled(UAuthActions.Credentials.CompleteResetAdmin))
                 adminCredentials.MapPost("/reset/complete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.CompleteResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.CompleteResetAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialResetCompleteAdmin);
 
             if (Enabled(UAuthActions.Credentials.DeleteAdmin))
                 adminCredentials.MapPost("/delete", async ([FromServices] ICredentialEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.DeleteAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement));
+                => await h.DeleteAdminAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement)).WithUAuthRateLimit(UAuthEndpoint.CredentialDeleteAdmin);
         }
 
         if (options.Endpoints.Authorization != false)
@@ -379,48 +385,48 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             // TODO: Add enabled actions here
                 selfAuthz.MapPost("/check", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.AuthorizationCheck);
 
             if (Enabled(UAuthActions.Authorization.Roles.GetSelf))
                 selfAuthz.MapPost("/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyRoles);
 
             if (Enabled(UAuthActions.Authorization.Permissions.GetSelf))
                 selfAuthz.MapPost("/permissions/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.GetMyPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.GetMyPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyPermissions);
 
 
             if (Enabled(UAuthActions.Authorization.Roles.GetAdmin))
                 adminAuthz.MapPost("/users/{userKey}/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.GetUserRolesAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.GetUserRolesAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.GetUserRoles);
 
             if (Enabled(UAuthActions.Authorization.Roles.AssignAdmin))
                 adminAuthz.MapPost("/users/{userKey}/roles/assign", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.AssignRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.AssignRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.AssignRole);
 
             if (Enabled(UAuthActions.Authorization.Roles.RemoveAdmin))
                 adminAuthz.MapPost("/users/{userKey}/roles/remove", async ([FromServices] IAuthorizationEndpointHandler h, UserKey userKey, HttpContext ctx)
-                => await h.RemoveRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                => await h.RemoveRoleAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.RemoveRole);
 
             if (Enabled(UAuthActions.Authorization.Roles.CreateAdmin))
                 adminAuthz.MapPost("/roles/create",async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                    => await h.CreateRoleAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                    => await h.CreateRoleAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.CreateRole);
 
             if (Enabled(UAuthActions.Authorization.Roles.QueryAdmin))
                 adminAuthz.MapPost("/roles/query", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                    => await h.QueryRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                    => await h.QueryRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.QueryRoles);
 
             if (Enabled(UAuthActions.Authorization.Roles.RenameAdmin))
                 adminAuthz.MapPost("/roles/{roleId}/rename", async ([FromServices] IAuthorizationEndpointHandler h, RoleId roleId, HttpContext ctx)
-                    => await h.RenameRoleAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                    => await h.RenameRoleAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.RenameRole);
 
             if (Enabled(UAuthActions.Authorization.Roles.SetPermissionsAdmin))
                 adminAuthz.MapPost("/roles/{roleId}/permissions", async ([FromServices] IAuthorizationEndpointHandler h, RoleId roleId, HttpContext ctx)
-                    => await h.SetRolePermissionsAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                    => await h.SetRolePermissionsAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.SetRolePermissions);
 
             if (Enabled(UAuthActions.Authorization.Roles.DeleteAdmin))
                 adminAuthz.MapPost("/roles/{roleId}/delete", async ([FromServices] IAuthorizationEndpointHandler h, RoleId roleId, HttpContext ctx)
-                    => await h.DeleteRoleAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement));
+                    => await h.DeleteRoleAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.DeleteRole);
         }
 
         // IMPORTANT:

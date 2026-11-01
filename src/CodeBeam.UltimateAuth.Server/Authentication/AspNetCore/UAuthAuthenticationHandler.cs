@@ -73,6 +73,8 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (snapshot is null || snapshot.Identity is null)
             return AuthenticateResult.NoResult();
 
+        RateLimiting.UAuthRateLimitPolicy.SetValidatedActor(Context, tenant.Value, result.UserKey.Value.Value);
+
         var principal = snapshot.ToClaimsPrincipal(UAuthConstants.SchemeDefaults.GlobalScheme);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, UAuthConstants.SchemeDefaults.GlobalScheme));
     }

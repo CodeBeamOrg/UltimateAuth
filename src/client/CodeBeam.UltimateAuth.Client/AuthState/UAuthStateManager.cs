@@ -1,4 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
+using System.Net;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
@@ -7,6 +10,7 @@ namespace CodeBeam.UltimateAuth.Client.Authentication;
 internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 {
     private Task? _ensureTask;
+    private DateTimeOffset _validationNotBefore;
     private readonly object _ensureLock = new();
 
     private readonly IUAuthClient _client;
@@ -26,6 +30,8 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     public Task EnsureAsync(bool force = false, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+        if (_clock.UtcNow < _validationNotBefore) return Task.CompletedTask;
         if (!force && State.IsAuthenticated && !State.IsStale)
             return Task.CompletedTask;
 
@@ -58,6 +64,10 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
             }
 
             State.ApplySnapshot(result.Snapshot, _clock.UtcNow);
+        }
+        catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            _validationNotBefore = UAuthRateLimit.NotBefore(_clock.UtcNow, ex.RetryAfter);
         }
         finally
         {
