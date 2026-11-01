@@ -58,10 +58,10 @@ public interface IFlowClient
     /// <summary>
     /// Logs out the current user.
     /// </summary>
-    /// <remarks>
-    /// This clears the current session and may trigger redirects.
-    /// </remarks>
-    Task LogoutAsync();
+    /// <param name="navigate">
+    /// Whether to navigate to the server-provided logout destination after a successful logout. Defaults to true.
+    /// </param>
+    Task LogoutAsync(bool navigate = true);
 
     /// <summary>
     /// Refreshes the current session or tokens.

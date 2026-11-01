@@ -330,6 +330,41 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         mock.Verify(x => x.SendFormAsync("/auth/logout", null, true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Logout_Should_Respect_Navigate_Option_And_Publish_Event(bool navigate)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var events = new Mock<IUAuthClientEvents>();
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/logout",
+                null,
+                navigate,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Status = 200,
+                Ok = true
+            });
+
+        var client = CreateFlowClient(request, events);
+
+        await client.LogoutAsync(navigate: navigate);
+
+        request.Verify(x => x.SendFormAsync(
+            "/auth/logout",
+            null,
+            navigate,
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        events.Verify(x => x.PublishAsync(
+            It.Is<UAuthStateEventArgs>(e =>
+                e.Type == UAuthStateEvent.LogoutVariant)),
+            Times.Once);
+    }
+
     [Fact]
     public async Task Refresh_Should_Not_Mark_Manual_When_Auto()
     {

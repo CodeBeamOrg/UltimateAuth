@@ -210,6 +210,10 @@ window.uauth.post = async function (options) {
         return null;
     }
 
+    const isLogout =
+        mode === "logout" ||
+        mode === "logout-observe";
+
     return window.uauth.request({
         url: validatedUrl,
         method: "POST",
@@ -219,7 +223,9 @@ window.uauth.post = async function (options) {
         credentials: "include",
         allowCrossOriginCredentials: true,
         navigateOnSuccess: mode === "logout",
-        headers: mode === "logout" ? { "X-UAuth-Logout-Mode": "observe" } : {}
+        headers: isLogout
+            ? { "X-UAuth-Logout-Mode": "observe" }
+            : {}
     });
 };
 

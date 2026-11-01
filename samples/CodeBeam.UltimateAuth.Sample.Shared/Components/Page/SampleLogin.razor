@@ -36,7 +36,7 @@
                                         Continue
                                     </MudButton>
 
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@UAuthClient.Flows.LogoutAsync">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => UAuthClient.Flows.LogoutAsync())">
                                         Switch account
                                     </MudButton>
                                 </MudStack>
