@@ -12,7 +12,9 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -243,6 +245,18 @@ public sealed class CredentialManagementServiceTests
                 "same-password"))
             .Returns(true);
 
+        f.PasswordPipeline
+            .Setup(x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "same-password" &&
+                    r.ExistingCredentialKey.HasValue),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PasswordPolicyResult.Failure(
+                new PasswordPolicyViolation(
+                    PasswordPolicyErrorCodes.ReusedPassword,
+                    "Password was previously used.")));
+
         var act = () => f.Sut.ChangeSecretAsync(
             context,
             new ChangeCredentialRequest
@@ -254,7 +268,7 @@ public sealed class CredentialManagementServiceTests
         var exception = await act.Should()
             .ThrowAsync<UAuthValidationException>();
 
-        exception.Which.Code.Should().Be("credential_secret_same");
+        exception.Which.Code.Should().Be(PasswordPolicyErrorCodes.ReusedPassword);
 
         f.CredentialStore.Verify(
             x => x.SaveAsync(
@@ -447,7 +461,7 @@ public sealed class CredentialManagementServiceTests
         f.Hasher.Verify(x => x.Verify(
             f.OldPasswordHash,
             It.IsAny<string>()),
-            Times.Once);
+            Times.Never);
 
         f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
             target,
@@ -460,6 +474,14 @@ public sealed class CredentialManagementServiceTests
         f.SessionStore.Verify(
             x => x.ExecuteAsync(
                 It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.PasswordPipeline.Verify(
+            x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.ExistingCredentialKey.HasValue),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -880,6 +902,7 @@ public sealed class CredentialManagementServiceTests
             .Setup(x => x.ValidateAsync(
                 It.Is<PasswordValidationRequest>(r =>
                     r.Context.Password == "weak"),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(PasswordPolicyResult.Failure(
                 new PasswordPolicyViolation(
@@ -940,6 +963,7 @@ public sealed class CredentialManagementServiceTests
             .Setup(x => x.ValidateAsync(
                 It.Is<PasswordValidationRequest>(r =>
                     r.Context.Password == "weak"),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(PasswordPolicyResult.Failure(
                 new PasswordPolicyViolation(
@@ -1035,6 +1059,60 @@ public sealed class CredentialManagementServiceTests
         f.HistoryStore.Verify(
             x => x.DeleteByCredentialAsync(
                 key,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task AddAsync_UsesEffectivePasswordPolicyOptions()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForUser(
+            user,
+            UAuthActions.Credentials.AddSelf);
+
+        f.EffectiveOptionsProvider
+            .Setup(x => x.GetEffective(
+                context.ResourceTenant,
+                UAuthClientProfile.NotSpecified))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = new UAuthServerOptions
+                {
+                    Password = new PasswordPolicyOptions
+                    {
+                        Level = PasswordPolicyLevel.Strict
+                    }
+                }
+            });
+
+        f.Hasher
+            .Setup(x => x.Hash("ValidPassword123!"))
+            .Returns(f.NewPasswordHash);
+
+        f.CredentialStore
+            .Setup(x => x.AddAsync(
+                It.IsAny<PasswordCredential>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.AddAsync(
+            context,
+            new AddCredentialRequest
+            {
+                Secret = "ValidPassword123!"
+            });
+
+        f.PasswordPipeline.Verify(
+            x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "ValidPassword123!"),
+                It.Is<EffectivePasswordPolicyOptions>(o =>
+                    o.Level == PasswordPolicyLevel.Strict &&
+                    o.MinLength == 15),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -1171,6 +1249,9 @@ public sealed class CredentialManagementServiceTests
         public Mock<IPasswordValidationPipeline> PasswordPipeline { get; }
             = new(MockBehavior.Strict);
 
+        public Mock<IEffectiveServerOptionsProvider> EffectiveOptionsProvider { get; }
+            = new(MockBehavior.Strict);
+
         public Mock<IClock> Clock { get; }
             = new(MockBehavior.Strict);
 
@@ -1292,6 +1373,19 @@ public sealed class CredentialManagementServiceTests
                 .Setup(x => x.Create(It.IsAny<TenantKey>()))
                 .Returns(HistoryStore.Object);
 
+            HistoryStore
+                .Setup(x => x.PruneAsync(
+                    It.IsAny<CredentialKey>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            HistoryStore
+                .Setup(x => x.DeleteByCredentialAsync(
+                    It.IsAny<CredentialKey>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
             PasswordContextProvider
                 .Setup(x => x.CreateAsync(
                     It.IsAny<TenantKey>(),
@@ -1304,23 +1398,33 @@ public sealed class CredentialManagementServiceTests
                         {
                             Password = password
                         }));
+
             PasswordPipeline
                 .Setup(x => x.ValidateAsync(
                     It.IsAny<PasswordValidationRequest>(),
+                    It.IsAny<EffectivePasswordPolicyOptions>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(PasswordPolicyResult.Success());
 
             var options = Options.Create(
                 TestServerOptions.Default());
 
-            var effectiveOptions = PasswordPolicyOptionsResolver.Resolve(new PasswordPolicyOptions());
+            EffectiveOptionsProvider
+                .Setup(x => x.GetEffective(
+                    It.IsAny<TenantKey>(),
+                    UAuthClientProfile.NotSpecified))
+                .Returns((TenantKey tenant, UAuthClientProfile profile) =>
+                    new EffectiveUAuthServerOptions
+                    {
+                        Mode = UAuthMode.PureOpaque,
+                        Options = options.Value.Clone()
+                    });
 
             var passwordWriter = new PasswordCredentialWriter(
                 PasswordPipeline.Object,
                 CredentialStoreFactory.Object,
                 HistoryStoreFactory.Object,
-                Hasher.Object,
-                effectiveOptions);
+                Hasher.Object);
 
             Sut = new CredentialManagementService(
                 AccessOrchestrator.Object,
@@ -1338,6 +1442,7 @@ public sealed class CredentialManagementServiceTests
                 passwordWriter,
                 HistoryStoreFactory.Object,
                 PasswordContextProvider.Object,
+                EffectiveOptionsProvider.Object,
                 options,
                 Clock.Object);
         }

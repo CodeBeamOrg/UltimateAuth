@@ -422,13 +422,21 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     var passwordContext = await _passwordContextProvider.CreateAsync(context.ResourceTenant, userKey, request.NewSecret, atomicCt);
                     var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, UAuthClientProfile.NotSpecified);
                     var passwordOptions = PasswordPolicyOptionsResolver.Resolve(effectiveServer.Options.Password);
-                    await _passwordWriter.ChangeAsync(
-                        currentPwd,
-                        request.NewSecret,
-                        passwordContext,
-                        passwordOptions,
-                        now,
-                        atomicCt);
+
+                    try
+                    {
+                        await _passwordWriter.ChangeAsync(
+                            currentPwd,
+                            request.NewSecret,
+                            passwordContext,
+                            passwordOptions,
+                            now,
+                            atomicCt);
+                    }
+                    catch (UAuthValidationException) when (context.IsAnonymousContext)
+                    {
+                        return CredentialActionResult.Success();
+                    }
 
                     var consumed = currentState.ConsumeReset(now);
 
