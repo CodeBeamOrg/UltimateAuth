@@ -273,6 +273,13 @@
     "GroupOrder": 8
   },
   {
+    "Title": "Rate Limiting",
+    "Slug": "security/rate-limiting",
+    "Order": 8,
+    "Group": "security",
+    "GroupOrder": 8
+  },
+  {
     "Title": "How-to Guides",
     "Slug": "how-to-guides/index",
     "Order": 1,

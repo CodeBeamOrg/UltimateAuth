@@ -26,17 +26,23 @@ public static class UltimateAuthApplicationBuilderExtensions
         return app;
     }
 
-    /// <summary>Installs context, authentication, optional native throttling, then authorization.</summary>
-    /// <remarks>Run routing and trusted forwarding first. Set useRateLimiting to false when the host owns UseRateLimiter.</remarks>
-    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors = null) =>
-        UseUltimateAuthWithAspNetCore(app, enableCors, useRateLimiting: true);
-
     // Both arguments are required to preserve positional bool calls as the original enableCors argument.
-    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors, bool useRateLimiting)
+    /// <summary>
+    /// Configures the UltimateAuth ASP.NET Core middleware pipeline, including CORS, authentication, rate limiting, and authorization.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <param name="enableCors">
+    /// Controls CORS middleware registration. When null, CORS is enabled automatically if required by UAuthHub.
+    /// </param>
+    /// <param name="useRateLimiting">
+    /// Enables UltimateAuth's built-in rate limiting middleware. Defaults to true.
+    /// </param>
+    /// <returns>
+    /// The application builder.
+    /// </returns>
+    public static IApplicationBuilder UseUltimateAuthWithAspNetCore(this IApplicationBuilder app, bool? enableCors = null, bool useRateLimiting = true)
     {
-        var logger = app.ApplicationServices
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("UltimateAuth");
+        var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("UltimateAuth");
 
         var marker = app.ApplicationServices.GetService<IUAuthHubMarker>();
         var requiresCors = marker?.RequiresCors == true;
@@ -51,8 +57,12 @@ public static class UltimateAuthApplicationBuilderExtensions
 
         app.UseUltimateAuth();
         app.UseAuthentication();
-        if (useRateLimiting) UseOwnedRateLimiter(app);
+
+        if (useRateLimiting)
+            UseOwnedRateLimiter(app);
+
         app.UseAuthorization();
+
         return app;
     }
 
