@@ -619,65 +619,15 @@ Also verify that:
 
 Remove temporary low-limit overrides before deploying to production.
 
-## Upgrading to v0.2.0
+### Client IP Address & Reverse Proxies
 
-UltimateAuth v0.2.0 introduces built-in server endpoint rate limiting and client HTTP 429 handling.
+UltimateAuth uses ASP.NET Core's resolved client IP address for IP-based rate limiting. It does not directly trust forwarded IP headers.
 
-### Middleware API
+When deploying behind Caddy, Nginx, Cloudflare, or another reverse proxy, ensure that ASP.NET Core's Forwarded Headers Middleware is correctly configured with trusted proxies or networks.
 
-`UseUltimateAuthWithAspNetCore` now exposes `useRateLimiting` as an optional parameter alongside `enableCors`:
+Without proper configuration, multiple users may be identified by the same proxy IP address and share rate limits.
 
-```csharp
-app.UseUltimateAuthWithAspNetCore(
-    enableCors: null,
-    useRateLimiting: true);
-```
-
-The method uses a single signature with both parameters optional.
-
-Existing source calls remain valid when recompiling against v0.2.0:
-
-```csharp
-app.UseUltimateAuthWithAspNetCore();
-
-app.UseUltimateAuthWithAspNetCore(true);
-
-app.UseUltimateAuthWithAspNetCore(enableCors: false);
-```
-
-The original positional Boolean argument continues to represent `enableCors`.
-
-Adding the optional parameter changes the compiled method signature. Applications and libraries compiled against earlier versions should be rebuilt when upgrading.
-
-This is a source-compatible API change for existing calls, not a guarantee of binary compatibility with previously compiled assemblies.
-
-### Default behavior change
-
-Rate limiting is enabled by default in the integrated middleware helper.
-
-Applications that already install native `UseRateLimiter()` middleware should disable helper-owned installation to avoid duplicate middleware execution.
-
-Applications with an existing native global limiter should review its scope, since installing the middleware can activate that limiter on application routes beyond UltimateAuth endpoints.
-
-### Client behavior changes
-
-Client HTTP 429 handling preserves authentication state and exposes throttling metadata through existing contracts.
-
-Logout now uses an observed form request, which changes its navigation and transport behavior compared with an unconditional browser form navigation.
-
-Applications using custom `IUAuthRequestClient` implementations should review the observed form overload, especially when supporting logout navigation.
-
-Cross-origin applications should verify logout redirects, credentialed CORS, and `Retry-After` header exposure.
-
-### Verification
-
-The rate limiting compatibility tests cover the middleware contract across .NET 8, .NET 9, and .NET 10:
-
-```bash
-dotnet test tests/CodeBeam.UltimateAuth.Tests.RateLimiting.Compatibility
-```
-
-Proof, refresh, and recovery integration tests remain in the main integration test project.
+See [Client IP Address & Reverse Proxy Setup](/docs/getting-started/real-world-setup#10-client-ip-address--reverse-proxy) for configuration examples.
 
 ## Related documentation
 
