@@ -1,11 +1,12 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
+using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Credentials;
 
 public sealed class PasswordPolicyOptionsTests
 {
-    private readonly PasswordPolicyOptionsValidator _validator = new();
+    private readonly UAuthServerPasswordPolicyOptionsValidator _validator = new();
 
     [Fact]
     public void DefaultOptions_ResolveToStandard()
@@ -61,7 +62,10 @@ public sealed class PasswordPolicyOptionsTests
     {
         var result = _validator.Validate(
             null,
-            new PasswordPolicyOptions { Level = level });
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions { Level = level }
+            });
 
         Assert.True(result.Failed);
     }
@@ -74,10 +78,13 @@ public sealed class PasswordPolicyOptionsTests
     {
         var result = _validator.Validate(
             null,
-            new PasswordPolicyOptions
+            new UAuthServerOptions
             {
-                MinLength = min,
-                MaxLength = max
+                Password = new PasswordPolicyOptions
+                {
+                    MinLength = min,
+                    MaxLength = max
+                }
             });
 
         Assert.True(result.Failed);
@@ -90,11 +97,14 @@ public sealed class PasswordPolicyOptionsTests
     {
         var result = _validator.Validate(
             null,
-            new PasswordPolicyOptions
+            new UAuthServerOptions
             {
-                History = new PasswordHistoryOptions
+                Password = new PasswordPolicyOptions
                 {
-                    RememberLast = count
+                    History = new PasswordHistoryOptions
+                    {
+                        RememberLast = count
+                    }
                 }
             });
 
@@ -109,7 +119,7 @@ public sealed class PasswordPolicyOptionsTests
             UserSimilarity = PasswordPolicyLevel.Disabled
         };
 
-        var result = _validator.Validate(null, options);
+        var result = _validator.Validate(null, new UAuthServerOptions { Password = options });
 
         Assert.True(result.Succeeded);
     }

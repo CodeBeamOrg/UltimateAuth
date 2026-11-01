@@ -1,11 +1,12 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Options;
 using Microsoft.Extensions.Options;
 
-namespace CodeBeam.UltimateAuth.Credentials.Options;
+namespace CodeBeam.UltimateAuth.Server.Options;
 
-public sealed class PasswordPolicyOptionsValidator : IValidateOptions<PasswordPolicyOptions>
+public sealed class UAuthServerPasswordPolicyOptionsValidator : IValidateOptions<UAuthServerOptions>
 {
-    public ValidateOptionsResult Validate(string? name, PasswordPolicyOptions options)
+    public ValidateOptionsResult Validate(string? name, UAuthServerOptions options)
     {
         var errors = new List<string>();
 
@@ -14,7 +15,7 @@ public sealed class PasswordPolicyOptionsValidator : IValidateOptions<PasswordPo
             return ValidateOptionsResult.Fail("Password policy options cannot be null.");
         }
 
-        if (options.Level is not (
+        if (options.Password.Level is not (
             PasswordPolicyLevel.Basic or
             PasswordPolicyLevel.Standard or
             PasswordPolicyLevel.Strict))
@@ -22,21 +23,21 @@ public sealed class PasswordPolicyOptionsValidator : IValidateOptions<PasswordPo
             errors.Add("Password policy Level must be Basic, Standard or Strict.");
         }
 
-        if (!IsValidCheckLevel(options.CommonPasswords))
+        if (!IsValidCheckLevel(options.Password.CommonPasswords))
         {
             errors.Add("Invalid CommonPasswords level.");
         }
 
-        if (!IsValidCheckLevel(options.UserSimilarity))
+        if (!IsValidCheckLevel(options.Password.UserSimilarity))
         {
             errors.Add("Invalid UserSimilarity level.");
         }
 
-        if (options.History is null)
+        if (options.Password.History is null)
         {
             errors.Add("Password History options cannot be null.");
         }
-        else if (options.History.RememberLast < 0 || options.History.RememberLast > PasswordPolicyLimits.MaxHistoryCount)
+        else if (options.Password.History.RememberLast < 0 || options.Password.History.RememberLast > PasswordPolicyLimits.MaxHistoryCount)
         {
             errors.Add("Password history count must be between 0 and 10.");
         }
@@ -44,7 +45,7 @@ public sealed class PasswordPolicyOptionsValidator : IValidateOptions<PasswordPo
         if (errors.Count > 0)
             return ValidateOptionsResult.Fail(errors);
 
-        var effective = PasswordPolicyOptionsResolver.Resolve(options);
+        var effective = PasswordPolicyOptionsResolver.Resolve(options.Password);
 
         if (effective.MinLength < PasswordPolicyLimits.MinimumLength)
         {

@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -374,7 +375,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICredentialResetNotifier, NotConfiguredCredentialResetNotifier>();
 
         services.AddPasswordStrengthPolicy();
-        services.AddPasswordPolicyOptions();
 
         return services;
     }

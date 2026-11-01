@@ -18,27 +18,6 @@ public static class PasswordPolicyServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddPasswordPolicyOptions(this IServiceCollection services, Action<PasswordPolicyOptions>? configure = null)
-    {
-        var builder = services.AddOptions<PasswordPolicyOptions>();
-
-        if (configure is not null)
-            builder.Configure(configure);
-
-        builder.ValidateOnStart();
-
-        services.TryAddSingleton<IValidateOptions<PasswordPolicyOptions>, PasswordPolicyOptionsValidator>();
-
-        services.TryAddSingleton(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<PasswordPolicyOptions>>().Value;
-
-            return PasswordPolicyOptionsResolver.Resolve(options);
-        });
-
-        return services;
-    }
-
     public static IServiceCollection ReplacePasswordStrengthPolicy<TPolicy>(this IServiceCollection services) where TPolicy : class, IPasswordStrengthPolicy
     {
         services.Replace(ServiceDescriptor.Scoped<IPasswordStrengthPolicy, TPolicy>());
