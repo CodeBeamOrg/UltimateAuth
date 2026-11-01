@@ -110,27 +110,48 @@ public class ResetPasswordTests
     }
 
     [Fact]
-    public async Task Reset_password_with_same_password_should_succeed_without_changing_password()
+    public async Task Reset_password_with_same_password_should_fail_without_consuming_token()
     {
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
 
+        var userKey = await GetAdminUserKeyAsync(runtime);
+
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
-        var result = await service.CompleteResetAsync(
+        // The existing password must be rejected.
+        var exception = await Assert.ThrowsAsync<UAuthValidationException>(
+            () => service.CompleteResetAsync(
+                CompleteContext(),
+                CompleteRequest(token, "admin")));
+
+        exception.Should().NotBeNull();
+
+        await AssertPasswordAsync(runtime, userKey, "admin");
+
+        // Validation failure must not consume the reset token.
+        var retry = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "admin"));
+            CompleteRequest(token, "DifferentPassword123!"));
 
-        result.IsSuccess.Should().BeTrue();
+        retry.IsSuccess.Should().BeTrue();
 
-        // The reset token must be single-use even when
-        // the new password matches the existing password.
-        var secondResult = await service.CompleteResetAsync(
+        await AssertPasswordAsync(
+            runtime, userKey, "DifferentPassword123!");
+
+        // Anonymous reset returns generic success even for a consumed token.
+        var replay = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "different-password"));
+            CompleteRequest(token, "AnotherPassword123!"));
 
-        secondResult.IsSuccess.Should().BeTrue();
+        replay.IsSuccess.Should().BeTrue();
+
+        await AssertPasswordAsync(
+            runtime, userKey, "DifferentPassword123!");
+
+        await AssertPasswordRejectedAsync(
+            runtime, userKey, "AnotherPassword123!");
     }
 
     [Fact]

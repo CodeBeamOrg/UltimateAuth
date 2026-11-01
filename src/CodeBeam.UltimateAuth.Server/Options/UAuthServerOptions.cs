@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Credentials.Options;
 using Microsoft.AspNetCore.Routing;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
@@ -89,6 +90,12 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthCredentialSessionPolicyOptions CredentialSessionPolicy { get; init; } = new();
 
+    /// <summary>
+    /// Controls password strength, common-password detection,
+    /// user similarity checks, and password reuse history.
+    /// </summary>
+    public PasswordPolicyOptions Password { get; set; } = new();
+
     public UAuthHubOptions Hub { get; set; } = new();
 
     /// <summary>
@@ -162,6 +169,7 @@ public sealed class UAuthServerOptions
             AuthResponse = AuthResponse.Clone(),
             ResetCredential = ResetCredential.Clone(),
             CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
+            Password = Password.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             Identifiers = Identifiers.Clone(),
