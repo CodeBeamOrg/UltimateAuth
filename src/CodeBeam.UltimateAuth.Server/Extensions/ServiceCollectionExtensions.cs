@@ -36,6 +36,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using CodeBeam.UltimateAuth.Credentials.Extensions;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -371,6 +372,10 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped<ICredentialValidator, CredentialValidator>();
         services.TryAddScoped<ICredentialResetNotifier, NotConfiguredCredentialResetNotifier>();
+
+        services.AddPasswordStrengthPolicy();
+        services.AddPasswordPolicyOptions();
+
         return services;
     }
 

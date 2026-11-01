@@ -11,6 +11,7 @@ public static class UAuthCredentialsModelBuilder
     public static void Configure(ModelBuilder b)
     {
         ConfigurePasswordCredentials(b);
+        ConfigurePasswordHistory(b);
     }
 
     private static void ConfigurePasswordCredentials(ModelBuilder b)
@@ -59,6 +60,42 @@ public static class UAuthCredentialsModelBuilder
             e.HasIndex(x => new { x.Tenant, x.UserKey, x.DeletedAt });
             e.HasIndex(x => new { x.Tenant, x.RevokedAt });
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
+        });
+    }
+
+    private static void ConfigurePasswordHistory(ModelBuilder b)
+    {
+        b.Entity<PasswordHistoryProjection>(e =>
+        {
+            e.ToTable("UAuth_PasswordHistory");
+
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Tenant)
+                .HasConversion(v => v.Value, v => TenantKey.FromInternal(v))
+                .HasMaxLength(128)
+                .IsRequired();
+
+            e.Property(x => x.UserKey)
+                .HasConversion(v => v.Value, v => UserKey.FromString(v))
+                .HasMaxLength(128)
+                .IsRequired();
+
+            e.HasIndex(x => new { x.Tenant, x.UserKey });
+
+            e.Property(x => x.CredentialId)
+                .IsRequired();
+
+            e.Property(x => x.SecretHash)
+                .HasConversion(v => v.ToString(), v => PasswordHash.Parse(v, null))
+                .HasMaxLength(512)
+                .IsRequired();
+
+            e.Property(x => x.ReplacedAt)
+                .HasUtcDateTimeOffsetConverter()
+                .IsRequired();
+
+            e.HasIndex(x => new { x.Tenant, x.CredentialId, x.ReplacedAt, x.Id });
         });
     }
 }
