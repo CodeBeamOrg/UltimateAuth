@@ -218,8 +218,8 @@ window.uauth.post = async function (options) {
         contentType: "form",
         credentials: "include",
         allowCrossOriginCredentials: true,
-        followRedirects: mode === "logout",
-        navigateOnSuccess: mode === "logout"
+        navigateOnSuccess: mode === "logout",
+        headers: mode === "logout" ? { "X-UAuth-Logout-Mode": "observe" } : {}
     });
 };
 
@@ -356,9 +356,20 @@ window.uauth.request = async function (options) {
 
     // Only the observed logout transport follows a successful server redirect.
     // A rejected POST never navigates, clears storage, or causes a second POST.
-    if (navigateOnSuccess && response.ok && response.redirected) {
-        window.location.assign(response.url);
+    if (navigateOnSuccess && response.ok) {
+        const redirectUrl = responseBody?.redirectUrl;
+
+        if (typeof redirectUrl === "string" && redirectUrl.length > 0) {
+            const target = new URL(redirectUrl, window.location.origin);
+
+            if (!["http:", "https:"].includes(target.protocol)) {
+                throw new Error("Invalid logout redirect protocol.");
+            }
+
+            window.location.assign(target.href);
+        }
     }
+
     return {
         retryAfter: response.headers.get("Retry-After"),
         ok: response.ok,
