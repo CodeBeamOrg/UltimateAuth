@@ -249,6 +249,42 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                     b.ToTable("UAuth_PasswordCredentials", (string)null);
                 });
 
+            modelBuilder.Entity("CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.PasswordHistoryProjection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CredentialId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReplacedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Tenant")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("UserKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Tenant", "UserKey");
+
+                    b.HasIndex("Tenant", "CredentialId", "ReplacedAt", "Id");
+
+                    b.ToTable("UAuth_PasswordHistory", (string)null);
+                });
+
             modelBuilder.Entity("CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.SessionChainProjection", b =>
                 {
                     b.Property<long>("Id")

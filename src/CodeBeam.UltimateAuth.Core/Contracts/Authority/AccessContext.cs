@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using System.Collections;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
@@ -31,6 +32,7 @@ public sealed class AccessContext
     public TenantKey ResourceTenant { get; init; }
 
     public string Action { get; init; } = default!;
+    public UAuthClientProfile ClientProfile { get; }
     public IReadOnlyDictionary<string, object> Attributes { get; init; } = EmptyAttributes.Instance;
 
     public bool IsCrossTenant => !string.Equals(ActorTenant, ResourceTenant, StringComparison.Ordinal);
@@ -62,6 +64,7 @@ public sealed class AccessContext
         UserKey? targetUserKey,
         TenantKey resourceTenant,
         string action,
+        UAuthClientProfile clientProfile,
         IReadOnlyDictionary<string, object> attributes,
         IReadOnlyCollection<UserKey>? targetUserKeys = null)
     {
@@ -79,6 +82,7 @@ public sealed class AccessContext
         ResourceTenant = resourceTenant;
 
         Action = action;
+        ClientProfile = clientProfile;
         Attributes = attributes;
     }
 
@@ -100,6 +104,7 @@ public sealed class AccessContext
             TargetUserKey,
             ResourceTenant,
             Action,
+            ClientProfile,
             merged,
             TargetUserKeys
         );

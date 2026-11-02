@@ -16,6 +16,9 @@ public partial class CredentialDialog
     private string? _newPasswordCheck;
 
     private bool _isSubmitting;
+    private UAuthPasswordPolicyInfo? _passwordPolicy;
+    private bool _passwordPolicyLoading = true;
+
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -27,7 +30,47 @@ public partial class CredentialDialog
     public UserKey? UserKey { get; set; }
 
     [Parameter]
+    public RenderFragment<PasswordRequirementsContext>? PasswordRequirementsContent { get; set; }
+
+    [Parameter]
     public bool PreviewMode { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await UAuthClient.Credentials
+                .GetPasswordPolicyAsync();
+
+            if (result.IsSuccess)
+                _passwordPolicy = result.Value;
+        }
+        catch (Exception)
+        {
+            // The server remains authoritative.
+        }
+        finally
+        {
+            _passwordPolicyLoading = false;
+        }
+    }
+
+    private string? ValidateNewPassword(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "New password is required.";
+
+        if (_passwordPolicy is null)
+            return null;
+
+        var errors = UAuthPasswordClientValidator.Validate(
+            value, _passwordPolicy);
+
+        return errors.Count == 0
+            ? null
+            : "Password does not meet the configured requirements.";
+    }
+
 
     private async Task ChangePasswordAsync()
     {

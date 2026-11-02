@@ -175,7 +175,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 foreach (var integration in _integrations)
                 {
                     // Credential creation handle on here
-                    await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, atomicCt);
+                    await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, context.ClientProfile, atomicCt);
                 }
 
                 return UserCreateResult.Success(userKey);

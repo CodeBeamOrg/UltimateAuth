@@ -5,6 +5,7 @@ namespace CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 public sealed class UAuthCredentialDbContext : DbContext
 {
     public DbSet<PasswordCredentialProjection> PasswordCredentials => Set<PasswordCredentialProjection>();
+    public DbSet<PasswordHistoryProjection> PasswordHistory => Set<PasswordHistoryProjection>();
 
     public UAuthCredentialDbContext(DbContextOptions<UAuthCredentialDbContext> options)
         : base(options)

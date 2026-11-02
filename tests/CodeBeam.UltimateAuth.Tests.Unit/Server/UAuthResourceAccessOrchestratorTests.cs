@@ -1,15 +1,16 @@
-﻿using System.Security.Claims;
+﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Server.Authorization;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -474,6 +475,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             targetUserKey: null,
             resourceTenant: default,
             action: "users.read",
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

@@ -1,9 +1,12 @@
 ﻿@page "/register"
+@using CodeBeam.UltimateAuth.Core.Errors
+
 @layout PublicLayout
 @implements IDisposable
 
 @inject LabRegistrationService RegistrationService
 @inject LabRegistrationAvailabilityService AvailabilityService
+@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -122,6 +125,23 @@
                                                       autocomplete="new-password"
                                                       Validation="@(new Func<string, string?>(ValidatePassword))"
                                                       Disabled="_isSubmitting" />
+                                    
+                                    @if (_passwordPolicy is not null)
+                                    {
+                                        <LabPasswordRequirements Policy="_passwordPolicy" Password="@_password" />
+                                    }
+                                    else if (_policyLoading)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            Loading password requirements...
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            Password requirements will be verified by the server.
+                                        </MudText>
+                                    }
 
                                     <MudPasswordField @bind-Value="_confirmPassword"
                                                       Label="Confirm password"
@@ -310,6 +330,9 @@
     private string? _errorMessage;
     private MudForm? _form;
 
+    private UAuthPasswordPolicyInfo? _passwordPolicy;
+    private bool _policyLoading = true;
+
     private LabIdentifierAvailability _usernameAvailability = LabIdentifierAvailability.Unknown;
 
     private LabIdentifierAvailability _emailAvailability = LabIdentifierAvailability.Unknown;
@@ -319,6 +342,26 @@
 
     private int _usernameVersion;
     private int _emailVersion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await UAuthClient.Credentials.GetPasswordPolicyAsync();
+
+            if (result.IsSuccess)
+                _passwordPolicy = result.Value;
+        }
+        catch (Exception)
+        {
+            // Policy availability must not prevent registration.
+            // Server-side validation remains authoritative.
+        }
+        finally
+        {
+            _policyLoading = false;
+        }
+    }
 
     private static string? ValidateEmail(string value)
     {
@@ -331,15 +374,50 @@
                 : "Enter a valid email address.";
     }
 
-    private static string? ValidatePassword(string value)
+    private string? ValidatePassword(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrEmpty(value))
             return "Password is required.";
 
-        if (value.Length < 8)
-            return "Password must be at least 8 characters.";
+        if (value.Length > PasswordPolicyLimits.AbsoluteMaxLength)
+            return "Password exceeds the maximum allowed length.";
 
-        return null;
+        if (_passwordPolicy is null)
+            return null;
+
+        var violations = UAuthPasswordClientValidator.Validate(value, _passwordPolicy);
+
+        if (violations.Count == 0)
+            return null;
+
+        return violations[0] switch
+        {
+            PasswordPolicyErrorCodes.TooShort =>
+                $"Password must contain at least {_passwordPolicy.MinLength} characters.",
+
+            PasswordPolicyErrorCodes.TooLong =>
+                $"Password cannot exceed {_passwordPolicy.MaxLength} characters.",
+
+            PasswordPolicyErrorCodes.LetterRequired =>
+                "Password must contain a letter.",
+
+            PasswordPolicyErrorCodes.DigitRequired =>
+                "Password must contain a number.",
+
+            PasswordPolicyErrorCodes.UppercaseRequired =>
+                "Password must contain an uppercase letter.",
+
+            PasswordPolicyErrorCodes.LowercaseRequired =>
+                "Password must contain a lowercase letter.",
+
+            PasswordPolicyErrorCodes.SpecialCharacterRequired =>
+                "Password must contain a special character.",
+
+            PasswordPolicyErrorCodes.InputTooLong =>
+                "Password exceeds the maximum allowed length.",
+
+            _ => "Password does not meet the requirements."
+        };
     }
 
     private string? ValidateConfirmPassword(string value)
@@ -436,10 +514,7 @@
         return Task.CompletedTask;
     }
 
-    private async Task CheckUsernameAsync(
-        string value,
-        int version,
-        CancellationTokenSource cts)
+    private async Task CheckUsernameAsync(string value, int version, CancellationTokenSource cts)
     {
         var token = cts.Token;
 
@@ -495,10 +570,7 @@
         }
     }
 
-    private async Task CheckEmailAsync(
-        string value,
-        int version,
-        CancellationTokenSource cts)
+    private async Task CheckEmailAsync(string value, int version, CancellationTokenSource cts)
     {
         var token = cts.Token;
 
@@ -567,6 +639,14 @@
         if (!_form.IsValid)
             return;
 
+        var passwordError = ValidatePassword(_password);
+
+        if (passwordError is not null)
+        {
+            _errorMessage = passwordError;
+            return;
+        }
+
         if (_birthDate is { } birthDate &&
             birthDate.Date > DateTime.Today)
         {
@@ -629,6 +709,10 @@
             }
 
             _registered = true;
+        }
+        catch (UAuthValidationException ex)
+        {
+            _errorMessage = LabPasswordErrorMessages.Get(ex.Code);
         }
         catch (Exception)
         {

@@ -36,6 +36,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using CodeBeam.UltimateAuth.Credentials.Extensions;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -137,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -283,6 +285,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
+        services.TryAddScoped<IPasswordPolicyEndpointHandler, PasswordPolicyEndpointHandler>();
 
         // ASP.NET Core Integration
         services.AddAuthentication();
@@ -371,6 +374,9 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped<ICredentialValidator, CredentialValidator>();
         services.TryAddScoped<ICredentialResetNotifier, NotConfiguredCredentialResetNotifier>();
+
+        services.AddPasswordStrengthPolicy();
+
         return services;
     }
 

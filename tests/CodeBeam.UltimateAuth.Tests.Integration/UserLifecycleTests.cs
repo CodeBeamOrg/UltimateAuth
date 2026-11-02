@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using System.Net;
 using System.Net.Http.Json;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
@@ -597,6 +598,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             targetUserKey: actor,
             resourceTenant: TenantKeys.Single,
             action: "test",
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
 
         // DefaultPageSize = 2

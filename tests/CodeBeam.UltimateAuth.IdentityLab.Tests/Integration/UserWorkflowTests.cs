@@ -23,7 +23,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var registration = new LabRegistrationService(ActorProvider.For(null), sp.GetRequiredService<IUserApplicationService>(),
             sp.GetRequiredService<IRoleStoreFactory>(), sp.GetRequiredService<IUserRoleStoreFactory>(),
             new(db), new(db, NullLogger<ActivityLogService>.Instance));
-        var result = await registration.RegisterAsync(new(name, $"{name}@example.test", "Owner-test-password-8!"));
+        var result = await registration.RegisterAsync(new(name, $"{name}@example.test", "test-password-8!"));
         Assert.True(result.IsSuccess, result.ErrorMessage);
         await using var verify = db.CreateDbContext();
         return (await verify.Sandboxes.SingleAsync(x => x.Name == $"{name}'s Sandbox")).OwnerUserKey;
@@ -40,8 +40,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
             sp.GetRequiredService<IRoleStoreFactory>(), sp.GetRequiredService<IUserRoleStoreFactory>(),
             NullLogger<SandboxUserService>.Instance);
 
-    private static CreateUserRequest Request(string name) => new()
-        { UserName = name, Email = $"{name}@example.test", Password = "Member-test-password-8!" };
+    private static CreateUserRequest Request(string name) => new() { UserName = name, Email = $"{name}@example.test", Password = "test-password-8!" };
 
     [Theory]
     [InlineData(false)]
@@ -57,16 +56,19 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var foreign = await Provisioning(sp, db, foreignOwner).CreateMemberAsync(foreignOwner, Request("foreign-member"));
         Assert.True(foreign.IsSuccess, foreign.FailureReason);
         var foreignKey = UserKey.FromString(foreign.UserKey!);
+
         await using (var setup = db.CreateDbContext())
         {
             var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == owner);
             settings.MaxUsers = 2;
             await setup.SaveChangesAsync();
         }
+
         var client = new Mock<IUAuthClient>(MockBehavior.Strict);
         var userClient = new Mock<IUserClient>(MockBehavior.Strict);
         client.SetupGet(x => x.Users).Returns(userClient.Object);
         var service = UserService(sp, db, owner, client.Object);
+
         await service.CreateAsync(owner, Request("member"));
         var visible = await service.GetUsersAsync(owner);
         Assert.NotNull(visible);
@@ -87,6 +89,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         Assert.Equal(beforeRejected, await db.SnapshotAsync());
         userClient.VerifyNoOtherCalls();
         var application = sp.GetRequiredService<IUserApplicationService>();
+
         if (selfDelete)
         {
             userClient.Setup(x => x.DeleteMeAsync()).Returns(async () =>
@@ -94,8 +97,8 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
                 await application.DeleteMeAsync(Contexts.Create("users.delete.self", member, member));
                 return new UAuthResult { IsSuccess = true };
             });
-            Assert.True(await new SandboxAccountDeletionService(db, client.Object,
-                NullLogger<SandboxAccountDeletionService>.Instance).DeleteMemberAsync(member));
+
+            Assert.True(await new SandboxAccountDeletionService(db, client.Object, NullLogger<SandboxAccountDeletionService>.Instance).DeleteMemberAsync(member));
             userClient.Verify(x => x.DeleteMeAsync(), Times.Once);
         }
         else
@@ -109,6 +112,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
             Assert.True((await service.DeleteAsync(owner, member)).Success);
             userClient.Verify(x => x.DeleteUserAsync(member, It.IsAny<DeleteUserRequest>()), Times.Once);
         }
+
         await using var verification = runtime.Services.CreateAsyncScope();
         var lifecycleStore = verification.ServiceProvider.GetRequiredService<IUserLifecycleStoreFactory>().Create(TenantKeys.Single);
         var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(TenantKeys.Single, member));
@@ -129,6 +133,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         Assert.False(await final.SandboxMembers.AnyAsync(x => x.UserKey == member));
         Assert.Equal(2, await final.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == foreignOwner));
     }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

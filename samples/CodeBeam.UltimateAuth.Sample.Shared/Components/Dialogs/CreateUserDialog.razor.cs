@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Users.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using System.Net.Mail;
@@ -16,6 +18,13 @@ public partial class CreateUserDialog : IDisposable
     private string? _displayName;
 
     private bool _isSubmitting;
+    [Parameter]
+    public RenderFragment<PasswordRequirementsContext>?
+    PasswordRequirementsContent
+    { get; set; }
+
+    private UAuthPasswordPolicyInfo? _passwordPolicy;
+    private bool _passwordPolicyLoading = true;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -32,9 +41,26 @@ public partial class CreateUserDialog : IDisposable
     /// The caller must enforce authorization and application-specific rules.
     /// </summary>
     [Parameter]
-    public Func<CreateUserRequest, Task<CreateUserDialogResult>>?
-        OnCreateUserAsync
-    { get; set; }
+    public Func<CreateUserRequest, Task<CreateUserDialogResult>>? OnCreateUserAsync { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await UAuthClient.Credentials.GetPasswordPolicyAsync();
+
+            if (result.IsSuccess)
+                _passwordPolicy = result.Value;
+        }
+        catch (Exception)
+        {
+            // Server validation remains authoritative.
+        }
+        finally
+        {
+            _passwordPolicyLoading = false;
+        }
+    }
 
     private async Task CreateUserAsync()
     {
@@ -45,6 +71,14 @@ public partial class CreateUserDialog : IDisposable
 
         if (!_form.IsValid)
             return;
+
+        var passwordError = ValidatePassword(_password);
+
+        if (passwordError is not null)
+        {
+            Snackbar.Add(passwordError, Severity.Error);
+            return;
+        }
 
         if (!IdentifiersAvailable)
         {
@@ -108,6 +142,25 @@ public partial class CreateUserDialog : IDisposable
         {
             _isSubmitting = false;
         }
+    }
+
+    private string? ValidatePassword(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "Password is required.";
+
+        if (value.Length > PasswordPolicyLimits.AbsoluteMaxLength)
+            return "Password exceeds the maximum allowed length.";
+
+        if (_passwordPolicy is null)
+            return null;
+
+        var errors = UAuthPasswordClientValidator.Validate(
+            value, _passwordPolicy);
+
+        return errors.Count == 0
+            ? null
+            : "Password does not meet the configured requirements.";
     }
 
     private string? PasswordMatch(string? value)

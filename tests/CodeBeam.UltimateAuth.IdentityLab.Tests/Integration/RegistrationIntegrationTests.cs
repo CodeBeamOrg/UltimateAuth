@@ -26,7 +26,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var registration = new LabRegistrationService(ActorProvider.For(null), sp.GetRequiredService<IUserApplicationService>(),
             sp.GetRequiredService<IRoleStoreFactory>(), sp.GetRequiredService<IUserRoleStoreFactory>(),
             new(db), new(db, NullLogger<ActivityLogService>.Instance));
-        var result = await registration.RegisterAsync(new("alice", "alice@example.test", "Alice-test-password-8!"));
+        var result = await registration.RegisterAsync(new("alice", "alice@example.test", "test-password-8!"));
         Assert.True(result.IsSuccess, result.ErrorMessage);
         UserKey owner;
         await using (var verify = db.CreateDbContext())
@@ -46,7 +46,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         Assert.NotNull(lifecycle);
         var duplicate = await Record.ExceptionAsync(async () =>
         {
-            var duplicateResult = await registration.RegisterAsync(new("alice", "alice@example.test", "Alice-test-password-8!"));
+            var duplicateResult = await registration.RegisterAsync(new("alice", "alice@example.test", "test-password-8!"));
             Assert.False(duplicateResult.IsSuccess);
         });
         // Duplicate validation may throw or return failure depending on the framework contract.
@@ -108,14 +108,14 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var assignments = sp.GetRequiredService<IUserRoleStoreFactory>();
         var registration = new LabRegistrationService(ActorProvider.For(null), users, roles, assignments,
             new(db), new(db, NullLogger<ActivityLogService>.Instance));
-        Assert.True((await registration.RegisterAsync(new("owner", "owner@example.test", "Owner-test-password-8!"))).IsSuccess);
+        Assert.True((await registration.RegisterAsync(new("owner", "owner@example.test", "test-password-8!"))).IsSuccess);
         UserKey owner;
         await using (var verify = db.CreateDbContext()) owner = (await verify.Sandboxes.SingleAsync()).OwnerUserKey;
         var provider = ActorProvider.For(owner);
         var provisioning = new LabUserProvisioningService(provider, new(db), new(db), users, roles, assignments,
             sp.GetRequiredService<LabProvisioningRollbackGate>(), NullLogger<LabUserProvisioningService>.Instance);
         var result = await provisioning.CreateMemberAsync(owner, new CreateUserRequest
-            { UserName = "member", Email = "member@example.test", Password = "Member-test-password-8!" });
+            { UserName = "member", Email = "member@example.test", Password = "test-password-8!" });
         Assert.True(result.IsSuccess, result.FailureReason);
         var member = UserKey.FromString(result.UserKey!);
         var demos = new LabDemoRoleService(provider, db, roles, assignments);
@@ -179,7 +179,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var assignments = sp.GetRequiredService<IUserRoleStoreFactory>();
         var registration = new LabRegistrationService(ActorProvider.For(null), users, roles, assignments,
             new(db), new(db, NullLogger<ActivityLogService>.Instance));
-        Assert.True((await registration.RegisterAsync(new("owner", "owner@example.test", "Owner-test-password-8!"))).IsSuccess);
+        Assert.True((await registration.RegisterAsync(new("owner", "owner@example.test", "test-password-8!"))).IsSuccess);
         UserKey owner;
         await using (var verify = db.CreateDbContext()) owner = (await verify.Sandboxes.SingleAsync()).OwnerUserKey;
         var before = await db.SnapshotAsync();

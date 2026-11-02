@@ -317,7 +317,18 @@
         var parameters = new DialogParameters<CreateUserDialog>
         {
             { x => x.PreviewMode, false },
-            { x => x.OnCreateUserAsync, CreateSandboxUserAsync }
+            { x => x.OnCreateUserAsync, CreateSandboxUserAsync },
+            {
+                x => x.PasswordRequirementsContent,
+                (RenderFragment<PasswordRequirementsContext>)(context =>
+                    builder =>
+                    {
+                        builder.OpenComponent<LabPasswordRequirements>(0);
+                        builder.AddAttribute(1, "Policy", context.Policy);
+                        builder.AddAttribute(2, "Password", context.Password);
+                        builder.CloseComponent();
+                    })
+            }
         };
 
         var dialog = await DialogService.ShowAsync<CreateUserDialog>(
