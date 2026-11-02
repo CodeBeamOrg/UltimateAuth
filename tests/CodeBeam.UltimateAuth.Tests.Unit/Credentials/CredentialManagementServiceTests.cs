@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -1118,6 +1119,61 @@ public sealed class CredentialManagementServiceTests
     }
 
 
+    [Fact]
+    public async Task DeleteInternalAsync_SoftDeletesUserCredentialsWithinAtomicExecution()
+    {
+        var f = CreateFixture();
+        var tenant = TenantKey.Single;
+        var user = UserKey.New();
+
+        var atomicExecutionCalled = false;
+
+        f.AtomicExecutor
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                async (action, ct) =>
+                {
+                    atomicExecutionCalled = true;
+                    await action(ct);
+                });
+
+        f.CredentialStore
+            .Setup(x => x.DeleteByUserAsync(
+                user,
+                DeleteMode.Soft,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = (IUserCredentialsInternalService)f.Sut;
+
+        var result = await service.DeleteInternalAsync(
+            tenant,
+            user,
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        atomicExecutionCalled.Should().BeTrue();
+
+        f.CredentialStoreFactory.Verify(
+            x => x.Create(tenant),
+            Times.Once);
+
+        f.CredentialStore.Verify(
+            x => x.DeleteByUserAsync(
+                user,
+                DeleteMode.Soft,
+                Now,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.HistoryStoreFactory.VerifyNoOtherCalls();
+        f.AccessOrchestrator.VerifyNoOtherCalls();
+    }
+
+
     // ---------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------
@@ -1412,7 +1468,7 @@ public sealed class CredentialManagementServiceTests
             EffectiveOptionsProvider
                 .Setup(x => x.GetEffective(
                     It.IsAny<TenantKey>(),
-                    UAuthClientProfile.NotSpecified))
+                    It.IsAny<UAuthClientProfile>()))
                 .Returns((TenantKey tenant, UAuthClientProfile profile) =>
                     new EffectiveUAuthServerOptions
                     {
