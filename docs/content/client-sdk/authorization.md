@@ -1544,7 +1544,7 @@ This allows applications to provide flexible administrative interfaces while kee
 
 ## Next Steps
 
-- [Policies & Access Control](/docs/plugin-domains/policies-access-control) — Understand application policies and access rules.
+- [Policies & Access Control](/docs/plugin-domains/policies) — Understand application policies and access rules.
 - [Authorization Pipeline Internals](/docs/security/authorization-pipeline) — Explore how authorization decisions are evaluated.
 - [User Management](/docs/client-sdk/user-management) — Manage user accounts and lifecycle.
 - [Session Management](/docs/client-sdk/session-management) — Manage authenticated sessions and devices.
