@@ -110,7 +110,7 @@ public class ResetPasswordTests
     }
 
     [Fact]
-    public async Task Reset_password_with_same_password_should_fail_without_consuming_token()
+    public async Task Reset_password_with_same_password_should_not_consume_token()
     {
         var (runtime, notifier) = CreateRuntime();
         var service = runtime.GetCredentialManagementService();
@@ -120,17 +120,18 @@ public class ResetPasswordTests
         var token = await BeginAndCaptureAsync(
             runtime, notifier, ResetCodeType.Token);
 
-        // The existing password must be rejected.
-        var exception = await Assert.ThrowsAsync<UAuthValidationException>(
-            () => service.CompleteResetAsync(
-                CompleteContext(),
-                CompleteRequest(token, "admin")));
+        // Same password is rejected internally, but anonymous
+        // reset must return a generic success response.
+        var samePassword = await service.CompleteResetAsync(
+            CompleteContext(),
+            CompleteRequest(token, "admin"));
 
-        exception.Should().NotBeNull();
+        samePassword.IsSuccess.Should().BeTrue();
 
+        // The credential must remain unchanged.
         await AssertPasswordAsync(runtime, userKey, "admin");
 
-        // Validation failure must not consume the reset token.
+        // A policy failure must not consume the reset token.
         var retry = await service.CompleteResetAsync(
             CompleteContext(),
             CompleteRequest(token, "DifferentPassword123!"));
@@ -140,7 +141,7 @@ public class ResetPasswordTests
         await AssertPasswordAsync(
             runtime, userKey, "DifferentPassword123!");
 
-        // Anonymous reset returns generic success even for a consumed token.
+        // A successfully consumed token must not be reusable.
         var replay = await service.CompleteResetAsync(
             CompleteContext(),
             CompleteRequest(token, "AnotherPassword123!"));

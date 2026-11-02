@@ -20,26 +20,19 @@ public sealed class LabUserProvisioningService(
     LabProvisioningRollbackGate rollbackGate,
     ILogger<LabUserProvisioningService> logger)
 {
-    public async Task<UserCreateResult> CreateMemberAsync(
-        UserKey actorUserKey,
-        CreateUserRequest request,
-        CancellationToken ct = default)
+    public async Task<UserCreateResult> CreateMemberAsync(UserKey actorUserKey, CreateUserRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         // Obtain the actor from the actual authenticated session.
-        var context = await contextProvider.CreateAsync(
-            UAuthActions.Users.CreateAdmin,
-            "users",
-            ct);
+        var context = await contextProvider.CreateAsync(UAuthActions.Users.CreateAdmin, "users", ct);
 
         if (!context.IsAuthenticated ||
             context.IsSystemActor ||
             context.ActorUserKey is not UserKey authenticatedUserKey ||
             authenticatedUserKey != actorUserKey)
         {
-            throw new UnauthorizedAccessException(
-                "Authenticated actor mismatch.");
+            throw new UnauthorizedAccessException("Authenticated actor mismatch.");
         }
 
         var sandbox = await sandboxService.GetByUserAsync(
@@ -54,16 +47,12 @@ public sealed class LabUserProvisioningService(
             ct);
 
         if (!access.Allowed)
-            throw new UnauthorizedAccessException(
-                "Sandbox management permission required.");
+            throw new UnauthorizedAccessException("Sandbox management permission required.");
 
-        var remaining = await sandboxService.GetRemainingCapacityAsync(
-            sandbox.Id,
-            ct);
+        var remaining = await sandboxService.GetRemainingCapacityAsync(sandbox.Id, ct);
 
         if (remaining <= 0)
-            throw new InvalidOperationException(
-                "Sandbox user limit reached.");
+            throw new InvalidOperationException("Sandbox user limit reached.");
 
         // Fail before account creation if the required role is absent.
         var roleStore = roleStoreFactory.Create(
@@ -76,9 +65,7 @@ public sealed class LabUserProvisioningService(
                 "Identity Lab User role is not configured.");
 
         // Only this server-side path can attach the object-identity token.
-        var trustedContext = context.WithAttribute(
-            LabProvisioningGate.AttributeKey,
-            LabProvisioningGate.Token);
+        var trustedContext = context.WithAttribute(LabProvisioningGate.AttributeKey, LabProvisioningGate.Token);
 
         var result = await userApplicationService.CreateUserAsync(trustedContext, request, ct);
 
