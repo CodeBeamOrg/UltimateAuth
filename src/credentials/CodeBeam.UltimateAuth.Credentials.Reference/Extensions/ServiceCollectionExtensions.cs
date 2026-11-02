@@ -16,7 +16,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserLifecycleIntegration, PasswordUserLifecycleIntegration>();
         services.AddScoped<ICredentialProvider, PasswordCredentialProvider>();
         services.TryAddScoped<IPasswordHistoryValidator, UAuthPasswordHistoryValidator>();
-        services.TryAddScoped<IPasswordValidationPipeline, DefaultPasswordValidationPipeline>();
+        services.TryAddScoped<IPasswordValidationPipeline, UAuthPasswordValidationPipeline>();
         services.TryAddScoped<PasswordCredentialWriter>();
 
         return services;

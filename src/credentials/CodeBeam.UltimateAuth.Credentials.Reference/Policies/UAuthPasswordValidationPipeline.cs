@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Credentials.Policies;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class DefaultPasswordValidationPipeline(IPasswordStrengthPolicy strengthPolicy, IPasswordHistoryValidator historyValidator) : IPasswordValidationPipeline
+public sealed class UAuthPasswordValidationPipeline(IPasswordStrengthPolicy strengthPolicy, IPasswordHistoryValidator historyValidator) : IPasswordValidationPipeline
 {
     public async Task<PasswordPolicyResult> ValidateAsync(PasswordValidationRequest request, EffectivePasswordPolicyOptions options, CancellationToken ct = default)
     {

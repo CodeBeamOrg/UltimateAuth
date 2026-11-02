@@ -33,7 +33,7 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
         _clock = clock;
     }
 
-    public async Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, CancellationToken ct)
+    public async Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, UAuthClientProfile clientProfile, CancellationToken ct)
     {
         if (request is not CreateUserRequest r)
             return;
@@ -42,8 +42,7 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
             return;
 
         var passwordContext = await _passwordContextProvider.CreateAsync(tenant, userKey, r.Password, ct);
-        // TODO: This is not correct client profile. Resolve true client profile in the future.
-        var effectiveServer = _effectiveServerOptionsProvider.GetEffective(tenant, UAuthClientProfile.NotSpecified);
+        var effectiveServer = _effectiveServerOptionsProvider.GetEffective(tenant, clientProfile);
         var passwordOptions = PasswordPolicyOptionsResolver.Resolve(effectiveServer.Options.Password);
         await _passwordWriter.CreateAsync(
             tenant,

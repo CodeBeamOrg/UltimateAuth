@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
@@ -196,6 +197,7 @@ public sealed class UserApplicationServiceTests
                 context.ResourceTenant,
                 It.IsAny<UserKey>(),
                 request,
+                clientProfile: UAuthClientProfile.NotSpecified,
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -205,6 +207,7 @@ public sealed class UserApplicationServiceTests
             context.ResourceTenant,
             It.IsAny<UserKey>(),
             request,
+            clientProfile: UAuthClientProfile.NotSpecified,
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -2555,6 +2558,7 @@ public sealed class UserApplicationServiceTests
             targetUserKey: targetUserKey ?? actorUserKey,
             resourceTenant: TenantKey.Single,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

@@ -66,11 +66,11 @@ public sealed class PasswordValidationPipelineTests
             });
     }
 
-    private static DefaultPasswordValidationPipeline CreatePipeline(
+    private static UAuthPasswordValidationPipeline CreatePipeline(
         RecordingHistoryValidator history,
         AcceptAllStrengthPolicy? strength = null)
     {
-        return new DefaultPasswordValidationPipeline(
+        return new UAuthPasswordValidationPipeline(
             strength ?? new AcceptAllStrengthPolicy(),
             history);
     }

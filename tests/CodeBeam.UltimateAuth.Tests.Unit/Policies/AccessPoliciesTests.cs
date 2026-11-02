@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Policies;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -108,6 +109,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: resourceTenant,
                 action: "users.get.admin",
+                clientProfile: UAuthClientProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             var result = await sut.DecideAsync(context);
@@ -252,6 +254,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: TenantKey.Single,
                 action: "users.repair.system",
+                clientProfile: UAuthClientProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             var result = await sut.DecideAsync(context);
@@ -763,6 +766,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: TenantKey.System,
                 action: "users.get.admin",
+                clientProfile: UAuthClientProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             sut.AppliesTo(context).Should().BeFalse();

@@ -120,8 +120,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     var subjectUser = context.GetTargetUserKey();
                     var passwordContext = await _passwordContextProvider.CreateAsync(context.ResourceTenant, subjectUser, request.Secret, atomicCt);
 
-                    // TODO: This is not correct client profile. Resolve true client profile in the future.
-                    var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, UAuthClientProfile.NotSpecified);
+                    var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, context.ClientProfile);
                     var passwordOptions = PasswordPolicyOptionsResolver.Resolve(effectiveServer.Options.Password);
 
                     var credential = await _passwordWriter.CreateAsync(
@@ -173,7 +172,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                 }
 
                 var passwordContext = await _passwordContextProvider.CreateAsync(context.ResourceTenant, subjectUser, request.NewSecret, atomicCt);
-                var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, UAuthClientProfile.NotSpecified);
+                var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, context.ClientProfile);
                 var passwordOptions = PasswordPolicyOptionsResolver.Resolve(effectiveServer.Options.Password);
                 await _passwordWriter.ChangeAsync(pwd, request.NewSecret, passwordContext, passwordOptions, now, atomicCt);
 
@@ -420,7 +419,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     // Strength + current password + history validation.
                     // Validation failure throws before token consumption.
                     var passwordContext = await _passwordContextProvider.CreateAsync(context.ResourceTenant, userKey, request.NewSecret, atomicCt);
-                    var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, UAuthClientProfile.NotSpecified);
+                    var effectiveServer = _effectiveServerOptionsProvider.GetEffective(context.ResourceTenant, context.ClientProfile);
                     var passwordOptions = PasswordPolicyOptionsResolver.Resolve(effectiveServer.Options.Password);
 
                     try

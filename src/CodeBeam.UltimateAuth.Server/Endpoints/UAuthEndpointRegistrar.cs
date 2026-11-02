@@ -333,8 +333,8 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             var adminCredentials = admin.MapGroup("/users/{userKey}/credentials");
 
             if (Enabled(UAuthActions.Credentials.GetPasswordPolicyAnonymous))
-                group.MapPost("/password-policy", ([FromServices] IPasswordPolicyEndpointHandler h, HttpContext context)
-                => h.GetAsync(context)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.PasswordPolicy);
+                group.MapPost("/password-policy", async ([FromServices] IPasswordPolicyEndpointHandler h, HttpContext context)
+                => await h.GetAsync(context)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.PasswordPolicy);
 
             if (Enabled(UAuthActions.Credentials.AddSelf))
                 selfCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
