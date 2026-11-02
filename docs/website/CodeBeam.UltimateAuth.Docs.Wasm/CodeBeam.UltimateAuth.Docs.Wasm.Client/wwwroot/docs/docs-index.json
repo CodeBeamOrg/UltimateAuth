@@ -273,6 +273,13 @@
     "GroupOrder": 8
   },
   {
+    "Title": "Password Policy \u0026 History",
+    "Slug": "security/password-policy",
+    "Order": 6,
+    "Group": "security",
+    "GroupOrder": 8
+  },
+  {
     "Title": "Rate Limiting",
     "Slug": "security/rate-limiting",
     "Order": 8,

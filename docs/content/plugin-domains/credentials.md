@@ -115,6 +115,10 @@ Secret verification and credential usability are related but distinct decisions.
 
 A correctly supplied password must not make a revoked or otherwise unusable credential valid.
 
+Password strength, common-password detection, user similarity, and password reuse are governed by configurable security policies.
+
+See [Password Policy & History](/docs/security/password-policy) for the built-in policy levels, defaults, and configuration options.
+
 ## Credential Validation
 
 UltimateAuth separates credential-specific verification from the broader authentication flow.

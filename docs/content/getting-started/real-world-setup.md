@@ -264,10 +264,17 @@ builder.Services.AddUltimateAuthServer(options =>
     options.Login.LockoutDuration = TimeSpan.FromMinutes(15);
     options.Session.Lifetime = TimeSpan.FromDays(7);
     options.Identifiers.Behavior.AllowMultipleUsernames = true;
+    options.Password.Level = PasswordPolicyLevel.Strict;
 });
 ```
 
 The effective authentication mode is resolved at runtime. The application does not need to select a single mode globally.
+
+### Password Security Configuration
+
+UltimateAuth uses the Standard password policy by default. Applications can select Basic or Strict, or override individual requirements through `options.Password`.
+
+For the preset comparison, configuration examples, and password-history settings, see [Password Policy & History](/docs/security/password-policy).
 
 ## 4. UAuthHub — Dedicated Authentication Server
 

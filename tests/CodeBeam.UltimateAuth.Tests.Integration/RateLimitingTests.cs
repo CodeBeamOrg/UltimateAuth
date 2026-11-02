@@ -169,6 +169,7 @@ public class RateLimitingTests
 /auth/me/sessions/revoke-all|RevokeAllMyChains|Standard
 /auth/me/sessions/revoke-others|RevokeOtherChains|Standard
 /auth/me/status|ChangeStatusSelf|Standard
+/auth/password-policy|PasswordPolicy|Standard
 /auth/pkce/authorize|PkceAuthorize|Sensitive
 /auth/pkce/complete|PkceComplete|Sensitive
 /auth/pkce/try-complete|PkceTryComplete|Sensitive
