@@ -82,6 +82,7 @@ public enum UAuthEndpoint
     SetRolePermissions,
     DeleteRole,
     HubEntry,
+    PasswordPolicy,
 }
 
 internal enum UAuthRateLimitGroup { Sensitive, Standard, Frequent }

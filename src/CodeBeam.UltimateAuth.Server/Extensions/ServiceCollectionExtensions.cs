@@ -285,6 +285,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
+        services.TryAddScoped<IPasswordPolicyEndpointHandler, PasswordPolicyEndpointHandler>();
 
         // ASP.NET Core Integration
         services.AddAuthentication();

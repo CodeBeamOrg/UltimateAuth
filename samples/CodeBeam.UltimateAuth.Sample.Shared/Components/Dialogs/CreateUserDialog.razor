@@ -1,4 +1,5 @@
-﻿@inject IUAuthClient UAuthClient
+﻿@using CodeBeam.UltimateAuth.Credentials.Contracts
+@inject IUAuthClient UAuthClient
 @inject ISnackbar Snackbar
 @implements IDisposable
 
@@ -106,8 +107,28 @@
                                           Margin="Margin.Dense"
                                           Required="true"
                                           RequiredError="Password is required."
+                                          Immediate="true"
+                                          MaxLength="@PasswordPolicyLimits.AbsoluteMaxLength"
+                                          Validation="@(new Func<string?, string?>(ValidatePassword))"
                                           autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
+
+                        @if (_passwordPolicy is not null && PasswordRequirementsContent is not null)
+                        {
+                            @PasswordRequirementsContent(new PasswordRequirementsContext(_passwordPolicy, _password))
+                        }
+                        else if (_passwordPolicyLoading)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Loading password requirements...
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Password requirements are verified by UltimateAuth.
+                            </MudText>
+                        }
 
                         <MudPasswordField @bind-Value="_passwordCheck"
                                           Label="Confirm Password"
@@ -120,13 +141,6 @@
                                           autocomplete="new-password"
                                           Disabled="@_isSubmitting" />
                     </div>
-
-                    <div class="lab-create-user-hint">
-                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
-                        <span>
-                            Password requirements are enforced by the configured UltimateAuth credential policy.
-                        </span>
-                    </div>
                 </div>
 
             </div>
@@ -135,10 +149,7 @@
 
     <DialogActions>
         <div class="lab-create-user-actions">
-            <MudButton Variant="Variant.Text"
-                       Color="Color.Default"
-                       Disabled="@_isSubmitting"
-                       OnClick="Cancel">
+            <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="@_isSubmitting" OnClick="Cancel">
                 Cancel
             </MudButton>
 

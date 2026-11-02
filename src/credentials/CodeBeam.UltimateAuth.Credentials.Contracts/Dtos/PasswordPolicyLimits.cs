@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Credentials.Options;
+﻿namespace CodeBeam.UltimateAuth.Credentials.Contracts;
 
 public static class PasswordPolicyLimits
 {

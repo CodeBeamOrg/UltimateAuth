@@ -59,4 +59,10 @@ public sealed class UAuthClientEndpointOptions
     /// Path for the UAuthHub login endpoint (e.g. /uauthhub/entry)
     /// </summary>
     public string HubLoginPath { get; set; } = "/uauthhub/entry";
+
+
+    /// <summary>
+    /// Endpoint used to retrieve the effective public password policy.
+    /// </summary>
+    public string PasswordPolicy { get; set; } = "/password-policy";
 }
