@@ -1095,9 +1095,7 @@ Use `UAuthPasswordClientValidator` to provide immediate feedback before submitti
 ```csharp
 using CodeBeam.UltimateAuth.Client;
 
-var errors = UAuthPasswordClientValidator.Validate(
-    password,
-    policy);
+var errors = UAuthPasswordClientValidator.Validate(password, policy);
 
 if (errors.Count == 0)
 {

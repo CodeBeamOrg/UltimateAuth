@@ -234,7 +234,7 @@ Separating these responsibilities prevents transport behavior from becoming auth
 
 For example, whether an access token is delivered through a cookie or header should not change the security requirements used to issue it.
 
-The technical components and request pipeline implementing these responsibilities are documented in [Auth Flows](../auth-flows/).
+The technical components and request pipeline implementing these responsibilities are documented in [Auth Flows](/docs/auth-flows/overview).
 
 ## Flows across client runtimes
 

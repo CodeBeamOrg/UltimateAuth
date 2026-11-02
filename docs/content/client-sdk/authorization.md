@@ -1310,7 +1310,7 @@ if (result.IsSuccess)
 
 This pattern works well alongside `UAuthClient.Users` for building a unified user administration interface.
 
-See [User Management](/docs/client/user-management).
+See [User Management](/docs/client-sdk/user-management).
 
 ## 20. Authorization State Events
 
@@ -1373,7 +1373,7 @@ Revoking a session changes whether an authentication session remains valid.
 
 Applications may combine these operations when security policy requires immediate termination of access, but the concepts should remain separate.
 
-See [Session Management](/docs/client/session-management).
+See [Session Management](/docs/client-sdk/session-management).
 
 ## 22. Multi-Tenant Authorization
 
@@ -1544,8 +1544,8 @@ This allows applications to provide flexible administrative interfaces while kee
 
 ## Next Steps
 
-- [Policies & Access Control](/docs/plugin-domains/policies-access-control) — Understand application policies and access rules.
-- [Authorization Pipeline Internals](/docs/security/authorization-pipeline-internals) — Explore how authorization decisions are evaluated.
-- [User Management](/docs/client/user-management) — Manage user accounts and lifecycle.
-- [Session Management](/docs/client/session-management) — Manage authenticated sessions and devices.
+- [Policies & Access Control](/docs/plugin-domains/policies) — Understand application policies and access rules.
+- [Authorization Pipeline Internals](/docs/security/authorization-pipeline) — Explore how authorization decisions are evaluated.
+- [User Management](/docs/client-sdk/user-management) — Manage user accounts and lifecycle.
+- [Session Management](/docs/client-sdk/session-management) — Manage authenticated sessions and devices.
 - [Session Security Model](/docs/security/session-security) — Understand session validity and security boundaries.
