@@ -50,7 +50,7 @@ Each identifier has its own value, type, verification state, and primary designa
 
 **Identifiers are not profiles.** A user profile contains information such as display name and biography, while identifiers represent managed identity-related values.
 
-For general profile management, see [User Management](/docs/client/user-management).
+For general profile management, see [User Management](/docs/client-sdk/user-management).
 
 ## 2. Accessing the Identifier Client
 
@@ -1070,8 +1070,8 @@ Applications should distinguish identifier management from session revocation an
 
 ## Next Steps
 
-- [User Management](/docs/client/user-management) — Manage user profiles, account status, and lifecycle.
-- [Credentials](/docs/client/credentials) — Manage passwords, credentials, and recovery workflows.
-- [Authentication](/docs/client/authentication) — Understand login and authentication flows.
+- [User Management](/docs/client-sdk/user-management) — Manage user profiles, account status, and lifecycle.
+- [Credentials](/docs/client-sdk/credentials) — Manage passwords, credentials, and recovery workflows.
+- [Authentication](/docs/client-sdk/authentication) — Understand login and authentication flows.
 - [Users](/docs/plugin-domains/users) — Explore the user domain architecture.
 - [Session Security Model](/docs/security/session-security) — Understand authentication security boundaries.

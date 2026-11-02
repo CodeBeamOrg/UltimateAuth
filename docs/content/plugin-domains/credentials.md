@@ -306,6 +306,6 @@ The current password implementation provides the operational foundation. The bro
 
 - [Users](/docs/plugin-domains/users) — Understand identity ownership, identifiers, and account lifecycle.
 - [Authorization](/docs/plugin-domains/authorization) — Explore how authenticated identities are evaluated against access policies.
-- [Plugin Domains](/docs/plugin-domains) — Review the architecture and responsibilities of Plugin Domains.
+- [Plugin Domains](/docs/plugin-domains/overview) — Review the architecture and responsibilities of Plugin Domains.
 
-For the authentication flow that consumes credential verification results, see [Flow-Based Authentication](/docs/fundamentals/flow-based-authentication).
+For the authentication flow that consumes credential verification results, see [Flow-Based Authentication](/docs/fundamentals/flow-based-auth).

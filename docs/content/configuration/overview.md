@@ -490,7 +490,7 @@ builder.Services.AddUltimateAuthServer(options =>
 
 Do not enable an unsupported mode merely because it exists in the enum.
 
-For supported modes and their behavior, see [Authentication Modes](/docs/fundamentals/authentication-modes).
+For supported modes and their behavior, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## 10. Configure Credential Session Policies
 
@@ -836,7 +836,6 @@ The Core-only registration exists for infrastructure scenarios that explicitly c
 ## Next Steps
 
 - [Configuration Overview](/docs/configuration/configuration-overview) — Understand the overall configuration model.
-- [Core Options](/docs/configuration/core-options) — Explore the reusable option definitions composed into server configuration.
 - [Server Options](/docs/configuration/server-options) — Configure authentication and security behavior.
 - [Client Options](/docs/configuration/client-options) — Configure client profiles, flows, and SDK behavior.
 - [Advanced Configuration](/docs/configuration/advanced-configuration) — Customize integration, multi-tenancy, and runtime extension points.

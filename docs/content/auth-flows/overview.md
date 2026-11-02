@@ -210,9 +210,9 @@ The following pages explain each operation in detail. This overview focuses on t
 
 | Flow | Purpose | Practical outcome | Guide |
 | --- | --- | --- | --- |
-| **Login** | Establish authenticated access from acceptable credentials. | Creates a valid authentication session in session-issuing modes; may issue tokens according to policy. | [Login Flow](./login-flow.md) |
-| **Refresh** | Continue an existing authentication relationship using renewal authority. | Maintains or renews access according to mode, validation, and configured refresh behavior. | [Refresh Flow](./refresh-flow.md) |
-| **Logout** | End access at the applicable session or device scope. | Terminates authentication access and handles configured client cleanup/navigation. | [Logout Flow](./logout-flow.md) |
+| **Login** | Establish authenticated access from acceptable credentials. | Creates a valid authentication session in session-issuing modes; may issue tokens according to policy. | [Login Flow](/docs/auth-flows/login-flow) |
+| **Refresh** | Continue an existing authentication relationship using renewal authority. | Maintains or renews access according to mode, validation, and configured refresh behavior. | [Refresh Flow](/docs/auth-flows/refresh-flow) |
+| **Logout** | End access at the applicable session or device scope. | Terminates authentication access and handles configured client cleanup/navigation. | [Logout Flow](/docs/auth-flows/logout-flow) |
 
 These flows are related but not interchangeable. Login establishes access; refresh continues it; logout terminates it. Revocation operations provide stronger invalidation controls for the relevant security scope.
 
@@ -220,9 +220,9 @@ These flows are related but not interchangeable. Login establishes access; refre
 
 | Concept | What it contributes | Guide |
 | --- | --- | --- |
-| **Session lifecycle** | Root, chain, and session relationships; creation, continuity, expiry, and invalidation. | [Session Lifecycle](./session-lifecycle.md) |
-| **Token behavior** | Access and refresh credentials, validation, renewal, and mode-specific behavior. | [Token Behavior](./token-behavior.md) |
-| **Device management** | Device-associated chains, multi-device access, and targeted termination. | [Device Management](./device-management.md) |
+| **Session lifecycle** | Root, chain, and session relationships; creation, continuity, expiry, and invalidation. | [Session Lifecycle](/docs/sessions-devices/session-lifecycle) |
+| **Token behavior** | Access and refresh credentials, validation, renewal, and mode-specific behavior. | [Token Behavior](/docs/security/token-security) |
+| **Device management** | Device-associated chains, multi-device access, and targeted termination. | [Device Management](/docs/sessions-devices/device-management) |
 
 ## What this design enables in real applications
 
@@ -246,4 +246,4 @@ This is the larger goal of UltimateAuth's unified model—not to make every auth
 
 ## Next step
 
-Start with [Login Flow](/docs/auth-flows/login) to see how UltimateAuth turns validated credentials into controlled authenticated access.
+Start with [Login Flow](/docs/auth-flows/login-flow) to see how UltimateAuth turns validated credentials into controlled authenticated access.
