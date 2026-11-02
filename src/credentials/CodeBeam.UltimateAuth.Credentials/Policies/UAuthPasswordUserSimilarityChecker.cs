@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Policies;
 
-public sealed class DefaultPasswordUserSimilarityChecker : IPasswordUserSimilarityChecker
+public sealed class UAuthPasswordUserSimilarityChecker : IPasswordUserSimilarityChecker
 {
     public bool IsSimilar(PasswordPolicyContext context, PasswordPolicyLevel level)
     {

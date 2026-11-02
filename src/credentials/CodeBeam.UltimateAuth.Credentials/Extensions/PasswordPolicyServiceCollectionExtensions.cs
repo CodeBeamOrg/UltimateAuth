@@ -10,10 +10,10 @@ public static class PasswordPolicyServiceCollectionExtensions
 {
     public static IServiceCollection AddPasswordStrengthPolicy(this IServiceCollection services)
     {
-        services.TryAddScoped<IPasswordStrengthPolicy, DefaultPasswordStrengthPolicy>();
+        services.TryAddScoped<IPasswordStrengthPolicy, UAuthPasswordStrengthPolicy>();
         services.TryAddSingleton<IPasswordCommonPasswordChecker, BuiltInCommonPasswordChecker>();
-        services.TryAddSingleton<IPasswordUserSimilarityChecker, DefaultPasswordUserSimilarityChecker>();
-        services.TryAddScoped<IPasswordPolicyContextProvider, DefaultPasswordPolicyContextProvider>();
+        services.TryAddSingleton<IPasswordUserSimilarityChecker, UAuthPasswordUserSimilarityChecker>();
+        services.TryAddScoped<IPasswordPolicyContextProvider, UAuthPasswordPolicyContextProvider>();
 
         return services;
     }

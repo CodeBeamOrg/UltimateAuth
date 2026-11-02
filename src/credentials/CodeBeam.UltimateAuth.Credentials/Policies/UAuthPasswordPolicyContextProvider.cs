@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 
 namespace CodeBeam.UltimateAuth.Credentials.Policies;
 
-public sealed class DefaultPasswordPolicyContextProvider : IPasswordPolicyContextProvider
+public sealed class UAuthPasswordPolicyContextProvider : IPasswordPolicyContextProvider
 {
     public Task<PasswordPolicyContext> CreateAsync(TenantKey tenant, UserKey userKey, string password, CancellationToken ct = default)
     {

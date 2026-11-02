@@ -3,7 +3,7 @@ using CodeBeam.UltimateAuth.Credentials.Options;
 
 namespace CodeBeam.UltimateAuth.Credentials.Policies;
 
-public sealed class DefaultPasswordStrengthPolicy(IPasswordCommonPasswordChecker commonPasswordChecker, IPasswordUserSimilarityChecker userSimilarityChecker) : IPasswordStrengthPolicy
+public sealed class UAuthPasswordStrengthPolicy(IPasswordCommonPasswordChecker commonPasswordChecker, IPasswordUserSimilarityChecker userSimilarityChecker) : IPasswordStrengthPolicy
 {
     public async Task<PasswordPolicyResult> ValidateAsync(PasswordPolicyContext context, EffectivePasswordPolicyOptions options, CancellationToken ct = default)
     {

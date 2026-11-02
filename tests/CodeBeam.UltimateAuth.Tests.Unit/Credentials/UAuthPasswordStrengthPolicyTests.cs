@@ -2,9 +2,9 @@
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 
-public sealed class DefaultPasswordStrengthPolicyTests
+public sealed class UAuthPasswordStrengthPolicyTests
 {
-    private readonly IPasswordStrengthPolicy _policy = new DefaultPasswordStrengthPolicy(new BuiltInCommonPasswordChecker(), new DefaultPasswordUserSimilarityChecker());
+    private readonly IPasswordStrengthPolicy _policy = new UAuthPasswordStrengthPolicy(new BuiltInCommonPasswordChecker(), new UAuthPasswordUserSimilarityChecker());
 
     private static EffectivePasswordPolicyOptions Resolve(PasswordPolicyLevel level = PasswordPolicyLevel.Standard) 
         => PasswordPolicyOptionsResolver.Resolve(new PasswordPolicyOptions { Level = level });

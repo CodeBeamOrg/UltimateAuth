@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class DefaultPasswordHistoryValidator(IPasswordCredentialStoreFactory credentialStoreFactory, IPasswordHistoryStoreFactory historyStoreFactory, IUAuthPasswordHasher hasher) : IPasswordHistoryValidator
+public sealed class UAuthPasswordHistoryValidator(IPasswordCredentialStoreFactory credentialStoreFactory, IPasswordHistoryStoreFactory historyStoreFactory, IUAuthPasswordHasher hasher) : IPasswordHistoryValidator
 {
     public async Task<PasswordPolicyResult> ValidateAsync(CredentialKey credentialKey, string password, int rememberLast, CancellationToken ct = default)
     {

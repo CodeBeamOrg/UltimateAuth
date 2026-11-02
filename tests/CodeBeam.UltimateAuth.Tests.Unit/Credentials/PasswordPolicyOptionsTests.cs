@@ -123,4 +123,210 @@ public sealed class PasswordPolicyOptionsTests
 
         Assert.True(result.Succeeded);
     }
+
+
+    [Fact]
+    public void NullServerOptions_IsRejected()
+    {
+        var result = _validator.Validate(null, null!);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures,
+            x => x.Contains("cannot be null"));
+    }
+
+    [Fact]
+    public void NullHistoryOptions_IsRejected()
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    History = null!
+                }
+            });
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures,
+            x => x.Contains("History"));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(999)]
+    public void InvalidCommonPasswordsLevel_IsRejected(int level)
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    CommonPasswords = (PasswordPolicyLevel)level
+                }
+            });
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures,
+            x => x.Contains("CommonPasswords"));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(999)]
+    public void InvalidUserSimilarityLevel_IsRejected(int level)
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    UserSimilarity = (PasswordPolicyLevel)level
+                }
+            });
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures,
+            x => x.Contains("UserSimilarity"));
+    }
+
+    [Theory]
+    [InlineData(PasswordPolicyLevel.Basic)]
+    [InlineData(PasswordPolicyLevel.Standard)]
+    [InlineData(PasswordPolicyLevel.Strict)]
+    public void ValidGlobalLevels_AreAccepted(
+        PasswordPolicyLevel level)
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    Level = level
+                }
+            });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10)]
+    public void ValidHistoryBoundaryValues_AreAccepted(int count)
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    History = new PasswordHistoryOptions
+                    {
+                        RememberLast = count
+                    }
+                }
+            });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(PasswordPolicyLevel.Disabled)]
+    [InlineData(PasswordPolicyLevel.Basic)]
+    [InlineData(PasswordPolicyLevel.Standard)]
+    [InlineData(PasswordPolicyLevel.Strict)]
+    public void ValidIndividualCheckLevels_AreAccepted(
+        PasswordPolicyLevel level)
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    CommonPasswords = level,
+                    UserSimilarity = level
+                }
+            });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void ValidLengthBoundaryValues_AreAccepted()
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    MinLength = PasswordPolicyLimits.MinimumLength,
+                    MaxLength = PasswordPolicyLimits.AbsoluteMaxLength
+                }
+            });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void NonPositiveMaxLength_IsRejected()
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    MaxLength = 0
+                }
+            });
+
+        Assert.True(result.Failed);
+
+        Assert.Contains(
+            result.Failures,
+            x => x.Contains("positive"));
+    }
+
+    [Fact]
+    public void MultipleInvalidOptions_ReportAllRelevantFailures()
+    {
+        var result = _validator.Validate(
+            null,
+            new UAuthServerOptions
+            {
+                Password = new PasswordPolicyOptions
+                {
+                    Level = (PasswordPolicyLevel)999,
+                    CommonPasswords = (PasswordPolicyLevel)999,
+                    UserSimilarity = (PasswordPolicyLevel)999,
+                    History = new PasswordHistoryOptions
+                    {
+                        RememberLast = -1
+                    }
+                }
+            });
+
+        Assert.True(result.Failed);
+
+        Assert.Equal(4, result.Failures.Count());
+
+        Assert.Contains(result.Failures,
+            x => x.Contains("Level"));
+        Assert.Contains(result.Failures,
+            x => x.Contains("CommonPasswords"));
+        Assert.Contains(result.Failures,
+            x => x.Contains("UserSimilarity"));
+        Assert.Contains(result.Failures,
+            x => x.Contains("history count"));
+    }
 }
