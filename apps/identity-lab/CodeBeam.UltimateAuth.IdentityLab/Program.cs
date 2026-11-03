@@ -118,7 +118,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     // IP adresi veya ağı burada tanımlanacak.
 });
 
-builder.Services.AddDataProtection().SetApplicationName("UltimateAuth.IdentityLab").PersistKeysToFileSystem(new DirectoryInfo("/app/keys"));
+if (builder.Environment.IsProduction())
+{
+    var keysPath = builder.Configuration["DataProtection:KeysPath"]
+        ?? throw new InvalidOperationException("DataProtection:KeysPath must be configured in production.");
+
+    builder.Services.AddDataProtection()
+        .SetApplicationName("UltimateAuth.IdentityLab")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 
 var app = builder.Build();
 
