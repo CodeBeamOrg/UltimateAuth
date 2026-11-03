@@ -16,6 +16,8 @@ using CodeBeam.UltimateAuth.IdentityLab.Seed;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -108,6 +110,16 @@ builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
 builder.Services.AddScoped<ISeedContributor, LabDemoRoleSeedContributor>();
 builder.Services.AddLogging();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Caddy'nin uygulamaya bağlandığı güvenilir proxy
+    // IP adresi veya ağı burada tanımlanacak.
+});
+
+builder.Services.AddDataProtection().SetApplicationName("UltimateAuth.IdentityLab").PersistKeysToFileSystem(new DirectoryInfo("/app/keys"));
+
 var app = builder.Build();
 
 activityEventBridge.Initialize(app.Services);
@@ -120,6 +132,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseUltimateAuthWithAspNetCore();
