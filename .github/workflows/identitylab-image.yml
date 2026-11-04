@@ -66,7 +66,7 @@ jobs:
     environment: identitylab
 
     steps:
-      - name: Deploy to production server
+      - name: Deploy Identity Lab
         uses: appleboy/ssh-action@v1.0.3
         env:
           IMAGE_TAG: ghcr.io/codebeamorg/ultimateauth-identitylab:${{ github.sha }}
@@ -77,63 +77,4 @@ jobs:
           envs: IMAGE_TAG
           command_timeout: 10m
           script: |
-            set -eu
-
-            cd /opt/identitylab
-
-            ENV_FILE=/opt/identitylab/.env.identitylab
-            COMPOSE_FILE=/opt/identitylab/docker-compose.yml
-
-            sudo -n test -f "$ENV_FILE"
-            sudo -n test -f "$COMPOSE_FILE"
-
-            # Preserve current deployment configuration.
-            sudo -n cp "$ENV_FILE" "$ENV_FILE.rollback"
-
-            rollback() {
-              echo "Deployment failed. Restoring previous image."
-              sudo -n cp "$ENV_FILE.rollback" "$ENV_FILE"
-              sudo -n docker compose \
-                --env-file "$ENV_FILE" \
-                -f "$COMPOSE_FILE" \
-                up -d --remove-orphans
-            }
-
-            trap rollback EXIT
-
-            # Update only the image reference.
-            sudo -n sed -i \
-              "s|^IDENTITYLAB_IMAGE=.*|IDENTITYLAB_IMAGE=$IMAGE_TAG|" \
-              "$ENV_FILE"
-
-            sudo -n docker compose \
-              --env-file "$ENV_FILE" \
-              -f "$COMPOSE_FILE" \
-              pull identitylab
-
-            sudo -n docker compose \
-              --env-file "$ENV_FILE" \
-              -f "$COMPOSE_FILE" \
-              up -d --remove-orphans
-
-            # Wait for the application to respond.
-            READY=0
-            for attempt in $(seq 1 30); do
-              if curl -fsSL --max-time 10 \
-                https://lab.ultimateauth.com/login \
-                -o /dev/null; then
-                READY=1
-                break
-              fi
-              sleep 5
-            done
-
-            if [ "$READY" -ne 1 ]; then
-              echo "Identity Lab readiness check failed."
-              exit 1
-            fi
-
-            trap - EXIT
-            sudo -n rm -f "$ENV_FILE.rollback"
-
-            echo "Identity Lab deployed: $IMAGE_TAG"
+            sudo -n /usr/local/sbin/deploy-identitylab "$IMAGE_TAG"
