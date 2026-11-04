@@ -149,10 +149,12 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         var basePath = _options.Endpoints.BasePath;
 
-        if (Uri.TryCreate(basePath, UriKind.Absolute, out var uri))
-            return uri.GetLeftPart(UriPartial.Authority);
+        if (!Uri.TryCreate(basePath, UriKind.Absolute, out var uri))
+            return null;
 
-        // Relative BasePath: JS automatically uses the current origin.
-        return null;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            return null;
+
+        return uri.GetLeftPart(UriPartial.Authority);
     }
 }
