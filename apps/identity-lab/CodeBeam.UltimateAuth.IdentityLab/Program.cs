@@ -142,6 +142,8 @@ if (builder.Environment.IsProduction())
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 activityEventBridge.Initialize(app.Services);
 
 // Configure the HTTP request pipeline.
@@ -152,7 +154,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseUltimateAuthWithAspNetCore();
