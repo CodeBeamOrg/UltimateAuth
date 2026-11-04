@@ -16,6 +16,8 @@ using CodeBeam.UltimateAuth.IdentityLab.Seed;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using MudExtensions.Services;
@@ -108,6 +110,36 @@ builder.Services.AddScoped<ISeedContributor, LabAdminSeedContributor>();
 builder.Services.AddScoped<ISeedContributor, LabDemoRoleSeedContributor>();
 builder.Services.AddLogging();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+
+    if (builder.Environment.IsProduction())
+    {
+        var trustedProxy = builder.Configuration["ReverseProxy:KnownProxy"]
+            ?? throw new InvalidOperationException("ReverseProxy:KnownProxy must be configured in production.");
+
+        if (!System.Net.IPAddress.TryParse(trustedProxy, out var proxyAddress))
+        {
+            throw new InvalidOperationException("ReverseProxy:KnownProxy must be a valid IP address.");
+        }
+
+        options.KnownProxies.Add(proxyAddress);
+    }
+});
+
+if (builder.Environment.IsProduction())
+{
+    var keysPath = builder.Configuration["DataProtection:KeysPath"]
+        ?? throw new InvalidOperationException("DataProtection:KeysPath must be configured in production.");
+
+    builder.Services.AddDataProtection()
+        .SetApplicationName("UltimateAuth.IdentityLab")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
+
 var app = builder.Build();
 
 activityEventBridge.Initialize(app.Services);
@@ -120,6 +152,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseUltimateAuthWithAspNetCore();
@@ -132,6 +165,12 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
+
+if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
+{
+    await LabDatabaseMigrator.MigrateAsync(app.Services);
+    return;
+}
 
 await app.SeedIdentityLabAsync();
 
