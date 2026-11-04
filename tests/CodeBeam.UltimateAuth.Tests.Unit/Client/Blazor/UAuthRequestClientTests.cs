@@ -24,14 +24,17 @@ public sealed class UAuthRequestClientTests : BunitContext
             .Returns(Task.CompletedTask);
     }
 
-    private UAuthRequestClient CreateSut(UAuthClientProfile profile = UAuthClientProfile.BlazorWasm)
+    private UAuthRequestClient CreateSut(UAuthClientProfile profile = UAuthClientProfile.BlazorWasm, string? basePath = null)
     {
-        var options = Options.Create(new UAuthClientOptions
+        var options = new UAuthClientOptions
         {
             ClientProfile = profile
-        });
+        };
 
-        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, options);
+        if (basePath is not null)
+            options.Endpoints.BasePath = basePath;
+
+        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options));
     }
 
     [Fact]
@@ -176,6 +179,36 @@ public sealed class UAuthRequestClientTests : BunitContext
         Assert.Equal("15", result.RetryAfter);
         var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
         Assert.Equal("logout", GetProperty<string>(invocation.Arguments.Single()!, "mode"));
+    }
+
+    [Theory]
+    [InlineData("/auth", null)]
+    [InlineData("auth", null)]
+    [InlineData("https://example.com/auth", "https://example.com")]
+    [InlineData("http://localhost:5000/auth", "http://localhost:5000")]
+    public async Task SendFormAsync_ResolvesTrustedOriginCorrectly(string basePath, string? expectedOrigin)
+    {
+        // Arrange
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(CreateTransportResult(200));
+
+        var sut = CreateSut(basePath: basePath);
+
+        // Act
+        await sut.SendFormAsync("/auth/validate");
+
+        // Assert
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        var options = invocation.Arguments.Single()!;
+
+        GetProperty<string>(options, "url")
+            .Should().Be("/auth/validate");
+
+        GetProperty<string?>(options, "trustedOrigin")
+            .Should().Be(expectedOrigin);
     }
 
     private sealed class TestTryResult
