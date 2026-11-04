@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "samples/**"
       - ".docker/Dockerfile.identitylab"
+      - ".docker/docker-compose.identitylab.yml"
       - ".github/workflows/identitylab-image.yml"
 
   push:
@@ -17,6 +18,7 @@ on:
       - "src/**"
       - "samples/**"
       - ".docker/Dockerfile.identitylab"
+      - ".docker/docker-compose.identitylab.yml"
       - ".github/workflows/identitylab-image.yml"
 
   workflow_dispatch:
@@ -66,6 +68,19 @@ jobs:
     environment: identitylab
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload Identity Lab Compose
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".docker/docker-compose.identitylab.yml"
+          target: "/home/deploy/.identitylab-deploy/${{ github.sha }}"
+          strip_components: 1
+
       - name: Deploy Identity Lab
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -77,4 +92,10 @@ jobs:
           envs: IMAGE_TAG
           command_timeout: 10m
           script: |
-            sudo -n /usr/local/sbin/deploy-identitylab "$IMAGE_TAG"
+            SHA="${IMAGE_TAG##*:}"
+            COMPOSE_SOURCE="/home/deploy/.identitylab-deploy/$SHA/docker-compose.identitylab.yml"
+
+            sudo -n /usr/local/sbin/deploy-identitylab \
+              "$IMAGE_TAG" "$COMPOSE_SOURCE"
+
+            rm -rf -- "/home/deploy/.identitylab-deploy/$SHA"
