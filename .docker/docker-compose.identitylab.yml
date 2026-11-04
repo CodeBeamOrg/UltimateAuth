@@ -18,7 +18,7 @@ services:
       DataProtection__KeysPath: /app/keys
 
     volumes:
-      - /opt/identitylab/keys:/app/keys
+      - /opt/identitylab/keys:/app/keys:Z
 
     networks:
       - edge
@@ -26,6 +26,12 @@ services:
 
     security_opt:
       - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   edge:
