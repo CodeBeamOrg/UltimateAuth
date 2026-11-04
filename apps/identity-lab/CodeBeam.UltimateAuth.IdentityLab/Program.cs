@@ -112,10 +112,22 @@ builder.Services.AddLogging();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
 
-    // Caddy'nin uygulamaya bağlandığı güvenilir proxy
-    // IP adresi veya ağı burada tanımlanacak.
+    if (builder.Environment.IsProduction())
+    {
+        var trustedProxy = builder.Configuration["ReverseProxy:KnownProxy"]
+            ?? throw new InvalidOperationException("ReverseProxy:KnownProxy must be configured in production.");
+
+        if (!System.Net.IPAddress.TryParse(trustedProxy, out var proxyAddress))
+        {
+            throw new InvalidOperationException("ReverseProxy:KnownProxy must be a valid IP address.");
+        }
+
+        options.KnownProxies.Add(proxyAddress);
+    }
 });
 
 if (builder.Environment.IsProduction())
@@ -153,6 +165,12 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddUltimateAuthRoutes(UAuthAssemblies.BlazorClient());
+
+if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
+{
+    await LabDatabaseMigrator.MigrateAsync(app.Services);
+    return;
+}
 
 await app.SeedIdentityLabAsync();
 

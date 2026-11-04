@@ -8,6 +8,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: "8080"
 
+      ReverseProxy__KnownProxy: ${CADDY_PROXY_IP:?Caddy proxy IP is required}
       ConnectionStrings__IdentityLab: ${IDENTITYLAB_CONNECTION_STRING:?Connection string is required}
 
       LabAdmin__Username: ${LAB_ADMIN_USERNAME:?Admin username is required}
