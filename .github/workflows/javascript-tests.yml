@@ -2,25 +2,39 @@ name: JavaScript Client Tests
 
 on:
   pull_request:
-    paths:
-      - 'src/client/CodeBeam.UltimateAuth.Client.Blazor/TScripts/**'
-      - 'tests/CodeBeam.UltimateAuth.Tests.Unit/javascript/**'
-      - '.github/workflows/javascript-tests.yml'
-
   push:
     branches:
       - dev
       - master
-    paths:
-      - 'src/client/CodeBeam.UltimateAuth.Client.Blazor/TScripts/**'
-      - 'tests/CodeBeam.UltimateAuth.Tests.Unit/javascript/**'
-      - '.github/workflows/javascript-tests.yml'
-      
-  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
+  detect-changes:
+    name: Detect JavaScript Changes
+    runs-on: ubuntu-latest
+    outputs:
+      javascript: ${{ steps.filter.outputs.javascript }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            javascript:
+              - 'src/client/CodeBeam.UltimateAuth.Client.Blazor/TScripts/**'
+              - 'tests/CodeBeam.UltimateAuth.Tests.Unit/javascript/**'
+              - '.github/workflows/javascript-tests.yml'
+
   javascript-tests:
     name: Node.js Client Tests
+    needs: detect-changes
+    if: needs.detect-changes.outputs.javascript == 'true'
     runs-on: ubuntu-latest
 
     steps:
