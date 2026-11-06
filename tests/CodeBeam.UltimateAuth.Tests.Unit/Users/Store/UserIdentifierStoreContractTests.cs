@@ -55,9 +55,9 @@ public abstract class UserIdentifierStoreContractTests
             TenantA,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
-        var persisted = await store.GetByIdAsync(identifier.Id);
+        var persisted = await store.GetByIdAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Id.Should().Be(identifier.Id);
@@ -77,7 +77,7 @@ public abstract class UserIdentifierStoreContractTests
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(TenantA);
 
-        var result = await store.GetByIdAsync(Guid.NewGuid());
+        var result = await store.GetByIdAsync(Guid.NewGuid(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -90,11 +90,11 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             UserIdentifierType.Email,
-            "USER@EXAMPLE.COM");
+            "USER@EXAMPLE.COM", ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(identifier.Id);
@@ -108,17 +108,17 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             identifier.Id,
             expectedVersion: 0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             identifier.Type,
-            identifier.NormalizedValue);
+            identifier.NormalizedValue, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -151,17 +151,17 @@ public abstract class UserIdentifierStoreContractTests
             value: "b@example.com",
             normalizedValue: "B@EXAMPLE.COM");
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
-        await store.AddAsync(otherUser);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(otherUser, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             second.Id,
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetByUserAsync(userA);
+        var result = await store.GetByUserAsync(userA, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().Id.Should().Be(first.Id);
@@ -179,7 +179,7 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var changedAt = Now.AddMinutes(10);
 
@@ -190,9 +190,9 @@ public abstract class UserIdentifierStoreContractTests
 
         await store.SaveAsync(
             identifier,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
-        var persisted = await store.GetByIdAsync(identifier.Id);
+        var persisted = await store.GetByIdAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Value.Should().Be("changed@example.com");
@@ -223,10 +223,10 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         identifier.MarkVerified(Now.AddMinutes(1));
-        await store.SaveAsync(identifier, 0);
+        await store.SaveAsync(identifier, 0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.SaveAsync(
             identifier,
@@ -262,11 +262,11 @@ public abstract class UserIdentifierStoreContractTests
             normalizedValue: "SECOND@EXAMPLE.COM",
             isPrimary: true);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
-        var persistedFirst = await store.GetByIdAsync(first.Id);
-        var persistedSecond = await store.GetByIdAsync(second.Id);
+        var persistedFirst = await store.GetByIdAsync(first.Id, ct: TestContext.Current.CancellationToken);
+        var persistedSecond = await store.GetByIdAsync(second.Id, ct: TestContext.Current.CancellationToken);
 
         persistedFirst!.IsPrimary.Should().BeFalse();
         persistedSecond!.IsPrimary.Should().BeTrue();
@@ -296,13 +296,13 @@ public abstract class UserIdentifierStoreContractTests
             "ALICE",
             isPrimary: true);
 
-        await store.AddAsync(email);
-        await store.AddAsync(username);
+        await store.AddAsync(email, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(username, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetByIdAsync(email.Id))!
+        (await store.GetByIdAsync(email.Id, ct: TestContext.Current.CancellationToken))!
             .IsPrimary.Should().BeTrue();
 
-        (await store.GetByIdAsync(username.Id))!
+        (await store.GetByIdAsync(username.Id, ct: TestContext.Current.CancellationToken))!
             .IsPrimary.Should().BeTrue();
     }
 
@@ -327,17 +327,17 @@ public abstract class UserIdentifierStoreContractTests
             value: "second@example.com",
             normalizedValue: "SECOND@EXAMPLE.COM");
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         second.SetPrimary(Now.AddMinutes(1));
 
-        await store.SaveAsync(second, 0);
+        await store.SaveAsync(second, 0, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetByIdAsync(first.Id))!
+        (await store.GetByIdAsync(first.Id, ct: TestContext.Current.CancellationToken))!
             .IsPrimary.Should().BeFalse();
 
-        (await store.GetByIdAsync(second.Id))!
+        (await store.GetByIdAsync(second.Id, ct: TestContext.Current.CancellationToken))!
             .IsPrimary.Should().BeTrue();
     }
 
@@ -355,7 +355,7 @@ public abstract class UserIdentifierStoreContractTests
             TenantA,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var deletedAt = Now.AddHours(1);
 
@@ -363,9 +363,9 @@ public abstract class UserIdentifierStoreContractTests
             identifier.Id,
             0,
             DeleteMode.Soft,
-            deletedAt);
+            deletedAt, ct: TestContext.Current.CancellationToken);
 
-        var persisted = await store.GetByIdAsync(identifier.Id);
+        var persisted = await store.GetByIdAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsDeleted.Should().BeTrue();
@@ -382,15 +382,15 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             identifier.Id,
             0,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetByIdAsync(identifier.Id))
+        (await store.GetByIdAsync(identifier.Id, ct: TestContext.Current.CancellationToken))
             .Should().BeNull();
     }
 
@@ -402,10 +402,10 @@ public abstract class UserIdentifierStoreContractTests
 
         var identifier = CreateIdentifier(TenantA);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         identifier.MarkVerified(Now.AddMinutes(1));
-        await store.SaveAsync(identifier, 0);
+        await store.SaveAsync(identifier, 0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.DeleteAsync(
             identifier.Id,
@@ -444,7 +444,7 @@ public abstract class UserIdentifierStoreContractTests
         var storeB = db.CreateStore(TenantB);
 
         var identifier = CreateIdentifier(TenantB);
-        await storeB.AddAsync(identifier);
+        await storeB.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var act = () => storeA.SaveAsync(
             identifier,
@@ -463,9 +463,9 @@ public abstract class UserIdentifierStoreContractTests
         var storeB = db.CreateStore(TenantB);
 
         var identifier = CreateIdentifier(TenantB);
-        await storeB.AddAsync(identifier);
+        await storeB.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
-        var result = await storeA.GetByIdAsync(identifier.Id);
+        var result = await storeA.GetByIdAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -535,13 +535,13 @@ public abstract class UserIdentifierStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var identifier = CreateIdentifier(TenantA);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
     new IdentifierExistenceQuery(
         identifier.Type,
         identifier.NormalizedValue,
-        IdentifierExistenceScope.TenantAny));
+        IdentifierExistenceScope.TenantAny), ct: TestContext.Current.CancellationToken);
 
         result.Exists.Should().BeTrue();
         result.OwnerUserKey.Should().Be(identifier.UserKey);
@@ -555,14 +555,14 @@ public abstract class UserIdentifierStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var identifier = CreateIdentifier(TenantA);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
     new IdentifierExistenceQuery(
         identifier.Type,
         identifier.NormalizedValue,
         IdentifierExistenceScope.WithinUser,
-        UserKey: UserKey.New()));
+        UserKey: UserKey.New()), ct: TestContext.Current.CancellationToken);
 
         result.Exists.Should().BeFalse();
     }
@@ -577,13 +577,13 @@ public abstract class UserIdentifierStoreContractTests
             TenantA,
             isPrimary: false);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
     new IdentifierExistenceQuery(
         identifier.Type,
         identifier.NormalizedValue,
-        IdentifierExistenceScope.TenantPrimaryOnly));
+        IdentifierExistenceScope.TenantPrimaryOnly), ct: TestContext.Current.CancellationToken);
 
         result.Exists.Should().BeFalse();
     }
@@ -595,14 +595,14 @@ public abstract class UserIdentifierStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var identifier = CreateIdentifier(TenantA);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
         new IdentifierExistenceQuery(
             identifier.Type,
             identifier.NormalizedValue,
             IdentifierExistenceScope.TenantAny,
-            ExcludeIdentifierId: identifier.Id));
+            ExcludeIdentifierId: identifier.Id), ct: TestContext.Current.CancellationToken);
 
         result.Exists.Should().BeFalse();
     }
@@ -623,26 +623,26 @@ public abstract class UserIdentifierStoreContractTests
             normalizedValue: normalizedValue,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             identifier.Id,
             expectedVersion: 0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         // A deleted identifier still reserves its normalized value.
         var exists = await store.ExistsAsync(
             new IdentifierExistenceQuery(
                 type,
                 normalizedValue,
-                IdentifierExistenceScope.TenantAny));
+                IdentifierExistenceScope.TenantAny), ct: TestContext.Current.CancellationToken);
 
         exists.Exists.Should().BeTrue();
         exists.OwnerIdentifierId.Should().Be(identifier.Id);
 
         // Ordinary lookup must not resolve deleted identifiers.
-        var lookup = await store.GetAsync(type, normalizedValue);
+        var lookup = await store.GetAsync(type, normalizedValue, ct: TestContext.Current.CancellationToken);
         lookup.Should().BeNull();
 
         // Excluding the matching identifier must still work.
@@ -651,7 +651,7 @@ public abstract class UserIdentifierStoreContractTests
                 type,
                 normalizedValue,
                 IdentifierExistenceScope.TenantAny,
-                ExcludeIdentifierId: identifier.Id));
+                ExcludeIdentifierId: identifier.Id), ct: TestContext.Current.CancellationToken);
 
         excluded.Exists.Should().BeFalse();
     }
@@ -681,12 +681,12 @@ public abstract class UserIdentifierStoreContractTests
             value: "c@example.com",
             normalizedValue: "C@EXAMPLE.COM");
 
-        await store.AddAsync(a);
-        await store.AddAsync(b);
-        await store.AddAsync(c);
+        await store.AddAsync(a, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(b, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(c, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByUsersAsync(
-            [userA, userB]);
+            [userA, userB], ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
         result.Select(x => x.UserKey)
@@ -721,23 +721,23 @@ public abstract class UserIdentifierStoreContractTests
             value: "b@example.com",
             normalizedValue: "B@EXAMPLE.COM");
 
-        await store.AddAsync(a1);
-        await store.AddAsync(a2);
-        await store.AddAsync(b);
+        await store.AddAsync(a1, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(a2, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(b, ct: TestContext.Current.CancellationToken);
 
         var deletedAt = Now.AddHours(1);
 
         await store.DeleteByUserAsync(
             userA,
             DeleteMode.Soft,
-            deletedAt);
+            deletedAt, ct: TestContext.Current.CancellationToken);
 
         var query = await store.QueryAsync(
             new UserIdentifierQuery
             {
                 UserKey = userA,
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         query.Items.Should().HaveCount(2);
         query.Items.Should().OnlyContain(x =>
@@ -745,7 +745,7 @@ public abstract class UserIdentifierStoreContractTests
             x.DeletedAt == deletedAt &&
             !x.IsPrimary);
 
-        (await store.GetByUserAsync(userB))
+        (await store.GetByUserAsync(userB, ct: TestContext.Current.CancellationToken))
             .Should()
             .ContainSingle();
     }
@@ -769,16 +769,16 @@ public abstract class UserIdentifierStoreContractTests
             value: "b@example.com",
             normalizedValue: "B@EXAMPLE.COM");
 
-        await store.AddAsync(a);
-        await store.AddAsync(b);
+        await store.AddAsync(a, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(b, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteByUserAsync(
             userA,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetByIdAsync(a.Id)).Should().BeNull();
-        (await store.GetByIdAsync(b.Id)).Should().NotBeNull();
+        (await store.GetByIdAsync(a.Id, ct: TestContext.Current.CancellationToken)).Should().BeNull();
+        (await store.GetByIdAsync(b.Id, ct: TestContext.Current.CancellationToken)).Should().NotBeNull();
     }
 
     [Fact]
@@ -812,20 +812,20 @@ public abstract class UserIdentifierStoreContractTests
             value: "deleted@example.com",
             normalizedValue: "DELETED@EXAMPLE.COM");
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             deleted.Id,
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserIdentifierQuery
             {
                 UserKey = user
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().Id.Should().Be(active.Id);
@@ -850,21 +850,21 @@ public abstract class UserIdentifierStoreContractTests
             value: "deleted@example.com",
             normalizedValue: "DELETED@EXAMPLE.COM");
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             deleted.Id,
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserIdentifierQuery
             {
                 UserKey = user,
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(2);
@@ -886,7 +886,7 @@ public abstract class UserIdentifierStoreContractTests
                     user,
                     value: $"user{i}@example.com",
                     normalizedValue: $"USER{i}@EXAMPLE.COM",
-                    createdAt: Now.AddMinutes(i)));
+                    createdAt: Now.AddMinutes(i)), ct: TestContext.Current.CancellationToken);
         }
 
         var result = await store.QueryAsync(
@@ -896,7 +896,7 @@ public abstract class UserIdentifierStoreContractTests
                 PageNumber = 2,
                 PageSize = 2,
                 SortBy = nameof(UserIdentifier.CreatedAt)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(5);
         result.Items.Should().HaveCount(2);
@@ -918,24 +918,24 @@ public abstract class UserIdentifierStoreContractTests
         await store.AddAsync(CreateIdentifier(
             TenantA, user,
             value: "c@example.com",
-            normalizedValue: "C@EXAMPLE.COM"));
+            normalizedValue: "C@EXAMPLE.COM"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(CreateIdentifier(
             TenantA, user,
             value: "a@example.com",
-            normalizedValue: "A@EXAMPLE.COM"));
+            normalizedValue: "A@EXAMPLE.COM"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(CreateIdentifier(
             TenantA, user,
             value: "b@example.com",
-            normalizedValue: "B@EXAMPLE.COM"));
+            normalizedValue: "B@EXAMPLE.COM"), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserIdentifierQuery
             {
                 UserKey = user,
                 SortBy = nameof(UserIdentifier.NormalizedValue)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.NormalizedValue)
             .Should()

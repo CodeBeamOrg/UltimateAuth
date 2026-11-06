@@ -47,9 +47,9 @@ public abstract class PasswordHistoryStoreContractTests
         var key = Key(TenantA);
         var entry = Entry(key, UserKey.New());
 
-        await store.AddAsync(entry);
+        await store.AddAsync(entry, ct: TestContext.Current.CancellationToken);
 
-        var stored = (await store.GetRecentAsync(key, 10))
+        var stored = (await store.GetRecentAsync(key, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle().Subject;
 
         stored.Id.Should().Be(entry.Id);
@@ -72,11 +72,11 @@ public abstract class PasswordHistoryStoreContractTests
         var newest = Entry(key, user, 3);
         var middle = Entry(key, user, 2);
 
-        await store.AddAsync(newest);
-        await store.AddAsync(oldest);
-        await store.AddAsync(middle);
+        await store.AddAsync(newest, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(oldest, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(middle, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetRecentAsync(key, 2);
+        var result = await store.GetRecentAsync(key, 2, ct: TestContext.Current.CancellationToken);
 
         result.Select(x => x.Id)
             .Should().Equal(newest.Id, middle.Id);
@@ -95,10 +95,10 @@ public abstract class PasswordHistoryStoreContractTests
         var high = Entry(key, user, id: Guid.Parse(
             "00000000-0000-0000-0000-000000000002"));
 
-        await store.AddAsync(low);
-        await store.AddAsync(high);
+        await store.AddAsync(low, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(high, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetRecentAsync(key, 2);
+        var result = await store.GetRecentAsync(key, 2, ct: TestContext.Current.CancellationToken);
 
         result.Select(x => x.Id)
             .Should().Equal(high.Id, low.Id);
@@ -111,9 +111,9 @@ public abstract class PasswordHistoryStoreContractTests
         var store = db.CreateStore(TenantA);
         var key = Key(TenantA);
 
-        await store.AddAsync(Entry(key, UserKey.New()));
+        await store.AddAsync(Entry(key, UserKey.New()), ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(key, 0))
+        (await store.GetRecentAsync(key, 0, ct: TestContext.Current.CancellationToken))
             .Should().BeEmpty();
     }
 
@@ -124,9 +124,9 @@ public abstract class PasswordHistoryStoreContractTests
         var store = db.CreateStore(TenantA);
         var key = Key(TenantA);
 
-        await store.AddAsync(Entry(key, UserKey.New()));
+        await store.AddAsync(Entry(key, UserKey.New()), ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(key, 100))
+        (await store.GetRecentAsync(key, 100, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle();
     }
 
@@ -148,7 +148,7 @@ public abstract class PasswordHistoryStoreContractTests
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(TenantA);
 
-        (await store.GetRecentAsync(Key(TenantA), 5))
+        (await store.GetRecentAsync(Key(TenantA), 5, ct: TestContext.Current.CancellationToken))
             .Should().BeEmpty();
     }
 
@@ -162,10 +162,10 @@ public abstract class PasswordHistoryStoreContractTests
         var user = UserKey.New();
 
         var a = Entry(keyA, user);
-        await store.AddAsync(a);
-        await store.AddAsync(Entry(keyB, user));
+        await store.AddAsync(a, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Entry(keyB, user), ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetRecentAsync(keyA, 10);
+        var result = await store.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().Id.Should().Be(a.Id);
@@ -189,11 +189,11 @@ public abstract class PasswordHistoryStoreContractTests
             .ToArray();
 
         foreach (var entry in entries.Reverse())
-            await store.AddAsync(entry);
+            await store.AddAsync(entry, ct: TestContext.Current.CancellationToken);
 
-        await store.PruneAsync(key, keepLast);
+        await store.PruneAsync(key, keepLast, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetRecentAsync(key, 20);
+        var result = await store.GetRecentAsync(key, 20, ct: TestContext.Current.CancellationToken);
         var expected = entries
             .OrderByDescending(x => x.ReplacedAt)
             .Take(keepLast)
@@ -211,14 +211,14 @@ public abstract class PasswordHistoryStoreContractTests
         var keyB = Key(TenantA);
         var user = UserKey.New();
 
-        await store.AddAsync(Entry(keyA, user));
+        await store.AddAsync(Entry(keyA, user), ct: TestContext.Current.CancellationToken);
         var other = Entry(keyB, user);
-        await store.AddAsync(other);
+        await store.AddAsync(other, ct: TestContext.Current.CancellationToken);
 
-        await store.PruneAsync(keyA, 0);
+        await store.PruneAsync(keyA, 0, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(keyA, 10)).Should().BeEmpty();
-        (await store.GetRecentAsync(keyB, 10))
+        (await store.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await store.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle(x => x.Id == other.Id);
     }
 
@@ -242,14 +242,14 @@ public abstract class PasswordHistoryStoreContractTests
         var key = Key(TenantA);
         var user = UserKey.New();
 
-        await store.AddAsync(Entry(key, user, 1));
-        await store.AddAsync(Entry(key, user, 2));
+        await store.AddAsync(Entry(key, user, 1), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Entry(key, user, 2), ct: TestContext.Current.CancellationToken);
 
-        await store.PruneAsync(key, 1);
-        var first = await store.GetRecentAsync(key, 10);
+        await store.PruneAsync(key, 1, ct: TestContext.Current.CancellationToken);
+        var first = await store.GetRecentAsync(key, 10, ct: TestContext.Current.CancellationToken);
 
-        await store.PruneAsync(key, 1);
-        var second = await store.GetRecentAsync(key, 10);
+        await store.PruneAsync(key, 1, ct: TestContext.Current.CancellationToken);
+        var second = await store.GetRecentAsync(key, 10, ct: TestContext.Current.CancellationToken);
 
         second.Should().BeEquivalentTo(first);
     }
@@ -263,15 +263,15 @@ public abstract class PasswordHistoryStoreContractTests
         var keyB = Key(TenantA);
         var user = UserKey.New();
 
-        await store.AddAsync(Entry(keyA, user));
-        await store.AddAsync(Entry(keyA, user));
+        await store.AddAsync(Entry(keyA, user), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Entry(keyA, user), ct: TestContext.Current.CancellationToken);
         var other = Entry(keyB, user);
-        await store.AddAsync(other);
+        await store.AddAsync(other, ct: TestContext.Current.CancellationToken);
 
-        await store.DeleteByCredentialAsync(keyA);
+        await store.DeleteByCredentialAsync(keyA, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(keyA, 10)).Should().BeEmpty();
-        (await store.GetRecentAsync(keyB, 10))
+        (await store.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await store.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle(x => x.Id == other.Id);
     }
 
@@ -283,10 +283,10 @@ public abstract class PasswordHistoryStoreContractTests
 
         var key = Key(TenantA);
 
-        await store.DeleteByCredentialAsync(key);
-        await store.DeleteByCredentialAsync(key);
+        await store.DeleteByCredentialAsync(key, ct: TestContext.Current.CancellationToken);
+        await store.DeleteByCredentialAsync(key, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(key, 10)).Should().BeEmpty();
+        (await store.GetRecentAsync(key, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
     }
 
     [Fact]
@@ -300,16 +300,16 @@ public abstract class PasswordHistoryStoreContractTests
         var keyA2 = Key(TenantA);
         var keyB = Key(TenantA);
 
-        await store.AddAsync(Entry(keyA1, userA));
-        await store.AddAsync(Entry(keyA2, userA));
+        await store.AddAsync(Entry(keyA1, userA), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Entry(keyA2, userA), ct: TestContext.Current.CancellationToken);
         var other = Entry(keyB, userB);
-        await store.AddAsync(other);
+        await store.AddAsync(other, ct: TestContext.Current.CancellationToken);
 
-        await store.DeleteByUserAsync(userA);
+        await store.DeleteByUserAsync(userA, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetRecentAsync(keyA1, 10)).Should().BeEmpty();
-        (await store.GetRecentAsync(keyA2, 10)).Should().BeEmpty();
-        (await store.GetRecentAsync(keyB, 10))
+        (await store.GetRecentAsync(keyA1, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await store.GetRecentAsync(keyA2, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await store.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle(x => x.Id == other.Id);
     }
 
@@ -321,8 +321,8 @@ public abstract class PasswordHistoryStoreContractTests
 
         var user = UserKey.New();
 
-        await store.DeleteByUserAsync(user);
-        await store.DeleteByUserAsync(user);
+        await store.DeleteByUserAsync(user, ct: TestContext.Current.CancellationToken);
+        await store.DeleteByUserAsync(user, ct: TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -337,18 +337,18 @@ public abstract class PasswordHistoryStoreContractTests
         var keyA = new CredentialKey(TenantA, credentialId);
         var keyB = new CredentialKey(TenantB, credentialId);
 
-        await storeA.AddAsync(Entry(keyA, user));
-        await storeB.AddAsync(Entry(keyB, user));
+        await storeA.AddAsync(Entry(keyA, user), ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(Entry(keyB, user), ct: TestContext.Current.CancellationToken);
 
-        (await storeA.GetRecentAsync(keyA, 10))
+        (await storeA.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle();
-        (await storeB.GetRecentAsync(keyB, 10))
+        (await storeB.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle();
 
-        await storeA.PruneAsync(keyA, 0);
+        await storeA.PruneAsync(keyA, 0, ct: TestContext.Current.CancellationToken);
 
-        (await storeA.GetRecentAsync(keyA, 10)).Should().BeEmpty();
-        (await storeB.GetRecentAsync(keyB, 10))
+        (await storeA.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await storeB.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle();
     }
 
@@ -364,13 +364,13 @@ public abstract class PasswordHistoryStoreContractTests
         var keyA = new CredentialKey(TenantA, credentialId);
         var keyB = new CredentialKey(TenantB, credentialId);
 
-        await storeA.AddAsync(Entry(keyA, user));
-        await storeB.AddAsync(Entry(keyB, user));
+        await storeA.AddAsync(Entry(keyA, user), ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(Entry(keyB, user), ct: TestContext.Current.CancellationToken);
 
-        await storeA.DeleteByUserAsync(user);
+        await storeA.DeleteByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
-        (await storeA.GetRecentAsync(keyA, 10)).Should().BeEmpty();
-        (await storeB.GetRecentAsync(keyB, 10))
+        (await storeA.GetRecentAsync(keyA, 10, ct: TestContext.Current.CancellationToken)).Should().BeEmpty();
+        (await storeB.GetRecentAsync(keyB, 10, ct: TestContext.Current.CancellationToken))
             .Should().ContainSingle();
     }
 
@@ -456,7 +456,7 @@ public abstract class PasswordHistoryStoreContractTests
         var key = Key(TenantA);
         var entry = Entry(key, UserKey.New());
 
-        await store.AddAsync(entry);
+        await store.AddAsync(entry, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AddAsync(entry);
 

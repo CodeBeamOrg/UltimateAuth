@@ -102,7 +102,7 @@ public sealed class PasswordCredentialWriterTests
 
         var result = await f.Writer.CreateAsync(
             Tenant, user, "new-password",
-            Context(), Options(3), Now, default);
+            Context(), Options(3), Now, TestContext.Current.CancellationToken);
 
         Assert.Same(result, saved);
         Assert.Equal(user, result.UserKey);
@@ -157,7 +157,7 @@ public sealed class PasswordCredentialWriterTests
         var updated = await f.Writer.ChangeAsync(
             credential, "new-password",
             Context(), Options(3),
-            Now.AddMinutes(1), default);
+            Now.AddMinutes(1), TestContext.Current.CancellationToken);
 
         Assert.Equal(Hash("new-password"), updated.SecretHash);
         Assert.NotNull(added);
@@ -193,7 +193,7 @@ public sealed class PasswordCredentialWriterTests
         await f.Writer.ChangeAsync(
             credential, "new-password",
             Context(), Options(0),
-            Now.AddMinutes(1), default);
+            Now.AddMinutes(1), TestContext.Current.CancellationToken);
 
         f.History.Verify(x => x.AddAsync(
             It.IsAny<PasswordHistoryEntry>(),
@@ -227,13 +227,13 @@ public sealed class PasswordCredentialWriterTests
                 {
                     await f.Writer.ChangeAsync(
                         Credential(), "reused",
-                        Context(), Options(3), Now, default);
+                        Context(), Options(3), Now, TestContext.Current.CancellationToken);
                 }
                 else
                 {
                     await f.Writer.CreateAsync(
                         Tenant, UserKey.New(), "reused",
-                        Context(), Options(3), Now, default);
+                        Context(), Options(3), Now, TestContext.Current.CancellationToken);
                 }
             });
 
@@ -266,7 +266,7 @@ public sealed class PasswordCredentialWriterTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             f.Writer.ChangeAsync(
                 Credential(), "new-password",
-                Context(), Options(3), Now, default));
+                Context(), Options(3), Now, TestContext.Current.CancellationToken));
 
         f.HistoryFactory.Verify(
             x => x.Create(It.IsAny<TenantKey>()),
@@ -286,7 +286,7 @@ public sealed class PasswordCredentialWriterTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             f.Writer.ChangeAsync(
                 Credential(), "new-password",
-                Context(), Options(3), Now, default));
+                Context(), Options(3), Now, TestContext.Current.CancellationToken));
 
         f.History.Verify(x => x.PruneAsync(
             It.IsAny<CredentialKey>(),
@@ -308,7 +308,7 @@ public sealed class PasswordCredentialWriterTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             f.Writer.ChangeAsync(
                 Credential(), "new-password",
-                Context(), Options(3), Now, default));
+                Context(), Options(3), Now, TestContext.Current.CancellationToken));
 
         f.History.Verify(x => x.AddAsync(
             It.IsAny<PasswordHistoryEntry>(),

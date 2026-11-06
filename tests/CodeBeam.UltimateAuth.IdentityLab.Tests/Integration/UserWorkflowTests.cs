@@ -53,15 +53,15 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var sp = scope.ServiceProvider;
         var owner = await RegisterAsync(sp, db, "owner");
         var foreignOwner = await RegisterAsync(sp, db, "foreign");
-        var foreign = await Provisioning(sp, db, foreignOwner).CreateMemberAsync(foreignOwner, Request("foreign-member"));
+        var foreign = await Provisioning(sp, db, foreignOwner).CreateMemberAsync(foreignOwner, Request("foreign-member"), TestContext.Current.CancellationToken);
         Assert.True(foreign.IsSuccess, foreign.FailureReason);
         var foreignKey = UserKey.FromString(foreign.UserKey!);
 
         await using (var setup = db.CreateDbContext())
         {
-            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == owner);
+            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == owner, cancellationToken: TestContext.Current.CancellationToken);
             settings.MaxUsers = 2;
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var client = new Mock<IUAuthClient>(MockBehavior.Strict);
@@ -69,23 +69,23 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         client.SetupGet(x => x.Users).Returns(userClient.Object);
         var service = UserService(sp, db, owner, client.Object);
 
-        await service.CreateAsync(owner, Request("member"));
-        var visible = await service.GetUsersAsync(owner);
+        await service.CreateAsync(owner, Request("member"), TestContext.Current.CancellationToken);
+        var visible = await service.GetUsersAsync(owner, TestContext.Current.CancellationToken);
         Assert.NotNull(visible);
         var member = Assert.Single(visible.Users, x => !x.IsOwner).UserKey;
         Assert.Equal(2, visible.Users.Count);
         Assert.DoesNotContain(visible.Users, x => x.UserKey == foreignKey);
         var beforeRejected = await db.SnapshotAsync();
         // The facade reports failures; assert persistence rather than dialog wording.
-        await service.CreateAsync(owner, Request("rejected-member"));
+        await service.CreateAsync(owner, Request("rejected-member"), TestContext.Current.CancellationToken);
         Assert.Equal(beforeRejected, await db.SnapshotAsync());
         await using (var fresh = runtime.Services.CreateAsyncScope())
         {
             var summaries = fresh.ServiceProvider.GetRequiredService<IUserSummaryQueryStoreFactory>().Create(TenantKeys.Single);
-            var all = await summaries.QueryAsync(new UserQuery { PageSize = 100, IncludeDeleted = true });
+            var all = await summaries.QueryAsync(new UserQuery { PageSize = 100, IncludeDeleted = true }, TestContext.Current.CancellationToken);
             Assert.DoesNotContain(all.Items, x => x.UserName == "rejected-member");
         }
-        Assert.False((await service.DeleteAsync(owner, foreignKey)).Success);
+        Assert.False((await service.DeleteAsync(owner, foreignKey, TestContext.Current.CancellationToken)).Success);
         Assert.Equal(beforeRejected, await db.SnapshotAsync());
         userClient.VerifyNoOtherCalls();
         var application = sp.GetRequiredService<IUserApplicationService>();
@@ -98,7 +98,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
                 return new UAuthResult { IsSuccess = true };
             });
 
-            Assert.True(await new SandboxAccountDeletionService(db, client.Object, NullLogger<SandboxAccountDeletionService>.Instance).DeleteMemberAsync(member));
+            Assert.True(await new SandboxAccountDeletionService(db, client.Object, NullLogger<SandboxAccountDeletionService>.Instance).DeleteMemberAsync(member, TestContext.Current.CancellationToken));
             userClient.Verify(x => x.DeleteMeAsync(), Times.Once);
         }
         else
@@ -109,29 +109,29 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
                 var result = await application.DeleteUserAsync(Contexts.Create("users.delete.admin", owner, target), request);
                 return new UAuthResult<UserDeleteResult> { IsSuccess = result.IsSuccess, Value = result };
             });
-            Assert.True((await service.DeleteAsync(owner, member)).Success);
+            Assert.True((await service.DeleteAsync(owner, member, TestContext.Current.CancellationToken)).Success);
             userClient.Verify(x => x.DeleteUserAsync(member, It.IsAny<DeleteUserRequest>()), Times.Once);
         }
 
         await using var verification = runtime.Services.CreateAsyncScope();
         var lifecycleStore = verification.ServiceProvider.GetRequiredService<IUserLifecycleStoreFactory>().Create(TenantKeys.Single);
-        var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(TenantKeys.Single, member));
+        var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(TenantKeys.Single, member), TestContext.Current.CancellationToken);
         if (selfDelete) { Assert.NotNull(lifecycle); Assert.True(lifecycle.IsDeleted); }
         else Assert.Null(lifecycle);
-        Assert.NotNull(await lifecycleStore.GetAsync(new UserLifecycleKey(TenantKeys.Single, foreignKey)));
-        var remaining = await service.GetUsersAsync(owner);
+        Assert.NotNull(await lifecycleStore.GetAsync(new UserLifecycleKey(TenantKeys.Single, foreignKey), TestContext.Current.CancellationToken));
+        var remaining = await service.GetUsersAsync(owner, TestContext.Current.CancellationToken);
         Assert.NotNull(remaining);
         Assert.Equal(owner, Assert.Single(remaining.Users).UserKey);
         // Optional dashboard calls may fail; its persisted count must still be usable.
-        var dashboard = await new LabDashboardService(new(db), client.Object).GetAsync(owner);
+        var dashboard = await new LabDashboardService(new(db), client.Object).GetAsync(owner, TestContext.Current.CancellationToken);
         Assert.NotNull(dashboard);
         Assert.Equal(1, dashboard.MemberCount);
         Assert.Equal(1, dashboard.RemainingCapacity);
-        await service.CreateAsync(owner, Request("replacement"));
-        Assert.Equal(2, (await service.GetUsersAsync(owner))!.Users.Count);
+        await service.CreateAsync(owner, Request("replacement"), TestContext.Current.CancellationToken);
+        Assert.Equal(2, (await service.GetUsersAsync(owner, TestContext.Current.CancellationToken))!.Users.Count);
         await using var final = db.CreateDbContext();
-        Assert.False(await final.SandboxMembers.AnyAsync(x => x.UserKey == member));
-        Assert.Equal(2, await final.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == foreignOwner));
+        Assert.False(await final.SandboxMembers.AnyAsync(x => x.UserKey == member, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(2, await final.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == foreignOwner, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -145,49 +145,49 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var sp = scope.ServiceProvider;
         var owner = await RegisterAsync(sp, db, "repair-owner");
         var other = await RegisterAsync(sp, db, "other-owner");
-        var member = await Provisioning(sp, db, owner).CreateMemberAsync(owner, Request("retained-member"));
+        var member = await Provisioning(sp, db, owner).CreateMemberAsync(owner, Request("retained-member"), TestContext.Current.CancellationToken);
         Assert.True(member.IsSuccess, member.FailureReason);
         var roles = sp.GetRequiredService<IRoleStoreFactory>();
         var assignments = sp.GetRequiredService<IUserRoleStoreFactory>();
         await using (var setup = db.CreateDbContext())
         {
-            setup.SandboxMembers.Remove(await setup.SandboxMembers.SingleAsync(x => x.UserKey == owner));
-            await setup.SaveChangesAsync();
+            setup.SandboxMembers.Remove(await setup.SandboxMembers.SingleAsync(x => x.UserKey == owner, cancellationToken: TestContext.Current.CancellationToken));
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         if (adminRepair)
         {
             var context = Contexts.Create("identitylab.repair", LabAdminIdentity.UserKey);
             var service = new LabRepairService(db, sp.GetRequiredService<IUserSummaryQueryStoreFactory>(),
                 roles, assignments, new LabAdminGuard(roles, assignments), NullLogger<LabRepairService>.Instance);
-            var snapshot = await service.GetSnapshotAsync(context);
+            var snapshot = await service.GetSnapshotAsync(context, TestContext.Current.CancellationToken);
             Assert.True(snapshot.UserScanComplete);
             Assert.Contains(snapshot.OrphanUsers, x => x.UserKey == owner && x.OwnedSandboxId != null);
             Assert.DoesNotContain(snapshot.OrphanUsers, x => x.UserKey == other);
-            Assert.True((await service.RepairOwnerAsync(context, owner)).Success);
+            Assert.True((await service.RepairOwnerAsync(context, owner, TestContext.Current.CancellationToken)).Success);
             var repaired = await db.SnapshotAsync();
-            Assert.False((await service.RepairOwnerAsync(context, owner)).Success);
+            Assert.False((await service.RepairOwnerAsync(context, owner, TestContext.Current.CancellationToken)).Success);
             Assert.Equal(repaired, await db.SnapshotAsync());
-            Assert.DoesNotContain((await service.GetSnapshotAsync(context)).OrphanUsers, x => x.UserKey == owner);
+            Assert.DoesNotContain((await service.GetSnapshotAsync(context, TestContext.Current.CancellationToken)).OrphanUsers, x => x.UserKey == owner);
         }
         else
         {
             var context = Contexts.Create("identitylab.repair", owner);
             var service = new LabOwnerRepairService(db, sp.GetRequiredService<IUserLifecycleStoreFactory>(),
                 roles, assignments, NullLogger<LabOwnerRepairService>.Instance);
-            Assert.Equal(OwnerRepairState.CanRepair, (await service.GetStatusAsync(context)).State);
-            Assert.True((await service.RepairAsync(context)).Success);
+            Assert.Equal(OwnerRepairState.CanRepair, (await service.GetStatusAsync(context, TestContext.Current.CancellationToken)).State);
+            Assert.True((await service.RepairAsync(context, TestContext.Current.CancellationToken)).Success);
             var repaired = await db.SnapshotAsync();
-            Assert.Equal(OwnerRepairState.NotRequired, (await service.GetStatusAsync(context)).State);
-            Assert.False((await service.RepairAsync(context)).Success);
+            Assert.Equal(OwnerRepairState.NotRequired, (await service.GetStatusAsync(context, TestContext.Current.CancellationToken)).State);
+            Assert.False((await service.RepairAsync(context, TestContext.Current.CancellationToken)).Success);
             Assert.Equal(repaired, await db.SnapshotAsync());
         }
         await using var final = db.CreateDbContext();
-        var members = await final.SandboxMembers.ToListAsync();
+        var members = await final.SandboxMembers.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, members.Count);
         var restored = Assert.Single(members, x => x.UserKey == owner);
         Assert.Equal(CodeBeam.UltimateAuth.IdentityLab.Domain.SandboxMemberRole.Owner, restored.Role);
         Assert.Contains(members, x => x.UserKey.Value == member.UserKey && x.SandboxId == restored.SandboxId);
         Assert.Contains(members, x => x.UserKey == other && x.SandboxId != restored.SandboxId);
-        Assert.Equal(2, await final.Sandboxes.CountAsync());
+        Assert.Equal(2, await final.Sandboxes.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 }

@@ -27,8 +27,8 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
 
-        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow);
-        var result = await store.GetAssignmentsAsync(userKey);
+        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
+        var result = await store.GetAssignmentsAsync(userKey, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(roleId, result.First().RoleId);
@@ -46,9 +46,9 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
 
-        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow);
+        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<UAuthConflictException>(() => store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow));
+        await Assert.ThrowsAsync<UAuthConflictException>(() => store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
 
-        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow);
-        await store.RemoveAsync(userKey, roleId);
-        var result = await store.GetAssignmentsAsync(userKey);
+        await store.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
+        await store.RemoveAsync(userKey, roleId, ct: TestContext.Current.CancellationToken);
+        var result = await store.GetAssignmentsAsync(userKey, ct: TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -82,7 +82,7 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
 
-        await store.RemoveAsync(userKey, roleId); // should not throw
+        await store.RemoveAsync(userKey, roleId, ct: TestContext.Current.CancellationToken); // should not throw
     }
 
     [Fact]
@@ -96,10 +96,10 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
 
         var roleId = RoleId.New();
 
-        await store.AssignAsync(UserKey.FromGuid(Guid.NewGuid()), roleId, DateTimeOffset.UtcNow);
-        await store.AssignAsync(UserKey.FromGuid(Guid.NewGuid()), roleId, DateTimeOffset.UtcNow);
+        await store.AssignAsync(UserKey.FromGuid(Guid.NewGuid()), roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(UserKey.FromGuid(Guid.NewGuid()), roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var count = await store.CountAssignmentsAsync(roleId);
+        var count = await store.CountAssignmentsAsync(roleId, ct: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, count);
     }
@@ -118,12 +118,12 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var user1 = UserKey.FromGuid(Guid.NewGuid());
         var user2 = UserKey.FromGuid(Guid.NewGuid());
 
-        await store.AssignAsync(user1, roleId, DateTimeOffset.UtcNow);
-        await store.AssignAsync(user2, roleId, DateTimeOffset.UtcNow);
+        await store.AssignAsync(user1, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(user2, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        await store.RemoveAssignmentsByRoleAsync(roleId);
+        await store.RemoveAssignmentsByRoleAsync(roleId, ct: TestContext.Current.CancellationToken);
 
-        var count = await store.CountAssignmentsAsync(roleId);
+        var count = await store.CountAssignmentsAsync(roleId, ct: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, count);
     }
@@ -143,9 +143,9 @@ public class EfCoreUserRoleStoreTests : EfCoreTestBase
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var roleId = RoleId.New();
 
-        await store1.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow);
+        await store1.AssignAsync(userKey, roleId, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var result = await store2.GetAssignmentsAsync(userKey);
+        var result = await store2.GetAssignmentsAsync(userKey, ct: TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }

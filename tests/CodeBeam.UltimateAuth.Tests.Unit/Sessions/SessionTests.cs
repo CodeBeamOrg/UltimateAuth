@@ -26,9 +26,9 @@ public class SessionTests
         }
 
         var store = runtime.Services.GetRequiredService<ISessionStoreFactory>().Create(TenantKey.Single);
-        var chains = await store.GetChainsByUserAsync(TestUsers.User);
+        var chains = await store.GetChainsByUserAsync(TestUsers.User, ct: TestContext.Current.CancellationToken);
         var chain = chains.First();
-        var sessions = await store.GetSessionsByChainAsync(chain.ChainId);
+        var sessions = await store.GetSessionsByChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         sessions.Count.Should().BeLessThanOrEqualTo(3);
     }
@@ -44,17 +44,17 @@ public class SessionTests
         {
             Identifier = "user",
             Secret = "user"
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         var store = runtime.Services.GetRequiredService<ISessionStoreFactory>().Create(TenantKey.Single);
-        var chainId = await store.GetChainIdBySessionAsync(result.SessionId!.Value);
-        await store.LogoutChainAsync(chainId!.Value, runtime.Clock.UtcNow);
-        var chain = await store.GetChainAsync(chainId.Value);
+        var chainId = await store.GetChainIdBySessionAsync(result.SessionId!.Value, ct: TestContext.Current.CancellationToken);
+        await store.LogoutChainAsync(chainId!.Value, runtime.Clock.UtcNow, ct: TestContext.Current.CancellationToken);
+        var chain = await store.GetChainAsync(chainId.Value, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
         chain!.ActiveSessionId.Should().BeNull();
 
-        var sessions = await store.GetSessionsByChainAsync(chainId.Value);
+        var sessions = await store.GetSessionsByChainAsync(chainId.Value, ct: TestContext.Current.CancellationToken);
 
         sessions.All(x => x.IsRevoked).Should().BeTrue();
     }
@@ -74,13 +74,13 @@ public class SessionTests
         var store = runtime.Services.GetRequiredService<ISessionStoreFactory>()
             .Create(TenantKey.Single);
 
-        var chains = await store.GetChainsByUserAsync(TestUsers.User);
+        var chains = await store.GetChainsByUserAsync(TestUsers.User, ct: TestContext.Current.CancellationToken);
 
         var current = chains.First();
 
-        await store.RevokeOtherSessionsAsync(current.UserKey, current.ChainId, runtime.Clock.UtcNow);
+        await store.RevokeOtherSessionsAsync(current.UserKey, current.ChainId, runtime.Clock.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var updatedChains = await store.GetChainsByUserAsync(current.UserKey);
+        var updatedChains = await store.GetChainsByUserAsync(current.UserKey, ct: TestContext.Current.CancellationToken);
 
         updatedChains.Count(x => x.State == SessionChainState.Active).Should().Be(1);
     }
@@ -97,13 +97,13 @@ public class SessionTests
         {
             Identifier = "user",
             Secret = "user"
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         var service = runtime.Services.GetRequiredService<ISessionApplicationService>();
         var context = TestAccessContext.ForUser(TestUsers.User, "session.query");
         var store = runtime.Services.GetRequiredService<ISessionStoreFactory>().Create(TenantKey.Single);
-        var chains = await store.GetChainsByUserAsync(TestUsers.User);
-        var result = await service.GetUserChainDetailAsync(context, chains.First().UserKey, chains.First().ChainId);
+        var chains = await store.GetChainsByUserAsync(TestUsers.User, ct: TestContext.Current.CancellationToken);
+        var result = await service.GetUserChainDetailAsync(context, chains.First().UserKey, chains.First().ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result.Sessions.Should().NotBeEmpty();
@@ -121,12 +121,12 @@ public class SessionTests
         {
             Identifier = "user",
             Secret = "user"
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         var store = runtime.Services.GetRequiredService<ISessionStoreFactory>().Create(TenantKey.Single);
-        var chains = await store.GetChainsByUserAsync(TestUsers.User);
-        await store.RevokeChainCascadeAsync(chains.First().ChainId, runtime.Clock.UtcNow);
-        var sessions = await store.GetSessionsByChainAsync(chains.First().ChainId);
+        var chains = await store.GetChainsByUserAsync(TestUsers.User, ct: TestContext.Current.CancellationToken);
+        await store.RevokeChainCascadeAsync(chains.First().ChainId, runtime.Clock.UtcNow, ct: TestContext.Current.CancellationToken);
+        var sessions = await store.GetSessionsByChainAsync(chains.First().ChainId, ct: TestContext.Current.CancellationToken);
 
         sessions.All(x => x.IsRevoked).Should().BeTrue();
     }

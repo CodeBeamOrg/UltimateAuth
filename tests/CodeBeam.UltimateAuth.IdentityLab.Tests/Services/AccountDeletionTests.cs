@@ -22,11 +22,11 @@ public sealed class AccountDeletionTests(PostgresFixture postgres) : IClassFixtu
         var client = new Mock<IUAuthClient>(MockBehavior.Strict);
         client.SetupGet(x => x.Users).Returns(users.Object);
         var service = new SandboxAccountDeletionService(db, client.Object, NullLogger<SandboxAccountDeletionService>.Instance);
-        Assert.Equal(success, await service.DeleteMemberAsync(LabDatabase.MemberA));
+        Assert.Equal(success, await service.DeleteMemberAsync(LabDatabase.MemberA, TestContext.Current.CancellationToken));
         await using var verify = db.CreateDbContext();
-        Assert.Equal(!success, await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberA));
-        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberB));
-        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.OwnerA));
+        Assert.Equal(!success, await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberA, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberB, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.OwnerA, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class AccountDeletionTests(PostgresFixture postgres) : IClassFixtu
         var before = await db.SnapshotAsync();
         var client = new Mock<IUAuthClient>(MockBehavior.Strict);
         var service = new SandboxAccountDeletionService(db, client.Object, NullLogger<SandboxAccountDeletionService>.Instance);
-        Assert.False(await service.DeleteMemberAsync(LabDatabase.OwnerA));
+        Assert.False(await service.DeleteMemberAsync(LabDatabase.OwnerA, TestContext.Current.CancellationToken));
         client.VerifyNoOtherCalls();
         Assert.Equal(before, await db.SnapshotAsync());
     }

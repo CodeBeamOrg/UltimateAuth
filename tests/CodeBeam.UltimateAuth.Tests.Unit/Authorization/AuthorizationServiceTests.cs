@@ -25,7 +25,7 @@ public sealed class AuthorizationServiceTests
             .Returns<AccessContext, AccessCommand<AuthorizationResult>, CancellationToken>(
                 async (_, command, ct) => await command.ExecuteAsync(ct));
 
-        var result = await f.Sut.AuthorizeAsync(context);
+        var result = await f.Sut.AuthorizeAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsAllowed.Should().BeTrue();
         result.RequiresReauthentication.Should().BeFalse();
@@ -54,7 +54,7 @@ public sealed class AuthorizationServiceTests
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
-        var result = await f.Sut.AuthorizeAsync(context);
+        var result = await f.Sut.AuthorizeAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsAllowed.Should().BeFalse();
         result.RequiresReauthentication.Should().BeFalse();

@@ -31,7 +31,7 @@ public sealed class CompositeSessionIdResolverTests
             bearer.Object,
             cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(firstId);
         bearer.Verify(x => x.Resolve(context), Times.Once);
@@ -53,7 +53,7 @@ public sealed class CompositeSessionIdResolverTests
             bearer.Object,
             cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(expected);
         bearer.Verify(x => x.Resolve(context), Times.Once);
@@ -77,7 +77,7 @@ public sealed class CompositeSessionIdResolverTests
             bearer.Object,
             cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(cookieId);
         bearer.Verify(x => x.Resolve(It.IsAny<HttpContext>()), Times.Never);
@@ -94,7 +94,7 @@ public sealed class CompositeSessionIdResolverTests
 
         var (sut, context) = CreateSut(options, cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(expected);
         cookie.Verify(x => x.Resolve(context), Times.Once);
@@ -110,7 +110,7 @@ public sealed class CompositeSessionIdResolverTests
 
         var (sut, context) = CreateSut(options, bearer.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(expected);
         bearer.Verify(x => x.Resolve(context), Times.Once);
@@ -129,7 +129,7 @@ public sealed class CompositeSessionIdResolverTests
             bearer.Object,
             cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
         bearer.Verify(x => x.Resolve(context), Times.Once);
@@ -152,7 +152,7 @@ public sealed class CompositeSessionIdResolverTests
             bearer.Object,
             cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(cookieId);
         cookie.Verify(x => x.Resolve(context), Times.Once);
@@ -174,7 +174,7 @@ public sealed class CompositeSessionIdResolverTests
 
         var (sut, context) = CreateSut(options, cookie.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         if (effectiveCookieEnabled)
         {
@@ -219,7 +219,7 @@ public sealed class CompositeSessionIdResolverTests
             profileReader.Object,
             effectiveProvider.Object);
 
-        var result = await sut.ResolveAsync(context);
+        var result = await sut.ResolveAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(expected);
 

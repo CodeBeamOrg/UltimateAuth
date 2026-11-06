@@ -132,7 +132,7 @@ public sealed class SessionSlidingExpirationTests
             o.Session.TouchInterval = TimeSpan.FromSeconds(5);
         });
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -163,7 +163,7 @@ public sealed class SessionSlidingExpirationTests
 
         // Same session must be accepted before IdleTimeout.
         using var before = await client.PostAsJsonAsync(
-            "/auth/me/identifiers/get", new { });
+            "/auth/me/identifiers/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         before.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -172,7 +172,7 @@ public sealed class SessionSlidingExpirationTests
 
         // Keep the original cookie deliberately.
         using var after = await client.PostAsJsonAsync(
-            "/auth/me/identifiers/get", new { });
+            "/auth/me/identifiers/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         after.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
             "an expired session must not remain authenticated " +

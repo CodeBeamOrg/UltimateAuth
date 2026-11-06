@@ -26,27 +26,27 @@ public sealed class ClientRateLimitingIntegrationTests
     {
         using var factory = AuthServerFactory.Create(o =>
         { o.RateLimiting.Enabled = true; o.RateLimiting.Endpoints[UAuthEndpoint.Validate] = new() { PermitLimit = 1 }; });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var http = await Login(factory, user);
         var transport = new HttpTransport(http);
         using var services = ClientServices(factory, transport);
         using var scope = services.CreateScope();
         var manager = scope.ServiceProvider.GetRequiredService<IUAuthStateManager>();
-        await manager.EnsureAsync();
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
         Assert.True(manager.State.IsAuthenticated);
         var validatedAt = manager.State.LastValidatedAt;
-        await manager.EnsureAsync(force: true);
-        await manager.EnsureAsync(force: true);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
         Assert.True(manager.State.IsAuthenticated);
         Assert.Equal(validatedAt, manager.State.LastValidatedAt);
         Assert.Equal(2, transport.Count);
         using (var serverScope = factory.Services.CreateScope())
         {
             var store = serverScope.ServiceProvider.GetRequiredService<ISessionStoreFactory>().Create(TenantKey.Single);
-            await store.ExecuteAsync(ct => store.RevokeRootCascadeAsync(user.UserKey, factory.Clock.UtcNow, ct));
+            await store.ExecuteAsync(ct => store.RevokeRootCascadeAsync(user.UserKey, factory.Clock.UtcNow, ct), TestContext.Current.CancellationToken);
         }
         factory.Clock.Advance(TimeSpan.FromMinutes(2));
-        await manager.EnsureAsync(force: true);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
         Assert.False(manager.State.IsAuthenticated);
     }
 
@@ -55,7 +55,7 @@ public sealed class ClientRateLimitingIntegrationTests
     {
         using var factory = AuthServerFactory.Create(o =>
         { o.RateLimiting.Enabled = true; o.RateLimiting.Endpoints[UAuthEndpoint.Refresh] = new() { PermitLimit = 1 }; });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var http = await Login(factory, user);
         var credential = http.DefaultRequestHeaders.GetValues("Cookie").Single();
         var transport = new HttpTransport(http);
@@ -72,7 +72,7 @@ public sealed class ClientRateLimitingIntegrationTests
         Assert.Equal(2, transport.Count);
         var session = await CsrfTestClient.PostAsync(http, "/auth/validate", null);
         Assert.Equal(HttpStatusCode.OK, session.StatusCode);
-        Assert.True((await session.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>())!.IsValid);
+        Assert.True((await session.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>(cancellationToken: TestContext.Current.CancellationToken))!.IsValid);
     }
 
     private static async Task<HttpClient> Login(AuthServerFactory factory, IntegrationTestUser user)

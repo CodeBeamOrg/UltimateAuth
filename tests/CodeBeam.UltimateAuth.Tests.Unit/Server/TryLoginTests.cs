@@ -25,7 +25,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Server
             {
                 Identifier = "user",
                 Secret = "wrong"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
             result.Should().NotBeNull();
             result.IsSuccess.Should().BeFalse();

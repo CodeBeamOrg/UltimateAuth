@@ -29,7 +29,7 @@ public class RateLimitingPartitionTests
         context.Response.Body = new MemoryStream();
         var policy = new UAuthRateLimitPolicy(UAuthEndpointClassification.Get(UAuthEndpoint.Login), new(), "login");
         await policy.OnRejected!(new Microsoft.AspNetCore.RateLimiting.OnRejectedContext
-        { HttpContext = context, Lease = rejected }, default);
+        { HttpContext = context, Lease = rejected }, TestContext.Current.CancellationToken);
         Assert.Equal(429, context.Response.StatusCode);
         Assert.Equal("no-store", context.Response.Headers.CacheControl.ToString());
         Assert.True(int.Parse(context.Response.Headers.RetryAfter.ToString()) > 0);

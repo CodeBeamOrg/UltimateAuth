@@ -32,7 +32,7 @@ public sealed class RemoteSessionValidatorTests
 
         var context = CreateValidationContext();
 
-        await sut.ValidateSessionAsync(context);
+        await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         handler.Method.Should().Be(HttpMethod.Post);
 
@@ -74,7 +74,7 @@ public sealed class RemoteSessionValidatorTests
             httpContext);
 
         await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         handler.Cookie.Should()
             .Be("uauth_session=session-cookie; other=value");
@@ -91,7 +91,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         handler.Cookie.Should().BeNull();
     }
@@ -116,7 +116,7 @@ public sealed class RemoteSessionValidatorTests
         var context = CreateValidationContext();
 
         var result =
-            await sut.ValidateSessionAsync(context);
+            await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.NotFound);
@@ -141,7 +141,7 @@ public sealed class RemoteSessionValidatorTests
         var context = CreateValidationContext();
 
         var result =
-            await sut.ValidateSessionAsync(context);
+            await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.NotFound);
@@ -171,7 +171,7 @@ public sealed class RemoteSessionValidatorTests
 
         var result =
             await sut.ValidateSessionAsync(
-                CreateValidationContext());
+                CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -249,7 +249,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.State.Should().Be(SessionState.Active);
@@ -294,7 +294,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }
@@ -322,7 +322,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }

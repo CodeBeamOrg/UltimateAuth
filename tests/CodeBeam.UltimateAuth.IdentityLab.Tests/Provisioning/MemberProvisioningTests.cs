@@ -31,7 +31,7 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
             new(db), new(db), users.Object, roles.Object, assignments.Object, new(),
             NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateMemberAsync(
-            UserKey.FromString(requestedActor), new CreateUserRequest()));
+            UserKey.FromString(requestedActor), new CreateUserRequest(), TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
         users.VerifyNoOtherCalls();
         roles.VerifyNoOtherCalls();
@@ -83,14 +83,14 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
         var service = new LabUserProvisioningService(ActorProvider.For(LabDatabase.OwnerA), new(db), new(db),
             users.Object, roles.Object, assignments.Object, gate, NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<LabPartialProvisioningException>(() => service.CreateMemberAsync(
-            LabDatabase.OwnerA, new CreateUserRequest()));
+            LabDatabase.OwnerA, new CreateUserRequest(), TestContext.Current.CancellationToken));
         Assert.NotNull(rollbackContext);
         Assert.Equal(createdKey, rollbackContext!.TargetUserKey);
         Assert.Equal(DeleteMode.Hard, rollbackMode);
         Assert.True(unrelatedDenied);
         Assert.True(rollbackAllowed);
         Assert.True(replayDenied);
-        Assert.True((await policy.DecideAsync(rollbackContext!)).IsDenied);
+        Assert.True((await policy.DecideAsync(rollbackContext!, TestContext.Current.CancellationToken)).IsDenied);
         users.Verify(x => x.DeleteUserAsync(It.IsAny<AccessContext>(), It.IsAny<DeleteUserRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         Assert.Equal(before, await db.SnapshotAsync());
     }

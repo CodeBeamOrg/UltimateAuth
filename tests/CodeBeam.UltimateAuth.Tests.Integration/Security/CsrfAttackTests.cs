@@ -13,7 +13,7 @@ public sealed class CsrfAttackTests
     public async Task Login_WithoutCsrfToken_MustNotCreateSession()
     {
         await using var factory = new AuthServerFactory();
-        var attacker = await factory.CreateLoginUserAsync();
+        var attacker = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var victimBrowser = CreateBrowser(factory);
 
@@ -23,7 +23,7 @@ public sealed class CsrfAttackTests
             {
                 identifier = attacker.Identifier,
                 secret = attacker.Secret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         await AssertCsrfRejected(response);
         AssertNoSessionCookie(response);
@@ -33,7 +33,7 @@ public sealed class CsrfAttackTests
     public async Task Login_WithForgedCsrfToken_MustNotCreateSession()
     {
         await using var factory = new AuthServerFactory();
-        var attacker = await factory.CreateLoginUserAsync();
+        var attacker = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var victimBrowser = CreateBrowser(factory);
 
@@ -51,7 +51,7 @@ public sealed class CsrfAttackTests
             "RequestVerificationToken",
             "attacker-forged-token");
 
-        using var response = await victimBrowser.SendAsync(request);
+        using var response = await victimBrowser.SendAsync(request, TestContext.Current.CancellationToken);
 
         await AssertCsrfRejected(response);
         AssertNoSessionCookie(response);
@@ -61,7 +61,7 @@ public sealed class CsrfAttackTests
     public async Task Login_WithTokenFromAnotherBrowser_MustBeRejected()
     {
         await using var factory = new AuthServerFactory();
-        var attacker = await factory.CreateLoginUserAsync();
+        var attacker = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var attackerBrowser = CreateBrowser(factory);
         using var victimBrowser = CreateBrowser(factory);
@@ -89,7 +89,7 @@ public sealed class CsrfAttackTests
             "Cookie",
             victimTokens.Cookie);
 
-        using var response = await victimBrowser.SendAsync(request);
+        using var response = await victimBrowser.SendAsync(request, TestContext.Current.CancellationToken);
 
         await AssertCsrfRejected(response);
         AssertNoSessionCookie(response);
@@ -99,7 +99,7 @@ public sealed class CsrfAttackTests
     public async Task Login_WithValidCsrfToken_ShouldSucceed()
     {
         await using var factory = new AuthServerFactory();
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var browser = CreateBrowser(factory);
         var tokens = await GetTokens(browser);
@@ -122,7 +122,7 @@ public sealed class CsrfAttackTests
             "Cookie",
             tokens.Cookie);
 
-        using var response = await browser.SendAsync(request);
+        using var response = await browser.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
 
@@ -138,7 +138,7 @@ public sealed class CsrfAttackTests
     public async Task RevokeOthers_CsrfAttack_MustNotRevokeSessions()
     {
         await using var factory = new AuthServerFactory();
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var currentBrowser = CreateBrowser(factory);
         using var otherBrowser = CreateBrowser(factory);
@@ -159,7 +159,7 @@ public sealed class CsrfAttackTests
 
         // ATTACK 1: Authenticated request without CSRF token.
         using (var missingToken = await currentBrowser.PostAsync(
-            "/auth/me/sessions/revoke-others", null))
+            "/auth/me/sessions/revoke-others", null, TestContext.Current.CancellationToken))
         {
             await AssertCsrfRejected(missingToken);
         }
@@ -177,7 +177,7 @@ public sealed class CsrfAttackTests
                 "forged-token");
 
             using var forged = await currentBrowser.SendAsync(
-                forgedRequest);
+                forgedRequest, TestContext.Current.CancellationToken);
 
             await AssertCsrfRejected(forged);
         }
@@ -192,7 +192,7 @@ public sealed class CsrfAttackTests
         {
             valid.IsSuccessStatusCode.Should().BeTrue(
                 $"valid revoke failed: " +
-                await valid.Content.ReadAsStringAsync());
+                await valid.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
 
         // The current session must survive revoke-others.

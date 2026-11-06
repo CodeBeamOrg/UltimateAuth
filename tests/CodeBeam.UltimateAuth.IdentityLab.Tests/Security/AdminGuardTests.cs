@@ -26,7 +26,7 @@ public sealed class AdminGuardTests
         users.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(userStore.Object);
         var context = Contexts.Create("identitylab.admin", LabDatabase.OwnerA,
             attributes: new Dictionary<string, object> { ["roles"] = new[] { LabRoleIds.Admin } });
-        Assert.Equal(assigned, await new LabAdminGuard(roles.Object, users.Object).IsAdminAsync(context));
+        Assert.Equal(assigned, await new LabAdminGuard(roles.Object, users.Object).IsAdminAsync(context, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed class AdminGuardTests
         var roles = new Mock<IRoleStoreFactory>(MockBehavior.Strict);
         var users = new Mock<IUserRoleStoreFactory>(MockBehavior.Strict);
         await Assert.ThrowsAsync<InvalidOperationException>(() => new CodeBeam.UltimateAuth.IdentityLab.Services.LabRoleService(
-            roles.Object, users.Object).AssignAsync(TenantKeys.Single, LabDatabase.MemberA, name));
+            roles.Object, users.Object).AssignAsync(TenantKeys.Single, LabDatabase.MemberA, name, TestContext.Current.CancellationToken));
         roles.VerifyNoOtherCalls();
         users.VerifyNoOtherCalls();
     }

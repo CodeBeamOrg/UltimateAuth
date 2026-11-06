@@ -41,7 +41,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
         await using var connection =
             new SqliteConnection("Data Source=:memory:");
 
-        await connection.OpenAsync();
+        await connection.OpenAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var dbOptions = new DbContextOptionsBuilder<UAuthCredentialDbContext>()
             .UseSqlite(connection)
@@ -52,7 +52,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
 
         await using (var db = new UAuthCredentialDbContext(dbOptions))
         {
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.EnsureCreatedAsync(cancellationToken: TestContext.Current.CancellationToken);
 
             var user = UserKey.New();
 
@@ -73,7 +73,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
             var history = new EfCorePasswordHistoryStore<UAuthCredentialDbContext>(
                 db, Tenant);
 
-            await credentials.AddAsync(credential);
+            await credentials.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
             originalHistoryId = Guid.NewGuid();
 
@@ -85,7 +85,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
                 CredentialKey = new CredentialKey(Tenant, credentialId),
                 SecretHash = Hash("older"),
                 ReplacedAt = Now.AddDays(-1)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
             var pipeline = new Mock<IPasswordValidationPipeline>();
             pipeline.Setup(x => x.ValidateAsync(
@@ -137,7 +137,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
                 hasher.Object);
 
             await using var transaction =
-                await db.Database.BeginTransactionAsync();
+                await db.Database.BeginTransactionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 writer.ChangeAsync(
@@ -149,8 +149,9 @@ public sealed class EfCorePasswordHistoryAtomicityTests
                     },
                     Options(2),
                     Now.AddMinutes(1),
-                    default));
+                    TestContext.Current.CancellationToken));
 
+            // Cleanup must complete even when the test is cancelled.
             await transaction.RollbackAsync();
         }
 
@@ -159,7 +160,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
         {
             var savedCredential = await verifyDb.PasswordCredentials
                 .AsNoTracking()
-                .SingleAsync(x => x.Id == credentialId);
+                .SingleAsync(x => x.Id == credentialId, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(Hash("current"), savedCredential.SecretHash);
             Assert.Equal(0, savedCredential.Version);
@@ -167,7 +168,7 @@ public sealed class EfCorePasswordHistoryAtomicityTests
             var history = await verifyDb.PasswordHistory
                 .AsNoTracking()
                 .Where(x => x.CredentialId == credentialId)
-                .ToListAsync();
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Single(history);
             Assert.Equal(originalHistoryId, history[0].Id);

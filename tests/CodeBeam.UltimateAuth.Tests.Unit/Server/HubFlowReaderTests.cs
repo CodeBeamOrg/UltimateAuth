@@ -34,7 +34,7 @@ public sealed class HubFlowReaderTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((AuthArtifact?)null);
 
-        var result = await fixture.Sut.GetStateAsync(hubSessionId);
+        var result = await fixture.Sut.GetStateAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -54,7 +54,7 @@ public sealed class HubFlowReaderTests
                 new TestAuthArtifact(
                     Now.AddMinutes(5)));
 
-        var result = await fixture.Sut.GetStateAsync(hubSessionId);
+        var result = await fixture.Sut.GetStateAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -74,7 +74,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -99,7 +99,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -120,7 +120,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -147,7 +147,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -170,7 +170,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -197,7 +197,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -234,7 +234,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -260,7 +260,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -282,7 +282,7 @@ public sealed class HubFlowReaderTests
         SetupArtifact(fixture, artifact);
 
         await fixture.Sut.GetStateAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.GetAsync(

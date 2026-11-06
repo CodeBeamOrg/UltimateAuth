@@ -65,7 +65,7 @@ public class UAuthResourceRequestClientTests
 
         var client = CreateClient();
 
-        var task = client.SendAsync("GET", "/api/products");
+        var task = client.SendAsync("GET", "/api/products", ct: TestContext.Current.CancellationToken);
 
         _bootstrapper.Verify(x => x.EnsureStartedAsync(
             It.IsAny<CancellationToken>()), Times.Once);
@@ -111,7 +111,7 @@ public class UAuthResourceRequestClientTests
         await client.SendAsync(
             "POST",
             "/api/products",
-            payload);
+            payload, ct: TestContext.Current.CancellationToken);
 
         capturedOptions.Should().NotBeNull();
 
@@ -159,7 +159,7 @@ public class UAuthResourceRequestClientTests
         SetupResponse(response);
 
         var result = await CreateClient()
-            .SendAsync("GET", "/api/products/1");
+            .SendAsync("GET", "/api/products/1", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(response);
     }
@@ -177,7 +177,7 @@ public class UAuthResourceRequestClientTests
         SetupResponse(response);
 
         var result = await CreateClient()
-            .SendAsync("GET", "/api/products");
+            .SendAsync("GET", "/api/products", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(response);
         result.Status.Should().Be(403);
@@ -332,8 +332,8 @@ public class UAuthResourceRequestClientTests
 
         var client = CreateClient();
 
-        await client.SendAsync("GET", "/api/products/1");
-        await client.SendAsync("GET", "/api/products/2");
+        await client.SendAsync("GET", "/api/products/1", ct: TestContext.Current.CancellationToken);
+        await client.SendAsync("GET", "/api/products/2", ct: TestContext.Current.CancellationToken);
 
         requestIds.Should().HaveCount(2);
         requestIds.Distinct().Should().HaveCount(2);

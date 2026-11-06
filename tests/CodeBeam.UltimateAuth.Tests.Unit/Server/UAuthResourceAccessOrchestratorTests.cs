@@ -57,7 +57,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             return Task.CompletedTask;
         });
 
-        await _sut.ExecuteAsync(context, command);
+        await _sut.ExecuteAsync(context, command, ct: TestContext.Current.CancellationToken);
 
         executions.Should().Be(1);
     }
@@ -179,7 +179,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             original,
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -207,7 +207,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         var compiled = GetCompiledPermissions(captured!);
 
@@ -233,7 +233,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         var compiled = GetCompiledPermissions(captured!);
 
@@ -267,7 +267,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         authorityContext.Should().NotBeNull();
 
@@ -291,7 +291,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
         var command = new AccessCommand<string>(
             _ => Task.FromResult("result"));
 
-        var result = await _sut.ExecuteAsync(context, command);
+        var result = await _sut.ExecuteAsync(context, command, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be("result");
     }
@@ -441,7 +441,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         var executionTask = _sut.ExecuteAsync(
             CreateContext(),
-            command);
+            command, ct: TestContext.Current.CancellationToken);
 
         executed.Should().BeFalse();
 

@@ -27,7 +27,7 @@ public sealed class HubCredentialResolverTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((AuthArtifact?)null);
 
-        var result = await fixture.Sut.ResolveAsync(hubSessionId);
+        var result = await fixture.Sut.ResolveAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -47,7 +47,7 @@ public sealed class HubCredentialResolverTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(artifact);
 
-        var result = await fixture.Sut.ResolveAsync(hubSessionId);
+        var result = await fixture.Sut.ResolveAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -63,7 +63,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -81,7 +81,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -100,7 +100,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -118,7 +118,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -137,7 +137,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -153,7 +153,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -171,7 +171,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.GetAsync(
@@ -218,7 +218,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -234,7 +234,7 @@ public sealed class HubCredentialResolverTests
         SetupArtifact(fixture, artifact);
 
         var result = await fixture.Sut.ResolveAsync(
-            artifact.HubSessionId);
+            artifact.HubSessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }

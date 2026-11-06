@@ -35,9 +35,9 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
             new[] { Permission.From("read"), Permission.From("write") },
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new RoleKey(tenant, role.Id));
+        var result = await store.GetAsync(new RoleKey(tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal("admin", result!.Name);
@@ -56,9 +56,9 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
         var role1 = Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow);
         var role2 = Role.Create(null, tenant, "ADMIN", null, DateTimeOffset.UtcNow);
 
-        await store.AddAsync(role1);
+        await store.AddAsync(role1, ct: TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<UAuthConflictException>(() => store.AddAsync(role2));
+        await Assert.ThrowsAsync<UAuthConflictException>(() => store.AddAsync(role2, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -74,21 +74,21 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var role = Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow);
             roleId = role.Id;
-            await store.AddAsync(role);
+            await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store.GetAsync(new RoleKey(tenant, roleId));
+            var existing = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
             var updated = existing!.Rename("admin2", DateTimeOffset.UtcNow);
-            await store.SaveAsync(updated, expectedVersion: 0);
+            await store.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store.GetAsync(new RoleKey(tenant, roleId));
+            var result = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
             Assert.Equal("admin2", result.Name);
@@ -108,16 +108,16 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var role = Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow);
             roleId = role.Id;
-            await store.AddAsync(role);
+            await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store.GetAsync(new RoleKey(tenant, roleId));
+            var existing = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
             var updated = existing!.Rename("admin2", DateTimeOffset.UtcNow);
 
-            await Assert.ThrowsAsync<UAuthConcurrencyException>(() => store.SaveAsync(updated, expectedVersion: 999));
+            await Assert.ThrowsAsync<UAuthConcurrencyException>(() => store.SaveAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -138,17 +138,17 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
             var role2 = Role.Create(null, tenant, "user", null, DateTimeOffset.UtcNow);
             role1Id = role1.Id;
             role2Id = role2.Id;
-            await store.AddAsync(role1);
-            await store.AddAsync(role2);
+            await store.AddAsync(role1, ct: TestContext.Current.CancellationToken);
+            await store.AddAsync(role2, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var role = await store.GetAsync(new RoleKey(tenant, role2Id));
+            var role = await store.GetAsync(new RoleKey(tenant, role2Id), ct: TestContext.Current.CancellationToken);
             var updated = role!.Rename("admin", DateTimeOffset.UtcNow);
 
-            await Assert.ThrowsAsync<UAuthConflictException>(() => store.SaveAsync(updated, 0));
+            await Assert.ThrowsAsync<UAuthConflictException>(() => store.SaveAsync(updated, 0, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -173,26 +173,26 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
 
             roleId = role.Id;
 
-            await store.AddAsync(role);
+            await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store.GetAsync(new RoleKey(tenant, roleId));
+            var existing = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
             var updated = existing!.SetPermissions(
                 new[]
                 {
                     Permission.From(UAuthActions.Authorization.Roles.SetPermissionsAdmin)
                 },
                 DateTimeOffset.UtcNow);
-            await store.SaveAsync(updated, 0);
+            await store.SaveAsync(updated, 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store.GetAsync(new RoleKey(tenant, roleId));
+            var result = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
 
             Assert.Single(result!.Permissions);
             Assert.Contains(result.Permissions, p => p.Value == UAuthActions.Authorization.Roles.SetPermissionsAdmin);
@@ -212,19 +212,19 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
             var role = Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow);
             roleId = role.Id;
-            await store.AddAsync(role);
+            await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store.DeleteAsync(new RoleKey(tenant, roleId), 0, DeleteMode.Soft, DateTimeOffset.UtcNow);
+            await store.DeleteAsync(new RoleKey(tenant, roleId), 0, DeleteMode.Soft, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store.GetAsync(new RoleKey(tenant, roleId));
+            var result = await store.GetAsync(new RoleKey(tenant, roleId), ct: TestContext.Current.CancellationToken);
             Assert.NotNull(result!.DeletedAt);
         }
     }
@@ -238,16 +238,16 @@ public class EfCoreRoleStoreTests : EfCoreTestBase
         var tenant = TenantKeys.Single;
         var store = new EfCoreRoleStore<UAuthAuthorizationDbContext>(db, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
-        await store.AddAsync(Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow));
-        await store.AddAsync(Role.Create(null, tenant, "user", null, DateTimeOffset.UtcNow));
-        await store.AddAsync(Role.Create(null, tenant, "guest", null, DateTimeOffset.UtcNow));
+        await store.AddAsync(Role.Create(null, tenant, "admin", null, DateTimeOffset.UtcNow), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Role.Create(null, tenant, "user", null, DateTimeOffset.UtcNow), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(Role.Create(null, tenant, "guest", null, DateTimeOffset.UtcNow), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(new RoleQuery
         {
             Search = "us",
             PageNumber = 1,
             PageSize = 10
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result.Items);
         Assert.Equal("user", result.Items.First().Name);

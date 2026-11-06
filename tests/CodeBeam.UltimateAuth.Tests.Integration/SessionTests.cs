@@ -23,8 +23,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user1 = await _factory.CreateLoginUserAsync();
-        var user2 = await _factory.CreateLoginUserAsync();
+        var user1 = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var user2 = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var user1Device1 = CreateClient(
             $"session-user1-device1-{Guid.NewGuid():N}");
@@ -57,7 +57,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await response.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -70,7 +70,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"session-detail-{Guid.NewGuid():N}");
@@ -90,7 +90,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -98,12 +98,12 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
 
         var detailResponse = await client.PostAsync(
             $"/auth/me/sessions/chains/{chain.ChainId.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         detailResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var detail = await detailResponse.Content
-            .ReadFromJsonAsync<SessionChainDetail>();
+            .ReadFromJsonAsync<SessionChainDetail>(cancellationToken: TestContext.Current.CancellationToken);
 
         detail.Should().NotBeNull();
         detail!.ChainId.Should().Be(chain.ChainId);
@@ -116,8 +116,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var attacker = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var attacker = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var attackerClient = CreateClient(
             $"session-attacker-{Guid.NewGuid():N}");
@@ -149,7 +149,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(victimClient);
 
         var victimChains = await victimChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         victimChains.Should().NotBeNull();
 
@@ -158,7 +158,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
 
         var attack = await attackerClient.PostAsync(
             $"/auth/me/sessions/chains/{victimChain.ChainId.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         attack.StatusCode.Should().BeOneOf(
             HttpStatusCode.BadRequest,
@@ -179,7 +179,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var currentDevice =
             $"session-current-{Guid.NewGuid():N}";
@@ -214,7 +214,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient);
 
         var targetChains = await targetChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetChains.Should().NotBeNull();
 
@@ -247,8 +247,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var attacker = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var attacker = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var attackerClient = CreateClient(
             $"session-revoke-attacker-{Guid.NewGuid():N}");
@@ -280,7 +280,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(victimClient);
 
         var victimChains = await victimChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         victimChains.Should().NotBeNull();
 
@@ -289,7 +289,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
 
         var attack = await attackerClient.PostAsync(
             $"/auth/me/sessions/chains/{victimChain.ChainId.Value}/revoke",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         attack.StatusCode.Should().BeOneOf(
             HttpStatusCode.BadRequest,
@@ -334,7 +334,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
 
         var detail = await client.PostAsync(
             $"/auth/me/sessions/chains/{randomChain.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         detail.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -366,7 +366,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var currentClient = CreateClient(
             $"revoke-others-current-{Guid.NewGuid():N}");
@@ -443,8 +443,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
-        var unrelatedUser = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelatedUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var currentClient = CreateClient(
             $"revoke-others-owner-current-{Guid.NewGuid():N}");
@@ -524,7 +524,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client1 = CreateClient(
             $"revoke-all-1-{Guid.NewGuid():N}");
@@ -583,8 +583,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
-        var unrelatedUser = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelatedUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var userClient = CreateClient(
             $"revoke-all-owner-{Guid.NewGuid():N}");

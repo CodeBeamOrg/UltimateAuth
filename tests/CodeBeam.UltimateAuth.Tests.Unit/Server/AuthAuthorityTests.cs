@@ -16,7 +16,7 @@ public sealed class AuthAuthorityTests
             new IAuthorityInvariant[] { invariant },
             Array.Empty<IAuthorityPolicy>());
 
-        var result = await authority.DecideAsync(CreateContext());
+        var result = await authority.DecideAsync(CreateContext(), ct: TestContext.Current.CancellationToken);
 
         result.Decision.Should().Be(AuthorizationDecision.Deny);
         result.Reason.Should().Be("legacy_invariant_denied");
@@ -32,7 +32,7 @@ public sealed class AuthAuthorityTests
             Array.Empty<IAuthorityInvariant>(),
             new IAuthorityPolicy[] { policy });
 
-        var evaluation = authority.DecideAsync(CreateContext());
+        var evaluation = authority.DecideAsync(CreateContext(), ct: TestContext.Current.CancellationToken);
 
         // Ensure the policy has started evaluating.
         await policy.Started;

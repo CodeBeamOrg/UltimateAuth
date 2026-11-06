@@ -42,9 +42,9 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+        var result = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
 
@@ -75,9 +75,9 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
-        var exists = await store.ExistsAsync(new CredentialKey(tenant, credential.Id));
+        var exists = await store.ExistsAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
         Assert.True(exists);
     }
@@ -103,25 +103,25 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
 
-            await store.SaveAsync(updated, expectedVersion: 0);
+            await store.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
 
-            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
             Assert.True(hasher.Verify(result.SecretHash, "new"));
@@ -149,18 +149,18 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
             var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
 
             await Assert.ThrowsAsync<UAuthConcurrencyException>(() =>
-                store.SaveAsync(updated, expectedVersion: 999));
+                store.SaveAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -189,9 +189,9 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
-        await store1.AddAsync(credential);
+        await store1.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
-        var result = await store2.GetAsync(new CredentialKey(tenant2, credential.Id));
+        var result = await store2.GetAsync(new CredentialKey(tenant2, credential.Id), ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -218,15 +218,15 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
             new CredentialMetadata(),
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new CredentialKey(tenant, credential.Id),
             expectedVersion: 0,
             DeleteMode.Soft,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+        var result = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result!.DeletedAt);
@@ -253,24 +253,24 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
             var revoked = existing!.Revoke(DateTimeOffset.UtcNow);
 
-            await store.SaveAsync(revoked, expectedVersion: 0);
+            await store.SaveAsync(revoked, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
 
-            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.True(result!.IsRevoked);
         }
@@ -297,24 +297,24 @@ public class EfCoreCredentialStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db2, new TenantExecutionContext(tenant));
 
-            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var existing = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
             var updated = existing!.ChangeSecret(hasher.Hash("new"), DateTimeOffset.UtcNow);
 
-            await store.SaveAsync(updated, expectedVersion: 0);
+            await store.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCorePasswordCredentialStore<UAuthCredentialDbContext>(db3, new TenantExecutionContext(tenant));
 
-            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id));
+            var result = await store.GetAsync(new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.True(hasher.Verify(result!.SecretHash, "new"));
             Assert.NotNull(result.UpdatedAt);

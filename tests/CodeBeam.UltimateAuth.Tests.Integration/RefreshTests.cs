@@ -40,7 +40,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(user, "BlazorServer");
 
@@ -74,7 +74,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(user, "BlazorServer");
 
@@ -114,7 +114,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(user, "BlazorServer");
 
@@ -159,7 +159,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(user, "BlazorServer");
 
@@ -208,7 +208,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -230,10 +230,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             ct => store.RevokeSessionAsync(
                 sessionId,
                 _factory.Clock.UtcNow,
-                ct));
+                ct), TestContext.Current.CancellationToken);
 
         var persisted =
-            await store.GetSessionAsync(sessionId);
+            await store.GetSessionAsync(sessionId, TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -251,7 +251,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -267,11 +267,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             ct => store.RevokeChainCascadeAsync(
                 current.ChainId,
                 _factory.Clock.UtcNow,
-                ct));
+                ct), TestContext.Current.CancellationToken);
 
         var persistedChain =
             await store.GetChainAsync(
-                current.ChainId);
+                current.ChainId, TestContext.Current.CancellationToken);
 
         persistedChain.Should().NotBeNull();
         persistedChain!.IsRevoked.Should().BeTrue();
@@ -289,7 +289,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -303,7 +303,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var rootBefore =
             await store.GetActiveRootByUserAsync(
-                user.UserKey);
+                user.UserKey, TestContext.Current.CancellationToken);
 
         rootBefore.Should().NotBeNull();
         rootBefore!.IsRevoked.Should().BeFalse();
@@ -312,14 +312,14 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             ct => store.RevokeRootCascadeAsync(
                 user.UserKey,
                 _factory.Clock.UtcNow,
-                ct));
+                ct), TestContext.Current.CancellationToken);
 
         //
         // Active lookup must no longer return the revoked root.
         //
         var activeRootAfter =
             await store.GetActiveRootByUserAsync(
-                user.UserKey);
+                user.UserKey, TestContext.Current.CancellationToken);
 
         activeRootAfter.Should().BeNull();
 
@@ -328,7 +328,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         //
         var historicalRoot =
             await store.GetRootByIdAsync(
-                rootBefore.RootId);
+                rootBefore.RootId, TestContext.Current.CancellationToken);
 
         historicalRoot.Should().NotBeNull();
         historicalRoot!.IsRevoked.Should().BeTrue();
@@ -338,7 +338,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         //
         var chainAfter =
             await store.GetChainAsync(
-                current.ChainId);
+                current.ChainId, TestContext.Current.CancellationToken);
 
         chainAfter.Should().NotBeNull();
         chainAfter!.IsRevoked.Should().BeTrue();
@@ -356,7 +356,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var cookie =
             await LoginAsync(
@@ -427,7 +427,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var beforeCookie =
             await LoginAsync(
@@ -474,7 +474,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -507,7 +507,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -548,7 +548,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var originalCookie =
             await LoginAsync(
@@ -593,7 +593,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var cookie =
             await LoginAsync(
@@ -622,7 +622,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var clientA =
             CreateClient(
@@ -674,7 +674,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var originalClient =
             CreateClient(
@@ -723,7 +723,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -751,7 +751,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -776,7 +776,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -798,7 +798,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-race-{Guid.NewGuid():N}";
@@ -856,7 +856,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-concurrent-{Guid.NewGuid():N}";
@@ -934,7 +934,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-race-replay-{Guid.NewGuid():N}";
@@ -1004,7 +1004,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-race-chain-{Guid.NewGuid():N}";
@@ -1083,7 +1083,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"refresh-revoke-session-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1114,7 +1114,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 ct => store.RevokeSessionAsync(
                     before.ActiveSessionId!.Value,
                     _factory.Clock.UtcNow,
-                    ct));
+                    ct), TestContext.Current.CancellationToken);
         }
 
         client.DefaultRequestHeaders.Remove("Cookie");
@@ -1132,7 +1132,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"refresh-revoke-chain-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1157,7 +1157,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 ct => store.RevokeChainCascadeAsync(
                     before.ChainId,
                     _factory.Clock.UtcNow,
-                    ct));
+                    ct), TestContext.Current.CancellationToken);
         }
 
         client.DefaultRequestHeaders.Remove("Cookie");
@@ -1174,7 +1174,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"refresh-revoke-root-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1201,7 +1201,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 ct => store.RevokeRootCascadeAsync(
                     user.UserKey,
                     _factory.Clock.UtcNow,
-                    ct));
+                    ct), TestContext.Current.CancellationToken);
         }
 
         client.DefaultRequestHeaders.Remove("Cookie");
@@ -1218,7 +1218,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"refresh-replay-{Guid.NewGuid():N}";
 
         using var loginClient = CreateClient(deviceId);
@@ -1271,7 +1271,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         factory.Clock.Reset();
 
         var user =
-            await factory.CreateLoginUserAsync();
+            await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"refresh-replay-family-{Guid.NewGuid():N}";
@@ -1357,7 +1357,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId = $"refresh-duplicate-window-{Guid.NewGuid():N}";
 
@@ -1403,7 +1403,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceA =
             $"refresh-compromised-{Guid.NewGuid():N}";
@@ -1495,7 +1495,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"hybrid-expiry-before-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1524,7 +1524,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"hybrid-expiry-exact-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1553,7 +1553,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"hybrid-expiry-after-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -1590,7 +1590,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         factory.Clock.Reset();
 
         var user =
-            await factory.CreateLoginUserAsync();
+            await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-session-expiry-{Guid.NewGuid():N}";
@@ -1636,7 +1636,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         factory.Clock.Reset();
 
         var user =
-            await factory.CreateLoginUserAsync();
+            await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-idle-expiry-{Guid.NewGuid():N}";
@@ -1681,7 +1681,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         factory.Clock.Reset();
 
         var user =
-            await factory.CreateLoginUserAsync();
+            await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-idle-before-{Guid.NewGuid():N}";
@@ -1727,7 +1727,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         factory.Clock.Reset();
 
         var user =
-            await factory.CreateLoginUserAsync();
+            await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-idle-exact-{Guid.NewGuid():N}";
@@ -1768,7 +1768,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-cookie-rotate-{Guid.NewGuid():N}";
@@ -1812,7 +1812,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-cookie-session-{Guid.NewGuid():N}";
@@ -1857,7 +1857,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-cookie-failure-{Guid.NewGuid():N}";
@@ -1909,7 +1909,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-cookie-replay-{Guid.NewGuid():N}";
@@ -1972,7 +1972,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"hybrid-cookie-race-{Guid.NewGuid():N}";
@@ -2063,7 +2063,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await LoginAsync(
             user,
@@ -2095,7 +2095,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var originalCookies =
             await LoginAsync(
@@ -2148,7 +2148,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var userA =
             await factory.CreateLoginUserAsync(
-                tenant: tenantA);
+                tenant: tenantA, ct: TestContext.Current.CancellationToken);
 
         using var loginClient =
             CreateClient(
@@ -2210,7 +2210,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var userA =
             await factory.CreateLoginUserAsync(
-                tenant: tenantA);
+                tenant: tenantA, ct: TestContext.Current.CancellationToken);
 
         var deviceId =
             $"tenant-isolation-{Guid.NewGuid():N}";
@@ -2306,11 +2306,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var userA =
             await factory.CreateLoginUserAsync(
-                tenant: tenantA);
+                tenant: tenantA, ct: TestContext.Current.CancellationToken);
 
         var userB =
             await factory.CreateLoginUserAsync(
-                tenant: tenantB);
+                tenant: tenantB, ct: TestContext.Current.CancellationToken);
 
         using var clientA =
             CreateClient(
@@ -2379,11 +2379,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var userA =
             await factory.CreateLoginUserAsync(
-                tenant: tenantA);
+                tenant: tenantA, ct: TestContext.Current.CancellationToken);
 
         var userB =
             await factory.CreateLoginUserAsync(
-                tenant: tenantB);
+                tenant: tenantB, ct: TestContext.Current.CancellationToken);
 
         using var clientA =
             CreateClient(factory, deviceId);
@@ -2444,7 +2444,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"maui-refresh-{Guid.NewGuid():N}");
@@ -2488,7 +2488,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         first.StatusCode.Should().Be(
             HttpStatusCode.NoContent,
-            $"first refresh failed: {await first.Content.ReadAsStringAsync()}");
+            $"first refresh failed: {await first.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)}");
 
         var rotatedRefreshToken = ReadCredential(first, "uar");
 
@@ -2517,7 +2517,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         second.StatusCode.Should().Be(
             HttpStatusCode.NoContent,
-            $"second refresh failed: {await second.Content.ReadAsStringAsync()}");
+            $"second refresh failed: {await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)}");
     }
 
 

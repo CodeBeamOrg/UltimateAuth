@@ -20,15 +20,15 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
-        var copy = await store.GetByIdAsync(id);
+        var copy = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
         var expected = copy!.Version;
 
         copy.ChangeValue("b@test.com", "b@test.com", now);
-        await store.SaveAsync(copy, expected);
+        await store.SaveAsync(copy, expected, ct: TestContext.Current.CancellationToken);
 
-        var updated = await store.GetByIdAsync(id);
+        var updated = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
 
         Assert.Equal(expected + 1, updated!.Version);
     }
@@ -41,18 +41,18 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
-        var copy1 = await store.GetByIdAsync(id);
-        var copy2 = await store.GetByIdAsync(id);
+        var copy1 = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
+        var copy2 = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
 
         var expected1 = copy1!.Version;
         copy1.MarkDeleted(now);
-        await store.SaveAsync(copy1, expected1);
+        await store.SaveAsync(copy1, expected1, ct: TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<UAuthConcurrencyException>(async () =>
         {
-            await store.DeleteAsync(copy2!.Id, copy2!.Version, DeleteMode.Soft, now);
+            await store.DeleteAsync(copy2!.Id, copy2!.Version, DeleteMode.Soft, now, ct: TestContext.Current.CancellationToken);
         });
     }
 
@@ -64,7 +64,7 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         int success = 0;
         int conflicts = 0;
@@ -97,7 +97,7 @@ public class IdentifierConcurrencyTests
         Assert.Equal(1, success);
         Assert.Equal(1, conflicts);
 
-        var final = await store.GetByIdAsync(id);
+        var final = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
         Assert.True(final!.IsPrimary);
         Assert.Equal(1, final.Version);
     }
@@ -111,21 +111,21 @@ public class IdentifierConcurrencyTests
         var tenant = TenantKey.Single;
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
-        var copy1 = await store.GetByIdAsync(id);
-        var copy2 = await store.GetByIdAsync(id);
+        var copy1 = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
+        var copy2 = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
 
         var expected1 = copy1!.Version;
         copy1.ChangeValue("b@test.com", "b@test.com", now);
-        await store.SaveAsync(copy1, expected1);
+        await store.SaveAsync(copy1, expected1, ct: TestContext.Current.CancellationToken);
 
         var expected2 = copy2!.Version;
         copy2.ChangeValue("c@test.com", "c@test.com", now);
 
         await Assert.ThrowsAsync<UAuthConcurrencyException>(async () =>
         {
-            await store.SaveAsync(copy2, expected2);
+            await store.SaveAsync(copy2, expected2, ct: TestContext.Current.CancellationToken);
         });
     }
 
@@ -138,7 +138,7 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         int success = 0;
         int conflicts = 0;
@@ -174,7 +174,7 @@ public class IdentifierConcurrencyTests
         Assert.Equal(1, success);
         Assert.Equal(1, conflicts);
 
-        var final = await store.GetByIdAsync(id);
+        var final = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(final);
         Assert.Equal(1, final!.Version);
@@ -189,7 +189,7 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "initial@test.com", "initial@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         int success = 0;
         int conflicts = 0;
@@ -222,7 +222,7 @@ public class IdentifierConcurrencyTests
         Assert.True(success >= 1);
         Assert.Equal(20, success + conflicts);
 
-        var final = await store.GetByIdAsync(id);
+        var final = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
         Assert.Equal(success, final!.Version);
     }
 
@@ -236,7 +236,7 @@ public class IdentifierConcurrencyTests
         var id = Guid.NewGuid();
 
         var identifier = UserIdentifier.Create(id, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "primary@test.com", "primary@test.com", now);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         int success = 0;
         int conflicts = 0;
@@ -269,7 +269,7 @@ public class IdentifierConcurrencyTests
         Assert.Equal(1, success);
         Assert.Equal(19, conflicts);
 
-        var final = await store.GetByIdAsync(id);
+        var final = await store.GetByIdAsync(id, ct: TestContext.Current.CancellationToken);
 
         Assert.True(final!.IsPrimary);
         Assert.Equal(1, final.Version);
@@ -289,8 +289,8 @@ public class IdentifierConcurrencyTests
         var identifier1 = UserIdentifier.Create(id1, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "a@test.com", "a@test.com", now);
         var identifier2 = UserIdentifier.Create(id2, TenantKey.Single, TestUsers.Admin, UserIdentifierType.Email, "b@test.com", "b@test.com", now);
 
-        await store.AddAsync(identifier1);
-        await store.AddAsync(identifier2);
+        await store.AddAsync(identifier1, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(identifier2, ct: TestContext.Current.CancellationToken);
 
         int success = 0;
         int conflicts = 0;
@@ -318,7 +318,7 @@ public class IdentifierConcurrencyTests
             {
                 Interlocked.Increment(ref conflicts);
             }
-        }),
+        }, cancellationToken: TestContext.Current.CancellationToken),
         Task.Run(async () =>
         {
             try
@@ -338,7 +338,7 @@ public class IdentifierConcurrencyTests
             {
                 Interlocked.Increment(ref conflicts);
             }
-        })
+        }, cancellationToken: TestContext.Current.CancellationToken)
     };
 
         await Task.WhenAll(tasks);
@@ -346,7 +346,7 @@ public class IdentifierConcurrencyTests
         Assert.Equal(2, success);
         Assert.Equal(0, conflicts);
 
-        var all = await store.GetByUserAsync(user);
+        var all = await store.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         var primaries = all
             .Where(x => x.Type == UserIdentifierType.Email && x.IsPrimary)

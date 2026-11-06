@@ -181,7 +181,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
             new(db), new(db, NullLogger<ActivityLogService>.Instance));
         Assert.True((await registration.RegisterAsync(new("owner", "owner@example.test", "test-password-8!"), TestContext.Current.CancellationToken)).IsSuccess);
         UserKey owner;
-        await using (var verify = db.CreateDbContext()) owner = (await verify.Sandboxes.SingleAsync()).OwnerUserKey;
+        await using (var verify = db.CreateDbContext()) owner = (await verify.Sandboxes.SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).OwnerUserKey;
         var before = await db.SnapshotAsync();
         var failedStore = new Moq.Mock<IUserRoleStore>();
         failedStore.Setup(x => x.GetAssignmentsAsync(Moq.It.IsAny<UserKey>(), Moq.It.IsAny<CancellationToken>()))
