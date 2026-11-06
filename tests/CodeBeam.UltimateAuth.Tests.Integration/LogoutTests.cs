@@ -23,7 +23,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"logout-basic-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -51,7 +51,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"logout-cookie-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -93,7 +93,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"logout-invalidation-{Guid.NewGuid():N}";
 
         using var client = CreateClient(deviceId);
@@ -131,7 +131,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"logout-replay-{Guid.NewGuid():N}";
 
         using var originalClient = CreateClient(deviceId);
@@ -175,7 +175,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-device-1-{Guid.NewGuid():N}";
         var device2 = $"logout-device-2-{Guid.NewGuid():N}";
@@ -236,8 +236,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user1 = await _factory.CreateLoginUserAsync();
-        var user2 = await _factory.CreateLoginUserAsync();
+        var user1 = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var user2 = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client1 = CreateClient(
             $"logout-user-1-{Guid.NewGuid():N}");
@@ -289,7 +289,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-detach-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -305,11 +305,11 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             {
                 PageNumber = 1,
                 PageSize = 50
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         beforeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var before = await beforeResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var before = await beforeResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -325,7 +325,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         logout.StatusCode.Should().Be(HttpStatusCode.Found);
 
 
-        var oldSessionResponse = await client.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
+        var oldSessionResponse = await client.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest(), cancellationToken: TestContext.Current.CancellationToken);
         oldSessionResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
 
@@ -341,11 +341,11 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             {
                 PageNumber = 1,
                 PageSize = 50
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         afterResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var after = await afterResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var after = await afterResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
         after.Should().NotBeNull();
 
         var currentAfter = after!.Items.Single(x => x.IsCurrentDevice);
@@ -363,7 +363,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-old-session-{Guid.NewGuid():N}";
 
         using var firstClient = CreateClient(device);
@@ -387,14 +387,14 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         secondClient.DefaultRequestHeaders.Add("Cookie", newCookie);
 
-        var newSessionResponse = await secondClient.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
+        var newSessionResponse = await secondClient.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
         newSessionResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var replayClient = CreateClient(device);
         replayClient.DefaultRequestHeaders.Add("Cookie", oldCookie);
 
-        var replayResponse = await replayClient.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest());
+        var replayResponse = await replayClient.PostAsJsonAsync("/auth/me/sessions/chains", new PageRequest(), cancellationToken: TestContext.Current.CancellationToken);
         replayResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -403,7 +403,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-device-1-{Guid.NewGuid():N}";
         var device2 = $"logout-device-2-{Guid.NewGuid():N}";
@@ -438,7 +438,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         beforeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -469,7 +469,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         device2Result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var after = await device2Result.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var after = await device2Result.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -485,7 +485,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-not-revoke-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -507,7 +507,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             });
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -539,7 +539,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             });
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -575,7 +575,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-idempotent-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -618,7 +618,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var validDevice =
             $"logout-valid-{Guid.NewGuid():N}";
@@ -669,7 +669,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         validSession.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var chains = await validSession.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -684,7 +684,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-stale-{Guid.NewGuid():N}";
 
         //
@@ -742,7 +742,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         beforeReplay.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var beforeChains = await beforeReplay.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         beforeChains.Should().NotBeNull();
 
@@ -783,7 +783,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         afterReplay.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var afterChains = await afterReplay.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         afterChains.Should().NotBeNull();
 
@@ -800,7 +800,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-cycle-{Guid.NewGuid():N}";
 
         SessionChainId? expectedChainId = null;
@@ -834,7 +834,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var chains = await chainsResponse.Content
-                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
             chains.Should().NotBeNull();
 
@@ -880,7 +880,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 =
             $"logout-stale-device-1-{Guid.NewGuid():N}";
@@ -930,7 +930,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await device2BeforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -968,7 +968,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await device2AfterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -985,7 +985,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-no-credentials-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1042,7 +1042,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-cookie-path-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1088,7 +1088,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-no-reissue-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1158,7 +1158,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-cookie-value-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1210,7 +1210,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-concurrent-same-{Guid.NewGuid():N}";
 
         using var loginClient = CreateClient(device);
@@ -1241,7 +1241,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         {
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var body = await response.Content.ReadAsStringAsync();
+                var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
                 body.Should().Contain("invalid_antiforgery_token");
                 continue;
@@ -1275,7 +1275,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 =
             $"logout-concurrent-device-1-{Guid.NewGuid():N}";
@@ -1347,7 +1347,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device =
             $"logout-concurrent-request-{Guid.NewGuid():N}";
 
@@ -1420,7 +1420,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device =
             $"logout-relogin-race-{Guid.NewGuid():N}";
@@ -1558,7 +1558,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-device-self-1-{Guid.NewGuid():N}";
         var device2 = $"logout-device-self-2-{Guid.NewGuid():N}";
@@ -1580,7 +1580,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -1611,7 +1611,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-device-keep-{Guid.NewGuid():N}";
         var device2 = $"logout-device-target-{Guid.NewGuid():N}";
@@ -1631,7 +1631,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await GetChainsAsync(client1);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -1679,7 +1679,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-device-observer-{Guid.NewGuid():N}";
         var device2 = $"logout-device-revoked-{Guid.NewGuid():N}";
@@ -1696,7 +1696,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         var beforeResponse = await GetChainsAsync(client1);
 
-        var before = await beforeResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var before = await beforeResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -1717,7 +1717,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         afterResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var after = await afterResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var after = await afterResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -1751,8 +1751,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var attacker = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var attacker = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var attackerDevice =
             $"logout-device-attacker-{Guid.NewGuid():N}";
@@ -1793,7 +1793,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var victimChains = await victimChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         victimChains.Should().NotBeNull();
 
@@ -1825,7 +1825,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-device-current-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1848,7 +1848,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -1880,7 +1880,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var device = $"logout-device-unknown-{Guid.NewGuid():N}";
 
         using var client = CreateClient(device);
@@ -1926,7 +1926,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-device-repeat-actor-{Guid.NewGuid():N}";
@@ -1960,7 +1960,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await GetChainsAsync(actorClient);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -2021,7 +2021,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-device-relogin-actor-{Guid.NewGuid():N}";
@@ -2056,7 +2056,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(actorClient);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -2122,7 +2122,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -2146,7 +2146,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-others-current-{Guid.NewGuid():N}";
         var device2 = $"logout-others-other-1-{Guid.NewGuid():N}";
@@ -2203,7 +2203,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var currentDevice =
             $"logout-others-keep-current-{Guid.NewGuid():N}";
@@ -2244,7 +2244,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -2272,7 +2272,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -2301,7 +2301,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-others-observer-{Guid.NewGuid():N}";
@@ -2353,7 +2353,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -2385,7 +2385,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -2420,8 +2420,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         //
         // Actor owns two devices so logout-others actually has work to do.
@@ -2515,7 +2515,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device =
             $"logout-others-single-{Guid.NewGuid():N}";
@@ -2539,7 +2539,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -2567,7 +2567,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -2586,7 +2586,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"logout-others-repeat-actor-{Guid.NewGuid():N}");
@@ -2643,7 +2643,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-others-replay-actor-{Guid.NewGuid():N}";
@@ -2710,7 +2710,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-others-relogin-actor-{Guid.NewGuid():N}";
@@ -2748,7 +2748,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -2813,7 +2813,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -2847,7 +2847,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice = $"logout-others-concurrent-actor-{Guid.NewGuid():N}";
 
@@ -2950,7 +2950,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"logout-all-device-1-{Guid.NewGuid():N}";
         var device2 = $"logout-all-device-2-{Guid.NewGuid():N}";
@@ -3006,7 +3006,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device =
             $"logout-all-current-{Guid.NewGuid():N}";
@@ -3070,7 +3070,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 =
             $"logout-all-chain-1-{Guid.NewGuid():N}";
@@ -3112,7 +3112,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -3171,7 +3171,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var after = await afterResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         after.Should().NotBeNull();
 
@@ -3210,8 +3210,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient1 = CreateClient(
             $"logout-all-actor-1-{Guid.NewGuid():N}");
@@ -3302,7 +3302,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 =
             $"logout-all-relogin-1-{Guid.NewGuid():N}";
@@ -3337,7 +3337,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(client1);
 
         var before = await beforeResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(TestContext.Current.CancellationToken);
 
         before.Should().NotBeNull();
 
@@ -3421,7 +3421,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var actorDevice =
             $"logout-all-concurrent-actor-{Guid.NewGuid():N}";
@@ -3470,7 +3470,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var body = await response.Content
-                    .ReadFromJsonAsync<Dictionary<string, string>>();
+                    .ReadFromJsonAsync<Dictionary<string, string>>(TestContext.Current.CancellationToken);
 
                 body.Should().NotBeNull();
                 body.Should().ContainKey("error")
