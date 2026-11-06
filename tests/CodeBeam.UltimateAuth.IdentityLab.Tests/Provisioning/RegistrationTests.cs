@@ -43,10 +43,10 @@ public sealed class RegistrationTests(PostgresFixture postgres) : IClassFixture<
         assignments.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(userStore.Object);
         var service = new LabRegistrationService(ActorProvider.For(null), users.Object, roles.Object,
             assignments.Object, new(db), new(db, NullLogger<ActivityLogService>.Instance));
-        var result = await service.RegisterAsync(new LabRegistrationRequest(" alice ", "alice@example.test", "test-password"));
+        var result = await service.RegisterAsync(new LabRegistrationRequest(" alice ", "alice@example.test", "test-password"), TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess);
         await using var verify = db.CreateDbContext();
-        var sandbox = await verify.Sandboxes.Include(x => x.Members).SingleAsync();
+        var sandbox = await verify.Sandboxes.Include(x => x.Members).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(LabDatabase.OwnerA, sandbox.OwnerUserKey);
         Assert.Equal(LabDatabase.OwnerA, Assert.Single(sandbox.Members).UserKey);
         userStore.Verify(x => x.AssignAsync(LabDatabase.OwnerA, LabRoleIds.Owner,

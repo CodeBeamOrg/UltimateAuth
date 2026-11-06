@@ -7,12 +7,12 @@ ENV CI=true
 COPY docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm/*.csproj CodeBeam.Website/
 COPY docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.Client/*.csproj CodeBeam.Website.Client/
 
-RUN dotnet restore CodeBeam.Website/CodeBeam.UltimateAuth.Docs.Wasm.csproj
+RUN dotnet restore CodeBeam.Website/CodeBeam.UltimateAuth.Docs.Wasm.csproj -p:UltimateAuthBuildTargetFrameworks=net10.0
 
 COPY . .
 
 RUN dotnet publish docs/website/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm/CodeBeam.UltimateAuth.Docs.Wasm.csproj \
-    -c Release -o /app/publish
+    -c Release -p:UltimateAuthBuildTargetFrameworks=net10.0 -o /app/publish
 
 # RUNTIME
 FROM mcr.microsoft.com/dotnet/aspnet:10.0

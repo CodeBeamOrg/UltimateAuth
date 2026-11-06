@@ -72,7 +72,7 @@ public sealed class UserCreationAtomicityTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CreateUserAsync(
                 context,
-                request));
+                request, TestContext.Current.CancellationToken));
 
         exception.Message.Should()
             .Be("simulated_identifier_store_failure");
@@ -103,11 +103,11 @@ public sealed class UserCreationAtomicityTests
 
         var identifierStore = identifierFactory.Create(tenant);
 
-        var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey));
+        var lifecycle = await lifecycleStore.GetAsync(new UserLifecycleKey(tenant, userKey), TestContext.Current.CancellationToken);
 
-        var profiles = await profileStore.GetAllProfilesByUserAsync(userKey);
+        var profiles = await profileStore.GetAllProfilesByUserAsync(userKey, TestContext.Current.CancellationToken);
 
-        var identifiers = await identifierStore.GetByUserAsync(userKey);
+        var identifiers = await identifierStore.GetByUserAsync(userKey, TestContext.Current.CancellationToken);
 
         lifecycle.Should().BeNull("failed user creation must not leave a lifecycle aggregate");
 

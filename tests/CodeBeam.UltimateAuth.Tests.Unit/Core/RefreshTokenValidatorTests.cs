@@ -38,7 +38,7 @@ public sealed class RefreshTokenValidatorTests
                 RefreshToken = "non-existing",
                 Now = DateTimeOffset.UtcNow,
                 Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Equal(RefreshTokenValidationState.NotFound, result.State);
@@ -69,7 +69,7 @@ public sealed class RefreshTokenValidatorTests
             now.AddMinutes(5));
 
         await store.StoreAsync(
-            token.Revoke(now));
+            token.Revoke(now), ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -84,7 +84,7 @@ public sealed class RefreshTokenValidatorTests
                     null,
                     null,
                     null)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Equal(
@@ -119,7 +119,7 @@ public sealed class RefreshTokenValidatorTests
         await store.StoreAsync(
             token.Revoke(
                 now,
-                "replacement-refresh-token-hash"));
+                "replacement-refresh-token-hash"), ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -134,7 +134,7 @@ public sealed class RefreshTokenValidatorTests
                     null,
                     null,
                     null)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Equal(
@@ -180,7 +180,7 @@ public sealed class RefreshTokenValidatorTests
             now,
             now.AddMinutes(10));
 
-        await store.StoreAsync(token);
+        await store.StoreAsync(token, ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -198,7 +198,7 @@ public sealed class RefreshTokenValidatorTests
                     null,
                     null,
                     null),
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -238,7 +238,7 @@ public sealed class RefreshTokenValidatorTests
             now.AddMinutes(-10),
             now.AddMinutes(-1));
 
-        await store.StoreAsync(token);
+        await store.StoreAsync(token, ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -253,7 +253,7 @@ public sealed class RefreshTokenValidatorTests
                     null,
                     null,
                     null),
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -286,7 +286,7 @@ public sealed class RefreshTokenValidatorTests
             now,
             now.AddMinutes(10));
 
-        await store.StoreAsync(token);
+        await store.StoreAsync(token, ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -295,7 +295,7 @@ public sealed class RefreshTokenValidatorTests
                 RefreshToken = raw,
                 Now = now,
                 Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.IsValid);
         Assert.Equal(RefreshTokenValidationState.Valid, result.State);
@@ -325,7 +325,7 @@ public sealed class RefreshTokenValidatorTests
             now,
             now.AddMinutes(10));
 
-        await store.StoreAsync(token.Revoke(now, "new-hash"));
+        await store.StoreAsync(token.Revoke(now, "new-hash"), ct: TestContext.Current.CancellationToken);
 
         var result = await validator.ValidateAsync(
             new RefreshTokenValidationContext
@@ -334,7 +334,7 @@ public sealed class RefreshTokenValidatorTests
                 RefreshToken = raw,
                 Now = now,
                 Device = DeviceContext.Create(DeviceId.Create(ValidDeviceId), null, null, null, null, null),
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Equal(RefreshTokenValidationState.Consumed, result.State);

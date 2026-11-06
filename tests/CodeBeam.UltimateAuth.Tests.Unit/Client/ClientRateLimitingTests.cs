@@ -64,16 +64,16 @@ public sealed class ClientRateLimitingTests : UAuthClientTestBase
             .ReturnsAsync(new UAuthTransportResult { Status = 200, Ok = true, Body = JsonSerializer.SerializeToElement(new AuthValidationResult { State = SessionState.Revoked }) });
         using var manager = new UAuthStateManager(CreateClient(flows: CreateFlowClient()), Events.Object, clock);
         var provider = new UAuthAuthenticationStateProvider(manager);
-        await manager.EnsureAsync();
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
         var lastValidated = manager.State.LastValidatedAt;
-        await manager.EnsureAsync(force: true);
-        await manager.EnsureAsync(force: true);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
         Assert.True(manager.State.IsAuthenticated);
         Assert.True((await provider.GetAuthenticationStateAsync()).User.Identity!.IsAuthenticated);
         Assert.Equal(lastValidated, manager.State.LastValidatedAt);
         Request.Verify(x => x.SendFormAsync("/auth/validate", null, It.IsAny<CancellationToken>()), Times.Exactly(2));
         clock.Advance(TimeSpan.FromMinutes(2));
-        await manager.EnsureAsync(force: true);
+        await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
         Assert.False(manager.State.IsAuthenticated);
         Assert.False((await provider.GetAuthenticationStateAsync()).User.Identity!.IsAuthenticated);
     }

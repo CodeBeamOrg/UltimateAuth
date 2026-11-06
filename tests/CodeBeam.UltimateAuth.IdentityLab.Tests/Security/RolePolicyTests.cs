@@ -15,7 +15,7 @@ public sealed class RolePolicyTests
         var context = Contexts.Create(UAuthActions.Authorization.Roles.AssignAdmin,
             CodeBeam.UltimateAuth.Core.Domain.UserKey.FromString(actor),
             LabDatabase.MemberA, attributes: new Dictionary<string, object> { ["roles"] = new[] { LabRoleIds.Admin } });
-        var result = await new LabApplicationPolicy().DecideAsync(context);
+        var result = await new LabApplicationPolicy().DecideAsync(context, TestContext.Current.CancellationToken);
         Assert.True(result.IsDenied);
         Assert.Equal("lab_role_management_restricted", result.DenyReason);
     }
@@ -25,11 +25,11 @@ public sealed class RolePolicyTests
     {
         var policy = new LabApplicationPolicy();
         Assert.True((await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Authorization.Roles.AssignAdmin, system: true))).IsAllowed);
+            UAuthActions.Authorization.Roles.AssignAdmin, system: true), TestContext.Current.CancellationToken)).IsAllowed);
         Assert.True((await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Authorization.Roles.GetSelf, LabDatabase.MemberA))).IsAllowed);
+            UAuthActions.Authorization.Roles.GetSelf, LabDatabase.MemberA), TestContext.Current.CancellationToken)).IsAllowed);
         Assert.True((await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Authorization.Roles.GetSelf))).IsDenied);
+            UAuthActions.Authorization.Roles.GetSelf), TestContext.Current.CancellationToken)).IsDenied);
     }
 
     [Theory]

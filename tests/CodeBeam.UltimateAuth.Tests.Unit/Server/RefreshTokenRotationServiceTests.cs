@@ -35,7 +35,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
-        var result = await sut.RotateAsync(CreateFlow(), CreateContext());
+        var result = await sut.RotateAsync(CreateFlow(), CreateContext(), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();
@@ -73,7 +73,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var result = await sut.RotateAsync(
             CreateFlow(),
-            CreateContext());
+            CreateContext(), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();
@@ -131,7 +131,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
-            CreateContext(token.SessionId));
+            CreateContext(token.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
 
@@ -225,7 +225,7 @@ public sealed class RefreshTokenRotationServiceTests
                 CreateFlow(
                     tenant,
                     multiTenant: true),
-                CreateContext(sessionId));
+                CreateContext(sessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should()
             .BeFalse();
@@ -288,7 +288,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId));
+            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();
@@ -345,7 +345,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
 
-        var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId));
+        var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeTrue();
         result.Result.AccessToken.Should().BeSameAs(accessToken);
@@ -420,7 +420,7 @@ public sealed class RefreshTokenRotationServiceTests
             CreateFlow(
                 tenant,
                 multiTenant: true),
-            CreateContext(validation.SessionId));
+            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeTrue();
 
@@ -462,7 +462,7 @@ public sealed class RefreshTokenRotationServiceTests
             CreateFlow(
                 TenantKey.Single,
                 multiTenant: false),
-            CreateContext(validation.SessionId));
+            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeTrue();
 
@@ -519,7 +519,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var result = await sut.RotateAsync(
             CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId));
+            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();
@@ -639,7 +639,7 @@ public sealed class RefreshTokenRotationServiceTests
 
         var result = await sut.RotateAsync(
             flow,
-            CreateContext());
+            CreateContext(), ct: TestContext.Current.CancellationToken);
 
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();

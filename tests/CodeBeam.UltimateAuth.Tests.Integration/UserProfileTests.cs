@@ -7,13 +7,15 @@ using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
-public class UserProfileTests : IClassFixture<AuthServerFactory>
+public class UserProfileTests : IDisposable
 {
+    // Profiles created by one test must not exist in another test's host.
+    private readonly AuthServerFactory _factory = new();
     private readonly HttpClient _client;
 
-    public UserProfileTests(AuthServerFactory factory)
+    public UserProfileTests()
     {
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -21,6 +23,12 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
 
         _client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         _client.DefaultRequestHeaders.Add("X-UDID", $"profile-test-{Guid.NewGuid():N}");
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _factory.Dispose();
     }
 
     [Fact]
@@ -31,7 +39,7 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
         var defaultResponse = await PostProfileAsync("/auth/me/profile/get", new { });
         defaultResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var defaultProfile = await defaultResponse.Content.ReadFromJsonAsync<UserView>();
+        var defaultProfile = await defaultResponse.Content.ReadFromJsonAsync<UserView>(cancellationToken: TestContext.Current.CancellationToken);
         defaultProfile.Should().NotBeNull();
 
         var createResponse = await PostProfileAsync("/auth/me/profile/create", new CreateProfileRequest
@@ -56,14 +64,14 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
 
         businessResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var businessProfile = await businessResponse.Content.ReadFromJsonAsync<UserView>();
+        var businessProfile = await businessResponse.Content.ReadFromJsonAsync<UserView>(cancellationToken: TestContext.Current.CancellationToken);
 
         businessProfile.Should().NotBeNull();
         businessProfile!.DisplayName.Should().Be("Updated Business Name");
 
         var defaultAgainResponse = await PostProfileAsync("/auth/me/profile/get", new { });
 
-        var defaultAgain = await defaultAgainResponse.Content.ReadFromJsonAsync<UserView>();
+        var defaultAgain = await defaultAgainResponse.Content.ReadFromJsonAsync<UserView>(cancellationToken: TestContext.Current.CancellationToken);
 
         defaultAgain!.DisplayName.Should().Be(defaultProfile!.DisplayName);
     }
@@ -73,9 +81,9 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     {
         await Login();
 
-        var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new { });
+        var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var profile = await response.Content.ReadFromJsonAsync<UserView>();
+        var profile = await response.Content.ReadFromJsonAsync<UserView>(cancellationToken: TestContext.Current.CancellationToken);
 
         profile.Should().NotBeNull();
         profile!.ProfileKey.Value.Should().Be("default");

@@ -50,7 +50,7 @@ public sealed class ResourceApiAuthorizationTests
             await ResourceApiTestHost.CreateAsync(validator.Object);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -75,7 +75,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -99,7 +99,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -129,7 +129,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Forbidden);
@@ -166,7 +166,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -224,7 +224,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -267,7 +267,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -316,7 +316,7 @@ public sealed class ResourceApiAuthorizationTests
             HttpMethod.Put,
             "/__tests/resource/products/42");
 
-        var response = await host.Client.SendAsync(request);
+        var response = await host.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -356,7 +356,7 @@ public sealed class ResourceApiAuthorizationTests
         AddSession(host.Client);
 
         using var response = await host.Client.GetAsync(
-            "/__tests/resource/products/read");
+            "/__tests/resource/products/read", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
@@ -364,7 +364,7 @@ public sealed class ResourceApiAuthorizationTests
             .MediaType.Should().Be("application/problem+json");
 
         var problem = await response.Content
-            .ReadFromJsonAsync<ProblemDetails>();
+            .ReadFromJsonAsync<ProblemDetails>(cancellationToken: TestContext.Current.CancellationToken);
 
         problem.Should().NotBeNull();
         problem!.Status.Should().Be(401);

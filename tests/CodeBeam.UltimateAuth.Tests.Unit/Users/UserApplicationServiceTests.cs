@@ -103,7 +103,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.CreateUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -156,7 +156,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.CreateUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -201,7 +201,7 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.CreateUserAsync(context, request);
+        await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
 
         integration.Verify(x => x.OnUserCreatedAsync(
             context.ResourceTenant,
@@ -286,7 +286,7 @@ public sealed class UserApplicationServiceTests
 
         await f.Sut.ChangeUserStatusAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         lifecycle.Status.Should().Be(UserStatus.SelfSuspended);
 
@@ -429,7 +429,7 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.DeleteMeAsync(context);
+        await f.Sut.DeleteMeAsync(context, ct: TestContext.Current.CancellationToken);
 
         f.LifecycleStore.Verify(x => x.DeleteAsync(
             It.IsAny<UserLifecycleKey>(),
@@ -496,7 +496,7 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.DeleteMeAsync(context);
+        await f.Sut.DeleteMeAsync(context, ct: TestContext.Current.CancellationToken);
 
         integration.Verify(x => x.OnUserDeletedAsync(
             context.ResourceTenant,
@@ -574,7 +574,7 @@ public sealed class UserApplicationServiceTests
 
         await f.Sut.DeleteUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         f.LifecycleStore.Verify(x => x.DeleteAsync(
             It.IsAny<UserLifecycleKey>(),
@@ -1025,7 +1025,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = identifier.Id,
                 Proof = proof
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.IsVerified.Should().BeTrue();
         identifier.VerifiedAt.Should().Be(Now);
@@ -1189,7 +1189,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = target.Id,
                 Mode = DeleteMode.Soft
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         target.IsDeleted.Should().BeTrue();
         target.DeletedAt.Should().Be(Now);
@@ -1257,7 +1257,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = target.Id,
                 Mode = DeleteMode.Hard
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.IdentifierStore.Verify(x => x.DeleteAsync(
             target.Id,
@@ -1356,7 +1356,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = identifier.Id,
                 NewValue = "new@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.Value.Should().Be("new@example.com");
         identifier.NormalizedValue.Should().Be("new@example.com");
@@ -1405,7 +1405,7 @@ public sealed class UserApplicationServiceTests
             new SetPrimaryUserIdentifierRequest
             {
                 Id = identifier.Id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.IsPrimary.Should().BeTrue();
         identifier.UpdatedAt.Should().Be(Now);
@@ -1500,7 +1500,7 @@ public sealed class UserApplicationServiceTests
             new UnsetPrimaryUserIdentifierRequest
             {
                 Id = target.Id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         target.IsPrimary.Should().BeFalse();
         target.UpdatedAt.Should().Be(Now);
@@ -1573,7 +1573,7 @@ public sealed class UserApplicationServiceTests
             new DeleteUserRequest
             {
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
             target,
@@ -1672,7 +1672,7 @@ public sealed class UserApplicationServiceTests
             new DeleteUserRequest
             {
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.ProfileStore.Verify(x => x.DeleteAsync(
             new UserProfileKey(
@@ -1719,7 +1719,7 @@ public sealed class UserApplicationServiceTests
                 "invalid", "", false, "identifier_invalid"));
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "invalid");
+            context, UserIdentifierType.Email, "invalid", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -1751,7 +1751,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync((UserIdentifier?)null);
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "ALICE@EXAMPLE.COM");
+            context, UserIdentifierType.Email, "ALICE@EXAMPLE.COM", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -1787,7 +1787,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(identifier);
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "alice@example.com");
+            context, UserIdentifierType.Email, "alice@example.com", ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(identifier.Id);
@@ -1808,7 +1808,7 @@ public sealed class UserApplicationServiceTests
                 "invalid", "", false, "identifier_invalid"));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
-            context, UserIdentifierType.Email, "invalid");
+            context, UserIdentifierType.Email, "invalid", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
 
@@ -1848,7 +1848,7 @@ public sealed class UserApplicationServiceTests
             context,
             UserIdentifierType.Email,
             "ALICE@EXAMPLE.COM",
-            scope);
+            scope, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
 
@@ -1884,7 +1884,7 @@ public sealed class UserApplicationServiceTests
             context,
             UserIdentifierType.Username,
             "Alice",
-            IdentifierExistenceScope.WithinUser);
+            IdentifierExistenceScope.WithinUser, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
     }
@@ -1912,7 +1912,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(new UserIdentifierExistenceResult(Exists: false));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
-            context, UserIdentifierType.Username, "missing");
+            context, UserIdentifierType.Username, "missing", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -1948,7 +1948,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            Array.Empty<UserKey>());
+            Array.Empty<UserKey>(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
 
@@ -1996,7 +1996,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            [first, first, second]);
+            [first, first, second], ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
 
@@ -2033,7 +2033,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            keys);
+            keys, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
 
@@ -2162,7 +2162,7 @@ public sealed class UserApplicationServiceTests
         SetupValidCreate(f, context, request);
         SetupSuccessfulCreatePersistence(f);
 
-        var result = await f.Sut.CreateUserAsync(context, request);
+        var result = await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -2201,7 +2201,7 @@ public sealed class UserApplicationServiceTests
         SetupValidCreate(f, context, request);
         SetupSuccessfulCreatePersistence(f);
 
-        var result = await f.Sut.CreateUserAsync(context, request);
+        var result = await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 

@@ -24,13 +24,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve supported SDKs
+        id: frameworks
+        env:
+          DOTNET_NOLOGO: '1'
+        shell: bash
+        run: |
+          frameworks=$(dotnet msbuild src/CodeBeam.UltimateAuth.Core/CodeBeam.UltimateAuth.Core.csproj -nologo -getProperty:UltimateAuthTargetFrameworks)
+          {
+            echo 'sdks<<SDKS'
+            IFS=';' read -ra targets <<< "$frameworks"
+            for target in "${targets[@]}"; do
+              echo "${target#net}.x"
+            done
+            echo 'SDKS'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
+          dotnet-version: ${{ steps.frameworks.outputs.sdks }}
 
       - name: Verify package version
         shell: bash

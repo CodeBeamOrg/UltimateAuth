@@ -31,13 +31,13 @@ public sealed class SessionApplicationServiceTests
         var root = await CreateRootAsync(store, user);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-30)));
+            CreateChain(root, Now.AddMinutes(-30)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-20)));
+            CreateChain(root, Now.AddMinutes(-20)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-10)));
+            CreateChain(root, Now.AddMinutes(-10)), ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
@@ -46,7 +46,7 @@ public sealed class SessionApplicationServiceTests
             {
                 PageNumber = 2,
                 PageSize = 2
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(3);
         result.PageNumber.Should().Be(2);
@@ -70,8 +70,8 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddMinutes(-5));
 
-        await store.CreateChainAsync(actorChain);
-        await store.CreateChainAsync(otherChain);
+        await store.CreateChainAsync(actorChain, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(otherChain, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user, actorChain.ChainId),
@@ -80,7 +80,7 @@ public sealed class SessionApplicationServiceTests
             {
                 PageNumber = 1,
                 PageSize = 10
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
 
@@ -111,9 +111,9 @@ public sealed class SessionApplicationServiceTests
         var second = CreateChain(root, Now.AddMinutes(-20));
         var third = CreateChain(root, Now.AddMinutes(-10));
 
-        await store.CreateChainAsync(first);
-        await store.CreateChainAsync(second);
-        await store.CreateChainAsync(third);
+        await store.CreateChainAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(second, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(third, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
@@ -124,7 +124,7 @@ public sealed class SessionApplicationServiceTests
                 PageSize = 10,
                 SortBy = nameof(SessionChainSummary.ChainId),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.ChainId.Value)
@@ -141,13 +141,13 @@ public sealed class SessionApplicationServiceTests
         var root = await CreateRootAsync(store, user);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-30)));
+            CreateChain(root, Now.AddMinutes(-30)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-20)));
+            CreateChain(root, Now.AddMinutes(-20)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-10)));
+            CreateChain(root, Now.AddMinutes(-10)), ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
@@ -158,7 +158,7 @@ public sealed class SessionApplicationServiceTests
                 PageSize = 10,
                 SortBy = nameof(SessionChainSummary.ChainId),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.ChainId.Value)
@@ -176,13 +176,13 @@ public sealed class SessionApplicationServiceTests
 
         // Deliberately insert in non-chronological order.
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-5)));
+            CreateChain(root, Now.AddMinutes(-5)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-30)));
+            CreateChain(root, Now.AddMinutes(-30)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-15)));
+            CreateChain(root, Now.AddMinutes(-15)), ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
@@ -193,7 +193,7 @@ public sealed class SessionApplicationServiceTests
                 PageSize = 10,
                 SortBy = nameof(SessionChainSummary.CreatedAt),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.CreatedAt)
@@ -210,13 +210,13 @@ public sealed class SessionApplicationServiceTests
         var root = await CreateRootAsync(store, user);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-5)));
+            CreateChain(root, Now.AddMinutes(-5)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-30)));
+            CreateChain(root, Now.AddMinutes(-30)), ct: TestContext.Current.CancellationToken);
 
         await store.CreateChainAsync(
-            CreateChain(root, Now.AddMinutes(-15)));
+            CreateChain(root, Now.AddMinutes(-15)), ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
@@ -227,7 +227,7 @@ public sealed class SessionApplicationServiceTests
                 PageSize = 10,
                 SortBy = nameof(SessionChainSummary.CreatedAt),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.CreatedAt)
@@ -268,7 +268,7 @@ public sealed class SessionApplicationServiceTests
             ownerRoot,
             Now.AddMinutes(-10));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var act = () => sut.GetUserChainDetailAsync(
             Context(requestedUser),
@@ -291,7 +291,7 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var older = CreateSession(
             user,
@@ -305,13 +305,13 @@ public sealed class SessionApplicationServiceTests
             Now.AddMinutes(-10),
             "newer-session");
 
-        await store.CreateSessionAsync(older);
-        await store.CreateSessionAsync(newer);
+        await store.CreateSessionAsync(older, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(newer, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainDetailAsync(
             Context(user),
             user,
-            chain.ChainId);
+            chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.ChainId.Should().Be(chain.ChainId);
 
@@ -345,16 +345,16 @@ public sealed class SessionApplicationServiceTests
             Now.AddMinutes(-30),
             "session-to-revoke");
 
-        await store.CreateChainAsync(chain);
-        await store.CreateSessionAsync(session);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(session, ct: TestContext.Current.CancellationToken);
 
         await sut.RevokeUserSessionAsync(
             Context(user),
             user,
-            session.SessionId);
+            session.SessionId, ct: TestContext.Current.CancellationToken);
 
         var persisted =
-            await store.GetSessionAsync(session.SessionId);
+            await store.GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -381,8 +381,8 @@ public sealed class SessionApplicationServiceTests
             Now.AddMinutes(-30),
             "foreign-session");
 
-        await store.CreateChainAsync(chain);
-        await store.CreateSessionAsync(session);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(session, ct: TestContext.Current.CancellationToken);
 
         var act = () => sut.RevokeUserSessionAsync(
             Context(caller),
@@ -391,7 +391,7 @@ public sealed class SessionApplicationServiceTests
 
         await act.Should().ThrowAsync<UAuthNotFoundException>();
 
-        var persisted = await store.GetSessionAsync(session.SessionId);
+        var persisted = await store.GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeFalse();
     }
@@ -412,18 +412,18 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.RevokeUserChainAsync(
             Context(user),
             user,
-            chain.ChainId);
+            chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.CurrentChain.Should().BeFalse();
         result.RootRevoked.Should().BeFalse();
 
         var persisted =
-            await store.GetChainAsync(chain.ChainId);
+            await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -442,18 +442,18 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.RevokeUserChainAsync(
             Context(user, chain.ChainId),
             user,
-            chain.ChainId);
+            chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.CurrentChain.Should().BeTrue();
         result.RootRevoked.Should().BeFalse();
 
         var persisted =
-            await store.GetChainAsync(chain.ChainId);
+            await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -487,7 +487,7 @@ public sealed class SessionApplicationServiceTests
             ownerRoot,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var act = () => sut.RevokeUserChainAsync(
             Context(caller),
@@ -498,7 +498,7 @@ public sealed class SessionApplicationServiceTests
             .ThrowAsync<UAuthValidationException>();
 
         var persisted =
-            await store.GetChainAsync(chain.ChainId);
+            await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeFalse();
@@ -528,23 +528,23 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddMinutes(-10));
 
-        await store.CreateChainAsync(keep);
-        await store.CreateChainAsync(revoke1);
-        await store.CreateChainAsync(revoke2);
+        await store.CreateChainAsync(keep, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(revoke1, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(revoke2, ct: TestContext.Current.CancellationToken);
 
         await sut.RevokeAllChainsAsync(
             Context(user),
             user,
-            keep.ChainId);
+            keep.ChainId, ct: TestContext.Current.CancellationToken);
 
         var persistedKeep =
-            await store.GetChainAsync(keep.ChainId);
+            await store.GetChainAsync(keep.ChainId, ct: TestContext.Current.CancellationToken);
 
         var persistedRevoke1 =
-            await store.GetChainAsync(revoke1.ChainId);
+            await store.GetChainAsync(revoke1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var persistedRevoke2 =
-            await store.GetChainAsync(revoke2.ChainId);
+            await store.GetChainAsync(revoke2.ChainId, ct: TestContext.Current.CancellationToken);
 
         persistedKeep!.IsRevoked.Should().BeFalse();
         persistedRevoke1!.IsRevoked.Should().BeTrue();
@@ -567,18 +567,18 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddMinutes(-10));
 
-        await store.CreateChainAsync(first);
-        await store.CreateChainAsync(second);
+        await store.CreateChainAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(second, ct: TestContext.Current.CancellationToken);
 
         await sut.RevokeAllChainsAsync(
             Context(user),
             user,
-            exceptChainId: null);
+            exceptChainId: null, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetChainAsync(first.ChainId))!
+        (await store.GetChainAsync(first.ChainId, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.GetChainAsync(second.ChainId))!
+        (await store.GetChainAsync(second.ChainId, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
     }
 
@@ -598,11 +598,11 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.LogoutDeviceAsync(
             Context(user, chain.ChainId),
-            chain.ChainId);
+            chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.CurrentChain.Should().BeTrue();
         result.RootRevoked.Should().BeFalse();
@@ -624,8 +624,8 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(currentChain);
-        await store.CreateChainAsync(otherChain);
+        await store.CreateChainAsync(currentChain, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(otherChain, ct: TestContext.Current.CancellationToken);
 
         var currentSession = CreateSession(
             user,
@@ -639,19 +639,19 @@ public sealed class SessionApplicationServiceTests
             Now.AddMinutes(-20),
             "other-session");
 
-        await store.CreateSessionAsync(currentSession);
-        await store.CreateSessionAsync(otherSession);
+        await store.CreateSessionAsync(currentSession, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(otherSession, ct: TestContext.Current.CancellationToken);
 
         await sut.LogoutOtherDevicesAsync(
             Context(user, currentChain.ChainId),
             user,
-            currentChain.ChainId);
+            currentChain.ChainId, ct: TestContext.Current.CancellationToken);
 
         var persistedCurrent =
-            await store.GetSessionAsync(currentSession.SessionId);
+            await store.GetSessionAsync(currentSession.SessionId, ct: TestContext.Current.CancellationToken);
 
         var persistedOther =
-            await store.GetSessionAsync(otherSession.SessionId);
+            await store.GetSessionAsync(otherSession.SessionId, ct: TestContext.Current.CancellationToken);
 
         persistedCurrent!.IsRevoked.Should().BeFalse();
         persistedOther!.IsRevoked.Should().BeTrue();
@@ -673,8 +673,8 @@ public sealed class SessionApplicationServiceTests
             root,
             Now.AddHours(-1));
 
-        await store.CreateChainAsync(firstChain);
-        await store.CreateChainAsync(secondChain);
+        await store.CreateChainAsync(firstChain, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(secondChain, ct: TestContext.Current.CancellationToken);
 
         var firstSession = CreateSession(
             user,
@@ -688,17 +688,17 @@ public sealed class SessionApplicationServiceTests
             Now.AddMinutes(-20),
             "second-session");
 
-        await store.CreateSessionAsync(firstSession);
-        await store.CreateSessionAsync(secondSession);
+        await store.CreateSessionAsync(firstSession, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(secondSession, ct: TestContext.Current.CancellationToken);
 
         await sut.LogoutAllDevicesAsync(
             Context(user),
-            user);
+            user, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetSessionAsync(firstSession.SessionId))!
+        (await store.GetSessionAsync(firstSession.SessionId, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.GetSessionAsync(secondSession.SessionId))!
+        (await store.GetSessionAsync(secondSession.SessionId, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
     }
 
@@ -718,23 +718,23 @@ public sealed class SessionApplicationServiceTests
 
         var secondChain = CreateChain(root, Now.AddMinutes(-10));
 
-        await store.CreateChainAsync(firstChain);
-        await store.CreateChainAsync(secondChain);
+        await store.CreateChainAsync(firstChain, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(secondChain, ct: TestContext.Current.CancellationToken);
 
-        await sut.RevokeRootAsync(Context(user), user);
+        await sut.RevokeRootAsync(Context(user), user, ct: TestContext.Current.CancellationToken);
 
-        var activeRoot = await store.GetActiveRootByUserAsync(user);
+        var activeRoot = await store.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         activeRoot.Should().BeNull();
 
-        var persistedRoot = await store.GetRootByIdAsync(root.RootId);
+        var persistedRoot = await store.GetRootByIdAsync(root.RootId, ct: TestContext.Current.CancellationToken);
 
         persistedRoot.Should().NotBeNull();
         persistedRoot!.IsRevoked.Should().BeTrue();
         persistedRoot.RevokedAt.Should().Be(Now);
 
-        (await store.GetChainAsync(firstChain.ChainId))!.IsRevoked.Should().BeTrue();
-        (await store.GetChainAsync(secondChain.ChainId))!.IsRevoked.Should().BeTrue();
+        (await store.GetChainAsync(firstChain.ChainId, ct: TestContext.Current.CancellationToken))!.IsRevoked.Should().BeTrue();
+        (await store.GetChainAsync(secondChain.ChainId, ct: TestContext.Current.CancellationToken))!.IsRevoked.Should().BeTrue();
     }
 
     [Fact]
@@ -747,8 +747,8 @@ public sealed class SessionApplicationServiceTests
         var firstChain = CreateChain(root, Now.AddMinutes(-30));
         var secondChain = CreateChain(root, Now.AddMinutes(-20));
 
-        await store.CreateChainAsync(firstChain);
-        await store.CreateChainAsync(secondChain);
+        await store.CreateChainAsync(firstChain, ct: TestContext.Current.CancellationToken);
+        await store.CreateChainAsync(secondChain, ct: TestContext.Current.CancellationToken);
 
         var firstSession = CreateSession(
             user, firstChain.ChainId, Now.AddMinutes(-25), "first-1");
@@ -759,14 +759,14 @@ public sealed class SessionApplicationServiceTests
         var secondSession = CreateSession(
             user, secondChain.ChainId, Now.AddMinutes(-10), "second-1");
 
-        await store.CreateSessionAsync(firstSession);
-        await store.CreateSessionAsync(rotatedSession);
-        await store.CreateSessionAsync(secondSession);
+        await store.CreateSessionAsync(firstSession, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(rotatedSession, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(secondSession, ct: TestContext.Current.CancellationToken);
 
         var result = await sut.GetUserChainsAsync(
             Context(user),
             user,
-            new PageRequest { PageNumber = 1, PageSize = 10 });
+            new PageRequest { PageNumber = 1, PageSize = 10 }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Single(x => x.ChainId == firstChain.ChainId)
             .SessionCount.Should().Be(2);
@@ -783,18 +783,18 @@ public sealed class SessionApplicationServiceTests
         var root = await CreateRootAsync(store, user);
 
         var chain = CreateChain(root, Now.AddMinutes(-30));
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var first = CreateSession(user, chain.ChainId, Now.AddMinutes(-20), "revoked-1");
 
         var second = CreateSession(user, chain.ChainId, Now.AddMinutes(-10), "revoked-2");
 
-        await store.CreateSessionAsync(first);
-        await store.CreateSessionAsync(second);
+        await store.CreateSessionAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.CreateSessionAsync(second, ct: TestContext.Current.CancellationToken);
 
-        await store.RevokeChainCascadeAsync(chain.ChainId, Now);
+        await store.RevokeChainCascadeAsync(chain.ChainId, Now, ct: TestContext.Current.CancellationToken);
 
-        var result = await sut.GetUserChainsAsync(Context(user), user, new PageRequest { PageNumber = 1, PageSize = 10 });
+        var result = await sut.GetUserChainsAsync(Context(user), user, new PageRequest { PageNumber = 1, PageSize = 10 }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Single(x => x.ChainId == chain.ChainId).SessionCount.Should().Be(2);
     }

@@ -26,7 +26,7 @@ public sealed class ProvisioningPolicyTests(PostgresFixture postgres) : IClassFi
             UAuthActions.Users.DeleteAdmin })
         {
             var result = await policy.DecideAsync(Contexts.Create(action, LabDatabase.OwnerA,
-                UserKey.FromString("unrelated"), attributes: attributes));
+                UserKey.FromString("unrelated"), attributes: attributes), TestContext.Current.CancellationToken);
             Assert.True(result.IsDenied);
         }
         Assert.Equal(before, await db.SnapshotAsync());

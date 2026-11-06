@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+  <PropertyGroup>
+    <TargetFramework>$(UltimateAuthLatestTargetFramework)</TargetFramework>
+    <!-- Resolve the executable apphost before SDK framework evaluation. -->
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.MTP" Version="10.1.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.1" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

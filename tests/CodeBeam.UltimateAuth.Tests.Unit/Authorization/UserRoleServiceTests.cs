@@ -49,7 +49,7 @@ public sealed class UserRoleServiceTests
         await f.Sut.AssignAsync(
             context,
             target,
-            "  administrators  ");
+            "  administrators  ", ct: TestContext.Current.CancellationToken);
 
         f.RoleStore.Verify(x => x.GetByNameAsync(
             "ADMINISTRATORS",
@@ -156,7 +156,7 @@ public sealed class UserRoleServiceTests
         await f.Sut.AssignAsync(
             context,
             target,
-            "Admin");
+            "Admin", ct: TestContext.Current.CancellationToken);
 
         f.RoleFactory.Verify(
             x => x.Create(context.ResourceTenant),
@@ -196,7 +196,7 @@ public sealed class UserRoleServiceTests
         await f.Sut.RemoveAsync(
             context,
             target,
-            "  operators ");
+            "  operators ", ct: TestContext.Current.CancellationToken);
 
         f.UserRoleStore.Verify(x => x.RemoveAsync(
             target,
@@ -259,7 +259,7 @@ public sealed class UserRoleServiceTests
         await f.Sut.RemoveAsync(
             context,
             target,
-            "legacy");
+            "legacy", ct: TestContext.Current.CancellationToken);
 
         f.UserRoleStore.Verify(x => x.RemoveAsync(
             target,
@@ -309,7 +309,7 @@ public sealed class UserRoleServiceTests
         var result = await f.Sut.GetRolesAsync(
             context,
             target,
-            new PageRequest());
+            new PageRequest(), ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(2);
         result.Items.Should().HaveCount(2);
@@ -373,7 +373,7 @@ public sealed class UserRoleServiceTests
         var result = await f.Sut.GetRolesAsync(
             context,
             target,
-            new PageRequest());
+            new PageRequest(), ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Should().ContainSingle();
@@ -419,7 +419,7 @@ public sealed class UserRoleServiceTests
             {
                 PageNumber = 2,
                 PageSize = 1
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(3);
         result.PageNumber.Should().Be(2);
@@ -457,7 +457,7 @@ public sealed class UserRoleServiceTests
             {
                 PageNumber = -10,
                 PageSize = 0
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.PageNumber.Should().Be(1);
         result.PageSize.Should().Be(250);
@@ -491,7 +491,7 @@ public sealed class UserRoleServiceTests
             {
                 PageNumber = 1,
                 PageSize = 5000
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.PageSize.Should().Be(1000);
     }
@@ -524,7 +524,7 @@ public sealed class UserRoleServiceTests
                 PageSize = 20,
                 SortBy = "name",
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.PageNumber.Should().Be(3);
         result.PageSize.Should().Be(20);
@@ -554,7 +554,7 @@ public sealed class UserRoleServiceTests
         await f.Sut.GetRolesAsync(
             context,
             target,
-            new PageRequest());
+            new PageRequest(), ct: TestContext.Current.CancellationToken);
 
         f.RoleFactory.Verify(
             x => x.Create(context.ResourceTenant),
@@ -620,7 +620,7 @@ public sealed class UserRoleServiceTests
             {
                 SortBy = nameof(UserRoleInfo.Name),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.Name)
@@ -655,7 +655,7 @@ public sealed class UserRoleServiceTests
             {
                 SortBy = nameof(UserRoleInfo.Name),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.Name)
@@ -694,7 +694,7 @@ public sealed class UserRoleServiceTests
             {
                 SortBy = nameof(UserRoleInfo.AssignedAt),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.AssignedAt)
@@ -733,7 +733,7 @@ public sealed class UserRoleServiceTests
             {
                 SortBy = nameof(UserRoleInfo.AssignedAt),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.AssignedAt)
@@ -764,7 +764,7 @@ public sealed class UserRoleServiceTests
         var result = await f.Sut.GetRolesAsync(
             context,
             target,
-            new PageRequest());
+            new PageRequest(), ct: TestContext.Current.CancellationToken);
 
         result.Items
             .Select(x => x.Name)
@@ -816,7 +816,7 @@ public sealed class UserRoleServiceTests
                 PageNumber = 2,
                 PageSize = 2,
                 SortBy = nameof(UserRoleInfo.Name)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(5);
         result.PageNumber.Should().Be(2);
@@ -874,7 +874,7 @@ public sealed class UserRoleServiceTests
             new PageRequest
             {
                 SortBy = nameof(UserRoleInfo.Name)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.RoleId)
             .Should()

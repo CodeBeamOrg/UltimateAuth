@@ -54,7 +54,7 @@ public sealed class UserQueryPaginationTests
                     {
                         UserName = $"{prefix}-{name}",
                         DisplayName = $"{prefix}-{name}"
-                    });
+                    }, TestContext.Current.CancellationToken);
 
                 result.IsSuccess.Should().BeTrue();
             }
@@ -81,7 +81,7 @@ public sealed class UserQueryPaginationTests
                     PageSize = 0,
                     Search = prefix,
                     SortBy = nameof(UserSummary.DisplayName)
-                });
+                }, TestContext.Current.CancellationToken);
 
             firstPage.TotalCount.Should().Be(5);
             firstPage.PageNumber.Should().Be(1);
@@ -106,7 +106,7 @@ public sealed class UserQueryPaginationTests
                     PageSize = 100,
                     Search = prefix,
                     SortBy = nameof(UserSummary.DisplayName)
-                });
+                }, TestContext.Current.CancellationToken);
 
             secondPage.TotalCount.Should().Be(5);
             secondPage.PageNumber.Should().Be(2);
@@ -163,7 +163,7 @@ public sealed class UserQueryPaginationTests
                     {
                         UserName = $"{prefix}-{name}",
                         DisplayName = $"{prefix}-{name}"
-                    });
+                    }, TestContext.Current.CancellationToken);
 
                 result.IsSuccess.Should().BeTrue();
             }
@@ -191,7 +191,7 @@ public sealed class UserQueryPaginationTests
                         PageSize = 2,
                         Search = prefix,
                         SortBy = nameof(UserSummary.DisplayName)
-                    });
+                    }, TestContext.Current.CancellationToken);
 
                 pages.Add(result);
             }

@@ -31,12 +31,12 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         var state = AuthenticationSecurityState.CreateAccount(Tenant, user);
 
-        await store.AddAsync(state);
+        await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(state.Id);
@@ -64,18 +64,18 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             user,
             CredentialType.Password);
 
-        await store.AddAsync(account);
-        await store.AddAsync(factor);
+        await store.AddAsync(account, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(factor, ct: TestContext.Current.CancellationToken);
 
         var accountResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var factorResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         accountResult.Should().NotBeNull();
         factorResult.Should().NotBeNull();
@@ -100,7 +100,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             Tenant,
             user);
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AddAsync(second);
 
@@ -137,7 +137,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
         var result = await store.GetAsync(
             UserKey.New(),
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -158,18 +158,18 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         var second = AuthenticationSecurityState.CreateFactor(Tenant, user, CredentialType.Password);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         var firstResult = await store.GetAsync(
             user,
             first.Scope,
-            first.CredentialType);
+            first.CredentialType, ct: TestContext.Current.CancellationToken);
 
         var secondResult = await store.GetAsync(
             user,
             second.Scope,
-            second.CredentialType);
+            second.CredentialType, ct: TestContext.Current.CancellationToken);
 
         firstResult.Should().NotBeNull();
         secondResult.Should().NotBeNull();
@@ -190,18 +190,18 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         var second = AuthenticationSecurityState.CreateFactor(Tenant, user, CredentialType.Passkey);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         var password = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         var passkey = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Passkey);
+            CredentialType.Passkey, ct: TestContext.Current.CancellationToken);
 
         password.Should().NotBeNull();
         passkey.Should().NotBeNull();
@@ -226,7 +226,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             Tenant,
             user);
 
-        await store.AddAsync(original);
+        await store.AddAsync(original, ct: TestContext.Current.CancellationToken);
 
         var updated = original.RegisterFailure(
             Now,
@@ -236,12 +236,12 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         await store.UpdateAsync(
             updated,
-            expectedVersion: original.SecurityVersion);
+            expectedVersion: original.SecurityVersion, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -262,7 +262,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             Tenant,
             UserKey.New());
 
-        await store.AddAsync(original);
+        await store.AddAsync(original, ct: TestContext.Current.CancellationToken);
 
         var updated = original.RegisterFailure(
             Now,
@@ -291,7 +291,7 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             user,
             CredentialType.Password);
 
-        await store.AddAsync(original);
+        await store.AddAsync(original, ct: TestContext.Current.CancellationToken);
 
         var updated = original.BeginReset(
             "hashed-reset-token",
@@ -300,12 +300,12 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         await store.UpdateAsync(
             updated,
-            original.SecurityVersion);
+            original.SecurityVersion, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -351,17 +351,17 @@ public abstract class AuthenticationSecurityStateStoreContractTests
 
         var state = AuthenticationSecurityState.CreateAccount(Tenant, user);
 
-        await store.AddAsync(state);
+        await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             user,
             state.Scope,
-            state.CredentialType);
+            state.CredentialType, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
             user,
             state.Scope,
-            state.CredentialType);
+            state.CredentialType, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -383,23 +383,23 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             user,
             CredentialType.Password);
 
-        await store.AddAsync(account);
-        await store.AddAsync(factor);
+        await store.AddAsync(account, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(factor, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var accountResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var factorResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         accountResult.Should().BeNull();
         factorResult.Should().NotBeNull();
@@ -430,23 +430,23 @@ public abstract class AuthenticationSecurityStateStoreContractTests
         var password = AuthenticationSecurityState.CreateFactor(Tenant, user, CredentialType.Password);
         var passkey = AuthenticationSecurityState.CreateFactor(Tenant, user, CredentialType.Passkey);
 
-        await store.AddAsync(password);
-        await store.AddAsync(passkey);
+        await store.AddAsync(password, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(passkey, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         var passwordResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         var passkeyResult = await store.GetAsync(
             user,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Passkey);
+            CredentialType.Passkey, ct: TestContext.Current.CancellationToken);
 
         passwordResult.Should().BeNull();
         passkeyResult.Should().NotBeNull();
@@ -473,17 +473,17 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             tenantA,
             user);
 
-        await storeA.AddAsync(state);
+        await storeA.AddAsync(state, ct: TestContext.Current.CancellationToken);
 
         var fromA = await storeA.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var fromB = await storeB.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromA!.Tenant.Should().Be(tenantA);
@@ -512,23 +512,23 @@ public abstract class AuthenticationSecurityStateStoreContractTests
             tenantB,
             user);
 
-        await storeA.AddAsync(stateA);
-        await storeB.AddAsync(stateB);
+        await storeA.AddAsync(stateA, ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(stateB, ct: TestContext.Current.CancellationToken);
 
         await storeA.DeleteAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var fromA = await storeA.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         var fromB = await storeB.GetAsync(
             user,
             AuthenticationSecurityScope.Account,
-            null);
+            null, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().BeNull();
 

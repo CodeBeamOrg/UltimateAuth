@@ -23,8 +23,8 @@ public class UAuthClientBootstrapperTests
             browser,
             new UAuthClientOptions());
 
-        await bootstrapper.EnsureStartedAsync();
-        await bootstrapper.EnsureStartedAsync();
+        await bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken);
+        await bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken);
 
         bootstrapper.IsStarted.Should().BeTrue();
 
@@ -100,7 +100,7 @@ public class UAuthClientBootstrapperTests
             browser,
             options);
 
-        await bootstrapper.EnsureStartedAsync();
+        await bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken);
 
         browser.Verify(
             x => x.ConfigureAntiforgeryAsync(
@@ -131,7 +131,7 @@ public class UAuthClientBootstrapperTests
             browser,
             options);
 
-        await bootstrapper.EnsureStartedAsync();
+        await bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken);
 
         browser.Verify(
             x => x.ConfigureAntiforgeryAsync(
@@ -175,11 +175,11 @@ public class UAuthClientBootstrapperTests
             new UAuthClientOptions());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => bootstrapper.EnsureStartedAsync());
+            () => bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken));
 
         bootstrapper.IsStarted.Should().BeFalse();
 
-        await bootstrapper.EnsureStartedAsync();
+        await bootstrapper.EnsureStartedAsync(ct: TestContext.Current.CancellationToken);
 
         bootstrapper.IsStarted.Should().BeTrue();
 

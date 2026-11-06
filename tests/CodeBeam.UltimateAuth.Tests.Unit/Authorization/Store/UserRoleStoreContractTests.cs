@@ -30,9 +30,9 @@ public abstract class UserRoleStoreContractTests
         var roleId = RoleId.New();
         var assignedAt = Now.AddMinutes(-10);
 
-        await store.AssignAsync(user, roleId, assignedAt);
+        await store.AssignAsync(user, roleId, assignedAt, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAssignmentsAsync(user);
+        var result = await store.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
 
@@ -53,7 +53,7 @@ public abstract class UserRoleStoreContractTests
         var user = UserKey.New();
         var roleId = RoleId.New();
 
-        await store.AssignAsync(user, roleId, Now);
+        await store.AssignAsync(user, roleId, Now, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AssignAsync(
             user,
@@ -75,10 +75,10 @@ public abstract class UserRoleStoreContractTests
         var roleA = RoleId.New();
         var roleB = RoleId.New();
 
-        await store.AssignAsync(user, roleA, Now);
-        await store.AssignAsync(user, roleB, Now.AddMinutes(1));
+        await store.AssignAsync(user, roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(user, roleB, Now.AddMinutes(1), ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAssignmentsAsync(user);
+        var result = await store.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
 
@@ -97,11 +97,11 @@ public abstract class UserRoleStoreContractTests
         var userB = UserKey.New();
         var roleId = RoleId.New();
 
-        await store.AssignAsync(userA, roleId, Now);
-        await store.AssignAsync(userB, roleId, Now.AddMinutes(1));
+        await store.AssignAsync(userA, roleId, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(userB, roleId, Now.AddMinutes(1), ct: TestContext.Current.CancellationToken);
 
-        var assignmentsA = await store.GetAssignmentsAsync(userA);
-        var assignmentsB = await store.GetAssignmentsAsync(userB);
+        var assignmentsA = await store.GetAssignmentsAsync(userA, ct: TestContext.Current.CancellationToken);
+        var assignmentsB = await store.GetAssignmentsAsync(userB, ct: TestContext.Current.CancellationToken);
 
         assignmentsA.Should().ContainSingle();
         assignmentsB.Should().ContainSingle();
@@ -126,10 +126,10 @@ public abstract class UserRoleStoreContractTests
         var roleA = RoleId.New();
         var roleB = RoleId.New();
 
-        await store.AssignAsync(userA, roleA, Now);
-        await store.AssignAsync(userB, roleB, Now);
+        await store.AssignAsync(userA, roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(userB, roleB, Now, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAssignmentsAsync(userA);
+        var result = await store.GetAssignmentsAsync(userA, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().UserKey.Should().Be(userA);
@@ -142,7 +142,7 @@ public abstract class UserRoleStoreContractTests
         await using var db = await CreateDatabaseAsync();
         var store = db.CreateStore(Tenant);
 
-        var result = await store.GetAssignmentsAsync(UserKey.New());
+        var result = await store.GetAssignmentsAsync(UserKey.New(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
     }
@@ -162,12 +162,12 @@ public abstract class UserRoleStoreContractTests
         var roleA = RoleId.New();
         var roleB = RoleId.New();
 
-        await store.AssignAsync(user, roleA, Now);
-        await store.AssignAsync(user, roleB, Now);
+        await store.AssignAsync(user, roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(user, roleB, Now, ct: TestContext.Current.CancellationToken);
 
-        await store.RemoveAsync(user, roleA);
+        await store.RemoveAsync(user, roleA, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAssignmentsAsync(user);
+        var result = await store.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().RoleId.Should().Be(roleB);
@@ -186,7 +186,7 @@ public abstract class UserRoleStoreContractTests
 
         await act.Should().NotThrowAsync();
 
-        var result = await store.GetAssignmentsAsync(user);
+        var result = await store.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
     }
@@ -201,13 +201,13 @@ public abstract class UserRoleStoreContractTests
         var userB = UserKey.New();
         var roleId = RoleId.New();
 
-        await store.AssignAsync(userA, roleId, Now);
-        await store.AssignAsync(userB, roleId, Now);
+        await store.AssignAsync(userA, roleId, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(userB, roleId, Now, ct: TestContext.Current.CancellationToken);
 
-        await store.RemoveAsync(userA, roleId);
+        await store.RemoveAsync(userA, roleId, ct: TestContext.Current.CancellationToken);
 
-        var assignmentsA = await store.GetAssignmentsAsync(userA);
-        var assignmentsB = await store.GetAssignmentsAsync(userB);
+        var assignmentsA = await store.GetAssignmentsAsync(userA, ct: TestContext.Current.CancellationToken);
+        var assignmentsB = await store.GetAssignmentsAsync(userB, ct: TestContext.Current.CancellationToken);
 
         assignmentsA.Should().BeEmpty();
 
@@ -231,14 +231,14 @@ public abstract class UserRoleStoreContractTests
         var targetRole = RoleId.New();
         var otherRole = RoleId.New();
 
-        await store.AssignAsync(userA, targetRole, Now);
-        await store.AssignAsync(userA, otherRole, Now);
-        await store.AssignAsync(userB, targetRole, Now);
+        await store.AssignAsync(userA, targetRole, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(userA, otherRole, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(userB, targetRole, Now, ct: TestContext.Current.CancellationToken);
 
-        await store.RemoveAssignmentsByRoleAsync(targetRole);
+        await store.RemoveAssignmentsByRoleAsync(targetRole, ct: TestContext.Current.CancellationToken);
 
-        var assignmentsA = await store.GetAssignmentsAsync(userA);
-        var assignmentsB = await store.GetAssignmentsAsync(userB);
+        var assignmentsA = await store.GetAssignmentsAsync(userA, ct: TestContext.Current.CancellationToken);
+        var assignmentsB = await store.GetAssignmentsAsync(userB, ct: TestContext.Current.CancellationToken);
 
         assignmentsA.Should().ContainSingle();
         assignmentsA.Single().RoleId.Should().Be(otherRole);
@@ -271,12 +271,12 @@ public abstract class UserRoleStoreContractTests
         var roleA = RoleId.New();
         var roleB = RoleId.New();
 
-        await store.AssignAsync(UserKey.New(), roleA, Now);
-        await store.AssignAsync(UserKey.New(), roleA, Now);
-        await store.AssignAsync(UserKey.New(), roleA, Now);
-        await store.AssignAsync(UserKey.New(), roleB, Now);
+        await store.AssignAsync(UserKey.New(), roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(UserKey.New(), roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(UserKey.New(), roleA, Now, ct: TestContext.Current.CancellationToken);
+        await store.AssignAsync(UserKey.New(), roleB, Now, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.CountAssignmentsAsync(roleA);
+        var result = await store.CountAssignmentsAsync(roleA, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(3);
     }
@@ -288,7 +288,7 @@ public abstract class UserRoleStoreContractTests
         var store = db.CreateStore(Tenant);
 
         var result =
-            await store.CountAssignmentsAsync(RoleId.New());
+            await store.CountAssignmentsAsync(RoleId.New(), ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(0);
     }
@@ -311,10 +311,10 @@ public abstract class UserRoleStoreContractTests
         var user = UserKey.New();
         var roleId = RoleId.New();
 
-        await storeA.AssignAsync(user, roleId, Now);
+        await storeA.AssignAsync(user, roleId, Now, ct: TestContext.Current.CancellationToken);
 
-        var fromA = await storeA.GetAssignmentsAsync(user);
-        var fromB = await storeB.GetAssignmentsAsync(user);
+        var fromA = await storeA.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
+        var fromB = await storeB.GetAssignmentsAsync(user, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().ContainSingle();
         fromB.Should().BeEmpty();
@@ -333,13 +333,13 @@ public abstract class UserRoleStoreContractTests
 
         var roleId = RoleId.New();
 
-        await storeA.AssignAsync(UserKey.New(), roleId, Now);
-        await storeA.AssignAsync(UserKey.New(), roleId, Now);
+        await storeA.AssignAsync(UserKey.New(), roleId, Now, ct: TestContext.Current.CancellationToken);
+        await storeA.AssignAsync(UserKey.New(), roleId, Now, ct: TestContext.Current.CancellationToken);
 
-        await storeB.AssignAsync(UserKey.New(), roleId, Now);
+        await storeB.AssignAsync(UserKey.New(), roleId, Now, ct: TestContext.Current.CancellationToken);
 
-        var countA = await storeA.CountAssignmentsAsync(roleId);
-        var countB = await storeB.CountAssignmentsAsync(roleId);
+        var countA = await storeA.CountAssignmentsAsync(roleId, ct: TestContext.Current.CancellationToken);
+        var countB = await storeB.CountAssignmentsAsync(roleId, ct: TestContext.Current.CancellationToken);
 
         countA.Should().Be(2);
         countB.Should().Be(1);
@@ -361,16 +361,16 @@ public abstract class UserRoleStoreContractTests
         var userA = UserKey.New();
         var userB = UserKey.New();
 
-        await storeA.AssignAsync(userA, roleId, Now);
-        await storeB.AssignAsync(userB, roleId, Now);
+        await storeA.AssignAsync(userA, roleId, Now, ct: TestContext.Current.CancellationToken);
+        await storeB.AssignAsync(userB, roleId, Now, ct: TestContext.Current.CancellationToken);
 
-        await storeA.RemoveAssignmentsByRoleAsync(roleId);
+        await storeA.RemoveAssignmentsByRoleAsync(roleId, ct: TestContext.Current.CancellationToken);
 
         var assignmentsA =
-            await storeA.GetAssignmentsAsync(userA);
+            await storeA.GetAssignmentsAsync(userA, ct: TestContext.Current.CancellationToken);
 
         var assignmentsB =
-            await storeB.GetAssignmentsAsync(userB);
+            await storeB.GetAssignmentsAsync(userB, ct: TestContext.Current.CancellationToken);
 
         assignmentsA.Should().BeEmpty();
 

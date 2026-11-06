@@ -23,7 +23,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var target = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var targetClient = CreateClient(
             $"admin-logout-device-target-{Guid.NewGuid():N}");
@@ -44,7 +44,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -76,8 +76,8 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"admin-logout-device-unprivileged-{Guid.NewGuid():N}");
@@ -112,7 +112,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var targetChains = await targetChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetChains.Should().NotBeNull();
 
@@ -147,7 +147,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var target = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var targetClient = CreateClient(
             $"admin-logout-all-target-{Guid.NewGuid():N}");
@@ -185,8 +185,8 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"admin-logout-all-unprivileged-{Guid.NewGuid():N}");
@@ -238,14 +238,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutDeviceAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         var adminDevice =
             $"logout-admin-{Guid.NewGuid():N}";
@@ -289,7 +289,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var targetChains = await targetChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetChains.Should().NotBeNull();
 
@@ -333,14 +333,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutDeviceAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-admin-{Guid.NewGuid():N}");
@@ -391,7 +391,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -438,15 +438,15 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var targetA = await _factory.CreateLoginUserAsync();
-        var targetB = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetA = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetB = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutDeviceAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-admin-{Guid.NewGuid():N}");
@@ -495,7 +495,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var targetBChains = await targetBChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetBChains.Should().NotBeNull();
 
@@ -536,14 +536,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutOthersAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient($"logout-others-admin-{Guid.NewGuid():N}");
 
@@ -570,7 +570,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
 
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var chains = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var chains = await chainsResponse.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -599,8 +599,8 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"logout-others-actor-{Guid.NewGuid():N}");
@@ -637,7 +637,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient1);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -675,15 +675,15 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
-        var otherUser = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var otherUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutOthersAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-others-admin-{Guid.NewGuid():N}");
@@ -733,7 +733,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(otherClient);
 
         var otherChains = await otherChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         otherChains.Should().NotBeNull();
 
@@ -780,14 +780,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutOthersAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-others-admin-{Guid.NewGuid():N}");
@@ -822,7 +822,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -860,14 +860,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutOthersAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-others-admin-{Guid.NewGuid():N}");
@@ -912,7 +912,7 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient1);
 
         var chains = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chains.Should().NotBeNull();
 
@@ -968,14 +968,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutAllAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-all-admin-{Guid.NewGuid():N}");
@@ -1075,14 +1075,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutAllAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-all-admin-{Guid.NewGuid():N}");
@@ -1138,8 +1138,8 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"logout-all-actor-{Guid.NewGuid():N}");
@@ -1226,14 +1226,14 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutAllAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-all-admin-{Guid.NewGuid():N}");
@@ -1310,15 +1310,15 @@ public sealed class LogoutAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
-        var unrelated = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelated = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Flows.LogoutAllAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"logout-all-admin-{Guid.NewGuid():N}");

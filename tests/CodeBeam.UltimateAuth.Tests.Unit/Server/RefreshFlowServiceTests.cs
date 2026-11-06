@@ -29,7 +29,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureOpaque),
-            CreateRequest(sessionId: null));
+            CreateRequest(sessionId: null), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         validator.VerifyNoOtherCalls();
@@ -54,7 +54,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureOpaque),
-            CreateRequest(SessionId));
+            CreateRequest(SessionId), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         touch.VerifyNoOtherCalls();
@@ -88,7 +88,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureOpaque),
-            CreateRequest(SessionId));
+            CreateRequest(SessionId), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(expectedOutcome);
@@ -117,7 +117,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureOpaque),
-            CreateRequest(SessionId));
+            CreateRequest(SessionId), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         rotation.VerifyNoOtherCalls();
@@ -130,7 +130,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureJwt),
-            CreateRequest(refreshToken: "   "));
+            CreateRequest(refreshToken: "   "), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         validator.VerifyNoOtherCalls();
@@ -157,7 +157,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureJwt),
-            CreateRequest(refreshToken: "refresh-token"));
+            CreateRequest(refreshToken: "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
@@ -185,7 +185,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.PureJwt),
-            CreateRequest(refreshToken: "refresh-token"));
+            CreateRequest(refreshToken: "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         validator.VerifyNoOtherCalls();
@@ -204,7 +204,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.Hybrid),
-            CreateRequest(sessionMarker is null ? null : SessionId, refreshToken));
+            CreateRequest(sessionMarker is null ? null : SessionId, refreshToken), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         validator.VerifyNoOtherCalls();
@@ -223,7 +223,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.Hybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         rotation.VerifyNoOtherCalls();
@@ -266,7 +266,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.Hybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
 
@@ -314,7 +314,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.Hybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
@@ -346,7 +346,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.Hybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
 
@@ -376,7 +376,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.SemiHybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         rotation.VerifyNoOtherCalls();
@@ -405,7 +405,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.SemiHybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Outcome.Should().Be(RefreshOutcome.Rotated);
@@ -437,7 +437,7 @@ public sealed class RefreshFlowServiceTests
 
         var result = await sut.RefreshAsync(
             CreateFlow(UAuthMode.SemiHybrid),
-            CreateRequest(SessionId, "refresh-token"));
+            CreateRequest(SessionId, "refresh-token"), ct: TestContext.Current.CancellationToken);
 
         AssertReauth(result);
         touch.VerifyNoOtherCalls();

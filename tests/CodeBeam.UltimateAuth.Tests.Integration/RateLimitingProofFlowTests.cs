@@ -26,14 +26,14 @@ public sealed class RateLimitingProofFlowTests
     {
         using var factory = AuthServerFactory.Create(o =>
         { o.RateLimiting.Enabled = true; o.RateLimiting.Login = new() { PermitLimit = 1, Window = Window }; });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = Client(factory);
         static string Encode(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var verifier = Encode(RandomNumberGenerator.GetBytes(32));
         var authorize = await CsrfTestClient.PostAsync(client, "/auth/pkce/authorize", new FormUrlEncodedContent(new Dictionary<string, string>
         { ["code_challenge"] = Encode(SHA256.HashData(Encoding.ASCII.GetBytes(verifier))), ["challenge_method"] = "S256", ["redirect_uri"] = "/callback" }));
         Assert.Equal(HttpStatusCode.OK, authorize.StatusCode);
-        var proof = await authorize.Content.ReadFromJsonAsync<PkceAuthorizeResponse>();
+        var proof = await authorize.Content.ReadFromJsonAsync<PkceAuthorizeResponse>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(proof);
         // Malformed payload consumes request quota without supplying the valid authorization proof.
         Assert.Equal(HttpStatusCode.BadRequest, (await CsrfTestClient.PostAsync(client, "/auth/pkce/complete", new FormUrlEncodedContent(new Dictionary<string, string>()))).StatusCode);
@@ -58,7 +58,7 @@ public sealed class RateLimitingProofFlowTests
     {
         using var factory = AuthServerFactory.Create(o =>
         { o.RateLimiting.Enabled = true; o.RateLimiting.Endpoints[UAuthEndpoint.Refresh] = new() { PermitLimit = 1, Window = Window }; });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = Client(factory);
         client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorWasm");
         var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
@@ -68,7 +68,7 @@ public sealed class RateLimitingProofFlowTests
         using var scope = factory.Services.CreateScope();
         var store = scope.ServiceProvider.GetRequiredService<IRefreshTokenStoreFactory>().Create(TenantKey.Single);
         var hash = scope.ServiceProvider.GetRequiredService<ITokenHasher>().Hash(refresh);
-        var before = await store.FindByHashAsync(hash);
+        var before = await store.FindByHashAsync(hash, TestContext.Current.CancellationToken);
         Assert.NotNull(before);
         client.DefaultRequestHeaders.Add("Cookie", session);
         Assert.Equal(HttpStatusCode.Unauthorized, (await CsrfTestClient.PostAsync(client, "/auth/refresh", null)).StatusCode);
@@ -77,11 +77,11 @@ public sealed class RateLimitingProofFlowTests
         var rejected = await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
         Assert.False(rejected.Headers.Contains("Set-Cookie"));
-        Assert.Equal(before, await store.FindByHashAsync(hash));
+        Assert.Equal(before, await store.FindByHashAsync(hash, TestContext.Current.CancellationToken));
         var renewed = await AfterReplenishment(() => CsrfTestClient.PostAsync(client, "/auth/refresh", null));
         Assert.Equal(HttpStatusCode.NoContent, renewed.StatusCode);
         Assert.True(renewed.Headers.Contains("Set-Cookie"));
-        Assert.False((await store.FindByHashAsync(hash))!.IsActive(factory.Clock.UtcNow));
+        Assert.False((await store.FindByHashAsync(hash, TestContext.Current.CancellationToken))!.IsActive(factory.Clock.UtcNow));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class RateLimitingProofFlowTests
         using var factory = AuthServerFactory.Create(o =>
         { o.RateLimiting.Enabled = true; o.RateLimiting.Endpoints[UAuthEndpoint.CredentialResetCompleteAnonymous] = new() { PermitLimit = 1, Window = Window }; }, services =>
         { services.RemoveAll<ICredentialResetNotifier>(); services.AddSingleton<ICredentialResetNotifier>(notifier); });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = Client(factory);
         var begin = await CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/reset/begin", new BeginResetCredentialRequest
         { Identifier = user.Identifier, CredentialType = CredentialType.Password, ResetCodeType = ResetCodeType.Token });
@@ -118,12 +118,12 @@ public sealed class RateLimitingProofFlowTests
         using var second = Client(factory);
         foreach (var client in new[] { first, second })
         {
-            var user = await factory.CreateLoginUserAsync();
+            var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
             var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
             client.DefaultRequestHeaders.Add("Cookie", Cookies(login));
             var validation = await CsrfTestClient.PostAsync(client, "/auth/validate", null);
             Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
-            Assert.True((await validation.Content.ReadFromJsonAsync<AuthValidationResult>())!.IsValid);
+            Assert.True((await validation.Content.ReadFromJsonAsync<AuthValidationResult>(cancellationToken: TestContext.Current.CancellationToken))!.IsValid);
             Assert.Equal(HttpStatusCode.TooManyRequests, (await CsrfTestClient.PostAsync(client, "/auth/validate", null)).StatusCode);
         }
     }

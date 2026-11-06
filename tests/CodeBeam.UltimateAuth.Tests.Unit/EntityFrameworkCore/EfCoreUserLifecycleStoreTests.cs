@@ -33,9 +33,9 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
             userKey,
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new UserLifecycleKey(tenant, userKey));
+        var result = await store.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(userKey, result!.UserKey);
@@ -58,8 +58,8 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
             userKey,
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(lifecycle);
-        var exists = await store.ExistsAsync(new UserLifecycleKey(tenant, userKey));
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
+        var exists = await store.ExistsAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
 
         Assert.True(exists);
     }
@@ -80,21 +80,21 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(lifecycle);
+            await store1.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey));
+            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
             var updated = existing!.ChangeStatus(DateTimeOffset.UtcNow, UserStatus.Suspended);
-            await store2.SaveAsync(updated, expectedVersion: 0);
+            await store2.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store3 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store3.GetAsync(new UserLifecycleKey(tenant, userKey));
+            var result = await store3.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
             Assert.Equal(UserStatus.Suspended, result.Status);
@@ -117,17 +117,17 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(lifecycle);
+            await store1.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey));
+            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
             var updated = existing!.ChangeStatus(DateTimeOffset.UtcNow, UserStatus.Suspended);
 
             await Assert.ThrowsAsync<UAuthConcurrencyException>(() =>
-                store2.SaveAsync(updated, expectedVersion: 999));
+                store2.SaveAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -150,9 +150,9 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
             userKey,
             DateTimeOffset.UtcNow);
 
-        await store1.AddAsync(lifecycle);
+        await store1.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
-        var result = await store2.GetAsync(new UserLifecycleKey(tenant2, userKey));
+        var result = await store2.GetAsync(new UserLifecycleKey(tenant2, userKey), ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -173,15 +173,15 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
             userKey,
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserLifecycleKey(tenant, userKey),
             expectedVersion: 0,
             DeleteMode.Soft,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new UserLifecycleKey(tenant, userKey));
+        var result = await store.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result!.DeletedAt);
@@ -203,24 +203,24 @@ public class EfCoreUserLifecycleStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(lifecycle);
+            await store1.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
-            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey));
+            var existing = await store2.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
             var deleted = existing!.MarkDeleted(DateTimeOffset.UtcNow);
 
-            await store2.SaveAsync(deleted, expectedVersion: 0);
+            await store2.SaveAsync(deleted, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store3 = new EfCoreUserLifecycleStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
 
-            var result = await store3.GetAsync(new UserLifecycleKey(tenant, userKey));
+            var result = await store3.GetAsync(new UserLifecycleKey(tenant, userKey), ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.SecurityVersion);
         }

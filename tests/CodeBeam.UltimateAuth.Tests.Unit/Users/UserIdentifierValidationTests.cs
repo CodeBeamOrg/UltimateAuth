@@ -20,7 +20,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "   "
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(x =>
@@ -38,7 +38,7 @@ public sealed class UserIdentifierValidatorTests
             Value = "  valid_user  "
         };
 
-        var result = await sut.ValidateAsync(null!, identifier);
+        var result = await sut.ValidateAsync(null!, identifier, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         identifier.Value.Should().Be("valid_user");
@@ -58,7 +58,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "abc"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x =>
@@ -79,7 +79,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "abcdef"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x =>
@@ -101,7 +101,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "user123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x =>
@@ -123,7 +123,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "a"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
     }
@@ -139,7 +139,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "not-an-email"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x =>
@@ -160,7 +160,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "a@b.co"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Errors.Should().Contain(x =>
             x.Code == "email_too_short");
@@ -180,7 +180,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "abc@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Errors.Should().Contain(x =>
             x.Code == "email_too_long");
@@ -200,7 +200,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Phone,
                 Value = "123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Errors.Should().Contain(x =>
             x.Code == "phone_too_short");
@@ -220,7 +220,7 @@ public sealed class UserIdentifierValidatorTests
             {
                 Type = UserIdentifierType.Phone,
                 Value = "123456789"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Errors.Should().Contain(x =>
             x.Code == "phone_too_long");

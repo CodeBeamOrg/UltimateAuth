@@ -56,13 +56,13 @@ public abstract class PasswordCredentialStoreContractTests
         var user = UserKey.New();
         var credential = CreateCredential(TenantA, user, "credential-1");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var key = new CredentialKey(
             credential.Tenant,
             credential.Id);
 
-        var persisted = await store.GetAsync(key);
+        var persisted = await store.GetAsync(key, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Id.Should().Be(credential.Id);
@@ -82,11 +82,11 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential-1");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var key = new CredentialKey(TenantA, credential.Id);
 
-        (await store.ExistsAsync(key)).Should().BeTrue();
+        (await store.ExistsAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeTrue();
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public abstract class PasswordCredentialStoreContractTests
 
         var key = new CredentialKey(TenantA, credential.Id);
 
-        (await store.ExistsAsync(key)).Should().BeFalse();
+        (await store.ExistsAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public abstract class PasswordCredentialStoreContractTests
             "missing");
 
         var result = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -140,7 +140,7 @@ public abstract class PasswordCredentialStoreContractTests
         var second = CreateCredential(
             TenantA, user, "second");
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AddAsync(second);
 
@@ -159,13 +159,13 @@ public abstract class PasswordCredentialStoreContractTests
         var first = CreateCredential(
             TenantA, user, "first");
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new CredentialKey(TenantA, first.Id),
             first.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var replacement = CreateCredential(
             TenantA, user, "replacement");
@@ -174,7 +174,7 @@ public abstract class PasswordCredentialStoreContractTests
 
         await act.Should().NotThrowAsync();
 
-        var active = await store.GetByUserAsync(user);
+        var active = await store.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         active.Should().ContainSingle();
         active.Single().Id.Should().Be(replacement.Id);
@@ -195,7 +195,7 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "original");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var changedAt = Now.AddMinutes(10);
 
@@ -205,10 +205,10 @@ public abstract class PasswordCredentialStoreContractTests
 
         await store.SaveAsync(
             credential,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -251,14 +251,14 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var changed = credential.Revoke(
             Now.AddMinutes(5));
 
         await store.SaveAsync(
             changed,
-            credential.Version);
+            credential.Version, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.SaveAsync(
             changed,
@@ -283,17 +283,17 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var revokedAt = Now.AddMinutes(10);
 
         await store.RevokeAsync(
             new CredentialKey(TenantA, credential.Id),
             revokedAt,
-            credential.Version);
+            credential.Version, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Security.RevokedAt.Should().Be(revokedAt);
@@ -331,12 +331,12 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.RevokeAsync(
             new CredentialKey(TenantA, credential.Id),
             Now,
-            0);
+            0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.RevokeAsync(
             new CredentialKey(TenantA, credential.Id),
@@ -361,15 +361,15 @@ public abstract class PasswordCredentialStoreContractTests
         var credential = CreateCredential(
             TenantA, user, "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new CredentialKey(TenantA, credential.Id),
             credential.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        var credentials = await store.GetByUserAsync(user);
+        var credentials = await store.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         credentials.Should().BeEmpty();
     }
@@ -385,16 +385,16 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new CredentialKey(TenantA, credential.Id),
             0,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsDeleted.Should().BeTrue();
@@ -413,7 +413,7 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         var key = new CredentialKey(
             TenantA,
@@ -423,10 +423,10 @@ public abstract class PasswordCredentialStoreContractTests
             key,
             credential.Version,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetAsync(key)).Should().BeNull();
-        (await store.ExistsAsync(key)).Should().BeFalse();
+        (await store.GetAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeNull();
+        (await store.ExistsAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -440,12 +440,12 @@ public abstract class PasswordCredentialStoreContractTests
             UserKey.New(),
             "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.RevokeAsync(
             new CredentialKey(TenantA, credential.Id),
             Now,
-            0);
+            0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.DeleteAsync(
             new CredentialKey(TenantA, credential.Id),
@@ -476,10 +476,10 @@ public abstract class PasswordCredentialStoreContractTests
         var credentialB = CreateCredential(
             TenantA, userB, "b");
 
-        await store.AddAsync(credentialA);
-        await store.AddAsync(credentialB);
+        await store.AddAsync(credentialA, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(credentialB, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetByUserAsync(userA);
+        var result = await store.GetByUserAsync(userA, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().Id.Should().Be(credentialA.Id);
@@ -500,18 +500,18 @@ public abstract class PasswordCredentialStoreContractTests
         var credential = CreateCredential(
             TenantA, user, "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteByUserAsync(
             user,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        var active = await store.GetByUserAsync(user);
+        var active = await store.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
         active.Should().BeEmpty();
 
         var persisted = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsDeleted.Should().BeTrue();
@@ -530,15 +530,15 @@ public abstract class PasswordCredentialStoreContractTests
         var credential = CreateCredential(
             TenantA, user, "credential");
 
-        await store.AddAsync(credential);
+        await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteByUserAsync(
             user,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new CredentialKey(TenantA, credential.Id));
+            new CredentialKey(TenantA, credential.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().BeNull();
     }
@@ -558,20 +558,20 @@ public abstract class PasswordCredentialStoreContractTests
         var other = CreateCredential(
             TenantA, otherUser, "other");
 
-        await store.AddAsync(target);
-        await store.AddAsync(other);
+        await store.AddAsync(target, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(other, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteByUserAsync(
             targetUser,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         (await store.GetAsync(
-            new CredentialKey(TenantA, target.Id)))
+            new CredentialKey(TenantA, target.Id), ct: TestContext.Current.CancellationToken))
             .Should().BeNull();
 
         (await store.GetAsync(
-            new CredentialKey(TenantA, other.Id)))
+            new CredentialKey(TenantA, other.Id), ct: TestContext.Current.CancellationToken))
             .Should().NotBeNull();
     }
 
@@ -595,11 +595,11 @@ public abstract class PasswordCredentialStoreContractTests
         var credentialB = CreateCredential(
             TenantB, user, "b");
 
-        await storeA.AddAsync(credentialA);
-        await storeB.AddAsync(credentialB);
+        await storeA.AddAsync(credentialA, ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(credentialB, ct: TestContext.Current.CancellationToken);
 
-        var fromA = await storeA.GetByUserAsync(user);
-        var fromB = await storeB.GetByUserAsync(user);
+        var fromA = await storeA.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
+        var fromB = await storeB.GetByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().ContainSingle();
         fromA.Single().Id.Should().Be(credentialA.Id);

@@ -24,7 +24,7 @@ public class ResetPasswordTests
 
         var result = await service.BeginResetAsync(
             BeginContext(),
-            BeginRequest(ResetCodeType.Token));
+            BeginRequest(ResetCodeType.Token), ct: TestContext.Current.CancellationToken);
 
         var notification = notifier.Notifications.Should()
             .ContainSingle().Subject;
@@ -67,7 +67,7 @@ public class ResetPasswordTests
 
         await runtime.GetCredentialManagementService().BeginResetAsync(
             BeginContext(),
-            BeginRequest(ResetCodeType.Code));
+            BeginRequest(ResetCodeType.Code), ct: TestContext.Current.CancellationToken);
 
         var notification = notifier.Notifications.Should()
             .ContainSingle().Subject;
@@ -86,7 +86,7 @@ public class ResetPasswordTests
                 BeginContext(),
                 BeginRequest(
                     ResetCodeType.Token,
-                    "unknown@test.com"));
+                    "unknown@test.com"), ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result.ExpiresAt.Should().BeAfter(runtime.Clock.UtcNow);
@@ -104,7 +104,7 @@ public class ResetPasswordTests
 
         var result = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "newpass123"));
+            CompleteRequest(token, "newpass123"), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -124,7 +124,7 @@ public class ResetPasswordTests
         // reset must return a generic success response.
         var samePassword = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "admin"));
+            CompleteRequest(token, "admin"), ct: TestContext.Current.CancellationToken);
 
         samePassword.IsSuccess.Should().BeTrue();
 
@@ -134,7 +134,7 @@ public class ResetPasswordTests
         // A policy failure must not consume the reset token.
         var retry = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "DifferentPassword123!"));
+            CompleteRequest(token, "DifferentPassword123!"), ct: TestContext.Current.CancellationToken);
 
         retry.IsSuccess.Should().BeTrue();
 
@@ -144,7 +144,7 @@ public class ResetPasswordTests
         // A successfully consumed token must not be reusable.
         var replay = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "AnotherPassword123!"));
+            CompleteRequest(token, "AnotherPassword123!"), ct: TestContext.Current.CancellationToken);
 
         replay.IsSuccess.Should().BeTrue();
 
@@ -174,7 +174,7 @@ public class ResetPasswordTests
         {
             var result = await service.CompleteResetAsync(
                 CompleteContext(),
-                CompleteRequest(wrongToken, "newpass123"));
+                CompleteRequest(wrongToken, "newpass123"), ct: TestContext.Current.CancellationToken);
 
             result.IsSuccess.Should().BeTrue();
 
@@ -184,7 +184,7 @@ public class ResetPasswordTests
         // Even the correct token must no longer work.
         var afterLockout = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "newpass123"));
+            CompleteRequest(token, "newpass123"), ct: TestContext.Current.CancellationToken);
 
         afterLockout.IsSuccess.Should().BeTrue();
 
@@ -205,7 +205,7 @@ public class ResetPasswordTests
 
         var first = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "newpass123"));
+            CompleteRequest(token, "newpass123"), ct: TestContext.Current.CancellationToken);
 
         first.IsSuccess.Should().BeTrue();
 
@@ -213,7 +213,7 @@ public class ResetPasswordTests
 
         var replay = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "anotherpass"));
+            CompleteRequest(token, "anotherpass"), ct: TestContext.Current.CancellationToken);
 
         replay.IsSuccess.Should().BeTrue();
 
@@ -241,7 +241,7 @@ public class ResetPasswordTests
 
         var result = await service.CompleteResetAsync(
             CompleteContext(),
-            CompleteRequest(token, "newpass123"));
+            CompleteRequest(token, "newpass123"), ct: TestContext.Current.CancellationToken);
 
         // Generic anonymous response, not proof of a password change.
         result.IsSuccess.Should().BeTrue();

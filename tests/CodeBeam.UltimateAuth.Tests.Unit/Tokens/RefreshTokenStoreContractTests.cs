@@ -35,10 +35,10 @@ public abstract class RefreshTokenStoreContractTests
             "hash-a11");
 
         await store.ExecuteAsync(
-            ct => store.StoreAsync(token, ct));
+            ct => store.StoreAsync(token, ct), ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -60,7 +60,7 @@ public abstract class RefreshTokenStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var result = await store.FindByHashAsync(
-            "missing-token-hash");
+            "missing-token-hash", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -95,13 +95,13 @@ public abstract class RefreshTokenStoreContractTests
             "tenant-isolation-token");
 
         await storeA.ExecuteAsync(
-            ct => storeA.StoreAsync(token, ct));
+            ct => storeA.StoreAsync(token, ct), ct: TestContext.Current.CancellationToken);
 
         var fromA = await storeA.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         var fromB = await storeB.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();
@@ -129,10 +129,10 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeAsync(
                 token.TokenHash,
                 revokedAt,
-                ct: ct));
+                ct: ct), ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -159,10 +159,10 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 revokedAt,
                 "rotation-new",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -206,17 +206,17 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 firstRevocation,
                 "replacement-1",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         await store.ExecuteAsync(
             ct => store.RevokeAsync(
                 token.TokenHash,
                 Now.AddMinutes(20),
                 "replacement-2",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.FindByHashAsync(
-            token.TokenHash);
+            token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -250,12 +250,12 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 consumedAt,
                 "replacement-token",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         consumed.Should().BeTrue();
 
         var persisted =
-            await store.FindByHashAsync(token.TokenHash);
+            await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -284,7 +284,7 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 firstConsumedAt,
                 "replacement-1",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         first.Should().BeTrue();
 
@@ -293,12 +293,12 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 Now.AddMinutes(20),
                 "replacement-2",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         second.Should().BeFalse();
 
         var persisted =
-            await store.FindByHashAsync(token.TokenHash);
+            await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -320,7 +320,7 @@ public abstract class RefreshTokenStoreContractTests
                 "missing-token",
                 Now,
                 "replacement-token",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -349,15 +349,15 @@ public abstract class RefreshTokenStoreContractTests
                 tokenA.TokenHash,
                 Now.AddMinutes(10),
                 "replacement-a",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         consumed.Should().BeTrue();
 
         var persistedA =
-            await storeA.FindByHashAsync(tokenA.TokenHash);
+            await storeA.FindByHashAsync(tokenA.TokenHash, ct: TestContext.Current.CancellationToken);
 
         var persistedB =
-            await storeB.FindByHashAsync(tokenB.TokenHash);
+            await storeB.FindByHashAsync(tokenB.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persistedA!.IsRevoked.Should().BeTrue();
 
@@ -387,14 +387,14 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 consumedAt,
                 "replacement-a",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var taskB = storeB.ExecuteAsync(
             ct => storeB.TryConsumeAsync(
                 token.TokenHash,
                 consumedAt,
                 "replacement-b",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var results = await Task.WhenAll(
             taskA,
@@ -408,7 +408,7 @@ public abstract class RefreshTokenStoreContractTests
 
         var persisted =
             await storeA.FindByHashAsync(
-                token.TokenHash);
+                token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsRevoked.Should().BeTrue();
@@ -438,7 +438,7 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 winningTime,
                 "winner-replacement",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         winner.Should().BeTrue();
 
@@ -447,12 +447,12 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 Now.AddMinutes(20),
                 "loser-replacement",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         loser.Should().BeFalse();
 
         var persisted =
-            await store.FindByHashAsync(token.TokenHash);
+            await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted!.RevokedAt.Should()
             .Be(winningTime);
@@ -495,12 +495,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeBySessionAsync(
                 session,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(token1.TokenHash))!
+        (await store.FindByHashAsync(token1.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(token2.TokenHash))!
+        (await store.FindByHashAsync(token2.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
     }
 
@@ -539,12 +539,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeBySessionAsync(
                 targetSession,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(target.TokenHash))!
+        (await store.FindByHashAsync(target.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(other.TokenHash))!
+        (await store.FindByHashAsync(other.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -581,12 +581,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeByChainAsync(
                 chain,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(token1.TokenHash))!
+        (await store.FindByHashAsync(token1.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(token2.TokenHash))!
+        (await store.FindByHashAsync(token2.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
     }
 
@@ -621,12 +621,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeByChainAsync(
                 targetChain,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(target.TokenHash))!
+        (await store.FindByHashAsync(target.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(other.TokenHash))!
+        (await store.FindByHashAsync(other.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -662,12 +662,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeAllForUserAsync(
                 user,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(token1.TokenHash))!
+        (await store.FindByHashAsync(token1.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(token2.TokenHash))!
+        (await store.FindByHashAsync(token2.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
     }
 
@@ -696,12 +696,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => store.RevokeAllForUserAsync(
                 targetUser,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await store.FindByHashAsync(target.TokenHash))!
+        (await store.FindByHashAsync(target.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await store.FindByHashAsync(other.TokenHash))!
+        (await store.FindByHashAsync(other.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -737,13 +737,13 @@ public abstract class RefreshTokenStoreContractTests
             ct => storeA.RevokeAsync(
                 tokenA.TokenHash,
                 Now.AddMinutes(10),
-                ct: ct));
+                ct: ct), ct: TestContext.Current.CancellationToken);
 
         var persistedA =
-            await storeA.FindByHashAsync(tokenA.TokenHash);
+            await storeA.FindByHashAsync(tokenA.TokenHash, ct: TestContext.Current.CancellationToken);
 
         var persistedB =
-            await storeB.FindByHashAsync(tokenB.TokenHash);
+            await storeB.FindByHashAsync(tokenB.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persistedA!.IsRevoked.Should().BeTrue();
         persistedB!.IsRevoked.Should().BeFalse();
@@ -777,12 +777,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => storeA.RevokeBySessionAsync(
                 session,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await storeA.FindByHashAsync(tokenA.TokenHash))!
+        (await storeA.FindByHashAsync(tokenA.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await storeB.FindByHashAsync(tokenB.TokenHash))!
+        (await storeB.FindByHashAsync(tokenB.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -813,12 +813,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => storeA.RevokeByChainAsync(
                 chain,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await storeA.FindByHashAsync(tokenA.TokenHash))!
+        (await storeA.FindByHashAsync(tokenA.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await storeB.FindByHashAsync(tokenB.TokenHash))!
+        (await storeB.FindByHashAsync(tokenB.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -849,12 +849,12 @@ public abstract class RefreshTokenStoreContractTests
             ct => storeA.RevokeAllForUserAsync(
                 user,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
-        (await storeA.FindByHashAsync(tokenA.TokenHash))!
+        (await storeA.FindByHashAsync(tokenA.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeTrue();
 
-        (await storeB.FindByHashAsync(tokenB.TokenHash))!
+        (await storeB.FindByHashAsync(tokenB.TokenHash, ct: TestContext.Current.CancellationToken))!
             .IsRevoked.Should().BeFalse();
     }
 
@@ -884,16 +884,16 @@ public abstract class RefreshTokenStoreContractTests
                 token.TokenHash,
                 firstRevocation,
                 "replacement-token",
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         await store.ExecuteAsync(
             ct => store.RevokeAllForUserAsync(
                 user,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var persisted =
-            await store.FindByHashAsync(token.TokenHash);
+            await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted!.RevokedAt.Should().Be(firstRevocation);
 
@@ -962,7 +962,7 @@ public abstract class RefreshTokenStoreContractTests
         await StoreAsync(store, token);
 
         var persisted =
-            await store.FindByHashAsync(token.TokenHash);
+            await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.ChainId.Should().BeNull();

@@ -28,7 +28,7 @@ public abstract class UserSummaryQueryStoreContractTests
 
         var store = db.CreateStore(TenantA);
 
-        var result = await store.QueryAsync(new UserQuery());
+        var result = await store.QueryAsync(new UserQuery(), ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().BeEmpty();
         result.TotalCount.Should().Be(0);
@@ -53,10 +53,10 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var resultA = await db.CreateStore(TenantA)
-            .QueryAsync(new UserQuery());
+            .QueryAsync(new UserQuery(), ct: TestContext.Current.CancellationToken);
 
         var resultB = await db.CreateStore(TenantB)
-            .QueryAsync(new UserQuery());
+            .QueryAsync(new UserQuery(), ct: TestContext.Current.CancellationToken);
 
         resultA.TotalCount.Should().Be(1);
         resultB.TotalCount.Should().Be(1);
@@ -87,7 +87,7 @@ public abstract class UserSummaryQueryStoreContractTests
             {
                 PageNumber = 7,
                 PageSize = 250
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1501);
         result.Items.Should().ContainSingle();
@@ -119,7 +119,7 @@ public abstract class UserSummaryQueryStoreContractTests
             {
                 Search = "target@example.com",
                 PageSize = 50
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Should().ContainSingle();
@@ -151,7 +151,7 @@ public abstract class UserSummaryQueryStoreContractTests
         await db.SeedAsync(TenantA, [target]);
 
         var result = await db.CreateStore(TenantA)
-            .QueryAsync(new UserQuery { Search = search });
+            .QueryAsync(new UserQuery { Search = search }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Should().ContainSingle();
@@ -173,7 +173,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .QueryAsync(new UserQuery
             {
                 Search = "does-not-exist"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(0);
         result.Items.Should().BeEmpty();
@@ -195,7 +195,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .QueryAsync(new UserQuery { Search = search });
+            .QueryAsync(new UserQuery { Search = search }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(2);
     }
@@ -224,7 +224,7 @@ public abstract class UserSummaryQueryStoreContractTests
             {
                 PageNumber = page,
                 PageSize = 10
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
             result.TotalCount.Should().Be(105);
             collected.AddRange(result.Items.Select(x => x.UserKey));
@@ -254,7 +254,7 @@ public abstract class UserSummaryQueryStoreContractTests
             {
                 PageNumber = 10,
                 PageSize = 10
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(15);
         result.Items.Should().BeEmpty();
@@ -276,7 +276,7 @@ public abstract class UserSummaryQueryStoreContractTests
             {
                 PageNumber = int.MaxValue,
                 PageSize = 1000
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().BeEmpty();
         result.TotalCount.Should().Be(1);
@@ -304,7 +304,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .QueryAsync(new UserQuery
             {
                 Status = UserStatus.Active
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Single().UserKey.Should().Be(active.UserKey);
@@ -328,9 +328,9 @@ public abstract class UserSummaryQueryStoreContractTests
 
         var store = db.CreateStore(TenantA);
 
-        var normal = await store.QueryAsync(new UserQuery());
+        var normal = await store.QueryAsync(new UserQuery(), ct: TestContext.Current.CancellationToken);
         var includingDeleted = await store.QueryAsync(
-            new UserQuery { IncludeDeleted = true });
+            new UserQuery { IncludeDeleted = true }, ct: TestContext.Current.CancellationToken);
 
         normal.TotalCount.Should().Be(1);
         normal.Items.Single().UserKey.Should().Be(active.UserKey);
@@ -352,7 +352,7 @@ public abstract class UserSummaryQueryStoreContractTests
         await db.SeedAsync(TenantA, [user]);
 
         var result = await db.CreateStore(TenantA)
-            .QueryAsync(new UserQuery());
+            .QueryAsync(new UserQuery(), ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items[0].UserKey.Should().Be(user.UserKey);
@@ -379,13 +379,13 @@ public abstract class UserSummaryQueryStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var defaultResult = await store.QueryAsync(
-            new UserQuery());
+            new UserQuery(), ct: TestContext.Current.CancellationToken);
 
         var businessResult = await store.QueryAsync(
             new UserQuery
             {
                 ProfileKey = customProfile
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         defaultResult.TotalCount.Should().Be(1);
         defaultResult.Items.Single().DisplayName.Should().BeNull();
@@ -415,7 +415,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .QueryAsync(new UserQuery
             {
                 Search = search
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Single().UserKey.Should().Be(target.UserKey);
@@ -457,7 +457,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .QueryAsync(new UserQuery
             {
                 Search = key.Value
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(1);
         result.Items.Single().UserKey.Should().Be(key);
@@ -479,7 +479,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .QueryAsync(new UserQuery
             {
                 Search = "user-key-12345"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(0);
         result.Items.Should().BeEmpty();
@@ -491,7 +491,7 @@ public abstract class UserSummaryQueryStoreContractTests
         await using var db = await CreateDatabaseAsync();
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync(Array.Empty<UserKey>());
+            .GetByKeysAsync(Array.Empty<UserKey>(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
     }
@@ -511,7 +511,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([first, first, second, second]);
+            .GetByKeysAsync([first, first, second, second], ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
 
@@ -533,7 +533,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([existing, missing]);
+            .GetByKeysAsync([existing, missing], ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
 
@@ -559,7 +559,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([active, deleted]);
+            .GetByKeysAsync([active, deleted], ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
 
@@ -595,10 +595,10 @@ public abstract class UserSummaryQueryStoreContractTests
     };
 
         var resultA = await db.CreateStore(TenantA)
-            .GetByKeysAsync(requested);
+            .GetByKeysAsync(requested, ct: TestContext.Current.CancellationToken);
 
         var resultB = await db.CreateStore(TenantB)
-            .GetByKeysAsync(requested);
+            .GetByKeysAsync(requested, ct: TestContext.Current.CancellationToken);
 
         resultA.Should().HaveCount(2);
         resultB.Should().HaveCount(2);
@@ -638,7 +638,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([key]);
+            .GetByKeysAsync([key], ct: TestContext.Current.CancellationToken);
 
         var user = result.Should().ContainSingle().Subject;
 
@@ -667,7 +667,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([key]);
+            .GetByKeysAsync([key], ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
 
@@ -693,7 +693,7 @@ public abstract class UserSummaryQueryStoreContractTests
         ]);
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync([key]);
+            .GetByKeysAsync([key], ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result[0].DisplayName.Should().BeNull();
@@ -718,7 +718,7 @@ public abstract class UserSummaryQueryStoreContractTests
             .ToArray();
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync(keys);
+            .GetByKeysAsync(keys, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(250);
 
@@ -748,7 +748,7 @@ public abstract class UserSummaryQueryStoreContractTests
     };
 
         var result = await db.CreateStore(TenantA)
-            .GetByKeysAsync(requested);
+            .GetByKeysAsync(requested, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(3);
 

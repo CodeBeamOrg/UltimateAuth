@@ -1,5 +1,11 @@
 <Project>
 	<PropertyGroup>
+        <!-- Keep this list in ascending version order; the last entry drives regular tests. -->
+        <UltimateAuthTargetFrameworks>net8.0;net9.0;net10.0</UltimateAuthTargetFrameworks>
+        <UltimateAuthLatestTargetFramework>$([System.Text.RegularExpressions.Regex]::Match('$(UltimateAuthTargetFrameworks)', '[^;]+$').Value)</UltimateAuthLatestTargetFramework>
+        <!-- CI may build a supported subset without retargeting single-target applications. -->
+        <UltimateAuthBuildTargetFrameworks Condition="'$(UltimateAuthBuildTargetFrameworks)' == ''">$(UltimateAuthTargetFrameworks)</UltimateAuthBuildTargetFrameworks>
+
 		<Version>0.2.0-preview.1</Version>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 		

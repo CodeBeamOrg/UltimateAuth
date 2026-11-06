@@ -23,15 +23,15 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
-        var unrelated = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelated = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.ListChainsAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-admin-list-{Guid.NewGuid():N}");
@@ -76,12 +76,12 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             {
                 PageNumber = 1,
                 PageSize = 50
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await response.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -103,14 +103,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.GetChainAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-admin-detail-{Guid.NewGuid():N}");
@@ -143,7 +143,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         targetChains.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await targetChains.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -152,12 +152,12 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var response = await adminClient.PostAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{targetChain.ChainId.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var detail = await response.Content
-            .ReadFromJsonAsync<SessionChainDetail>();
+            .ReadFromJsonAsync<SessionChainDetail>(cancellationToken: TestContext.Current.CancellationToken);
 
         detail.Should().NotBeNull();
 
@@ -176,16 +176,16 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
-        var targetA = await _factory.CreateLoginUserAsync();
-        var targetB = await _factory.CreateLoginUserAsync();
+        var targetA = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetB = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.GetChainAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-admin-cross-user-{Guid.NewGuid():N}");
@@ -233,7 +233,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetBClient);
 
         var targetBPage = await targetBChains.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetBPage.Should().NotBeNull();
 
@@ -245,7 +245,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         //
         var response = await adminClient.PostAsync(
             $"/auth/admin/users/{targetA.UserKey.Value}/sessions/chains/{targetBChain.ChainId.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().BeOneOf(
             HttpStatusCode.BadRequest,
@@ -274,8 +274,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"session-admin-no-permission-{Guid.NewGuid():N}");
@@ -307,7 +307,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient);
 
         var targetPage = await targetChains.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         targetPage.Should().NotBeNull();
 
@@ -316,7 +316,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var list = await actorClient.PostAsJsonAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains",
-            new PageRequest());
+            new PageRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
         list.StatusCode.Should().BeOneOf(
             HttpStatusCode.Forbidden,
@@ -324,7 +324,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var detail = await actorClient.PostAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{targetChain.ChainId.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         detail.StatusCode.Should().BeOneOf(
             HttpStatusCode.Forbidden,
@@ -343,7 +343,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task SessionAdminQueryEndpoints_ShouldRejectUnauthenticatedRequests()
     {
-        var target = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var anonymous = CreateClient(
             $"session-admin-anonymous-{Guid.NewGuid():N}");
@@ -352,14 +352,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var list = await anonymous.PostAsJsonAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains",
-            new PageRequest());
+            new PageRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
         list.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
         var detail = await anonymous.PostAsync(
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{randomChain.Value}",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         detail.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -370,14 +370,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeSessionAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-revoke-admin-{Guid.NewGuid():N}");
@@ -405,7 +405,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -439,15 +439,15 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var targetA = await _factory.CreateLoginUserAsync();
-        var targetB = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetA = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetB = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeSessionAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-revoke-cross-admin-{Guid.NewGuid():N}");
@@ -488,7 +488,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         bChainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var bPage = await bChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         bPage.Should().NotBeNull();
 
@@ -503,7 +503,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         //
         var attack = await adminClient.PostAsync(
             $"/auth/admin/users/{targetA.UserKey.Value}/sessions/{bSessionId.Value}/revoke",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         attack.StatusCode.Should().BeOneOf(
             HttpStatusCode.BadRequest,
@@ -527,8 +527,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"session-revoke-no-permission-{Guid.NewGuid():N}");
@@ -554,7 +554,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await GetChainsAsync(targetClient);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -586,14 +586,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeSessionAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"session-single-admin-{Guid.NewGuid():N}");
@@ -632,7 +632,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var chainsResponse = await GetChainsAsync(targetClient1);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -676,14 +676,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeChainAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"revoke-chain-admin-{Guid.NewGuid():N}");
@@ -711,7 +711,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         chainsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -748,15 +748,15 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var targetA = await _factory.CreateLoginUserAsync();
-        var targetB = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetA = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var targetB = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeChainAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"revoke-chain-cross-admin-{Guid.NewGuid():N}");
@@ -796,7 +796,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             .Be(HttpStatusCode.OK);
 
         var bPage = await bChainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         bPage.Should().NotBeNull();
 
@@ -809,7 +809,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         //
         var attack = await adminClient.PostAsync(
             $"/auth/admin/users/{targetA.UserKey.Value}/sessions/chains/{bChain.ChainId.Value}/revoke",
-            null);
+            null, TestContext.Current.CancellationToken);
 
         attack.StatusCode.Should().BeOneOf(
             HttpStatusCode.BadRequest,
@@ -843,14 +843,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Sessions.RevokeChainAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"revoke-chain-isolation-admin-{Guid.NewGuid():N}");
@@ -890,7 +890,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient1);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -939,8 +939,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"revoke-chain-denied-actor-{Guid.NewGuid():N}");
@@ -967,7 +967,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             await GetChainsAsync(targetClient);
 
         var page = await chainsResponse.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         page.Should().NotBeNull();
 
@@ -997,12 +997,12 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Sessions.RevokeAllChainsAdmin]);
+            [UAuthActions.Sessions.RevokeAllChainsAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"revoke-all-admin-{Guid.NewGuid():N}");
@@ -1071,13 +1071,13 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
-        var unrelated = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelated = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Sessions.RevokeAllChainsAdmin]);
+            [UAuthActions.Sessions.RevokeAllChainsAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"revoke-all-isolation-admin-{Guid.NewGuid():N}");
@@ -1140,8 +1140,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"revoke-all-denied-actor-{Guid.NewGuid():N}");
@@ -1197,7 +1197,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var target = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var anonymousClient = CreateClient(
             $"revoke-all-anonymous-{Guid.NewGuid():N}");
@@ -1235,12 +1235,12 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Sessions.RevokeRootAdmin]);
+            [UAuthActions.Sessions.RevokeRootAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"root-admin-{Guid.NewGuid():N}");
@@ -1302,13 +1302,13 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
-        var unrelated = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var unrelated = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Sessions.RevokeRootAdmin]);
+            [UAuthActions.Sessions.RevokeRootAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(
             $"root-isolation-admin-{Guid.NewGuid():N}");
@@ -1362,8 +1362,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var actor = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var actorClient = CreateClient(
             $"root-denied-actor-{Guid.NewGuid():N}");
@@ -1394,7 +1394,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var target = await _factory.CreateLoginUserAsync();
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var anonymousClient = CreateClient($"root-anonymous-{Guid.NewGuid():N}");
         using var targetClient = CreateClient($"root-anonymous-target-{Guid.NewGuid():N}");
@@ -1413,10 +1413,10 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
-        await _factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Sessions.RevokeRootAdmin]);
+        await _factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Sessions.RevokeRootAdmin], TestContext.Current.CancellationToken);
 
         var adminDevice = $"root-recreate-admin-{Guid.NewGuid():N}";
 
@@ -1479,12 +1479,12 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var admin = await _factory.CreateLoginUserAsync();
-        var target = await _factory.CreateLoginUserAsync();
+        var admin = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await _factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Sessions.RevokeRootAdmin]);
+            [UAuthActions.Sessions.RevokeRootAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient =
             CreateClient($"root-concurrent-admin-{Guid.NewGuid():N}");
@@ -1579,7 +1579,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         verificationB.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var chainsA = await verificationA.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chainsA.Should().NotBeNull();
 
@@ -1592,7 +1592,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             .Should().Be(1);
 
         var chainsB = await verificationB.Content
-            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+            .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         chainsB.Should().NotBeNull();
 

@@ -45,8 +45,8 @@ public class UAuthStateManagerTests
 
         var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
 
-        await manager.EnsureAsync();
-        await manager.EnsureAsync();
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
         flowClient.Verify(x => x.ValidateAsync(), Times.Once);
     }
@@ -70,9 +70,9 @@ public class UAuthStateManagerTests
                     Snapshot = CreateSnapshot()
                 });
 
-            var first = manager.EnsureAsync(force: true);
-            var second = manager.EnsureAsync(force: true);
-            var third = manager.EnsureAsync(force: true);
+            var first = manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+            var second = manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+            var third = manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
 
             first.IsCompleted.Should().BeFalse();
 
@@ -93,7 +93,7 @@ public class UAuthStateManagerTests
 
             manager.State.IsAuthenticated.Should().BeTrue();
 
-            await manager.EnsureAsync(force: true);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
 
             flows.Verify(
                 x => x.ValidateAsync(),
@@ -115,7 +115,7 @@ public class UAuthStateManagerTests
             });
 
         var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
-        await manager.EnsureAsync();
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
         manager.State.IsAuthenticated.Should().BeFalse();
     }
 
@@ -127,7 +127,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeTrue();
             manager.State.IsStale.Should().BeFalse();
@@ -160,7 +160,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
             await manager.OnLogoutAsync();
 
             manager.State.IsAuthenticated.Should().BeFalse();
@@ -178,11 +178,11 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             manager.MarkStale();
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             flows.Verify(x => x.ValidateAsync(), Times.Exactly(2));
             manager.State.IsStale.Should().BeFalse();
@@ -197,14 +197,14 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             manager.Clear();
 
             manager.State.IsAuthenticated.Should().BeFalse();
             manager.NeedsValidation.Should().BeTrue();
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             flows.Verify(x => x.ValidateAsync(), Times.Exactly(2));
         }
@@ -222,7 +222,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgsEmpty(
@@ -242,7 +242,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgs<UpdateProfileRequest>(
@@ -268,7 +268,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgs<ChangeUserStatusSelfRequest>(
@@ -294,7 +294,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgsEmpty(
@@ -314,7 +314,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgsEmpty(
@@ -333,7 +333,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             manager.MarkStale();
 
@@ -362,7 +362,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             await events.PublishAsync(
                 new UAuthStateEventArgsEmpty(
@@ -381,7 +381,7 @@ public class UAuthStateManagerTests
 
         SetupValidSnapshot(flows);
 
-        await manager.EnsureAsync();
+        await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
         manager.Dispose();
 
@@ -401,9 +401,9 @@ public class UAuthStateManagerTests
         using (manager)
         {
             SetupValidSnapshot(flows);
-            await manager.EnsureAsync(force: true);
-            await manager.EnsureAsync(force: true);
-            await manager.EnsureAsync(force: true);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
             flows.Verify(x => x.ValidateAsync(), Times.Exactly(3));
         }
     }
@@ -424,7 +424,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeTrue();
 
@@ -434,7 +434,7 @@ public class UAuthStateManagerTests
                     State = sessionState
                 });
 
-            await manager.EnsureAsync(force: true);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeFalse();
             manager.State.Identity.Should().BeNull();
@@ -471,7 +471,7 @@ public class UAuthStateManagerTests
 
             manager.State.IsAuthenticated.Should().BeFalse();
 
-            await manager.EnsureAsync(force: true);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeTrue();
             manager.State.IsStale.Should().BeFalse();
@@ -491,7 +491,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             var originalIdentity = manager.State.Identity;
             var originalValidatedAt = manager.State.LastValidatedAt;
@@ -520,7 +520,7 @@ public class UAuthStateManagerTests
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync();
+            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
 
             flows.Setup(x => x.ValidateAsync())
                 .ReturnsAsync(new AuthValidationResult
@@ -529,7 +529,7 @@ public class UAuthStateManagerTests
                     Snapshot = null
                 });
 
-            await manager.EnsureAsync(force: true);
+            await manager.EnsureAsync(force: true, ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeTrue();
             manager.State.IsStale.Should().BeTrue();

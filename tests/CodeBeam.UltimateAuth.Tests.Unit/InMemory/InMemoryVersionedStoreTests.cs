@@ -15,9 +15,9 @@ public sealed class InMemoryVersionedStoreTests
 
         var entity = TestEntity.Create("entity-1", "initial");
 
-        await store.AddAsync(entity);
+        await store.AddAsync(entity, ct: TestContext.Current.CancellationToken);
 
-        var stored = await store.GetAsync("entity-1");
+        var stored = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         stored.Should().NotBeNull();
         stored!.Value.Should().Be("initial");
@@ -35,15 +35,15 @@ public sealed class InMemoryVersionedStoreTests
         var store = new TestStore(accessor);
 
         await store.AddAsync(
-            TestEntity.Create("entity-1", "initial"));
+            TestEntity.Create("entity-1", "initial"), ct: TestContext.Current.CancellationToken);
 
-        (await store.ExistsAsync("entity-1"))
+        (await store.ExistsAsync("entity-1", ct: TestContext.Current.CancellationToken))
             .Should()
             .BeTrue();
 
         atomic.Rollback();
 
-        (await store.ExistsAsync("entity-1"))
+        (await store.ExistsAsync("entity-1", ct: TestContext.Current.CancellationToken))
             .Should()
             .BeFalse();
     }
@@ -55,27 +55,27 @@ public sealed class InMemoryVersionedStoreTests
         var store = new TestStore(accessor);
 
         await store.AddAsync(
-            TestEntity.Create("entity-1", "initial"));
+            TestEntity.Create("entity-1", "initial"), ct: TestContext.Current.CancellationToken);
 
         var atomic = new InMemoryAtomicContext();
         accessor.Current = atomic;
 
-        var entity = await store.GetAsync("entity-1");
+        var entity = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         entity!.Value = "updated";
 
         await store.SaveAsync(
             entity,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
-        var updated = await store.GetAsync("entity-1");
+        var updated = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         updated!.Value.Should().Be("updated");
         updated.Version.Should().Be(1);
 
         atomic.Rollback();
 
-        var restored = await store.GetAsync("entity-1");
+        var restored = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         restored.Should().NotBeNull();
         restored!.Value.Should().Be("initial");
@@ -89,7 +89,7 @@ public sealed class InMemoryVersionedStoreTests
         var store = new TestStore(accessor);
 
         await store.AddAsync(
-            TestEntity.Create("entity-1", "initial"));
+            TestEntity.Create("entity-1", "initial"), ct: TestContext.Current.CancellationToken);
 
         var atomic = new InMemoryAtomicContext();
         accessor.Current = atomic;
@@ -98,15 +98,15 @@ public sealed class InMemoryVersionedStoreTests
             "entity-1",
             expectedVersion: 0,
             DeleteMode.Hard,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        (await store.ExistsAsync("entity-1"))
+        (await store.ExistsAsync("entity-1", ct: TestContext.Current.CancellationToken))
             .Should()
             .BeFalse();
 
         atomic.Rollback();
 
-        var restored = await store.GetAsync("entity-1");
+        var restored = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         restored.Should().NotBeNull();
         restored!.Value.Should().Be("initial");
@@ -121,7 +121,7 @@ public sealed class InMemoryVersionedStoreTests
         var store = new TestStore(accessor);
 
         await store.AddAsync(
-            TestEntity.Create("entity-1", "initial"));
+            TestEntity.Create("entity-1", "initial"), ct: TestContext.Current.CancellationToken);
 
         var atomic = new InMemoryAtomicContext();
         accessor.Current = atomic;
@@ -136,9 +136,9 @@ public sealed class InMemoryVersionedStoreTests
             "entity-1",
             expectedVersion: 0,
             DeleteMode.Soft,
-            deletedAt);
+            deletedAt, ct: TestContext.Current.CancellationToken);
 
-        var deleted = await store.GetAsync("entity-1");
+        var deleted = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         deleted.Should().NotBeNull();
         deleted!.IsDeleted.Should().BeTrue();
@@ -147,7 +147,7 @@ public sealed class InMemoryVersionedStoreTests
 
         atomic.Rollback();
 
-        var restored = await store.GetAsync("entity-1");
+        var restored = await store.GetAsync("entity-1", ct: TestContext.Current.CancellationToken);
 
         restored.Should().NotBeNull();
         restored!.IsDeleted.Should().BeFalse();
@@ -162,41 +162,41 @@ public sealed class InMemoryVersionedStoreTests
         var store = new TestStore(accessor);
 
         await store.AddAsync(
-            TestEntity.Create("existing", "original"));
+            TestEntity.Create("existing", "original"), ct: TestContext.Current.CancellationToken);
 
         var atomic = new InMemoryAtomicContext();
         accessor.Current = atomic;
 
         // ADD
         await store.AddAsync(
-            TestEntity.Create("new", "created"));
+            TestEntity.Create("new", "created"), ct: TestContext.Current.CancellationToken);
 
         // UPDATE
-        var existing = await store.GetAsync("existing");
+        var existing = await store.GetAsync("existing", ct: TestContext.Current.CancellationToken);
 
         existing!.Value = "updated";
 
         await store.SaveAsync(
             existing,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
         // DELETE newly-created entity
         await store.DeleteAsync(
             "new",
             expectedVersion: 0,
             DeleteMode.Hard,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
         atomic.Rollback();
 
         var restoredExisting =
-            await store.GetAsync("existing");
+            await store.GetAsync("existing", ct: TestContext.Current.CancellationToken);
 
         restoredExisting.Should().NotBeNull();
         restoredExisting!.Value.Should().Be("original");
         restoredExisting.Version.Should().Be(0);
 
-        (await store.ExistsAsync("new"))
+        (await store.ExistsAsync("new", ct: TestContext.Current.CancellationToken))
             .Should()
             .BeFalse();
     }

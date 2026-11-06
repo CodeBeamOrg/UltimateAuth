@@ -98,7 +98,7 @@ public sealed class PasswordValidationPipelineTests
 
         var result = await pipeline.ValidateAsync(
             CreateRequest(new string('a', 257)),
-            CreateOptions());
+            CreateOptions(), ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
 
@@ -119,7 +119,7 @@ public sealed class PasswordValidationPipelineTests
 
         var result = await pipeline.ValidateAsync(
             CreateRequest("NewPassword123!"),
-            CreateOptions(rememberLast: 5));
+            CreateOptions(rememberLast: 5), ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, strength.CallCount);
@@ -142,7 +142,7 @@ public sealed class PasswordValidationPipelineTests
 
         var result = await pipeline.ValidateAsync(
             CreateRequest("CurrentPassword123!", key),
-            CreateOptions(rememberLast: 0));
+            CreateOptions(rememberLast: 0), ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
 
@@ -164,7 +164,7 @@ public sealed class PasswordValidationPipelineTests
 
         var result = await pipeline.ValidateAsync(
             CreateRequest("NewPassword123!", key),
-            CreateOptions(rememberLast: 5));
+            CreateOptions(rememberLast: 5), ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, history.CallCount);
@@ -189,7 +189,7 @@ public sealed class PasswordValidationPipelineTests
 
         var result = await pipeline.ValidateAsync(
             CreateRequest("PreviouslyUsed123!", key),
-            CreateOptions(rememberLast: 3));
+            CreateOptions(rememberLast: 3), ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
 

@@ -30,9 +30,9 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
             tenant,
             userKey);
 
-        await store.AddAsync(state);
+        await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+        var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(state.Id, result!.Id);
@@ -51,13 +51,13 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(state);
+            await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
-            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
             var updated = existing!.RegisterFailure(
                 DateTimeOffset.UtcNow,
@@ -65,13 +65,13 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
                 failureWindow: TimeSpan.FromMinutes(5),
                 lockoutDuration: TimeSpan.FromMinutes(5));
 
-            await store.UpdateAsync(updated, expectedVersion: 0);
+            await store.UpdateAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
-            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.SecurityVersion);
             Assert.Equal(1, result.FailedAttempts);
@@ -89,10 +89,10 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var state = AuthenticationSecurityState.CreateAccount(tenant, userKey);
-        await store.AddAsync(state);
+        await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
         var updated = state.RegisterFailure(DateTimeOffset.UtcNow, 3, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
-        await Assert.ThrowsAsync<UAuthConflictException>(() => store.UpdateAsync(updated, expectedVersion: 999));
+        await Assert.ThrowsAsync<UAuthConflictException>(() => store.UpdateAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -109,21 +109,21 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(state);
+            await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
-            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
             var updated = existing!.RegisterSuccess();
-            await store.UpdateAsync(updated, expectedVersion: 1);
+            await store.UpdateAsync(updated, expectedVersion: 1, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
-            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(0, result!.FailedAttempts);
             Assert.Null(result.LockedUntil);
@@ -142,7 +142,7 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db1, new TenantExecutionContext(tenant));
-            await store.AddAsync(state);
+            await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
         }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -150,23 +150,23 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
         await using (var db2 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db2, new TenantExecutionContext(tenant));
-            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
             var updated = existing!.BeginReset("hash", now, TimeSpan.FromMinutes(10));
-            await store.UpdateAsync(updated, expectedVersion: 0);
+            await store.UpdateAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db3, new TenantExecutionContext(tenant));
-            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var existing = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
             var consumed = existing!.ConsumeReset(DateTimeOffset.UtcNow);
-            await store.UpdateAsync(consumed, expectedVersion: 1);
+            await store.UpdateAsync(consumed, expectedVersion: 1, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db4 = CreateDb(connection))
         {
             var store = new EfCoreAuthenticationSecurityStateStore<UAuthAuthenticationDbContext>(db4, new TenantExecutionContext(tenant));
-            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+            var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
             Assert.NotNull(result!.ResetConsumedAt);
         }
     }
@@ -184,11 +184,11 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         var state = AuthenticationSecurityState.CreateAccount(tenant, userKey);
 
-        await store.AddAsync(state);
+        await store.AddAsync(state, ct: TestContext.Current.CancellationToken);
 
-        await store.DeleteAsync(userKey, AuthenticationSecurityScope.Account, null);
+        await store.DeleteAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+        var result = await store.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -207,8 +207,8 @@ public class EfCoreAuthenticationStoreTests : EfCoreTestBase
 
         var userKey = UserKey.FromGuid(Guid.NewGuid());
         var state = AuthenticationSecurityState.CreateAccount(tenant1, userKey);
-        await store1.AddAsync(state);
-        var result = await store2.GetAsync(userKey, AuthenticationSecurityScope.Account, null);
+        await store1.AddAsync(state, ct: TestContext.Current.CancellationToken);
+        var result = await store2.GetAsync(userKey, AuthenticationSecurityScope.Account, null, ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }

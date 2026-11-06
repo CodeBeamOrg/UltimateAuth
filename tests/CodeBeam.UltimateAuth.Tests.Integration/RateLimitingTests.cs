@@ -28,7 +28,7 @@ public class RateLimitingTests
             if (response.Headers.RetryAfter is not null)
                 Assert.True(response.Headers.RetryAfter.Delta > TimeSpan.Zero);
             Assert.True(response.Headers.CacheControl?.NoStore);
-            Assert.Contains("rate_limited", await response.Content.ReadAsStringAsync());
+            Assert.Contains("rate_limited", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         foreach (var route in new[] { "/auth/validate", "/auth/refresh", "/auth/logout" })
             Assert.Equal(HttpStatusCode.NoContent, (await host.Post(route)).StatusCode);

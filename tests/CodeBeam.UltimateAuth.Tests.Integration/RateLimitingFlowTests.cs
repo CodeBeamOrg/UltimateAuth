@@ -22,7 +22,7 @@ public class RateLimitingFlowTests
             o.RateLimiting.Endpoints[UAuthEndpoint.Logout] = new() { PermitLimit = 1 };
             o.Login.MaxFailedAttempts = 1;
         });
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         HttpClient Client(string device)
         {
             var client = factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -45,10 +45,10 @@ public class RateLimitingFlowTests
         using (var scope = factory.Services.CreateScope())
         {
             var security = scope.ServiceProvider.GetRequiredService<IAuthenticationSecurityManager>();
-            var factor = await security.GetOrCreateFactorAsync(TenantKey.Single, user.UserKey, CredentialType.Password);
+            var factor = await security.GetOrCreateFactorAsync(TenantKey.Single, user.UserKey, CredentialType.Password, TestContext.Current.CancellationToken);
             Assert.Equal(0, factor.FailedAttempts);
         }
-        Assert.NotEqual(HttpStatusCode.TooManyRequests, (await first.PostAsync("/auth/logout", null)).StatusCode);
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, (await first.PostAsync("/auth/logout", null, TestContext.Current.CancellationToken)).StatusCode);
         // Two validated sessions of the same actor share logout capacity.
         var logout = await CsrfTestClient.PostAsync(second, "/auth/logout", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, logout.StatusCode);
@@ -56,7 +56,7 @@ public class RateLimitingFlowTests
         // The rejected logout did not revoke the second session.
         var validation = await CsrfTestClient.PostAsync(second, "/auth/validate", null);
         Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
-        var result = await validation.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>();
+        var result = await validation.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result?.IsValid);
         Assert.NotNull(result!.Snapshot);
     }

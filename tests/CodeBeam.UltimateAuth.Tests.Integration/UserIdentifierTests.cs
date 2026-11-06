@@ -35,11 +35,11 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             {
                 Type = UserIdentifierType.Username,
                 Value = username
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>();
+        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -64,7 +64,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
                 UserName = username,
                 Password = $"Test-{Guid.NewGuid():N}!",
                 DisplayName = username
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         create.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -74,11 +74,11 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             {
                 Type = UserIdentifierType.Username,
                 Value = username
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>();
+        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -105,7 +105,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
                 Email = email,
                 Password = $"Test-{Guid.NewGuid():N}!",
                 DisplayName = "Availability Test"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         create.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -116,11 +116,11 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             {
                 Type = UserIdentifierType.Email,
                 Value = $"  {email.ToUpperInvariant()}  "
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>();
+        var result = await response.Content.ReadFromJsonAsync<UserIdentifierAvailabilityResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -144,14 +144,14 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             {
                 Type = UserIdentifierType.Email,
                 Value = "not-an-email"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
         var result =
             await response.Content
-                .ReadFromJsonAsync<UserIdentifierAvailabilityResult>();
+                .ReadFromJsonAsync<UserIdentifierAvailabilityResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -173,14 +173,14 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             {
                 Type = UserIdentifierType.Username,
                 Value = "   "
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
         var result =
             await response.Content
-                .ReadFromJsonAsync<UserIdentifierAvailabilityResult>();
+                .ReadFromJsonAsync<UserIdentifierAvailabilityResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -202,10 +202,10 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
     [InlineData("delete", true)]
     public async Task IdentifierMutation_WhenIdBelongsToAnotherUser_ShouldReturnNotFoundAndPreserveRecords(string operation, bool admin)
     {
-        var actor = await _factory.CreateLoginUserAsync();
-        var victim = await _factory.CreateLoginUserAsync();
+        var actor = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var victim = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         if (admin)
-            await _factory.GrantPermissionsAsync(actor.UserKey, new[] { "*" });
+            await _factory.GrantPermissionsAsync(actor.UserKey, new[] { "*" }, TestContext.Current.CancellationToken);
 
         using var scope = _factory.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -220,16 +220,16 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             _factory.Clock.UtcNow,
             isPrimary: operation == "unset-primary",
             verifiedAt: operation == "verify" ? null : _factory.Clock.UtcNow);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, TestContext.Current.CancellationToken);
 
-        var before = (await store.GetByUserAsync(victim.UserKey))
+        var before = (await store.GetByUserAsync(victim.UserKey, TestContext.Current.CancellationToken))
             .Select(x => x.Snapshot()).ToArray();
         using var client = CreateClient();
         await AuthenticateIdentifierClientAsync(client, actor.Identifier, actor.Secret);
 
         // Prove authentication works before exercising the ownership boundary.
         using var authenticated = await client.PostAsJsonAsync(
-            "/auth/me/identifiers/get", new { });
+            "/auth/me/identifiers/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
         authenticated.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var path = admin
@@ -240,7 +240,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
         // Use a separate route target whose identifiers are NOT the victim's.
         if (admin)
         {
-            var target = await _factory.CreateLoginUserAsync();
+            var target = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
             path = $"/auth/admin/users/{target.UserKey.Value}/identifiers/{operation}";
         }
 
@@ -252,7 +252,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
                 mode = 0
             });
 
-        var after = await store.GetByUserAsync(victim.UserKey);
+        var after = await store.GetByUserAsync(victim.UserKey, TestContext.Current.CancellationToken);
         using var assertions = new AwesomeAssertions.Execution.AssertionScope();
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         after.Should().BeEquivalentTo(before,
@@ -274,7 +274,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
 
         var factory = configuredFactory ?? _factory;
 
-        var owner = await factory.CreateLoginUserAsync();
+        var owner = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var scope = factory.Services.CreateScope();
         var services = scope.ServiceProvider;
         var store = services.GetRequiredService<IUserIdentifierStoreFactory>().Create(TenantKeys.Single);
@@ -287,7 +287,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             factory.Clock.UtcNow,
             isPrimary: operation == "unset-primary",
             verifiedAt: operation == "verify" ? null : factory.Clock.UtcNow);
-        await store.AddAsync(identifier);
+        await store.AddAsync(identifier, TestContext.Current.CancellationToken);
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
             {
@@ -315,8 +315,8 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
                     : null
             });
         response.IsSuccessStatusCode.Should().BeTrue(
-            $"own identifier operation should succeed: {await response.Content.ReadAsStringAsync()}");
-        var saved = await store.GetByIdAsync(identifier.Id);
+            $"own identifier operation should succeed: {await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)}");
+        var saved = await store.GetByIdAsync(identifier.Id, TestContext.Current.CancellationToken);
         saved.Should().NotBeNull();
         switch (operation)
         {

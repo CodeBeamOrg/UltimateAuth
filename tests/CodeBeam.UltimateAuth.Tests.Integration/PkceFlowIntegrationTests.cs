@@ -31,7 +31,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -76,7 +76,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -127,7 +127,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -181,7 +181,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -225,7 +225,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -260,7 +260,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(
@@ -379,7 +379,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
         _factory.Clock.Reset();
 
         var user =
-            await _factory.CreateLoginUserAsync();
+            await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client =
             CreateClient(

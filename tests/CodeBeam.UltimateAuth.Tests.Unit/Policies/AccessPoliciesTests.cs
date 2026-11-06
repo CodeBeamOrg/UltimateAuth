@@ -44,7 +44,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.WithAction("users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
@@ -59,7 +59,7 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
         }
@@ -85,7 +85,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
         }
@@ -112,7 +112,7 @@ public sealed class AccessPoliciesTests
                 clientProfile: UAuthClientProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("cross_tenant_access_denied");
@@ -153,7 +153,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.WithAction("users.update.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
@@ -171,7 +171,7 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.update.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -191,7 +191,7 @@ public sealed class AccessPoliciesTests
                     target,
                     "users.update.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("not_self");
@@ -232,7 +232,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.repair.system");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("system_actor_required");
@@ -257,7 +257,7 @@ public sealed class AccessPoliciesTests
                 clientProfile: UAuthClientProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -344,7 +344,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.update.admin");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("unauthenticated");
@@ -363,7 +363,7 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.update.admin");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should()
@@ -383,7 +383,7 @@ public sealed class AccessPoliciesTests
                     userKey,
                     "users.delete.admin");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should()
@@ -404,7 +404,7 @@ public sealed class AccessPoliciesTests
                     target,
                     "users.update.admin");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -511,7 +511,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.WithAction("users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("inner_denied");
@@ -534,7 +534,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
             inner.DecideCallCount.Should().Be(1);
@@ -619,7 +619,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.update.admin");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_permission");
@@ -632,7 +632,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.WithAction("users.update.admin") .WithAttribute(UAuthConstants.Access.Permissions, "invalid-permissions");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_permission");
@@ -654,7 +654,7 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = await sut.DecideAsync(context);
+        var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsAllowed.Should().BeTrue();
     }
@@ -674,7 +674,7 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = await sut.DecideAsync(context);
+        var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsAllowed.Should().BeFalse();
         result.DenyReason.Should().Be("missing_permission");
@@ -695,7 +695,7 @@ public sealed class AccessPoliciesTests
                     UAuthConstants.Access.Permissions,
                     permissions);
 
-        var result = await sut.DecideAsync(context);
+        var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsAllowed.Should().BeTrue();
         result.DenyReason.Should().BeNull();
@@ -781,7 +781,7 @@ public sealed class AccessPoliciesTests
             var context =
                 TestAccessContext.WithAction("users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("missing_actor");
@@ -801,7 +801,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
@@ -822,7 +822,7 @@ public sealed class AccessPoliciesTests
 
             var context = TestAccessContext.ForUser(UserKey.New(), "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
@@ -845,7 +845,7 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_found");
@@ -868,7 +868,7 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeFalse();
             result.DenyReason.Should().Be("user_not_active");
@@ -891,7 +891,7 @@ public sealed class AccessPoliciesTests
                 UserKey.New(),
                 "users.get.self");
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             result.IsAllowed.Should().BeTrue();
             result.DenyReason.Should().BeNull();
@@ -915,7 +915,7 @@ public sealed class AccessPoliciesTests
             var sut = new RequireActiveUserPolicy(runtime);
             var context = TestAccessContext.ForUser(userKey, "users.get.self", tenant);
 
-            var result = await sut.DecideAsync(context);
+            var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
 
             runtime.LastTenant.Should().Be(tenant);
             runtime.LastUserKey.Should().Be(userKey);

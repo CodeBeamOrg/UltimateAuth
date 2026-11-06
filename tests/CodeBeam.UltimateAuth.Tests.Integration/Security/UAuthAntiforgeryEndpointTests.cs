@@ -21,7 +21,7 @@ public sealed class UAuthAntiforgeryEndpointTests
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync(
-            "/auth/antiforgery/token");
+            "/auth/antiforgery/token", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -30,7 +30,7 @@ public sealed class UAuthAntiforgeryEndpointTests
             response.Headers.CacheControl?.ToString() ?? "");
 
         var token = await response.Content
-            .ReadFromJsonAsync<TokenResponse>();
+            .ReadFromJsonAsync<TokenResponse>(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(token);
         Assert.False(string.IsNullOrWhiteSpace(token.RequestToken));
@@ -62,11 +62,11 @@ public sealed class UAuthAntiforgeryEndpointTests
             {
                 identifier = "csrf-test-user",
                 secret = "irrelevant"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "invalid_antiforgery_token",
@@ -85,7 +85,7 @@ public sealed class UAuthAntiforgeryEndpointTests
                 HandleCookies = true
             });
 
-        await client.GetAsync("/auth/antiforgery/token");
+        await client.GetAsync("/auth/antiforgery/token", TestContext.Current.CancellationToken);
 
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
@@ -102,7 +102,7 @@ public sealed class UAuthAntiforgeryEndpointTests
             "X-UAuth-CSRF",
             "invalid-token");
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -120,7 +120,7 @@ public sealed class UAuthAntiforgeryEndpointTests
             });
 
         var token = await client.GetFromJsonAsync<TokenResponse>(
-            "/auth/antiforgery/token");
+            "/auth/antiforgery/token", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(token);
 
@@ -139,9 +139,9 @@ public sealed class UAuthAntiforgeryEndpointTests
             token.HeaderName,
             token.RequestToken);
 
-        using var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(
             "invalid_antiforgery_token",
@@ -169,10 +169,10 @@ public sealed class UAuthAntiforgeryEndpointTests
 
         var firstToken =
             await firstClient.GetFromJsonAsync<TokenResponse>(
-                "/auth/antiforgery/token");
+                "/auth/antiforgery/token", cancellationToken: TestContext.Current.CancellationToken);
 
         // Ensure the second client has its own antiforgery cookie.
-        await secondClient.GetAsync("/auth/antiforgery/token");
+        await secondClient.GetAsync("/auth/antiforgery/token", TestContext.Current.CancellationToken);
 
         Assert.NotNull(firstToken);
 
@@ -191,11 +191,11 @@ public sealed class UAuthAntiforgeryEndpointTests
             firstToken.HeaderName,
             firstToken.RequestToken);
 
-        using var response = await secondClient.SendAsync(request);
+        using var response = await secondClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "invalid_antiforgery_token",

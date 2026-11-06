@@ -45,7 +45,7 @@ public sealed class RoleServiceTests
         var result = await f.Sut.CreateAsync(
             context,
             "  Administrators  ",
-            permissions);
+            permissions, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(captured);
 
@@ -144,7 +144,7 @@ public sealed class RoleServiceTests
         await f.Sut.RenameAsync(
             context,
             role.Id,
-            "  New Name  ");
+            "  New Name  ", ct: TestContext.Current.CancellationToken);
 
         role.Name.Should().Be("New Name");
         role.NormalizedName.Should().Be("NEW NAME");
@@ -224,7 +224,7 @@ public sealed class RoleServiceTests
         var result = await f.Sut.DeleteAsync(
             context,
             role.Id,
-            mode);
+            mode, ct: TestContext.Current.CancellationToken);
 
         result.RoleId.Should().Be(role.Id);
         result.RemovedAssignments.Should().Be(13);
@@ -322,7 +322,7 @@ public sealed class RoleServiceTests
         await f.Sut.SetPermissionsAsync(
             context,
             role.Id,
-            permissions);
+            permissions, ct: TestContext.Current.CancellationToken);
 
         role.Permissions.Should().ContainSingle().Which.Should().Be(Permission.From("users.read"));
 
@@ -376,7 +376,7 @@ public sealed class RoleServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var result = await f.Sut.QueryAsync(context, query);
+        var result = await f.Sut.QueryAsync(context, query, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
