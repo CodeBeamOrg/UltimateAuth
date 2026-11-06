@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>$(UltimateAuthBuildTargetFrameworks)</TargetFrameworks>
 
 		<PackageId>CodeBeam.UltimateAuth.Client.Blazor</PackageId>
 
@@ -34,7 +34,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.14" />
 	</ItemGroup>
 
-	<Target Name="MinifyUAuthJs" AfterTargets="Build" Condition="'$(CI)' != 'true' AND '$(TargetFramework)' == 'net10.0' AND Exists('TScripts/uauth.js')">
+	<Target Name="MinifyUAuthJs" AfterTargets="Build" Condition="'$(CI)' != 'true' AND '$(TargetFramework)' == '$(UltimateAuthLatestTargetFramework)' AND Exists('TScripts/uauth.js')">
 		<Message Importance="high" Text="Minifying uauth.js → uauth.min.js" />
 		<Exec Command="dotnet run --project ../CodeBeam.UltimateAuth.Client.JsMinifier/CodeBeam.UltimateAuth.Client.JsMinifier.csproj --configuration $(Configuration) -- &quot;$(ProjectDir)TScripts/uauth.js&quot; &quot;$(ProjectDir)wwwroot/uauth.min.js&quot;" />
 	</Target>

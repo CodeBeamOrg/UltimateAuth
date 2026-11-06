@@ -1,7 +1,8 @@
 <Project>
   <Import Project="../Directory.Build.props" />
   <PropertyGroup>
-    <!-- Resolve apphosts early for every target framework, including net8.0/net9.0. -->
+    <TargetFramework>$(UltimateAuthLatestTargetFramework)</TargetFramework>
+    <!-- Resolve the executable apphost before SDK framework evaluation. -->
     <OutputType>Exe</OutputType>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
