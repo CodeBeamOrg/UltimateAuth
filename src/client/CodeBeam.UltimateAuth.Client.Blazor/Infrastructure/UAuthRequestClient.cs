@@ -135,6 +135,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         if (response.ValueKind != JsonValueKind.Object)
             throw new UAuthProtocolException("Invalid tryAndCommit response.");
+
         if (response.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.Number && status.TryGetInt32(out var code) && code == 429)
             throw UAuthRateLimit.Exception(response.TryGetProperty("retryAfter", out var retry) && retry.ValueKind == JsonValueKind.String ? retry.GetString() : null);
         try
