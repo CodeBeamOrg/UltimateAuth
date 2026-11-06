@@ -45,13 +45,9 @@ internal sealed class UAuthClientBootstrapper : IUAuthClientBootstrapper
 
             string? trustedOrigin = null;
 
-            if (Uri.TryCreate(basePath, UriKind.Absolute, out var hubUri))
+            if (Uri.TryCreate(basePath, UriKind.Absolute, out var hubUri) &&
+                (hubUri.Scheme == Uri.UriSchemeHttp || hubUri.Scheme == Uri.UriSchemeHttps))
             {
-                if (hubUri.Scheme != Uri.UriSchemeHttp && hubUri.Scheme != Uri.UriSchemeHttps)
-                {
-                    throw new InvalidOperationException("UAuthHub URL must use HTTP or HTTPS.");
-                }
-
                 trustedOrigin = hubUri.GetLeftPart(UriPartial.Authority);
             }
 

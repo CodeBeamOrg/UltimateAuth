@@ -146,16 +146,17 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
 
+
     private string? ResolveTrustedOrigin()
     {
         var basePath = _options.Endpoints.BasePath;
 
-        if (!Uri.TryCreate(basePath, UriKind.Absolute, out var uri))
-            return null;
+        if (Uri.TryCreate(basePath, UriKind.Absolute, out var hubUri) &&
+            (hubUri.Scheme == Uri.UriSchemeHttp || hubUri.Scheme == Uri.UriSchemeHttps))
+        {
+            return hubUri.GetLeftPart(UriPartial.Authority);
+        }
 
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-            return null;
-
-        return uri.GetLeftPart(UriPartial.Authority);
+        return null;
     }
 }
