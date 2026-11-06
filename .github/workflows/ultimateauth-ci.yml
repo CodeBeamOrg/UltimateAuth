@@ -1,4 +1,4 @@
-name: UltimateAuth CI
+name: UAuth CI
 
 on:
   push:
@@ -8,18 +8,16 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches:
-      - dev
-      - 'release/**'
   workflow_dispatch:
 
 jobs:
   frameworks:
-    name: Resolve framework policy
+    name: Framework Validation
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.policy.outputs.matrix }}
       latest: ${{ steps.policy.outputs.latest }}
+      latest-display: ${{ steps.policy.outputs.latest-display }}
       sdks: ${{ steps.policy.outputs.sdks }}
       solution-frameworks: ${{ steps.policy.outputs.solution-frameworks }}
     steps:
@@ -79,13 +77,15 @@ jobs:
           for framework in frameworks:
               included = [p.as_posix() for p, info in packages.items() if framework in targets(info)]
               assert included, f"No packages selected for {framework}"
-              matrix["include"].append({"framework": framework, "sdk": framework[3:] + ".x",
+              matrix["include"].append({"framework": framework, "display": framework[3:].removesuffix(".0"),
+                                        "sdk": framework[3:] + ".x",
                                         "projects": "\n".join(included)})
           for p, info in packages.items():
               assert set(targets(info)) <= set(frameworks), f"Uncovered package framework: {p}"
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")
               output.write("latest=" + latest + "\n")
+              output.write("latest-display=" + latest[3:].removesuffix(".0") + "\n")
               output.write("solution-frameworks=" + "%3B".join(sorted(required, key=version)) + "\n")
               output.write("sdks<<SDKS\n" + "\n".join(f[3:] + ".x" for f in sorted(required, key=version)) + "\nSDKS\n")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
@@ -96,7 +96,7 @@ jobs:
           PYTHON
 
   build-compatibility:
-    name: Build compatibility (${{ matrix.framework }})
+    name: Build (.NET ${{ matrix.display }})
     needs: frameworks
     runs-on: ubuntu-latest
     strategy:
@@ -133,7 +133,7 @@ jobs:
           done <<< "$PROJECTS"
 
   build-test-coverage:
-    name: Tests & Coverage (${{ needs.frameworks.outputs.latest }})
+    name: Tests & Coverage (.NET ${{ needs.frameworks.outputs.latest-display }})
     needs: frameworks
     runs-on: ubuntu-latest
 
@@ -185,7 +185,7 @@ jobs:
 
   
   identity-lab-security:
-    name: Identity Lab security
+    name: Identity Lab / Tests & Coverage
     needs: frameworks
     runs-on: ubuntu-latest
     timeout-minutes: 20
