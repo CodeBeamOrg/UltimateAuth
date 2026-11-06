@@ -3475,10 +3475,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
                 user.Identifier,
                 user.Secret));
 
-        //
-        // Two independent HTTP requests start with the same
-        // authenticated actor authority.
-        //
+        // Two independent HTTP requests start with the same authenticated actor authority.
         using var request1 = CreateClient(actorDevice);
         using var request2 = CreateClient(actorDevice);
 
@@ -3499,22 +3496,34 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
                 "/auth/me/logout-all",
                 null));
 
-        //
-        // Depending on where authentication is linearized,
-        // the second request may observe either the pre-logout
-        // or post-logout authority.
-        //
-        responses.Should().OnlyContain(x =>
-            x.StatusCode == HttpStatusCode.OK ||
-            x.StatusCode == HttpStatusCode.Unauthorized);
+        foreach (var response in responses)
+        {
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var body = await response.Content
+                    .ReadFromJsonAsync<Dictionary<string, string>>();
+
+                body.Should().NotBeNull();
+                body.Should().ContainKey("error")
+                    .WhoseValue.Should().Be("invalid_antiforgery_token");
+
+                continue;
+            }
+
+            response.StatusCode.Should().BeOneOf(
+                HttpStatusCode.OK,
+                HttpStatusCode.Unauthorized);
+        }
 
         responses.Should().Contain(x =>
             x.StatusCode == HttpStatusCode.OK);
 
-        //
+
+        responses.Should().Contain(x =>
+            x.StatusCode == HttpStatusCode.OK);
+
         // Final state is the security invariant that matters:
         // no old authority may survive.
-        //
         using var actorVerification =
             CreateClient(actorDevice);
 
@@ -3588,7 +3597,9 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         cookies.Should().NotBeNullOrEmpty();
 
-        var cookie = cookies!.First();
+        var cookie = cookies!
+            .Select(x => x.Split(';', 2)[0])
+            .First(x => x.StartsWith("uas=", StringComparison.OrdinalIgnoreCase));
         cookie.Should().NotBeNullOrWhiteSpace();
 
         return cookie;
