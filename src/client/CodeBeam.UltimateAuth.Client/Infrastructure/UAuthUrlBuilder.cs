@@ -41,18 +41,21 @@ public static class UAuthUrlBuilder
 
         var segment = Uri.EscapeDataString(tenantId);
 
-        if (Uri.TryCreate(baseAuthority, UriKind.Absolute, out var uri))
-        {
-            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-                throw new ArgumentException("Authority must use HTTP or HTTPS.", nameof(authority));
+        if (baseAuthority.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || baseAuthority.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        { 
+            if (Uri.TryCreate(baseAuthority, UriKind.Absolute, out var uri))
+            {
+                if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                    throw new ArgumentException("Authority must use HTTP or HTTPS.", nameof(authority));
 
-            if (!string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
-                throw new ArgumentException("Authority cannot contain a query or fragment.", nameof(authority));
+                if (!string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
+                    throw new ArgumentException("Authority cannot contain a query or fragment.", nameof(authority));
 
-            var origin = uri.GetLeftPart(UriPartial.Authority);
-            var path = uri.AbsolutePath.TrimEnd('/');
+                var origin = uri.GetLeftPart(UriPartial.Authority);
+                var path = uri.AbsolutePath.TrimEnd('/');
 
-            return origin + "/" + segment + path + "/" + endpoint;
+                return origin + "/" + segment + path + "/" + endpoint;
+            }
         }
 
         return "/" + segment + "/" + baseAuthority.TrimStart('/') + "/" + endpoint;

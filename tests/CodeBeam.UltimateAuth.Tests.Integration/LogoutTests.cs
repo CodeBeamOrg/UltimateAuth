@@ -3518,10 +3518,6 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         responses.Should().Contain(x =>
             x.StatusCode == HttpStatusCode.OK);
 
-
-        responses.Should().Contain(x =>
-            x.StatusCode == HttpStatusCode.OK);
-
         // Final state is the security invariant that matters:
         // no old authority may survive.
         using var actorVerification =
