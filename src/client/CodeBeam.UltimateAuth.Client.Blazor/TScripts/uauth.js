@@ -74,7 +74,13 @@ window.uauth.submitForm = async function (
 };
 
 window.uauth.tryAndCommit = async function (options) {
-    const { tryUrl, commitUrl, data, clientProfile } = options;
+    const {
+        tryUrl,
+        commitUrl,
+        data,
+        clientProfile,
+        trustedOrigin
+    } = options;
 
     const deviceId = window.uauth.deviceId;
 
@@ -85,7 +91,8 @@ window.uauth.tryAndCommit = async function (options) {
     const tryResponse = await window.uauth.postJson({
         url: tryUrl,
         payload: data,
-        clientProfile
+        clientProfile,
+        trustedOrigin
     });
 
     if (!tryResponse || !Number.isInteger(tryResponse.status)) {
@@ -97,7 +104,9 @@ window.uauth.tryAndCommit = async function (options) {
     const isClientError = status >= 400 && status < 500;
 
     if (!isHttpSuccess && !isClientError) {
-        throw new Error(`Unexpected UAuth try response: HTTP ${status}.`);
+        throw new Error(
+            `Unexpected UAuth try response: HTTP ${status}.`
+        );
     }
 
     const result = tryResponse.body;
@@ -110,7 +119,9 @@ window.uauth.tryAndCommit = async function (options) {
     }
 
     if (isClientError && result.isSuccess) {
-        throw new Error("Successful authentication result returned with HTTP error.");
+        throw new Error(
+            "Successful authentication result returned with HTTP error."
+        );
     }
 
     const normalized = {
@@ -157,6 +168,7 @@ window.uauth.tryAndCommit = async function (options) {
         form.appendChild(udid);
 
         document.body.appendChild(form);
+
         try {
             await window.uauth.submitForm(form, trustedOrigin);
         }
@@ -174,13 +186,19 @@ window.uauth.post = async function (options) {
         url,
         mode,
         data,
-        clientProfile
+        clientProfile,
+        trustedOrigin
     } = options;
+
+    const validatedUrl = window.uauth.validateAuthUrl(
+        url,
+        trustedOrigin
+    );
 
     if (mode === "navigate") {
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = url;
+        form.action = validatedUrl;
 
         const cp = document.createElement("input");
         cp.type = "hidden";
@@ -205,6 +223,7 @@ window.uauth.post = async function (options) {
         }
 
         document.body.appendChild(form);
+
         try {
             await window.uauth.submitForm(form, trustedOrigin);
         }
@@ -212,13 +231,14 @@ window.uauth.post = async function (options) {
             form.remove();
             throw error;
         }
+
         return null;
     }
 
     const isLogout =
         mode === "logout" ||
         mode === "logout-observe";
-  
+
     return window.uauth.request({
         url: validatedUrl,
         method: "POST",
@@ -281,7 +301,9 @@ window.uauth.request = async function (options) {
     const requestMethod = method.toUpperCase();
 
     if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(requestMethod)) {
-        throw new Error(`Unsupported HTTP method: ${requestMethod}`);
+        throw new Error(
+            `Unsupported HTTP method: ${requestMethod}`
+        );
     }
 
     if (!["same-origin", "include", "omit"].includes(credentials)) {
@@ -291,25 +313,47 @@ window.uauth.request = async function (options) {
     if (credentials === "include" &&
         requestUrl.origin !== window.location.origin &&
         !options.allowCrossOriginCredentials) {
-        throw new Error("Cross-origin credentials require explicit authorization.");
+        throw new Error(
+            "Cross-origin credentials require explicit authorization."
+        );
     }
 
     if (!window.uauth.deviceId) {
         throw new Error("UAuth deviceId is not initialized.");
     }
+
     const headers = {
         "X-UDID": window.uauth.deviceId,
         "X-UAuth-ClientProfile": clientProfile,
-        "X-Requested-With": "UAuth"
+        "X-Requested-With": "UAuth",
+        ...customHeaders
     };
 
-    if (data) {
-        body = new URLSearchParams();
-        for (const key in data) {
-            body.append(key, data[key]);
-        }
+    let body = null;
 
-        headers["Content-Type"] = "application/x-www-form-urlencoded";
+    if (payload !== null &&
+        payload !== undefined &&
+        requestMethod !== "GET") {
+
+        if (contentType === "json") {
+            headers["Content-Type"] = "application/json";
+            body = JSON.stringify(payload);
+        }
+        else if (contentType === "form") {
+            headers["Content-Type"] =
+                "application/x-www-form-urlencoded";
+
+            body = new URLSearchParams();
+
+            for (const key of Object.keys(payload)) {
+                body.append(key, payload[key] ?? "");
+            }
+        }
+        else {
+            throw new Error(
+                `Unsupported content type: ${contentType}`
+            );
+        }
     }
 
     if (requestMethod !== "GET" && options.antiforgery === true) {
@@ -319,23 +363,30 @@ window.uauth.request = async function (options) {
         );
 
         if (new URL(tokenUrl).origin !== requestUrl.origin) {
-            throw new Error("UAuth antiforgery token origin differs from request origin.");
+            throw new Error(
+                "UAuth antiforgery token origin differs from request origin."
+            );
         }
 
-        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin);
+        const token = await window.uauth.antiforgery.getToken(
+            options.trustedOrigin
+        );
+
         headers[token.headerName] = token.requestToken;
     }
 
     let response;
 
     try {
-        response = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: headers,
-            body: body
+        response = await fetch(requestUrl.href, {
+            method: requestMethod,
+            credentials,
+            headers,
+            body,
+            redirect: "follow"
         });
-    } catch (error) {
+    }
+    catch (error) {
         if (error instanceof TypeError) {
             return {
                 ok: false,
@@ -349,64 +400,11 @@ window.uauth.request = async function (options) {
     }
 
     let responseBody = null;
+
     try {
         responseBody = await response.json();
-    } catch {
-        responseBody = null;
     }
-
-    return {
-        ok: response.ok,
-        status: response.status,
-        refreshOutcome: response.headers.get("X-UAuth-Refresh"),
-        body: responseBody
-    };
-};
-
-window.uauth.postJson = async function (options) {
-    const {
-        url,
-        payload,
-        clientProfile
-    } = options;
-
-    if (!window.uauth.deviceId) {
-        throw new Error("UAuth deviceId is not initialized.");
-    }
-
-    const headers = {
-        "Content-Type": "application/json",
-        "X-UDID": window.uauth.deviceId,
-        "X-UAuth-ClientProfile": clientProfile ?? "",
-        "X-Requested-With": "UAuth"
-    };
-
-    let response;
-
-    try {
-        response = await fetch(url, {
-            method: "POST",
-            credentials: "include",
-            headers: headers,
-            body: payload ? JSON.stringify(payload) : null
-        });
-    } catch (error) {
-        if (error instanceof TypeError) {
-            return {
-                ok: false,
-                status: 0,
-                refreshOutcome: null,
-                body: null
-            };
-        }
-
-        throw error;
-    }
-
-    let responseBody = null;
-    try {
-        responseBody = await response.json();
-    } catch {
+    catch {
         responseBody = null;
     }
 
@@ -423,7 +421,9 @@ window.uauth.antiforgery = {
 
     configure: function (options) {
         if (!options?.tokenUrl) {
-            throw new Error("UAuth antiforgery token URL is required.");
+            throw new Error(
+                "UAuth antiforgery token URL is required."
+            );
         }
 
         this.tokenUrl = window.uauth.validateAuthUrl(
@@ -434,7 +434,9 @@ window.uauth.antiforgery = {
 
     getToken: async function (trustedOrigin) {
         if (!this.tokenUrl) {
-            throw new Error("UAuth antiforgery is not configured.");
+            throw new Error(
+                "UAuth antiforgery is not configured."
+            );
         }
 
         const url = window.uauth.validateAuthUrl(
@@ -450,7 +452,9 @@ window.uauth.antiforgery = {
         });
 
         if (!response.ok) {
-            throw new Error(`Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`);
+            throw new Error(
+                `Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`
+            );
         }
 
         const token = await response.json();
@@ -458,7 +462,9 @@ window.uauth.antiforgery = {
         if (!token?.requestToken ||
             !token?.headerName ||
             !token?.formFieldName) {
-            throw new Error("Invalid UAuth antiforgery response.");
+            throw new Error(
+                "Invalid UAuth antiforgery response."
+            );
         }
 
         return token;
@@ -479,6 +485,49 @@ window.uauth.antiforgery = {
 
         input.value = token.requestToken;
     }
+};
+
+window.uauth.validateAuthUrl = function (
+    url,
+    trustedOrigin = null) {
+
+    if (!url || typeof url !== "string") {
+        throw new Error("Authentication URL is required.");
+    }
+
+    const origin = trustedOrigin
+        ? new URL(trustedOrigin, window.location.origin)
+        : new URL(window.location.origin);
+
+    const target = new URL(url, document.baseURI);
+
+    if (!["http:", "https:"].includes(origin.protocol)) {
+        throw new Error("Unsupported trusted origin protocol.");
+    }
+
+    if (!["http:", "https:"].includes(target.protocol)) {
+        throw new Error("Unsupported authentication URL protocol.");
+    }
+
+    if (origin.username || origin.password) {
+        throw new Error(
+            "Trusted origin cannot contain credentials."
+        );
+    }
+
+    if (target.username || target.password) {
+        throw new Error(
+            "Authentication URL cannot contain credentials."
+        );
+    }
+
+    if (target.origin !== origin.origin) {
+        throw new Error(
+            "Authentication request target differs from the trusted UAuthHub origin."
+        );
+    }
+
+    return target.href;
 };
 
 window.uauth.setDeviceId = function (value) {

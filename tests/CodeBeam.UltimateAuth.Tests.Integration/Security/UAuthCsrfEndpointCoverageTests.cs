@@ -1,4 +1,4 @@
-﻿using AwesomeAssertions;
+﻿using FluentAssertions;
 using CodeBeam.UltimateAuth.Server.Security;
 using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;

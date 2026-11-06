@@ -34,7 +34,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "navigate",
             data = form,
-            clientProfile = _options.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString(),
+            trustedOrigin = ResolveTrustedOrigin()
         });
     }
 
@@ -49,7 +50,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "fetch",
             data = form,
-            clientProfile = _options.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString(),
+            trustedOrigin = ResolveTrustedOrigin()
         });
 
         if (result == null)
@@ -74,7 +76,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         {
             url = endpoint,
             payload = payload,
-            clientProfile = _options.ClientProfile.ToString()
+            clientProfile = _options.ClientProfile.ToString(),
+            trustedOrigin = ResolveTrustedOrigin()
         });
 
         if (result == null)
@@ -100,12 +103,26 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 tryUrl = tryEndpoint,
                 commitUrl = commitEndpoint,
                 data = request,
-                clientProfile = _options.ClientProfile.ToString()
+                clientProfile = _options.ClientProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
             });
 
         if (response is null)
             throw new UAuthProtocolException("Invalid tryAndCommit response.");
 
         return response;
+    }
+
+    private string? ResolveTrustedOrigin()
+    {
+        var basePath = _options.Endpoints.BasePath;
+
+        if (!Uri.TryCreate(basePath, UriKind.Absolute, out var uri))
+            return null;
+
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            return null;
+
+        return uri.GetLeftPart(UriPartial.Authority);
     }
 }
