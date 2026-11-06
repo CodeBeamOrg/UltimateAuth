@@ -7,13 +7,15 @@ using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
-public class UserProfileTests : IClassFixture<AuthServerFactory>
+public class UserProfileTests : IDisposable
 {
+    // Profiles created by one test must not exist in another test's host.
+    private readonly AuthServerFactory _factory = new();
     private readonly HttpClient _client;
 
-    public UserProfileTests(AuthServerFactory factory)
+    public UserProfileTests()
     {
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -21,6 +23,12 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
 
         _client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         _client.DefaultRequestHeaders.Add("X-UDID", $"profile-test-{Guid.NewGuid():N}");
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _factory.Dispose();
     }
 
     [Fact]

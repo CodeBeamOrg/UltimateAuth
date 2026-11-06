@@ -1,0 +1,12 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+  <PropertyGroup>
+    <!-- Resolve apphosts early for every target framework, including net8.0/net9.0. -->
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.MTP" Version="10.1.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.1" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

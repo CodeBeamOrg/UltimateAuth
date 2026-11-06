@@ -18,19 +18,17 @@ jobs:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-
     steps:
     - name: 📥 Checkout repository
       uses: actions/checkout@v4
 
-    - name: 🧰 Setup .NET SDK ${{ matrix.dotnet-version }}
+    - name: 🧰 Setup .NET SDKs
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
 
     - name: 📦 Restore dependencies
       run: dotnet restore
@@ -40,18 +38,33 @@ jobs:
 
     - name: 🧪 Test with coverage
       run: |
-        dotnet test \
-          --configuration Release \
-          --no-build \
-          --filter "FullyQualifiedName!~CodeBeam.UltimateAuth.IdentityLab.Tests" \
-          --collect:"XPlat Code Coverage"
+        test_status=0
+        for project in CodeBeam.UltimateAuth.Tests.Unit CodeBeam.UltimateAuth.Tests.Integration CodeBeam.UltimateAuth.Tests.Integration.EfCore CodeBeam.UltimateAuth.Tests.RateLimiting.Compatibility; do
+          dotnet test --project "tests/$project/$project.csproj" \
+            --configuration Release \
+            --no-build \
+            --coverlet \
+            --coverlet-output-format cobertura \
+            --report-trx \
+            --results-directory "TestResults/Framework/$project" || test_status=1
+        done
+        exit "$test_status"
+
+    - name: Upload framework test and coverage results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework-test-results
+        path: TestResults/Framework
 
     - name: Upload coverage reports to Codecov
+      if: always()
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: CodeBeamOrg/UltimateAuth
         flags: framework
+        directory: TestResults/Framework
 
   
   identity-lab-security:
@@ -70,12 +83,16 @@ jobs:
 
       - name: Run Identity Lab tests with coverage
         run: >-
-          dotnet test tests/CodeBeam.UltimateAuth.IdentityLab.Tests
+          dotnet test --project tests/CodeBeam.UltimateAuth.IdentityLab.Tests/CodeBeam.UltimateAuth.IdentityLab.Tests.csproj
           --configuration Release
-          --collect:"XPlat Code Coverage"
-          --logger "trx;LogFileName=identity-lab.trx"
+          --coverlet
+          --coverlet-output-format cobertura
+          --coverlet-output-format json
+          --coverlet-include "[CodeBeam.UltimateAuth.IdentityLab]*"
+          --coverlet-exclude-by-file "**/Migrations/**/*.cs"
+          --report-trx
+          --report-trx-filename identity-lab.trx
           --results-directory TestResults/IdentityLab
-          --settings tests/CodeBeam.UltimateAuth.IdentityLab.Tests/identity-lab.runsettings
 
       - name: Generate Identity Lab coverage summary
         if: always()
@@ -87,7 +104,7 @@ jobs:
           import xml.etree.ElementTree as ET
 
           reports = glob.glob(
-              "TestResults/IdentityLab/**/coverage.cobertura.xml",
+              "TestResults/IdentityLab/**/coverage.cobertura*.xml",
               recursive=True
           )
 

@@ -9,18 +9,16 @@ using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
-public class LoginTests : IClassFixture<AuthServerFactory>
+public class LoginTests : IDisposable
 {
     private const string LoginEndpoint = "/auth/login";
     private const string ValidIdentifier = "admin";
     private const string ValidSecret = "admin";
 
-    private readonly AuthServerFactory _factory;
+    // Each test owns its host so clock changes and account state cannot leak.
+    private readonly AuthServerFactory _factory = new();
 
-    public LoginTests(AuthServerFactory factory)
-    {
-        _factory = factory;
-    }
+    public void Dispose() => _factory.Dispose();
 
     [Fact]
     public async Task Login_WithValidCredentials_ShouldIssueSessionCredential()
