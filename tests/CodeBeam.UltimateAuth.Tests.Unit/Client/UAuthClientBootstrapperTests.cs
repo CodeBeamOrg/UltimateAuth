@@ -190,6 +190,38 @@ public class UAuthClientBootstrapperTests
             Times.Exactly(2));
     }
 
+
+    [Theory]
+    [InlineData("/auth", "/auth/antiforgery/token")]
+    [InlineData("auth", "auth/antiforgery/token")]
+    [InlineData("/identity", "/identity/antiforgery/token")]
+    public async Task EnsureStartedAsync_should_preserve_relative_hub_paths(string basePath, string expectedTokenUrl)
+    {
+        var deviceId = TestDevice.Default().DeviceId!.Value.Value;
+
+        var provider = CreateDeviceProvider(deviceId);
+        var browser = new Mock<IBrowserUAuthBridge>();
+
+        var options = new UAuthClientOptions();
+        options.Endpoints.BasePath = basePath;
+
+        var bootstrapper = CreateBootstrapper(
+            provider,
+            browser,
+            options);
+
+        await bootstrapper.EnsureStartedAsync();
+
+        bootstrapper.IsStarted.Should().BeTrue();
+
+        browser.Verify(
+            x => x.ConfigureAntiforgeryAsync(
+                expectedTokenUrl,
+                null),
+            Times.Once);
+    }
+
+
     private static Mock<IDeviceIdProvider> CreateDeviceProvider(
         string deviceId)
     {
