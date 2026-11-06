@@ -1272,19 +1272,22 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         client1.DefaultRequestHeaders.Add("Cookie", cookie);
         client2.DefaultRequestHeaders.Add("Cookie", cookie);
 
+
         var responses = await Task.WhenAll(
             CsrfTestClient.PostAsync(client1, "/auth/logout", null),
             CsrfTestClient.PostAsync(client2, "/auth/logout", null));
 
-        //
-        // Depending on where stale-session rejection occurs,
-        // one request may observe the session after the other revoked it.
-        //
-        // What must never happen is an infrastructure failure.
-        //
-        responses.Should().OnlyContain(x =>
-            x.StatusCode == HttpStatusCode.Found ||
-            x.StatusCode == HttpStatusCode.Unauthorized);
+        var results = await Task.WhenAll(
+            responses.Select(async response => new
+            {
+                response.StatusCode,
+                Body = await response.Content.ReadAsStringAsync()
+            }));
+
+        results.Should().OnlyContain(
+            x => x.StatusCode == HttpStatusCode.Found ||
+                 x.StatusCode == HttpStatusCode.Unauthorized,
+            $"logout responses were: {string.Join(" | ", results.Select(x => $"{(int)x.StatusCode}: {x.Body}"))}");
 
         //
         // Final state is the actual security invariant.
