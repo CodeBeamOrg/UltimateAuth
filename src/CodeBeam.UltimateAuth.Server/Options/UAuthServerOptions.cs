@@ -119,12 +119,7 @@ public sealed class UAuthServerOptions
 
     public UAuthNavigationOptions Navigation { get; set; } = new();
 
-
-    ///// <summary>
-    ///// If true, server will add anti-forgery headers
-    ///// and require proper request metadata.
-    ///// </summary>
-    //public bool EnableAntiCsrfProtection { get; set; } = true;
+    public UAuthAntiforgeryOptions Antiforgery { get; set; } = new();
 
     ///// <summary>
     ///// If true, login attempts are rate-limited to prevent brute force attacks.
@@ -178,6 +173,7 @@ public sealed class UAuthServerOptions
             UserProfile = UserProfile.Clone(),
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),
+            Antiforgery = Antiforgery.Clone(),
 
             //EnableAntiCsrfProtection = EnableAntiCsrfProtection,
             //EnableLoginRateLimiting = EnableLoginRateLimiting,

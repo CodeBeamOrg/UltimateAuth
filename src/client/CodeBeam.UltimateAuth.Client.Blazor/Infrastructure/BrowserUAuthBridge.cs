@@ -16,4 +16,15 @@ internal sealed class BrowserUAuthBridge : IBrowserUAuthBridge
     {
         return _js.InvokeVoidAsync("uauth.setDeviceId", deviceId);
     }
+
+    public ValueTask ConfigureAntiforgeryAsync(string tokenUrl, string? trustedOrigin = null)
+    {
+        return _js.InvokeVoidAsync(
+            "uauth.antiforgery.configure",
+            new
+            {
+                tokenUrl,
+                trustedOrigin
+            });
+    }
 }

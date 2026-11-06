@@ -57,13 +57,16 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         //
         // The aggregate must be usable, not merely persisted.
         //
-        var login = await client.PostAsJsonAsync(
+        var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
                 identifier = username,
                 secret
             });
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
 
         login.StatusCode.Should()
             .Be(HttpStatusCode.Found);
@@ -355,13 +358,16 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         // lifecycle integration produced a credential that
         // the authentication pipeline can consume.
         //
-        var login = await client.PostAsJsonAsync(
+        var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
                 identifier = username,
                 secret
             });
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
 
         login.StatusCode.Should()
             .Be(HttpStatusCode.Found);
@@ -651,7 +657,8 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         using var client = CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/admin/users/create",
             new CreateUserRequest
             {

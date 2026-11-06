@@ -66,14 +66,20 @@ internal static class UAuthRateLimitEndpointExtensions
         builder.Finally(b =>
         {
             // Includes policies inherited from application route groups. Native Disable also wins.
-            if (b.Metadata.OfType<EnableRateLimitingAttribute>().Any() ||
-                b.Metadata.OfType<DisableRateLimitingAttribute>().Any()) return;
+            if (b.Metadata.OfType<EnableRateLimitingAttribute>().Any() || b.Metadata.OfType<DisableRateLimitingAttribute>().Any())
+                return;
             var options = b.ApplicationServices.GetRequiredService<IOptions<UAuthServerOptions>>().Value.RateLimiting;
             var (rule, budget) = options.Resolve(metadata);
-            if (!options.Enabled || !rule.Enabled) return;
+
+            if (!options.Enabled || !rule.Enabled)
+                return;
+
             var immediate = new ImmediateConventionBuilder(b);
-            if (rule.PolicyName is not null) immediate.RequireRateLimiting(rule.PolicyName);
-            else immediate.RequireRateLimiting(new UAuthRateLimitPolicy(metadata, rule, budget));
+
+            if (rule.PolicyName is not null)
+                immediate.RequireRateLimiting(rule.PolicyName);
+            else
+                immediate.RequireRateLimiting(new UAuthRateLimitPolicy(metadata, rule, budget));
         });
         return builder;
     }
@@ -94,10 +100,13 @@ internal static class UAuthRateLimitValidation
             return "RateLimiting.Endpoints contains an unknown endpoint.";
         foreach (var rule in new[] { options.Sensitive, options.Standard, options.Frequent, options.Login }.Concat(options.Endpoints.Values))
         {
-            if (rule is null) return "RateLimiting rules cannot be null.";
+            if (rule is null)
+                return "RateLimiting rules cannot be null.";
+
             if (rule.PolicyName is not null)
             {
-                if (string.IsNullOrWhiteSpace(rule.PolicyName)) return "RateLimiting.PolicyName cannot be blank.";
+                if (string.IsNullOrWhiteSpace(rule.PolicyName))
+                    return "RateLimiting.PolicyName cannot be blank.";
             }
             else if (rule.PermitLimit <= 0 || rule.Window.Ticks < 6)
                 return "RateLimiting requires a positive PermitLimit and a window of at least six ticks.";

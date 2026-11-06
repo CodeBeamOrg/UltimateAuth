@@ -70,7 +70,7 @@ public sealed class ClientRateLimitingIntegrationTests
         Assert.Equal(credential, http.DefaultRequestHeaders.GetValues("Cookie").Single());
         await flow.RefreshAsync(isAuto: true);
         Assert.Equal(2, transport.Count);
-        var session = await http.PostAsync("/auth/validate", null);
+        var session = await CsrfTestClient.PostAsync(http, "/auth/validate", null);
         Assert.Equal(HttpStatusCode.OK, session.StatusCode);
         Assert.True((await session.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>())!.IsValid);
     }
@@ -81,7 +81,7 @@ public sealed class ClientRateLimitingIntegrationTests
         http.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         http.DefaultRequestHeaders.Add("X-UDID", "client-rate-device-123456789");
         http.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorServer");
-        var login = await http.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = user.Secret });
+        var login = await CsrfTestClient.PostJsonAsync(http, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
         Assert.True(login.Headers.TryGetValues("Set-Cookie", out var cookies));
         http.DefaultRequestHeaders.Add("Cookie", string.Join("; ", cookies!.Select(c => c.Split(';')[0])));
         return http;
@@ -113,13 +113,13 @@ public sealed class ClientRateLimitingIntegrationTests
         public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
         {
             Count++;
-            using var response = await http.PostAsync(endpoint, form is null ? null : new FormUrlEncodedContent(form), ct);
+            using var response = await CsrfTestClient.PostAsync(http, endpoint, form is null ? null : new FormUrlEncodedContent(form));
             return await Read(response, ct);
         }
         public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default)
         {
             Count++;
-            using var response = await http.PostAsJsonAsync(endpoint, payload, ct);
+            using var response = await CsrfTestClient.PostJsonAsync(http, endpoint, payload);
             return await Read(response, ct);
         }
         private static async Task<UAuthTransportResult> Read(HttpResponseMessage response, CancellationToken ct)

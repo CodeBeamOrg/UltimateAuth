@@ -247,8 +247,7 @@ public sealed class CredentialManagementTests
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
 
-        var url =
-            $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
+        var url = $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
 
         var begin = await BeginResetAsync(
             client,
@@ -698,7 +697,7 @@ public sealed class CredentialManagementTests
 
         var newPassword = $"Changed-{Guid.NewGuid():N}!";
 
-        var response = await currentClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(currentClient,
             "/auth/me/credentials/change",
             new ChangeCredentialRequest
             {
@@ -753,7 +752,8 @@ public sealed class CredentialManagementTests
 
         var newPassword = $"AdminChanged-{Guid.NewGuid():N}!";
 
-        var response = await adminClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/credentials/change",
             new ChangeCredentialRequest
             {
@@ -1001,7 +1001,7 @@ public sealed class CredentialManagementTests
 
     private static Task<HttpResponseMessage> BeginResetAsync(HttpClient client, string url, string identifier)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             url,
             new BeginResetCredentialRequest
             {
@@ -1013,7 +1013,7 @@ public sealed class CredentialManagementTests
 
     private static Task<HttpResponseMessage> CompleteResetAsync(HttpClient client, string url, string identifier, string token, string newPassword)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             url,
             new CompleteResetCredentialRequest
             {
@@ -1026,7 +1026,8 @@ public sealed class CredentialManagementTests
 
     private static async Task AuthenticateAsync(HttpClient client, IntegrationTestUser user)
     {
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {

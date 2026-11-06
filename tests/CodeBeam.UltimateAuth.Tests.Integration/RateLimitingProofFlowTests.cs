@@ -30,14 +30,14 @@ public sealed class RateLimitingProofFlowTests
         using var client = Client(factory);
         static string Encode(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var verifier = Encode(RandomNumberGenerator.GetBytes(32));
-        var authorize = await client.PostAsync("/auth/pkce/authorize", new FormUrlEncodedContent(new Dictionary<string, string>
+        var authorize = await CsrfTestClient.PostAsync(client, "/auth/pkce/authorize", new FormUrlEncodedContent(new Dictionary<string, string>
         { ["code_challenge"] = Encode(SHA256.HashData(Encoding.ASCII.GetBytes(verifier))), ["challenge_method"] = "S256", ["redirect_uri"] = "/callback" }));
         Assert.Equal(HttpStatusCode.OK, authorize.StatusCode);
         var proof = await authorize.Content.ReadFromJsonAsync<PkceAuthorizeResponse>();
         Assert.NotNull(proof);
         // Malformed payload consumes request quota without supplying the valid authorization proof.
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/auth/pkce/complete", new FormUrlEncodedContent(new Dictionary<string, string>()))).StatusCode);
-        Task<HttpResponseMessage> Complete() => client.PostAsync("/auth/pkce/complete", new FormUrlEncodedContent(new Dictionary<string, string>
+        Assert.Equal(HttpStatusCode.BadRequest, (await CsrfTestClient.PostAsync(client, "/auth/pkce/complete", new FormUrlEncodedContent(new Dictionary<string, string>()))).StatusCode);
+        Task<HttpResponseMessage> Complete() => CsrfTestClient.PostAsync(client, "/auth/pkce/complete", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["authorization_code"] = proof.AuthorizationCode,
             ["code_verifier"] = verifier,
@@ -61,7 +61,7 @@ public sealed class RateLimitingProofFlowTests
         var user = await factory.CreateLoginUserAsync();
         using var client = Client(factory);
         client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorWasm");
-        var login = await client.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = user.Secret });
+        var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
         var cookies = Cookies(login);
         var session = cookies.Split("; ").Single(c => c.StartsWith("uas="));
         var refresh = cookies.Split("; ").Single(c => c.StartsWith("uar="))[4..];
@@ -71,14 +71,14 @@ public sealed class RateLimitingProofFlowTests
         var before = await store.FindByHashAsync(hash);
         Assert.NotNull(before);
         client.DefaultRequestHeaders.Add("Cookie", session);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/auth/refresh", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await CsrfTestClient.PostAsync(client, "/auth/refresh", null)).StatusCode);
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
-        var rejected = await client.PostAsync("/auth/refresh", null);
+        var rejected = await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
         Assert.False(rejected.Headers.Contains("Set-Cookie"));
         Assert.Equal(before, await store.FindByHashAsync(hash));
-        var renewed = await AfterReplenishment(() => client.PostAsync("/auth/refresh", null));
+        var renewed = await AfterReplenishment(() => CsrfTestClient.PostAsync(client, "/auth/refresh", null));
         Assert.Equal(HttpStatusCode.NoContent, renewed.StatusCode);
         Assert.True(renewed.Headers.Contains("Set-Cookie"));
         Assert.False((await store.FindByHashAsync(hash))!.IsActive(factory.Clock.UtcNow));
@@ -93,19 +93,19 @@ public sealed class RateLimitingProofFlowTests
         { services.RemoveAll<ICredentialResetNotifier>(); services.AddSingleton<ICredentialResetNotifier>(notifier); });
         var user = await factory.CreateLoginUserAsync();
         using var client = Client(factory);
-        var begin = await client.PostAsJsonAsync("/auth/me/credentials/reset/begin", new BeginResetCredentialRequest
+        var begin = await CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/reset/begin", new BeginResetCredentialRequest
         { Identifier = user.Identifier, CredentialType = CredentialType.Password, ResetCodeType = ResetCodeType.Token });
         Assert.Equal(HttpStatusCode.OK, begin.StatusCode);
         Assert.NotNull(notifier.Last);
         // Consume quota using an unknown account, never presenting the issued proof.
-        await client.PostAsJsonAsync("/auth/me/credentials/reset/complete", new CompleteResetCredentialRequest
+        await CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/reset/complete", new CompleteResetCredentialRequest
         { Identifier = "unknown-account", CredentialType = CredentialType.Password, ResetToken = "invalid", NewSecret = "Changed-password-123!" });
         var request = new CompleteResetCredentialRequest
         { Identifier = user.Identifier, CredentialType = CredentialType.Password, ResetToken = notifier.Last.Token, NewSecret = "Changed-password-123!" };
-        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsJsonAsync("/auth/me/credentials/reset/complete", request)).StatusCode);
-        var completed = await AfterReplenishment(() => client.PostAsJsonAsync("/auth/me/credentials/reset/complete", request));
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/reset/complete", request)).StatusCode);
+        var completed = await AfterReplenishment(() => CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/reset/complete", request));
         Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
-        var login = await client.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = request.NewSecret });
+        var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = request.NewSecret });
         Assert.True(login.Headers.Contains("Set-Cookie"));
     }
 
@@ -119,12 +119,12 @@ public sealed class RateLimitingProofFlowTests
         foreach (var client in new[] { first, second })
         {
             var user = await factory.CreateLoginUserAsync();
-            var login = await client.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = user.Secret });
+            var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
             client.DefaultRequestHeaders.Add("Cookie", Cookies(login));
-            var validation = await client.PostAsync("/auth/validate", null);
+            var validation = await CsrfTestClient.PostAsync(client, "/auth/validate", null);
             Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
             Assert.True((await validation.Content.ReadFromJsonAsync<AuthValidationResult>())!.IsValid);
-            Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsync("/auth/validate", null)).StatusCode);
+            Assert.Equal(HttpStatusCode.TooManyRequests, (await CsrfTestClient.PostAsync(client, "/auth/validate", null)).StatusCode);
         }
     }
 

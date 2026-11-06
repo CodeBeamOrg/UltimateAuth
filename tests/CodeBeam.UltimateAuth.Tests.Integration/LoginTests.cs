@@ -29,7 +29,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         using var client = CreateClient($"valid-session-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -60,7 +60,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var authenticatedClient = CreateClient(deviceId);
         authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var response = await authenticatedClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(authenticatedClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -136,7 +136,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var content = new StringContent(
             "identifier=admin&secret=admin");
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -289,7 +289,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"try-login-valid-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -319,7 +319,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-login-device-2222222222222222");
 
-        var response = await client.PostAsJsonAsync("/auth/try-login", new
+        var response = await CsrfTestClient.PostJsonAsync(client, "/auth/try-login", new
         {
             identifier = ValidIdentifier,
             secret = ValidSecret
@@ -350,7 +350,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"try-invalid-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -379,7 +379,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-login-device-4444444444444444");
 
-        var response = await client.PostAsJsonAsync("/auth/try-login", new
+        var response = await CsrfTestClient.PostJsonAsync(client, "/auth/try-login", new
         {
             identifier = "",
             secret = ""
@@ -403,7 +403,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"preview-valid-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -420,7 +420,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -446,7 +446,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var previewClient = CreateClient(
             $"receipt-owner-{Guid.NewGuid():N}");
 
-        var previewResponse = await previewClient.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(previewClient,
             "/auth/try-login",
             new
             {
@@ -489,7 +489,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"preview-different-secret-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -528,7 +528,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             $"preview-different-identifier-{Guid.NewGuid():N}");
 
         // Create receipt for user A.
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -549,7 +549,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         //
         // The receipt must NOT be trusted for user B, but it also must not
         // prevent user B from authenticating with valid credentials.
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -579,7 +579,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"preview-cross-user-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -596,7 +596,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         // Receipt belongs to user A.
         // Attempt user B authentication with INVALID credentials.
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -618,7 +618,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"unknown-receipt-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -644,7 +644,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"preview-consume-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -659,7 +659,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-        var firstCommit = await client.PostAsJsonAsync(
+        var firstCommit = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -680,7 +680,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         //
         // Reusing it must not grant any special trust. The request should
         // simply fall back to normal credential validation.
-        var secondCommit = await client.PostAsJsonAsync(
+        var secondCommit = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -712,7 +712,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             .TryGetValues("Set-Cookie", out _)
             .Should().BeFalse();
 
-        var second = await client.PostAsJsonAsync(
+        var second = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -744,7 +744,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-lockout-device-222222222222222");
 
-        var first = await client.PostAsJsonAsync(
+        var first = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -758,7 +758,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         firstResult.Should().NotBeNull();
         firstResult!.IsSuccess.Should().BeFalse();
 
-        var second = await client.PostAsJsonAsync(
+        var second = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -766,14 +766,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password-2"
             });
 
-        var secondResult =
-            await second.Content.ReadFromJsonAsync<TryLoginResult>();
+        var secondResult = await second.Content.ReadFromJsonAsync<TryLoginResult>();
 
         secondResult.Should().NotBeNull();
         secondResult!.IsSuccess.Should().BeFalse();
 
         // Account should now be locked.
-        var correctAttempt = await client.PostAsJsonAsync(
+        var correctAttempt = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -797,7 +796,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"try-no-failure-{Guid.NewGuid():N}");
 
-        var preview = await client.PostAsJsonAsync(
+        var preview = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -811,7 +810,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         previewResult.Should().NotBeNull();
         previewResult!.IsSuccess.Should().BeTrue();
 
-        var failure = await client.PostAsJsonAsync(
+        var failure = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -835,7 +834,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"receipt-accounting-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -903,7 +902,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var receiptClient = CreateClient(
             $"receipt-device-a-{Guid.NewGuid():N}");
 
-        var previewResponse = await receiptClient.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(receiptClient,
             "/auth/try-login",
             new
             {
@@ -972,7 +971,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             $"success-reset-{Guid.NewGuid():N}");
 
         // Failure #1
-        var firstFailure = await client.PostAsJsonAsync(
+        var firstFailure = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -985,7 +984,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             .Should().BeFalse();
 
         // Successful authentication must reset previous failure accounting.
-        var success = await client.PostAsJsonAsync(
+        var success = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -1001,7 +1000,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         // If the previous failure was reset, this is failure #1 again,
         // not failure #2 / lockout.
-        var failureAfterSuccess = await client.PostAsJsonAsync(
+        var failureAfterSuccess = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1009,8 +1008,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password-2"
             });
 
-        var result =
-            await failureAfterSuccess.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await failureAfterSuccess.Content.ReadFromJsonAsync<TryLoginResult>();
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -1072,7 +1070,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 ["Secret"] = user.Secret
             });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -1100,7 +1098,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 ["Secret"] = user.Secret
             });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/try-login",
             content);
 
@@ -1125,14 +1123,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [InlineData("admin", " ")]
     [InlineData("", "")]
     [InlineData(" ", " ")]
-    public async Task Login_WithMissingOrWhitespaceCredentials_ShouldNotAuthenticate(
-        string identifier,
-        string secret)
+    public async Task Login_WithMissingOrWhitespaceCredentials_ShouldNotAuthenticate(string identifier, string secret)
     {
-        using var client = CreateClient(
-            $"invalid-input-device-{Guid.NewGuid():N}");
+        using var client = CreateClient($"invalid-input-device-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -1152,14 +1147,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [InlineData("admin", " ")]
     [InlineData("", "")]
     [InlineData(" ", " ")]
-    public async Task TryLogin_WithMissingOrWhitespaceCredentials_ShouldReturnInvalidCredentials(
-        string identifier,
-        string secret)
+    public async Task TryLogin_WithMissingOrWhitespaceCredentials_ShouldReturnInvalidCredentials(string identifier, string secret)
     {
-        using var client = CreateClient(
-            $"invalid-preview-device-{Guid.NewGuid():N}");
+        using var client = CreateClient($"invalid-preview-device-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1224,7 +1216,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "empty-json-device-555555555555555");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new { });
 
@@ -1270,7 +1262,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             ["SECRET"] = user.Secret
         });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -1337,7 +1329,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var existingClient = CreateClient(
             $"existing-{Guid.NewGuid():N}");
 
-        var unknownResponse = await unknownClient.PostAsJsonAsync(
+        var unknownResponse = await CsrfTestClient.PostJsonAsync(unknownClient,
             "/auth/try-login",
             new
             {
@@ -1345,7 +1337,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password"
             });
 
-        var existingResponse = await existingClient.PostAsJsonAsync(
+        var existingResponse = await CsrfTestClient.PostJsonAsync(existingClient,
             "/auth/try-login",
             new
             {
@@ -1384,7 +1376,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"unknown-receipt-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1416,7 +1408,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"wrong-password-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1852,8 +1844,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     }
 
 
-    private HttpClient CreateClient(
-        string deviceId = "test-device-1234567890123456")
+    private HttpClient CreateClient(string deviceId = "test-device-1234567890123456")
     {
         var client = _factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -1875,7 +1866,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -1886,7 +1877,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static async Task<TryLoginResult> TryLoginAsync(HttpClient client, string identifier, string secret)
     {
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "auth/try-login",
             new LoginRequest
             {
@@ -1905,7 +1896,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginWithPreviewReceiptAsync(HttpClient client, string identifier, string secret, string previewReceipt)
     {
-        return client.PostAsJsonAsync("/auth/login", new
+        return CsrfTestClient.PostJsonAsync(client, "/auth/login", new
         {
             identifier,
             secret,

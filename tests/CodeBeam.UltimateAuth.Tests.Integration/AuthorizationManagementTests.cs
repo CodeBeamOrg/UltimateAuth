@@ -39,7 +39,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -206,7 +206,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{AdminBase}/roles/create",
             new CreateRoleRequest
             {
@@ -238,7 +238,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             RoleUrl(role.Id, "rename"),
             new RenameRoleRequest
             {
@@ -277,7 +278,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             RoleUrl(role.Id, "permissions"),
             new SetRolePermissionsRequest
             {
@@ -317,7 +319,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -348,7 +350,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             UserRolesUrl(target.UserKey, "remove"),
             new RemoveRoleRequest
             {
@@ -379,7 +382,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             RoleUrl(role.Id, "delete"),
             new DeleteRoleRequest
             {
@@ -508,7 +511,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = CreateClient(factory);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -533,7 +536,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, actor);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -557,7 +560,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, actor);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{AdminBase}/roles/create",
             new CreateRoleRequest
             {
@@ -585,7 +588,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/check",
             new AuthorizationCheckRequest
             {
@@ -611,7 +614,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/check",
             new AuthorizationCheckRequest
             {
@@ -775,7 +778,7 @@ public sealed class AuthorizationManagementTests
         using var client = await AuthenticatedClientAsync(factory, user);
 
         // First request: the user has the original permission.
-        using (var response = await client.PostAsJsonAsync(
+        using (var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { }))
         {
@@ -902,7 +905,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { });
 
@@ -936,7 +939,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { });
 
@@ -967,15 +970,10 @@ public sealed class AuthorizationManagementTests
     private static string RoleUrl(RoleId id, string operation)
         => $"{AdminBase}/roles/{id.Value}/{operation}";
 
-    private static string UserRolesUrl(
-        UserKey userKey,
-        string operation)
+    private static string UserRolesUrl(UserKey userKey, string operation)
         => $"{AdminBase}/users/{userKey.Value}/roles/{operation}";
 
-    private static async Task GrantAsync(
-        AuthServerFactory factory,
-        IntegrationTestUser user,
-        params string[] permissions)
+    private static async Task GrantAsync(AuthServerFactory factory, IntegrationTestUser user, params string[] permissions)
     {
         await factory.GrantPermissionsAsync(
             user.UserKey,
@@ -1002,13 +1000,11 @@ public sealed class AuthorizationManagementTests
         return client;
     }
 
-    private static async Task<HttpClient> AuthenticatedClientAsync(
-        AuthServerFactory factory,
-        IntegrationTestUser user)
+    private static async Task<HttpClient> AuthenticatedClientAsync(AuthServerFactory factory, IntegrationTestUser user)
     {
         var client = CreateClient(factory);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -1032,9 +1028,7 @@ public sealed class AuthorizationManagementTests
         return client;
     }
 
-    private static async Task<Role> SeedRoleAsync(
-        AuthServerFactory factory,
-        IEnumerable<Permission>? permissions = null)
+    private static async Task<Role> SeedRoleAsync(AuthServerFactory factory, IEnumerable<Permission>? permissions = null)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1055,9 +1049,7 @@ public sealed class AuthorizationManagementTests
         return role;
     }
 
-    private static async Task<Role?> ReadRoleAsync(
-        AuthServerFactory factory,
-        RoleId roleId)
+    private static async Task<Role?> ReadRoleAsync(AuthServerFactory factory, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1069,9 +1061,7 @@ public sealed class AuthorizationManagementTests
             .GetAsync(new RoleKey(TenantKeys.Single, roleId));
     }
 
-    private static async Task<Role?> FindRoleByNameAsync(
-        AuthServerFactory factory,
-        string name)
+    private static async Task<Role?> FindRoleByNameAsync(AuthServerFactory factory, string name)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1083,10 +1073,7 @@ public sealed class AuthorizationManagementTests
             .GetByNameAsync(name.ToUpperInvariant());
     }
 
-    private static async Task SeedAssignmentAsync(
-        AuthServerFactory factory,
-        UserKey userKey,
-        RoleId roleId)
+    private static async Task SeedAssignmentAsync(AuthServerFactory factory, UserKey userKey, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1098,10 +1085,7 @@ public sealed class AuthorizationManagementTests
             .AssignAsync(userKey, roleId, factory.Clock.UtcNow);
     }
 
-    private static async Task<bool> HasRoleAsync(
-        AuthServerFactory factory,
-        UserKey userKey,
-        RoleId roleId)
+    private static async Task<bool> HasRoleAsync(AuthServerFactory factory, UserKey userKey, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 

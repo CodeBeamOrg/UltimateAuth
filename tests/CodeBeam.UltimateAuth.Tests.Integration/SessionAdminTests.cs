@@ -415,23 +415,19 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         var sessionId = chain.ActiveSessionId!.Value;
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/{sessionId.Value}/revoke",
             null);
 
         revoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Revoked session can no longer authenticate.
-        //
         var targetVerification = await GetChainsAsync(targetClient);
 
         targetVerification.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        //
         // Admin's own authority must remain intact.
-        //
         var adminVerification = await GetChainsAsync(adminClient);
 
         adminVerification.StatusCode.Should()
@@ -568,7 +564,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         sessionId.Should().NotBeNull();
 
-        var revoke = await actorClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(actorClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/{sessionId!.Value.Value}/revoke",
             null);
 
@@ -644,7 +640,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         chain1.ActiveSessionId.Should().NotBeNull();
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/{chain1.ActiveSessionId!.Value.Value}/revoke",
             null);
 
@@ -722,7 +718,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var targetChain =
             page!.Items.Single(x => x.IsCurrentDevice);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{targetChain.ChainId.Value}/revoke",
             null);
 
@@ -903,7 +899,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var chain1 =
             page.Items.Single(x => x.IsCurrentDevice);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{chain1.ChainId.Value}/revoke",
             null);
 
@@ -978,7 +974,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var targetChain =
             page!.Items.Single(x => x.IsCurrentDevice);
 
-        var response = await actorClient.PostAsync(
+        var response = await CsrfTestClient.PostAsync(actorClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/chains/{targetChain.ChainId.Value}/revoke",
             null);
 
@@ -1048,7 +1044,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(targetClient2))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-all",
             null);
 
@@ -1114,7 +1110,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
         unrelatedClient.DefaultRequestHeaders.Add("Cookie", unrelatedCookie);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-all",
             null);
 
@@ -1178,7 +1174,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         targetClient1.DefaultRequestHeaders.Add("Cookie", cookie1);
         targetClient2.DefaultRequestHeaders.Add("Cookie", cookie2);
 
-        var response = await actorClient.PostAsync(
+        var response = await CsrfTestClient.PostAsync(actorClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-all",
             null);
 
@@ -1219,16 +1215,14 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             "Cookie",
             targetCookie);
 
-        var response = await anonymousClient.PostAsync(
+        var response = await CsrfTestClient.PostAsync(anonymousClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-all",
             null);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        //
         // Anonymous request must produce zero mutation.
-        //
         var verification =
             await GetChainsAsync(targetClient);
 
@@ -1285,24 +1279,20 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(targetClient2))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
             null);
 
         revoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Root cascade must invalidate every existing target session.
-        //
         (await GetChainsAsync(targetClient1))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         (await GetChainsAsync(targetClient2))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        //
         // Actor remains valid.
-        //
         (await GetChainsAsync(adminClient))
             .StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -1351,7 +1341,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
         unrelatedClient.DefaultRequestHeaders.Add("Cookie", unrelatedCookie);
 
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
             null);
 
@@ -1392,7 +1382,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         actorClient.DefaultRequestHeaders.Add("Cookie", actorCookie);
         targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
 
-        var response = await actorClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
+        var response = await CsrfTestClient.PostAsync(actorClient, $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
 
         response.StatusCode.Should().BeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.Unauthorized);
 
@@ -1412,7 +1402,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         var targetCookie = GetSessionCookie(await LoginAsync(targetClient, target.Identifier, target.Secret));
         targetClient.DefaultRequestHeaders.Add("Cookie", targetCookie);
 
-        var response = await anonymousClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
+        var response = await CsrfTestClient.PostAsync(anonymousClient, $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await GetChainsAsync(targetClient)).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -1455,7 +1445,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
         beforeRevoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var revoke = await adminClient.PostAsync($"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
+        var revoke = await CsrfTestClient.PostAsync(adminClient, $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root", null);
 
         revoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -1502,9 +1492,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         using var initialTargetClient =
             CreateClient($"root-concurrent-initial-{Guid.NewGuid():N}");
 
-        //
         // Establish initial authentication root.
-        //
         var adminLogin = await LoginAsync(
             adminClient,
             admin.Identifier,
@@ -1529,10 +1517,8 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
             "Cookie",
             initialCookie);
 
-        //
         // Revoke the target's current authentication root.
-        //
-        var revoke = await adminClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/sessions/revoke-root",
             null);
 
@@ -1544,10 +1530,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
         oldSessionVerification.StatusCode
             .Should().Be(HttpStatusCode.Unauthorized);
 
-        //
-        // Two devices authenticate concurrently after there is
-        // no active root.
-        //
+        // Two devices authenticate concurrently after there is no active root.
         using var clientA =
             CreateClient($"root-concurrent-a-{Guid.NewGuid():N}");
 
@@ -1667,7 +1650,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -1696,7 +1679,7 @@ public sealed class SessionAdminTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> GetChainsAsync(HttpClient client)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest
             {

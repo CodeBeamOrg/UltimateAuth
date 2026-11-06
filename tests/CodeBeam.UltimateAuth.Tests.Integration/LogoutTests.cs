@@ -39,7 +39,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         client.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var logoutResponse = await client.PostAsync(
+        var logoutResponse = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -65,7 +65,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         client.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var logoutResponse = await client.PostAsync(
+        var logoutResponse = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -110,10 +110,9 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var beforeLogout = await GetChainsAsync(client);
         beforeLogout.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var logoutResponse = await client.PostAsync("/auth/logout", null);
+        var logoutResponse = await CsrfTestClient.PostAsync(client, "/auth/logout", null);
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        //
         // IMPORTANT:
         // Deliberately keep sending the old cookie.
         //
@@ -121,7 +120,6 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         // magically remove our manually supplied Cookie header.
         //
         // Therefore this proves server-side invalidation.
-        //
 
         var afterLogout = await GetChainsAsync(client);
 
@@ -149,7 +147,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             cookie);
 
-        var logoutResponse = await originalClient.PostAsync(
+        var logoutResponse = await CsrfTestClient.PostAsync(originalClient,
             "/auth/logout",
             null);
 
@@ -215,7 +213,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         before1.StatusCode.Should().Be(HttpStatusCode.OK);
         before2.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var logout = await client1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/logout",
             null);
 
@@ -268,7 +266,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             cookie2);
 
-        var logout = await client1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/logout",
             null);
 
@@ -323,7 +321,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainId = currentBefore.ChainId;
         var sessionId = currentBefore.ActiveSessionId;
 
-        var logout = await client.PostAsync("/auth/logout", null);
+        var logout = await CsrfTestClient.PostAsync(client, "/auth/logout", null);
         logout.StatusCode.Should().Be(HttpStatusCode.Found);
 
 
@@ -375,7 +373,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         firstClient.DefaultRequestHeaders.Add("Cookie", oldCookie);
 
-        var logout = await firstClient.PostAsync("/auth/logout", null);
+        var logout = await CsrfTestClient.PostAsync(firstClient, "/auth/logout", null);
 
         logout.StatusCode.Should().Be(HttpStatusCode.Found);
 
@@ -429,7 +427,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         client1.DefaultRequestHeaders.Add("Cookie", cookie1);
         client2.DefaultRequestHeaders.Add("Cookie", cookie2);
 
-        var beforeResponse = await client2.PostAsJsonAsync(
+        var beforeResponse = await CsrfTestClient.PostJsonAsync(client2,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -451,17 +449,17 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         device2SessionId.Should().NotBeNull();
 
-        var logout = await client1.PostAsync("/auth/logout", null);
+        var logout = await CsrfTestClient.PostAsync(client1, "/auth/logout", null);
 
         logout.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var device1Result = await client1.PostAsJsonAsync(
+        var device1Result = await CsrfTestClient.PostJsonAsync(client1,
             "/auth/me/sessions/chains",
             new PageRequest());
 
         device1Result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        var device2Result = await client2.PostAsJsonAsync(
+        var device2Result = await CsrfTestClient.PostJsonAsync(client2,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -500,7 +498,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var cookie = GetSessionCookie(login);
         client.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var beforeResponse = await client.PostAsJsonAsync(
+        var beforeResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -516,7 +514,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var chainBefore = before!.Items.Single(x => x.IsCurrentDevice);
         var chainId = chainBefore.ChainId;
 
-        await client.PostAsync("/auth/logout", null);
+        await CsrfTestClient.PostAsync(client, "/auth/logout", null);
 
         using var reloginClient = CreateClient(device);
 
@@ -531,7 +529,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             newCookie);
 
-        var afterResponse = await reloginClient.PostAsJsonAsync(
+        var afterResponse = await CsrfTestClient.PostJsonAsync(reloginClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -559,11 +557,11 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"logout-anonymous-{Guid.NewGuid():N}");
 
-        var first = await client.PostAsync(
+        var first = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
-        var second = await client.PostAsync(
+        var second = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -594,19 +592,19 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             cookie);
 
-        var firstLogout = await client.PostAsync(
+        var firstLogout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
         firstLogout.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var secondLogout = await client.PostAsync(
+        var secondLogout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
         secondLogout.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Found);
 
-        var authenticatedRequest = await client.PostAsJsonAsync(
+        var authenticatedRequest = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest());
 
@@ -650,7 +648,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             $"uas={Guid.NewGuid():N}");
 
-        var invalidLogout = await invalidClient.PostAsync(
+        var invalidLogout = await CsrfTestClient.PostAsync(invalidClient,
             "/auth/logout",
             null);
 
@@ -659,7 +657,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         //
         // Existing legitimate session must be untouched.
         //
-        var validSession = await validClient.PostAsJsonAsync(
+        var validSession = await CsrfTestClient.PostJsonAsync(validClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -706,7 +704,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             oldCookie);
 
-        var firstLogout = await firstClient.PostAsync(
+        var firstLogout = await CsrfTestClient.PostAsync(firstClient,
             "/auth/logout",
             null);
 
@@ -732,7 +730,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             newCookie);
 
-        var beforeReplay = await currentClient.PostAsJsonAsync(
+        var beforeReplay = await CsrfTestClient.PostJsonAsync(currentClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -764,7 +762,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             oldCookie);
 
-        var staleLogout = await staleClient.PostAsync(
+        var staleLogout = await CsrfTestClient.PostAsync(staleClient,
             "/auth/logout",
             null);
 
@@ -773,7 +771,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         //
         // Session B MUST still be valid.
         //
-        var afterReplay = await currentClient.PostAsJsonAsync(
+        var afterReplay = await CsrfTestClient.PostJsonAsync(currentClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -824,7 +822,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
                 "Cookie",
                 cookie);
 
-            var chainsResponse = await client.PostAsJsonAsync(
+            var chainsResponse = await CsrfTestClient.PostJsonAsync(client,
                 "/auth/me/sessions/chains",
                 new PageRequest
                 {
@@ -861,7 +859,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             //
             if (i < 2)
             {
-                var logout = await client.PostAsync(
+                var logout = await CsrfTestClient.PostAsync(client,
                     "/auth/logout",
                     null);
 
@@ -889,9 +887,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var device2 =
             $"logout-stale-device-2-{Guid.NewGuid():N}";
 
-        //
         // Device 1 login.
-        //
         using var device1Client = CreateClient(device1);
 
         var login1 = await LoginAsync(
@@ -905,9 +901,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             staleCookie);
 
-        //
         // Device 2 login.
-        //
         using var device2Client = CreateClient(device2);
 
         var login2 = await LoginAsync(
@@ -922,7 +916,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             device2Cookie);
 
         var device2BeforeResponse =
-            await device2Client.PostAsJsonAsync(
+            await CsrfTestClient.PostJsonAsync(device2Client,
                 "/auth/me/sessions/chains",
                 new PageRequest
                 {
@@ -947,7 +941,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         device2SessionId.Should().NotBeNull();
 
-        var logout1 = await device1Client.PostAsync("/auth/logout", null);
+        var logout1 = await CsrfTestClient.PostAsync(device1Client, "/auth/logout", null);
 
         logout1.StatusCode.Should().Be(HttpStatusCode.Found);
 
@@ -955,12 +949,12 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         staleClient.DefaultRequestHeaders.Add("Cookie", staleCookie);
 
-        var staleLogout = await staleClient.PostAsync("/auth/logout", null);
+        var staleLogout = await CsrfTestClient.PostAsync(staleClient, "/auth/logout", null);
 
         staleLogout.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Found);
 
         var device2AfterResponse =
-            await device2Client.PostAsJsonAsync(
+            await CsrfTestClient.PostJsonAsync(device2Client,
                 "/auth/me/sessions/chains",
                 new PageRequest
                 {
@@ -1006,15 +1000,15 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         client.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var firstLogout = await client.PostAsync("/auth/logout", null);
+        var firstLogout = await CsrfTestClient.PostAsync(client, "/auth/logout", null);
 
         firstLogout.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var secondLogout = await client.PostAsync("/auth/logout", null);
+        var secondLogout = await CsrfTestClient.PostAsync(client, "/auth/logout", null);
 
         secondLogout.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Found);
 
-        var authenticatedRequest = await client.PostAsJsonAsync(
+        var authenticatedRequest = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -1048,7 +1042,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             sessionCookie);
 
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -1105,7 +1099,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             sessionCookie);
 
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -1151,7 +1145,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             oldCookie);
 
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -1227,7 +1221,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             sessionCookie);
 
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/logout",
             null);
 
@@ -1279,8 +1273,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         client2.DefaultRequestHeaders.Add("Cookie", cookie);
 
         var responses = await Task.WhenAll(
-            client1.PostAsync("/auth/logout", null),
-            client2.PostAsync("/auth/logout", null));
+            CsrfTestClient.PostAsync(client1, "/auth/logout", null),
+            CsrfTestClient.PostAsync(client2, "/auth/logout", null));
 
         //
         // Depending on where stale-session rejection occurs,
@@ -1351,8 +1345,8 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             cookie2);
 
         var logouts = await Task.WhenAll(
-            client1.PostAsync("/auth/logout", null),
-            client2.PostAsync("/auth/logout", null));
+            CsrfTestClient.PostAsync(client1, "/auth/logout", null),
+            CsrfTestClient.PostAsync(client2, "/auth/logout", null));
 
         logouts.Should().OnlyContain(
             x => x.StatusCode == HttpStatusCode.Found);
@@ -1414,7 +1408,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         // Intentionally race an authenticated operation against logout.
         //
         var logoutTask =
-            logoutClient.PostAsync("/auth/logout", null);
+            CsrfTestClient.PostAsync(logoutClient, "/auth/logout", null);
 
         var authenticatedRequestTask =
             GetChainsAsync(requestClient);
@@ -1489,7 +1483,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             oldCookie);
 
         var logoutTask =
-            logoutClient.PostAsync("/auth/logout", null);
+            CsrfTestClient.PostAsync(logoutClient, "/auth/logout", null);
 
         var loginTask =
             LoginAsync(
@@ -1625,7 +1619,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             !x.IsCurrentDevice &&
             x.ActiveSessionId is not null);
 
-        var logoutResponse = await client1.PostAsJsonAsync(
+        var logoutResponse = await CsrfTestClient.PostJsonAsync(client1,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1676,7 +1670,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             !x.IsCurrentDevice &&
             x.ActiveSessionId is not null);
 
-        var logout = await client1.PostAsJsonAsync(
+        var logout = await CsrfTestClient.PostJsonAsync(client1,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1741,7 +1735,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             !x.IsCurrentDevice &&
             x.ActiveSessionId is not null);
 
-        var logout = await client1.PostAsJsonAsync(
+        var logout = await CsrfTestClient.PostJsonAsync(client1,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1773,7 +1767,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"logout-device-anonymous-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1840,7 +1834,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         //
         // Attacker tries to target victim's ChainId.
         //
-        var attack = await attackerClient.PostAsJsonAsync(
+        var attack = await CsrfTestClient.PostJsonAsync(attackerClient,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1894,7 +1888,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         currentChain.ActiveSessionId.Should().NotBeNull();
 
-        var logout = await client.PostAsJsonAsync(
+        var logout = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -1933,7 +1927,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             cookie);
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -2005,7 +1999,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             !x.IsCurrentDevice &&
             x.ActiveSessionId is not null);
 
-        var first = await actorClient.PostAsJsonAsync(
+        var first = await CsrfTestClient.PostJsonAsync(actorClient,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -2017,7 +2011,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         //
         // Same operation against an already detached chain.
         //
-        var second = await actorClient.PostAsJsonAsync(
+        var second = await CsrfTestClient.PostJsonAsync(actorClient,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -2104,7 +2098,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var originalChainId = targetChain.ChainId;
         var originalSessionId = targetChain.ActiveSessionId;
 
-        var logout = await actorClient.PostAsJsonAsync(
+        var logout = await CsrfTestClient.PostJsonAsync(actorClient,
             "/auth/me/logout-device",
             new LogoutDeviceRequest
             {
@@ -2206,9 +2200,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         client2.DefaultRequestHeaders.Add("Cookie", cookie2);
         client3.DefaultRequestHeaders.Add("Cookie", cookie3);
 
-        //
         // All three sessions must initially be usable.
-        //
         (await GetChainsAsync(client1))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -2218,24 +2210,18 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(client3))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Device 1 logs out every OTHER device.
-        //
-        var logout = await client1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/me/logout-others",
             null);
 
         logout.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Actor survives.
-        //
         (await GetChainsAsync(client1))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Every other authority must be dead.
-        //
         (await GetChainsAsync(client2))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
@@ -2301,7 +2287,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         currentSessionId.Should().NotBeNull();
 
-        var logout = await currentClient.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(currentClient,
             "/auth/me/logout-others",
             null);
 
@@ -2414,7 +2400,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             .Select(x => x.ChainId)
             .ToHashSet();
 
-        var logout = await actorClient.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(actorClient,
             "/auth/me/logout-others",
             null);
 
@@ -2516,7 +2502,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(victimClient))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var logout = await actorClient1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(actorClient1,
             "/auth/me/logout-others",
             null);
 
@@ -2547,7 +2533,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"logout-others-anonymous-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/me/logout-others",
             null);
 
@@ -2596,19 +2582,15 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         sessionId.Should().NotBeNull();
 
-        //
         // There is nothing to terminate.
-        //
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/me/logout-others",
             null);
 
         logout.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
-        //
         // No-op must not damage current authority.
-        //
         var afterResponse =
             await GetChainsAsync(client);
 
@@ -2663,32 +2645,26 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             targetCookie);
 
-        var first = await actorClient.PostAsync(
+        var first = await CsrfTestClient.PostAsync(actorClient,
             "/auth/me/logout-others",
             null);
 
         first.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
-        //
         // Nothing remains to logout except actor itself.
-        //
-        var second = await actorClient.PostAsync(
+        var second = await CsrfTestClient.PostAsync(actorClient,
             "/auth/me/logout-others",
             null);
 
         second.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
-        //
         // Actor survives repeated calls.
-        //
         (await GetChainsAsync(actorClient))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Previously invalidated authority stays invalid.
-        //
         (await GetChainsAsync(targetClient))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -2729,7 +2705,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             "Cookie",
             oldTargetCookie);
 
-        var logout = await actorClient.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(actorClient,
             "/auth/me/logout-others",
             null);
 
@@ -2817,7 +2793,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         var originalSessionId =
             targetBefore.ActiveSessionId;
 
-        var logout = await actorClient.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(actorClient,
             "/auth/me/logout-others",
             null);
 
@@ -2947,11 +2923,11 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             actorCookie);
 
         var responses = await Task.WhenAll(
-            request1.PostAsync(
+            CsrfTestClient.PostAsync(request1,
                 "/auth/me/logout-others",
                 null),
 
-            request2.PostAsync(
+            CsrfTestClient.PostAsync(request2,
                 "/auth/me/logout-others",
                 null));
 
@@ -3028,9 +3004,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         client2.DefaultRequestHeaders.Add("Cookie", cookie2);
         client3.DefaultRequestHeaders.Add("Cookie", cookie3);
 
-        //
         // Sanity check: every authority is initially valid.
-        //
         (await GetChainsAsync(client1))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -3040,19 +3014,14 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(client3))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
-        // Device 1 logs out ALL sessions belonging to the user,
-        // including its own session.
-        //
-        var logout = await client1.PostAsync(
+        // Device 1 logs out ALL sessions belonging to the user, including its own session.
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/me/logout-all",
             null);
 
         logout.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Every previously issued authority must now be dead.
-        //
         (await GetChainsAsync(client1))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
@@ -3096,7 +3065,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         //
         // Unlike logout-others, logout-all includes the actor.
         //
-        var logout = await client.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client,
             "/auth/me/logout-all",
             null);
 
@@ -3189,7 +3158,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
                 x => x.ChainId,
                 x => x.ActiveSessionId);
 
-        var logout = await client1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/me/logout-all",
             null);
 
@@ -3320,26 +3289,22 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         (await GetChainsAsync(victimClient))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var logout = await actorClient1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(actorClient1,
             "/auth/me/logout-all",
             null);
 
         logout.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
-        //
         // Both actor sessions must die.
-        //
         (await GetChainsAsync(actorClient1))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         (await GetChainsAsync(actorClient2))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        //
         // Critical ownership invariant:
         // User B must remain completely unaffected.
-        //
         var victimVerification =
             await GetChainsAsync(victimClient);
 
@@ -3355,7 +3320,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"logout-all-anonymous-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/me/logout-all",
             null);
 
@@ -3415,7 +3380,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
         originalChains.Should().HaveCount(2);
 
-        var logout = await client1.PostAsync(
+        var logout = await CsrfTestClient.PostAsync(client1,
             "/auth/me/logout-all",
             null);
 
@@ -3526,11 +3491,11 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             actorCookie);
 
         var responses = await Task.WhenAll(
-            request1.PostAsync(
+            CsrfTestClient.PostAsync(request1,
                 "/auth/me/logout-all",
                 null),
 
-            request2.PostAsync(
+            CsrfTestClient.PostAsync(request2,
                 "/auth/me/logout-all",
                 null));
 
@@ -3594,7 +3559,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -3605,7 +3570,7 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> GetChainsAsync(HttpClient client)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest
             {

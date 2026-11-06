@@ -20,6 +20,9 @@ public static class UAuthUrlBuilder
     {
         var baseAuthority = authority.TrimEnd('/');
 
+        // TODO: Correct route-based tenant URL construction when authority
+        // is an absolute URL (e.g. https://localhost:6110/auth).
+        // Preserve the scheme and host, and insert the tenant into the path.
         if (tenant.Enabled && tenant.Transport == TenantTransport.Route)
         {
             if (string.IsNullOrWhiteSpace(tenant.Tenant))

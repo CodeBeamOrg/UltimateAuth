@@ -35,11 +35,11 @@ public class RateLimitingFlowTests
         using var second = Client("rate-limit-flow-second-123456");
         foreach (var client in new[] { first, second })
         {
-            var login = await client.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = user.Secret });
+            var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
             Assert.True(login.Headers.TryGetValues("Set-Cookie", out var cookies));
             client.DefaultRequestHeaders.Add("Cookie", cookies!.First());
         }
-        var rejected = await first.PostAsJsonAsync("/auth/login", new { identifier = user.Identifier, secret = "wrong" });
+        var rejected = await CsrfTestClient.PostJsonAsync(first, "/auth/login", new { identifier = user.Identifier, secret = "wrong" });
         Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
         Assert.False(rejected.Headers.Contains("Set-Cookie"));
         using (var scope = factory.Services.CreateScope())
@@ -50,11 +50,11 @@ public class RateLimitingFlowTests
         }
         Assert.NotEqual(HttpStatusCode.TooManyRequests, (await first.PostAsync("/auth/logout", null)).StatusCode);
         // Two validated sessions of the same actor share logout capacity.
-        var logout = await second.PostAsync("/auth/logout", null);
+        var logout = await CsrfTestClient.PostAsync(second, "/auth/logout", null);
         Assert.Equal(HttpStatusCode.TooManyRequests, logout.StatusCode);
         Assert.False(logout.Headers.Contains("Set-Cookie"));
         // The rejected logout did not revoke the second session.
-        var validation = await second.PostAsync("/auth/validate", null);
+        var validation = await CsrfTestClient.PostAsync(second, "/auth/validate", null);
         Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
         var result = await validation.Content.ReadFromJsonAsync<CodeBeam.UltimateAuth.Core.Contracts.AuthValidationResult>();
         Assert.True(result?.IsValid);
