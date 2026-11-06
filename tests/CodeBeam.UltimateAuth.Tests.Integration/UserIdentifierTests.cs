@@ -200,8 +200,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
     [InlineData("unset-primary", true)]
     [InlineData("verify", true)]
     [InlineData("delete", true)]
-    public async Task IdentifierMutation_WhenIdBelongsToAnotherUser_ShouldReturnNotFoundAndPreserveRecords(
-        string operation, bool admin)
+    public async Task IdentifierMutation_WhenIdBelongsToAnotherUser_ShouldReturnNotFoundAndPreserveRecords(string operation, bool admin)
     {
         var actor = await _factory.CreateLoginUserAsync();
         var victim = await _factory.CreateLoginUserAsync();
@@ -245,12 +244,13 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             path = $"/auth/admin/users/{target.UserKey.Value}/identifiers/{operation}";
         }
 
-        using var response = await client.PostAsJsonAsync(path, new
-        {
-            id = identifier.Id,
-            newValue = $"changed-{Guid.NewGuid():N}@example.com",
-            mode = 0 // DeleteMode.Soft
-        });
+        using var response = await CsrfTestClient.PostJsonAsync(client, path,
+            new
+            {
+                id = identifier.Id,
+                newValue = $"changed-{Guid.NewGuid():N}@example.com",
+                mode = 0
+            });
 
         var after = await store.GetByUserAsync(victim.UserKey);
         using var assertions = new FluentAssertions.Execution.AssertionScope();
@@ -302,7 +302,8 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
             "X-UDID", $"identifier-owner-{Guid.NewGuid():N}");
         await AuthenticateIdentifierClientAsync(client, owner.Identifier, owner.Secret);
         var newValue = $"updated-{Guid.NewGuid():N}@example.com";
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             $"/auth/me/identifiers/{operation}",
             new
             {
@@ -361,7 +362,7 @@ public sealed class UserIdentifierTests : IClassFixture<AuthServerFactory>
 
     private static async Task AuthenticateIdentifierClientAsync(HttpClient client, string identifier, string secret)
     {
-        using var login = await client.PostAsJsonAsync("/auth/login", new { identifier, secret });
+        using var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier, secret });
         login.StatusCode.Should().Be(HttpStatusCode.Found);
         login.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
 

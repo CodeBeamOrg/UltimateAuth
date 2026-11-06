@@ -20,35 +20,28 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
         });
 
         _client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
-        _client.DefaultRequestHeaders.Add("X-UDID", "test-device-1234567890123456");
+        _client.DefaultRequestHeaders.Add("X-UDID", $"profile-test-{Guid.NewGuid():N}");
     }
 
     [Fact]
     public async Task Profile_Switch_Should_Return_Correct_Profile_Data()
     {
-        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new
-        {
-            identifier = "admin",
-            secret = "admin"
-        });
+        await Login();
 
-        var cookie = loginResponse.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
-
-        var defaultResponse = await _client.PostAsJsonAsync("/auth/me/profile/get", new { });
+        var defaultResponse = await PostProfileAsync("/auth/me/profile/get", new { });
         defaultResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var defaultProfile = await defaultResponse.Content.ReadFromJsonAsync<UserView>();
         defaultProfile.Should().NotBeNull();
 
-        var createResponse = await _client.PostAsJsonAsync("/auth/me/profile/create", new CreateProfileRequest
+        var createResponse = await PostProfileAsync("/auth/me/profile/create", new CreateProfileRequest
         {
             ProfileKey = ProfileKey.Parse("business", null)
         });
 
         createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var updateResponse = await _client.PostAsJsonAsync("/auth/me/profile/update", new UpdateProfileRequest()
+        var updateResponse = await PostProfileAsync("/auth/me/profile/update", new UpdateProfileRequest()
         {
             ProfileKey = ProfileKey.Parse("business", null),
             DisplayName = "Updated Business Name"
@@ -56,7 +49,7 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
 
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var businessResponse = await _client.PostAsJsonAsync("/auth/me/profile/get", new GetProfileRequest()
+        var businessResponse = await PostProfileAsync("/auth/me/profile/get", new GetProfileRequest()
         {
             ProfileKey = ProfileKey.Parse("business", null)
         });
@@ -68,7 +61,7 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
         businessProfile.Should().NotBeNull();
         businessProfile!.DisplayName.Should().Be("Updated Business Name");
 
-        var defaultAgainResponse = await _client.PostAsJsonAsync("/auth/me/profile/get", new { });
+        var defaultAgainResponse = await PostProfileAsync("/auth/me/profile/get", new { });
 
         var defaultAgain = await defaultAgainResponse.Content.ReadFromJsonAsync<UserView>();
 
@@ -78,14 +71,7 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task GetMe_Without_ProfileKey_Should_Return_Default_Profile()
     {
-        var login = await _client.PostAsJsonAsync("/auth/login", new
-        {
-            identifier = "admin",
-            secret = "admin"
-        });
-
-        var cookie = login.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
+        await Login();
 
         var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new { });
 
@@ -98,16 +84,9 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Should_Not_Found_NonDefault_Profile_When_Not_Created()
     {
-        var login = await _client.PostAsJsonAsync("/auth/login", new
-        {
-            identifier = "admin",
-            secret = "admin"
-        });
+        await Login();
 
-        var cookie = login.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
-
-        var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new
+        var response = await PostProfileAsync("/auth/me/profile/get", new
         {
             profileKey = "business"
         });
@@ -130,21 +109,19 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
             ProfileKey = key
         };
 
-        var first = await _client.PostAsJsonAsync("/auth/me/profile/create", request);
+        var first = await PostProfileAsync("/auth/me/profile/create", request);
         first.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var second = await _client.PostAsJsonAsync("/auth/me/profile/create", request);
+        var second = await PostProfileAsync("/auth/me/profile/create", request);
         second.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Fact]
     public async Task Should_Not_Delete_Default_Profile()
     {
-        var login = await Login();
-        var cookie = login.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
+        await Login();
 
-        var response = await _client.PostAsJsonAsync("/auth/me/profile/delete", new
+        var response = await PostProfileAsync("/auth/me/profile/delete", new
         {
             profileKey = "default"
         });
@@ -155,11 +132,9 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Should_Not_Update_NonExisting_Profile()
     {
-        var login = await Login();
-        var cookie = login.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
+        await Login();
 
-        var response = await _client.PostAsJsonAsync("/auth/me/profile/update", new UpdateProfileRequest
+        var response = await PostProfileAsync("/auth/me/profile/update", new UpdateProfileRequest
         {
             ProfileKey = ProfileKey.Parse("ghost", null),
             DisplayName = "Should Fail"
@@ -171,23 +146,21 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Deleted_Profile_Should_Not_Be_Returned()
     {
-        var login = await Login();
-        var cookie = login.Headers.GetValues("Set-Cookie").First();
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
+        await Login();
 
         var key = ProfileKey.Parse("business", null);
 
-        await _client.PostAsJsonAsync("/auth/me/profile/create", new CreateProfileRequest
+        await PostProfileAsync("/auth/me/profile/create", new CreateProfileRequest
         {
             ProfileKey = key
         });
 
-        await _client.PostAsJsonAsync("/auth/me/profile/delete", new
+        await PostProfileAsync("/auth/me/profile/delete", new
         {
             profileKey = key.Value
         });
 
-        var response = await _client.PostAsJsonAsync("/auth/me/profile/get", new GetProfileRequest
+        var response = await PostProfileAsync("/auth/me/profile/get", new GetProfileRequest
         {
             ProfileKey = key
         });
@@ -198,19 +171,40 @@ public class UserProfileTests : IClassFixture<AuthServerFactory>
 
     private async Task<HttpResponseMessage> Login()
     {
-        var response = await _client.PostAsJsonAsync("/auth/login", new
-        {
-            identifier = "admin",
-            secret = "admin"
-        });
+        var response = await CsrfTestClient.PostJsonAsync(
+            _client,
+            "/auth/login",
+            new
+            {
+                identifier = "admin",
+                secret = "admin"
+            });
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
 
-        var cookie = response.Headers.GetValues("Set-Cookie").First();
+        response.Headers.TryGetValues(
+            "Set-Cookie",
+            out var cookies).Should().BeTrue();
+
+        var sessionCookie = cookies!
+            .Single(x => x.StartsWith(
+                "uas=",
+                StringComparison.OrdinalIgnoreCase))
+            .Split(';', 2)[0];
 
         _client.DefaultRequestHeaders.Remove("Cookie");
-        _client.DefaultRequestHeaders.Add("Cookie", cookie);
+        _client.DefaultRequestHeaders.Add("Cookie", sessionCookie);
 
         return response;
+    }
+
+    private Task<HttpResponseMessage> PostProfileAsync<T>(
+        string url,
+        T request)
+    {
+        return CsrfTestClient.PostJsonAsync(
+            _client,
+            url,
+            request);
     }
 }

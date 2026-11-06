@@ -1,350 +1,297 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class CompositeSessionIdResolverTests
 {
+    private const UAuthClientProfile Profile = UAuthClientProfile.BlazorServer;
+
     [Fact]
-    public void Resolve_ShouldUseFirstSuccessfulResolverAccordingToConfiguredOrder()
+    public async Task ResolveAsync_ShouldUseFirstSuccessfulResolverAccordingToConfiguredOrder()
     {
-        var firstId =
-            CreateSessionId(
-                "first-session-00000000000000000000000001");
+        var firstId = CreateSessionId("first-session-00000000000000000000000001");
+        var secondId = CreateSessionId("second-session-0000000000000000000000001");
 
-        var secondId =
-            CreateSessionId(
-                "second-session-0000000000000000000000001");
+        var bearer = CreateResolver("Bearer", firstId);
+        var cookie = CreateResolver("Cookie", secondId);
 
-        var bearer =
-            CreateResolver(
-                "bearer",
-                firstId);
+        var options = CreateOptions("Bearer", "Cookie");
 
-        var cookie =
-            CreateResolver(
-                "cookie",
-                secondId);
+        var (sut, context) = CreateSut(
+            options,
+            bearer.Object,
+            cookie.Object);
 
-        var options = TestServerOptions.Default();
-
-        options.SessionResolution.Order =
-            new List<string> { "Bearer", "Cookie" };
-
-        options.SessionResolution.EnableBearer = true;
-        options.SessionResolution.EnableCookie = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object,
-                    cookie.Object
-                },
-                Options.Create(options));
-
-        var context = new DefaultHttpContext();
-
-        var result = sut.Resolve(context);
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(firstId);
-
-        bearer.Verify(
-            x => x.Resolve(context),
-            Times.Once);
-
-        cookie.Verify(
-            x => x.Resolve(context),
-            Times.Never);
+        bearer.Verify(x => x.Resolve(context), Times.Once);
+        cookie.Verify(x => x.Resolve(context), Times.Never);
     }
 
     [Fact]
-    public void Resolve_WhenFirstResolverReturnsNull_ShouldContinueToNextResolver()
+    public async Task ResolveAsync_WhenFirstResolverReturnsNull_ShouldContinueToNextResolver()
     {
-        var expected =
-            CreateSessionId(
-                "cookie-session-0000000000000000000000002");
+        var expected = CreateSessionId("cookie-session-0000000000000000000000002");
 
-        var bearer =
-            CreateResolver(
-                "bearer",
-                null);
+        var bearer = CreateResolver("Bearer", null);
+        var cookie = CreateResolver("Cookie", expected);
 
-        var cookie =
-            CreateResolver(
-                "cookie",
-                expected);
+        var options = CreateOptions("Bearer", "Cookie");
 
-        var options = TestServerOptions.Default();
+        var (sut, context) = CreateSut(
+            options,
+            bearer.Object,
+            cookie.Object);
 
-        options.SessionResolution.Order =
-            new List<string> { "Bearer", "Cookie" };
-
-        options.SessionResolution.EnableBearer = true;
-        options.SessionResolution.EnableCookie = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object,
-                    cookie.Object
-                },
-                Options.Create(options));
-
-        var context = new DefaultHttpContext();
-
-        var result = sut.Resolve(context);
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(expected);
-
-        bearer.Verify(
-            x => x.Resolve(context),
-            Times.Once);
-
-        cookie.Verify(
-            x => x.Resolve(context),
-            Times.Once);
+        bearer.Verify(x => x.Resolve(context), Times.Once);
+        cookie.Verify(x => x.Resolve(context), Times.Once);
     }
 
     [Fact]
-    public void Resolve_WhenResolverIsDisabled_ShouldSkipIt()
+    public async Task ResolveAsync_WhenResolverIsDisabled_ShouldSkipIt()
     {
-        var bearerId =
-            CreateSessionId(
-                "bearer-session-0000000000000000000000002");
+        var bearerId = CreateSessionId("bearer-session-0000000000000000000000002");
+        var cookieId = CreateSessionId("cookie-session-0000000000000000000000003");
 
-        var cookieId =
-            CreateSessionId(
-                "cookie-session-0000000000000000000000003");
+        var bearer = CreateResolver("Bearer", bearerId);
+        var cookie = CreateResolver("Cookie", cookieId);
 
-        var bearer =
-            CreateResolver(
-                "bearer",
-                bearerId);
-
-        var cookie =
-            CreateResolver(
-                "cookie",
-                cookieId);
-
-        var options = TestServerOptions.Default();
-
-        options.SessionResolution.Order =
-            new List<string> { "Bearer", "Cookie" };
-
+        var options = CreateOptions("Bearer", "Cookie");
         options.SessionResolution.EnableBearer = false;
-        options.SessionResolution.EnableCookie = true;
 
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object,
-                    cookie.Object
-                },
-                Options.Create(options));
+        var (sut, context) = CreateSut(
+            options,
+            bearer.Object,
+            cookie.Object);
 
-        var context = new DefaultHttpContext();
-
-        var result = sut.Resolve(context);
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(cookieId);
-
-        bearer.Verify(
-            x => x.Resolve(
-                It.IsAny<HttpContext>()),
-            Times.Never);
-
-        cookie.Verify(
-            x => x.Resolve(context),
-            Times.Once);
+        bearer.Verify(x => x.Resolve(It.IsAny<HttpContext>()), Times.Never);
+        cookie.Verify(x => x.Resolve(context), Times.Once);
     }
 
     [Fact]
-    public void Resolve_WhenConfiguredResolverDoesNotExist_ShouldContinue()
+    public async Task ResolveAsync_WhenConfiguredResolverDoesNotExist_ShouldContinue()
     {
-        var expected =
-            CreateSessionId(
-                "cookie-session-0000000000000000000000004");
+        var expected = CreateSessionId("cookie-session-0000000000000000000000004");
 
-        var cookie =
-            CreateResolver(
-                "cookie",
-                expected);
+        var cookie = CreateResolver("Cookie", expected);
+        var options = CreateOptions("Bearer", "Cookie");
 
-        var options = TestServerOptions.Default();
+        var (sut, context) = CreateSut(options, cookie.Object);
 
-        options.SessionResolution.Order =
-            new List<string> { "Bearer", "Cookie" };
-
-        options.SessionResolution.EnableBearer = true;
-        options.SessionResolution.EnableCookie = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    cookie.Object
-                },
-                Options.Create(options));
-
-        var result =
-            sut.Resolve(
-                new DefaultHttpContext());
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(expected);
+        cookie.Verify(x => x.Resolve(context), Times.Once);
     }
 
     [Fact]
-    public void Resolve_WhenOrderUsesDifferentCasing_ShouldResolveCaseInsensitively()
+    public async Task ResolveAsync_WhenOrderUsesDifferentCasing_ShouldResolveCaseInsensitively()
     {
-        var expected =
-            CreateSessionId(
-                "bearer-session-0000000000000000000000005");
+        var expected = CreateSessionId("bearer-session-0000000000000000000000005");
 
-        var bearer =
-            CreateResolver(
-                "bearer",
-                expected);
+        var bearer = CreateResolver("bearer", expected);
+        var options = CreateOptions("bEaReR");
 
-        var options = TestServerOptions.Default();
+        var (sut, context) = CreateSut(options, bearer.Object);
 
-        options.SessionResolution.Order =
-            new List<string> { "bEaReR" };
-
-        options.SessionResolution.EnableBearer = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object
-                },
-                Options.Create(options));
-
-        var result =
-            sut.Resolve(
-                new DefaultHttpContext());
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(expected);
+        bearer.Verify(x => x.Resolve(context), Times.Once);
     }
 
     [Fact]
-    public void Resolve_WhenNoResolverProducesSessionId_ShouldReturnNull()
+    public async Task ResolveAsync_WhenNoResolverProducesSessionId_ShouldReturnNull()
     {
-        var bearer =
-            CreateResolver(
-                "bearer",
-                null);
+        var bearer = CreateResolver("Bearer", null);
+        var cookie = CreateResolver("Cookie", null);
 
-        var cookie =
-            CreateResolver(
-                "cookie",
-                null);
+        var options = CreateOptions("Bearer", "Cookie");
 
-        var options = TestServerOptions.Default();
+        var (sut, context) = CreateSut(
+            options,
+            bearer.Object,
+            cookie.Object);
 
-        options.SessionResolution.Order =
-            new List<string> { "Bearer", "Cookie" };
-
-        options.SessionResolution.EnableBearer = true;
-        options.SessionResolution.EnableCookie = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object,
-                    cookie.Object
-                },
-                Options.Create(options));
-
-        var result =
-            sut.Resolve(
-                new DefaultHttpContext());
+        var result = await sut.ResolveAsync(context);
 
         result.Should().BeNull();
+        bearer.Verify(x => x.Resolve(context), Times.Once);
+        cookie.Verify(x => x.Resolve(context), Times.Once);
     }
 
     [Fact]
-    public void Resolve_WhenOrderChanges_ShouldRespectNewPrecedence()
+    public async Task ResolveAsync_WhenOrderChanges_ShouldRespectNewPrecedence()
     {
-        var bearerId =
-            CreateSessionId(
-                "bearer-session-0000000000000000000000006");
+        var bearerId = CreateSessionId("bearer-session-0000000000000000000000006");
+        var cookieId = CreateSessionId("cookie-session-0000000000000000000000006");
 
-        var cookieId =
-            CreateSessionId(
-                "cookie-session-0000000000000000000000006");
+        var bearer = CreateResolver("Bearer", bearerId);
+        var cookie = CreateResolver("Cookie", cookieId);
 
-        var bearer =
-            CreateResolver(
-                "bearer",
-                bearerId);
+        var options = CreateOptions("Cookie", "Bearer");
 
-        var cookie =
-            CreateResolver(
-                "cookie",
-                cookieId);
+        var (sut, context) = CreateSut(
+            options,
+            bearer.Object,
+            cookie.Object);
 
-        var options = TestServerOptions.Default();
-
-        options.SessionResolution.Order =
-            new List<string> { "Cookie", "Bearer" };
-
-        options.SessionResolution.EnableBearer = true;
-        options.SessionResolution.EnableCookie = true;
-
-        var sut =
-            new CompositeSessionIdResolver(
-                new[]
-                {
-                    bearer.Object,
-                    cookie.Object
-                },
-                Options.Create(options));
-
-        var result =
-            sut.Resolve(
-                new DefaultHttpContext());
+        var result = await sut.ResolveAsync(context);
 
         result.Should().Be(cookieId);
+        cookie.Verify(x => x.Resolve(context), Times.Once);
+        bearer.Verify(x => x.Resolve(context), Times.Never);
     }
 
-    private static Mock<IInnerSessionIdResolver> CreateResolver(
-        string name,
-        AuthSessionId? result)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ResolveAsync_ShouldRespectEffectiveCookieSetting(
+        bool effectiveCookieEnabled)
     {
-        var resolver =
-            new Mock<IInnerSessionIdResolver>();
+        var expected = CreateSessionId("cookie-session-000000000000000000000001");
 
-        resolver
-            .SetupGet(x => x.Name)
-            .Returns(name);
+        var cookie = CreateResolver("Cookie", expected);
 
-        resolver
-            .Setup(x => x.Resolve(
-                It.IsAny<HttpContext>()))
-            .Returns(result);
+        var options = CreateOptions("Cookie");
+        options.SessionResolution.EnableCookie = effectiveCookieEnabled;
+
+        var (sut, context) = CreateSut(options, cookie.Object);
+
+        var result = await sut.ResolveAsync(context);
+
+        if (effectiveCookieEnabled)
+        {
+            result.Should().Be(expected);
+            cookie.Verify(x => x.Resolve(context), Times.Once);
+        }
+        else
+        {
+            result.Should().BeNull();
+            cookie.Verify(x => x.Resolve(context), Times.Never);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ShouldReadClientProfileAndUseItsEffectiveOptions()
+    {
+        var expected = CreateSessionId("cookie-session-000000000000000000000002");
+
+        var cookie = CreateResolver("Cookie", expected);
+
+        var options = CreateOptions("Cookie");
+
+        var profileReader = new Mock<IClientProfileReader>();
+        var effectiveProvider = new Mock<IEffectiveServerOptionsProvider>();
+
+        var context = new DefaultHttpContext();
+
+        profileReader
+            .Setup(x => x.ReadAsync(context))
+            .ReturnsAsync(Profile);
+
+        effectiveProvider
+            .Setup(x => x.GetEffective(context, Profile))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = options
+            });
+
+        var sut = new CompositeSessionIdResolver(
+            new[] { cookie.Object },
+            profileReader.Object,
+            effectiveProvider.Object);
+
+        var result = await sut.ResolveAsync(context);
+
+        result.Should().Be(expected);
+
+        profileReader.Verify(
+            x => x.ReadAsync(context),
+            Times.Once);
+
+        effectiveProvider.Verify(
+            x => x.GetEffective(context, Profile),
+            Times.Once);
+
+        cookie.Verify(
+            x => x.Resolve(context),
+            Times.Once);
+    }
+
+    private static UAuthServerOptions CreateOptions(params string[] order)
+    {
+        var options = TestServerOptions.Default();
+
+        options.SessionResolution.Order = order.ToList();
+        options.SessionResolution.EnableBearer = true;
+        options.SessionResolution.EnableHeader = true;
+        options.SessionResolution.EnableCookie = true;
+        options.SessionResolution.EnableQuery = true;
+
+        return options;
+    }
+
+    private static (CompositeSessionIdResolver Sut, DefaultHttpContext Context)
+        CreateSut(
+            UAuthServerOptions effectiveOptions,
+            params IInnerSessionIdResolver[] resolvers)
+    {
+        var context = new DefaultHttpContext();
+
+        var profileReader = new Mock<IClientProfileReader>();
+        profileReader
+            .Setup(x => x.ReadAsync(context))
+            .ReturnsAsync(Profile);
+
+        var effectiveProvider = new Mock<IEffectiveServerOptionsProvider>();
+        effectiveProvider
+            .Setup(x => x.GetEffective(context, Profile))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = effectiveOptions
+            });
+
+        var sut = new CompositeSessionIdResolver(
+            resolvers,
+            profileReader.Object,
+            effectiveProvider.Object);
+
+        return (sut, context);
+    }
+
+    private static Mock<IInnerSessionIdResolver> CreateResolver(string name, AuthSessionId? result)
+    {
+        var resolver = new Mock<IInnerSessionIdResolver>();
+
+        resolver.SetupGet(x => x.Name).Returns(name);
+
+        resolver.Setup(x => x.Resolve(It.IsAny<HttpContext>())).Returns(result);
 
         return resolver;
     }
 
-    private static AuthSessionId CreateSessionId(
-        string value)
+    private static AuthSessionId CreateSessionId(string value)
     {
-        AuthSessionId.TryCreate(
-                value,
-                out var id)
-            .Should()
-            .BeTrue();
-
+        AuthSessionId.TryCreate(value, out var id).Should().BeTrue();
         return id;
     }
 }

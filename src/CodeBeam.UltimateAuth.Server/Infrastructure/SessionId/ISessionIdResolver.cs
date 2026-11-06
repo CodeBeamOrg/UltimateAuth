@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface ISessionIdResolver
 {
-    AuthSessionId? Resolve(HttpContext context);
+    ValueTask<AuthSessionId?> ResolveAsync(HttpContext context, CancellationToken ct = default);
 }

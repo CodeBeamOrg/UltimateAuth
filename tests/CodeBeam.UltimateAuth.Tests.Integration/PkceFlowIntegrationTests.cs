@@ -557,7 +557,7 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
                     returnUrl ?? string.Empty
             };
 
-        return client.PostAsync(
+        return CsrfTestClient.PostAsync(client,
             CompleteEndpoint,
             new FormUrlEncodedContent(values));
     }

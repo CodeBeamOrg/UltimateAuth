@@ -309,6 +309,15 @@ public static class ServiceCollectionExtensions
             opt.CustomResolversFirst = true;
         });
 
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-UAuth-CSRF";
+            options.FormFieldName = "__RequestVerificationToken";
+        });
+
+        services.AddScoped<UAuthCsrfPolicyEvaluator>();
+        services.AddScoped<UAuthCsrfValidator>();
+
         return services;
     }
 
@@ -439,7 +448,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
         services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
 
-        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+        services.TryAddScoped<ISessionIdResolver, ResourceCompositeSessionIdResolver>();
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();

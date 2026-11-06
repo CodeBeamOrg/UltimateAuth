@@ -221,24 +221,20 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         var targetChain =
             targetChains!.Items.Single(x => x.IsCurrentDevice);
 
-        var revoke = await currentClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(currentClient,
             $"/auth/me/sessions/chains/{targetChain.ChainId.Value}/revoke",
             null);
 
         revoke.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //
         // Target session must immediately stop working.
-        //
         var targetVerification =
             await GetChainsAsync(targetClient);
 
         targetVerification.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        //
         // Actor's own chain must remain usable.
-        //
         var actorVerification =
             await GetChainsAsync(currentClient);
 
@@ -327,7 +323,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"session-anonymous-{Guid.NewGuid():N}");
 
-        var list = await client.PostAsJsonAsync(
+        var list = await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest());
 
@@ -343,21 +339,21 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         detail.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        var revoke = await client.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(client,
             $"/auth/me/sessions/chains/{randomChain.Value}/revoke",
             null);
 
         revoke.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        var revokeOthers = await client.PostAsync(
+        var revokeOthers = await CsrfTestClient.PostAsync(client,
             "/auth/me/sessions/revoke-others",
             null);
 
         revokeOthers.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        var revokeAll = await client.PostAsync(
+        var revokeAll = await CsrfTestClient.PostAsync(client,
             "/auth/me/sessions/revoke-all",
             null);
 
@@ -411,7 +407,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             "Cookie",
             otherCookie2);
 
-        var revoke = await currentClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(currentClient,
             "/auth/me/sessions/revoke-others",
             null);
 
@@ -489,7 +485,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             "Cookie",
             unrelatedCookie);
 
-        var revoke = await currentClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(currentClient,
             "/auth/me/sessions/revoke-others",
             null);
 
@@ -561,10 +557,8 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         client2.DefaultRequestHeaders.Add("Cookie", cookie2);
         client3.DefaultRequestHeaders.Add("Cookie", cookie3);
 
-        //
         // Client1 revokes every chain, including itself.
-        //
-        var revoke = await client1.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(client1,
             "/auth/me/sessions/revoke-all",
             null);
 
@@ -618,7 +612,7 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
             "Cookie",
             unrelatedCookie);
 
-        var revoke = await userClient.PostAsync(
+        var revoke = await CsrfTestClient.PostAsync(userClient,
             "/auth/me/sessions/revoke-all",
             null);
 
@@ -664,12 +658,10 @@ public sealed class SessionTests : IClassFixture<AuthServerFactory>
         return client;
     }
 
-    private static async Task<HttpResponseMessage> LoginAsync(
-        HttpClient client,
-        string identifier,
-        string secret)
+    private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
-        return await client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {

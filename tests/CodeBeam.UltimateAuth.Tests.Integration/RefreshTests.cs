@@ -394,7 +394,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookie);
 
         var response =
-            await otherClient.PostAsync(
+            await CsrfTestClient.PostAsync(otherClient,
                 "/auth/refresh",
                 null);
 
@@ -660,7 +660,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             $"{sessionB}; {refreshA}");
 
         var response =
-            await clientB.PostAsync(
+            await CsrfTestClient.PostAsync(clientB,
                 "/auth/refresh",
                 null);
 
@@ -697,7 +697,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookie);
 
         var response =
-            await foreignClient.PostAsync(
+            await CsrfTestClient.PostAsync(foreignClient,
                 "/auth/refresh",
                 null);
 
@@ -709,7 +709,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         // the legitimate credential set.
         //
         var legitimateRefresh =
-            await originalClient.PostAsync(
+            await CsrfTestClient.PostAsync(originalClient,
                 "/auth/refresh",
                 null);
 
@@ -831,8 +831,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync("/auth/refresh", null),
-                clientB.PostAsync("/auth/refresh", null));
+                CsrfTestClient.PostAsync(clientA, "/auth/refresh", null),
+                CsrfTestClient.PostAsync(clientB, "/auth/refresh", null));
 
         responses.Count(x =>
                 x.StatusCode == HttpStatusCode.NoContent)
@@ -889,8 +889,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync("/auth/refresh", null),
-                clientB.PostAsync("/auth/refresh", null));
+                CsrfTestClient.PostAsync(clientA, "/auth/refresh", null),
+                CsrfTestClient.PostAsync(clientB, "/auth/refresh", null));
 
         var winner =
             responses.Single(x =>
@@ -920,7 +920,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             winningCredentials);
 
         var result =
-            await continuation.PostAsync(
+            await CsrfTestClient.PostAsync(continuation,
                 "/auth/refresh",
                 null);
 
@@ -967,8 +967,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync("/auth/refresh", null),
-                clientB.PostAsync("/auth/refresh", null));
+                CsrfTestClient.PostAsync(clientA, "/auth/refresh", null),
+                CsrfTestClient.PostAsync(clientB, "/auth/refresh", null));
 
         responses.Count(x =>
                 x.StatusCode == HttpStatusCode.NoContent)
@@ -990,7 +990,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookies);
 
         var replay =
-            await replayClient.PostAsync(
+            await CsrfTestClient.PostAsync(replayClient,
                 "/auth/refresh",
                 null);
 
@@ -1040,8 +1040,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync("/auth/refresh", null),
-                clientB.PostAsync("/auth/refresh", null));
+                CsrfTestClient.PostAsync(clientA, "/auth/refresh", null),
+                CsrfTestClient.PostAsync(clientB, "/auth/refresh", null));
 
         var success =
             responses.Single(x =>
@@ -1121,7 +1121,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
         var response =
-            await client.PostAsync("/auth/refresh", null);
+            await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -1163,8 +1163,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
-        var response =
-            await client.PostAsync("/auth/refresh", null);
+        var response = await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -1208,8 +1207,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
-        var response =
-            await client.PostAsync("/auth/refresh", null);
+        var response = await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -1231,20 +1229,16 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // R0 -> R1
-        //
         var first =
-            await loginClient.PostAsync(
+            await CsrfTestClient.PostAsync(loginClient,
                 "/auth/refresh",
                 null);
 
         first.StatusCode.Should()
             .Be(HttpStatusCode.NoContent);
 
-        //
         // Deliberately replay R0.
-        //
         using var replayClient =
             CreateClient(deviceId);
 
@@ -1257,7 +1251,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookies);
 
         var replay =
-            await replayClient.PostAsync(
+            await CsrfTestClient.PostAsync(replayClient,
                 "/auth/refresh",
                 null);
 
@@ -1291,11 +1285,9 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // R0 -> R1
-        //
         var rotation =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1307,15 +1299,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 originalCookies,
                 rotation);
 
-        //
         // Move OUTSIDE the concurrency tolerance window.
-        //
         factory.Clock.Advance(
             TimeSpan.FromSeconds(3));
 
-        //
         // Replay R0.
-        //
         using var attacker =
             CreateClient(factory, deviceId);
 
@@ -1328,7 +1316,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookies);
 
         var replay =
-            await attacker.PostAsync(
+            await CsrfTestClient.PostAsync(attacker,
                 "/auth/refresh",
                 null);
 
@@ -1351,7 +1339,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             replacementCookies);
 
         var legitimateRefresh =
-            await legitimateClient.PostAsync(
+            await CsrfTestClient.PostAsync(legitimateClient,
                 "/auth/refresh",
                 null);
 
@@ -1378,7 +1366,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         var originalCookies = await LoginAsync(client, user, "BlazorWasm");
 
         // R0 -> R1
-        var rotation = await client.PostAsync("/auth/refresh", null);
+        var rotation = await CsrfTestClient.PostAsync(client, "/auth/refresh", null);
 
         rotation.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
@@ -1392,7 +1380,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         duplicate.DefaultRequestHeaders.Add("Cookie", originalCookies);
 
-        var duplicateResponse = await duplicate.PostAsync("/auth/refresh", null);
+        var duplicateResponse = await CsrfTestClient.PostAsync(duplicate, "/auth/refresh", null);
 
         duplicateResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
@@ -1404,7 +1392,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         legitimate.DefaultRequestHeaders.Add("Cookie", replacementCookies);
 
-        var continuation = await legitimate.PostAsync("/auth/refresh", null);
+        var continuation = await CsrfTestClient.PostAsync(legitimate, "/auth/refresh", null);
 
         continuation.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
@@ -1450,21 +1438,17 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         chainA.ChainId.Should()
             .NotBe(chainB.ChainId);
 
-        //
         // Rotate device A:
         // A:R0 -> A:R1
-        //
         var rotationA =
-            await clientA.PostAsync(
+            await CsrfTestClient.PostAsync(clientA,
                 "/auth/refresh",
                 null);
 
         rotationA.StatusCode.Should()
             .Be(HttpStatusCode.NoContent);
 
-        //
         // Replay A:R0.
-        //
         using var attacker =
             CreateClient(deviceA);
 
@@ -1477,17 +1461,15 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookiesA);
 
         var replay =
-            await attacker.PostAsync(
+            await CsrfTestClient.PostAsync(attacker,
                 "/auth/refresh",
                 null);
 
         replay.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        //
         // Device B belongs to another chain.
         // Compromise of A must not kill B.
-        //
         using var safeClient =
             CreateClient(deviceB);
 
@@ -1500,7 +1482,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookiesB);
 
         var safeRefresh =
-            await safeClient.PostAsync(
+            await CsrfTestClient.PostAsync(safeClient,
                 "/auth/refresh",
                 null);
 
@@ -1529,7 +1511,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/refresh",
             null);
 
@@ -1558,7 +1540,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/refresh",
             null);
 
@@ -1587,7 +1569,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         client.DefaultRequestHeaders.Remove("Cookie");
         client.DefaultRequestHeaders.Add("Cookie", cookies);
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/refresh",
             null);
 
@@ -1632,7 +1614,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookies);
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1677,7 +1659,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookies);
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1723,7 +1705,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookies);
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1768,7 +1750,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookies);
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1804,7 +1786,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             GetCookie(originalCookies, "uar");
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1848,17 +1830,15 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             GetCookie(originalCookies, "uas");
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.NoContent);
 
-        //
         // Hybrid refresh rotates the refresh credential.
         // Session identity itself must remain stable.
-        //
         var rotatedCredentials =
             BuildHybridCredentialAfterRefresh(
                 originalCookies,
@@ -1891,9 +1871,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // Remove refresh credential while preserving session.
-        //
         var session =
             GetCookie(originalCookies, "uas");
 
@@ -1904,7 +1882,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             session);
 
         var response =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
@@ -1945,20 +1923,16 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 user,
                 "BlazorWasm");
 
-        //
         // R0 -> R1
-        //
         var rotation =
-            await client.PostAsync(
+            await CsrfTestClient.PostAsync(client,
                 "/auth/refresh",
                 null);
 
         rotation.StatusCode.Should()
             .Be(HttpStatusCode.NoContent);
 
-        //
         // Replay R0.
-        //
         using var replayClient =
             CreateClient(deviceId);
 
@@ -1971,7 +1945,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             originalCookies);
 
         var replay =
-            await replayClient.PostAsync(
+            await CsrfTestClient.PostAsync(replayClient,
                 "/auth/refresh",
                 null);
 
@@ -2036,10 +2010,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync(
+                CsrfTestClient.PostAsync(clientA,
                     "/auth/refresh",
                     null),
-                clientB.PostAsync(
+                CsrfTestClient.PostAsync(clientB,
                     "/auth/refresh",
                     null));
 
@@ -2191,9 +2165,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 userA,
                 "BlazorWasm");
 
-        //
         // Same credential is now presented under Tenant B.
-        //
         using var tenantBClient =
             CreateClient(
                 factory,
@@ -2212,7 +2184,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookiesA);
 
         var response =
-            await tenantBClient.PostAsync(
+            await CsrfTestClient.PostAsync(tenantBClient,
                 "/auth/refresh",
                 null);
 
@@ -2258,9 +2230,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 userA,
                 "BlazorWasm");
 
-        //
         // Attack / accidental cross-tenant presentation.
-        //
         using var tenantBClient =
             CreateClient(
                 factory,
@@ -2279,7 +2249,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookiesA);
 
         var crossTenant =
-            await tenantBClient.PostAsync(
+            await CsrfTestClient.PostAsync(tenantBClient,
                 "/auth/refresh",
                 null);
 
@@ -2307,7 +2277,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             cookiesA);
 
         var legitimate =
-            await tenantAClient.PostAsync(
+            await CsrfTestClient.PostAsync(tenantAClient,
                 "/auth/refresh",
                 null);
 
@@ -2372,10 +2342,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         var responses =
             await Task.WhenAll(
-                clientA.PostAsync(
+                CsrfTestClient.PostAsync(clientA,
                     "/auth/refresh",
                     null),
-                clientB.PostAsync(
+                CsrfTestClient.PostAsync(clientB,
                     "/auth/refresh",
                     null));
 
@@ -2461,7 +2431,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             mixedCredential);
 
         var response =
-            await attacker.PostAsync(
+            await CsrfTestClient.PostAsync(attacker,
                 "/auth/refresh",
                 null);
 
@@ -2481,8 +2451,9 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
         SetClientProfile(client, "Maui");
 
-        // 1. Login
-        using var login = await client.PostAsJsonAsync(
+        // Login with CSRF protection.
+        using var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
@@ -2498,42 +2469,55 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         sessionId.Should().NotBeNullOrWhiteSpace();
         refreshToken.Should().NotBeNullOrWhiteSpace();
 
-        // 2. First refresh using the credentials delivered by login
+        // First refresh using MAUI header credentials.
         using var firstRequest = new HttpRequestMessage(
-            HttpMethod.Post, "/auth/refresh");
+            HttpMethod.Post,
+            "/auth/refresh");
 
         firstRequest.Headers.TryAddWithoutValidation(
-            "X-UAuth-Session", sessionId);
+            "X-UAuth-Session",
+            sessionId);
 
         firstRequest.Headers.TryAddWithoutValidation(
-            "X-Refresh-Token", refreshToken);
+            "X-Refresh-Token",
+            refreshToken);
 
-        using var first = await client.SendAsync(firstRequest);
+        using var first = await CsrfTestClient.SendAsync(
+            client,
+            firstRequest);
 
-        first.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        first.StatusCode.Should().Be(
+            HttpStatusCode.NoContent,
+            $"first refresh failed: {await first.Content.ReadAsStringAsync()}");
 
         var rotatedRefreshToken = ReadCredential(first, "uar");
 
         rotatedRefreshToken.Should().NotBeNullOrWhiteSpace();
         rotatedRefreshToken.Should().NotBe(refreshToken);
 
-        // Session ID may be reissued depending on the refresh policy.
         var nextSessionId =
             TryReadCredential(first, "uas") ?? sessionId;
 
-        // 3. Second refresh using the newly delivered refresh token
+        // Second refresh using rotated credentials.
         using var secondRequest = new HttpRequestMessage(
-            HttpMethod.Post, "/auth/refresh");
+            HttpMethod.Post,
+            "/auth/refresh");
 
         secondRequest.Headers.TryAddWithoutValidation(
-            "X-UAuth-Session", nextSessionId);
+            "X-UAuth-Session",
+            nextSessionId);
 
         secondRequest.Headers.TryAddWithoutValidation(
-            "X-Refresh-Token", rotatedRefreshToken);
+            "X-Refresh-Token",
+            rotatedRefreshToken);
 
-        using var second = await client.SendAsync(secondRequest);
+        using var second = await CsrfTestClient.SendAsync(
+            client,
+            secondRequest);
 
-        second.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        second.StatusCode.Should().Be(
+            HttpStatusCode.NoContent,
+            $"second refresh failed: {await second.Content.ReadAsStringAsync()}");
     }
 
 
@@ -2542,7 +2526,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         SetClientProfile(profile);
 
-        var response = await _client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(_client,
             "/auth/login",
             new
             {
@@ -2578,7 +2562,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             profile);
 
         var response =
-            await client.PostAsJsonAsync(
+            await CsrfTestClient.PostJsonAsync(client,
                 "/auth/login",
                 new
                 {
@@ -2599,7 +2583,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
     private Task<HttpResponseMessage> RefreshAsync()
     {
-        return _client.PostAsync("/auth/refresh", null);
+        return CsrfTestClient.PostAsync(_client, "/auth/refresh", null);
     }
 
     private ISessionStore GetSessionStore()
@@ -2644,7 +2628,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
     private static async Task<HttpResponseMessage> GetChainsAsync(HttpClient client)
     {
-        return await client.PostAsJsonAsync(
+        return await CsrfTestClient.PostJsonAsync(client,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -2751,14 +2735,9 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
     private static string BuildHybridCredentialAfterRefresh(string originalCookies, HttpResponseMessage refreshResponse)
     {
-        var session =
-            GetCookie(originalCookies, "uas");
-
-        var refreshed =
-            BuildCookieHeader(refreshResponse);
-
-        var refresh =
-            GetCookie(refreshed, "uar");
+        var session = GetCookie(originalCookies, "uas");
+        var refreshed = BuildCookieHeader(refreshResponse);
+        var refresh = GetCookie(refreshed, "uar");
 
         return $"{session}; {refresh}";
     }
