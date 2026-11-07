@@ -103,10 +103,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.frameworks.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup matching SDK
         id: dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.sdk }}
       - name: Select matching SDK
@@ -139,10 +139,10 @@ jobs:
 
     steps:
     - name: 📥 Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: 🧰 Setup .NET SDKs
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
@@ -192,10 +192,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup required SDKs
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
