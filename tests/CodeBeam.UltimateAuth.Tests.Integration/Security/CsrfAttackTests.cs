@@ -33,25 +33,29 @@ public sealed class CsrfAttackTests
     public async Task Login_WithForgedCsrfToken_MustNotCreateSession()
     {
         await using var factory = new AuthServerFactory();
-        var attacker = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var ct = TestContext.Current.CancellationToken;
+
+        var user = await factory.CreateLoginUserAsync(ct: ct);
 
         using var victimBrowser = CreateBrowser(factory);
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post, "/auth/login")
+        // Obtain a real antiforgery cookie and request token.
+        var tokens = await GetTokens(victimBrowser);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/login")
         {
             Content = JsonContent.Create(new
             {
-                identifier = attacker.Identifier,
-                secret = attacker.Secret
+                identifier = user.Identifier,
+                secret = user.Secret
             })
         };
 
-        request.Headers.TryAddWithoutValidation(
-            "RequestVerificationToken",
-            "attacker-forged-token");
+        // Keep the legitimate cookie, but forge the request token.
+        request.Headers.TryAddWithoutValidation(tokens.HeaderName, "attacker-forged-token");
+        request.Headers.TryAddWithoutValidation("Cookie", tokens.Cookie);
 
-        using var response = await victimBrowser.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response = await victimBrowser.SendAsync(request, ct);
 
         await AssertCsrfRejected(response);
         AssertNoSessionCookie(response);
@@ -167,28 +171,26 @@ public sealed class CsrfAttackTests
         // The attack must not revoke the other session.
         await AssertAuthenticated(otherBrowser);
 
-        // ATTACK 2: Forged antiforgery token.
-        using (var forgedRequest = new HttpRequestMessage(
-            HttpMethod.Post,
-            "/auth/me/sessions/revoke-others"))
+        // ATTACK 2: Valid antiforgery cookie with a forged request token.
+        var forgedTokens = await GetTokens(currentBrowser);
+
+        using (var forgedRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/me/sessions/revoke-others"))
         {
-            forgedRequest.Headers.TryAddWithoutValidation(
-                "RequestVerificationToken",
-                "forged-token");
+            forgedRequest.Headers.TryAddWithoutValidation(forgedTokens.HeaderName, "attacker-forged-token");
 
-            using var forged = await currentBrowser.SendAsync(
-                forgedRequest, TestContext.Current.CancellationToken);
+            // Preserve the authenticated session cookie and
+            // include the legitimate antiforgery cookie.
+            forgedRequest.Headers.TryAddWithoutValidation("Cookie", $"{currentCookie}; {forgedTokens.Cookie}");
 
+            using var forged = await currentBrowser.SendAsync(forgedRequest, TestContext.Current.CancellationToken);
             await AssertCsrfRejected(forged);
         }
 
-        // The second attack must not revoke the other session.
+        // A rejected CSRF request must not revoke the other session.
         await AssertAuthenticated(otherBrowser);
 
         // CONTROL: Valid CSRF token must allow the operation.
-        using (var valid = await CsrfTestClient.PostAsync(
-            currentBrowser,
-            "/auth/me/sessions/revoke-others"))
+        using (var valid = await CsrfTestClient.PostAsync(currentBrowser, "/auth/me/sessions/revoke-others"))
         {
             valid.IsSuccessStatusCode.Should().BeTrue(
                 $"valid revoke failed: " +
@@ -199,14 +201,11 @@ public sealed class CsrfAttackTests
         await AssertAuthenticated(currentBrowser);
 
         // The other session must now be revoked.
-        using var revokedCheck = await CsrfTestClient.PostJsonAsync(
-            otherBrowser,
-            "/auth/me/identifiers/get",
-            new { });
+        using var revokedCheck = await CsrfTestClient.PostJsonAsync(otherBrowser, "/auth/me/identifiers/get", new { });
 
-        revokedCheck.StatusCode.Should().Be(
-            HttpStatusCode.Unauthorized);
+        revokedCheck.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
 
     private static async Task<string> LoginAndGetSessionCookie(
         HttpClient browser,
