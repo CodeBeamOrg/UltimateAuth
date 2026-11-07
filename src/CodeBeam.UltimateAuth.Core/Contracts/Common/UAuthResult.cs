@@ -24,6 +24,7 @@ public class UAuthResult
 
         public bool IsBadRequest => _status == 400;
         public bool IsUnauthorized => _status == 401;
+        public bool IsTooManyRequests => _status == 429;
         public bool IsForbidden => _status == 403;
         public bool IsConflict => _status == 409;
     }

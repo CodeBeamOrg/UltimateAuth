@@ -24,21 +24,24 @@ public sealed class UAuthRequestClientTests : BunitContext
             .Returns(Task.CompletedTask);
     }
 
-    private UAuthRequestClient CreateSut(UAuthClientProfile profile = UAuthClientProfile.BlazorWasm)
+    private UAuthRequestClient CreateSut(UAuthClientProfile profile = UAuthClientProfile.BlazorWasm, string? basePath = null)
     {
-        var options = Options.Create(new UAuthClientOptions
+        var options = new UAuthClientOptions
         {
             ClientProfile = profile
-        });
+        };
 
-        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, options);
+        if (basePath is not null)
+            options.Endpoints.BasePath = basePath;
+
+        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options));
     }
 
     [Fact]
     public async Task NavigateAsync_InvokesUAuthPost()
     {
         var sut = CreateSut();
-        await sut.NavigateAsync("/login");
+        await sut.NavigateAsync("/login", ct: Xunit.TestContext.Current.CancellationToken);
 
         var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
         invocation.Arguments.Should().ContainSingle();
@@ -58,7 +61,7 @@ public sealed class UAuthRequestClientTests : BunitContext
             .SetResult(expected);
 
         var sut = CreateSut();
-        var result = await sut.SendFormAsync("/login");
+        var result = await sut.SendFormAsync("/login", ct: Xunit.TestContext.Current.CancellationToken);
         result.Should().BeSameAs(expected);
     }
 
@@ -142,6 +145,70 @@ public sealed class UAuthRequestClientTests : BunitContext
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("bootstrap failed");
 
         JSInterop.Invocations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task TryAndCommitThrottleKeepsStatusAndRetryGuidance()
+    {
+        JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
+            .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { status = 429, retryAfter = "45", isSuccess = false }));
+        var error = await Assert.ThrowsAsync<UAuthTransportException>(() =>
+            CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }, ct: Xunit.TestContext.Current.CancellationToken));
+        Assert.Equal(System.Net.HttpStatusCode.TooManyRequests, error.StatusCode);
+        Assert.Equal("rate_limited", error.Code);
+        Assert.Equal(TimeSpan.FromSeconds(45), error.RetryAfter);
+    }
+
+    [Fact]
+    public async Task TryAndCommitStillDeserializesSuccessfulPreview()
+    {
+        JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
+            .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { isSuccess = true, previewReceipt = "receipt" }));
+        var result = await CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }, ct: Xunit.TestContext.Current.CancellationToken);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("receipt", result.PreviewReceipt);
+    }
+
+    [Fact]
+    public async Task ObservedLogoutReturnsHttpRejectionRatherThanSubmittingAnUnobservedForm()
+    {
+        JSInterop.Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult { Status = 429, RetryAfter = "15" });
+        var result = await CreateSut().SendFormAsync("/auth/logout", null, navigateOnSuccess: true, ct: Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(429, result.Status);
+        Assert.Equal("15", result.RetryAfter);
+        var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
+        Assert.Equal("logout", GetProperty<string>(invocation.Arguments.Single()!, "mode"));
+    }
+
+    [Theory]
+    [InlineData("/auth", null)]
+    [InlineData("auth", null)]
+    [InlineData("https://example.com/auth", "https://example.com")]
+    [InlineData("http://localhost:5000/auth", "http://localhost:5000")]
+    public async Task SendFormAsync_ResolvesTrustedOriginCorrectly(string basePath, string? expectedOrigin)
+    {
+        // Arrange
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(CreateTransportResult(200));
+
+        var sut = CreateSut(basePath: basePath);
+
+        // Act
+        await sut.SendFormAsync("/auth/validate", ct: Xunit.TestContext.Current.CancellationToken);
+
+        // Assert
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        var options = invocation.Arguments.Single()!;
+
+        GetProperty<string>(options, "url")
+            .Should().Be("/auth/validate");
+
+        GetProperty<string?>(options, "trustedOrigin")
+            .Should().Be(expectedOrigin);
     }
 
     private sealed class TestTryResult

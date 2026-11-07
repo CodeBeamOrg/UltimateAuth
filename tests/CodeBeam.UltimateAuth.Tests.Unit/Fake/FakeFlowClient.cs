@@ -72,7 +72,7 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
-    public Task LogoutAsync()
+    public Task LogoutAsync(bool navigation = true)
     {
         throw new NotImplementedException();
     }

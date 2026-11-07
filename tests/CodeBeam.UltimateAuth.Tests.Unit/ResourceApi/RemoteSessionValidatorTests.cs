@@ -1,10 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
-using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Net.Http.Json;
@@ -32,7 +33,7 @@ public sealed class RemoteSessionValidatorTests
 
         var context = CreateValidationContext();
 
-        await sut.ValidateSessionAsync(context);
+        await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         handler.Method.Should().Be(HttpMethod.Post);
 
@@ -74,7 +75,7 @@ public sealed class RemoteSessionValidatorTests
             httpContext);
 
         await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         handler.Cookie.Should()
             .Be("uauth_session=session-cookie; other=value");
@@ -91,7 +92,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         handler.Cookie.Should().BeNull();
     }
@@ -116,7 +117,7 @@ public sealed class RemoteSessionValidatorTests
         var context = CreateValidationContext();
 
         var result =
-            await sut.ValidateSessionAsync(context);
+            await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.NotFound);
@@ -141,7 +142,7 @@ public sealed class RemoteSessionValidatorTests
         var context = CreateValidationContext();
 
         var result =
-            await sut.ValidateSessionAsync(context);
+            await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.NotFound);
@@ -171,7 +172,7 @@ public sealed class RemoteSessionValidatorTests
 
         var result =
             await sut.ValidateSessionAsync(
-                CreateValidationContext());
+                CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -249,7 +250,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.State.Should().Be(SessionState.Active);
@@ -294,7 +295,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }
@@ -322,7 +323,7 @@ public sealed class RemoteSessionValidatorTests
         var sut = CreateSut(handler);
 
         var result = await sut.ValidateSessionAsync(
-            CreateValidationContext());
+            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }
@@ -368,6 +369,51 @@ public sealed class RemoteSessionValidatorTests
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
+    }
+
+
+    [Fact]
+    public async Task ValidateSessionAsync_WhenDeviceIdExists_ShouldForwardDeviceId()
+    {
+        var handler = new TestHttpMessageHandler
+        {
+            Response = CreateFailureResponse(HttpStatusCode.Unauthorized)
+        };
+
+        var sut = CreateSut(handler);
+
+        var context = CreateValidationContext() with
+        {
+            Device = TestDevice.Default()
+        };
+
+        await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        handler.DeviceId.Should().Be(context.Device.DeviceId!.Value.Value);
+    }
+
+    [Fact]
+    public async Task ValidateSessionAsync_WhenDeviceIdIsMissing_ShouldNotForwardDeviceId()
+    {
+        var handler = new TestHttpMessageHandler
+        {
+            Response = CreateFailureResponse(HttpStatusCode.Unauthorized)
+        };
+
+        var sut = CreateSut(handler);
+
+        var context = CreateValidationContext() with
+        {
+            Device = DeviceContext.Anonymous()
+        };
+
+        await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        handler.DeviceId.Should().BeNull();
     }
 
 
@@ -418,11 +464,13 @@ public sealed class RemoteSessionValidatorTests
         public Uri? RequestUri { get; private set; }
         public string? Body { get; private set; }
         public string? Cookie { get; private set; }
+        public string? DeviceId { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Method = request.Method;
             RequestUri = request.RequestUri;
+            DeviceId = request.Headers.TryGetValues("X-UDID", out var values) ? values.SingleOrDefault() : null;
 
             if (request.Content is not null)
             {

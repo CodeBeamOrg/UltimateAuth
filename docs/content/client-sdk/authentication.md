@@ -1263,7 +1263,7 @@ For application-specific workflows that cannot be expressed through the componen
 
 ## Next Steps
 
-- [Session Management](/docs/client/session-management) — Inspect and manage session and device information.
+- [Session Management](/docs/client-sdk/session-management) — Inspect and manage session and device information.
 - [Token Security](/docs/security/token-security) — Understand token validity, refresh behavior, and revocation.
 - [Refresh Rotation & Replay Protection](/docs/security/refresh-rotation) — Explore refresh concurrency and reuse security.
 - [Authentication Modes](/docs/fundamentals/auth-modes) — Compare authentication behavior across modes.

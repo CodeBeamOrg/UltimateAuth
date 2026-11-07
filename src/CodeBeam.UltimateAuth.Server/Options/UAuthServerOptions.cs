@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Events;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Credentials.Options;
 using Microsoft.AspNetCore.Routing;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
@@ -52,6 +53,9 @@ public sealed class UAuthServerOptions
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
 
+    /// <summary>Startup-only native endpoint throttling; application policies take precedence.</summary>
+    public RateLimiting.UAuthRateLimitingOptions RateLimiting { get; set; } = new();
+
     /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
     /// This is a safety guardrail, not a mode selection mechanism.
@@ -86,6 +90,12 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthCredentialSessionPolicyOptions CredentialSessionPolicy { get; init; } = new();
 
+    /// <summary>
+    /// Controls password strength, common-password detection,
+    /// user similarity checks, and password reuse history.
+    /// </summary>
+    public PasswordPolicyOptions Password { get; set; } = new();
+
     public UAuthHubOptions Hub { get; set; } = new();
 
     /// <summary>
@@ -109,12 +119,7 @@ public sealed class UAuthServerOptions
 
     public UAuthNavigationOptions Navigation { get; set; } = new();
 
-
-    ///// <summary>
-    ///// If true, server will add anti-forgery headers
-    ///// and require proper request metadata.
-    ///// </summary>
-    //public bool EnableAntiCsrfProtection { get; set; } = true;
+    public UAuthAntiforgeryOptions Antiforgery { get; set; } = new();
 
     ///// <summary>
     ///// If true, login attempts are rate-limited to prevent brute force attacks.
@@ -144,6 +149,7 @@ public sealed class UAuthServerOptions
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
 
+            RateLimiting = RateLimiting.Clone(),
             Login = Login.Clone(),
             Session = Session.Clone(),
             Token = Token.Clone(),
@@ -158,6 +164,7 @@ public sealed class UAuthServerOptions
             AuthResponse = AuthResponse.Clone(),
             ResetCredential = ResetCredential.Clone(),
             CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
+            Password = Password.Clone(),
             Hub = Hub.Clone(),
             SessionResolution = SessionResolution.Clone(),
             Identifiers = Identifiers.Clone(),
@@ -166,6 +173,7 @@ public sealed class UAuthServerOptions
             UserProfile = UserProfile.Clone(),
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),
+            Antiforgery = Antiforgery.Clone(),
 
             //EnableAntiCsrfProtection = EnableAntiCsrfProtection,
             //EnableLoginRateLimiting = EnableLoginRateLimiting,

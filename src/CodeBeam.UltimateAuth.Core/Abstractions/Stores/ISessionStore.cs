@@ -38,4 +38,5 @@ public interface ISessionStore
     Task<UAuthSessionChain?> GetChainByDeviceAsync(UserKey userKey, DeviceId deviceId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSessionChain>> GetChainsByRootAsync(SessionRootId rootId, CancellationToken ct = default);
     Task<IReadOnlyList<UAuthSession>> GetSessionsByChainAsync(SessionChainId chainId, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<SessionChainId, int>> GetSessionCountsByChainsAsync(IReadOnlyCollection<SessionChainId> chainIds, CancellationToken ct = default);
 }

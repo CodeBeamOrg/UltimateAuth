@@ -7,6 +7,9 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
 {
     public ValidateOptionsResult Validate(string? name, UAuthServerOptions options)
     {
+        var rateError = RateLimiting.UAuthRateLimitValidation.Validate(options.RateLimiting);
+        if (rateError is not null) return ValidateOptionsResult.Fail(rateError);
+
         if (string.IsNullOrWhiteSpace(options.Endpoints.BasePath))
         {
             return ValidateOptionsResult.Fail( "BasePath must be specified.");

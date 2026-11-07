@@ -25,7 +25,7 @@ public sealed class UserCreateValidatorIdentifierTests
 
         var result = await fixture.Sut.ValidateAsync(
             fixture.Context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
 
@@ -72,7 +72,7 @@ public sealed class UserCreateValidatorIdentifierTests
 
         var result = await fixture.Sut.ValidateAsync(
             fixture.Context,
-            CreateRequest(type, "invalid-value"));
+            CreateRequest(type, "invalid-value"), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
 
@@ -121,7 +121,7 @@ public sealed class UserCreateValidatorIdentifierTests
 
         var result = await fixture.Sut.ValidateAsync(
             fixture.Context,
-            CreateRequest(type, "value"));
+            CreateRequest(type, "value"), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
 
@@ -155,7 +155,7 @@ public sealed class UserCreateValidatorIdentifierTests
 
         var result = await fixture.Sut.ValidateAsync(
             fixture.Context,
-            CreateRequest(type, "value"));
+            CreateRequest(type, "value"), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.Errors.Should().BeEmpty();
@@ -190,7 +190,7 @@ public sealed class UserCreateValidatorIdentifierTests
                 UserName = "john",
                 Email = "john@example.com",
                 Phone = "1234567890"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
 
@@ -238,7 +238,7 @@ public sealed class UserCreateValidatorIdentifierTests
                 UserName = "john",
                 Email = "john@example.com",
                 Phone = "1234567890"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         fixture.IdentifierValidator.Verify(
             x => x.ValidateAsync(
@@ -339,7 +339,7 @@ public sealed class UserCreateValidatorIdentifierTests
             {
                 UserName = "invalid",
                 Email = "john@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
 

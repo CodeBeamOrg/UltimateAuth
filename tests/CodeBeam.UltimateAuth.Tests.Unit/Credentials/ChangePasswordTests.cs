@@ -24,7 +24,7 @@ public class ChangePasswordTests
             {
                 CurrentSecret = "user",
                 NewSecret = "newpass123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -75,7 +75,7 @@ public class ChangePasswordTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UAuthActions.Credentials.ChangeSelf);
 
-        var before = await service.GetAllAsync(context);
+        var before = await service.GetAllAsync(context, ct: TestContext.Current.CancellationToken);
         var versionBefore = before.Credentials.Single().Version;
 
         await service.ChangeSecretAsync(context,
@@ -83,9 +83,9 @@ public class ChangePasswordTests
             {
                 CurrentSecret = "user",
                 NewSecret = "newpass123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var after = await service.GetAllAsync(context);
+        var after = await service.GetAllAsync(context, ct: TestContext.Current.CancellationToken);
         var versionAfter = after.Credentials.Single().Version;
 
         versionAfter.Should().Be(versionBefore + 1);
@@ -106,14 +106,14 @@ public class ChangePasswordTests
             {
                 CurrentSecret = "user",
                 NewSecret = "newpass123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var oldLogin = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Identifier = "user",
                 Secret = "user"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         oldLogin.IsSuccess.Should().BeFalse();
 
@@ -122,7 +122,7 @@ public class ChangePasswordTests
             {
                 Identifier = "user",
                 Secret = "newpass123"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         newLogin.IsSuccess.Should().BeTrue();
     }

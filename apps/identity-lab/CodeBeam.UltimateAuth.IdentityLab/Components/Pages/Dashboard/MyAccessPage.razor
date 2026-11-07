@@ -211,7 +211,7 @@
 
                         @foreach (var group in Scenarios.GroupBy(x => x.Group))
                         {
-                            <MudSelectItemGroupExtended T="string" Value="@($"__group_{group.Key}")" Disabled="true" Text="@group.Key">
+                            <MudSelectItemGroupExtended T="string" Value="@($"__group_{group.Key}")" Text="@group.Key">
                                 @foreach (var scenario in group)
                                 {
                                     <MudSelectItemExtended T="string" Value="@scenario.Id" Text="@scenario.Title">

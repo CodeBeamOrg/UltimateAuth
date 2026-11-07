@@ -1,4 +1,4 @@
-name: UltimateAuth CI
+name: UAuth CI
 
 on:
   push:
@@ -8,54 +8,185 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches:
-      - dev
-      - 'release/**'
   workflow_dispatch:
 
 jobs:
-  build-test-coverage:
-    name: Build, Test & Coverage
+  frameworks:
+    name: Framework Validation
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.policy.outputs.matrix }}
+      latest: ${{ steps.policy.outputs.latest }}
+      latest-display: ${{ steps.policy.outputs.latest-display }}
+      sdks: ${{ steps.policy.outputs.sdks }}
+      solution-frameworks: ${{ steps.policy.outputs.solution-frameworks }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit projects and generate compatibility matrix
+        id: policy
+        env:
+          DOTNET_NOLOGO: '1'
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import concurrent.futures
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import xml.etree.ElementTree as ET
 
+
+          def properties(project, names):
+              return json.loads(subprocess.check_output(
+                  ["dotnet", "msbuild", str(project), "-nologo", "-getProperty:" + ",".join(names)],
+                  text=True))["Properties"]
+
+
+          config = properties("src/CodeBeam.UltimateAuth.Core/CodeBeam.UltimateAuth.Core.csproj",
+                              ["UltimateAuthTargetFrameworks", "UltimateAuthLatestTargetFramework"])
+          frameworks = config["UltimateAuthTargetFrameworks"].split(";")
+          assert frameworks and all(re.fullmatch(r"net\d+\.\d+", f) for f in frameworks), "Invalid supported frameworks"
+          version = lambda f: tuple(map(int, f[3:].split(".")))
+          assert frameworks == sorted(set(frameworks), key=version), "Frameworks must be unique and ascending"
+          latest = config["UltimateAuthLatestTargetFramework"]
+          assert latest == max(frameworks, key=version), "Incorrect latest test target"
+          projects = sorted(p for base in ("src", "samples", "apps", "docs", "tests")
+                            for p in Path(base).rglob("*.csproj") if not {"obj", "bin"}.intersection(p.parts))
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              metadata = dict(zip(projects, pool.map(lambda p: properties(
+                  p, ["TargetFramework", "TargetFrameworks", "IsPackable"]), projects)))
+          targets = lambda info: (info["TargetFrameworks"] or info["TargetFramework"]).split(";")
+          solution = {p.attrib["Path"].replace("\\", "/") for p in ET.parse("UltimateAuth.slnx").iter("Project")}
+          assert {p.as_posix() for p in projects} <= solution, "Projects are missing from the full solution build"
+          expected = {p for p in projects if p.parts[0] == "src" and "utilities" not in p.parts
+                      and p.parent.name != "CodeBeam.UltimateAuth.Client.JsMinifier"}
+          expected.add(Path("samples/CodeBeam.UltimateAuth.Sample.Seed/CodeBeam.UltimateAuth.Sample.Seed.csproj"))
+          packages = {p: info for p, info in metadata.items() if info["IsPackable"].lower() == "true"}
+          assert expected <= packages.keys(), "An expected library is missing or no longer packable"
+          for p in expected:
+              assert targets(packages[p]) == frameworks, f"Missing supported library target: {p}"
+          tests = [p for p in projects if p.parts[0] == "tests"]
+          assert tests, "No test projects discovered"
+          for p in tests:
+              assert targets(metadata[p]) == [latest], f"Tests must target only {latest}: {p}"
+          required = {latest} | {info["TargetFramework"] for info in metadata.values() if info["TargetFramework"]}
+          assert required <= set(frameworks), "Retarget single-target exceptions before dropping their library framework"
+          matrix = {"include": []}
+          for framework in frameworks:
+              included = [p.as_posix() for p, info in packages.items() if framework in targets(info)]
+              assert included, f"No packages selected for {framework}"
+              matrix["include"].append({"framework": framework, "display": framework[3:].removesuffix(".0"),
+                                        "sdk": framework[3:] + ".x",
+                                        "projects": "\n".join(included)})
+          for p, info in packages.items():
+              assert set(targets(info)) <= set(frameworks), f"Uncovered package framework: {p}"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")
+              output.write("latest=" + latest + "\n")
+              output.write("latest-display=" + latest[3:].removesuffix(".0") + "\n")
+              output.write("solution-frameworks=" + "%3B".join(sorted(required, key=version)) + "\n")
+              output.write("sdks<<SDKS\n" + "\n".join(f[3:] + ".x" for f in sorted(required, key=version)) + "\nSDKS\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## Package/framework coverage\n\n| Project | Frameworks |\n|---|---|\n")
+              for p, info in packages.items():
+                  summary.write(f"| `{p}` | {', '.join(targets(info))} |\n")
+              summary.write(f"\nRegular tests: `{latest}` ({len(tests)} projects, one run each).\n")
+          PYTHON
+
+  build-compatibility:
+    name: Build (.NET ${{ matrix.display }})
+    needs: frameworks
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
+      matrix: ${{ fromJSON(needs.frameworks.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup matching SDK
+        id: dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - name: Select matching SDK
+        env:
+          SDK_VERSION: ${{ steps.dotnet.outputs.dotnet-version }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          path = Path('global.json')
+          config = json.loads(path.read_text())
+          config['sdk'] = {'version': os.environ['SDK_VERSION'], 'rollForward': 'disable'}
+          path.write_text(json.dumps(config, indent=2) + '\n')
+          PYTHON
+          dotnet --version
+      - name: Build every applicable package
+        env:
+          PROJECTS: ${{ matrix.projects }}
+          FRAMEWORK: ${{ matrix.framework }}
+        run: |
+          while IFS= read -r project; do
+            dotnet build "$project" --configuration Release --framework "$FRAMEWORK" \
+              -p:UltimateAuthBuildTargetFrameworks="$FRAMEWORK"
+          done <<< "$PROJECTS"
+
+  build-test-coverage:
+    name: Tests & Coverage (.NET ${{ needs.frameworks.outputs.latest-display }})
+    needs: frameworks
+    runs-on: ubuntu-latest
 
     steps:
     - name: 📥 Checkout repository
       uses: actions/checkout@v4
 
-    - name: 🧰 Setup .NET SDK ${{ matrix.dotnet-version }}
+    - name: 🧰 Setup .NET SDKs
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
+        dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
     - name: 📦 Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -p:UltimateAuthBuildTargetFrameworks=${{ needs.frameworks.outputs.solution-frameworks }}
 
     - name: 🏗️ Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore -p:UltimateAuthBuildTargetFrameworks=${{ needs.frameworks.outputs.solution-frameworks }}
 
     - name: 🧪 Test with coverage
       run: |
-        dotnet test \
-          --configuration Release \
-          --no-build \
-          --filter "FullyQualifiedName!~CodeBeam.UltimateAuth.IdentityLab.Tests" \
-          --collect:"XPlat Code Coverage"
+        test_status=0
+        for project in CodeBeam.UltimateAuth.Tests.Unit CodeBeam.UltimateAuth.Tests.Integration CodeBeam.UltimateAuth.Tests.Integration.EfCore CodeBeam.UltimateAuth.Tests.RateLimiting.Compatibility; do
+          dotnet test --project "tests/$project/$project.csproj" \
+            --configuration Release \
+            --framework "${{ needs.frameworks.outputs.latest }}" \
+            --no-build \
+            --coverlet \
+            --coverlet-output-format cobertura \
+            --report-trx \
+            --results-directory "TestResults/Framework/$project" || test_status=1
+        done
+        exit "$test_status"
+
+    - name: Upload framework test and coverage results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework-test-results
+        path: TestResults/Framework
 
     - name: Upload coverage reports to Codecov
+      if: always()
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: CodeBeamOrg/UltimateAuth
         flags: framework
+        directory: TestResults/Framework
 
   
   identity-lab-security:
-    name: Identity Lab security (PostgreSQL)
+    name: Identity Lab / Tests & Coverage
+    needs: frameworks
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -63,17 +194,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10
+      - name: Setup required SDKs
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
       - name: Run Identity Lab tests with coverage
         run: >-
-          dotnet test tests/CodeBeam.UltimateAuth.IdentityLab.Tests
+          dotnet test --project tests/CodeBeam.UltimateAuth.IdentityLab.Tests/CodeBeam.UltimateAuth.IdentityLab.Tests.csproj
           --configuration Release
-          --collect:"XPlat Code Coverage"
-          --logger "trx;LogFileName=identity-lab.trx"
+          --framework ${{ needs.frameworks.outputs.latest }}
+          -p:UltimateAuthBuildTargetFrameworks=${{ needs.frameworks.outputs.solution-frameworks }}
+          --coverlet
+          --coverlet-output-format cobertura
+          --coverlet-output-format json
+          --coverlet-include "[CodeBeam.UltimateAuth.IdentityLab]*"
+          --coverlet-exclude-by-file "**/Migrations/**/*.cs"
+          --report-trx
+          --report-trx-filename identity-lab.trx
           --results-directory TestResults/IdentityLab
 
       - name: Generate Identity Lab coverage summary
@@ -86,7 +224,7 @@ jobs:
           import xml.etree.ElementTree as ET
 
           reports = glob.glob(
-              "TestResults/IdentityLab/**/coverage.cobertura.xml",
+              "TestResults/IdentityLab/**/coverage.cobertura*.xml",
               recursive=True
           )
 

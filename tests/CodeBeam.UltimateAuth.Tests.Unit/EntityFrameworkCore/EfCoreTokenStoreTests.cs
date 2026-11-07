@@ -41,9 +41,9 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
         await store.ExecuteAsync(async ct =>
         {
             await store.StoreAsync(token, ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.FindByHashAsync("hash");
+        var result = await store.FindByHashAsync("hash", ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal("hash", result!.TokenHash);
@@ -76,7 +76,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
             await store.ExecuteAsync(async ct =>
             {
                 await store.StoreAsync(token, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -86,13 +86,13 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
             await store.ExecuteAsync(async ct =>
             {
                 await store.RevokeAsync(tokenHash, DateTimeOffset.UtcNow, null, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreRefreshTokenStore<UAuthTokenDbContext>(db, new TenantExecutionContext(tenant));
-            var result = await store.FindByHashAsync(tokenHash);
+            var result = await store.FindByHashAsync(tokenHash, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(result!.RevokedAt);
         }
@@ -119,7 +119,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
                 DateTimeOffset.UtcNow.AddHours(1)
                 );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => store.StoreAsync(token));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => store.StoreAsync(token, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            var persisted = await store.FindByHashAsync(hash);
+            var persisted = await store.FindByHashAsync(hash, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persisted);
         }
@@ -194,7 +194,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
 
                         throw new InvalidOperationException(
                             "Simulated outer transaction failure");
-                    }));
+                    }, ct: TestContext.Current.CancellationToken));
             });
         }
 
@@ -204,7 +204,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            var persisted = await store.FindByHashAsync(hash);
+            var persisted = await store.FindByHashAsync(hash, ct: TestContext.Current.CancellationToken);
 
             Assert.Null(persisted);
         }
@@ -248,7 +248,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            Assert.NotNull(await store.FindByHashAsync(hash));
+            Assert.NotNull(await store.FindByHashAsync(hash, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -265,17 +265,17 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => store.ExecuteAsync(_ =>
-                throw new InvalidOperationException("Simulated failure")));
+                throw new InvalidOperationException("Simulated failure"), ct: TestContext.Current.CancellationToken));
 
         await store.ExecuteAsync(async ct =>
         {
             await store.StoreAsync(
                 CreateToken("after-failure", tenant),
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(
-            await store.FindByHashAsync("after-failure"));
+            await store.FindByHashAsync("after-failure", ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
                 await store.ExecuteAsync(
                     _ => Task.CompletedTask,
                     ct);
-            }));
+            }, ct: TestContext.Current.CancellationToken));
 
         // The failed nested call must not leave the store locked.
         await store.ExecuteAsync(async ct =>
@@ -303,10 +303,10 @@ public class EfCoreTokenStoreTests : EfCoreTestBase
             await store.StoreAsync(
                 CreateToken("after-nested-failure", tenant),
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(
-            await store.FindByHashAsync("after-nested-failure"));
+            await store.FindByHashAsync("after-nested-failure", ct: TestContext.Current.CancellationToken));
     }
 
     private static RefreshToken CreateToken(string hash, TenantKey tenant)

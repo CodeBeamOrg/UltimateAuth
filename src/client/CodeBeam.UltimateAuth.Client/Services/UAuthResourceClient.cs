@@ -34,9 +34,9 @@ internal sealed class UAuthResourceClient : IResourceClient
 
         return new UAuthResult
         {
-            IsSuccess = response.Ok,
+            IsSuccess = (response.Ok && response.Status is >= 200 and < 300),
             Status = response.Status,
-            Problem = response.Ok ? null : ReadProblem(response)
+            Problem = (response.Ok && response.Status is >= 200 and < 300) ? null : ReadProblem(response)
         };
     }
 
@@ -46,10 +46,10 @@ internal sealed class UAuthResourceClient : IResourceClient
 
         return new UAuthResult<T>
         {
-            IsSuccess = response.Ok,
+            IsSuccess = (response.Ok && response.Status is >= 200 and < 300),
             Status = response.Status,
-            Value = response.Ok ? ReadValue<T>(response) : default,
-            Problem = response.Ok ? null : ReadProblem(response)
+            Value = (response.Ok && response.Status is >= 200 and < 300) ? ReadValue<T>(response) : default,
+            Problem = (response.Ok && response.Status is >= 200 and < 300) ? null : ReadProblem(response)
         };
     }
 
@@ -63,6 +63,7 @@ internal sealed class UAuthResourceClient : IResourceClient
 
     private static UAuthProblem? ReadProblem(UAuthResourceTransportResult response)
     {
+        if (response.Status == 429) return UAuthRateLimit.Problem(response.RetryAfter);
         if (string.IsNullOrWhiteSpace(response.Body))
             return null;
 

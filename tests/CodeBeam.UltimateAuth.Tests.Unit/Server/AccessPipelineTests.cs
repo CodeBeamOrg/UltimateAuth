@@ -30,7 +30,7 @@ public sealed class AccessPipelineTests
 
         await pipeline.Orchestrator.ExecuteAsync(
             TestAccessContext.WithAction("users.read"),
-            command);
+            command, ct: TestContext.Current.CancellationToken);
 
         executions.Should().Be(1);
     }
@@ -49,7 +49,7 @@ public sealed class AccessPipelineTests
 
         var result = await pipeline.Orchestrator.ExecuteAsync(
             TestAccessContext.WithAction("users.read"),
-            command);
+            command, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be("expected-result");
         executions.Should().Be(1);
@@ -169,7 +169,7 @@ public sealed class AccessPipelineTests
             {
                 executed = true;
                 return Task.CompletedTask;
-            }));
+            }), ct: TestContext.Current.CancellationToken);
 
         executed.Should().BeTrue();
 
@@ -317,7 +317,7 @@ public sealed class AccessPipelineTests
 
         var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.update"),
-            new[] { first.Object, second.Object });
+            new[] { first.Object, second.Object }, ct: TestContext.Current.CancellationToken);
 
         decision.RequiresReauthentication.Should().BeTrue();
         decision.IsAllowed.Should().BeFalse();
@@ -340,7 +340,7 @@ public sealed class AccessPipelineTests
 
         var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.update"),
-            new[] { reauth.Object, deny.Object });
+            new[] { reauth.Object, deny.Object }, ct: TestContext.Current.CancellationToken);
 
         decision.IsDenied.Should().BeTrue();
         decision.DenyReason.Should().Be("explicit_denial");
@@ -397,7 +397,7 @@ public sealed class AccessPipelineTests
 
         await pipeline.Orchestrator.ExecuteAsync(
             context,
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured.Should().NotBeSameAs(context);
@@ -454,7 +454,7 @@ public sealed class AccessPipelineTests
 
         await pipeline.Orchestrator.ExecuteAsync(
             context,
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         providerContext.Should().NotBeNull();
         authorityContext.Should().BeSameAs(providerContext);
@@ -476,7 +476,7 @@ public sealed class AccessPipelineTests
 
         await pipeline.Orchestrator.ExecuteAsync(
             context,
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         pipeline.PermissionStore.Verify(
             s => s.GetPermissionsAsync(
@@ -615,7 +615,7 @@ public sealed class AccessPipelineTests
 
         var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.delete"),
-            Array.Empty<IAccessPolicy>());
+            Array.Empty<IAccessPolicy>(), ct: TestContext.Current.CancellationToken);
 
         decision.IsAllowed.Should().BeTrue();
     }
@@ -629,7 +629,7 @@ public sealed class AccessPipelineTests
 
         var decision = await authority.DecideAsync(
             TestAccessContext.WithAction("users.read"),
-            Array.Empty<IAccessPolicy>());
+            Array.Empty<IAccessPolicy>(), ct: TestContext.Current.CancellationToken);
 
         decision.IsAllowed.Should().BeTrue();
     }

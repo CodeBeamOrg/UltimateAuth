@@ -56,7 +56,18 @@ public sealed class UAuthClientEndpointOptions
     public string PkceComplete { get; set; } = "/pkce/complete";
 
     /// <summary>
+    /// Path for obtaining an antiforgery request token.
+    /// </summary>
+    public string AntiforgeryToken { get; set; } = "/antiforgery/token";
+
+    /// <summary>
     /// Path for the UAuthHub login endpoint (e.g. /uauthhub/entry)
     /// </summary>
     public string HubLoginPath { get; set; } = "/uauthhub/entry";
+
+
+    /// <summary>
+    /// Endpoint used to retrieve the effective public password policy.
+    /// </summary>
+    public string PasswordPolicy { get; set; } = "/password-policy";
 }

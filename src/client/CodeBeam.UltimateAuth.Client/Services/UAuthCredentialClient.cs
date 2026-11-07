@@ -113,4 +113,11 @@ internal sealed class UAuthCredentialClient : ICredentialClient
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/credentials/delete"), request);
         return UAuthResultMapper.From(raw);
     }
+
+
+    public async Task<UAuthResult<UAuthPasswordPolicyInfo>> GetPasswordPolicyAsync(CancellationToken ct = default)
+    {
+        var raw = await _request.SendJsonAsync(Url(_options.Endpoints.PasswordPolicy), payload: null, ct: ct);
+        return UAuthResultMapper.FromJson<UAuthPasswordPolicyInfo>(raw);
+    }
 }

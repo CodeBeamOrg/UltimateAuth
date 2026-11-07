@@ -9,27 +9,25 @@ using System.Net.Http.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
-public class LoginTests : IClassFixture<AuthServerFactory>
+public class LoginTests : IDisposable
 {
     private const string LoginEndpoint = "/auth/login";
     private const string ValidIdentifier = "admin";
     private const string ValidSecret = "admin";
 
-    private readonly AuthServerFactory _factory;
+    // Each test owns its host so clock changes and account state cannot leak.
+    private readonly AuthServerFactory _factory = new();
 
-    public LoginTests(AuthServerFactory factory)
-    {
-        _factory = factory;
-    }
+    public void Dispose() => _factory.Dispose();
 
     [Fact]
     public async Task Login_WithValidCredentials_ShouldIssueSessionCredential()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient($"valid-session-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -49,7 +47,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithValidCredentials_ShouldCreateUsableAuthenticatedSession()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var deviceId = $"usable-session-{Guid.NewGuid():N}";
         using var client = CreateClient(deviceId);
         var loginResponse = await LoginAsync(client, user.Identifier, user.Secret);
@@ -60,7 +58,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var authenticatedClient = CreateClient(deviceId);
         authenticatedClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var response = await authenticatedClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(authenticatedClient,
             "/auth/me/sessions/chains",
             new PageRequest
             {
@@ -70,7 +68,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Items.Should().NotBeEmpty();
@@ -136,7 +134,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var content = new StringContent(
             "identifier=admin&secret=admin");
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -239,7 +237,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"lockout-expiry-{Guid.NewGuid():N}");
@@ -284,12 +282,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithValidCredentials_ShouldReturnSuccessfulPreview()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"try-login-valid-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -300,7 +298,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<TryLoginResult>();
+            await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -319,7 +317,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-login-device-2222222222222222");
 
-        var response = await client.PostAsJsonAsync("/auth/try-login", new
+        var response = await CsrfTestClient.PostJsonAsync(client, "/auth/try-login", new
         {
             identifier = ValidIdentifier,
             secret = ValidSecret
@@ -327,7 +325,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeTrue();
@@ -337,7 +335,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             new GetProfileRequest
             {
                 ProfileKey = null
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         meResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -345,12 +343,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithInvalidCredentials_ShouldReturnFailedPreviewWithoutSession()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"try-invalid-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -361,7 +359,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<TryLoginResult>();
+            await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -379,7 +377,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-login-device-4444444444444444");
 
-        var response = await client.PostAsJsonAsync("/auth/try-login", new
+        var response = await CsrfTestClient.PostJsonAsync(client, "/auth/try-login", new
         {
             identifier = "",
             secret = ""
@@ -387,7 +385,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -398,12 +396,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithValidPreviewReceipt_ShouldAuthenticateUser()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"preview-valid-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -414,13 +412,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -441,12 +439,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithPreviewReceiptFromDifferentDevice_ShouldNotTrustReceipt()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var previewClient = CreateClient(
             $"receipt-owner-{Guid.NewGuid():N}");
 
-        var previewResponse = await previewClient.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(previewClient,
             "/auth/try-login",
             new
             {
@@ -457,7 +455,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview = await previewResponse.Content
-            .ReadFromJsonAsync<TryLoginResult>();
+            .ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -474,7 +472,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 identifier = user.Identifier,
                 secret = "wrong-password",
                 previewReceipt = preview.PreviewReceipt
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -484,12 +482,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithPreviewReceiptAndDifferentSecret_ShouldNotAuthenticate()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"preview-different-secret-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -498,7 +496,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -511,7 +509,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 identifier = user.Identifier,
                 secret = "different-secret",
                 previewReceipt = preview.PreviewReceipt
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         loginResponse.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -521,14 +519,14 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithPreviewReceiptAndDifferentIdentifier_ShouldFallBackToNormalAuthentication()
     {
-        var receiptOwner = await _factory.CreateLoginUserAsync();
-        var otherUser = await _factory.CreateLoginUserAsync();
+        var receiptOwner = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var otherUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"preview-different-identifier-{Guid.NewGuid():N}");
 
         // Create receipt for user A.
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -539,7 +537,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -549,7 +547,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         //
         // The receipt must NOT be trusted for user B, but it also must not
         // prevent user B from authenticating with valid credentials.
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -573,13 +571,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithPreviewReceiptFromDifferentIdentifier_ShouldNotBypassCredentialValidation()
     {
-        var receiptOwner = await _factory.CreateLoginUserAsync();
-        var otherUser = await _factory.CreateLoginUserAsync();
+        var receiptOwner = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var otherUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"preview-cross-user-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -588,7 +586,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -596,7 +594,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         // Receipt belongs to user A.
         // Attempt user B authentication with INVALID credentials.
-        var loginResponse = await client.PostAsJsonAsync(
+        var loginResponse = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -613,12 +611,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithUnknownPreviewReceipt_ShouldFallBackToNormalLoginValidation()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"unknown-receipt-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -639,12 +637,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task PreviewReceipt_AfterSuccessfulCommit_ShouldBeConsumed()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"preview-consume-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -653,13 +651,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
         preview.PreviewReceipt.Should().NotBeNullOrWhiteSpace();
 
-        var firstCommit = await client.PostAsJsonAsync(
+        var firstCommit = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -680,7 +678,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         //
         // Reusing it must not grant any special trust. The request should
         // simply fall back to normal credential validation.
-        var secondCommit = await client.PostAsJsonAsync(
+        var secondCommit = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -706,13 +704,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = "wrong-password-1"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         first.Headers
             .TryGetValues("Set-Cookie", out _)
             .Should().BeFalse();
 
-        var second = await client.PostAsJsonAsync(
+        var second = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -731,7 +729,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = ValidSecret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         correctLogin.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -744,7 +742,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "try-lockout-device-222222222222222");
 
-        var first = await client.PostAsJsonAsync(
+        var first = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -753,12 +751,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var firstResult =
-            await first.Content.ReadFromJsonAsync<TryLoginResult>();
+            await first.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         firstResult.Should().NotBeNull();
         firstResult!.IsSuccess.Should().BeFalse();
 
-        var second = await client.PostAsJsonAsync(
+        var second = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -766,14 +764,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password-2"
             });
 
-        var secondResult =
-            await second.Content.ReadFromJsonAsync<TryLoginResult>();
+        var secondResult = await second.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         secondResult.Should().NotBeNull();
         secondResult!.IsSuccess.Should().BeFalse();
 
         // Account should now be locked.
-        var correctAttempt = await client.PostAsJsonAsync(
+        var correctAttempt = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -782,7 +779,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var correctResult =
-            await correctAttempt.Content.ReadFromJsonAsync<TryLoginResult>();
+            await correctAttempt.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         correctResult.Should().NotBeNull();
         correctResult!.IsSuccess.Should().BeFalse();
@@ -792,12 +789,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithValidCredentials_ShouldNotConsumeFailureAttempt()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"try-no-failure-{Guid.NewGuid():N}");
 
-        var preview = await client.PostAsJsonAsync(
+        var preview = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -806,12 +803,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var previewResult =
-            await preview.Content.ReadFromJsonAsync<TryLoginResult>();
+            await preview.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         previewResult.Should().NotBeNull();
         previewResult!.IsSuccess.Should().BeTrue();
 
-        var failure = await client.PostAsJsonAsync(
+        var failure = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -820,7 +817,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var failureResult =
-            await failure.Content.ReadFromJsonAsync<TryLoginResult>();
+            await failure.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         failureResult.Should().NotBeNull();
         failureResult!.IsSuccess.Should().BeFalse();
@@ -830,12 +827,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task PreviewReceipt_WithDifferentSecret_ShouldNotSuppressFailureAccounting()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"receipt-accounting-{Guid.NewGuid():N}");
 
-        var previewResponse = await client.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -846,7 +843,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         previewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -861,7 +858,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 identifier = user.Identifier,
                 secret = "wrong-password-1",
                 previewReceipt = preview.PreviewReceipt
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         firstFailure.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -875,7 +872,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = user.Identifier,
                 secret = "wrong-password-2"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         secondFailure.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -888,7 +885,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = user.Identifier,
                 secret = user.Secret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         correctLogin.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -898,12 +895,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task PreviewReceipt_FromDifferentDevice_ShouldNotSuppressFailureAccounting()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var receiptClient = CreateClient(
             $"receipt-device-a-{Guid.NewGuid():N}");
 
-        var previewResponse = await receiptClient.PostAsJsonAsync(
+        var previewResponse = await CsrfTestClient.PostJsonAsync(receiptClient,
             "/auth/try-login",
             new
             {
@@ -912,7 +909,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             });
 
         var preview =
-            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await previewResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         preview.Should().NotBeNull();
         preview!.IsSuccess.Should().BeTrue();
@@ -930,7 +927,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 identifier = user.Identifier,
                 secret = "wrong-password-1",
                 previewReceipt = preview.PreviewReceipt
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         firstFailure.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -944,7 +941,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = user.Identifier,
                 secret = "wrong-password-2"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         secondFailure.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -956,7 +953,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = user.Identifier,
                 secret = user.Secret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         correctLogin.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -966,13 +963,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task SuccessfulLogin_ShouldResetPreviousFailureAccounting()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"success-reset-{Guid.NewGuid():N}");
 
         // Failure #1
-        var firstFailure = await client.PostAsJsonAsync(
+        var firstFailure = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -985,7 +982,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             .Should().BeFalse();
 
         // Successful authentication must reset previous failure accounting.
-        var success = await client.PostAsJsonAsync(
+        var success = await CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -1001,7 +998,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         // If the previous failure was reset, this is failure #1 again,
         // not failure #2 / lockout.
-        var failureAfterSuccess = await client.PostAsJsonAsync(
+        var failureAfterSuccess = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1009,8 +1006,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password-2"
             });
 
-        var result =
-            await failureAfterSuccess.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await failureAfterSuccess.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -1029,7 +1025,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = "wrong-password-1"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         await attackerDevice.PostAsJsonAsync(
             "/auth/login",
@@ -1037,7 +1033,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = "wrong-password-2"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         using var differentDevice = CreateClient(
             "lockout-other-device-000000000000000");
@@ -1048,7 +1044,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = ValidSecret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -1060,7 +1056,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithFormPayload_ShouldAuthenticateUser()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"form-login-{Guid.NewGuid():N}");
@@ -1072,7 +1068,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 ["Secret"] = user.Secret
             });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -1088,7 +1084,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithFormPayload_ShouldReturnSuccessfulPreview()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"form-try-login-{Guid.NewGuid():N}");
@@ -1100,14 +1096,14 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 ["Secret"] = user.Secret
             });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             "/auth/try-login",
             content);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<TryLoginResult>();
+            await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeTrue();
@@ -1125,14 +1121,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [InlineData("admin", " ")]
     [InlineData("", "")]
     [InlineData(" ", " ")]
-    public async Task Login_WithMissingOrWhitespaceCredentials_ShouldNotAuthenticate(
-        string identifier,
-        string secret)
+    public async Task Login_WithMissingOrWhitespaceCredentials_ShouldNotAuthenticate(string identifier, string secret)
     {
-        using var client = CreateClient(
-            $"invalid-input-device-{Guid.NewGuid():N}");
+        using var client = CreateClient($"invalid-input-device-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -1152,14 +1145,11 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [InlineData("admin", " ")]
     [InlineData("", "")]
     [InlineData(" ", " ")]
-    public async Task TryLogin_WithMissingOrWhitespaceCredentials_ShouldReturnInvalidCredentials(
-        string identifier,
-        string secret)
+    public async Task TryLogin_WithMissingOrWhitespaceCredentials_ShouldReturnInvalidCredentials(string identifier, string secret)
     {
-        using var client = CreateClient(
-            $"invalid-preview-device-{Guid.NewGuid():N}");
+        using var client = CreateClient($"invalid-preview-device-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1169,7 +1159,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -1188,7 +1178,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             System.Text.Encoding.UTF8,
             "text/plain");
 
-        var response = await client.PostAsync("/auth/try-login", content);
+        var response = await client.PostAsync("/auth/try-login", content, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -1208,7 +1198,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             System.Text.Encoding.UTF8,
             "text/plain");
 
-        var response = await client.PostAsync("/auth/login", content);
+        var response = await client.PostAsync("/auth/login", content, TestContext.Current.CancellationToken);
 
         response.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -1224,13 +1214,13 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             "empty-json-device-555555555555555");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>();
+        var result = await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeFalse();
@@ -1246,7 +1236,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
         var response = await client.PostAsJsonAsync(
             "/auth/login",
-            new { });
+            new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -1259,7 +1249,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Login_WithJsonPropertyNamesUsingDifferentCasing_ShouldAuthenticate()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"json-casing-{Guid.NewGuid():N}");
@@ -1270,7 +1260,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             ["SECRET"] = user.Secret
         });
 
-        var response = await client.PostAsync(
+        var response = await CsrfTestClient.PostAsync(client,
             LoginEndpoint,
             content);
 
@@ -1305,7 +1295,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = $"unknown-{Guid.NewGuid():N}",
                 secret = "wrong-password"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         var existingResponse = await existingUserClient.PostAsJsonAsync(
             "/auth/login",
@@ -1313,7 +1303,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = ValidIdentifier,
                 secret = "wrong-password"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         unknownResponse.StatusCode.Should().Be(existingResponse.StatusCode);
 
@@ -1329,7 +1319,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithUnknownIdentifier_ShouldReturnSameFailureReasonAsWrongPassword()
     {
-        var existingUser = await _factory.CreateLoginUserAsync();
+        var existingUser = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var unknownClient = CreateClient(
             $"unknown-{Guid.NewGuid():N}");
@@ -1337,7 +1327,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var existingClient = CreateClient(
             $"existing-{Guid.NewGuid():N}");
 
-        var unknownResponse = await unknownClient.PostAsJsonAsync(
+        var unknownResponse = await CsrfTestClient.PostJsonAsync(unknownClient,
             "/auth/try-login",
             new
             {
@@ -1345,7 +1335,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 secret = "wrong-password"
             });
 
-        var existingResponse = await existingClient.PostAsJsonAsync(
+        var existingResponse = await CsrfTestClient.PostJsonAsync(existingClient,
             "/auth/try-login",
             new
             {
@@ -1357,10 +1347,10 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         existingResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var unknownResult =
-            await unknownResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await unknownResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         var existingResult =
-            await existingResponse.Content.ReadFromJsonAsync<TryLoginResult>();
+            await existingResponse.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         unknownResult.Should().NotBeNull();
         existingResult.Should().NotBeNull();
@@ -1384,7 +1374,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"unknown-receipt-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1395,7 +1385,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<TryLoginResult>();
+            await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -1411,12 +1401,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task TryLogin_WithWrongPassword_ShouldNotIssuePreviewReceipt()
     {
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"wrong-password-{Guid.NewGuid():N}");
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/try-login",
             new
             {
@@ -1427,7 +1417,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<TryLoginResult>();
+            await response.Content.ReadFromJsonAsync<TryLoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -1452,7 +1442,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
             {
                 identifier = $"unknown-{Guid.NewGuid():N}",
                 secret = ValidSecret
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.Headers
             .TryGetValues("Set-Cookie", out _)
@@ -1469,7 +1459,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"failure-window-{Guid.NewGuid():N}");
@@ -1519,7 +1509,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"active-lockout-{Guid.NewGuid():N}");
@@ -1552,7 +1542,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"lockout-boundary-{Guid.NewGuid():N}");
@@ -1587,7 +1577,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"failure-window-inside-{Guid.NewGuid():N}");
@@ -1620,7 +1610,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
             $"lockout-no-extension-{Guid.NewGuid():N}");
@@ -1679,7 +1669,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client1 = CreateClient(
             $"concurrent-failure-1-{Guid.NewGuid():N}");
@@ -1720,7 +1710,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device1 = $"concurrent-success-1-{Guid.NewGuid():N}";
         var device2 = $"concurrent-success-2-{Guid.NewGuid():N}";
@@ -1753,7 +1743,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 {
                     PageNumber = 1,
                     PageSize = 10
-                }),
+                }, cancellationToken: TestContext.Current.CancellationToken),
 
             authenticatedClient2.PostAsJsonAsync(
                 "/auth/me/sessions/chains",
@@ -1761,7 +1751,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
                 {
                     PageNumber = 1,
                     PageSize = 10
-                }));
+                }, cancellationToken: TestContext.Current.CancellationToken));
 
         sessionResponses.Should().OnlyContain(
             x => x.StatusCode == HttpStatusCode.OK);
@@ -1769,12 +1759,12 @@ public class LoginTests : IClassFixture<AuthServerFactory>
         var result1 =
             await sessionResponses[0]
                 .Content
-                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         var result2 =
             await sessionResponses[1]
                 .Content
-                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>();
+                .ReadFromJsonAsync<PagedResult<SessionChainSummary>>(cancellationToken: TestContext.Current.CancellationToken);
 
         result1.Should().NotBeNull();
         result2.Should().NotBeNull();
@@ -1795,7 +1785,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync();
+        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var device = $"preview-concurrent-{Guid.NewGuid():N}";
 
@@ -1852,8 +1842,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
     }
 
 
-    private HttpClient CreateClient(
-        string deviceId = "test-device-1234567890123456")
+    private HttpClient CreateClient(string deviceId = "test-device-1234567890123456")
     {
         var client = _factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -1875,7 +1864,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient client, string identifier, string secret)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             LoginEndpoint,
             new
             {
@@ -1886,7 +1875,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static async Task<TryLoginResult> TryLoginAsync(HttpClient client, string identifier, string secret)
     {
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(client,
             "auth/try-login",
             new LoginRequest
             {
@@ -1905,7 +1894,7 @@ public class LoginTests : IClassFixture<AuthServerFactory>
 
     private static Task<HttpResponseMessage> LoginWithPreviewReceiptAsync(HttpClient client, string identifier, string secret, string previewReceipt)
     {
-        return client.PostAsJsonAsync("/auth/login", new
+        return CsrfTestClient.PostJsonAsync(client, "/auth/login", new
         {
             identifier,
             secret,

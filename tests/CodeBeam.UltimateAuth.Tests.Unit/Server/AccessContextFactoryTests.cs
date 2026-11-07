@@ -89,7 +89,7 @@ public sealed class AccessContextFactoryTests
         var context = await sut.CreateAsync(
             flow,
             "users.get.self",
-            "users");
+            "users", ct: TestContext.Current.CancellationToken);
 
         // Only active roles are exposed.
         context.ActorRoles.Should().HaveCount(2);
@@ -161,7 +161,7 @@ public sealed class AccessContextFactoryTests
             flow,
             "users.get.anonymous",
             "users",
-            attributes: attributes);
+            attributes: attributes, ct: TestContext.Current.CancellationToken);
 
         // Anonymous actors must never receive trusted roles.
         context.ActorRoles.Should().BeEmpty();
@@ -203,7 +203,7 @@ public sealed class AccessContextFactoryTests
             flow,
             "users.getbykeys.admin",
             "users",
-            new[] { first, second, first });
+            new[] { first, second, first }, ct: TestContext.Current.CancellationToken);
 
         context.TargetUserKeys.Should().HaveCount(2);
         context.TargetUserKeys.Should().ContainInOrder(first, second);
@@ -236,7 +236,7 @@ public sealed class AccessContextFactoryTests
             flow,
             "users.getbykeys.admin",
             "users",
-            input);
+            input, ct: TestContext.Current.CancellationToken);
 
         input.Add(second);
 
@@ -263,7 +263,7 @@ public sealed class AccessContextFactoryTests
             flow,
             "users.getbykeys.admin",
             "users",
-            new[] { first, second });
+            new[] { first, second }, ct: TestContext.Current.CancellationToken);
 
         var updated = context.WithAttribute("source", "test");
 
@@ -289,7 +289,7 @@ public sealed class AccessContextFactoryTests
         var context = await sut.CreateAsync(
             flow,
             "users.query.admin",
-            "users");
+            "users", ct: TestContext.Current.CancellationToken);
 
         context.TargetUserKeys.Should().BeEmpty();
     }

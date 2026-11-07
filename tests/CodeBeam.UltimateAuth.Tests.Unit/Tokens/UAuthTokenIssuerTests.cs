@@ -51,7 +51,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         result.Format.Should().Be(TokenFormat.Opaque);
         result.Token.Should().Be(OpaqueToken);
@@ -79,7 +79,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         // Characterizes current Hybrid behavior.
         // Production code explicitly marks JWT Hybrid as a future decision.
@@ -104,7 +104,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                CreateTokenContext());
+                CreateTokenContext(), ct: TestContext.Current.CancellationToken);
 
         result.ExpiresAt.Should()
             .Be(Now.AddMinutes(17));
@@ -128,7 +128,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         result.Format.Should().Be(TokenFormat.Jwt);
         result.Token.Should().Be(Jwt);
@@ -169,7 +169,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -227,7 +227,7 @@ public sealed class UAuthTokenIssuerTests
 
         await fixture.Sut.IssueAccessTokenAsync(
             flow,
-            context);
+            context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -270,7 +270,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims.Should()
             .ContainKey("sid");
@@ -304,7 +304,7 @@ public sealed class UAuthTokenIssuerTests
         var result =
             await fixture.Sut.IssueAccessTokenAsync(
                 flow,
-                context);
+                context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims.Should()
             .NotContainKey("sid");
@@ -332,7 +332,7 @@ public sealed class UAuthTokenIssuerTests
 
         await fixture.Sut.IssueAccessTokenAsync(
             flow,
-            CreateTokenContext());
+            CreateTokenContext(), ct: TestContext.Current.CancellationToken);
 
         fixture.OpaqueGenerator.Verify(
             x => x.GenerateJwtId(),
@@ -365,7 +365,7 @@ public sealed class UAuthTokenIssuerTests
 
         await fixture.Sut.IssueAccessTokenAsync(
             flow,
-            CreateTokenContext());
+            CreateTokenContext(), ct: TestContext.Current.CancellationToken);
 
         fixture.OpaqueGenerator.Verify(
             x => x.GenerateJwtId(),
@@ -391,7 +391,7 @@ public sealed class UAuthTokenIssuerTests
             await fixture.Sut.IssueRefreshTokenAsync(
                 flow,
                 CreateTokenContext(),
-                RefreshTokenPersistence.Persist);
+                RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -426,7 +426,7 @@ public sealed class UAuthTokenIssuerTests
             await fixture.Sut.IssueRefreshTokenAsync(
                 flow,
                 context,
-                RefreshTokenPersistence.Persist);
+                RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -459,7 +459,7 @@ public sealed class UAuthTokenIssuerTests
 
         var context = CreateTokenContext(sessionId: sessionId);
 
-        var result = await fixture.Sut.IssueRefreshTokenAsync(flow, context, RefreshTokenPersistence.DoNotPersist);
+        var result = await fixture.Sut.IssueRefreshTokenAsync(flow, context, RefreshTokenPersistence.DoNotPersist, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Token.Should().Be(RefreshToken);
@@ -484,7 +484,7 @@ public sealed class UAuthTokenIssuerTests
             await fixture.Sut.IssueRefreshTokenAsync(
                 flow,
                 CreateTokenContext(sessionId: sessionId),
-                RefreshTokenPersistence.DoNotPersist);
+                RefreshTokenPersistence.DoNotPersist, ct: TestContext.Current.CancellationToken);
 
         result!.ExpiresAt.Should()
             .Be(Now.AddDays(14));
@@ -525,7 +525,7 @@ public sealed class UAuthTokenIssuerTests
         await fixture.Sut.IssueRefreshTokenAsync(
             flow,
             context,
-            RefreshTokenPersistence.Persist);
+            RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -577,7 +577,7 @@ public sealed class UAuthTokenIssuerTests
             await fixture.Sut.IssueRefreshTokenAsync(
                 flow,
                 CreateTokenContext(sessionId: sessionId),
-                RefreshTokenPersistence.DoNotPersist);
+                RefreshTokenPersistence.DoNotPersist, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -606,7 +606,7 @@ public sealed class UAuthTokenIssuerTests
         await fixture.Sut.IssueRefreshTokenAsync(
             flow,
             CreateTokenContext(sessionId: sessionId),
-            RefreshTokenPersistence.Persist);
+            RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ExecuteAsync(
@@ -702,7 +702,7 @@ public sealed class UAuthTokenIssuerTests
 
         await fixture.Sut.IssueAccessTokenAsync(
             flow,
-            context);
+            context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -841,7 +841,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured!.Claims.Should().ContainKey("role");
@@ -872,7 +872,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         var permissions = captured!.Claims!["uauth:permission"]
             .Should().BeAssignableTo<string[]>().Subject;
@@ -898,7 +898,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims!["department"]
             .Should().Be("legal");
@@ -926,7 +926,7 @@ public sealed class UAuthTokenIssuerTests
                 descriptor => captured = descriptor)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -971,7 +971,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -1003,7 +1003,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims!["sid"]
             .Should().Be(sessionId.Value);
@@ -1029,7 +1029,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims!["jti"]
             .Should().Be(JwtId);
@@ -1059,7 +1059,7 @@ public sealed class UAuthTokenIssuerTests
             .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
             .Returns(Jwt);
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context);
+        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
 
         captured!.Claims.Should().NotContainKey("jti");
 
@@ -1091,10 +1091,10 @@ public sealed class UAuthTokenIssuerTests
                 "effective-session-0000000000000000000001"));
 
         var access = await fixture.Sut.IssueAccessTokenAsync(
-            flow, context);
+            flow, context, ct: TestContext.Current.CancellationToken);
 
         var refresh = await fixture.Sut.IssueRefreshTokenAsync(
-            flow, context, RefreshTokenPersistence.DoNotPersist);
+            flow, context, RefreshTokenPersistence.DoNotPersist, ct: TestContext.Current.CancellationToken);
 
         access.ExpiresAt.Should().Be(Now.AddMinutes(5));
         refresh.Should().NotBeNull();
@@ -1115,7 +1115,7 @@ public sealed class UAuthTokenIssuerTests
         var result = await fixture.Sut.IssueRefreshTokenAsync(
             flow,
             CreateTokenContext(sessionId: null),
-            RefreshTokenPersistence.Persist);
+            RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 

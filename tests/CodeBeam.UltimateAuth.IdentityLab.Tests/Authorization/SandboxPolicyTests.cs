@@ -26,11 +26,11 @@ public sealed class SandboxPolicyTests(PostgresFixture postgres) : IClassFixture
         foreach (var target in new UserKey?[] { LabDatabase.MemberB, LabDatabase.OwnerB,
             UserKey.FromString("nonexistent"), null })
         {
-            var denied = await policy.DecideAsync(Contexts.Create(action, LabDatabase.OwnerA, target));
+            var denied = await policy.DecideAsync(Contexts.Create(action, LabDatabase.OwnerA, target), TestContext.Current.CancellationToken);
             Assert.True(denied.IsDenied);
         }
         Assert.True((await policy.DecideAsync(Contexts.Create(action,
-            LabDatabase.OwnerA, LabDatabase.MemberA))).IsAllowed);
+            LabDatabase.OwnerA, LabDatabase.MemberA), TestContext.Current.CancellationToken)).IsAllowed);
         Assert.Equal(before, await db.SnapshotAsync());
     }
 
@@ -44,9 +44,9 @@ public sealed class SandboxPolicyTests(PostgresFixture postgres) : IClassFixture
         await db.SetStatusAsync(status);
         var policy = new SandboxUAuthAccessPolicy(db, new LabRootResolver(), new());
         Assert.True((await policy.DecideAsync(Contexts.Create(UAuthActions.UserProfiles.UpdateAdmin,
-            LabDatabase.OwnerA, LabDatabase.MemberA))).IsDenied);
+            LabDatabase.OwnerA, LabDatabase.MemberA), TestContext.Current.CancellationToken)).IsDenied);
         Assert.Equal(readDenied, (await policy.DecideAsync(Contexts.Create(UAuthActions.UserProfiles.GetAdmin,
-            LabDatabase.OwnerA, LabDatabase.MemberA))).IsDenied);
+            LabDatabase.OwnerA, LabDatabase.MemberA), TestContext.Current.CancellationToken)).IsDenied);
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public sealed class SandboxPolicyTests(PostgresFixture postgres) : IClassFixture
         await db.SeedAsync();
         var policy = new SandboxUAuthAccessPolicy(db, new LabRootResolver(), new());
         Assert.Equal("sandbox_owner_required", (await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Users.DeleteAdmin, LabDatabase.MemberA, LabDatabase.OwnerA))).DenyReason);
+            UAuthActions.Users.DeleteAdmin, LabDatabase.MemberA, LabDatabase.OwnerA), TestContext.Current.CancellationToken)).DenyReason);
         Assert.Equal("sandbox_owner_cannot_be_deleted", (await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Users.DeleteAdmin, LabDatabase.OwnerA, LabDatabase.OwnerA))).DenyReason);
+            UAuthActions.Users.DeleteAdmin, LabDatabase.OwnerA, LabDatabase.OwnerA), TestContext.Current.CancellationToken)).DenyReason);
         Assert.Equal("sandbox_owner_cannot_delete_self", (await policy.DecideAsync(Contexts.Create(
-            UAuthActions.Users.DeleteSelf, LabDatabase.OwnerA, LabDatabase.OwnerA))).DenyReason);
+            UAuthActions.Users.DeleteSelf, LabDatabase.OwnerA, LabDatabase.OwnerA), TestContext.Current.CancellationToken)).DenyReason);
     }
 
     [Fact]
@@ -71,8 +71,8 @@ public sealed class SandboxPolicyTests(PostgresFixture postgres) : IClassFixture
         var policy = new SandboxUAuthAccessPolicy(db, new LabRootResolver(), new());
         foreach (var targets in new[] { Array.Empty<UserKey>(), new[] { LabDatabase.MemberA, LabDatabase.MemberB } })
             Assert.True((await policy.DecideAsync(Contexts.Create(UAuthActions.Users.GetByKeysAdmin,
-                LabDatabase.OwnerA, targets: targets))).IsDenied);
+                LabDatabase.OwnerA, targets: targets), TestContext.Current.CancellationToken)).IsDenied);
         Assert.True((await policy.DecideAsync(Contexts.Create(UAuthActions.Users.GetByKeysAdmin,
-            LabDatabase.OwnerA, targets: new[] { LabDatabase.MemberA, LabDatabase.OwnerA }))).IsAllowed);
+            LabDatabase.OwnerA, targets: new[] { LabDatabase.MemberA, LabDatabase.OwnerA }), TestContext.Current.CancellationToken)).IsAllowed);
     }
 }

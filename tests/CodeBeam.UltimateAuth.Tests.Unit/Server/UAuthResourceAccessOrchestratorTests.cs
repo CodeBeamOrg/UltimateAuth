@@ -1,15 +1,16 @@
-﻿using System.Security.Claims;
+﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Server.Authorization;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -56,7 +57,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             return Task.CompletedTask;
         });
 
-        await _sut.ExecuteAsync(context, command);
+        await _sut.ExecuteAsync(context, command, ct: TestContext.Current.CancellationToken);
 
         executions.Should().Be(1);
     }
@@ -178,7 +179,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             original,
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -206,7 +207,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         var compiled = GetCompiledPermissions(captured!);
 
@@ -232,7 +233,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         var compiled = GetCompiledPermissions(captured!);
 
@@ -266,7 +267,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         await _sut.ExecuteAsync(
             CreateContext(),
-            new AccessCommand(_ => Task.CompletedTask));
+            new AccessCommand(_ => Task.CompletedTask), ct: TestContext.Current.CancellationToken);
 
         authorityContext.Should().NotBeNull();
 
@@ -290,7 +291,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
         var command = new AccessCommand<string>(
             _ => Task.FromResult("result"));
 
-        var result = await _sut.ExecuteAsync(context, command);
+        var result = await _sut.ExecuteAsync(context, command, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be("result");
     }
@@ -440,7 +441,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
 
         var executionTask = _sut.ExecuteAsync(
             CreateContext(),
-            command);
+            command, ct: TestContext.Current.CancellationToken);
 
         executed.Should().BeFalse();
 
@@ -474,6 +475,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             targetUserKey: null,
             resourceTenant: default,
             action: "users.read",
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

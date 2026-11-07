@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
@@ -19,6 +20,7 @@ internal sealed class SessionCoordinator : ISessionCoordinator
     private readonly IClock _clock;
 
     private CancellationTokenSource? _cts;
+    private DateTimeOffset _refreshNotBefore;
 
     public event Action? ReauthRequired;
 
@@ -53,8 +55,11 @@ internal sealed class SessionCoordinator : ISessionCoordinator
         {
             while (!ct.IsCancellationRequested)
             {
-                _diagnostics.SetNextAutomaticRefresh(_clock.UtcNow.Add(interval));
-                await Task.Delay(interval, ct);
+                var delay = _refreshNotBefore - _clock.UtcNow;
+                if (delay < interval) delay = interval;
+                _diagnostics.SetNextAutomaticRefresh(UAuthRateLimit.NotBefore(_clock.UtcNow, delay));
+                // Chunk very long guidance to stay within native timer bounds; TickAsync still checks the deadline.
+                await Task.Delay(delay > TimeSpan.FromDays(1) ? TimeSpan.FromDays(1) : delay, ct);
                 _diagnostics.SetNextAutomaticRefresh(null);
                 await TickAsync();
 
@@ -86,9 +91,16 @@ internal sealed class SessionCoordinator : ISessionCoordinator
 
     internal async Task TickAsync()
     {
+        if (_clock.UtcNow < _refreshNotBefore) return;
         _diagnostics.MarkAutomaticRefresh();
 
         var result = await _client.Flows.RefreshAsync(true);
+
+        if (result.Status == 429)
+        {
+            _refreshNotBefore = UAuthRateLimit.NotBefore(_clock.UtcNow, result.RetryAfter);
+            return;
+        }
 
         if (result.Outcome != RefreshOutcome.ReauthRequired)
             return;

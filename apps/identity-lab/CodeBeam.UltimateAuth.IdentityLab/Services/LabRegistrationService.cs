@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
@@ -27,21 +28,31 @@ public sealed class LabRegistrationService(LabAccessContextProvider contextProvi
         var trustedContext = context.WithAttribute(LabProvisioningGate.AttributeKey, LabProvisioningGate.Token);
 
 
-        var createResult = await userApplicationService.CreateUserAsync(trustedContext,
-            new CreateUserRequest
-            {
-                UserName = request.Username.Trim(),
-                Email = request.Email.Trim(),
-                Password = request.Password,
-                FirstName = string.IsNullOrWhiteSpace(request.FirstName)
-                    ? null
-                    : request.FirstName.Trim(),
-                LastName = string.IsNullOrWhiteSpace(request.LastName)
-                    ? null
-                    : request.LastName.Trim(),
-                BirthDate = request.BirthDate
-            },
-            ct);
+
+        UserCreateResult? createResult; // Burada mevcut metodun gerçek dönüş tipini kullan.
+
+        try
+        {
+            createResult = await userApplicationService.CreateUserAsync(
+                trustedContext,
+                new CreateUserRequest
+                {
+                    UserName = request.Username.Trim(),
+                    Email = request.Email.Trim(),
+                    Password = request.Password,
+                    FirstName = string.IsNullOrWhiteSpace(request.FirstName)
+                        ? null : request.FirstName.Trim(),
+                    LastName = string.IsNullOrWhiteSpace(request.LastName)
+                        ? null : request.LastName.Trim(),
+                    BirthDate = request.BirthDate
+                },
+                ct);
+        }
+        catch (UAuthValidationException ex)
+        {
+            return LabRegistrationResult.Failed(LabPasswordErrorMessages.Get(ex.Code));
+        }
+
 
         if (!createResult.IsSuccess ||
             string.IsNullOrWhiteSpace(createResult.UserKey))

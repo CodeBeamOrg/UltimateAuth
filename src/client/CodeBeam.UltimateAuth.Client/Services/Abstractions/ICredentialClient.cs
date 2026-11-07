@@ -112,4 +112,16 @@ public interface ICredentialClient
     /// This removes softly or permanently the credential from the system.
     /// </remarks>
     Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteCredentialRequest request);
+
+
+    /// <summary>
+    /// Retrieves the effective public password policy for the
+    /// current tenant and client profile.
+    /// </summary>
+    /// <remarks>
+    /// Available without authentication when the server
+    /// exposes the credentials endpoints.
+    /// The response contains no password history or user data.
+    /// </remarks>
+    Task<UAuthResult<UAuthPasswordPolicyInfo>> GetPasswordPolicyAsync(CancellationToken ct = default);
 }

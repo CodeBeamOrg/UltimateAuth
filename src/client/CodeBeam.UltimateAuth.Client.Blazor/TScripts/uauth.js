@@ -34,7 +34,10 @@ window.uauth.storage = {
     }
 };
 
-window.uauth.submitForm = function (form) {
+window.uauth.submitForm = async function (
+    form,
+    trustedOrigin = null) {
+
     if (!form)
         return;
 
@@ -42,14 +45,30 @@ window.uauth.submitForm = function (form) {
         throw new Error("UAuth deviceId is not initialized.");
     }
 
-    let udid = form.querySelector("input[name='__uauth_device']");
+    const validatedUrl = window.uauth.validateAuthUrl(
+        form.action,
+        trustedOrigin
+    );
+
+    form.action = validatedUrl;
+
+    let udid = form.querySelector(
+        "input[name='__uauth_device']"
+    );
+
     if (!udid) {
         udid = document.createElement("input");
         udid.type = "hidden";
         udid.name = "__uauth_device";
         form.appendChild(udid);
     }
+
     udid.value = window.uauth.deviceId;
+
+    await window.uauth.antiforgery.appendToForm(
+        form,
+        trustedOrigin
+    );
 
     form.submit();
 };
@@ -91,6 +110,9 @@ window.uauth.tryAndCommit = async function (options) {
     }
 
     const status = tryResponse.status;
+    if (status === 429) {
+        return { isSuccess: false, status: 429, errorCode: "rate_limited", retryAfter: tryResponse.retryAfter ?? null };
+    }
     const isHttpSuccess = status >= 200 && status < 300;
     const isClientError = status >= 400 && status < 500;
 
@@ -155,7 +177,13 @@ window.uauth.tryAndCommit = async function (options) {
         form.appendChild(udid);
 
         document.body.appendChild(form);
-        form.submit();
+        try {
+            await window.uauth.submitForm(form, trustedOrigin);
+        }
+        catch (error) {
+            form.remove();
+            throw error;
+        }
     }
 
     return normalized;
@@ -203,10 +231,20 @@ window.uauth.post = async function (options) {
         }
 
         document.body.appendChild(form);
-        form.submit();
+        try {
+            await window.uauth.submitForm(form, trustedOrigin);
+        }
+        catch (error) {
+            form.remove();
+            throw error;
+        }
         return null;
     }
 
+    const isLogout =
+        mode === "logout" ||
+        mode === "logout-observe";
+  
     return window.uauth.request({
         url: validatedUrl,
         method: "POST",
@@ -214,7 +252,13 @@ window.uauth.post = async function (options) {
         clientProfile,
         contentType: "form",
         credentials: "include",
-        allowCrossOriginCredentials: true
+        allowCrossOriginCredentials: true,
+        antiforgery: true,
+        trustedOrigin,
+        navigateOnSuccess: mode === "logout",
+        headers: isLogout
+            ? { "X-UAuth-Logout-Mode": "observe" }
+            : {}
     });
 };
 
@@ -231,12 +275,16 @@ window.uauth.postJson = function (options) {
         clientProfile: options.clientProfile,
         contentType: "json",
         credentials: "include",
-        allowCrossOriginCredentials: true
+        allowCrossOriginCredentials: true,
+        antiforgery: true,
+        trustedOrigin: options.trustedOrigin
     });
 };
 
 window.uauth.request = async function (options) {
     const {
+        followRedirects = false,
+        navigateOnSuccess = false,
         url,
         method = "GET",
         payload = null,
@@ -308,13 +356,27 @@ window.uauth.request = async function (options) {
         }
     }
 
+    if (requestMethod !== "GET" && options.antiforgery === true) {
+        const tokenUrl = window.uauth.validateAuthUrl(
+            window.uauth.antiforgery.tokenUrl,
+            options.trustedOrigin
+        );
+
+        if (new URL(tokenUrl).origin !== requestUrl.origin) {
+            throw new Error("UAuth antiforgery token origin differs from request origin.");
+        }
+
+        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin);
+        headers[token.headerName] = token.requestToken;
+    }
+
     let response;
 
     try {
         response = await fetch(requestUrl.href, {
             method: requestMethod,
             credentials,
-            redirect: "error",
+            redirect: followRedirects ? "follow" : "error",
             headers,
             body
         });
@@ -347,7 +409,24 @@ window.uauth.request = async function (options) {
         }
     }
 
+    // Only the observed logout transport follows a successful server redirect.
+    // A rejected POST never navigates, clears storage, or causes a second POST.
+    if (navigateOnSuccess && response.ok) {
+        const redirectUrl = responseBody?.redirectUrl;
+
+        if (typeof redirectUrl === "string" && redirectUrl.length > 0) {
+            const target = new URL(redirectUrl, window.location.origin);
+
+            if (!["http:", "https:"].includes(target.protocol)) {
+                throw new Error("Invalid logout redirect protocol.");
+            }
+
+            window.location.assign(target.href);
+        }
+    }
+
     return {
+        retryAfter: response.headers.get("Retry-After"),
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
@@ -490,6 +569,7 @@ window.uauth.resourceRequest = async function (options) {
         }
 
         return {
+            retryAfter: response.headers.get("Retry-After"),
             ok: response.ok,
             status: response.status,
             body: responseBody,
@@ -564,6 +644,72 @@ window.uauth.validateAuthUrl = function (url, trustedOrigin = null) {
     }
 
     return target.href;
+};
+
+window.uauth.antiforgery = {
+    tokenUrl: null,
+
+    configure: function (options) {
+        if (!options?.tokenUrl) {
+            throw new Error("UAuth antiforgery token URL is required.");
+        }
+
+        this.tokenUrl = window.uauth.validateAuthUrl(
+            options.tokenUrl,
+            options.trustedOrigin
+        );
+    },
+
+    getToken: async function (trustedOrigin) {
+        if (!this.tokenUrl) {
+            throw new Error("UAuth antiforgery is not configured.");
+        }
+
+        const url = window.uauth.validateAuthUrl(
+            this.tokenUrl,
+            trustedOrigin
+        );
+
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            redirect: "error",
+            headers: {
+                "X-UDID": window.uauth.deviceId
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`);
+        }
+
+        const token = await response.json();
+
+        if (!token?.requestToken ||
+            !token?.headerName ||
+            !token?.formFieldName) {
+            throw new Error("Invalid UAuth antiforgery response.");
+        }
+
+        return token;
+    },
+
+    appendToForm: async function (form, trustedOrigin) {
+        const token = await this.getToken(trustedOrigin);
+
+        let input = Array.from(form.elements)
+            .find(element => element.name === token.formFieldName);
+
+        if (!input) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = token.formFieldName;
+            form.appendChild(input);
+        }
+
+        input.value = token.requestToken;
+    }
 };
 
 window.uauth.setDeviceId = function (value) {

@@ -244,6 +244,42 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                     b.ToTable("UAuth_PasswordCredentials", (string)null);
                 });
 
+            modelBuilder.Entity("CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.PasswordHistoryProjection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CredentialId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ReplacedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tenant")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Tenant", "UserKey");
+
+                    b.HasIndex("Tenant", "CredentialId", "ReplacedAt", "Id");
+
+                    b.ToTable("UAuth_PasswordHistory", (string)null);
+                });
+
             modelBuilder.Entity("CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.SessionChainProjection", b =>
                 {
                     b.Property<long>("Id")
@@ -628,6 +664,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Bio")
+                        .HasMaxLength(4096)
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("BirthDate")
@@ -637,24 +674,30 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Culture")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("DisplayName")
+                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Gender")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Language")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Metadata")
@@ -671,6 +714,7 @@ namespace CodeBeam.UltimateAuth.Sample.BlazorServer.EFCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TimeZone")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")

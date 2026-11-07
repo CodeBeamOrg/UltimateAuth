@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Credentials.Extensions;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
 using CodeBeam.UltimateAuth.Policies.Registry;
@@ -29,8 +30,11 @@ using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -66,6 +70,7 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddUltimateAuthServerInternal();
+        services.AddRateLimiter(_ => { });
 
         return services;
     }
@@ -135,6 +140,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerUserIdentifierOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -281,6 +287,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ILogoutEndpointHandler, LogoutEndpointHandler>();
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
+        services.TryAddScoped<IPasswordPolicyEndpointHandler, PasswordPolicyEndpointHandler>();
 
         // ASP.NET Core Integration
         services.AddAuthentication();
@@ -309,6 +316,32 @@ public static class ServiceCollectionExtensions
             opt.EnableCustomResolvers = true;
             opt.CustomResolversFirst = true;
         });
+
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-UAuth-CSRF";
+            options.FormFieldName = "__RequestVerificationToken";
+        });
+
+        services.AddOptions<AntiforgeryOptions>().PostConfigure<IOptions<UAuthServerOptions>>((antiforgery, serverOptions) =>
+        {
+            var server = serverOptions.Value;
+
+            var sameSite = server.Antiforgery.CookieSameSite
+                ?? (server.HubDeploymentMode == UAuthHubDeploymentMode.External
+                    ? SameSiteMode.None
+                    : SameSiteMode.Strict);
+
+            antiforgery.Cookie.SameSite = sameSite;
+
+            if (sameSite == SameSiteMode.None)
+            {
+                antiforgery.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            }
+        });
+
+        services.AddScoped<UAuthCsrfPolicyEvaluator>();
+        services.AddScoped<UAuthCsrfValidator>();
 
         return services;
     }
@@ -369,6 +402,9 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddScoped<ICredentialValidator, CredentialValidator>();
         services.TryAddScoped<ICredentialResetNotifier, NotConfiguredCredentialResetNotifier>();
+
+        services.AddPasswordStrengthPolicy();
+
         return services;
     }
 
@@ -440,7 +476,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
         services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
 
-        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+        services.TryAddScoped<ISessionIdResolver, ResourceCompositeSessionIdResolver>();
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();

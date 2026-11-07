@@ -30,7 +30,7 @@ public class SessionCoordinatorTests
         });
 
         var coordinator = new SessionCoordinator(client.Object, nav.Object, options, diagnostics, clock);
-        await coordinator.StartAsync();
+        await coordinator.StartAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(diagnostics.IsRunning);
     }

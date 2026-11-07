@@ -116,6 +116,7 @@ public static class UAuthActions
         public const string CompleteResetAnonymous = "credentials.completereset.anonymous";
         public const string CompleteResetAdmin = "credentials.completereset.admin";
         public const string DeleteAdmin = "credentials.delete.admin";
+        public const string GetPasswordPolicyAnonymous = "credentials.getpasswordpolicy.anonymous";
     }
 
     public static class Authorization

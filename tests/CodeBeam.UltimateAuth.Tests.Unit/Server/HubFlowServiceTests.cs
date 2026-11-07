@@ -53,7 +53,7 @@ public sealed class HubFlowServiceTests
                 })
             .Returns(Task.CompletedTask);
 
-        var result = await fixture.Sut.BeginLoginAsync(request);
+        var result = await fixture.Sut.BeginLoginAsync(request, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result.HubSessionId.Should().NotBeNullOrWhiteSpace();
@@ -96,7 +96,7 @@ public sealed class HubFlowServiceTests
             .Returns(Task.CompletedTask);
 
         await fixture.Sut.BeginLoginAsync(
-            CreateBeginRequest());
+            CreateBeginRequest(), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -129,7 +129,7 @@ public sealed class HubFlowServiceTests
             .Returns(Task.CompletedTask);
 
         await fixture.Sut.BeginLoginAsync(
-            CreateBeginRequest());
+            CreateBeginRequest(), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured!.ExpiresAt.Should().Be(Now.Add(FlowLifetime));
@@ -145,7 +145,7 @@ public sealed class HubFlowServiceTests
         var request = CreateBeginRequest(
             previousHubSessionId: previousId);
 
-        await fixture.Sut.BeginLoginAsync(request);
+        await fixture.Sut.BeginLoginAsync(request, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -167,7 +167,7 @@ public sealed class HubFlowServiceTests
         var request = CreateBeginRequest(
             previousHubSessionId: previousHubSessionId);
 
-        await fixture.Sut.BeginLoginAsync(request);
+        await fixture.Sut.BeginLoginAsync(request, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -234,7 +234,7 @@ public sealed class HubFlowServiceTests
         await fixture.Sut.ContinuePkceAsync(
             artifact.HubSessionId.Value,
             newAuthorizationCode,
-            newCodeVerifier);
+            newCodeVerifier, ct: TestContext.Current.CancellationToken);
 
         artifact.Payload
             .GetRequired<string>("authorization_code")
@@ -264,7 +264,7 @@ public sealed class HubFlowServiceTests
         await fixture.Sut.ContinuePkceAsync(
             artifact.HubSessionId.Value,
             "new-code",
-            "new-verifier");
+            "new-verifier", ct: TestContext.Current.CancellationToken);
 
         artifact.Error.Should().BeNull();
 
@@ -285,7 +285,7 @@ public sealed class HubFlowServiceTests
         await fixture.Sut.ContinuePkceAsync(
             artifact.HubSessionId.Value,
             "new-code",
-            "new-verifier");
+            "new-verifier", ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.StoreAsync(
@@ -527,7 +527,7 @@ public sealed class HubFlowServiceTests
     {
         var fixture = CreateFixture();
 
-        await fixture.Sut.ConsumeAsync(hubSessionId);
+        await fixture.Sut.ConsumeAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -543,7 +543,7 @@ public sealed class HubFlowServiceTests
 
         const string hubSessionId = "hub-session";
 
-        await fixture.Sut.ConsumeAsync(hubSessionId);
+        await fixture.Sut.ConsumeAsync(hubSessionId, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(

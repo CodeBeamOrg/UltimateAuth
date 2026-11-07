@@ -103,7 +103,7 @@ public sealed class PkceServiceTests
             .Returns(Task.CompletedTask);
 
         var result =
-            await fixture.Sut.AuthorizeAsync(command);
+            await fixture.Sut.AuthorizeAsync(command, ct: TestContext.Current.CancellationToken);
 
         capturedKey.Should().NotBeNull();
         capturedArtifact.Should().NotBeNull();
@@ -182,7 +182,7 @@ public sealed class PkceServiceTests
         var result =
             await fixture.Sut.CompleteAsync(
                 auth,
-                request);
+                request, ct: TestContext.Current.CancellationToken);
 
         result.InvalidPkce.Should().BeTrue();
 
@@ -224,7 +224,7 @@ public sealed class PkceServiceTests
 
         await fixture.Sut.CompleteAsync(
             AuthFlowTestFactory.New(),
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -257,7 +257,7 @@ public sealed class PkceServiceTests
         var result =
             await fixture.Sut.CompleteAsync(
                 AuthFlowTestFactory.New(),
-                CreateCompleteRequest());
+                CreateCompleteRequest(), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.FailureReason
@@ -309,7 +309,7 @@ public sealed class PkceServiceTests
 
         await fixture.Sut.CompleteAsync(
             AuthFlowTestFactory.New(),
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -357,7 +357,7 @@ public sealed class PkceServiceTests
 
         await fixture.Sut.CompleteAsync(
             AuthFlowTestFactory.New(),
-            CreateCompleteRequest());
+            CreateCompleteRequest(), ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -423,7 +423,7 @@ public sealed class PkceServiceTests
         var hub = CreateHubArtifact(
             authorizationCode: "old-code");
 
-        await fixture.Sut.RefreshAsync(hub);
+        await fixture.Sut.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -446,7 +446,7 @@ public sealed class PkceServiceTests
         var hub = CreateHubArtifact(
             authorizationCode: oldCode);
 
-        await fixture.Sut.RefreshAsync(hub);
+        await fixture.Sut.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.ConsumeAsync(
@@ -483,7 +483,7 @@ public sealed class PkceServiceTests
             .Returns(Task.CompletedTask);
 
         var result =
-            await fixture.Sut.RefreshAsync(hub);
+            await fixture.Sut.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -536,7 +536,7 @@ public sealed class PkceServiceTests
             .Returns(Task.CompletedTask);
 
         var result =
-            await fixture.Sut.RefreshAsync(hub);
+            await fixture.Sut.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -600,7 +600,7 @@ public sealed class PkceServiceTests
         var result =
             await fixture.Sut.CompleteAsync(
                 AuthFlowTestFactory.New(),
-                CreateCompleteRequest());
+                CreateCompleteRequest(), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
 
@@ -635,7 +635,7 @@ public sealed class PkceServiceTests
         var result =
             await fixture.Sut.CompleteAsync(
                 AuthFlowTestFactory.New(),
-                CreateCompleteRequest());
+                CreateCompleteRequest(), ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.FailureReason.Should().BeNull();

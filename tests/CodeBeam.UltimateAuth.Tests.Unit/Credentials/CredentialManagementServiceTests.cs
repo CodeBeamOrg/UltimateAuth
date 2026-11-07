@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
@@ -8,12 +9,16 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Credentials.Options;
+using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -49,7 +54,7 @@ public sealed class CredentialManagementServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { credential });
 
-        var result = await f.Sut.GetAllAsync(context);
+        var result = await f.Sut.GetAllAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Credentials.Should().ContainSingle();
 
@@ -93,7 +98,7 @@ public sealed class CredentialManagementServiceTests
             new AddCredentialRequest
             {
                 Secret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -241,6 +246,18 @@ public sealed class CredentialManagementServiceTests
                 "same-password"))
             .Returns(true);
 
+        f.PasswordPipeline
+            .Setup(x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "same-password" &&
+                    r.ExistingCredentialKey.HasValue),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PasswordPolicyResult.Failure(
+                new PasswordPolicyViolation(
+                    PasswordPolicyErrorCodes.ReusedPassword,
+                    "Password was previously used.")));
+
         var act = () => f.Sut.ChangeSecretAsync(
             context,
             new ChangeCredentialRequest
@@ -252,7 +269,7 @@ public sealed class CredentialManagementServiceTests
         var exception = await act.Should()
             .ThrowAsync<UAuthValidationException>();
 
-        exception.Which.Code.Should().Be("credential_secret_same");
+        exception.Which.Code.Should().Be(PasswordPolicyErrorCodes.ReusedPassword);
 
         f.CredentialStore.Verify(
             x => x.SaveAsync(
@@ -324,7 +341,7 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = "current-password",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -370,7 +387,7 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = "current-password",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -438,14 +455,14 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = null,
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
         f.Hasher.Verify(x => x.Verify(
             f.OldPasswordHash,
             It.IsAny<string>()),
-            Times.Once);
+            Times.Never);
 
         f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
             target,
@@ -458,6 +475,14 @@ public sealed class CredentialManagementServiceTests
         f.SessionStore.Verify(
             x => x.ExecuteAsync(
                 It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.PasswordPipeline.Verify(
+            x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.ExistingCredentialKey.HasValue),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -495,7 +520,7 @@ public sealed class CredentialManagementServiceTests
             new RevokeCredentialRequest
             {
                 Id = id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
@@ -545,7 +570,7 @@ public sealed class CredentialManagementServiceTests
             new RevokeCredentialRequest
             {
                 Id = id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -601,7 +626,7 @@ public sealed class CredentialManagementServiceTests
             {
                 Id = id,
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue(
             $"delete should succeed but returned '{result.Error}'");
@@ -648,7 +673,7 @@ public sealed class CredentialManagementServiceTests
             {
                 Id = id,
                 Mode = DeleteMode.Hard
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
@@ -808,7 +833,7 @@ public sealed class CredentialManagementServiceTests
                 Identifier = identifier,
                 CredentialType = CredentialType.Password,
                 ResetCodeType = ResetCodeType.Token
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.ExpiresAt.Should().BeAfter(Now);
 
@@ -851,7 +876,7 @@ public sealed class CredentialManagementServiceTests
                 CredentialType = CredentialType.Password,
                 ResetToken = "some-token",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -864,10 +889,296 @@ public sealed class CredentialManagementServiceTests
             Times.Never);
     }
 
-    private static LoginIdentifierResolution CreateResolution(
-        AccessContext context,
-        string identifier,
-        UserKey userKey)
+    [Fact]
+    public async Task AddAsync_WhenPasswordPolicyRejects_DoesNotHashOrPersist()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForUser(
+            user,
+            UAuthActions.Credentials.AddSelf);
+
+        f.PasswordPipeline
+            .Setup(x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "weak"),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PasswordPolicyResult.Failure(
+                new PasswordPolicyViolation(
+                    PasswordPolicyErrorCodes.TooShort,
+                    "Password is too short.")));
+
+        var act = () => f.Sut.AddAsync(
+            context,
+            new AddCredentialRequest
+            {
+                Secret = "weak"
+            });
+
+        var exception = await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        exception.Which.Code.Should()
+            .Be(PasswordPolicyErrorCodes.TooShort);
+
+        f.Hasher.Verify(
+            x => x.Hash(It.IsAny<string>()),
+            Times.Never);
+
+        f.CredentialStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<PasswordCredential>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangeSecretAsync_WhenPolicyRejects_DoesNotSaveOrRevokeSessions()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForUser(
+            user,
+            UAuthActions.Credentials.ChangeSelf);
+
+        var credential = CreateCredential(
+            user,
+            f.OldPasswordHash);
+
+        f.CredentialStore
+            .Setup(x => x.GetByUserAsync(
+                user,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { credential });
+
+        f.Hasher
+            .Setup(x => x.Verify(
+                f.OldPasswordHash,
+                "current-password"))
+            .Returns(true);
+
+        f.PasswordPipeline
+            .Setup(x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "weak"),
+                It.IsAny<EffectivePasswordPolicyOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PasswordPolicyResult.Failure(
+                new PasswordPolicyViolation(
+                    PasswordPolicyErrorCodes.TooShort,
+                    "Password is too short.")));
+
+        var act = () => f.Sut.ChangeSecretAsync(
+            context,
+            new ChangeCredentialRequest
+            {
+                CurrentSecret = "current-password",
+                NewSecret = "weak"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthValidationException>();
+
+        f.CredentialStore.Verify(
+            x => x.SaveAsync(
+                It.IsAny<PasswordCredential>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.SessionStore.Verify(
+            x => x.RevokeAllChainsAsync(
+                It.IsAny<UserKey>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.SessionStore.Verify(
+            x => x.RevokeOtherChainsAsync(
+                It.IsAny<UserKey>(),
+                It.IsAny<SessionChainId>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Hard_RemovesPasswordHistory()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+        var id = Guid.NewGuid();
+
+        var context = TestAccessContext.ForUser(
+            user,
+            UAuthActions.Credentials.DeleteAdmin);
+
+        var credential = CreateCredential(
+            user,
+            f.OldPasswordHash,
+            id: id,
+            version: 5);
+
+        var key = new CredentialKey(
+            context.ResourceTenant,
+            id);
+
+        f.CredentialStore
+            .Setup(x => x.GetAsync(
+                key,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(credential);
+
+        f.CredentialStore
+            .Setup(x => x.DeleteAsync(
+                key,
+                5,
+                DeleteMode.Hard,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        f.HistoryStore
+            .Setup(x => x.DeleteByCredentialAsync(
+                key,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await f.Sut.DeleteAsync(
+            context,
+            new DeleteCredentialRequest
+            {
+                Id = id,
+                Mode = DeleteMode.Hard
+            }, ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.HistoryStore.Verify(
+            x => x.DeleteByCredentialAsync(
+                key,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task AddAsync_UsesEffectivePasswordPolicyOptions()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForUser(
+            user,
+            UAuthActions.Credentials.AddSelf);
+
+        f.EffectiveOptionsProvider
+            .Setup(x => x.GetEffective(
+                context.ResourceTenant,
+                UAuthClientProfile.NotSpecified))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = new UAuthServerOptions
+                {
+                    Password = new PasswordPolicyOptions
+                    {
+                        Level = PasswordPolicyLevel.Strict
+                    }
+                }
+            });
+
+        f.Hasher
+            .Setup(x => x.Hash("ValidPassword123!"))
+            .Returns(f.NewPasswordHash);
+
+        f.CredentialStore
+            .Setup(x => x.AddAsync(
+                It.IsAny<PasswordCredential>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await f.Sut.AddAsync(
+            context,
+            new AddCredentialRequest
+            {
+                Secret = "ValidPassword123!"
+            }, ct: TestContext.Current.CancellationToken);
+
+        f.PasswordPipeline.Verify(
+            x => x.ValidateAsync(
+                It.Is<PasswordValidationRequest>(r =>
+                    r.Context.Password == "ValidPassword123!"),
+                It.Is<EffectivePasswordPolicyOptions>(o =>
+                    o.Level == PasswordPolicyLevel.Strict &&
+                    o.MinLength == 15),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+
+    [Fact]
+    public async Task DeleteInternalAsync_SoftDeletesUserCredentialsWithinAtomicExecution()
+    {
+        var f = CreateFixture();
+        var tenant = TenantKey.Single;
+        var user = UserKey.New();
+
+        var atomicExecutionCalled = false;
+
+        f.AtomicExecutor
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(
+                async (action, ct) =>
+                {
+                    atomicExecutionCalled = true;
+                    await action(ct);
+                });
+
+        f.CredentialStore
+            .Setup(x => x.DeleteByUserAsync(
+                user,
+                DeleteMode.Soft,
+                Now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = (IUserCredentialsInternalService)f.Sut;
+
+        var result = await service.DeleteInternalAsync(
+            tenant,
+            user,
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        atomicExecutionCalled.Should().BeTrue();
+
+        f.CredentialStoreFactory.Verify(
+            x => x.Create(tenant),
+            Times.Once);
+
+        f.CredentialStore.Verify(
+            x => x.DeleteByUserAsync(
+                user,
+                DeleteMode.Soft,
+                Now,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.HistoryStoreFactory.VerifyNoOtherCalls();
+        f.AccessOrchestrator.VerifyNoOtherCalls();
+    }
+
+
+    // ---------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------
+
+    private static LoginIdentifierResolution CreateResolution(AccessContext context, string identifier, UserKey userKey)
     {
         return new LoginIdentifierResolution
         {
@@ -880,16 +1191,7 @@ public sealed class CredentialManagementServiceTests
         };
     }
 
-
-    // ---------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------
-
-    private static PasswordCredential CreateCredential(
-        UserKey user,
-        PasswordHash hash,
-        Guid? id = null,
-        long version = 0)
+    private static PasswordCredential CreateCredential(UserKey user, PasswordHash hash, Guid? id = null, long version = 0)
     {
         return PasswordCredential.FromProjection(
             id: id ?? Guid.NewGuid(),
@@ -989,6 +1291,21 @@ public sealed class CredentialManagementServiceTests
             = new(MockBehavior.Strict);
 
         public Mock<IUAuthAtomicExecutor> AtomicExecutor { get; }
+            = new(MockBehavior.Strict);
+
+        public Mock<IPasswordHistoryStoreFactory> HistoryStoreFactory { get; }
+            = new(MockBehavior.Strict);
+
+        public Mock<IPasswordHistoryStore> HistoryStore { get; }
+            = new(MockBehavior.Strict);
+
+        public Mock<IPasswordPolicyContextProvider> PasswordContextProvider { get; }
+            = new(MockBehavior.Strict);
+
+        public Mock<IPasswordValidationPipeline> PasswordPipeline { get; }
+            = new(MockBehavior.Strict);
+
+        public Mock<IEffectiveServerOptionsProvider> EffectiveOptionsProvider { get; }
             = new(MockBehavior.Strict);
 
         public Mock<IClock> Clock { get; }
@@ -1100,8 +1417,70 @@ public sealed class CredentialManagementServiceTests
                 .Returns<Func<CancellationToken, Task<CredentialActionResult>>, CancellationToken>(
                     (action, ct) => action(ct));
 
+            AtomicExecutor
+                .Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task<CredentialAddResult>>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task<CredentialAddResult>>,
+                    CancellationToken>(
+                    (action, ct) => action(ct));
+
+            HistoryStoreFactory
+                .Setup(x => x.Create(It.IsAny<TenantKey>()))
+                .Returns(HistoryStore.Object);
+
+            HistoryStore
+                .Setup(x => x.PruneAsync(
+                    It.IsAny<CredentialKey>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            HistoryStore
+                .Setup(x => x.DeleteByCredentialAsync(
+                    It.IsAny<CredentialKey>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            PasswordContextProvider
+                .Setup(x => x.CreateAsync(
+                    It.IsAny<TenantKey>(),
+                    It.IsAny<UserKey>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<TenantKey, UserKey, string, CancellationToken>(
+                    (tenant, user, password, ct) =>
+                        Task.FromResult(new PasswordPolicyContext
+                        {
+                            Password = password
+                        }));
+
+            PasswordPipeline
+                .Setup(x => x.ValidateAsync(
+                    It.IsAny<PasswordValidationRequest>(),
+                    It.IsAny<EffectivePasswordPolicyOptions>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(PasswordPolicyResult.Success());
+
             var options = Options.Create(
                 TestServerOptions.Default());
+
+            EffectiveOptionsProvider
+                .Setup(x => x.GetEffective(
+                    It.IsAny<TenantKey>(),
+                    It.IsAny<UAuthClientProfile>()))
+                .Returns((TenantKey tenant, UAuthClientProfile profile) =>
+                    new EffectiveUAuthServerOptions
+                    {
+                        Mode = UAuthMode.PureOpaque,
+                        Options = options.Value.Clone()
+                    });
+
+            var passwordWriter = new PasswordCredentialWriter(
+                PasswordPipeline.Object,
+                CredentialStoreFactory.Object,
+                HistoryStoreFactory.Object,
+                Hasher.Object);
 
             Sut = new CredentialManagementService(
                 AccessOrchestrator.Object,
@@ -1116,6 +1495,10 @@ public sealed class CredentialManagementServiceTests
                 ResetNotifier.Object,
                 CredentialSessionPolicy.Object,
                 AtomicExecutor.Object,
+                passwordWriter,
+                HistoryStoreFactory.Object,
+                PasswordContextProvider.Object,
+                EffectiveOptionsProvider.Object,
                 options,
                 Clock.Object);
         }

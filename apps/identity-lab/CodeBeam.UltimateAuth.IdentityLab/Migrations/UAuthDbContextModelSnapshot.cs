@@ -249,6 +249,42 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                     b.ToTable("UAuth_PasswordCredentials", (string)null);
                 });
 
+            modelBuilder.Entity("CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore.PasswordHistoryProjection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CredentialId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReplacedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Tenant")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("UserKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Tenant", "UserKey");
+
+                    b.HasIndex("Tenant", "CredentialId", "ReplacedAt", "Id");
+
+                    b.ToTable("UAuth_PasswordHistory", (string)null);
+                });
+
             modelBuilder.Entity("CodeBeam.UltimateAuth.Sessions.EntityFrameworkCore.SessionChainProjection", b =>
                 {
                     b.Property<long>("Id")
@@ -641,7 +677,8 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Bio")
-                        .HasColumnType("text");
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
 
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date");
@@ -650,25 +687,31 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Culture")
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("FirstName")
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Gender")
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Language")
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("LastName")
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Metadata")
                         .HasColumnType("text");
@@ -684,7 +727,8 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<string>("TimeZone")
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

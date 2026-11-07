@@ -101,6 +101,7 @@ Each summary provides information suitable for building a device management inte
 | `LastSeenAt` | `DateTimeOffset?` | Last recorded activity |
 | `RotationCount` | `int` | Recorded rotation count |
 | `TouchCount` | `int` | Recorded touch count |
+| `SessionCount` | `int` | Total number of session records in the chain, including historical and revoked sessions |
 | `IsRevoked` | `bool` | Whether the chain is revoked |
 | `RevokedAt` | `DateTimeOffset?` | Revocation timestamp |
 | `ActiveSessionId` | `AuthSessionId?` | Associated active session identifier |
@@ -438,7 +439,7 @@ var result = await UAuthClient.Flows.LogoutMyDeviceAsync(
 
 Pass a `SessionChainId`, not an individual `AuthSessionId`.
 
-For complete logout examples, see [Authentication](/docs/client/authentication).
+For complete logout examples, see [Authentication](/docs/client-sdk/authentication).
 
 ## 11. Build a Device Management Page
 
@@ -791,7 +792,7 @@ These operations should be protected by appropriate permissions and, where requi
 
 ## Next Steps
 
-- [Authentication](/docs/client/authentication) — Login, logout, refresh, and authentication state validation.
+- [Authentication](/docs/client-sdk/authentication) — Login, logout, refresh, and authentication state validation.
 - [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Session roots, chains, lifecycle, and expiration.
 - [Device Management](/docs/sessions-devices/device-management) — Device-associated authentication contexts.
 - [Session Security Model](/docs/security/session-security) — Revocation and session security boundaries.

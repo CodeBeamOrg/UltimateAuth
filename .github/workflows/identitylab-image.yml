@@ -1,0 +1,123 @@
+name: Identity Lab
+
+on:
+  pull_request:
+  push:
+    branches:
+      - lab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  # PR validation cannot block or replace a production deployment run.
+  group: ${{ github.event_name == 'pull_request' && format('identitylab-pr-{0}', github.event.pull_request.number) || 'identitylab-deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Changes
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      image: ${{ steps.filter.outputs.image }}
+    steps:
+      - name: Checkout for push comparison
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            image:
+              - 'apps/identity-lab/**'
+              - 'src/**'
+              - 'samples/**'
+              - 'Directory.Build.props'
+              - 'Directory.Build.targets'
+              - 'Directory.Packages.props'
+              - 'global.json'
+              - 'NuGet.Config'
+              - 'nuget.config'
+              - '.dockerignore'
+              - '.docker/Dockerfile.identitylab'
+              - '.docker/docker-compose.identitylab.yml'
+              - '.github/workflows/identitylab-image.yml'
+
+  build:
+    name: Docker Build
+    needs: changes
+    # Manual image builds must also run when the PR/push detector is skipped.
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.changes.result == 'success' && needs.changes.outputs.image == 'true'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Identity Lab
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.identitylab
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ghcr.io/codebeamorg/ultimateauth-identitylab:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/lab'
+    runs-on: ubuntu-latest
+    environment: identitylab
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload Identity Lab Compose
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".docker/docker-compose.identitylab.yml"
+          target: "/home/deploy/.identitylab-deploy/${{ github.sha }}"
+          strip_components: 1
+
+      - name: Deploy Identity Lab
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ghcr.io/codebeamorg/ultimateauth-identitylab:${{ github.sha }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_TAG
+          command_timeout: 10m
+          script: |
+            SHA="${IMAGE_TAG##*:}"
+            COMPOSE_SOURCE="/home/deploy/.identitylab-deploy/$SHA/docker-compose.identitylab.yml"
+
+            sudo -n /usr/local/sbin/deploy-identitylab \
+              "$IMAGE_TAG" "$COMPOSE_SOURCE"
+
+            rm -rf -- "/home/deploy/.identitylab-deploy/$SHA"

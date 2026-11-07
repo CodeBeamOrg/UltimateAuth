@@ -1,25 +1,27 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
+using static CodeBeam.UltimateAuth.Core.Defaults.UAuthActions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Users;
 
 public sealed class UserApplicationServiceTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
 
     // ============================================================
     // Create
@@ -101,7 +103,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.CreateUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -154,7 +156,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.CreateUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -195,15 +197,17 @@ public sealed class UserApplicationServiceTests
                 context.ResourceTenant,
                 It.IsAny<UserKey>(),
                 request,
+                clientProfile: UAuthClientProfile.NotSpecified,
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.CreateUserAsync(context, request);
+        await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
 
         integration.Verify(x => x.OnUserCreatedAsync(
             context.ResourceTenant,
             It.IsAny<UserKey>(),
             request,
+            clientProfile: UAuthClientProfile.NotSpecified,
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -282,7 +286,7 @@ public sealed class UserApplicationServiceTests
 
         await f.Sut.ChangeUserStatusAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         lifecycle.Status.Should().Be(UserStatus.SelfSuspended);
 
@@ -425,7 +429,7 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.DeleteMeAsync(context);
+        await f.Sut.DeleteMeAsync(context, ct: TestContext.Current.CancellationToken);
 
         f.LifecycleStore.Verify(x => x.DeleteAsync(
             It.IsAny<UserLifecycleKey>(),
@@ -492,7 +496,7 @@ public sealed class UserApplicationServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await f.Sut.DeleteMeAsync(context);
+        await f.Sut.DeleteMeAsync(context, ct: TestContext.Current.CancellationToken);
 
         integration.Verify(x => x.OnUserDeletedAsync(
             context.ResourceTenant,
@@ -570,7 +574,7 @@ public sealed class UserApplicationServiceTests
 
         await f.Sut.DeleteUserAsync(
             context,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         f.LifecycleStore.Verify(x => x.DeleteAsync(
             It.IsAny<UserLifecycleKey>(),
@@ -1021,7 +1025,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = identifier.Id,
                 Proof = proof
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.IsVerified.Should().BeTrue();
         identifier.VerifiedAt.Should().Be(Now);
@@ -1185,7 +1189,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = target.Id,
                 Mode = DeleteMode.Soft
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         target.IsDeleted.Should().BeTrue();
         target.DeletedAt.Should().Be(Now);
@@ -1253,7 +1257,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = target.Id,
                 Mode = DeleteMode.Hard
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.IdentifierStore.Verify(x => x.DeleteAsync(
             target.Id,
@@ -1352,7 +1356,7 @@ public sealed class UserApplicationServiceTests
             {
                 Id = identifier.Id,
                 NewValue = "new@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.Value.Should().Be("new@example.com");
         identifier.NormalizedValue.Should().Be("new@example.com");
@@ -1401,7 +1405,7 @@ public sealed class UserApplicationServiceTests
             new SetPrimaryUserIdentifierRequest
             {
                 Id = identifier.Id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         identifier.IsPrimary.Should().BeTrue();
         identifier.UpdatedAt.Should().Be(Now);
@@ -1496,7 +1500,7 @@ public sealed class UserApplicationServiceTests
             new UnsetPrimaryUserIdentifierRequest
             {
                 Id = target.Id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         target.IsPrimary.Should().BeFalse();
         target.UpdatedAt.Should().Be(Now);
@@ -1569,7 +1573,7 @@ public sealed class UserApplicationServiceTests
             new DeleteUserRequest
             {
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.SessionStore.Verify(x => x.RevokeAllChainsAsync(
             target,
@@ -1668,7 +1672,7 @@ public sealed class UserApplicationServiceTests
             new DeleteUserRequest
             {
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.ProfileStore.Verify(x => x.DeleteAsync(
             new UserProfileKey(
@@ -1715,7 +1719,7 @@ public sealed class UserApplicationServiceTests
                 "invalid", "", false, "identifier_invalid"));
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "invalid");
+            context, UserIdentifierType.Email, "invalid", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -1747,7 +1751,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync((UserIdentifier?)null);
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "ALICE@EXAMPLE.COM");
+            context, UserIdentifierType.Email, "ALICE@EXAMPLE.COM", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -1783,7 +1787,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(identifier);
 
         var result = await f.Sut.GetIdentifierAsync(
-            context, UserIdentifierType.Email, "alice@example.com");
+            context, UserIdentifierType.Email, "alice@example.com", ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(identifier.Id);
@@ -1804,7 +1808,7 @@ public sealed class UserApplicationServiceTests
                 "invalid", "", false, "identifier_invalid"));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
-            context, UserIdentifierType.Email, "invalid");
+            context, UserIdentifierType.Email, "invalid", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
 
@@ -1844,7 +1848,7 @@ public sealed class UserApplicationServiceTests
             context,
             UserIdentifierType.Email,
             "ALICE@EXAMPLE.COM",
-            scope);
+            scope, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
 
@@ -1880,7 +1884,7 @@ public sealed class UserApplicationServiceTests
             context,
             UserIdentifierType.Username,
             "Alice",
-            IdentifierExistenceScope.WithinUser);
+            IdentifierExistenceScope.WithinUser, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
     }
@@ -1908,7 +1912,7 @@ public sealed class UserApplicationServiceTests
             .ReturnsAsync(new UserIdentifierExistenceResult(Exists: false));
 
         var result = await f.Sut.UserIdentifierExistsAsync(
-            context, UserIdentifierType.Username, "missing");
+            context, UserIdentifierType.Username, "missing", ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -1944,7 +1948,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            Array.Empty<UserKey>());
+            Array.Empty<UserKey>(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
 
@@ -1992,7 +1996,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            [first, first, second]);
+            [first, first, second], ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEquivalentTo(expected);
 
@@ -2029,7 +2033,7 @@ public sealed class UserApplicationServiceTests
 
         var result = await f.Sut.GetUsersByKeysAsync(
             context,
-            keys);
+            keys, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeEmpty();
 
@@ -2040,11 +2044,329 @@ public sealed class UserApplicationServiceTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_global_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerUser = 1;
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Phone,
+                Value = "+905551234567"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_total_limit_exceeded*");
+    }
+
+    [Fact]
+    public async Task Adding_identifier_should_fail_when_type_limit_reached()
+    {
+        var runtime = new TestAuthRuntime<UserKey>(configureServer: o =>
+        {
+            o.Identifiers.Behavior.MaxIdentifiersPerType = new()
+            {
+                [UserIdentifierType.Email] = 1
+            };
+        });
+
+        var service = runtime.GetUserApplicationService();
+        var context = TestAccessContext.ForUser(
+            TestUsers.User,
+            UserIdentifiers.AddSelf);
+
+        var act = () => service.AddUserIdentifierAsync(
+            context,
+            new AddUserIdentifierRequest
+            {
+                Type = UserIdentifierType.Email,
+                Value = "another@example.com"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_type_limit_exceeded*");
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenGlobalIdentifierLimitExceeded_ThrowsWithoutPersisting()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.Identifiers.Behavior.MaxIdentifiersPerUser = 2;
+        });
+
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com",
+            Phone = "+905551112233"
+        };
+
+        SetupValidCreate(f, context, request);
+
+        var act = () => f.Sut.CreateUserAsync(context, request);
+
+        await act.Should()
+            .ThrowAsync<UAuthIdentifierValidationException>()
+            .WithMessage("*identifier_total_limit_exceeded*");
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenIdentifierCountEqualsLimit_Succeeds()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.Identifiers.Behavior.MaxIdentifiersPerUser = 2;
+        });
+
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com"
+        };
+
+        SetupValidCreate(f, context, request);
+        SetupSuccessfulCreatePersistence(f);
+
+        var result = await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WithDefaultLimit_AllowsThreeInitialIdentifiers()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            Email = "alice@example.com",
+            Phone = "+905551112233"
+        };
+
+        SetupValidCreate(f, context, request);
+        SetupSuccessfulCreatePersistence(f);
+
+        var result = await f.Sut.CreateUserAsync(context, request, ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_WhenProfileFieldExceedsLimit_DoesNotPersist()
+    {
+        var f = CreateFixture();
+        var context = CreateContext();
+
+        var request = new CreateUserRequest
+        {
+            UserName = "alice",
+            FirstName = new string('x', UserProfileLimits.FirstName + 1)
+        };
+
+        // Simulate an application validator that accepts the request.
+        SetupValidCreate(f, context, request);
+
+        var act = () => f.Sut.CreateUserAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("profile_field_too_long");
+
+        f.LifecycleStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserLifecycle>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.IdentifierStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserIdentifier>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        f.Atomic.Verify(
+            x => x.ExecuteAsync<UserCreateResult>(
+                It.IsAny<Func<CancellationToken, Task<UserCreateResult>>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateProfileAsync_WhenMetadataExceedsLimit_DoesNotPersist()
+    {
+        var f = CreateFixtureWithOptions(options =>
+        {
+            options.UserProfile.EnableMultiProfile = true;
+        });
+
+        var userKey = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: userKey,
+            targetUserKey: userKey);
+
+        var profileKey = ProfileKey.Parse("secondary", null);
+
+        var request = new CreateProfileRequest
+        {
+            ProfileKey = profileKey,
+            Metadata = Enumerable
+                .Range(0, UserProfileLimits.MetadataEntries + 1)
+                .ToDictionary(
+                    x => $"key{x}",
+                    _ => "value")
+        };
+
+        f.ProfileStore
+            .Setup(x => x.ExistsAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var act = () => f.Sut.CreateProfileAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("profile_metadata_entries_exceeded");
+
+        f.ProfileStore.Verify(
+            x => x.AddAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserProfileAsync_WhenFieldExceedsLimit_DoesNotMutateOrPersist()
+    {
+        var f = CreateFixture();
+
+        var userKey = UserKey.New();
+
+        var context = CreateContext(
+            actorUserKey: userKey,
+            targetUserKey: userKey);
+
+        var profile = UserProfile.Create(
+            Guid.NewGuid(),
+            context.ResourceTenant,
+            userKey,
+            ProfileKey.Default,
+            Now.AddDays(-1),
+            firstName: "Alice",
+            lastName: "Smith",
+            displayName: "Alice Smith");
+
+        var originalVersion = profile.Version;
+        var originalUpdatedAt = profile.UpdatedAt;
+
+        f.ProfileStore
+            .Setup(x => x.GetAsync(
+                It.IsAny<UserProfileKey>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+
+        var request = new UpdateProfileRequest
+        {
+            FirstName = new string('x', UserProfileLimits.FirstName + 1),
+            LastName = "Changed",
+            DisplayName = "Changed Name"
+        };
+
+        var act = () => f.Sut.UpdateUserProfileAsync(context, request);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("profile_field_too_long");
+
+        // The existing tracked entity must remain unchanged.
+        profile.FirstName.Should().Be("Alice");
+        profile.LastName.Should().Be("Smith");
+        profile.DisplayName.Should().Be("Alice Smith");
+
+        profile.Version.Should().Be(originalVersion);
+        profile.UpdatedAt.Should().Be(originalUpdatedAt);
+
+        f.ProfileStore.Verify(
+            x => x.SaveAsync(
+                It.IsAny<UserProfile>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // ============================================================
     // Helpers
     // ============================================================
 
     private static Fixture CreateFixture(params IUserLifecycleIntegration[] integrations)
+        => CreateFixtureWithOptions(null, integrations);
+
+    private static Fixture CreateFixtureWithOptions(Action<UAuthServerOptions>? configureOptions, params IUserLifecycleIntegration[] integrations)
     {
         var access = new Mock<IAccessOrchestrator>(MockBehavior.Strict);
         var atomic = new Mock<IUAuthAtomicExecutor>(MockBehavior.Strict);
@@ -2180,8 +2502,10 @@ public sealed class UserApplicationServiceTests
             .Returns<Func<CancellationToken, Task<UserDeleteResult>>, CancellationToken>(
                 (operation, ct) => operation(ct));
 
-        var options = Options.Create(
-            new UAuthServerOptions());
+        var serverOptions = new UAuthServerOptions();
+        configureOptions?.Invoke(serverOptions);
+
+        var options = Options.Create(serverOptions);
 
         var sut = new UserApplicationService(
             access.Object,
@@ -2234,6 +2558,7 @@ public sealed class UserApplicationServiceTests
             targetUserKey: targetUserKey ?? actorUserKey,
             resourceTenant: TenantKey.Single,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

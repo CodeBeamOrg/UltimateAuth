@@ -56,7 +56,7 @@ public sealed class UserCreationAtomicityTests
                 };
 
             var exception =
-                await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateUserAsync(context, request));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateUserAsync(context, request, TestContext.Current.CancellationToken));
 
             exception.Message.Should().Be("simulated_identifier_store_failure");
 
@@ -96,17 +96,17 @@ public sealed class UserCreationAtomicityTests
                     .GetAsync(
                         new UserLifecycleKey(
                             tenant,
-                            userKey));
+                            userKey), TestContext.Current.CancellationToken);
 
             var profiles =
                 await profileFactory
                     .Create(tenant)
-                    .GetAllProfilesByUserAsync(userKey);
+                    .GetAllProfilesByUserAsync(userKey, TestContext.Current.CancellationToken);
 
             var identifiers =
                 await identifierFactory
                     .Create(tenant)
-                    .GetByUserAsync(userKey);
+                    .GetByUserAsync(userKey, TestContext.Current.CancellationToken);
 
             //
             // Atomicity contract:

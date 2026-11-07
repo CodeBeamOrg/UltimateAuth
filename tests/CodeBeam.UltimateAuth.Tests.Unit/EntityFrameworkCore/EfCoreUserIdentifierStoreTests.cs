@@ -37,8 +37,8 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
-        var result = await store.GetAsync(identifier.Id);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
+        var result = await store.GetAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(identifier.Id, result!.Id);
@@ -63,8 +63,8 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
-        var exists = await store.ExistsAsync(identifier.Id);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
+        var exists = await store.ExistsAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         Assert.True(exists);
     }
@@ -90,7 +90,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             isPrimary: true);
 
-        await store1.AddAsync(identifier);
+        await store1.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
 
         await using var db2 = CreateDb(connection);
         var store2 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
@@ -98,7 +98,7 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         var updated = identifier.SetPrimary(DateTimeOffset.UtcNow);
 
         await Assert.ThrowsAsync<UAuthConcurrencyException>(() =>
-            store2.SaveAsync(updated, expectedVersion: 999));
+            store2.SaveAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -122,21 +122,21 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(identifier);
+            await store1.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store2.GetAsync(identifier.Id);
+            var existing = await store2.GetAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
             var updated = existing!.SetPrimary(DateTimeOffset.UtcNow);
-            await store2.SaveAsync(updated, expectedVersion: 0);
+            await store2.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store3 = new EfCoreUserIdentifierStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store3.GetAsync(identifier.Id);
+            var result = await store3.GetAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
             Assert.Equal(1, result!.Version);
         }
     }
@@ -163,8 +163,8 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             isPrimary: true);
 
-        await store1.AddAsync(identifier);
-        var result = await store2.GetAsync(identifier.Id);
+        await store1.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
+        var result = await store2.GetAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -188,9 +188,9 @@ public class EfCoreUserIdentifierStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             isPrimary: true);
 
-        await store.AddAsync(identifier);
-        await store.DeleteAsync(identifier.Id, 0, DeleteMode.Soft, DateTimeOffset.UtcNow);
-        var result = await store.GetAsync(identifier.Id);
+        await store.AddAsync(identifier, ct: TestContext.Current.CancellationToken);
+        await store.DeleteAsync(identifier.Id, 0, DeleteMode.Soft, DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
+        var result = await store.GetAsync(identifier.Id, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result!.DeletedAt);

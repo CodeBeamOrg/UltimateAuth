@@ -1,11 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
@@ -1993,6 +1994,7 @@ public sealed class UserEndpointHandlerTests
             targetUserKey: targetUserKey ?? f.Flow.UserKey,
             resourceTenant: f.Flow.Tenant,
             action: "test",
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

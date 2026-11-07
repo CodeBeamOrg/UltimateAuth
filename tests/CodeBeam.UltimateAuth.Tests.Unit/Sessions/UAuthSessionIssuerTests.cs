@@ -103,7 +103,7 @@ public sealed class UAuthSessionIssuerTests
         SetupEmptySessions(fixture);
         SetupSessionAndChainPersistence(fixture);
 
-        await fixture.Sut.IssueSessionAsync(context);
+        await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         createdRoot.Should().NotBeNull();
         createdRoot!.Tenant.Should().Be(context.Tenant);
@@ -136,7 +136,7 @@ public sealed class UAuthSessionIssuerTests
         SetupSessionAndChainPersistence(fixture);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Session.Should().NotBeNull();
 
@@ -178,7 +178,7 @@ public sealed class UAuthSessionIssuerTests
         SetupChainSave(fixture);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         createdChain.Should().NotBeNull();
 
@@ -227,7 +227,7 @@ public sealed class UAuthSessionIssuerTests
         SetupChainSave(fixture);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Session.ChainId.Should()
             .Be(chain.ChainId);
@@ -279,7 +279,7 @@ public sealed class UAuthSessionIssuerTests
         SetupChainSave(fixture);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         createdChain.Should().NotBeNull();
 
@@ -429,7 +429,7 @@ public sealed class UAuthSessionIssuerTests
         SetupNewIssuance(fixture, context);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Session.ExpiresAt.Should()
             .Be(Now.AddHours(4));
@@ -447,7 +447,7 @@ public sealed class UAuthSessionIssuerTests
         SetupNewIssuance(fixture, context);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Session.ExpiresAt.Should()
             .Be(Now.AddHours(2));
@@ -465,7 +465,7 @@ public sealed class UAuthSessionIssuerTests
         SetupNewIssuance(fixture, context);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Session.ExpiresAt.Should()
             .Be(Now.AddHours(4));
@@ -520,7 +520,7 @@ public sealed class UAuthSessionIssuerTests
             .Returns(Task.CompletedTask);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         createdSession.Should().NotBeNull();
         savedChain.Should().NotBeNull();
@@ -546,7 +546,7 @@ public sealed class UAuthSessionIssuerTests
         SetupNewIssuance(fixture, context);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsMetadataOnly.Should().BeTrue();
     }
@@ -562,7 +562,7 @@ public sealed class UAuthSessionIssuerTests
         SetupNewIssuance(fixture, context);
 
         var result =
-            await fixture.Sut.IssueSessionAsync(context);
+            await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsMetadataOnly.Should().BeFalse();
     }
@@ -638,7 +638,7 @@ public sealed class UAuthSessionIssuerTests
                 (id, _) => removed.Add(id))
             .Returns(Task.CompletedTask);
 
-        await fixture.Sut.IssueSessionAsync(context);
+        await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         removed.Should().HaveCount(2);
 
@@ -662,7 +662,7 @@ public sealed class UAuthSessionIssuerTests
 
         SetupNewIssuance(fixture, context);
 
-        await fixture.Sut.IssueSessionAsync(context);
+        await fixture.Sut.IssueSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RemoveSessionAsync(
@@ -1060,7 +1060,7 @@ public sealed class UAuthSessionIssuerTests
             .Returns(Task.CompletedTask);
 
         var result =
-            await fixture.Sut.RotateSessionAsync(context);
+            await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         persistedSession.Should().NotBeNull();
 
@@ -1096,7 +1096,7 @@ public sealed class UAuthSessionIssuerTests
                 (chain, _, _) => savedChain = chain)
             .Returns(Task.CompletedTask);
 
-        await fixture.Sut.RotateSessionAsync(context);
+        await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         savedChain.Should().NotBeNull();
 
@@ -1134,7 +1134,7 @@ public sealed class UAuthSessionIssuerTests
                 })
             .Returns(Task.CompletedTask);
 
-        await fixture.Sut.RotateSessionAsync(context);
+        await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         savedOldSession.Should().NotBeNull();
         savedOldSession!.IsRevoked.Should().BeTrue();
@@ -1165,7 +1165,7 @@ public sealed class UAuthSessionIssuerTests
                     persistedSession = session)
             .Returns(Task.CompletedTask);
 
-        var result = await fixture.Sut.RotateSessionAsync(context);
+        var result = await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         persistedSession.Should().NotBeNull();
         persistedSession!.ChainId.Should().Be(setup.Chain.ChainId);
@@ -1187,7 +1187,7 @@ public sealed class UAuthSessionIssuerTests
             context);
 
         var result =
-            await fixture.Sut.RotateSessionAsync(context);
+            await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.IsMetadataOnly.Should().BeTrue();
     }
@@ -1215,7 +1215,7 @@ public sealed class UAuthSessionIssuerTests
                 (session, _) => persisted = session)
             .Returns(Task.CompletedTask);
 
-        await fixture.Sut.RotateSessionAsync(context);
+        await fixture.Sut.RotateSessionAsync(context, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -1246,7 +1246,7 @@ public sealed class UAuthSessionIssuerTests
             await fixture.Sut.RevokeSessionAsync(
                 Tenant,
                 sessionId,
-                Now);
+                Now, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
 
@@ -1274,7 +1274,7 @@ public sealed class UAuthSessionIssuerTests
         await fixture.Sut.RevokeChainAsync(
             Tenant,
             chainId,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RevokeChainCascadeAsync(
@@ -1305,7 +1305,7 @@ public sealed class UAuthSessionIssuerTests
         await fixture.Sut.RevokeChainAsync(
             Tenant,
             chain.ChainId,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RevokeChainCascadeAsync(
@@ -1348,7 +1348,7 @@ public sealed class UAuthSessionIssuerTests
             Tenant,
             user,
             exceptChainId: null,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RevokeChainCascadeAsync(
@@ -1394,7 +1394,7 @@ public sealed class UAuthSessionIssuerTests
             Tenant,
             user,
             keep.ChainId,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RevokeChainCascadeAsync(
@@ -1431,7 +1431,7 @@ public sealed class UAuthSessionIssuerTests
         await fixture.Sut.RevokeRootAsync(
             Tenant,
             user,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         fixture.Store.Verify(
             x => x.RevokeRootCascadeAsync(
@@ -1465,7 +1465,7 @@ public sealed class UAuthSessionIssuerTests
         var result =
             await fixture.Sut.GetChainIdBySessionAsync(
                 Tenant,
-                sessionId);
+                sessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(chainId);
     }
@@ -1490,7 +1490,7 @@ public sealed class UAuthSessionIssuerTests
             await fixture.Sut.LogoutChainAsync(
                 Tenant,
                 chainId,
-                Now);
+                Now, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
 
@@ -1522,7 +1522,7 @@ public sealed class UAuthSessionIssuerTests
             await fixture.Sut.LogoutChainAsync(
                 Tenant,
                 chain.ChainId,
-                Now);
+                Now, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
 
@@ -1556,7 +1556,7 @@ public sealed class UAuthSessionIssuerTests
             await fixture.Sut.LogoutChainAsync(
                 Tenant,
                 chain.ChainId,
-                Now);
+                Now, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
 

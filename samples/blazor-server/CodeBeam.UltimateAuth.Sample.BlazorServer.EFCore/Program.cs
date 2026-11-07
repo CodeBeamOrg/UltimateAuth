@@ -78,12 +78,16 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddScopedUltimateAuthSampleSeed();
 builder.Services.AddScoped<SampleProductApiService>();
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor |
-        ForwardedHeaders.XForwardedProto;
-});
+// Reverse proxy deployments (Caddy, Nginx, etc.):
+// Configure forwarded headers only when running behind a trusted proxy.
+//
+// builder.Services.Configure<ForwardedHeadersOptions>(options =>
+// {
+//     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+//
+//     // Replace with the actual trusted proxy address.
+//     options.KnownProxies.Add(IPAddress.Parse("192.0.2.10"));
+// });
 
 var app = builder.Build();
 
@@ -103,7 +107,10 @@ else
     }
     await app.SeedUltimateAuthAsync();
 }
-app.UseForwardedHeaders();
+
+// Enable only when trusted forwarded headers are configured.
+// Must run before authentication, rate limiting and HTTPS redirection.
+// app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

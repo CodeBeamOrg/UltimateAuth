@@ -1,0 +1,41 @@
+services:
+  identitylab:
+    image: ${IDENTITYLAB_IMAGE:?Identity Lab image is required}
+    container_name: identitylab
+    restart: unless-stopped
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+
+      ReverseProxy__KnownProxy: ${CADDY_PROXY_IP:?Caddy proxy IP is required}
+      ConnectionStrings__IdentityLab: ${IDENTITYLAB_CONNECTION_STRING:?Connection string is required}
+
+      LabAdmin__Username: ${LAB_ADMIN_USERNAME:?Admin username is required}
+      LabAdmin__Email: ${LAB_ADMIN_EMAIL:?Admin email is required}
+      LabAdmin__Password: ${LAB_ADMIN_PASSWORD:?Admin password is required}
+
+      DataProtection__KeysPath: /app/keys
+
+    volumes:
+      - /opt/identitylab/keys:/app/keys:Z
+
+    networks:
+      - edge
+      - postgres-internal
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  edge:
+    external: true
+
+  postgres-internal:
+    external: true

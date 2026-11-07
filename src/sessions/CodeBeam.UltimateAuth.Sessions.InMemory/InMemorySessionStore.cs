@@ -574,4 +574,23 @@ internal sealed class InMemorySessionStore : ISessionStore
 
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyDictionary<SessionChainId, int>> GetSessionCountsByChainsAsync(IReadOnlyCollection<SessionChainId> chainIds, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (chainIds.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyDictionary<SessionChainId, int>>(new Dictionary<SessionChainId, int>());
+        }
+
+        var ids = chainIds.ToHashSet();
+
+        IReadOnlyDictionary<SessionChainId, int> counts = _sessions.Values
+            .Where(s => ids.Contains(s.ChainId))
+            .GroupBy(s => s.ChainId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return Task.FromResult(counts);
+    }
 }

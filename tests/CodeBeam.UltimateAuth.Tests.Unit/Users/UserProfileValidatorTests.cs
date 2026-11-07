@@ -14,7 +14,7 @@ public sealed class UserProfileValidatorTests
 
         var result = await sut.ValidateAsync(
             null!,
-            new UserProfileInfo());
+            new UserProfileInfo(), ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.Errors.Should().BeEmpty();

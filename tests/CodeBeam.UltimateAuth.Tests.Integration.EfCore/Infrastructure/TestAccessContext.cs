@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration.EfCore;
 
@@ -19,6 +20,7 @@ internal static class TestAccessContext
             targetUserKey: null,
             resourceTenant: TenantKey.Single,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }
@@ -43,6 +45,7 @@ internal static class TestAccessContext
             targetUserKey: userKey,
             resourceTenant: t,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }
@@ -68,6 +71,7 @@ internal static class TestAccessContext
             targetUserKey: targetUserKey,
             resourceTenant: t,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }
@@ -91,6 +95,7 @@ internal static class TestAccessContext
             targetUserKey: null,
             resourceTenant: t,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }

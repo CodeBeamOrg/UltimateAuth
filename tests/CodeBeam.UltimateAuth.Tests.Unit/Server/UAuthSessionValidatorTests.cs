@@ -32,7 +32,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((UAuthSession?)null);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.NotFound);
@@ -60,7 +60,7 @@ public sealed class UAuthSessionValidatorTests
 
         SetupSession(fixture);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Expired);
@@ -88,7 +88,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(revoked);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -120,7 +120,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((UAuthSessionChain?)null);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -150,7 +150,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(revokedChain);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -170,7 +170,7 @@ public sealed class UAuthSessionValidatorTests
 
         SetupSessionAndChain(fixture);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Expired);
@@ -191,7 +191,7 @@ public sealed class UAuthSessionValidatorTests
 
         SetupSessionAndChain(fixture);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Expired);
@@ -220,7 +220,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((UAuthSessionRoot?)null);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -249,7 +249,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(revokedRoot);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.Revoked);
@@ -281,7 +281,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(differentRoot);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.SecurityMismatch);
@@ -311,7 +311,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedRoot);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.SecurityMismatch);
@@ -338,7 +338,7 @@ public sealed class UAuthSessionValidatorTests
 
         SetupValidAggregate(fixture);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.State.Should().Be(SessionState.DeviceMismatch);
@@ -356,13 +356,41 @@ public sealed class UAuthSessionValidatorTests
     }
 
     [Fact]
-    public async Task ValidateSessionAsync_WhenRequestHasNoDeviceId_AllowsValidation()
+    public async Task ValidateSessionAsync_WhenRequestHasNoDeviceIdAndBehaviorIsReject_ReturnsDeviceMismatch()
+    {
+        var fixture = CreateFixture(requestDevice: DeviceContext.Anonymous(), deviceMismatchBehavior: DeviceMismatchBehavior.Reject);
+
+        SetupValidAggregate(fixture);
+
+        var result = await fixture.Sut.ValidateSessionAsync(
+            fixture.Context,
+            ct: TestContext.Current.CancellationToken);
+
+        result.IsValid.Should().BeFalse();
+        result.State.Should().Be(SessionState.DeviceMismatch);
+        result.UserKey.Should().Be(fixture.User);
+        result.SessionId.Should().Be(fixture.Session.SessionId);
+        result.ChainId.Should().Be(fixture.Chain.ChainId);
+        result.RootId.Should().Be(fixture.Root.RootId);
+
+        fixture.ClaimsProvider.Verify(
+            x => x.GetClaimsAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+
+    [Theory]
+    [InlineData(DeviceMismatchBehavior.Allow)]
+    [InlineData(DeviceMismatchBehavior.AllowAndRebind)]
+    public async Task ValidateSessionAsync_WhenDeviceDoesNotMatchAndBehaviorAllows_ReturnsActive(
+        DeviceMismatchBehavior behavior)
     {
         var fixture = CreateFixture(
-            requestDevice: DeviceContext.Anonymous());
-
-        var claims = ClaimsSnapshot.From(
-            ("uauth:permission", "orders.read"));
+            requestDevice: TestDevice.Alternative(),
+            deviceMismatchBehavior: behavior);
 
         SetupValidAggregate(fixture);
 
@@ -371,9 +399,36 @@ public sealed class UAuthSessionValidatorTests
                 fixture.Tenant,
                 fixture.User,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(claims);
+            .ReturnsAsync(ClaimsSnapshot.Empty);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(
+            fixture.Context,
+            ct: TestContext.Current.CancellationToken);
+
+        result.IsValid.Should().BeTrue();
+        result.State.Should().Be(SessionState.Active);
+        result.BoundDeviceId.Should().Be(fixture.Chain.Device.DeviceId);
+    }
+
+    [Theory]
+    [InlineData(DeviceMismatchBehavior.Allow)]
+    [InlineData(DeviceMismatchBehavior.AllowAndRebind)]
+    public async Task ValidateSessionAsync_WhenRequestHasNoDeviceIdAndBehaviorAllows_ReturnsActive(DeviceMismatchBehavior behavior)
+    {
+        var fixture = CreateFixture(requestDevice: DeviceContext.Anonymous(), deviceMismatchBehavior: behavior);
+
+        SetupValidAggregate(fixture);
+
+        fixture.ClaimsProvider
+            .Setup(x => x.GetClaimsAsync(
+                fixture.Tenant,
+                fixture.User,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ClaimsSnapshot.Empty);
+
+        var result = await fixture.Sut.ValidateSessionAsync(
+            fixture.Context,
+            ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.State.Should().Be(SessionState.Active);
@@ -401,7 +456,7 @@ public sealed class UAuthSessionValidatorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(claims);
 
-        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context);
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.State.Should().Be(SessionState.Active);
@@ -415,6 +470,33 @@ public sealed class UAuthSessionValidatorTests
         result.Claims.Should().Be(claims);
         result.AuthenticatedAt.Should().Be(fixture.Session.CreatedAt);
         result.BoundDeviceId.Should().Be(fixture.Chain.Device.DeviceId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ValidateSessionAsync_WhenStoredDeviceIdIsMissingAndBehaviorIsReject_ReturnsDeviceMismatch(bool requestDeviceMissing)
+    {
+        var fixture = CreateFixture(
+            storedDevice: DeviceContext.Anonymous(),
+            requestDevice: requestDeviceMissing
+                ? DeviceContext.Anonymous()
+                : TestDevice.Default(),
+            deviceMismatchBehavior: DeviceMismatchBehavior.Reject);
+
+        SetupValidAggregate(fixture);
+
+        var result = await fixture.Sut.ValidateSessionAsync(fixture.Context, ct: TestContext.Current.CancellationToken);
+
+        result.IsValid.Should().BeFalse();
+        result.State.Should().Be(SessionState.DeviceMismatch);
+
+        fixture.ClaimsProvider.Verify(
+            x => x.GetClaimsAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -514,8 +596,8 @@ public sealed class UAuthSessionValidatorTests
         DateTimeOffset? chainExpiresAt = null,
         TimeSpan? idleTimeout = null,
         DeviceContext? requestDevice = null,
-        DeviceMismatchBehavior deviceMismatchBehavior =
-            DeviceMismatchBehavior.Reject)
+        DeviceMismatchBehavior deviceMismatchBehavior = DeviceMismatchBehavior.Reject,
+        DeviceContext? storedDevice = null)
     {
         var tenant = TenantKey.Single;
         var user = UserKey.New();
@@ -532,7 +614,7 @@ public sealed class UAuthSessionValidatorTests
             user,
             chainCreatedAt ?? Now.AddHours(-1),
             chainExpiresAt ?? Now.AddDays(7),
-            TestDevice.Default(),
+            storedDevice ?? TestDevice.Default(),
             ClaimsSnapshot.Empty,
             root.SecurityVersion);
 

@@ -1068,6 +1068,48 @@ The existence of a `CredentialType` enum member does not establish that its comp
 
 Use the currently implemented credential contracts and documented authentication flows.
 
+## Retrieving Password Requirements
+
+UltimateAuth clients can retrieve the effective password policy configured by the authentication server.
+
+This allows applications to display the current requirements during registration, user creation, and password changes without hardcoding password rules in the UI.
+
+```csharp
+var result = await UAuthClient.Credentials.GetPasswordPolicyAsync();
+
+if (result.IsSuccess && result.Value is { } policy)
+{
+    // Display the effective requirements.
+    var minimumLength = policy.MinLength;
+    var maximumLength = policy.MaxLength;
+    var level = policy.Level;
+}
+```
+
+The response includes the configured policy level, effective length and character requirements, and indicators for server-side common-password, user-similarity, and password-history checks.
+
+### Client-Side Validation
+
+Use `UAuthPasswordClientValidator` to provide immediate feedback before submitting a password:
+
+```csharp
+using CodeBeam.UltimateAuth.Client;
+
+var errors = UAuthPasswordClientValidator.Validate(password, policy);
+
+if (errors.Count == 0)
+{
+    // Local character and length requirements are satisfied.
+    // The server must still validate the submitted password.
+}
+```
+
+The validator returns `PasswordPolicyErrorCodes` values for failed local requirements.
+
+**Client-side validation is advisory, not authoritative.** The server remains responsible for the complete password-policy decision, including common-password detection, user similarity, and password history.
+
+For the built-in Basic, Standard, and Strict requirements, configuration examples, and password-history behavior, see [Password Policy & History](/docs/security/password-policy).
+
 ## Next Steps
 
 - [Authentication](/docs/client/authentication) — Login, logout, refresh, and authentication flows.

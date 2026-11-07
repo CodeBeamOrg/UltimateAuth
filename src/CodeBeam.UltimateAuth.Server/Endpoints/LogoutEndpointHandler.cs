@@ -51,6 +51,17 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
 
+        var observedLogout = string.Equals(ctx.Request.Headers["X-UAuth-Logout-Mode"].ToString(), "observe" ,StringComparison.OrdinalIgnoreCase);
+
+        if (observedLogout)
+        {
+            return Results.Ok(new
+            {
+                IsSuccess = true,
+                RedirectUrl = decision.Enabled ? decision.TargetUrl : null
+            });
+        }
+
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
             : Results.Ok(new LogoutResponse { IsSuccess = true });

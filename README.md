@@ -29,33 +29,47 @@
 
 ---
 
-UltimateAuth is an open-source auth framework with platform-level capabilities that unifies secure session, cookie and token based Auth, modern PKCE flows, Blazor/Maui-ready client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
+UltimateAuth is an open-source auth framework with platform-level capabilities that unifies secure session, cookie and token based Auth, modern PKCE flows, Blazor/MAUI-ready client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
 
 ---
 ## Roadmap
 
-| Phase                   | Version       | Scope                                     | Status         | Release Date  |
-| ----------------------- | ------------- | ----------------------------------------- | -------------- | ------------  |
-| First Preview           | 0.1.0-preview | "Stable" Preview Core                     | ✅ Completed   | 07.04.2026    |
+| Phase                   | Version       | Scope                                      | Status         | Release Date  |
+| ----------------------- | ------------- | -----------------------------------------  | -------------- | ------------  |
+| First Preview           | 0.1.0-preview | Preview Core                               | ✅ Completed   | 07.04.2026    |
 | First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)       | ✅ Completed   | 12.10.2026    |
-| Product Expansion       | 0.2.0         | Full Auth Modes, Rate Limiting            | 🟡 In Progress | Q4 2026       |
-| Security Expansion      | 0.3.0         | MFA, Reauth                               | 🟡 In Progress | Q4 2026       |
-| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hasher | 🔜 Planned     | Q1 2027       |
-| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                   | 🔜 Planned     | Q1 2027       |
-| Extensibility Expansion | 0.6.0         | Audit, events, hooks                      | 🔜 Planned     | Q1 2027       |
-| Performance Expansion   | 0.7.0         | Benchmarks, caching                       | 🔜 Planned     | Q1 2027       |
-| Ecosystem Expansion     | 0.8.0         | Migration tools                           | 🔜 Planned     | Q2 2027       |
-| v1.0                    | 1.0.0         | Locked API, align with .NET 11            | 🔜 Planned     | Q2 2027       |
+| Product Expansion       | 0.2.0         | Full Auth Modes, Rate Limiting             | 🟡 In Progress | Q4 2026       |
+| Security Expansion      | 0.3.0         | MFA, Reauth                                | 🟡 In Progress | Q1 2027       |
+| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hashers | 🔜 Planned     | Q1 2027       |
+| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                    | 🔜 Planned     | Q2 2027       |
+| Extensibility Expansion | 0.6.0         | Audit, events, hooks                       | 🔜 Planned     | Q2 2027       |
+| Performance Expansion   | 0.7.0         | Benchmarks, caching                        | 🔜 Planned     | Q3 2027       |
+| Ecosystem Expansion     | 0.8.0         | Migration tools                            | 🔜 Planned     | Q3 2027       |
+| v1.0                    | 1.0.0         | Locked API, align with .NET 12             | 🔜 Planned     | Q4 2027       |
 
-*v 0.1.0 already provides a skeleton and extensibility points of multi tenancy, MFA, reauth etc. Expansion releases will enhance these areas.
+> **UltimateAuth was architected from its first release with extensibility points and foundational support for advanced capabilities, including multi-tenancy, MFA, and reauthentication. Subsequent releases build upon this existing architecture, expanding implementations, improvements and production-ready functionality rather than introducing these concepts from scratch.*
 
 > The project roadmap is actively maintained as a GitHub issue:
-
-👉 https://github.com/CodeBeamOrg/UltimateAuth/issues/8
+>
+> [![GitHub Roadmap](https://img.shields.io/badge/GitHub-View_Roadmap-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/CodeBeamOrg/UltimateAuth/issues/8)
 
 We keep it up-to-date with current priorities, planned features, and progress. Feel free to follow, comment, or contribute ideas.
 
+### Project Milestones
+
+UltimateAuth is designed to deliver a simple, consistent developer experience from its very first release. Each milestone expands its capabilities and supported scenarios, rather than introducing usability or architectural maturity from scratch.
+
+| Milestone | Version | Target |
+|---|---|---|
+| **Developer Foundation** | 0.1.x | A functional, security-conscious authentication framework with a complete core architecture, extensibility, and a developer-first API. Suitable for development, early adoption, and production use following application-specific evaluation. |
+| **Production Expansion** | 0.2.0 | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements. |
+| **Advanced Security & Scale** | 0.4.0 | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
+| **Migration & Adoption** | 0.8.0 | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
+
+**The UltimateAuth philosophy:** Simple from day one, more capable with every release. Version milestones describe expanding capabilities — not a progression from difficult to easy, or from unusable to usable.
+
 ---
+
 
 ### 💜 Join the UltimateAuth Community
 
@@ -347,7 +361,7 @@ Create test accounts, manage identities and sessions, explore roles and permissi
 
 **Powered by UltimateAuth, not simulated.** The demonstrated identity capabilities use the framework itself, so you can see what UltimateAuth can do before integrating it into your own application.
 
-🧪 **Identity Lab — Interactive Sandbox** *(Link coming soon)*
+🧪 **[Identity Lab](https://lab.ultimateauth.com)**
 
 ---
 

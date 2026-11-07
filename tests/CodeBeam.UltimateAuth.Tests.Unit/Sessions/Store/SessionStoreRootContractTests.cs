@@ -50,10 +50,10 @@ public abstract class SessionStoreRootContractTests
             Now);
 
         await store.ExecuteAsync(
-            ct => store.CreateRootAsync(root, ct));
+            ct => store.CreateRootAsync(root, ct), ct: TestContext.Current.CancellationToken);
 
         var result =
-            await store.GetActiveRootByUserAsync(user);
+            await store.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -81,7 +81,7 @@ public abstract class SessionStoreRootContractTests
 
         var result =
             await store.GetActiveRootByUserAsync(
-                UserKey.New());
+                UserKey.New(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -99,7 +99,7 @@ public abstract class SessionStoreRootContractTests
 
         var result =
             await store.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -122,7 +122,7 @@ public abstract class SessionStoreRootContractTests
 
         var result =
             await store.GetRootByIdAsync(
-                missingRoot.RootId);
+                missingRoot.RootId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -205,11 +205,11 @@ public abstract class SessionStoreRootContractTests
             ct => store.SaveRootAsync(
                 updated,
                 expectedVersion: root.Version,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetActiveRootByUserAsync(
-                root.UserKey);
+                root.UserKey, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -302,19 +302,19 @@ public abstract class SessionStoreRootContractTests
             ct => store.RevokeRootAsync(
                 root.UserKey,
                 revokedAt,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         // Revoked root is no longer active.
         var active =
             await store.GetActiveRootByUserAsync(
-                root.UserKey);
+                root.UserKey, ct: TestContext.Current.CancellationToken);
 
         active.Should().BeNull();
 
         // But the historical root must still exist.
         var result =
             await store.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -364,11 +364,11 @@ public abstract class SessionStoreRootContractTests
             ct => store.RevokeRootAsync(
                 root.UserKey,
                 firstRevokedAt,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var afterFirst =
             await store.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         afterFirst.Should().NotBeNull();
         afterFirst!.IsRevoked.Should().BeTrue();
@@ -377,11 +377,11 @@ public abstract class SessionStoreRootContractTests
             ct => store.RevokeRootAsync(
                 root.UserKey,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var afterSecond =
             await store.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         afterSecond.Should().NotBeNull();
         afterSecond!.IsRevoked.Should().BeTrue();
@@ -428,10 +428,10 @@ public abstract class SessionStoreRootContractTests
                 user);
 
         var fromA =
-            await storeA.GetActiveRootByUserAsync(user);
+            await storeA.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         var fromB =
-            await storeB.GetActiveRootByUserAsync(user);
+            await storeB.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromA!.RootId.Should().Be(root.RootId);
@@ -460,11 +460,11 @@ public abstract class SessionStoreRootContractTests
 
         var fromA =
             await storeA.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         var fromB =
             await storeB.GetRootByIdAsync(
-                root.RootId);
+                root.RootId, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();
@@ -554,7 +554,7 @@ public abstract class SessionStoreRootContractTests
                 user,
                 Now.AddMinutes(1),
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         var secondRoot = UAuthSessionRoot.Create(
             Tenant,
@@ -566,17 +566,17 @@ public abstract class SessionStoreRootContractTests
             await store.CreateRootAsync(
                 secondRoot,
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         var active =
-            await store.GetActiveRootByUserAsync(user);
+            await store.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         active.Should().NotBeNull();
         active!.RootId.Should().Be(secondRoot.RootId);
         active.IsRevoked.Should().BeFalse();
 
         var historical =
-            await store.GetRootByIdAsync(firstRoot.RootId);
+            await store.GetRootByIdAsync(firstRoot.RootId, ct: TestContext.Current.CancellationToken);
 
         historical.Should().NotBeNull();
         historical!.IsRevoked.Should().BeTrue();

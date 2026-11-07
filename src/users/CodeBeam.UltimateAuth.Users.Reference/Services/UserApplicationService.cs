@@ -7,7 +7,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
-using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
 
@@ -76,6 +75,22 @@ internal sealed class UserApplicationService : IUserApplicationService
             {
                 throw new UAuthValidationException(string.Join(", ", validationResult.Errors));
             }
+
+            UserProfileSafetyValidation.EnsureValid(new UserProfileInfo
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = request.DisplayName ?? request.UserName ?? request.Email ?? request.Phone,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture,
+                Metadata = request.Metadata
+            });
+
+            EnsureCreateUserIdentifierLimits(request);
 
             return await _atomicExecutor.ExecuteAsync(
             async atomicCt =>
@@ -160,7 +175,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                 foreach (var integration in _integrations)
                 {
                     // Credential creation handle on here
-                    await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, atomicCt);
+                    await integration.OnUserCreatedAsync(context.ResourceTenant, userKey, request, context.ClientProfile, atomicCt);
                 }
 
                 return UserCreateResult.Success(userKey);
@@ -465,6 +480,7 @@ internal sealed class UserApplicationService : IUserApplicationService
                     metadata: request.Metadata);
             }
 
+            UserProfileSafetyValidation.EnsureValid(profile.ToDto());
             await store.AddAsync(profile, innerCt);
         });
 
@@ -489,6 +505,21 @@ internal sealed class UserApplicationService : IUserApplicationService
 
             if (!_options.UserProfile.EnableMultiProfile && profileKey != ProfileKey.Default)
                 throw new UAuthConflictException("multi_profile_disabled");
+
+            UserProfileSafetyValidation.EnsureValid(new UserProfileInfo
+            {
+                ProfileKey = profileKey,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = request.DisplayName,
+                BirthDate = request.BirthDate,
+                Gender = request.Gender,
+                Bio = request.Bio,
+                Language = request.Language,
+                TimeZone = request.TimeZone,
+                Culture = request.Culture,
+                Metadata = request.Metadata
+            });
 
             var expectedVersion = profile.Version;
 
@@ -624,6 +655,11 @@ internal sealed class UserApplicationService : IUserApplicationService
             var identifierStore = _identifierStoreFactory.Create(context.ResourceTenant);
             var existing = await identifierStore.GetByUserAsync(userKey, innerCt);
             EnsureMultipleIdentifierAllowed(request.Type, existing);
+
+            // TODO: Enforce identifier limits atomically for concurrent additions.
+            // The current read-check-insert sequence can exceed configured limits when multiple requests add identifiers to the same user simultaneously.
+            // Introduce per-user synchronization or a persistence-level guarantee for both EF Core and InMemory implementations.
+            EnsureIdentifierLimits(request.Type, existing);
 
             var userScopeResult = await identifierStore.ExistsAsync(
                 new IdentifierExistenceQuery(request.Type, normalized.Normalized, IdentifierExistenceScope.WithinUser, UserKey: userKey), innerCt);
@@ -980,6 +1016,28 @@ internal sealed class UserApplicationService : IUserApplicationService
             throw new UAuthValidationException("multiple_phones_not_allowed");
     }
 
+    private void EnsureIdentifierLimits(UserIdentifierType type, IReadOnlyList<UserIdentifier> existing)
+    {
+        var behavior = _options.Identifiers.Behavior;
+
+        var activeIdentifiers = existing.Where(i => !i.IsDeleted).ToList();
+
+        if (activeIdentifiers.Count >= behavior.MaxIdentifiersPerUser)
+        {
+            throw new UAuthIdentifierValidationException("identifier_total_limit_exceeded");
+        }
+
+        if (behavior.MaxIdentifiersPerType.TryGetValue(type, out var maxPerType))
+        {
+            var activeTypeCount = activeIdentifiers.Count(i => i.Type == type);
+
+            if (activeTypeCount >= maxPerType)
+            {
+                throw new UAuthIdentifierValidationException("identifier_type_limit_exceeded");
+            }
+        }
+    }
+
     private void EnsureVerificationRequirements(UserIdentifierType type, bool isVerified)
     {
         if (type == UserIdentifierType.Email && _options.Identifiers.Behavior.RequireEmailVerification && !isVerified)
@@ -1054,6 +1112,35 @@ internal sealed class UserApplicationService : IUserApplicationService
         if (result.Exists)
         {
             throw new UAuthIdentifierConflictException("identifier_already_exists");
+        }
+    }
+
+    private void EnsureCreateUserIdentifierLimits(CreateUserRequest request)
+    {
+        var behavior = _options.Identifiers.Behavior;
+
+        var types = new List<UserIdentifierType>(3);
+
+        if (!string.IsNullOrWhiteSpace(request.UserName))
+            types.Add(UserIdentifierType.Username);
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+            types.Add(UserIdentifierType.Email);
+
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+            types.Add(UserIdentifierType.Phone);
+
+        if (types.Count > behavior.MaxIdentifiersPerUser)
+        {
+            throw new UAuthIdentifierValidationException("identifier_total_limit_exceeded");
+        }
+
+        foreach (var group in types.GroupBy(type => type))
+        {
+            if (behavior.MaxIdentifiersPerType.TryGetValue(group.Key, out var maxPerType) && group.Count() > maxPerType)
+            {
+                throw new UAuthIdentifierValidationException("identifier_type_limit_exceeded");
+            }
         }
     }
 

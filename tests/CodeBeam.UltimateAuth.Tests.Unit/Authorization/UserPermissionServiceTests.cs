@@ -37,7 +37,7 @@ public sealed class UserPermissionServiceTests
                 Permission.From("orders.update")
             ]);
 
-        var result = await f.Sut.GetMyPermissionsAsync(f.Context);
+        var result = await f.Sut.GetMyPermissionsAsync(f.Context, ct: TestContext.Current.CancellationToken);
 
         result.Permissions.Select(x => x.Value)
             .Should().Equal(
@@ -65,7 +65,7 @@ public sealed class UserPermissionServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Permission>());
 
-        var result = await f.Sut.GetMyPermissionsAsync(f.Context);
+        var result = await f.Sut.GetMyPermissionsAsync(f.Context, ct: TestContext.Current.CancellationToken);
 
         result.Permissions.Should().BeEmpty();
     }
@@ -82,7 +82,7 @@ public sealed class UserPermissionServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Permission>());
 
-        await f.Sut.GetMyPermissionsAsync(f.Context);
+        await f.Sut.GetMyPermissionsAsync(f.Context, ct: TestContext.Current.CancellationToken);
 
         f.Permissions.Verify(x => x.GetPermissionsAsync(
             f.Context.ResourceTenant,

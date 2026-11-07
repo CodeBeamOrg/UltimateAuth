@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -96,6 +97,7 @@ internal static class ResourceAccessContextBuilder
             targetUserKey: null,
             resourceTenant: tenant,
             action: action,
+            clientProfile: UAuthClientProfile.NotSpecified,
             attributes: attributes);
     }
 

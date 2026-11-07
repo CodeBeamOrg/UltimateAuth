@@ -1,6 +1,6 @@
 ---
 title: Credentials
-order: 3
+order: 4
 group: plugin-domains
 ---
 
@@ -114,6 +114,10 @@ Credential validation must also account for relevant lifecycle and security cond
 Secret verification and credential usability are related but distinct decisions.
 
 A correctly supplied password must not make a revoked or otherwise unusable credential valid.
+
+Password strength, common-password detection, user similarity, and password reuse are governed by configurable security policies.
+
+See [Password Policy & History](/docs/security/password-policy) for the built-in policy levels, defaults, and configuration options.
 
 ## Credential Validation
 
@@ -302,6 +306,6 @@ The current password implementation provides the operational foundation. The bro
 
 - [Users](/docs/plugin-domains/users) — Understand identity ownership, identifiers, and account lifecycle.
 - [Authorization](/docs/plugin-domains/authorization) — Explore how authenticated identities are evaluated against access policies.
-- [Plugin Domains](/docs/plugin-domains) — Review the architecture and responsibilities of Plugin Domains.
+- [Plugin Domains](/docs/plugin-domains/overview) — Review the architecture and responsibilities of Plugin Domains.
 
-For the authentication flow that consumes credential verification results, see [Flow-Based Authentication](/docs/fundamentals/flow-based-authentication).
+For the authentication flow that consumes credential verification results, see [Flow-Based Authentication](/docs/fundamentals/flow-based-auth).

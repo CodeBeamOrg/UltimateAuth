@@ -50,7 +50,7 @@ Each identifier has its own value, type, verification state, and primary designa
 
 **Identifiers are not profiles.** A user profile contains information such as display name and biography, while identifiers represent managed identity-related values.
 
-For general profile management, see [User Management](/docs/client/user-management).
+For general profile management, see [User Management](/docs/client-sdk/user-management).
 
 ## 2. Accessing the Identifier Client
 
@@ -251,6 +251,38 @@ var result = await UAuthClient.Identifiers.AddMyAsync(
 The server determines whether the new value can be assigned as primary.
 
 Adding an identifier does not automatically establish verified ownership.
+
+### Identifier Limits
+
+The server may restrict how many identifiers a user can maintain.
+
+By default, UltimateAuth allows up to **10 active identifiers per user**. Applications may configure a different global limit or optional limits for individual identifier types.
+
+These limits apply to both self-service and administrative identifier operations.
+
+When adding an identifier, the server validates the configured limits before accepting the operation.
+
+Possible validation errors include:
+
+| Error Code | Description |
+|---|---|
+| `identifier_total_limit_exceeded` | The maximum number of active identifiers has been reached |
+| `identifier_type_limit_exceeded` | The maximum number of active identifiers of this type has been reached |
+
+Applications should display an appropriate message when an addition is rejected.
+
+For example:
+
+- **Total limit reached:** "You have reached the maximum number of identifiers allowed for your account."
+- **Type limit reached:** "You have reached the maximum number of identifiers allowed for this type."
+
+Soft-deleted identifiers do not count toward active limits.
+
+However, deleting an identifier does not necessarily make its value available for reuse. Identifier uniqueness and identifier capacity are separate rules.
+
+The server remains authoritative when enforcing these limits. Client applications should not rely solely on local identifier counts to determine whether an addition will succeed.
+
+For configuration details, see [Server Options](/docs/configuration/server-options).
 
 ## 6. Identifier Uniqueness and Normalization
 
@@ -1038,8 +1070,8 @@ Applications should distinguish identifier management from session revocation an
 
 ## Next Steps
 
-- [User Management](/docs/client/user-management) — Manage user profiles, account status, and lifecycle.
-- [Credentials](/docs/client/credentials) — Manage passwords, credentials, and recovery workflows.
-- [Authentication](/docs/client/authentication) — Understand login and authentication flows.
+- [User Management](/docs/client-sdk/user-management) — Manage user profiles, account status, and lifecycle.
+- [Credentials](/docs/client-sdk/credentials) — Manage passwords, credentials, and recovery workflows.
+- [Authentication](/docs/client-sdk/authentication) — Understand login and authentication flows.
 - [Users](/docs/plugin-domains/users) — Explore the user domain architecture.
 - [Session Security Model](/docs/security/session-security) — Understand authentication security boundaries.

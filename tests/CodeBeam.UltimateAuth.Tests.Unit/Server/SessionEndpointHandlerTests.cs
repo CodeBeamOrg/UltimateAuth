@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
 using System.Text;
+using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -659,8 +660,8 @@ public sealed class SessionEndpointHandlerTests
             targetUserKey: targetUser,
             resourceTenant: flow.Tenant,
             action: action,
-            attributes:
-                new Dictionary<string, object>());
+            clientProfile: UAuthClientProfile.NotSpecified,
+            attributes: new Dictionary<string, object>());
     }
 
     private static AuthFlowContext CreateUnauthenticatedFlow()

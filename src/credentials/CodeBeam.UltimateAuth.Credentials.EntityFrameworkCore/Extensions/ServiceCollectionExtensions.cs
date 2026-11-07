@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
         services.AddUltimateAuthEntityFrameworkCore<TDbContext>();
 
         services.AddScoped<IPasswordCredentialStoreFactory, EfCorePasswordCredentialStoreFactory<TDbContext>>();
+        services.AddScoped<IPasswordHistoryStoreFactory, EfCorePasswordHistoryStoreFactory<TDbContext>>();
         return services;
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Options;
+﻿using CodeBeam.UltimateAuth.Users.Contracts;
+
+namespace CodeBeam.UltimateAuth.Server.Options;
 
 public sealed class UAuthIdentifierBehaviorOptions
 {
@@ -16,6 +18,9 @@ public sealed class UAuthIdentifierBehaviorOptions
     public bool AllowAdminOverride { get; set; } = true;
     public bool AllowUserOverride { get; set; } = true;
 
+    public int MaxIdentifiersPerUser { get; set; } = 10;
+    public Dictionary<UserIdentifierType, int> MaxIdentifiersPerType { get; set; } = new();
+
     internal UAuthIdentifierBehaviorOptions Clone() => new()
     {
         AllowUsernameChange = AllowUsernameChange,
@@ -26,6 +31,9 @@ public sealed class UAuthIdentifierBehaviorOptions
         RequireEmailVerification = RequireEmailVerification,
         RequirePhoneVerification = RequirePhoneVerification,
         AllowAdminOverride = AllowAdminOverride,
-        AllowUserOverride = AllowUserOverride
+        AllowUserOverride = AllowUserOverride,
+
+        MaxIdentifiersPerUser = MaxIdentifiersPerUser,
+        MaxIdentifiersPerType = new Dictionary<UserIdentifierType, int>(MaxIdentifiersPerType)
     };
 }

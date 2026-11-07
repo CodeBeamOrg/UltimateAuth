@@ -320,19 +320,49 @@ public class UAuthFlowClientTests : UAuthClientTestBase
     }
 
     [Fact]
-    public async Task Logout_Should_Navigate_To_Logout()
+    public async Task Logout_Should_Observe_Server_Response()
     {
         var mock = new Mock<IUAuthRequestClient>();
-
-        mock.Setup(x => x.NavigateAsync(
-            It.IsAny<string>(),
-            null,
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        mock.Setup(x => x.SendFormAsync("/auth/logout", null, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult { Status = 200, Ok = true });
         var client = CreateFlowClient(mock);
         await client.LogoutAsync();
-        mock.Verify(x => x.NavigateAsync("/auth/logout", null, It.IsAny<CancellationToken>()), Times.Once);
+        mock.Verify(x => x.SendFormAsync("/auth/logout", null, true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Logout_Should_Respect_Navigate_Option_And_Publish_Event(bool navigate)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var events = new Mock<IUAuthClientEvents>();
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/logout",
+                null,
+                navigate,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Status = 200,
+                Ok = true
+            });
+
+        var client = CreateFlowClient(request, events);
+
+        await client.LogoutAsync(navigate: navigate);
+
+        request.Verify(x => x.SendFormAsync(
+            "/auth/logout",
+            null,
+            navigate,
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        events.Verify(x => x.PublishAsync(
+            It.Is<UAuthStateEventArgs>(e =>
+                e.Type == UAuthStateEvent.LogoutVariant)),
+            Times.Once);
     }
 
     [Fact]

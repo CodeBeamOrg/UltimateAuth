@@ -61,7 +61,7 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-a");
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -91,7 +91,7 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-a");
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -118,7 +118,7 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-b");
 
         var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -156,7 +156,7 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-a");
 
         var tenantAResponse = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         tenantAResponse.StatusCode.Should()
             .Be(HttpStatusCode.OK);
@@ -165,7 +165,7 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-b");
 
         var tenantBResponse = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         tenantBResponse.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
@@ -199,14 +199,14 @@ public sealed class ResourceApiTenantIsolationTests
         AddTenant(host.Client, "tenant-a");
 
         var tenantAResponse = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         host.Client.DefaultRequestHeaders.Remove(TenantHeader);
 
         AddTenant(host.Client, "tenant-b");
 
         var tenantBResponse = await host.Client.GetAsync(
-            "/__tests/resource/authenticated");
+            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
 
         tenantAResponse.StatusCode.Should()
             .Be(HttpStatusCode.OK);

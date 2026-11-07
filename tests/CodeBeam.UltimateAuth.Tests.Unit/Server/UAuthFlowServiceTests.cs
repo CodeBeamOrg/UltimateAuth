@@ -51,7 +51,7 @@ public sealed class UAuthFlowServiceTests
 
         var result = await sut.LoginAsync(
             flow,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
@@ -107,7 +107,7 @@ public sealed class UAuthFlowServiceTests
         var result = await sut.LoginAsync(
             originalFlow,
             execution,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
@@ -171,7 +171,7 @@ public sealed class UAuthFlowServiceTests
         var result = await sut.LoginAsync(
             originalFlow,
             execution,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
@@ -237,7 +237,7 @@ public sealed class UAuthFlowServiceTests
         var result = await sut.LoginAsync(
             originalFlow,
             execution,
-            request);
+            request, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
@@ -292,7 +292,7 @@ public sealed class UAuthFlowServiceTests
         var result = await sut.LoginAsync(
             flow,
             request,
-            options);
+            options, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
 
@@ -364,7 +364,7 @@ public sealed class UAuthFlowServiceTests
             originalFlow,
             execution,
             request,
-            options);
+            options, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(expected);
     }
@@ -411,7 +411,7 @@ public sealed class UAuthFlowServiceTests
             new LogoutRequest
             {
                 SessionId = sessionId
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         eventRaised.Should().BeFalse();
     }
@@ -454,7 +454,7 @@ public sealed class UAuthFlowServiceTests
             new LogoutRequest
             {
                 SessionId = sessionId
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
 
@@ -506,7 +506,7 @@ public sealed class UAuthFlowServiceTests
             new LogoutRequest
             {
                 SessionId = sessionId
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         eventRaised.Should().BeFalse();
     }
@@ -583,7 +583,7 @@ public sealed class UAuthFlowServiceTests
             new LogoutAllRequest
             {
                 ExceptCurrent = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured!.UserKey.Should().Be(user);
@@ -637,7 +637,7 @@ public sealed class UAuthFlowServiceTests
             new LogoutAllRequest
             {
                 ExceptCurrent = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured!.UserKey.Should().Be(user);

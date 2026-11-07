@@ -16,7 +16,7 @@ A user has a stable identity and may have multiple profiles. Account status cont
 
 This guide covers the public `IUserClient` API, including self-service and administrative operations, structured results, pagination, multi-profile support, and important update semantics.
 
-For email addresses, usernames, phone numbers, and identifier verification, see [Identifiers](/docs/client/identifiers).
+For email addresses, usernames, phone numbers, and identifier verification, see [Identifiers](/docs/client-sdk/identifiers).
 
 ## 1. Accessing the User Client
 
@@ -420,7 +420,7 @@ Verification flags must not be treated as client-controlled proof of identifier 
 
 The server is responsible for enforcing verification requirements and determining whether a caller is authorized to establish verified identifier state.
 
-For identifier-specific operations and verification workflows, see [Identifiers](/docs/client/identifiers).
+For identifier-specific operations and verification workflows, see [Identifiers](/docs/client-sdk/identifiers).
 
 ### UserCreateResult
 
@@ -1339,8 +1339,8 @@ Applications should consider retention, recovery, audit requirements, and depend
 
 ## Next Steps
 
-- [Identifiers](/docs/client/identifiers) — Manage usernames, email addresses, phone numbers, and verification.
-- [Authentication](/docs/client/authentication) — Login, refresh, logout, and authentication state.
-- [Session Management](/docs/client/session-management) — Inspect and revoke sessions across devices.
+- [Identifiers](/docs/client-sdk/identifiers) — Manage usernames, email addresses, phone numbers, and verification.
+- [Authentication](/docs/client-sdk/authentication) — Login, refresh, logout, and authentication state.
+- [Session Management](/docs/client-sdk/session-management) — Inspect and revoke sessions across devices.
 - [Users](/docs/plugin-domains/users) — Understand the user domain and lifecycle architecture.
 - [Policies & Access Control](/docs/plugin-domains/policies) — Understand authorization enforcement for user operations.

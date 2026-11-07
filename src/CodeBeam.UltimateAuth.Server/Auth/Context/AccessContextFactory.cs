@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -96,6 +95,7 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             targetUserKey: targetUserKey,
             resourceTenant: resourceTenant,
             action: action,
+            clientProfile: authFlow.ClientProfile,
             attributes: attrs.Count > 0
                 ? new ReadOnlyDictionary<string, object>(attrs)
                 : EmptyAttributes.Instance,

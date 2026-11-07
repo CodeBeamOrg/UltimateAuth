@@ -230,13 +230,13 @@ public abstract class SessionStoreLifecycleContractTests
         var graph = await CreateGraphAsync(store);
 
         var chainA1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var chainA2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chainA1!.ActiveSessionId
             .Should().Be(graph.SessionA12.SessionId);
@@ -266,10 +266,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeSessionAsync(
                 graph.SessionA11.SessionId,
                 revokedAt,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var session = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         session.Should().NotBeNull();
         session!.IsRevoked.Should().BeTrue();
@@ -288,10 +288,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeSessionAsync(
                 graph.SessionA11.SessionId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain!.ActiveSessionId
             .Should().Be(graph.SessionA12.SessionId);
@@ -309,13 +309,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeSessionAsync(
                 graph.SessionA12.SessionId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var session = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         session.Should().NotBeNull();
         session!.IsRevoked.Should().BeTrue();
@@ -337,13 +337,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeSessionAsync(
                 graph.SessionA12.SessionId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         var b11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         a21!.IsRevoked.Should().BeFalse();
         b11!.IsRevoked.Should().BeFalse();
@@ -364,10 +364,10 @@ public abstract class SessionStoreLifecycleContractTests
         await store.ExecuteAsync(
             ct => store.RemoveSessionAsync(
                 graph.SessionA11.SessionId,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var session = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         session.Should().BeNull();
     }
@@ -383,10 +383,10 @@ public abstract class SessionStoreLifecycleContractTests
         await store.ExecuteAsync(
             ct => store.RemoveSessionAsync(
                 graph.SessionA11.SessionId,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain!.ActiveSessionId
             .Should().Be(graph.SessionA12.SessionId);
@@ -403,13 +403,13 @@ public abstract class SessionStoreLifecycleContractTests
         await store.ExecuteAsync(
             ct => store.RemoveSessionAsync(
                 graph.SessionA12.SessionId,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var session = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         session.Should().BeNull();
 
@@ -436,13 +436,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.LogoutChainAsync(
                 graph.ChainA1.ChainId,
                 at,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a11 = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a12 = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         a11!.IsRevoked.Should().BeTrue();
         a12!.IsRevoked.Should().BeTrue();
@@ -463,10 +463,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.LogoutChainAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
         chain!.ActiveSessionId.Should().BeNull();
@@ -484,10 +484,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.LogoutChainAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
         chain!.IsRevoked.Should().BeFalse();
@@ -505,19 +505,19 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.LogoutChainAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chainA2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionA21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionB11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         chainA2!.IsRevoked.Should().BeFalse();
         chainA2.ActiveSessionId.Should().Be(
@@ -550,10 +550,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeChainCascadeAsync(
                 graph.ChainA1.ChainId,
                 at,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chain = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
         chain!.IsRevoked.Should().BeTrue();
@@ -572,13 +572,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeChainCascadeAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a11 = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a12 = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         a11!.IsRevoked.Should().BeTrue();
         a12!.IsRevoked.Should().BeTrue();
@@ -596,19 +596,19 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeChainCascadeAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chainA2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionA21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionB11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         chainA2!.IsRevoked.Should().BeFalse();
         sessionA21!.IsRevoked.Should().BeFalse();
@@ -633,16 +633,16 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeAllSessionsAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a11 = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a12 = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         a11!.IsRevoked.Should().BeTrue();
         a12!.IsRevoked.Should().BeTrue();
@@ -661,13 +661,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeAllSessionsAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chainA1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var chainA2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         chainA1!.ActiveSessionId.Should().BeNull();
         chainA2!.ActiveSessionId.Should().BeNull();
@@ -685,13 +685,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeAllSessionsAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionB11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         chainB1!.IsRevoked.Should().BeFalse();
 
@@ -722,19 +722,19 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a11 = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a12 = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         a11!.IsRevoked.Should().BeFalse();
         a12!.IsRevoked.Should().BeFalse();
 
         var chainA1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         chainA1!.ActiveSessionId
             .Should().Be(graph.SessionA12.SessionId);
@@ -753,10 +753,10 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         a21.Should().NotBeNull();
         a21!.IsRevoked.Should().BeTrue();
@@ -775,13 +775,13 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var kept = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var affected = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         kept!.ActiveSessionId
             .Should().Be(graph.SessionA12.SessionId);
@@ -803,13 +803,13 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var b11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         b11!.IsRevoked.Should().BeFalse();
 
@@ -836,13 +836,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeAllChainsAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var a2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         a1!.IsRevoked.Should().BeTrue();
         a2!.IsRevoked.Should().BeTrue();
@@ -860,10 +860,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeAllChainsAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var b1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         b1!.IsRevoked.Should().BeFalse();
     }
@@ -885,10 +885,10 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         a1.Should().NotBeNull();
         a1!.IsRevoked.Should().BeFalse();
@@ -907,10 +907,10 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         a2.Should().NotBeNull();
         a2!.IsRevoked.Should().BeTrue();
@@ -929,10 +929,10 @@ public abstract class SessionStoreLifecycleContractTests
                 graph.UserA,
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var b1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         b1!.IsRevoked.Should().BeFalse();
     }
@@ -955,17 +955,17 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 at,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var activeRoot =
             await store.GetActiveRootByUserAsync(
-                graph.UserA);
+                graph.UserA, ct: TestContext.Current.CancellationToken);
 
         activeRoot.Should().BeNull();
 
         var root =
             await store.GetRootByIdAsync(
-                graph.RootA.RootId);
+                graph.RootA.RootId, ct: TestContext.Current.CancellationToken);
 
         root.Should().NotBeNull();
 
@@ -985,17 +985,17 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var activeRoot =
             await store.GetActiveRootByUserAsync(
-                graph.UserA);
+                graph.UserA, ct: TestContext.Current.CancellationToken);
 
         activeRoot.Should().BeNull();
 
         var root =
             await store.GetRootByIdAsync(
-                graph.RootA.RootId);
+                graph.RootA.RootId, ct: TestContext.Current.CancellationToken);
 
         root.Should().NotBeNull();
 
@@ -1018,13 +1018,13 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a1 = await store.GetChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var a2 = await store.GetChainAsync(
-            graph.ChainA2.ChainId);
+            graph.ChainA2.ChainId, ct: TestContext.Current.CancellationToken);
 
         a1!.IsRevoked.Should().BeTrue();
         a2!.IsRevoked.Should().BeTrue();
@@ -1042,16 +1042,16 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var a11 = await store.GetSessionAsync(
-            graph.SessionA11.SessionId);
+            graph.SessionA11.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a12 = await store.GetSessionAsync(
-            graph.SessionA12.SessionId);
+            graph.SessionA12.SessionId, ct: TestContext.Current.CancellationToken);
 
         var a21 = await store.GetSessionAsync(
-            graph.SessionA21.SessionId);
+            graph.SessionA21.SessionId, ct: TestContext.Current.CancellationToken);
 
         a11!.IsRevoked.Should().BeTrue();
         a12!.IsRevoked.Should().BeTrue();
@@ -1070,16 +1070,16 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var rootB = await store.GetActiveRootByUserAsync(
-            graph.UserB);
+            graph.UserB, ct: TestContext.Current.CancellationToken);
 
         var chainB1 = await store.GetChainAsync(
-            graph.ChainB1.ChainId);
+            graph.ChainB1.ChainId, ct: TestContext.Current.CancellationToken);
 
         var sessionB11 = await store.GetSessionAsync(
-            graph.SessionB11.SessionId);
+            graph.SessionB11.SessionId, ct: TestContext.Current.CancellationToken);
 
         rootB.Should().NotBeNull();
         chainB1.Should().NotBeNull();
@@ -1109,10 +1109,10 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.LogoutChainAsync(
                 graph.ChainA1.ChainId,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var sessions = await store.GetSessionsByChainAsync(
-            graph.ChainA1.ChainId);
+            graph.ChainA1.ChainId, ct: TestContext.Current.CancellationToken);
 
         sessions.Should().HaveCount(2);
         sessions.Should().OnlyContain(x => x.IsRevoked);
@@ -1130,11 +1130,11 @@ public abstract class SessionStoreLifecycleContractTests
             ct => store.RevokeRootCascadeAsync(
                 graph.UserA,
                 Now.AddMinutes(20),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var chains = await store.GetChainsByUserAsync(
             graph.UserA,
-            includeHistoricalRoots: true);
+            includeHistoricalRoots: true, ct: TestContext.Current.CancellationToken);
 
         chains.Should().HaveCount(2);
         chains.Should().OnlyContain(x => x.IsRevoked);

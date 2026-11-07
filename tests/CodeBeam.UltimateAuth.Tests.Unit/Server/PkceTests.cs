@@ -61,11 +61,11 @@ public class PkceTests
 
         var (artifact, _) = TestPkceFactory.Create();
 
-        await store.StoreAsync(artifact.AuthorizationCode, artifact);
+        await store.StoreAsync(artifact.AuthorizationCode, artifact, cancellationToken: TestContext.Current.CancellationToken);
 
         var hub = TestHubFactory.Create(artifact);
 
-        var refreshed = await pkceService.RefreshAsync(hub);
+        var refreshed = await pkceService.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         refreshed.AuthorizationCode.Should().NotBe(artifact.AuthorizationCode.Value);
     }
@@ -82,13 +82,13 @@ public class PkceTests
 
         var (artifact, _) = TestPkceFactory.Create();
 
-        await store.StoreAsync(artifact.AuthorizationCode, artifact);
+        await store.StoreAsync(artifact.AuthorizationCode, artifact, cancellationToken: TestContext.Current.CancellationToken);
 
         var hub = TestHubFactory.Create(artifact);
 
-        var refreshed = await pkceService.RefreshAsync(hub);
+        var refreshed = await pkceService.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
-        var stored = await store.GetAsync(new AuthArtifactKey(refreshed.AuthorizationCode));
+        var stored = await store.GetAsync(new AuthArtifactKey(refreshed.AuthorizationCode), cancellationToken: TestContext.Current.CancellationToken);
 
         stored.Should().NotBeNull();
     }
@@ -102,10 +102,10 @@ public class PkceTests
         var pkceService = scope.ServiceProvider.GetRequiredService<IPkceService>();
 
         var (artifact, _) = TestPkceFactory.Create();
-        await store.StoreAsync(artifact.AuthorizationCode, artifact);
+        await store.StoreAsync(artifact.AuthorizationCode, artifact, cancellationToken: TestContext.Current.CancellationToken);
         var hub = TestHubFactory.Create(artifact);
-        var refreshed = await pkceService.RefreshAsync(hub);
-        var old = await store.GetAsync(artifact.AuthorizationCode);
+        var refreshed = await pkceService.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
+        var old = await store.GetAsync(artifact.AuthorizationCode, cancellationToken: TestContext.Current.CancellationToken);
 
         old.Should().BeNull();
     }
@@ -119,10 +119,10 @@ public class PkceTests
 
         var (artifact, _) = TestPkceFactory.Create();
         var hub = TestHubFactory.Create(artifact);
-        var refreshed = await pkceService.RefreshAsync(hub);
+        var refreshed = await pkceService.RefreshAsync(hub, ct: TestContext.Current.CancellationToken);
 
         var store = scope.ServiceProvider.GetRequiredService<IAuthStore>();
-        var newArtifact = await store.GetAsync(new AuthArtifactKey(refreshed.AuthorizationCode)) as PkceAuthorizationArtifact;
+        var newArtifact = await store.GetAsync(new AuthArtifactKey(refreshed.AuthorizationCode), cancellationToken: TestContext.Current.CancellationToken) as PkceAuthorizationArtifact;
 
         newArtifact!.Context.Device.Should().BeEquivalentTo(artifact.Context.Device);
     }

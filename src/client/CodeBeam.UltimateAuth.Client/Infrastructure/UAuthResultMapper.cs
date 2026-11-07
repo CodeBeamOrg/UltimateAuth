@@ -94,6 +94,7 @@ internal static class UAuthResultMapper
 
     private static UAuthProblem? CreateProblem(UAuthTransportResult raw)
     {
+        if (raw.Status == 429) return UAuthRateLimit.Problem(raw.RetryAfter);
         var parsed = TryDeserializeProblem(raw);
 
         if (parsed is null)

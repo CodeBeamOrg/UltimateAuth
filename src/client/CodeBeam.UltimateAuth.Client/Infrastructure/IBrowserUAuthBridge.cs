@@ -9,4 +9,6 @@ public interface IBrowserUAuthBridge
     /// Sets the device ID in the browser's local storage or cookies.
     /// </summary>
     ValueTask SetDeviceIdAsync(string deviceId);
+
+    ValueTask ConfigureAntiforgeryAsync(string tokenUrl, string? trustedOrigin = null);
 }

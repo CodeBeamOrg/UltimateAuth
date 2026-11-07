@@ -64,9 +64,9 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             await store.CreateRootAsync(root, ct);
             await store.CreateChainAsync(chain, ct);
             await store.CreateSessionAsync(session, ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetSessionAsync(session.SessionId);
+        var result = await store.GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(session.SessionId, result!.SessionId);
@@ -123,14 +123,14 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
-            var result = await store.GetSessionAsync(sessionId);
+            var result = await store.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(result);
             Assert.NotNull(result!.Device.DeviceId);
@@ -200,14 +200,14 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
-            var result = await store.GetSessionAsync(sessionId);
+            var result = await store.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(result);
 
@@ -269,12 +269,12 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
             await store.ExecuteAsync(async ct =>
             {
                 revoked = await store.RevokeSessionAsync(sessionId, DateTimeOffset.UtcNow);
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
             Assert.True(revoked);
         }
@@ -326,14 +326,14 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store1.CreateRootAsync(root, ct);
                 await store1.CreateChainAsync(chain, ct);
                 await store1.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store2 = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant2));
 
-            var result = await store2.GetSessionAsync(sessionId);
+            var result = await store2.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.Null(result);
         }
@@ -356,7 +356,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.ExecuteAsync(async ct =>
                 {
                     throw new InvalidOperationException("boom");
-                });
+                }, ct: TestContext.Current.CancellationToken);
             });
         }
     }
@@ -406,13 +406,13 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var sessions = await store.GetSessionsByChainAsync(chainId);
+            var sessions = await store.GetSessionsByChainAsync(chainId, ct: TestContext.Current.CancellationToken);
             Assert.Single(sessions);
         }
     }
@@ -461,14 +461,14 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
 
-            var result = await store.GetSessionAsync(sessionId);
+            var result = await store.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(result);
         }
@@ -498,7 +498,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
 
                     // 💥 simulate failure
                     throw new InvalidOperationException("boom");
-                });
+                }, ct: TestContext.Current.CancellationToken);
             });
         }
 
@@ -555,7 +555,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -565,13 +565,13 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             await store.ExecuteAsync(async ct =>
             {
                 await store.RevokeChainCascadeAsync(chainId, DateTimeOffset.UtcNow, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var sessions = await store.GetSessionsByChainAsync(chainId);
+            var sessions = await store.GetSessionsByChainAsync(chainId, ct: TestContext.Current.CancellationToken);
 
             Assert.All(sessions, s => Assert.True(s.IsRevoked));
         }
@@ -612,14 +612,14 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.SetActiveSessionIdAsync(chainId, sessionId);
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var active = await store.GetActiveSessionIdAsync(chainId);
+            var active = await store.GetActiveSessionIdAsync(chainId, ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(sessionId, active);
         }
@@ -687,7 +687,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -700,13 +700,13 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 var updated = existing!.Revoke(DateTimeOffset.UtcNow);
 
                 await store.SaveSessionAsync(updated, expectedVersion: 0, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var result = await store.GetSessionAsync(sessionId);
+            var result = await store.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
         }
@@ -758,7 +758,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
                 await store.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -773,7 +773,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                     var updated = existing!.Revoke(DateTimeOffset.UtcNow);
 
                     await store.SaveSessionAsync(updated, expectedVersion: 999, ct);
-                });
+                }, ct: TestContext.Current.CancellationToken);
             });
         }
     }
@@ -810,7 +810,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             {
                 await store.CreateRootAsync(root, ct);
                 await store.CreateChainAsync(chain, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -823,13 +823,13 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 var updated = existing!.Revoke(DateTimeOffset.UtcNow);
 
                 await store.SaveChainAsync(updated, expectedVersion: 0, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
         {
             var store = new EfCoreSessionStore<UAuthSessionDbContext>(db, new TenantExecutionContext(tenant));
-            var result = await store.GetChainAsync(chainId);
+            var result = await store.GetChainAsync(chainId, ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
         }
@@ -861,7 +861,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             await store.ExecuteAsync(async ct =>
             {
                 await store.CreateRootAsync(root, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -884,7 +884,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                     updated,
                     expectedVersion: existing.Version,
                     ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -894,7 +894,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 new TenantExecutionContext(tenant));
 
             var result =
-                await store.GetRootByIdAsync(rootId);
+                await store.GetRootByIdAsync(rootId, ct: TestContext.Current.CancellationToken);
 
             result.Should().NotBeNull();
             result!.Version.Should().Be(1);
@@ -913,7 +913,7 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
             new TenantExecutionContext(TenantKeys.Single));
 
         await using var transaction =
-            await db.Database.BeginTransactionAsync();
+            await db.Database.BeginTransactionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var originalTransaction = db.Database.CurrentTransaction;
 
@@ -924,12 +924,13 @@ public class EfCoreSessionStoreTests : EfCoreTestBase
                 db.Database.CurrentTransaction);
 
             await Task.CompletedTask;
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         Assert.Same(
             originalTransaction,
             db.Database.CurrentTransaction);
 
+        // Cleanup must complete even when the test is cancelled.
         await transaction.RollbackAsync();
     }
 }

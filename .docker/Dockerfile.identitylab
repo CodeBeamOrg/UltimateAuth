@@ -1,0 +1,31 @@
+# Build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY . .
+
+RUN dotnet restore \
+    apps/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj \
+    -p:UltimateAuthBuildTargetFrameworks=net10.0
+
+RUN dotnet publish \
+    apps/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj \
+    -c Release \
+    -p:UltimateAuthBuildTargetFrameworks=net10.0 \
+    --no-restore \
+    -o /app/publish
+
+# Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+ENV ASPNETCORE_HTTP_PORTS=8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+COPY --from=build /app/publish .
+
+EXPOSE 8080
+
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "CodeBeam.UltimateAuth.IdentityLab.dll"]
