@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -9,25 +10,34 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 public sealed class CompositeSessionIdResolver : ISessionIdResolver
 {
     private readonly IReadOnlyDictionary<string, IInnerSessionIdResolver> _resolvers;
-    private readonly UAuthSessionResolutionOptions _options;
+    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IEffectiveServerOptionsProvider _effectiveOptionsProvider;
 
-    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IOptions<UAuthServerOptions> options)
+    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IClientProfileReader clientProfileReader, IEffectiveServerOptionsProvider effectiveOptionsProvider)
     {
-        _options = options.Value.SessionResolution;
         _resolvers = resolvers.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+        _clientProfileReader = clientProfileReader;
+        _effectiveOptionsProvider = effectiveOptionsProvider;
     }
 
-    public AuthSessionId? Resolve(HttpContext context)
+    public async ValueTask<AuthSessionId?> ResolveAsync(HttpContext context, CancellationToken ct = default)
     {
-        foreach (var name in _options.Order)
+        ct.ThrowIfCancellationRequested();
+
+        var clientProfile = await _clientProfileReader.ReadAsync(context);
+        var effective = _effectiveOptionsProvider.GetEffective(context, clientProfile);
+        var options = effective.Options.SessionResolution;
+
+        foreach (var name in options.Order)
         {
-            if (!IsEnabled(name))
+            if (!IsEnabled(name, options))
                 continue;
 
             if (!_resolvers.TryGetValue(name, out var resolver))
                 continue;
 
             var id = resolver.Resolve(context);
+
             if (id is not null)
                 return id;
         }
@@ -35,19 +45,19 @@ public sealed class CompositeSessionIdResolver : ISessionIdResolver
         return null;
     }
 
-    private bool IsEnabled(string name)
+    private static bool IsEnabled(string name, UAuthSessionResolutionOptions options)
     {
         if (name.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
-            return _options.EnableBearer;
+            return options.EnableBearer;
 
         if (name.Equals("Header", StringComparison.OrdinalIgnoreCase))
-            return _options.EnableHeader;
+            return options.EnableHeader;
 
         if (name.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
-            return _options.EnableCookie;
+            return options.EnableCookie;
 
         if (name.Equals("Query", StringComparison.OrdinalIgnoreCase))
-            return _options.EnableQuery;
+            return options.EnableQuery;
 
         return false;
     }

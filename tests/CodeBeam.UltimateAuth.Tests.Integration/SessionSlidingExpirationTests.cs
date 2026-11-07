@@ -132,7 +132,7 @@ public sealed class SessionSlidingExpirationTests
             o.Session.TouchInterval = TimeSpan.FromSeconds(5);
         });
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -141,29 +141,29 @@ public sealed class SessionSlidingExpirationTests
                 HandleCookies = false
             });
 
-        client.DefaultRequestHeaders.Add(
-            "Origin", "https://localhost:6130");
-        client.DefaultRequestHeaders.Add(
-            "X-UDID", $"idle-regression-{Guid.NewGuid():N}");
-        client.DefaultRequestHeaders.Add(
-            "X-UAuth-ClientProfile", profile);
+        client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
+        client.DefaultRequestHeaders.Add("X-UDID", $"idle-regression-{Guid.NewGuid():N}");
+        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", profile);
 
-        using var login = await client.PostAsJsonAsync(
+        using var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
-            new { identifier = user.Identifier, secret = user.Secret });
+            new
+            {
+                identifier = user.Identifier,
+                secret = user.Secret
+            });
 
         login.StatusCode.Should().Be(HttpStatusCode.Found);
 
         login.Headers.TryGetValues("Set-Cookie", out var cookies)
             .Should().BeTrue();
 
-        client.DefaultRequestHeaders.Add(
-            "Cookie",
-            string.Join("; ", cookies!.Select(x => x.Split(';')[0])));
+        ApplyCookies(client, login);
 
         // Same session must be accepted before IdleTimeout.
         using var before = await client.PostAsJsonAsync(
-            "/auth/me/identifiers/get", new { });
+            "/auth/me/identifiers/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         before.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -172,7 +172,7 @@ public sealed class SessionSlidingExpirationTests
 
         // Keep the original cookie deliberately.
         using var after = await client.PostAsJsonAsync(
-            "/auth/me/identifiers/get", new { });
+            "/auth/me/identifiers/get", new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         after.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
             "an expired session must not remain authenticated " +
@@ -388,11 +388,9 @@ public sealed class SessionSlidingExpirationTests
         using var secondClient = CloneClientWithCookies(
             factory, client, "BlazorWasm");
 
-        using var first = await firstClient.PostAsync(
-            "/auth/refresh", null);
+        using var first = await CsrfTestClient.PostAsync(firstClient, "/auth/refresh", null);
 
-        using var second = await secondClient.PostAsync(
-            "/auth/refresh", null);
+        using var second = await CsrfTestClient.PostAsync(secondClient, "/auth/refresh", null);
 
         // A rotated refresh credential must not be reusable.
         first.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -470,17 +468,29 @@ public sealed class SessionSlidingExpirationTests
     private static async Task Login(AuthServerFactory factory, HttpClient client)
     {
         var user = await factory.CreateLoginUserAsync();
-        using var response = await client.PostAsJsonAsync("/auth/login",
-            new { identifier = user.Identifier, secret = user.Secret });
+
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
+            "/auth/login",
+            new
+            {
+                identifier = user.Identifier,
+                secret = user.Secret
+            });
+
         response.StatusCode.Should().Be(HttpStatusCode.Found);
         ApplyCookies(client, response);
     }
 
     private static async Task<HttpResponseMessage> Refresh(HttpClient client, string profile)
     {
-        var response = await client.PostAsync("/auth/refresh", null);
+        var response = await CsrfTestClient.PostAsync(
+            client,
+            "/auth/refresh");
+
         if (response.IsSuccessStatusCode && profile == "BlazorWasm")
             ApplyCookies(client, response);
+
         return response;
     }
 
@@ -508,8 +518,7 @@ public sealed class SessionSlidingExpirationTests
             .Split("; ", StringSplitOptions.RemoveEmptyEntries)
             .Single(x => x.StartsWith(name + "=", StringComparison.Ordinal));
 
-    private static async Task<(UAuthSession Session, UAuthSessionChain Chain)> ReadCurrent(
-        AuthServerFactory factory, HttpClient client)
+    private static async Task<(UAuthSession Session, UAuthSessionChain Chain)> ReadCurrent(AuthServerFactory factory, HttpClient client)
     {
         using var response = await client.PostAsJsonAsync("/auth/me/sessions/chains",
             new PageRequest { PageNumber = 1, PageSize = 50 });

@@ -33,7 +33,7 @@ public sealed class CredentialManagementTests
 
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -44,7 +44,7 @@ public sealed class CredentialManagementTests
                 Identifier = user.Identifier,
                 CredentialType = CredentialType.Password,
                 ResetCodeType = ResetCodeType.Token
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         beginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -63,7 +63,7 @@ public sealed class CredentialManagementTests
                 CredentialType = CredentialType.Password,
                 ResetToken = notification.Token,
                 NewSecret = newPassword
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         completeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -78,7 +78,7 @@ public sealed class CredentialManagementTests
 
         var store = storeFactory.Create(notification.Tenant);
 
-        var credentials = await store.GetByUserAsync(user.UserKey);
+        var credentials = await store.GetByUserAsync(user.UserKey, TestContext.Current.CancellationToken);
 
         var password = credentials
             .OfType<PasswordCredential>()
@@ -119,13 +119,13 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Credentials.BeginResetAdmin]);
+            [UAuthActions.Credentials.BeginResetAdmin], TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
@@ -149,12 +149,12 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Credentials.BeginResetAdmin]);
+            [UAuthActions.Credentials.BeginResetAdmin], TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
@@ -167,7 +167,7 @@ public sealed class CredentialManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<CredentialBeginResetResult>();
+            .ReadFromJsonAsync<CredentialBeginResetResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.ExpiresAt.Should().BeAfter(factory.Clock.UtcNow);
@@ -175,7 +175,7 @@ public sealed class CredentialManagementTests
         notifier.Notifications.Should()
             .ContainSingle(x => x.UserKey == target.UserKey);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         body.Should().NotContain(
             notifier.Notifications.Single().Token);
@@ -189,13 +189,13 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Credentials.CompleteResetAdmin]);
+            [UAuthActions.Credentials.CompleteResetAdmin], TestContext.Current.CancellationToken);
 
         // B için gerçekten geçerli bir reset token'ı üret.
         using var anonymousClient = CreateClient(factory);
@@ -234,21 +234,20 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await factory.GrantPermissionsAsync(
             admin.UserKey,
             [
                 UAuthActions.Credentials.BeginResetAdmin,
             UAuthActions.Credentials.CompleteResetAdmin
-            ]);
+            ], TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
 
-        var url =
-            $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
+        var url = $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
 
         var begin = await BeginResetAsync(
             client,
@@ -258,7 +257,7 @@ public sealed class CredentialManagementTests
         begin.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var beginResult = await begin.Content
-            .ReadFromJsonAsync<CredentialBeginResetResult>();
+            .ReadFromJsonAsync<CredentialBeginResetResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         beginResult.Should().NotBeNull();
 
@@ -278,7 +277,7 @@ public sealed class CredentialManagementTests
         complete.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var completeResult = await complete.Content
-            .ReadFromJsonAsync<CredentialActionResult>();
+            .ReadFromJsonAsync<CredentialActionResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         completeResult.Should().NotBeNull();
         completeResult!.IsSuccess.Should().BeTrue();
@@ -295,7 +294,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -341,8 +340,8 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var actor = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var actor = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, actor);
@@ -364,7 +363,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var target = await factory.CreateLoginUserAsync();
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -386,7 +385,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var existingUser = await factory.CreateLoginUserAsync();
+        var existingUser = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -412,8 +411,8 @@ public sealed class CredentialManagementTests
             .Be(unknownResponse.StatusCode);
 
         // Same observable response body.
-        var existingBody = await existingResponse.Content.ReadAsStringAsync();
-        var unknownBody = await unknownResponse.Content.ReadAsStringAsync();
+        var existingBody = await existingResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var unknownBody = await unknownResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         existingBody.Should().Be(unknownBody);
 
@@ -432,7 +431,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         // Two independent clients with different X-UDID values.
         using var firstClient = CreateClient(factory);
@@ -449,7 +448,7 @@ public sealed class CredentialManagementTests
 
             var store = sessionFactory.Create(TenantKeys.Single);
 
-            var chains = await store.GetChainsByUserAsync(user.UserKey);
+            var chains = await store.GetChainsByUserAsync(user.UserKey, ct: TestContext.Current.CancellationToken);
 
             chains.Should().HaveCount(2);
             chains.Should().OnlyContain(c => !c.IsRevoked);
@@ -492,7 +491,7 @@ public sealed class CredentialManagementTests
 
             var store = sessionFactory.Create(TenantKeys.Single);
 
-            var chains = await store.GetChainsByUserAsync(user.UserKey);
+            var chains = await store.GetChainsByUserAsync(user.UserKey, ct: TestContext.Current.CancellationToken);
 
             chains.Should().HaveCount(2);
             chains.Should().OnlyContain(c => c.IsRevoked);
@@ -519,7 +518,7 @@ public sealed class CredentialManagementTests
 
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var firstClient = CreateClient(factory);
         using var secondClient = CreateClient(factory);
@@ -579,8 +578,8 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var targetClient = CreateClient(factory);
         using var otherClient = CreateClient(factory);
@@ -631,7 +630,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var authenticatedClient = CreateClient(factory);
         await AuthenticateAsync(authenticatedClient, user);
@@ -676,7 +675,7 @@ public sealed class CredentialManagementTests
 
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var currentClient = CreateClient(factory);
         using var otherClient = CreateClient(factory);
@@ -698,7 +697,7 @@ public sealed class CredentialManagementTests
 
         var newPassword = $"Changed-{Guid.NewGuid():N}!";
 
-        var response = await currentClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(currentClient,
             "/auth/me/credentials/change",
             new ChangeCredentialRequest
             {
@@ -732,12 +731,12 @@ public sealed class CredentialManagementTests
 
         factory.Clock.Reset();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await factory.GrantPermissionsAsync(
             admin.UserKey,
-            [UAuthActions.Credentials.ChangeAdmin]);
+            [UAuthActions.Credentials.ChangeAdmin], TestContext.Current.CancellationToken);
 
         using var adminClient = CreateClient(factory);
         using var targetClient1 = CreateClient(factory);
@@ -753,7 +752,8 @@ public sealed class CredentialManagementTests
 
         var newPassword = $"AdminChanged-{Guid.NewGuid():N}!";
 
-        var response = await adminClient.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            adminClient,
             $"/auth/admin/users/{target.UserKey.Value}/credentials/change",
             new ChangeCredentialRequest
             {
@@ -782,7 +782,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -807,8 +807,8 @@ public sealed class CredentialManagementTests
 
         active.StatusCode.Should().Be(unknown.StatusCode);
 
-        (await active.Content.ReadAsStringAsync())
-            .Should().Be(await unknown.Content.ReadAsStringAsync());
+        (await active.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Be(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         notifier.Notifications.Should().HaveCount(notificationCount);
     }
@@ -821,7 +821,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -854,8 +854,8 @@ public sealed class CredentialManagementTests
 
         expired.StatusCode.Should().Be(unknown.StatusCode);
 
-        (await expired.Content.ReadAsStringAsync())
-            .Should().Be(await unknown.Content.ReadAsStringAsync());
+        (await expired.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Be(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await AssertPasswordAsync(factory, user, user.Secret);
     }
@@ -868,7 +868,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -892,8 +892,8 @@ public sealed class CredentialManagementTests
         existing.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        using var existingJson = JsonDocument.Parse(await existing.Content.ReadAsStringAsync());
-        using var unknownJson = JsonDocument.Parse(await unknown.Content.ReadAsStringAsync());
+        using var existingJson = JsonDocument.Parse(await existing.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        using var unknownJson = JsonDocument.Parse(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         existingJson.RootElement.GetProperty("status").GetInt32()
             .Should().Be(unknownJson.RootElement.GetProperty("status").GetInt32());
@@ -915,7 +915,7 @@ public sealed class CredentialManagementTests
         using var factory = CreateFactory(notifier);
         factory.Clock.Reset();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(factory);
 
@@ -944,8 +944,8 @@ public sealed class CredentialManagementTests
 
         samePassword.StatusCode.Should().Be(unknown.StatusCode);
 
-        (await samePassword.Content.ReadAsStringAsync())
-            .Should().Be(await unknown.Content.ReadAsStringAsync());
+        (await samePassword.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Be(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await AssertPasswordAsync(factory, user, user.Secret);
     }
@@ -1001,7 +1001,7 @@ public sealed class CredentialManagementTests
 
     private static Task<HttpResponseMessage> BeginResetAsync(HttpClient client, string url, string identifier)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             url,
             new BeginResetCredentialRequest
             {
@@ -1013,7 +1013,7 @@ public sealed class CredentialManagementTests
 
     private static Task<HttpResponseMessage> CompleteResetAsync(HttpClient client, string url, string identifier, string token, string newPassword)
     {
-        return client.PostAsJsonAsync(
+        return CsrfTestClient.PostJsonAsync(client,
             url,
             new CompleteResetCredentialRequest
             {
@@ -1026,7 +1026,8 @@ public sealed class CredentialManagementTests
 
     private static async Task AuthenticateAsync(HttpClient client, IntegrationTestUser user)
     {
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {

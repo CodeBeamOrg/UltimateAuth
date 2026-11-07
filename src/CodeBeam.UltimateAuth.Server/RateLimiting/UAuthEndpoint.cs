@@ -83,6 +83,7 @@ public enum UAuthEndpoint
     DeleteRole,
     HubEntry,
     PasswordPolicy,
+    AntiforgeryToken,
 }
 
 internal enum UAuthRateLimitGroup { Sensitive, Standard, Frequent }

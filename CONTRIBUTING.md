@@ -99,3 +99,42 @@ Once the CLA process is implemented, contributors may be required to sign the ap
 Be respectful, assume good intentions, and help others learn. Different experience levels and perspectives make the project better.
 
 **Thank you for helping build UltimateAuth.**
+
+## Framework targeting and CI
+
+`UltimateAuthTargetFrameworks` in `Directory.Build.props` is the supported library
+framework list. Keep it unique and in ascending version order. The last entry
+becomes `UltimateAuthLatestTargetFramework`, which all five test projects inherit
+from `tests/Directory.Build.props`. Tests, including rate-limiting compatibility
+tests, run once on that latest framework; older frameworks receive package build
+verification rather than repeated test runs.
+
+The 33 library projects under `src/` and the packable `Sample.Seed` project use
+`UltimateAuthBuildTargetFrameworks`, which defaults to the supported list. CI can
+select a supported build subset through that property without changing the
+frameworks of single-target applications. `Sample.Shared.Hub` is a separate,
+packable net10-only Razor library. Applications, other samples, docs, and the two
+build tools retain their explicit net10 targets. Docker builds also restrict library
+builds to their net10 application target, so adding a newer library framework
+does not require upgrading those container SDKs.
+
+The CI policy job queries evaluated MSBuild properties for every project. It
+checks solution membership, all expected library targets, and latest-only test
+targets, then generates the compatibility matrix and an exact package/framework
+table in the job summary. Each matrix job pins `global.json` **in its own checkout**
+to the SDK installed for its framework, so a newer preinstalled SDK cannot hide
+an older-SDK build failure. The committed `global.json` still selects MTP without
+pinning an SDK.
+
+The test job retains the full solution build, but builds libraries only for the
+latest framework and the frameworks needed by intentional single-target projects.
+Identity Lab keeps its separate PostgreSQL job, TRX output, and assembly-scoped
+coverage. The publishing workflow also derives its SDK list from the central
+property.
+
+For example, changing the central list to `net10.0;net11.0` automatically generates
+two SDK build jobs and moves all regular tests to net11. No workflow matrix edits
+are needed. Framework-specific package references (notably Blazor, EF Core, and
+TestHost) still need compatible versions when adding a new framework. Retarget
+net10-only application/tool exceptions before eventually removing net10 itself;
+CI rejects that omission rather than silently excluding projects.

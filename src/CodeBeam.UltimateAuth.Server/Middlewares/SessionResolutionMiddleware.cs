@@ -21,7 +21,7 @@ public sealed class SessionResolutionMiddleware
         var sessionIdResolver = context.RequestServices.GetRequiredService<ISessionIdResolver>();
 
         var tenant = context.GetTenant();
-        var sessionId = sessionIdResolver.Resolve(context);
+        var sessionId = await sessionIdResolver.ResolveAsync(context);
 
         var sessionContext = sessionId is null
             ? SessionContext.Anonymous()

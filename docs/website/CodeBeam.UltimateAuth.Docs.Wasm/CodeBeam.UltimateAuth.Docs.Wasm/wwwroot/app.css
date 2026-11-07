@@ -183,19 +183,53 @@ h1:focus {
         transform: scale(1.15);
     }
 
+/* Vision spotlight — Light theme */
 .ua-global-overlay {
     position: fixed;
     inset: 0;
     z-index: 9998;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.35s ease;
-    background: radial-gradient( circle at 50% 40%, transparent 90px, rgba(0, 0, 0, 0.99) 600px );
+    transition: opacity 0.65s ease;
+    background: radial-gradient( ellipse at 50% 50%, rgba(12, 18, 38, 0.08) 0%, rgba(12, 18, 38, 0.32) 48%, rgba(12, 18, 38, 0.72) 100% );
 }
 
+    /* Vision spotlight — Dark theme */
+    .ua-global-overlay.ua-overlay-dark {
+        background: radial-gradient( ellipse at 50% 43%, rgba(120, 140, 255, 0.18) 0%, rgba(85, 95, 210, 0.13) 35%, transparent 72% ), radial-gradient( ellipse at 50% 50%, transparent 15%, rgba(5, 9, 25, 0.16) 65%, rgba(5, 9, 25, 0.42) 100% );
+    }
+
+    /* Activate overlay */
     .ua-global-overlay.active {
         opacity: 1;
     }
+
+/* Vision content stays above the overlay */
+.ua-vision {
+    position: relative;
+    z-index: 9999;
+}
+
+/* Bulb glow */
+.ua-vision-icon-wrapper {
+    position: relative;
+    z-index: 1;
+    border-radius: 50%;
+    transition: transform 0.5s ease, filter 0.5s ease;
+}
+
+    .ua-vision-icon-wrapper:hover {
+        transform: scale(1.18);
+        filter: drop-shadow(0 0 14px rgba(125, 165, 255, 0.8)) drop-shadow(0 0 42px rgba(125, 165, 255, 0.35));
+    }
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .ua-global-overlay,
+    .ua-vision-icon-wrapper {
+        transition: none;
+    }
+}
 
 .ua-vision {
     position: relative;

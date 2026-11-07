@@ -109,7 +109,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
         var f = Create();
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "CurrentPassword123!", rememberLast);
+            f.Key, "CurrentPassword123!", rememberLast, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeFalse();
         result.Violations.Should().ContainSingle(
@@ -126,7 +126,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
         var f = Create();
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "DifferentPassword123!", 0);
+            f.Key, "DifferentPassword123!", 0, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeTrue();
 
@@ -151,7 +151,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
             });
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "Previous2!", 3);
+            f.Key, "Previous2!", 3, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeFalse();
         result.Violations.Should().ContainSingle(
@@ -173,7 +173,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
             });
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "EntirelyNewPassword123!", 2);
+            f.Key, "EntirelyNewPassword123!", 2, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeTrue();
     }
@@ -189,7 +189,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
             .ReturnsAsync(Array.Empty<PasswordHistoryEntry>());
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "NewPassword123!", 5);
+            f.Key, "NewPassword123!", 5, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeTrue();
     }
@@ -205,7 +205,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
             .ReturnsAsync(Array.Empty<PasswordHistoryEntry>());
 
         await f.Validator.ValidateAsync(
-            f.Key, "NewPassword123!", 7);
+            f.Key, "NewPassword123!", 7, ct: TestContext.Current.CancellationToken);
 
         f.HistoryStore.Verify(
             x => x.GetRecentAsync(
@@ -268,7 +268,7 @@ public sealed class UAuthPasswordHistoryValidatorTests
             });
 
         var result = await f.Validator.ValidateAsync(
-            f.Key, "Match123!", 3);
+            f.Key, "Match123!", 3, ct: TestContext.Current.CancellationToken);
 
         result.Succeeded.Should().BeFalse();
 

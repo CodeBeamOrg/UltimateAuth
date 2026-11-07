@@ -60,7 +60,7 @@ public sealed class AuthenticationSecurityManagerTests
 
         var result = await _sut.GetOrCreateAccountAsync(
             _tenant,
-            _userKey);
+            _userKey, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
 
@@ -94,7 +94,7 @@ public sealed class AuthenticationSecurityManagerTests
 
         var result = await _sut.GetOrCreateAccountAsync(
             _tenant,
-            _userKey);
+            _userKey, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result.Tenant.Should().Be(_tenant);
@@ -139,7 +139,7 @@ public sealed class AuthenticationSecurityManagerTests
 
         var result = await _sut.GetOrCreateAccountAsync(
             _tenant,
-            _userKey);
+            _userKey, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
 
@@ -203,7 +203,7 @@ public sealed class AuthenticationSecurityManagerTests
         var result = await _sut.GetOrCreateFactorAsync(
             _tenant,
             _userKey,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
 
@@ -238,7 +238,7 @@ public sealed class AuthenticationSecurityManagerTests
         var result = await _sut.GetOrCreateFactorAsync(
             _tenant,
             _userKey,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         result.Tenant.Should().Be(_tenant);
         result.UserKey.Should().Be(_userKey);
@@ -287,7 +287,7 @@ public sealed class AuthenticationSecurityManagerTests
         var result = await _sut.GetOrCreateFactorAsync(
             _tenant,
             _userKey,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
     }
@@ -315,7 +315,7 @@ public sealed class AuthenticationSecurityManagerTests
         var result = await _sut.MutateAccountAsync(
             _tenant,
             _userKey,
-            state => state);
+            state => state, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
 
@@ -355,7 +355,7 @@ public sealed class AuthenticationSecurityManagerTests
         var result = await _sut.MutateAccountAsync(
             _tenant,
             _userKey,
-            _ => updated);
+            _ => updated, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(updated);
 
@@ -425,7 +425,7 @@ public sealed class AuthenticationSecurityManagerTests
             {
                 mutationCall++;
                 return CreateMutatedState(state);
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -506,7 +506,7 @@ public sealed class AuthenticationSecurityManagerTests
             _tenant,
             _userKey,
             CredentialType.Password,
-            state => state);
+            state => state, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeSameAs(existing);
 
@@ -568,7 +568,7 @@ public sealed class AuthenticationSecurityManagerTests
             {
                 mutationCalls++;
                 return CreateMutatedState(state);
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -601,7 +601,7 @@ public sealed class AuthenticationSecurityManagerTests
 
         await _sut.UpdateAsync(
             state,
-            expectedVersion: 7);
+            expectedVersion: 7, ct: TestContext.Current.CancellationToken);
 
         _storeFactory.Verify(
             x => x.Create(otherTenant),
@@ -632,7 +632,7 @@ public sealed class AuthenticationSecurityManagerTests
             otherTenant,
             _userKey,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         _storeFactory.Verify(
             x => x.Create(otherTenant),

@@ -27,9 +27,9 @@ public class UserIdentifierApplicationServiceTests
                 Type = UserIdentifierType.Email,
                 Value = "new@example.com",
                 IsPrimary = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
 
         identifiers.Items.Where(x => x.Type == UserIdentifierType.Email).Should().ContainSingle(x => x.IsPrimary);
 
@@ -61,14 +61,14 @@ public class UserIdentifierApplicationServiceTests
                 Type = UserIdentifierType.Phone,
                 Value = "+905551111111",
                 IsPrimary = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var result = await loginOrchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Identifier = "+905551111111",
                 Secret = "user",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
     }
@@ -81,7 +81,7 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.AddSelf);
 
-        var before = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var before = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
         var existingPrimaryEmail = before.Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
 
         await service.AddUserIdentifierAsync(context,
@@ -90,9 +90,9 @@ public class UserIdentifierApplicationServiceTests
                 Type = UserIdentifierType.Email,
                 Value = "secondary@example.com",
                 IsPrimary = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var after = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var after = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
 
         after.Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary)
              .Id.Should().Be(existingPrimaryEmail.Id);
@@ -106,16 +106,16 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.UpdateSelf);
 
-        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items.Single(x => x.Type == UserIdentifierType.Email);
+        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken)).Items.Single(x => x.Type == UserIdentifierType.Email);
 
         await service.UpdateUserIdentifierAsync(context,
             new UpdateUserIdentifierRequest
             {
                 Id = email.Id,
                 NewValue = "updated@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var updated = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items
+        var updated = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken)).Items
             .Single(x => x.Id == email.Id);
 
         updated.IsVerified.Should().BeFalse();
@@ -146,7 +146,7 @@ public class UserIdentifierApplicationServiceTests
                 Type = UserIdentifierType.Email,
                 Value = "shared@example.com",
                 IsPrimary = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Func<Task> act = () =>
             service.AddUserIdentifierAsync(
@@ -185,7 +185,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "unique@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Func<Task> act = () =>
             service.AddUserIdentifierAsync(
@@ -225,7 +225,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "shared@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Func<Task> act = () =>
             service.AddUserIdentifierAsync(
@@ -254,7 +254,7 @@ public class UserIdentifierApplicationServiceTests
 
         var context = TestAccessContext.ForUser(TestUsers.User, UserIdentifiers.UnsetPrimarySelf);
 
-        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery())).Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
+        var email = (await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken)).Items.Single(x => x.Type == UserIdentifierType.Email && x.IsPrimary);
 
         Func<Task> act = async () =>
             await service.UnsetPrimaryUserIdentifierAsync(context,
@@ -279,7 +279,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "Test@Example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Func<Task> act = async () =>
             await service.AddUserIdentifierAsync(context,
@@ -309,9 +309,9 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "UserName"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
 
         identifiers.Items.Should().Contain(x => x.Value == "UserName");
     }
@@ -333,7 +333,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "UserName"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         Func<Task> act = async () =>
             await service.AddUserIdentifierAsync(context,
@@ -359,9 +359,9 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Phone,
                 Value = "+90 (555) 123-45-67"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
 
         identifiers.Items.Should().Contain(x =>
             x.Type == UserIdentifierType.Phone &&
@@ -381,16 +381,16 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "one@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         await service.AddUserIdentifierAsync(context,
             new AddUserIdentifierRequest
             {
                 Type = UserIdentifierType.Email,
                 Value = "two@example.com"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery());
+        var identifiers = await service.GetIdentifiersByUserAsync(context, new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
         var second = identifiers.Items.Single(x => x.Value == "two@example.com");
 
         Func<Task> act = async () =>
@@ -420,7 +420,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Username,
                 Value = "unused-user-name"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.IsAvailable.Should().BeTrue();
@@ -439,7 +439,7 @@ public class UserIdentifierApplicationServiceTests
         var identifiers =
             await service.GetIdentifiersByUserAsync(
                 context,
-                new UserIdentifierQuery());
+                new UserIdentifierQuery(), ct: TestContext.Current.CancellationToken);
 
         var existing = identifiers.Items.First();
 
@@ -449,7 +449,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = existing.Type,
                 Value = existing.Value
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.IsAvailable.Should().BeFalse();
@@ -460,11 +460,11 @@ public class UserIdentifierApplicationServiceTests
     {
         var runtime = new TestAuthRuntime<UserKey>();
 
-        var user = await runtime.CreateLoginUserAsync();
+        var user = await runtime.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         const string storedEmail = "availability@example.com";
 
-        await runtime.AddIdentifierAsync(user.UserKey, UserIdentifierType.Email, storedEmail);
+        await runtime.AddIdentifierAsync(user.UserKey, UserIdentifierType.Email, storedEmail, ct: TestContext.Current.CancellationToken);
 
         var service = runtime.GetUserApplicationService();
 
@@ -475,7 +475,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "  AVAILABILITY@EXAMPLE.COM  "
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.IsAvailable.Should().BeFalse();
@@ -498,7 +498,7 @@ public class UserIdentifierApplicationServiceTests
             {
                 Type = UserIdentifierType.Email,
                 Value = "invalid"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
         result.IsAvailable.Should().BeFalse();
@@ -511,12 +511,12 @@ public class UserIdentifierApplicationServiceTests
         var runtime = new TestAuthRuntime<UserKey>();
 
         var user =
-            await runtime.CreateLoginUserAsync();
+            await runtime.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await runtime.AddIdentifierAsync(
             user.UserKey,
             UserIdentifierType.Email,
-            "availability@example.com");
+            "availability@example.com", ct: TestContext.Current.CancellationToken);
 
         var service =
             runtime.GetUserApplicationService();
@@ -532,7 +532,7 @@ public class UserIdentifierApplicationServiceTests
                 {
                     Type = UserIdentifierType.Email,
                     Value = "AVAILABILITY@EXAMPLE.COM"
-                });
+                }, ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeTrue();
         result.IsAvailable.Should().BeFalse();

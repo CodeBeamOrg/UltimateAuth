@@ -95,6 +95,13 @@ public partial class UAuthLoginForm
     [Parameter]
     public EventCallback<IUAuthTryResult> OnTryResult { get; set; }
 
+    private bool _isSubmitting;
+
+    [Parameter]
+    public EventCallback<bool> OnSubmittingChanged { get; set; }
+
+    public bool IsSubmitting => _isSubmitting;
+
 
     private ElementReference _form;
     private HubCredentials? _credentials;
@@ -174,16 +181,31 @@ public partial class UAuthLoginForm
     /// <exception cref="InvalidOperationException">Thrown if the form has not been rendered. Call this method only after the OnAfterRender lifecycle event.</exception>
     public async Task SubmitAsync()
     {
+        if (_isSubmitting)
+            return;
+
         if (_form.Context is null)
             throw new InvalidOperationException("Form is not yet rendered. Call SubmitAsync after OnAfterRender.");
 
-        if (LoginType == UAuthLoginType.Pkce)
+        _isSubmitting = true;
+
+        try
         {
-            await SubmitPkceAsync();
+            await OnSubmittingChanged.InvokeAsync(true);
+
+            if (LoginType == UAuthLoginType.Pkce)
+            {
+                await SubmitPkceAsync();
+            }
+            else
+            {
+                await SubmitPasswordAsync();
+            }
         }
-        else
+        finally
         {
-            await SubmitPasswordAsync();
+            _isSubmitting = false;
+            await OnSubmittingChanged.InvokeAsync(false);
         }
     }
 

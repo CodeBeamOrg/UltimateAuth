@@ -29,9 +29,9 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin, UAuthActions.Authorization.Roles.AssignAdmin);
 
@@ -39,7 +39,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -61,9 +61,9 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.RemoveAdmin);
@@ -81,7 +81,7 @@ public sealed class AuthorizationManagementTests
             {
                 UserKey = other.UserKey,
                 RoleName = role.Name
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -97,7 +97,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.RenameAdmin);
@@ -113,7 +113,7 @@ public sealed class AuthorizationManagementTests
             {
                 Id = other.Id,
                 Name = "unexpected-name"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -129,7 +129,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.SetPermissionsAdmin);
@@ -145,7 +145,7 @@ public sealed class AuthorizationManagementTests
             {
                 RoleId = other.Id,
                 Permissions = [Permission.From("test.resource.write")]
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -161,7 +161,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.DeleteAdmin);
@@ -176,7 +176,7 @@ public sealed class AuthorizationManagementTests
             new DeleteRoleRequest
             {
                 Id = other.Id
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -196,7 +196,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.CreateAdmin);
@@ -206,7 +206,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{AdminBase}/roles/create",
             new CreateRoleRequest
             {
@@ -228,7 +228,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.RenameAdmin);
@@ -238,7 +238,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             RoleUrl(role.Id, "rename"),
             new RenameRoleRequest
             {
@@ -261,7 +262,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(
             factory,
@@ -277,7 +278,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             RoleUrl(role.Id, "permissions"),
             new SetRolePermissionsRequest
             {
@@ -307,8 +309,8 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.AssignAdmin);
@@ -317,7 +319,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -336,8 +338,8 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.RemoveAdmin);
@@ -348,7 +350,8 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             UserRolesUrl(target.UserKey, "remove"),
             new RemoveRoleRequest
             {
@@ -367,8 +370,8 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.DeleteAdmin);
@@ -379,7 +382,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, admin);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             RoleUrl(role.Id, "delete"),
             new DeleteRoleRequest
             {
@@ -409,8 +412,8 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(factory, admin,
             UAuthActions.Authorization.Roles.GetAdmin);
@@ -423,12 +426,12 @@ public sealed class AuthorizationManagementTests
 
         using var response = await client.PostAsJsonAsync(
             UserRolesUrl(target.UserKey, "get"),
-            new RoleQuery());
+            new RoleQuery(), cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserRolesGetResult>();
+            .ReadFromJsonAsync<UserRolesGetResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.UserKey.Should().Be(target.UserKey);
@@ -441,7 +444,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var role = await SeedRoleAsync(factory);
 
         await SeedAssignmentAsync(factory, user.UserKey, role.Id);
@@ -450,12 +453,12 @@ public sealed class AuthorizationManagementTests
 
         using var response = await client.PostAsJsonAsync(
             $"{SelfBase}/roles/get",
-            new RoleQuery());
+            new RoleQuery(), cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserRolesGetResult>();
+            .ReadFromJsonAsync<UserRolesGetResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.UserKey.Should().Be(user.UserKey);
@@ -468,7 +471,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(
             factory,
@@ -481,12 +484,12 @@ public sealed class AuthorizationManagementTests
 
         using var response = await client.PostAsJsonAsync(
             $"{AdminBase}/roles/query",
-            new RoleQuery());
+            new RoleQuery(), cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<PagedResult<RoleInfo>>();
+            .ReadFromJsonAsync<PagedResult<RoleInfo>>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -503,12 +506,12 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var target = await factory.CreateLoginUserAsync();
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var role = await SeedRoleAsync(factory);
 
         using var client = CreateClient(factory);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -527,13 +530,13 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var actor = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var actor = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var role = await SeedRoleAsync(factory);
 
         using var client = await AuthenticatedClientAsync(factory, actor);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             UserRolesUrl(target.UserKey, "assign"),
             new AssignRoleRequest
             {
@@ -552,12 +555,12 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var actor = await factory.CreateLoginUserAsync();
+        var actor = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var name = UniqueRoleName();
 
         using var client = await AuthenticatedClientAsync(factory, actor);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{AdminBase}/roles/create",
             new CreateRoleRequest
             {
@@ -576,7 +579,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(
             factory,
@@ -585,7 +588,7 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/check",
             new AuthorizationCheckRequest
             {
@@ -596,7 +599,7 @@ public sealed class AuthorizationManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<AuthorizationResult>();
+            .ReadFromJsonAsync<AuthorizationResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsAllowed.Should().BeTrue();
@@ -607,11 +610,11 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/check",
             new AuthorizationCheckRequest
             {
@@ -622,7 +625,7 @@ public sealed class AuthorizationManagementTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<AuthorizationResult>();
+            .ReadFromJsonAsync<AuthorizationResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsAllowed.Should().BeFalse();
@@ -634,9 +637,9 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var authorizedTarget = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var authorizedTarget = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(
             factory,
@@ -675,9 +678,9 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var admin = await factory.CreateLoginUserAsync();
-        var authorizedTarget = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var authorizedTarget = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         await GrantAsync(
             factory,
@@ -741,13 +744,13 @@ public sealed class AuthorizationManagementTests
             permissions: [],
             now: factory.Clock.UtcNow);
 
-        await storeFactory.Create(tenantA).AddAsync(role);
+        await storeFactory.Create(tenantA).AddAsync(role, TestContext.Current.CancellationToken);
 
         var fromA = await storeFactory.Create(tenantA)
-            .GetAsync(new RoleKey(tenantA, role.Id));
+            .GetAsync(new RoleKey(tenantA, role.Id), TestContext.Current.CancellationToken);
 
         var fromB = await storeFactory.Create(tenantB)
-            .GetAsync(new RoleKey(tenantB, role.Id));
+            .GetAsync(new RoleKey(tenantB, role.Id), TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();
@@ -758,7 +761,7 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var oldPermission = Permission.From("reports.read");
         var newPermission = Permission.From("reports.export");
@@ -775,14 +778,14 @@ public sealed class AuthorizationManagementTests
         using var client = await AuthenticatedClientAsync(factory, user);
 
         // First request: the user has the original permission.
-        using (var response = await client.PostAsJsonAsync(
+        using (var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { }))
         {
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var result = await response.Content
-                .ReadFromJsonAsync<UserPermissionsResult>();
+                .ReadFromJsonAsync<UserPermissionsResult>(cancellationToken: TestContext.Current.CancellationToken);
 
             result.Should().NotBeNull();
 
@@ -798,7 +801,7 @@ public sealed class AuthorizationManagementTests
 
             var store = roleStoreFactory.Create(TenantKeys.Single);
 
-            var stored = await store.GetAsync(new RoleKey(TenantKeys.Single, role.Id));
+            var stored = await store.GetAsync(new RoleKey(TenantKeys.Single, role.Id), TestContext.Current.CancellationToken);
 
             stored.Should().NotBeNull();
 
@@ -812,11 +815,11 @@ public sealed class AuthorizationManagementTests
             stored.Permissions.Should().Contain(newPermission);
             stored.Permissions.Should().NotContain(oldPermission);
 
-            await store.SaveAsync(stored, expectedVersion);
+            await store.SaveAsync(stored, expectedVersion, TestContext.Current.CancellationToken);
 
             // Check persistence using a fresh read.
             var saved = await store.GetAsync(
-                new RoleKey(TenantKeys.Single, role.Id));
+                new RoleKey(TenantKeys.Single, role.Id), TestContext.Current.CancellationToken);
 
             saved.Should().NotBeNull();
             saved!.Permissions.Should().Contain(newPermission);
@@ -840,7 +843,7 @@ public sealed class AuthorizationManagementTests
 
             // 1. Was the role updated?
             var updatedRole = await roleStore.GetAsync(
-                new RoleKey(TenantKeys.Single, role.Id));
+                new RoleKey(TenantKeys.Single, role.Id), TestContext.Current.CancellationToken);
 
             updatedRole.Should().NotBeNull();
 
@@ -849,14 +852,14 @@ public sealed class AuthorizationManagementTests
 
             // 2. Does the user still have the role?
             var assignments = await userRoleStore.GetAssignmentsAsync(
-                user.UserKey);
+                user.UserKey, TestContext.Current.CancellationToken);
 
             assignments.Should().Contain(x => x.RoleId == role.Id);
 
             // 3. Can the permission store resolve the updated permission?
             var permissions = await permissionStore.GetPermissionsAsync(
                 TenantKeys.Single,
-                user.UserKey);
+                user.UserKey, TestContext.Current.CancellationToken);
 
             permissions.Should().Contain(newPermission);
             permissions.Should().NotContain(oldPermission);
@@ -865,12 +868,12 @@ public sealed class AuthorizationManagementTests
         // Second request: the new permission must be visible.
         using (var response = await client.PostAsJsonAsync(
             $"{SelfBase}/permissions/get",
-            new { }))
+            new { }, cancellationToken: TestContext.Current.CancellationToken))
         {
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var result = await response.Content
-                .ReadFromJsonAsync<UserPermissionsResult>();
+                .ReadFromJsonAsync<UserPermissionsResult>(cancellationToken: TestContext.Current.CancellationToken);
 
             result.Should().NotBeNull();
 
@@ -888,7 +891,7 @@ public sealed class AuthorizationManagementTests
 
         using var response = await client.PostAsJsonAsync(
             $"{SelfBase}/permissions/get",
-            new { });
+            new { }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -898,18 +901,18 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserPermissionsResult>();
+            .ReadFromJsonAsync<UserPermissionsResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Permissions.Should().BeEmpty();
@@ -920,8 +923,8 @@ public sealed class AuthorizationManagementTests
     {
         using var factory = NewFactory();
 
-        var user = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var permission = Permission.From("reports.export");
 
@@ -936,14 +939,14 @@ public sealed class AuthorizationManagementTests
 
         using var client = await AuthenticatedClientAsync(factory, user);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"{SelfBase}/permissions/get",
             new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<UserPermissionsResult>();
+            .ReadFromJsonAsync<UserPermissionsResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -967,15 +970,10 @@ public sealed class AuthorizationManagementTests
     private static string RoleUrl(RoleId id, string operation)
         => $"{AdminBase}/roles/{id.Value}/{operation}";
 
-    private static string UserRolesUrl(
-        UserKey userKey,
-        string operation)
+    private static string UserRolesUrl(UserKey userKey, string operation)
         => $"{AdminBase}/users/{userKey.Value}/roles/{operation}";
 
-    private static async Task GrantAsync(
-        AuthServerFactory factory,
-        IntegrationTestUser user,
-        params string[] permissions)
+    private static async Task GrantAsync(AuthServerFactory factory, IntegrationTestUser user, params string[] permissions)
     {
         await factory.GrantPermissionsAsync(
             user.UserKey,
@@ -1002,13 +1000,11 @@ public sealed class AuthorizationManagementTests
         return client;
     }
 
-    private static async Task<HttpClient> AuthenticatedClientAsync(
-        AuthServerFactory factory,
-        IntegrationTestUser user)
+    private static async Task<HttpClient> AuthenticatedClientAsync(AuthServerFactory factory, IntegrationTestUser user)
     {
         var client = CreateClient(factory);
 
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             "/auth/login",
             new
             {
@@ -1032,9 +1028,7 @@ public sealed class AuthorizationManagementTests
         return client;
     }
 
-    private static async Task<Role> SeedRoleAsync(
-        AuthServerFactory factory,
-        IEnumerable<Permission>? permissions = null)
+    private static async Task<Role> SeedRoleAsync(AuthServerFactory factory, IEnumerable<Permission>? permissions = null)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1055,9 +1049,7 @@ public sealed class AuthorizationManagementTests
         return role;
     }
 
-    private static async Task<Role?> ReadRoleAsync(
-        AuthServerFactory factory,
-        RoleId roleId)
+    private static async Task<Role?> ReadRoleAsync(AuthServerFactory factory, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1069,9 +1061,7 @@ public sealed class AuthorizationManagementTests
             .GetAsync(new RoleKey(TenantKeys.Single, roleId));
     }
 
-    private static async Task<Role?> FindRoleByNameAsync(
-        AuthServerFactory factory,
-        string name)
+    private static async Task<Role?> FindRoleByNameAsync(AuthServerFactory factory, string name)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1083,10 +1073,7 @@ public sealed class AuthorizationManagementTests
             .GetByNameAsync(name.ToUpperInvariant());
     }
 
-    private static async Task SeedAssignmentAsync(
-        AuthServerFactory factory,
-        UserKey userKey,
-        RoleId roleId)
+    private static async Task SeedAssignmentAsync(AuthServerFactory factory, UserKey userKey, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 
@@ -1098,10 +1085,7 @@ public sealed class AuthorizationManagementTests
             .AssignAsync(userKey, roleId, factory.Clock.UtcNow);
     }
 
-    private static async Task<bool> HasRoleAsync(
-        AuthServerFactory factory,
-        UserKey userKey,
-        RoleId roleId)
+    private static async Task<bool> HasRoleAsync(AuthServerFactory factory, UserKey userKey, RoleId roleId)
     {
         using var scope = factory.Services.CreateScope();
 

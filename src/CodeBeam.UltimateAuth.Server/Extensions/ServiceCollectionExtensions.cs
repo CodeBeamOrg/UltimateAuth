@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
-using CodeBeam.UltimateAuth.Authorization;
+﻿using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
@@ -11,6 +10,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Credentials.Extensions;
 using CodeBeam.UltimateAuth.Policies.Abstractions;
 using CodeBeam.UltimateAuth.Policies.Defaults;
 using CodeBeam.UltimateAuth.Policies.Registry;
@@ -30,13 +30,15 @@ using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Users;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using CodeBeam.UltimateAuth.Credentials.Extensions;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
 
@@ -315,6 +317,32 @@ public static class ServiceCollectionExtensions
             opt.CustomResolversFirst = true;
         });
 
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-UAuth-CSRF";
+            options.FormFieldName = "__RequestVerificationToken";
+        });
+
+        services.AddOptions<AntiforgeryOptions>().PostConfigure<IOptions<UAuthServerOptions>>((antiforgery, serverOptions) =>
+        {
+            var server = serverOptions.Value;
+
+            var sameSite = server.Antiforgery.CookieSameSite
+                ?? (server.HubDeploymentMode == UAuthHubDeploymentMode.External
+                    ? SameSiteMode.None
+                    : SameSiteMode.Strict);
+
+            antiforgery.Cookie.SameSite = sameSite;
+
+            if (sameSite == SameSiteMode.None)
+            {
+                antiforgery.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            }
+        });
+
+        services.AddScoped<UAuthCsrfPolicyEvaluator>();
+        services.AddScoped<UAuthCsrfValidator>();
+
         return services;
     }
 
@@ -448,7 +476,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
         services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
 
-        services.TryAddScoped<ISessionIdResolver, CompositeSessionIdResolver>();
+        services.TryAddScoped<ISessionIdResolver, ResourceCompositeSessionIdResolver>();
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();

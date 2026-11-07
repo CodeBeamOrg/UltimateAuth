@@ -40,19 +40,19 @@ public class UAuthResourceClientTests
         switch (method)
         {
             case "GET":
-                await client.GetAsync<TestProduct>("/api/products");
+                await client.GetAsync<TestProduct>("/api/products", ct: TestContext.Current.CancellationToken);
                 break;
 
             case "POST":
-                await client.PostAsync<TestProduct>("/api/products", payload);
+                await client.PostAsync<TestProduct>("/api/products", payload, ct: TestContext.Current.CancellationToken);
                 break;
 
             case "PUT":
-                await client.PutAsync<TestProduct>("/api/products", payload);
+                await client.PutAsync<TestProduct>("/api/products", payload, ct: TestContext.Current.CancellationToken);
                 break;
 
             case "PATCH":
-                await client.PatchAsync<TestProduct>("/api/products", payload);
+                await client.PatchAsync<TestProduct>("/api/products", payload, ct: TestContext.Current.CancellationToken);
                 break;
         }
 
@@ -82,7 +82,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .GetAsync<TestProduct>("/api/products/1");
+            .GetAsync<TestProduct>("/api/products/1", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Status.Should().Be(200);
@@ -108,7 +108,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .GetAsync<TestProduct>("/api/products/1");
+            .GetAsync<TestProduct>("/api/products/1", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Status.Should().Be(204);
@@ -138,7 +138,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .GetAsync<TestProduct>("/api/products");
+            .GetAsync<TestProduct>("/api/products", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Status.Should().Be(403);
@@ -164,7 +164,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .GetAsync<TestProduct>("/api/products");
+            .GetAsync<TestProduct>("/api/products", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Status.Should().Be(500);
@@ -187,7 +187,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .DeleteAsync("/api/products/1");
+            .DeleteAsync("/api/products/1", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.Status.Should().Be(204);
@@ -211,7 +211,7 @@ public class UAuthResourceClientTests
             });
 
         var result = await CreateClient()
-            .DeleteAsync("/api/products/1");
+            .DeleteAsync("/api/products/1", ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Status.Should().Be(404);

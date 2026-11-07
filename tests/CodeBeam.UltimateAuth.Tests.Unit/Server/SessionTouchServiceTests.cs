@@ -25,7 +25,7 @@ public sealed class SessionTouchServiceTests
             SessionValidationResult.Invalid(SessionState.Revoked),
             Policy(),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -50,7 +50,7 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -71,7 +71,7 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -86,7 +86,7 @@ public sealed class SessionTouchServiceTests
         var store = factory.Create(validation.Tenant);
 
         var chain = CreateChain(validation, Now.AddMinutes(-2));
-        await store.CreateChainAsync(chain);
+        await store.CreateChainAsync(chain, ct: TestContext.Current.CancellationToken);
 
         var sut = new SessionTouchService(factory);
 
@@ -94,7 +94,7 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -109,7 +109,7 @@ public sealed class SessionTouchServiceTests
 
         var store = factory.Create(validation.Tenant);
         var revoked = chain.Revoke(Now.AddMinutes(-1));
-        await store.SaveChainAsync(revoked, chain.Version);
+        await store.SaveChainAsync(revoked, chain.Version, ct: TestContext.Current.CancellationToken);
 
         var sut = new SessionTouchService(factory);
 
@@ -117,13 +117,13 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
         result.DidTouch.Should().BeFalse();
 
-        var persisted = await store.GetChainAsync(chain.ChainId);
+        var persisted = await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted!.IsRevoked.Should().BeTrue();
         persisted.TouchCount.Should().Be(revoked.TouchCount);
@@ -139,10 +139,10 @@ public sealed class SessionTouchServiceTests
         var store = factory.Create(validation.Tenant);
         var revoked = session.Revoke(Now.AddMinutes(-1));
 
-        await store.SaveSessionAsync(revoked, session.Version);
+        await store.SaveSessionAsync(revoked, session.Version, ct: TestContext.Current.CancellationToken);
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.IfNeeded, Now);
+            validation, Policy(), SessionTouchMode.IfNeeded, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -158,7 +158,7 @@ public sealed class SessionTouchServiceTests
                 sessionExpiresAt: Now);
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.Force, Now);
+            validation, Policy(), SessionTouchMode.Force, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -175,7 +175,7 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(idleTimeout: TimeSpan.FromMinutes(10)),
             SessionTouchMode.Force,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.RequiresReauth.Should().BeTrue();
@@ -189,15 +189,15 @@ public sealed class SessionTouchServiceTests
             await CreateValidSessionAsync(Now.AddMinutes(-4));
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.IfNeeded, Now);
+            validation, Policy(), SessionTouchMode.IfNeeded, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.RequiresReauth.Should().BeFalse();
         result.DidTouch.Should().BeFalse();
 
         var store = factory.Create(validation.Tenant);
-        var persistedChain = await store.GetChainAsync(chain.ChainId);
-        var persistedSession = await store.GetSessionAsync(session.SessionId);
+        var persistedChain = await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
+        var persistedSession = await store.GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
 
         persistedChain!.LastSeenAt.Should().Be(chain.LastSeenAt);
         persistedChain.TouchCount.Should().Be(0);
@@ -214,14 +214,14 @@ public sealed class SessionTouchServiceTests
             await CreateValidSessionAsync(Now.AddMinutes(-6));
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.IfNeeded, Now);
+            validation, Policy(), SessionTouchMode.IfNeeded, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
         result.SessionId.Should().Be(validation.SessionId);
 
         var persisted = await factory.Create(validation.Tenant)
-            .GetChainAsync(chain.ChainId);
+            .GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted!.LastSeenAt.Should().Be(Now);
         persisted.TouchCount.Should().Be(1);
@@ -235,13 +235,13 @@ public sealed class SessionTouchServiceTests
             await CreateValidSessionAsync(Now.AddMinutes(-5));
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.IfNeeded, Now);
+            validation, Policy(), SessionTouchMode.IfNeeded, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
 
         var persisted = await factory.Create(validation.Tenant)
-            .GetChainAsync(chain.ChainId);
+            .GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted!.LastSeenAt.Should().Be(Now);
         persisted.TouchCount.Should().Be(1);
@@ -256,13 +256,13 @@ public sealed class SessionTouchServiceTests
         var policy = PolicyWithoutTouchInterval();
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, policy, SessionTouchMode.IfNeeded, Now);
+            validation, policy, SessionTouchMode.IfNeeded, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
 
         var persisted = await factory.Create(validation.Tenant)
-            .GetChainAsync(chain.ChainId);
+            .GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted!.LastSeenAt.Should().Be(Now);
         persisted.TouchCount.Should().Be(1);
@@ -275,13 +275,13 @@ public sealed class SessionTouchServiceTests
             await CreateValidSessionAsync(Now.AddMinutes(-1));
 
         var result = await new SessionTouchService(factory).RefreshAsync(
-            validation, Policy(), SessionTouchMode.Force, Now);
+            validation, Policy(), SessionTouchMode.Force, Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
 
         var persisted = await factory.Create(validation.Tenant)
-            .GetChainAsync(chain.ChainId);
+            .GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persisted!.LastSeenAt.Should().Be(Now);
     }
@@ -302,14 +302,14 @@ public sealed class SessionTouchServiceTests
                 slidingExpiration: true,
                 lifetime: TimeSpan.FromHours(1)),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
 
         var store = factory.Create(validation.Tenant);
-        var persistedSession = await store.GetSessionAsync(session.SessionId);
-        var persistedChain = await store.GetChainAsync(chain.ChainId);
+        var persistedSession = await store.GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
+        var persistedChain = await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         persistedSession!.ExpiresAt.Should().Be(Now.AddHours(1));
         persistedSession.Version.Should().Be(session.Version + 1);
@@ -330,13 +330,13 @@ public sealed class SessionTouchServiceTests
             validation,
             Policy(slidingExpiration: false),
             SessionTouchMode.IfNeeded,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
         result.DidTouch.Should().BeTrue();
 
         var persisted = await factory.Create(validation.Tenant)
-            .GetSessionAsync(session.SessionId);
+            .GetSessionAsync(session.SessionId, ct: TestContext.Current.CancellationToken);
 
         persisted!.ExpiresAt.Should().Be(originalExpiry);
         persisted.Version.Should().Be(session.Version);

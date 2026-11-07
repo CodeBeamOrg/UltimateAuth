@@ -119,7 +119,7 @@ public abstract class SessionStoreSessionContractTests
                 Tenant);
 
         var result = await store.GetSessionAsync(
-            session.SessionId);
+            session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -141,7 +141,7 @@ public abstract class SessionStoreSessionContractTests
         var store = db.CreateStore(Tenant);
 
         var result = await store.GetSessionAsync(
-            NewSessionId());
+            NewSessionId(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -221,11 +221,11 @@ public abstract class SessionStoreSessionContractTests
             ct => store.SaveSessionAsync(
                 updated,
                 expectedVersion: session.Version,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetSessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsRevoked.Should().BeTrue();
@@ -306,12 +306,12 @@ public abstract class SessionStoreSessionContractTests
                 session.SessionId,
                 Now.AddMinutes(10),
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         revoked.Should().BeTrue();
 
         var result = await store.GetSessionAsync(
-            session.SessionId);
+            session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsRevoked.Should().BeTrue();
@@ -333,7 +333,7 @@ public abstract class SessionStoreSessionContractTests
                 NewSessionId(),
                 Now,
                 ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -353,7 +353,7 @@ public abstract class SessionStoreSessionContractTests
             ct => store.RevokeSessionAsync(
                 session.SessionId,
                 Now.AddMinutes(5),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         bool secondResult = true;
 
@@ -364,13 +364,13 @@ public abstract class SessionStoreSessionContractTests
                     session.SessionId,
                     Now.AddMinutes(10),
                     ct);
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         secondResult.Should().BeFalse();
 
         var result =
             await store.GetSessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.RevokedAt.Should().Be(
@@ -396,11 +396,11 @@ public abstract class SessionStoreSessionContractTests
         await store.ExecuteAsync(
             ct => store.RemoveSessionAsync(
                 session.SessionId,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetSessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -437,7 +437,7 @@ public abstract class SessionStoreSessionContractTests
 
         var result =
             await store.GetChainIdBySessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         result.Should().Be(chain.ChainId);
     }
@@ -449,7 +449,7 @@ public abstract class SessionStoreSessionContractTests
         var store = db.CreateStore(Tenant);
 
         var result = await store.GetChainIdBySessionAsync(
-            NewSessionId());
+            NewSessionId(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -474,10 +474,10 @@ public abstract class SessionStoreSessionContractTests
             chainA.ChainId);
 
         await store.ExecuteAsync(
-            ct => store.CreateSessionAsync(a2, ct));
+            ct => store.CreateSessionAsync(a2, ct), ct: TestContext.Current.CancellationToken);
 
         var root =
-            await store.GetActiveRootByUserAsync(user);
+            await store.GetActiveRootByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         root.Should().NotBeNull();
 
@@ -493,7 +493,7 @@ public abstract class SessionStoreSessionContractTests
             root.SecurityVersion);
 
         await store.ExecuteAsync(
-            ct => store.CreateChainAsync(chainB, ct));
+            ct => store.CreateChainAsync(chainB, ct), ct: TestContext.Current.CancellationToken);
 
         var b1 = CreateSession(
             Tenant,
@@ -501,11 +501,11 @@ public abstract class SessionStoreSessionContractTests
             chainB.ChainId);
 
         await store.ExecuteAsync(
-            ct => store.CreateSessionAsync(b1, ct));
+            ct => store.CreateSessionAsync(b1, ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetSessionsByChainAsync(
-                chainA.ChainId);
+                chainA.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
 
@@ -542,11 +542,11 @@ public abstract class SessionStoreSessionContractTests
 
         var fromA =
             await storeA.GetSessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         var fromB =
             await storeB.GetSessionAsync(
-                session.SessionId);
+                session.SessionId, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();

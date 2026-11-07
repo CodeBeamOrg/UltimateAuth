@@ -28,7 +28,7 @@ public class RateLimitingTests
             if (response.Headers.RetryAfter is not null)
                 Assert.True(response.Headers.RetryAfter.Delta > TimeSpan.Zero);
             Assert.True(response.Headers.CacheControl?.NoStore);
-            Assert.Contains("rate_limited", await response.Content.ReadAsStringAsync());
+            Assert.Contains("rate_limited", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         foreach (var route in new[] { "/auth/validate", "/auth/refresh", "/auth/logout" })
             Assert.Equal(HttpStatusCode.NoContent, (await host.Post(route)).StatusCode);
@@ -178,12 +178,15 @@ public class RateLimitingTests
 /auth/uauthhub/entry|HubEntry|Sensitive
 /auth/users/create|UserCreateAnonymous|Sensitive
 /auth/validate|Validate|Frequent
+/auth/antiforgery/token|AntiforgeryToken|Frequent
 """;
         var actual = routes.Cast<RouteEndpoint>().Select(endpoint =>
         {
             var metadata = Assert.Single(endpoint.Metadata, m => m.GetType().Name == "UAuthRateLimitMetadata");
             var type = metadata.GetType();
-            Assert.Equal(new[] { "POST" }, endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods);
+            var expectedMethods = endpoint.RoutePattern.RawText == "/auth/antiforgery/token" ? new[] { "GET" } : new[] { "POST" };
+
+            Assert.Equal(expectedMethods, endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods);
             return $"{endpoint.RoutePattern.RawText}|{type.GetProperty("Endpoint")!.GetValue(metadata)}|{type.GetProperty("Group")!.GetValue(metadata)}";
         }).OrderBy(x => x, StringComparer.Ordinal).ToArray();
         Assert.Equal(expected.Split('\n').Select(x => x.Trim()).OrderBy(x => x, StringComparer.Ordinal), actual);

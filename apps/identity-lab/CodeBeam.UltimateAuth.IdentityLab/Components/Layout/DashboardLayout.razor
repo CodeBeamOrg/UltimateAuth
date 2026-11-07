@@ -118,85 +118,110 @@
                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
             </div>
 
-            <MudNavMenu>
-                <div class="lab-nav-label">WORKSPACE</div>
-
-                <UAuthStateView Roles="Ladmin">
-                    <MudNavLink Href="/admin" Icon="@Icons.Material.Filled.AdminPanelSettings">
-                        Platform Administration
-                    </MudNavLink>
-                </UAuthStateView>
-
-                <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-                    Overview
-                </MudNavLink>
-
-                <div class="lab-nav-label">PERSONAL</div>
-
-                <MudNavLink Href="/dashboard/identity" Icon="@Icons.Material.Filled.Badge">
-                    My Identity
-                </MudNavLink>
-
-                <MudNavLink Href="/dashboard/sessions" Icon="@Icons.Material.Filled.Devices">
-                    My Sessions
-                </MudNavLink>
-
-                <MudNavLink Href="/dashboard/session-diagnostics" Icon="@Icons.Material.Filled.MonitorHeart">
-                    Session Diagnostics
-                </MudNavLink>
-
-                <MudNavLink Href="/dashboard/access" Icon="@Icons.Material.Filled.VerifiedUser">
-                    My Access
-                </MudNavLink>
-
-                <MudNavLink Href="/dashboard/authorization-lab" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Security">
-                    Authorization Lab
-                </MudNavLink>
-
-                @if (ShowManagement)
-                {
-                    <div class="lab-nav-label">SANDBOX MANAGEMENT</div>
-
-                    <MudNavLink Href="/dashboard/users" Icon="@Icons.Material.Filled.People">
-                        Users
-                    </MudNavLink>
-
-                    <MudNavLink Href="/dashboard/authorization" Icon="@Icons.Material.Filled.AdminPanelSettings">
-                        Authorization
-                    </MudNavLink>
-
-                    <MudNavLink Href="/dashboard/activity" Icon="@Icons.Material.Filled.History">
-                        Activity
-                    </MudNavLink>
-
-                    <MudNavLink Href="/dashboard/settings" Icon="@Icons.Material.Filled.Settings">
-                        Settings
-                    </MudNavLink>
-                }
-
+            <div class="lab-sidebar-navigation">
                 <MudNavMenu>
-                    <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
-                        Sign Out
+                    <div class="lab-nav-label">WORKSPACE</div>
+
+                    <UAuthStateView Roles="Ladmin">
+                        <MudNavLink Href="/admin" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                            Platform Administration
+                        </MudNavLink>
+                    </UAuthStateView>
+
+                    <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+                        Overview
+                    </MudNavLink>
+
+                    <div class="lab-nav-label">PERSONAL</div>
+
+                    <MudNavLink Href="/dashboard/identity" Icon="@Icons.Material.Filled.Badge">
+                        My Identity
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/sessions" Icon="@Icons.Material.Filled.Devices">
+                        My Sessions
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/session-diagnostics" Icon="@Icons.Material.Filled.MonitorHeart">
+                        Session Diagnostics
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/access" Icon="@Icons.Material.Filled.VerifiedUser">
+                        My Access
+                    </MudNavLink>
+
+                    <MudNavLink Href="/dashboard/authorization-lab" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Security">
+                        Authorization Lab
+                    </MudNavLink>
+
+                    @if (ShowManagement)
+                    {
+                        <div class="lab-nav-label">SANDBOX MANAGEMENT</div>
+
+                        <MudNavLink Href="/dashboard/users" Icon="@Icons.Material.Filled.People">
+                            Users
+                        </MudNavLink>
+
+                        <MudNavLink Href="/dashboard/authorization" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                            Authorization
+                        </MudNavLink>
+
+                        <MudNavLink Href="/dashboard/activity" Icon="@Icons.Material.Filled.History">
+                            Activity
+                        </MudNavLink>
+
+                        <MudNavLink Href="/dashboard/settings" Icon="@Icons.Material.Filled.Settings">
+                            Settings
+                        </MudNavLink>
+                    }
+
+                    <MudNavMenu>
+                        <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
+                            Sign Out
+                        </MudNavLink>
+                    </MudNavMenu>
+
+                    <div class="lab-nav-label">PLAYGROUND</div>
+
+                    <MudNavLink Href="/dashboard/demo-store" Icon="@Icons.Material.Filled.Storefront">
+                        Demo Store
                     </MudNavLink>
                 </MudNavMenu>
-
-                <div class="lab-nav-label">PLAYGROUND</div>
-
-                <MudNavLink Href="/dashboard/demo-store" Icon="@Icons.Material.Filled.Storefront">
-                    Demo Store
-                </MudNavLink>
-            </MudNavMenu>
-
-            <MudSpacer />
-
-            <div class="lab-sidebar-bottom">
-                <MudImage Src="ultimateauth-logo.png" Width="28" Height="28" />
-                <MudText Typo="Typo.caption">Powered by UltimateAuth</MudText>
             </div>
-            <MudStack Row="true" Justify="Justify.SpaceBetween">
-                <MudText Typo="Typo.caption">v @UltimateAuthVersion</MudText>
-                <MudText Typo="Typo.caption">.NET @LabVersionInfo.DotNetVersion</MudText>
-            </MudStack>
+
+            <div class="lab-sidebar-footer">
+                <div class="lab-sidebar-product">
+                    <a href="https://ultimateauth.com"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="lab-sidebar-product-brand">
+
+                        <span class="lab-sidebar-product-icon">
+                            <MudImage Src="ultimateauth-logo.png" Width="28" Height="28" />
+                        </span>
+
+                        <span class="lab-sidebar-product-info">
+                            <strong>Powered by UltimateAuth</strong>
+                            <small>Identity Lab</small>
+                        </span>
+                    </a>
+
+                    <div class="lab-sidebar-product-meta">
+                        <a href="https://github.com/CodeBeamOrg/UltimateAuth/releases"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="UltimateAuth releases">
+                            <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Size="Size.Small" />
+                            <span>@UltimateAuthVersion</span>
+                        </a>
+
+                        <span class="lab-sidebar-product-runtime">
+                            <MudIcon Icon="@Icons.Material.Outlined.Code" Size="Size.Small" />
+                            <span>.NET @LabVersionInfo.DotNetVersion</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     </MudDrawer>
 

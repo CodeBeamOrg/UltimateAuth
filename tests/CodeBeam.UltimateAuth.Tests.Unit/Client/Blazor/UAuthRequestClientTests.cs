@@ -41,7 +41,7 @@ public sealed class UAuthRequestClientTests : BunitContext
     public async Task NavigateAsync_InvokesUAuthPost()
     {
         var sut = CreateSut();
-        await sut.NavigateAsync("/login");
+        await sut.NavigateAsync("/login", ct: Xunit.TestContext.Current.CancellationToken);
 
         var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
         invocation.Arguments.Should().ContainSingle();
@@ -61,7 +61,7 @@ public sealed class UAuthRequestClientTests : BunitContext
             .SetResult(expected);
 
         var sut = CreateSut();
-        var result = await sut.SendFormAsync("/login");
+        var result = await sut.SendFormAsync("/login", ct: Xunit.TestContext.Current.CancellationToken);
         result.Should().BeSameAs(expected);
     }
 
@@ -153,7 +153,7 @@ public sealed class UAuthRequestClientTests : BunitContext
         JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
             .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { status = 429, retryAfter = "45", isSuccess = false }));
         var error = await Assert.ThrowsAsync<UAuthTransportException>(() =>
-            CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }));
+            CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }, ct: Xunit.TestContext.Current.CancellationToken));
         Assert.Equal(System.Net.HttpStatusCode.TooManyRequests, error.StatusCode);
         Assert.Equal("rate_limited", error.Code);
         Assert.Equal(TimeSpan.FromSeconds(45), error.RetryAfter);
@@ -164,7 +164,7 @@ public sealed class UAuthRequestClientTests : BunitContext
     {
         JSInterop.Setup<System.Text.Json.JsonElement>("uauth.tryAndCommit", _ => true)
             .SetResult(System.Text.Json.JsonSerializer.SerializeToElement(new { isSuccess = true, previewReceipt = "receipt" }));
-        var result = await CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { });
+        var result = await CreateSut().TryAndCommitAsync<CodeBeam.UltimateAuth.Core.Contracts.TryLoginResult>("/try", "/commit", new { }, ct: Xunit.TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess);
         Assert.Equal("receipt", result.PreviewReceipt);
     }
@@ -174,7 +174,7 @@ public sealed class UAuthRequestClientTests : BunitContext
     {
         JSInterop.Setup<UAuthTransportResult>("uauth.post", _ => true)
             .SetResult(new UAuthTransportResult { Status = 429, RetryAfter = "15" });
-        var result = await CreateSut().SendFormAsync("/auth/logout", null, navigateOnSuccess: true);
+        var result = await CreateSut().SendFormAsync("/auth/logout", null, navigateOnSuccess: true, ct: Xunit.TestContext.Current.CancellationToken);
         Assert.Equal(429, result.Status);
         Assert.Equal("15", result.RetryAfter);
         var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
@@ -196,7 +196,7 @@ public sealed class UAuthRequestClientTests : BunitContext
         var sut = CreateSut(basePath: basePath);
 
         // Act
-        await sut.SendFormAsync("/auth/validate");
+        await sut.SendFormAsync("/auth/validate", ct: Xunit.TestContext.Current.CancellationToken);
 
         // Assert
         var invocation = JSInterop.Invocations

@@ -42,13 +42,13 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 UserName = username,
                 Password = secret,
                 DisplayName = "Integration User"
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.OK);
 
         var result =
-            await response.Content.ReadFromJsonAsync<UserCreateResult>();
+            await response.Content.ReadFromJsonAsync<UserCreateResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsSuccess.Should().BeTrue();
@@ -57,13 +57,16 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         //
         // The aggregate must be usable, not merely persisted.
         //
-        var login = await client.PostAsJsonAsync(
+        var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
                 identifier = username,
                 secret
             });
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
 
         login.StatusCode.Should()
             .Be(HttpStatusCode.Found);
@@ -97,7 +100,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         var lifecycle = await store.GetAsync(
             new UserLifecycleKey(
                 TenantKeys.Single,
-                userKey));
+                userKey), TestContext.Current.CancellationToken);
 
         lifecycle.Should().NotBeNull();
 
@@ -148,7 +151,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             new UserProfileKey(
                 TenantKeys.Single,
                 userKey,
-                ProfileKey.Default));
+                ProfileKey.Default), TestContext.Current.CancellationToken);
 
         profile.Should().NotBeNull();
 
@@ -193,7 +196,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         var identifiers =
             await store.GetByUserAsync(
-                userKey);
+                userKey, TestContext.Current.CancellationToken);
 
         var identifier = identifiers
             .Single(x =>
@@ -230,7 +233,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         using var scope = _factory.Services.CreateScope();
         var factory = scope.ServiceProvider.GetRequiredService<IUserIdentifierStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var identifiers = await store.GetByUserAsync(userKey);
+        var identifiers = await store.GetByUserAsync(userKey, TestContext.Current.CancellationToken);
         var identifier = identifiers.Single(x => x.Type == UserIdentifierType.Email);
         
         identifier.Value.Should().Be(email);
@@ -272,7 +275,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         var identifiers =
             await store.GetByUserAsync(
-                userKey);
+                userKey, TestContext.Current.CancellationToken);
 
         var identifier = identifiers
             .Single(x =>
@@ -317,7 +320,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         var identifiers =
             await store.GetByUserAsync(
-                userKey);
+                userKey, TestContext.Current.CancellationToken);
 
         identifiers.Should()
             .ContainSingle(x =>
@@ -355,13 +358,16 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         // lifecycle integration produced a credential that
         // the authentication pipeline can consume.
         //
-        var login = await client.PostAsJsonAsync(
+        var login = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
                 identifier = username,
                 secret
             });
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
 
         login.StatusCode.Should()
             .Be(HttpStatusCode.Found);
@@ -388,7 +394,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         var firstResult =
             await firstResponse.Content
-                .ReadFromJsonAsync<UserCreateResult>();
+                .ReadFromJsonAsync<UserCreateResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         firstResult.Should().NotBeNull();
         firstResult!.IsSuccess.Should().BeTrue();
@@ -409,7 +415,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         ((int)secondResponse.StatusCode).Should().BeInRange(400, 499);
 
-        var problem = await secondResponse.Content.ReadFromJsonAsync<UAuthProblem>();
+        var problem = await secondResponse.Content.ReadFromJsonAsync<UAuthProblem>(cancellationToken: TestContext.Current.CancellationToken);
 
         problem.Should().NotBeNull();
 
@@ -440,7 +446,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
         var identifier =
             await store.GetAsync(
                 UserIdentifierType.Username,
-                normalized.Normalized);
+                normalized.Normalized, TestContext.Current.CancellationToken);
 
         identifier.Should().NotBeNull();
 
@@ -489,7 +495,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 .GetAsync(
                     new UserLifecycleKey(
                         TenantKeys.Single,
-                        userKey));
+                        userKey), TestContext.Current.CancellationToken);
 
         var profile =
             await profileFactory
@@ -498,13 +504,13 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                     new UserProfileKey(
                         TenantKeys.Single,
                         userKey,
-                        ProfileKey.Default));
+                        ProfileKey.Default), TestContext.Current.CancellationToken);
 
         var identifiers =
             await identifierFactory
                 .Create(TenantKeys.Single)
                 .GetByUserAsync(
-                    userKey);
+                    userKey, TestContext.Current.CancellationToken);
 
         lifecycle.Should().NotBeNull();
         profile.Should().NotBeNull();
@@ -562,7 +568,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         foreach (var name in names)
         {
-            var user = await factory.CreateLoginUserAsync();
+            var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
             using var seedScope = factory.Services.CreateScope();
 
@@ -577,7 +583,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                     user.UserKey,
                     ProfileKey.Default,
                     factory.Clock.UtcNow,
-                    displayName: $"{prefix}-{name}"));
+                    displayName: $"{prefix}-{name}"), TestContext.Current.CancellationToken);
         }
 
         using var scope = factory.Services.CreateScope();
@@ -610,7 +616,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 PageSize = 0,
                 Search = prefix,
                 SortBy = nameof(UserSummary.DisplayName)
-            });
+            }, TestContext.Current.CancellationToken);
 
         firstPage.TotalCount.Should().Be(5);
         firstPage.PageNumber.Should().Be(1);
@@ -631,7 +637,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
                 PageSize = 100,
                 Search = prefix,
                 SortBy = nameof(UserSummary.DisplayName)
-            });
+            }, TestContext.Current.CancellationToken);
 
         secondPage.TotalCount.Should().Be(5);
         secondPage.PageNumber.Should().Be(2);
@@ -651,7 +657,8 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
 
         using var client = CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/admin/users/create",
             new CreateUserRequest
             {

@@ -59,14 +59,14 @@ public abstract class UserProfileStoreContractTests
 
         var profile = CreateProfile(TenantA);
 
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         var key = new UserProfileKey(
             TenantA,
             profile.UserKey,
             profile.ProfileKey);
 
-        var persisted = await store.GetAsync(key);
+        var persisted = await store.GetAsync(key, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Id.Should().Be(profile.Id);
@@ -91,7 +91,7 @@ public abstract class UserProfileStoreContractTests
             new UserProfileKey(
                 TenantA,
                 UserKey.New(),
-                ProfileKey.Default));
+                ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -103,13 +103,13 @@ public abstract class UserProfileStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var profile = CreateProfile(TenantA);
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
             new UserProfileKey(
                 TenantA,
                 profile.UserKey,
-                profile.ProfileKey));
+                profile.ProfileKey), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
     }
@@ -124,7 +124,7 @@ public abstract class UserProfileStoreContractTests
             new UserProfileKey(
                 TenantA,
                 UserKey.New(),
-                ProfileKey.Default));
+                ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -138,7 +138,7 @@ public abstract class UserProfileStoreContractTests
         var user = UserKey.New();
 
         await store.AddAsync(
-            CreateProfile(TenantA, user));
+            CreateProfile(TenantA, user), ct: TestContext.Current.CancellationToken);
 
         var duplicate = CreateProfile(
             TenantA,
@@ -171,10 +171,10 @@ public abstract class UserProfileStoreContractTests
             user,
             secondaryKey);
 
-        await store.AddAsync(defaultProfile);
-        await store.AddAsync(workProfile);
+        await store.AddAsync(defaultProfile, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(workProfile, ct: TestContext.Current.CancellationToken);
 
-        var profiles = await store.GetAllProfilesByUserAsync(user);
+        var profiles = await store.GetAllProfilesByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         profiles.Should().HaveCount(2);
         profiles.Select(x => x.ProfileKey)
@@ -209,7 +209,7 @@ public abstract class UserProfileStoreContractTests
 
         var profile = CreateProfile(TenantA);
 
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         var changedAt = Now.AddMinutes(10);
 
@@ -241,13 +241,13 @@ public abstract class UserProfileStoreContractTests
 
         await store.SaveAsync(
             profile,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
             new UserProfileKey(
                 TenantA,
                 profile.UserKey,
-                profile.ProfileKey));
+                profile.ProfileKey), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -294,7 +294,7 @@ public abstract class UserProfileStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var profile = CreateProfile(TenantA);
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         profile.UpdateName(
             "First",
@@ -302,7 +302,7 @@ public abstract class UserProfileStoreContractTests
             "First Update",
             Now.AddMinutes(1));
 
-        await store.SaveAsync(profile, 0);
+        await store.SaveAsync(profile, 0, ct: TestContext.Current.CancellationToken);
 
         profile.UpdateName(
             "Second",
@@ -329,7 +329,7 @@ public abstract class UserProfileStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var profile = CreateProfile(TenantA);
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         var deletedAt = Now.AddHours(1);
 
@@ -340,13 +340,13 @@ public abstract class UserProfileStoreContractTests
                 profile.ProfileKey),
             expectedVersion: 0,
             DeleteMode.Soft,
-            deletedAt);
+            deletedAt, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
             new UserProfileKey(
                 TenantA,
                 profile.UserKey,
-                profile.ProfileKey));
+                profile.ProfileKey), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsDeleted.Should().BeTrue();
@@ -366,16 +366,16 @@ public abstract class UserProfileStoreContractTests
             profile.UserKey,
             profile.ProfileKey);
 
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             key,
             0,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetAsync(key)).Should().BeNull();
-        (await store.ExistsAsync(key)).Should().BeFalse();
+        (await store.GetAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeNull();
+        (await store.ExistsAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public abstract class UserProfileStoreContractTests
             profile.UserKey,
             profile.ProfileKey);
 
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         profile.UpdateName(
             "Changed",
@@ -417,7 +417,7 @@ public abstract class UserProfileStoreContractTests
             null,
             Now.AddMinutes(1));
 
-        await store.SaveAsync(profile, 0);
+        await store.SaveAsync(profile, 0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.DeleteAsync(
             key,
@@ -456,7 +456,7 @@ public abstract class UserProfileStoreContractTests
         var storeB = db.CreateStore(TenantB);
 
         var profile = CreateProfile(TenantB);
-        await storeB.AddAsync(profile);
+        await storeB.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         var act = () => storeA.SaveAsync(
             profile,
@@ -474,14 +474,14 @@ public abstract class UserProfileStoreContractTests
         var storeA = db.CreateStore(TenantA);
         var storeB = db.CreateStore(TenantB);
 
-        await storeA.AddAsync(CreateProfile(TenantA));
-        await storeB.AddAsync(CreateProfile(TenantB));
+        await storeA.AddAsync(CreateProfile(TenantA), ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(CreateProfile(TenantB), ct: TestContext.Current.CancellationToken);
 
         var resultA = await storeA.QueryAsync(
-            new UserProfileQuery());
+            new UserProfileQuery(), ct: TestContext.Current.CancellationToken);
 
         var resultB = await storeB.QueryAsync(
-            new UserProfileQuery());
+            new UserProfileQuery(), ct: TestContext.Current.CancellationToken);
 
         resultA.Items.Should().ContainSingle();
         resultA.Items.Single().Tenant.Should().Be(TenantA);
@@ -514,8 +514,8 @@ public abstract class UserProfileStoreContractTests
             user,
             secondaryKey);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(
@@ -524,10 +524,10 @@ public abstract class UserProfileStoreContractTests
                 secondaryKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result =
-            await store.GetAllProfilesByUserAsync(user);
+            await store.GetAllProfilesByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().ProfileKey.Should().Be(ProfileKey.Default);
@@ -542,11 +542,11 @@ public abstract class UserProfileStoreContractTests
         var userA = UserKey.New();
         var userB = UserKey.New();
 
-        await store.AddAsync(CreateProfile(TenantA, userA));
-        await store.AddAsync(CreateProfile(TenantA, userB));
+        await store.AddAsync(CreateProfile(TenantA, userA), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(CreateProfile(TenantA, userB), ct: TestContext.Current.CancellationToken);
 
         var result =
-            await store.GetAllProfilesByUserAsync(userA);
+            await store.GetAllProfilesByUserAsync(userA, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().UserKey.Should().Be(userA);
@@ -562,13 +562,13 @@ public abstract class UserProfileStoreContractTests
         var userB = UserKey.New();
         var userC = UserKey.New();
 
-        await store.AddAsync(CreateProfile(TenantA, userA));
-        await store.AddAsync(CreateProfile(TenantA, userB));
-        await store.AddAsync(CreateProfile(TenantA, userC));
+        await store.AddAsync(CreateProfile(TenantA, userA), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(CreateProfile(TenantA, userB), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(CreateProfile(TenantA, userC), ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByUsersAsync(
             [userA, userB],
-            ProfileKey.Default);
+            ProfileKey.Default, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
 
@@ -589,8 +589,8 @@ public abstract class UserProfileStoreContractTests
         var first = CreateProfile(TenantA, userA);
         var second = CreateProfile(TenantA, userB);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(
@@ -599,11 +599,11 @@ public abstract class UserProfileStoreContractTests
                 ProfileKey.Default),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByUsersAsync(
             [userA, userB],
-            ProfileKey.Default);
+            ProfileKey.Default, ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().UserKey.Should().Be(userA);
@@ -622,8 +622,8 @@ public abstract class UserProfileStoreContractTests
         var active = CreateProfile(TenantA);
         var deleted = CreateProfile(TenantA);
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(
@@ -632,10 +632,10 @@ public abstract class UserProfileStoreContractTests
                 deleted.ProfileKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
-            new UserProfileQuery());
+            new UserProfileQuery(), ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().Id.Should().Be(active.Id);
@@ -651,8 +651,8 @@ public abstract class UserProfileStoreContractTests
         var active = CreateProfile(TenantA);
         var deleted = CreateProfile(TenantA);
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(
@@ -661,13 +661,13 @@ public abstract class UserProfileStoreContractTests
                 deleted.ProfileKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserProfileQuery
             {
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(2);
@@ -686,19 +686,19 @@ public abstract class UserProfileStoreContractTests
         await store.AddAsync(
             CreateProfile(
                 TenantA,
-                profileKey: ProfileKey.Default));
+                profileKey: ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         var work = CreateProfile(
             TenantA,
             profileKey: workKey);
 
-        await store.AddAsync(work);
+        await store.AddAsync(work, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserProfileQuery
             {
                 ProfileKey = workKey
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().Id.Should().Be(work.Id);
@@ -716,7 +716,7 @@ public abstract class UserProfileStoreContractTests
                 CreateProfile(
                     TenantA,
                     createdAt: Now.AddMinutes(i),
-                    displayName: $"User {i}"));
+                    displayName: $"User {i}"), ct: TestContext.Current.CancellationToken);
         }
 
         var result = await store.QueryAsync(
@@ -725,7 +725,7 @@ public abstract class UserProfileStoreContractTests
                 PageNumber = 2,
                 PageSize = 2,
                 SortBy = nameof(UserProfile.CreatedAt)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(5);
@@ -754,27 +754,27 @@ public abstract class UserProfileStoreContractTests
                 TenantA,
                 firstName: "Charlie",
                 lastName: "Zulu",
-                displayName: "Mike"));
+                displayName: "Mike"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
             CreateProfile(
                 TenantA,
                 firstName: "Alice",
                 lastName: "Alpha",
-                displayName: "Alpha"));
+                displayName: "Alpha"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
             CreateProfile(
                 TenantA,
                 firstName: "Bob",
                 lastName: "Mike",
-                displayName: "Zulu"));
+                displayName: "Zulu"), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserProfileQuery
             {
                 SortBy = sortBy
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(3);
 
@@ -809,24 +809,24 @@ public abstract class UserProfileStoreContractTests
         await store.AddAsync(
             CreateProfile(
                 TenantA,
-                createdAt: Now.AddMinutes(1)));
+                createdAt: Now.AddMinutes(1)), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
             CreateProfile(
                 TenantA,
-                createdAt: Now.AddMinutes(3)));
+                createdAt: Now.AddMinutes(3)), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
             CreateProfile(
                 TenantA,
-                createdAt: Now.AddMinutes(2)));
+                createdAt: Now.AddMinutes(2)), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserProfileQuery
             {
                 SortBy = nameof(UserProfile.CreatedAt),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.CreatedAt)
             .Should()

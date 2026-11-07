@@ -29,7 +29,7 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "user",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -46,7 +46,7 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "user",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.SessionId.Should().NotBeNull();
     }
@@ -67,11 +67,11 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
         state?.FailedAttempts.Should().Be(1);
     }
 
@@ -91,18 +91,18 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Identifier = "user",
                 Secret = "user", // valid password
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
         state?.FailedAttempts.Should().Be(0);
     }
 
@@ -118,7 +118,7 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
     }
@@ -135,7 +135,7 @@ public class LoginOrchestratorTests
             {
                 Identifier = "ghost",
                 Secret = "whatever",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
     }
@@ -156,11 +156,11 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         state!.IsLocked(DateTimeOffset.UtcNow).Should().BeTrue();
     }
@@ -181,14 +181,14 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var result = await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Identifier = "user",
                 Secret = "user",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
     }
@@ -209,19 +209,19 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         await orchestrator.LoginAsync(flow,
             new LoginRequest
             {
                 Identifier = "user",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
         state2?.FailedAttempts.Should().Be(state1!.FailedAttempts);
     }
 
@@ -243,12 +243,12 @@ public class LoginOrchestratorTests
                 {
                     Identifier = "user",
                     Secret = "wrong",
-                });
+                }, ct: TestContext.Current.CancellationToken);
         }
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         state?.IsLocked(DateTimeOffset.UtcNow).Should().BeFalse();
         state?.FailedAttempts.Should().Be(5);
@@ -271,11 +271,11 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         var factory = runtime.Services.GetRequiredService<IAuthenticationSecurityStateStoreFactory>();
         var store = factory.Create(TenantKeys.Single);
-        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state1 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         var lockedUntil = state1!.LockedUntil;
 
@@ -284,9 +284,9 @@ public class LoginOrchestratorTests
             {
                 Identifier = "user",
                 Secret = "wrong",
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
-        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password);
+        var state2 = await store.GetAsync(TestUsers.User, AuthenticationSecurityScope.Factor, CredentialType.Password, ct: TestContext.Current.CancellationToken);
         state2?.LockedUntil.Should().Be(lockedUntil);
     }
 
@@ -311,7 +311,7 @@ public class LoginOrchestratorTests
         {
             Identifier = "user",
             Secret = "user",
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         captured.Should().NotBeNull();
         captured!.UserKey.Should().Be(TestUsers.User);
@@ -338,7 +338,7 @@ public class LoginOrchestratorTests
         {
             Identifier = "user",
             Secret = "user",
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         count.Should().BeGreaterThan(0);
     }
@@ -358,7 +358,7 @@ public class LoginOrchestratorTests
         {
             Identifier = "user",
             Secret = "user",
-        });
+        }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -395,13 +395,13 @@ public class LoginOrchestratorTests
         result.SessionId.Should().NotBeNull();
 
         var sessionStore = sessionStoreFactory.Create(TenantKeys.Single);
-        var session = await sessionStore.GetSessionAsync(result.SessionId!.Value);
+        var session = await sessionStore.GetSessionAsync(result.SessionId!.Value, ct: TestContext.Current.CancellationToken);
 
         session.Should().NotBeNull();
         session!.Device.DeviceId.Should().Be(overriddenDevice.DeviceId);
 
         var chainStore = sessionStoreFactory.Create(TenantKeys.Single);
-        var chain = await chainStore.GetChainByDeviceAsync(TestUsers.User, (DeviceId)overriddenDevice.DeviceId!);
+        var chain = await chainStore.GetChainByDeviceAsync(TestUsers.User, (DeviceId)overriddenDevice.DeviceId!, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
         chain!.Device.DeviceId.Should().Be(overriddenDevice.DeviceId);
@@ -429,7 +429,7 @@ public class LoginOrchestratorTests
                 Identifier = "user",
                 Secret = "user"
             },
-            options);
+            options, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -438,10 +438,10 @@ public class LoginOrchestratorTests
     public async Task Concurrent_First_Logins_FromDifferentDevices_ShouldCreateSingleRootAndDifferentChains()
     {
         var runtime = new TestAuthRuntime<UserKey>();
-        var user = await runtime.CreateLoginUserAsync();
+        var user = await runtime.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         var storeFactory = runtime.Services.GetRequiredService<ISessionStoreFactory>();
         var store = storeFactory.Create(TenantKeys.Single);
-        var rootBefore = await store.GetActiveRootByUserAsync(user.UserKey);
+        var rootBefore = await store.GetActiveRootByUserAsync(user.UserKey, ct: TestContext.Current.CancellationToken);
 
         rootBefore.Should().BeNull();
 
@@ -472,8 +472,8 @@ public class LoginOrchestratorTests
             Secret = user.Secret
         };
 
-        var taskA = runtime.LoginAsync(flowA, executionA, requestA);
-        var taskB = runtime.LoginAsync(flowB, executionB, requestB);
+        var taskA = runtime.LoginAsync(flowA, executionA, requestA, ct: TestContext.Current.CancellationToken);
+        var taskB = runtime.LoginAsync(flowB, executionB, requestB, ct: TestContext.Current.CancellationToken);
 
         var results = await Task.WhenAll(taskA, taskB);
 
@@ -486,11 +486,11 @@ public class LoginOrchestratorTests
 
         var sessionA =
             await store.GetSessionAsync(
-                results[0].SessionId!.Value);
+                results[0].SessionId!.Value, ct: TestContext.Current.CancellationToken);
 
         var sessionB =
             await store.GetSessionAsync(
-                results[1].SessionId!.Value);
+                results[1].SessionId!.Value, ct: TestContext.Current.CancellationToken);
 
         sessionA.Should().NotBeNull();
         sessionB.Should().NotBeNull();
@@ -500,11 +500,11 @@ public class LoginOrchestratorTests
 
         var chainA =
             await store.GetChainAsync(
-                sessionA.ChainId);
+                sessionA.ChainId, ct: TestContext.Current.CancellationToken);
 
         var chainB =
             await store.GetChainAsync(
-                sessionB.ChainId);
+                sessionB.ChainId, ct: TestContext.Current.CancellationToken);
 
         chainA.Should().NotBeNull();
         chainB.Should().NotBeNull();
@@ -514,7 +514,7 @@ public class LoginOrchestratorTests
 
         var activeRoot =
             await store.GetActiveRootByUserAsync(
-                user.UserKey);
+                user.UserKey, ct: TestContext.Current.CancellationToken);
 
         activeRoot.Should().NotBeNull();
 
@@ -534,7 +534,7 @@ public class LoginOrchestratorTests
         // Fresh user: no Root, Chain or Session exists.
         //
         var user =
-            await runtime.CreateLoginUserAsync();
+            await runtime.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
 
         var storeFactory =
             runtime.Services.GetRequiredService<ISessionStoreFactory>();
@@ -544,7 +544,7 @@ public class LoginOrchestratorTests
 
         var rootBefore =
             await store.GetActiveRootByUserAsync(
-                user.UserKey);
+                user.UserKey, ct: TestContext.Current.CancellationToken);
 
         rootBefore.Should().BeNull();
 
@@ -595,13 +595,13 @@ public class LoginOrchestratorTests
             runtime.LoginAsync(
                 flowA,
                 executionA,
-                requestA);
+                requestA, ct: TestContext.Current.CancellationToken);
 
         var taskB =
             runtime.LoginAsync(
                 flowB,
                 executionB,
-                requestB);
+                requestB, ct: TestContext.Current.CancellationToken);
 
         var results =
             await Task.WhenAll(
@@ -616,11 +616,11 @@ public class LoginOrchestratorTests
 
         var sessionA =
             await store.GetSessionAsync(
-                results[0].SessionId!.Value);
+                results[0].SessionId!.Value, ct: TestContext.Current.CancellationToken);
 
         var sessionB =
             await store.GetSessionAsync(
-                results[1].SessionId!.Value);
+                results[1].SessionId!.Value, ct: TestContext.Current.CancellationToken);
 
         sessionA.Should().NotBeNull();
         sessionB.Should().NotBeNull();
@@ -633,7 +633,7 @@ public class LoginOrchestratorTests
 
         var chain =
             await store.GetChainAsync(
-                sessionA.ChainId);
+                sessionA.ChainId, ct: TestContext.Current.CancellationToken);
 
         chain.Should().NotBeNull();
 
@@ -642,7 +642,7 @@ public class LoginOrchestratorTests
         //
         var activeRoot =
             await store.GetActiveRootByUserAsync(
-                user.UserKey);
+                user.UserKey, ct: TestContext.Current.CancellationToken);
 
         activeRoot.Should().NotBeNull();
 
@@ -700,7 +700,7 @@ public class LoginOrchestratorTests
         var state = await store.GetAsync(
             TestUsers.User,
             AuthenticationSecurityScope.Factor,
-            CredentialType.Password);
+            CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         (state?.FailedAttempts ?? 0).Should().Be(0);
     }

@@ -20,7 +20,7 @@ public sealed class UAuthHubSampleSmokeTests : IClassFixture<AuthServerFactory>
     [InlineData("/login")]
     public async Task CriticalPages_ShouldRenderWithoutServerError(string path)
     {
-        var response = await _client.GetAsync(path);
+        var response = await _client.GetAsync(path, TestContext.Current.CancellationToken);
 
         ((int)response.StatusCode)
             .Should()

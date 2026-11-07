@@ -135,6 +135,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         if (response.ValueKind != JsonValueKind.Object)
             throw new UAuthProtocolException("Invalid tryAndCommit response.");
+
         if (response.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.Number && status.TryGetInt32(out var code) && code == 429)
             throw UAuthRateLimit.Exception(response.TryGetProperty("retryAfter", out var retry) && retry.ValueKind == JsonValueKind.String ? retry.GetString() : null);
         try
@@ -145,16 +146,17 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
 
+
     private string? ResolveTrustedOrigin()
     {
         var basePath = _options.Endpoints.BasePath;
 
-        if (!Uri.TryCreate(basePath, UriKind.Absolute, out var uri))
-            return null;
+        if (Uri.TryCreate(basePath, UriKind.Absolute, out var hubUri) &&
+            (hubUri.Scheme == Uri.UriSchemeHttp || hubUri.Scheme == Uri.UriSchemeHttps))
+        {
+            return hubUri.GetLeftPart(UriPartial.Authority);
+        }
 
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-            return null;
-
-        return uri.GetLeftPart(UriPartial.Authority);
+        return null;
     }
 }

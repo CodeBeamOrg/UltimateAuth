@@ -54,7 +54,7 @@ public sealed class CredentialManagementServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { credential });
 
-        var result = await f.Sut.GetAllAsync(context);
+        var result = await f.Sut.GetAllAsync(context, ct: TestContext.Current.CancellationToken);
 
         result.Credentials.Should().ContainSingle();
 
@@ -98,7 +98,7 @@ public sealed class CredentialManagementServiceTests
             new AddCredentialRequest
             {
                 Secret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -341,7 +341,7 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = "current-password",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -387,7 +387,7 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = "current-password",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -455,7 +455,7 @@ public sealed class CredentialManagementServiceTests
             {
                 CurrentSecret = null,
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -520,7 +520,7 @@ public sealed class CredentialManagementServiceTests
             new RevokeCredentialRequest
             {
                 Id = id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
@@ -570,7 +570,7 @@ public sealed class CredentialManagementServiceTests
             new RevokeCredentialRequest
             {
                 Id = id
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -626,7 +626,7 @@ public sealed class CredentialManagementServiceTests
             {
                 Id = id,
                 Mode = mode
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue(
             $"delete should succeed but returned '{result.Error}'");
@@ -673,7 +673,7 @@ public sealed class CredentialManagementServiceTests
             {
                 Id = id,
                 Mode = DeleteMode.Hard
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("credential_not_found");
@@ -833,7 +833,7 @@ public sealed class CredentialManagementServiceTests
                 Identifier = identifier,
                 CredentialType = CredentialType.Password,
                 ResetCodeType = ResetCodeType.Token
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.ExpiresAt.Should().BeAfter(Now);
 
@@ -876,7 +876,7 @@ public sealed class CredentialManagementServiceTests
                 CredentialType = CredentialType.Password,
                 ResetToken = "some-token",
                 NewSecret = "new-password"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -1053,7 +1053,7 @@ public sealed class CredentialManagementServiceTests
             {
                 Id = id,
                 Mode = DeleteMode.Hard
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue();
 
@@ -1105,7 +1105,7 @@ public sealed class CredentialManagementServiceTests
             new AddCredentialRequest
             {
                 Secret = "ValidPassword123!"
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         f.PasswordPipeline.Verify(
             x => x.ValidateAsync(

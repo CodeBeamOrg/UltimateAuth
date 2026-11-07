@@ -26,7 +26,7 @@ public sealed class DemoRoleServiceTests(PostgresFixture postgres) : IClassFixtu
         var roles = new Mock<IRoleStoreFactory>(MockBehavior.Strict);
         var assignments = new Mock<IUserRoleStoreFactory>(MockBehavior.Strict);
         var service = new LabDemoRoleService(ActorProvider.For(LabDatabase.OwnerA), db, roles.Object, assignments.Object);
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetRoleAsync(LabDatabase.MemberA, role, true));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetRoleAsync(LabDatabase.MemberA, role, true, TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
         roles.VerifyNoOtherCalls();
         assignments.VerifyNoOtherCalls();
@@ -48,7 +48,7 @@ public sealed class DemoRoleServiceTests(PostgresFixture postgres) : IClassFixtu
         var roles = new Mock<IRoleStoreFactory>(MockBehavior.Strict);
         var assignments = new Mock<IUserRoleStoreFactory>(MockBehavior.Strict);
         var service = new LabDemoRoleService(ActorProvider.For(UserKey.FromString(actor)), db, roles.Object, assignments.Object);
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetRoleAsync(UserKey.FromString(target), LabRoles.Manager, true));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetRoleAsync(UserKey.FromString(target), LabRoles.Manager, true, TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
         roles.VerifyNoOtherCalls();
         assignments.VerifyNoOtherCalls();
@@ -80,12 +80,12 @@ public sealed class DemoRoleServiceTests(PostgresFixture postgres) : IClassFixtu
         var service = new LabDemoRoleService(ActorProvider.For(LabDatabase.OwnerA), db, roles.Object, assignments.Object);
         if (forged)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetRoleAsync(LabDatabase.MemberA, "Manager", true));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetRoleAsync(LabDatabase.MemberA, "Manager", true, TestContext.Current.CancellationToken));
             userStore.VerifyNoOtherCalls();
         }
         else
         {
-            await service.SetRoleAsync(LabDatabase.MemberA, "Manager", true);
+            await service.SetRoleAsync(LabDatabase.MemberA, "Manager", true, TestContext.Current.CancellationToken);
             userStore.Verify(x => x.AssignAsync(LabDatabase.MemberA, LabRoleIds.Manager,
                 It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Once);
         }

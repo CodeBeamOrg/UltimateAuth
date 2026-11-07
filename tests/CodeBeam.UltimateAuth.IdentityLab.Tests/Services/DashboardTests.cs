@@ -21,9 +21,9 @@ public sealed class DashboardTests(PostgresFixture postgres) : IClassFixture<Pos
         await db.SeedAsync();
         await using (var setup = db.CreateDbContext())
         {
-            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA);
+            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA, cancellationToken: TestContext.Current.CancellationToken);
             settings.MaxUsers = configuredLimit;
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         var users = new Mock<IUserClient>(MockBehavior.Strict);
         users.Setup(x => x.GetMeAsync(null)).ThrowsAsync(new InvalidOperationException("Profile unavailable"));
@@ -39,7 +39,7 @@ public sealed class DashboardTests(PostgresFixture postgres) : IClassFixture<Pos
         client.SetupGet(x => x.Authorization).Returns(authorization.Object);
         var service = new LabDashboardService(new(db), client.Object);
 
-        var owner = await service.GetAsync(LabDatabase.OwnerA);
+        var owner = await service.GetAsync(LabDatabase.OwnerA, TestContext.Current.CancellationToken);
         Assert.NotNull(owner);
         Assert.Equal("Sandbox A", owner.SandboxName);
         Assert.True(owner.IsOwner);
@@ -53,14 +53,14 @@ public sealed class DashboardTests(PostgresFixture postgres) : IClassFixture<Pos
         sessions.VerifyAll();
         authorization.VerifyAll();
 
-        var member = await service.GetAsync(LabDatabase.MemberA);
+        var member = await service.GetAsync(LabDatabase.MemberA, TestContext.Current.CancellationToken);
         Assert.NotNull(member);
         Assert.Equal(owner.SandboxId, member.SandboxId);
         Assert.False(member.IsOwner);
         Assert.Equal(owner.MemberCount, member.MemberCount);
 
-        Assert.True(await new SandboxService(db).RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberA));
-        var after = await service.GetAsync(LabDatabase.OwnerA);
+        Assert.True(await new SandboxService(db).RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberA, TestContext.Current.CancellationToken));
+        var after = await service.GetAsync(LabDatabase.OwnerA, TestContext.Current.CancellationToken);
         Assert.NotNull(after);
         Assert.Equal(1, after.MemberCount);
         Assert.Equal(expectedLimit - 1, after.RemainingCapacity);
@@ -72,7 +72,7 @@ public sealed class DashboardTests(PostgresFixture postgres) : IClassFixture<Pos
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
         var client = new Mock<IUAuthClient>(MockBehavior.Strict);
-        Assert.Null(await new LabDashboardService(new(db), client.Object).GetAsync(UserKey.FromString("orphan")));
+        Assert.Null(await new LabDashboardService(new(db), client.Object).GetAsync(UserKey.FromString("orphan"), TestContext.Current.CancellationToken));
         client.VerifyNoOtherCalls();
     }
 }

@@ -27,10 +27,10 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(role.Id);
@@ -49,7 +49,7 @@ public abstract class RoleStoreContractTests
         var first = CreateRole("Administrators");
         var duplicate = CreateRole("  administrators  ");
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AddAsync(duplicate);
 
@@ -65,13 +65,13 @@ public abstract class RoleStoreContractTests
 
         var first = CreateRole("Administrators");
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, first.Id),
             first.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var replacement = CreateRole("Administrators");
 
@@ -89,13 +89,13 @@ public abstract class RoleStoreContractTests
 
         var first = CreateRole("Administrators");
 
-        await store.AddAsync(first);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, first.Id),
             first.Version,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var replacement = CreateRole("Administrators");
 
@@ -104,7 +104,7 @@ public abstract class RoleStoreContractTests
         await act.Should().NotThrowAsync();
 
         var result = await store.GetByNameAsync(
-            replacement.NormalizedName);
+            replacement.NormalizedName, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(replacement.Id);
@@ -122,10 +122,10 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByNameAsync(
-            role.NormalizedName);
+            role.NormalizedName, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(role.Id);
@@ -140,16 +140,16 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, role.Id),
             role.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByNameAsync(
-            role.NormalizedName);
+            role.NormalizedName, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -168,12 +168,12 @@ public abstract class RoleStoreContractTests
         var operatorRole = CreateRole("Operators");
         var unrelated = CreateRole("Auditors");
 
-        await store.AddAsync(admin);
-        await store.AddAsync(operatorRole);
-        await store.AddAsync(unrelated);
+        await store.AddAsync(admin, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(operatorRole, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(unrelated, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByIdsAsync(
-            [admin.Id, operatorRole.Id]);
+            [admin.Id, operatorRole.Id], ct: TestContext.Current.CancellationToken);
 
         result.Select(x => x.Id)
             .Should()
@@ -192,17 +192,17 @@ public abstract class RoleStoreContractTests
         var active = CreateRole("Active");
         var deleted = CreateRole("Deleted");
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, deleted.Id),
             deleted.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetByIdsAsync(
-            [active.Id, deleted.Id]);
+            [active.Id, deleted.Id], ct: TestContext.Current.CancellationToken);
 
         result.Should().ContainSingle();
         result.Single().Id.Should().Be(active.Id);
@@ -220,10 +220,10 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -233,10 +233,10 @@ public abstract class RoleStoreContractTests
 
         await store.SaveAsync(
             persisted,
-            expectedVersion);
+            expectedVersion, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("Operators");
@@ -251,10 +251,10 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -281,11 +281,11 @@ public abstract class RoleStoreContractTests
         var admin = CreateRole("Administrators");
         var operators = CreateRole("Operators");
 
-        await store.AddAsync(admin);
-        await store.AddAsync(operators);
+        await store.AddAsync(admin, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(operators, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new RoleKey(Tenant, operators.Id));
+            new RoleKey(Tenant, operators.Id), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
 
@@ -315,7 +315,7 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var deletedAt = Now.AddMinutes(1);
 
@@ -323,10 +323,10 @@ public abstract class RoleStoreContractTests
             new RoleKey(Tenant, role.Id),
             role.Version,
             DeleteMode.Soft,
-            deletedAt);
+            deletedAt, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsDeleted.Should().BeTrue();
@@ -341,21 +341,21 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, role.Id),
             role.Version,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
         var exists = await store.ExistsAsync(
-            new RoleKey(Tenant, role.Id));
+            new RoleKey(Tenant, role.Id), ct: TestContext.Current.CancellationToken);
 
         exists.Should().BeFalse();
     }
@@ -368,7 +368,7 @@ public abstract class RoleStoreContractTests
 
         var role = CreateRole("Administrators");
 
-        await store.AddAsync(role);
+        await store.AddAsync(role, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.DeleteAsync(
             new RoleKey(Tenant, role.Id),
@@ -393,20 +393,20 @@ public abstract class RoleStoreContractTests
         var active = CreateRole("Active");
         var deleted = CreateRole("Deleted");
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, deleted.Id),
             deleted.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new RoleQuery
             {
                 IncludeDeleted = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should()
             .Contain(x => x.Id == active.Id);
@@ -424,20 +424,20 @@ public abstract class RoleStoreContractTests
         var active = CreateRole("Active");
         var deleted = CreateRole("Deleted");
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new RoleKey(Tenant, deleted.Id),
             deleted.Version,
             DeleteMode.Soft,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new RoleQuery
             {
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.Id)
             .Should()
@@ -453,14 +453,14 @@ public abstract class RoleStoreContractTests
         var admin = CreateRole("Global Administrators");
         var operators = CreateRole("Operators");
 
-        await store.AddAsync(admin);
-        await store.AddAsync(operators);
+        await store.AddAsync(admin, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(operators, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new RoleQuery
             {
                 Search = " admin "
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().Id.Should().Be(admin.Id);
@@ -481,7 +481,7 @@ public abstract class RoleStoreContractTests
             "Delta"
         })
         {
-            await store.AddAsync(CreateRole(name));
+            await store.AddAsync(CreateRole(name), ct: TestContext.Current.CancellationToken);
         }
 
         var result = await store.QueryAsync(
@@ -491,7 +491,7 @@ public abstract class RoleStoreContractTests
                 PageSize = 2,
                 SortBy = nameof(Role.Name),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.TotalCount.Should().Be(5);
         result.PageNumber.Should().Be(2);
@@ -522,13 +522,13 @@ public abstract class RoleStoreContractTests
             "Administrators",
             tenantA);
 
-        await storeA.AddAsync(roleA);
+        await storeA.AddAsync(roleA, ct: TestContext.Current.CancellationToken);
 
         var fromA = await storeA.GetAsync(
-            new RoleKey(tenantA, roleA.Id));
+            new RoleKey(tenantA, roleA.Id), ct: TestContext.Current.CancellationToken);
 
         var fromB = await storeB.GetAsync(
-            new RoleKey(tenantB, roleA.Id));
+            new RoleKey(tenantB, roleA.Id), ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();
@@ -537,7 +537,7 @@ public abstract class RoleStoreContractTests
             new RoleQuery
             {
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         queryB.Items.Should()
             .NotContain(x => x.Id == roleA.Id);

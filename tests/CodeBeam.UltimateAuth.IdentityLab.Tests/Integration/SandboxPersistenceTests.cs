@@ -11,9 +11,9 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
     public async Task Creation_persists_owner_membership_and_settings_together()
     {
         await using var db = await postgres.CreateAsync();
-        var sandbox = await new SandboxService(db).CreateAsync(LabDatabase.OwnerA, "  Sandbox A  ");
+        var sandbox = await new SandboxService(db).CreateAsync(LabDatabase.OwnerA, "  Sandbox A  ", TestContext.Current.CancellationToken);
         await using var verify = db.CreateDbContext();
-        var actual = await verify.Sandboxes.Include(x => x.Members).Include(x => x.Settings).SingleAsync();
+        var actual = await verify.Sandboxes.Include(x => x.Members).Include(x => x.Settings).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(sandbox.Id, actual.Id);
         Assert.Equal("Sandbox A", actual.Name);
         Assert.Equal(LabDatabase.OwnerA, actual.OwnerUserKey);
@@ -30,14 +30,14 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         await db.SeedAsync();
         var before = await db.SnapshotAsync();
         var service = new SandboxService(db);
-        Assert.False(await service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberB));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.OwnerA));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RemoveMemberAsync(LabDatabase.MemberA, LabDatabase.MemberA));
+        Assert.False(await service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberB, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.OwnerA, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RemoveMemberAsync(LabDatabase.MemberA, LabDatabase.MemberA, TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
-        Assert.True(await service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberA));
+        Assert.True(await service.RemoveMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberA, TestContext.Current.CancellationToken));
         await using var verify = db.CreateDbContext();
-        Assert.False(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberA));
-        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberB));
+        Assert.False(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberA, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(await verify.SandboxMembers.AnyAsync(x => x.UserKey == LabDatabase.MemberB, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
         var before = await db.SnapshotAsync();
-        await Assert.ThrowsAsync<DbUpdateException>(() => new SandboxService(db).CreateAsync(LabDatabase.OwnerA, "Duplicate"));
+        await Assert.ThrowsAsync<DbUpdateException>(() => new SandboxService(db).CreateAsync(LabDatabase.OwnerA, "Duplicate", TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
     }
 
@@ -57,9 +57,9 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         await db.SeedAsync();
         await using (var setup = db.CreateDbContext())
         {
-            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA);
+            var settings = await setup.SandboxSettings.SingleAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA, cancellationToken: TestContext.Current.CancellationToken);
             settings.MaxUsers = 3;
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         var service = new SandboxService(db);
         async Task<Exception?> Add(string key) => await Record.ExceptionAsync(async () =>
@@ -68,8 +68,8 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         var outcomes = await Task.WhenAll(Add("candidate-1"), Add("candidate-2"));
         Assert.Single(outcomes, x => x is null);
         await using var verify = db.CreateDbContext();
-        Assert.Equal(3, await verify.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA));
-        Assert.Equal(2, await verify.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerB));
+        Assert.Equal(3, await verify.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerA, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(2, await verify.SandboxMembers.CountAsync(x => x.Sandbox.OwnerUserKey == LabDatabase.OwnerB, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
         var before = await db.SnapshotAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new SandboxService(db).AddMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberB));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new SandboxService(db).AddMemberAsync(LabDatabase.OwnerA, LabDatabase.MemberB, TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
     }
     [Fact]
@@ -91,9 +91,9 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         var outcomes = await Task.WhenAll(Create("First"), Create("Second"));
         Assert.Single(outcomes, x => x is null);
         await using var verify = db.CreateDbContext();
-        Assert.Equal(1, await verify.Sandboxes.CountAsync());
-        Assert.Equal(1, await verify.SandboxMembers.CountAsync());
-        Assert.Equal(1, await verify.SandboxSettings.CountAsync());
+        Assert.Equal(1, await verify.Sandboxes.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await verify.SandboxMembers.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await verify.SandboxSettings.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -104,32 +104,32 @@ public sealed class SandboxPersistenceTests(PostgresFixture postgres) : IClassFi
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
         var service = new SandboxService(db);
-        var original = (await service.GetByUserAsync(LabDatabase.OwnerA))!;
+        var original = (await service.GetByUserAsync(LabDatabase.OwnerA, TestContext.Current.CancellationToken))!;
         await using (var setup = db.CreateDbContext())
         {
-            var owner = await setup.SandboxMembers.SingleAsync(x => x.UserKey == LabDatabase.OwnerA);
+            var owner = await setup.SandboxMembers.SingleAsync(x => x.UserKey == LabDatabase.OwnerA, cancellationToken: TestContext.Current.CancellationToken);
             if (missingMembership)
                 setup.SandboxMembers.Remove(owner);
             else
                 owner.Role = SandboxMemberRole.Member;
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
-        var repaired = await service.EnsureAsync(LabDatabase.OwnerA, "Must not replace existing name");
+        var repaired = await service.EnsureAsync(LabDatabase.OwnerA, "Must not replace existing name", TestContext.Current.CancellationToken);
         Assert.Equal(original.Id, repaired.Id);
         Assert.Equal(original.Name, repaired.Name);
         Assert.Equal(original.Settings.MaxUsers, repaired.Settings.MaxUsers);
         var beforeRepeat = await db.SnapshotAsync();
-        await service.EnsureAsync(LabDatabase.OwnerA, "Still must not rename");
+        await service.EnsureAsync(LabDatabase.OwnerA, "Still must not rename", TestContext.Current.CancellationToken);
         Assert.Equal(beforeRepeat, await db.SnapshotAsync());
         await using var verify = db.CreateDbContext();
-        var members = await verify.SandboxMembers.ToListAsync();
+        var members = await verify.SandboxMembers.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(4, members.Count);
         Assert.Equal(SandboxMemberRole.Owner, Assert.Single(members, x => x.UserKey == LabDatabase.OwnerA).Role);
         Assert.Contains(members, x => x.UserKey == LabDatabase.MemberA && x.SandboxId == original.Id);
         Assert.Contains(members, x => x.UserKey == LabDatabase.OwnerB && x.Role == SandboxMemberRole.Owner);
         Assert.Contains(members, x => x.UserKey == LabDatabase.MemberB && x.SandboxId != original.Id);
-        Assert.Equal(2, await verify.Sandboxes.CountAsync());
-        Assert.Equal(2, await verify.SandboxSettings.CountAsync());
+        Assert.Equal(2, await verify.Sandboxes.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(2, await verify.SandboxSettings.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
 }

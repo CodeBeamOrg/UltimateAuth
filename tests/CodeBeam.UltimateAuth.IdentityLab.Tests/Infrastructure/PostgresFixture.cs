@@ -12,7 +12,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 {
     private PostgreSqlContainer? container;
     private string connectionString = "";
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         connectionString = Environment.GetEnvironmentVariable("IDENTITYLAB_TEST_POSTGRES") ?? "";
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -36,7 +36,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         await db.Database.MigrateAsync();
         return database;
     }
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (container is not null) await container.DisposeAsync();
     }

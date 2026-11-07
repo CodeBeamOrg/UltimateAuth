@@ -30,7 +30,7 @@ public sealed class SystemRoleIdentityTests
         assignments.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(userStore.Object);
         var service = new LabRoleService(roles.Object, assignments.Object);
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignAsync(
-            TenantKeys.Single, LabDatabase.MemberA, "Owner"));
+            TenantKeys.Single, LabDatabase.MemberA, "Owner", TestContext.Current.CancellationToken));
         userStore.Verify(x => x.AssignAsync(LabDatabase.MemberA, LabRoleIds.Admin,
             It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
     }

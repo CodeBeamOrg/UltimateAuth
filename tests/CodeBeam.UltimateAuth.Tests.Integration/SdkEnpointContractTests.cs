@@ -24,10 +24,10 @@ public sealed class SdkEndpointContractTests
     public async Task ChangeMyStatus_ShouldReturnTypedJson_NotEmpty200()
     {
         using var factory = new AuthServerFactory();
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, user);
-        using var response = await client.PostAsJsonAsync("/auth/me/status",
+        using var response = await CsrfTestClient.PostJsonAsync(client, "/auth/me/status",
             new ChangeUserStatusSelfRequest { NewStatus = SelfAssignableUserStatus.SelfSuspended });
         var result = await AssertTypedSuccessAsync<UserStatusChangeResult>(response);
         result.IsSuccess.Should().BeTrue();
@@ -39,12 +39,13 @@ public sealed class SdkEndpointContractTests
     public async Task ChangeUserStatus_ShouldReturnTypedJson_NotEmpty200()
     {
         using var factory = new AuthServerFactory();
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.ChangeStatusAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.ChangeStatusAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             $"/auth/admin/users/{target.UserKey.Value}/status",
             new ChangeUserStatusAdminRequest { NewStatus = AdminAssignableUserStatus.Suspended });
         var result = await AssertTypedSuccessAsync<UserStatusChangeResult>(response);
@@ -57,16 +58,16 @@ public sealed class SdkEndpointContractTests
     public async Task ChangeUserStatus_AlreadyInRequestedStatus_ShouldReturnTypedJson()
     {
         using var factory = new AuthServerFactory();
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.ChangeStatusAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.ChangeStatusAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
         var url = $"/auth/admin/users/{target.UserKey.Value}/status";
         var request = new ChangeUserStatusAdminRequest { NewStatus = AdminAssignableUserStatus.Suspended };
-        using var first = await client.PostAsJsonAsync(url, request);
+        using var first = await CsrfTestClient.PostJsonAsync(client, url, request);
         (await AssertTypedSuccessAsync<UserStatusChangeResult>(first)).IsSuccess.Should().BeTrue();
-        using var second = await client.PostAsJsonAsync(url, request);
+        using var second = await CsrfTestClient.PostJsonAsync(client, url, request);
         var result = await AssertTypedSuccessAsync<UserStatusChangeResult>(second);
         result.IsSuccess.Should().BeTrue();
         result.PreviousStatus.Should().Be(UserStatus.Suspended);
@@ -77,12 +78,13 @@ public sealed class SdkEndpointContractTests
     public async Task DeleteUser_ShouldReturnTypedJson_WithRequestedMode()
     {
         using var factory = new AuthServerFactory();
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.DeleteAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Users.DeleteAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             $"/auth/admin/users/{target.UserKey.Value}/delete",
             new DeleteUserRequest { Mode = DeleteMode.Soft });
         var result = await AssertTypedSuccessAsync<UserDeleteResult>(response);
@@ -95,16 +97,17 @@ public sealed class SdkEndpointContractTests
     {
         var notifier = new CapturingResetNotifier();
         using var factory = CreateResetFactory(notifier);
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.BeginResetAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.BeginResetAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             $"/auth/admin/users/{target.UserKey.Value}/credentials/reset/begin", BeginResetRequest(target));
         var result = await AssertTypedSuccessAsync<CredentialBeginResetResult>(response);
         result.ExpiresAt.Should().BeAfter(factory.Clock.UtcNow);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var notification = notifier.Notifications.Should().ContainSingle(x => x.UserKey == target.UserKey).Subject;
         body.Should().NotContain(notification.Token, "reset proof must only be sent through the notifier");
     }
@@ -114,18 +117,18 @@ public sealed class SdkEndpointContractTests
     {
         var notifier = new CapturingResetNotifier();
         using var factory = CreateResetFactory(notifier);
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         await factory.GrantPermissionsAsync(admin.UserKey,
-            [UAuthActions.Credentials.BeginResetAdmin, UAuthActions.Credentials.CompleteResetAdmin]);
+            [UAuthActions.Credentials.BeginResetAdmin, UAuthActions.Credentials.CompleteResetAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
         var url = $"/auth/admin/users/{target.UserKey.Value}/credentials/reset";
-        using var begin = await client.PostAsJsonAsync($"{url}/begin", BeginResetRequest(target));
+        using var begin = await CsrfTestClient.PostJsonAsync(client, $"{url}/begin", BeginResetRequest(target));
         await AssertTypedSuccessAsync<CredentialBeginResetResult>(begin);
         var token = notifier.Notifications.Single(x => x.UserKey == target.UserKey).Token;
         var newSecret = $"Changed-{Guid.NewGuid():N}!";
-        using var complete = await client.PostAsJsonAsync($"{url}/complete",
+        using var complete = await CsrfTestClient.PostJsonAsync(client, $"{url}/complete",
             new CompleteResetCredentialRequest
             {
                 Identifier = target.Identifier,
@@ -142,14 +145,14 @@ public sealed class SdkEndpointContractTests
     {
         var notifier = new CapturingResetNotifier();
         using var factory = CreateResetFactory(notifier);
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        var other = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.BeginResetAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var other = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.BeginResetAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
         using var response = await client.PostAsJsonAsync(
-            $"/auth/admin/users/{target.UserKey.Value}/credentials/reset/begin", BeginResetRequest(other));
+            $"/auth/admin/users/{target.UserKey.Value}/credentials/reset/begin", BeginResetRequest(other), cancellationToken: TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         notifier.Notifications.Should().BeEmpty();
     }
@@ -158,10 +161,10 @@ public sealed class SdkEndpointContractTests
     public async Task RevokeMy_UnknownCredential_ShouldNotReturnSuccessful204()
     {
         using var factory = new AuthServerFactory();
-        var user = await factory.CreateLoginUserAsync();
+        var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, user);
-        using var response = await client.PostAsJsonAsync("/auth/me/credentials/revoke",
+        using var response = await CsrfTestClient.PostJsonAsync(client, "/auth/me/credentials/revoke",
             new RevokeCredentialRequest { Id = Guid.NewGuid() });
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -170,12 +173,12 @@ public sealed class SdkEndpointContractTests
     public async Task RevokeAdmin_UnknownCredential_ShouldNotReturnSuccessful204()
     {
         using var factory = new AuthServerFactory();
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.RevokeAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.RevokeAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"/auth/admin/users/{target.UserKey.Value}/credentials/revoke",
             new RevokeCredentialRequest { Id = Guid.NewGuid() });
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -185,12 +188,12 @@ public sealed class SdkEndpointContractTests
     public async Task DeleteCredentialAdmin_UnknownCredential_ShouldNotReturnSuccessful204()
     {
         using var factory = new AuthServerFactory();
-        var admin = await factory.CreateLoginUserAsync();
-        var target = await factory.CreateLoginUserAsync();
-        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.DeleteAdmin]);
+        var admin = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var target = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        await factory.GrantPermissionsAsync(admin.UserKey, [UAuthActions.Credentials.DeleteAdmin], TestContext.Current.CancellationToken);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, admin);
-        using var response = await client.PostAsJsonAsync(
+        using var response = await CsrfTestClient.PostJsonAsync(client,
             $"/auth/admin/users/{target.UserKey.Value}/credentials/delete",
             new DeleteCredentialRequest { Id = Guid.NewGuid(), Mode = DeleteMode.Soft });
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -247,7 +250,7 @@ public sealed class SdkEndpointContractTests
 
     private static async Task AuthenticateAsync(HttpClient client, IntegrationTestUser user)
     {
-        using var response = await client.PostAsJsonAsync("/auth/login", new
+        using var response = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new
         {
             identifier = user.Identifier,
             secret = user.Secret

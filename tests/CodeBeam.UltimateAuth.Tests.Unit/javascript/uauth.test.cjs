@@ -18,7 +18,7 @@ function createEnvironment(fetchImpl = async () => ({
         get: () => "application/json"
     },
     text: async () => '{"id":1}'
-}), onNavigate = () => {}) {
+}), onNavigate = () => { }) {
     const memoryStorage = () => {
         const values = new Map();
         return { setItem: (key, value) => values.set(key, value), getItem: key => values.get(key) ?? null, removeItem: key => values.delete(key) };
@@ -53,6 +53,47 @@ function createEnvironment(fetchImpl = async () => ({
     window.uauth.setDeviceId("test-device");
 
     return window.uauth;
+}
+
+const HUB_ORIGIN = "https://localhost:6110";
+
+function configureAntiforgery(uauth) {
+    uauth.antiforgery.configure({
+        tokenUrl: `${HUB_ORIGIN}/auth/antiforgery/token`,
+        trustedOrigin: HUB_ORIGIN
+    });
+}
+
+function authUrl(path) {
+    return `${HUB_ORIGIN}${path}`;
+}
+
+
+function csrfAwareFetch(postHandler) {
+    return async (url, options = {}) => {
+        if (url === authUrl("/auth/antiforgery/token")) {
+            assert.equal(options.method, "GET");
+            assert.equal(options.credentials, "include");
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    requestToken: "csrf-test-token",
+                    headerName: "X-CSRF-TOKEN",
+                    formFieldName: "__RequestVerificationToken"
+                })
+            };
+        }
+
+        assert.equal(options.method, "POST");
+        assert.equal(
+            options.headers["X-CSRF-TOKEN"],
+            "csrf-test-token"
+        );
+
+        return postHandler(url, options);
+    };
 }
 
 test("validateAuthUrl accepts trusted origin", () => {
@@ -328,13 +369,105 @@ test("cancelResourceRequest aborts active request", async () => {
     );
 });
 
+
+test("postJson sends antiforgery token to trusted cross-origin UAuthHub", async () => {
+    const calls = [];
+
+    const uauth = createEnvironment(async (url, options) => {
+        calls.push({ url, options });
+
+        if (url === "https://localhost:6110/auth/antiforgery/token") {
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    requestToken: "csrf-test-token",
+                    headerName: "X-CSRF-TOKEN",
+                    formFieldName: "__RequestVerificationToken"
+                })
+            };
+        }
+
+        return {
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            text: async () => JSON.stringify({ isSuccess: true })
+        };
+    });
+
+    uauth.antiforgery.configure({
+        tokenUrl: "https://localhost:6110/auth/antiforgery/token",
+        trustedOrigin: "https://localhost:6110"
+    });
+
+    const result = await uauth.postJson({
+        url: "https://localhost:6110/auth/try-login",
+        payload: { username: "test" },
+        clientProfile: "BlazorWasm",
+        trustedOrigin: "https://localhost:6110"
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(calls.length, 2);
+
+    assert.equal(
+        calls[0].url,
+        "https://localhost:6110/auth/antiforgery/token"
+    );
+    assert.equal(calls[0].options.method, "GET");
+    assert.equal(calls[0].options.credentials, "include");
+
+    assert.equal(
+        calls[1].url,
+        "https://localhost:6110/auth/try-login"
+    );
+    assert.equal(calls[1].options.method, "POST");
+    assert.equal(calls[1].options.credentials, "include");
+    assert.equal(
+        calls[1].options.headers["X-CSRF-TOKEN"],
+        "csrf-test-token"
+    );
+});
+
+
+test("postJson fails closed when antiforgery is not configured", async () => {
+    let fetchCalls = 0;
+
+    const uauth = createEnvironment(async () => {
+        fetchCalls++;
+        throw new Error("Fetch must not be called");
+    });
+
+    await assert.rejects(
+        uauth.postJson({
+            url: authUrl("/auth/try-login"),
+            payload: { username: "test" },
+            clientProfile: "BlazorServer",
+            trustedOrigin: HUB_ORIGIN
+        }),
+        /Authentication URL is required|antiforgery is not configured/i
+    );
+
+    assert.equal(fetchCalls, 0);
+});
+
 test("429 try-and-commit returns throttle metadata without committing or reading an auth-result body", async () => {
     let calls = 0;
-    const uauth = createEnvironment(async () => {
+    const uauth = createEnvironment(csrfAwareFetch(async () => {
         calls++;
         return { ok: false, status: 429, headers: { get: name => name === "Retry-After" ? "90" : null }, text: async () => "not-json" };
+    }));
+
+    configureAntiforgery(uauth);
+
+    const result = await uauth.tryAndCommit({
+        tryUrl: authUrl("/auth/try-login"),
+        commitUrl: authUrl("/auth/login"),
+        data: {},
+        clientProfile: "BlazorServer",
+        trustedOrigin: HUB_ORIGIN
     });
-    const result = await uauth.tryAndCommit({ tryUrl: "/auth/try-login", commitUrl: "/auth/login", data: {}, clientProfile: "BlazorServer" });
     assert.equal(result.status, 429);
     assert.equal(result.errorCode, "rate_limited");
     assert.equal(result.retryAfter, "90");
@@ -345,7 +478,7 @@ test("429 try-and-commit returns throttle metadata without committing or reading
 test("logout 429 is observable and never navigates or changes stored tokens", async () => {
     let calls = 0;
 
-    const uauth = createEnvironment(async (_url, request) => {
+    const uauth = createEnvironment(csrfAwareFetch(async (_url, request) => {
         calls++;
 
         assert.equal(request.redirect, "error");
@@ -363,15 +496,18 @@ test("logout 429 is observable and never navigates or changes stored tokens", as
             },
             text: async () => ""
         };
-    }, () => assert.fail("Rejected logout must not navigate"));
+    }), () => assert.fail("Rejected logout must not navigate"));
+
+    configureAntiforgery(uauth);
 
     uauth.storage.set("local", "access", "still-valid-access");
     uauth.storage.set("session", "refresh", "still-valid-refresh");
 
     const result = await uauth.post({
-        url: "/auth/logout",
+        url: authUrl("/auth/logout"),
         mode: "logout",
-        clientProfile: "BlazorServer"
+        clientProfile: "BlazorServer",
+        trustedOrigin: HUB_ORIGIN
     });
 
     assert.equal(result.status, 429);
@@ -393,26 +529,29 @@ test("resource 429 preserves Retry-After without automatic retry", async () => {
     assert.equal(calls, 1);
 });
 
- test("refresh 429 leaves stored credentials untouched and sends only once", async () => {
+test("refresh 429 leaves stored credentials untouched and sends only once", async () => {
     let calls = 0;
-    const uauth = createEnvironment(async () => {
+    const uauth = createEnvironment(csrfAwareFetch(async () => {
         calls++;
         return { ok: false, status: 429, headers: { get: () => null }, text: async () => "" };
-    });
+    }));
+
+    configureAntiforgery(uauth);
+
     uauth.storage.set("local", "access", "valid-access");
     uauth.storage.set("session", "refresh", "valid-refresh");
-    const result = await uauth.post({ url: "/auth/refresh", mode: "fetch", clientProfile: "BlazorWasm" });
+    const result = await uauth.post({ url: authUrl("/auth/refresh"), mode: "fetch", clientProfile: "BlazorWasm", trustedOrigin: HUB_ORIGIN });
     assert.equal(result.status, 429);
     assert.equal(uauth.storage.get("local", "access"), "valid-access");
     assert.equal(uauth.storage.get("session", "refresh"), "valid-refresh");
     assert.equal(calls, 1);
- });
+});
 
 test("successful observed logout navigates after confirmed success without replaying POST", async () => {
     let calls = 0;
     let navigation = null;
 
-    const uauth = createEnvironment(async (_url, request) => {
+    const uauth = createEnvironment(csrfAwareFetch(async (_url, request) => {
         calls++;
 
         assert.equal(request.redirect, "error");
@@ -431,12 +570,15 @@ test("successful observed logout navigates after confirmed success without repla
                 redirectUrl: "https://localhost:6130/login"
             })
         };
-    }, url => navigation = url);
+    }), url => navigation = url);
+
+    configureAntiforgery(uauth);
 
     const result = await uauth.post({
-        url: "/auth/logout",
+        url: authUrl("/auth/logout"),
         mode: "logout",
-        clientProfile: "BlazorWasm"
+        clientProfile: "BlazorWasm",
+        trustedOrigin: HUB_ORIGIN
     });
 
     assert.equal(result.status, 200);
@@ -447,7 +589,7 @@ test("successful observed logout navigates after confirmed success without repla
 test("observed logout rejects unsafe redirect protocols", async () => {
     let navigation = null;
 
-    const uauth = createEnvironment(async () => ({
+    const uauth = createEnvironment(csrfAwareFetch(async () => ({
         ok: true,
         status: 200,
         redirected: false,
@@ -456,16 +598,69 @@ test("observed logout rejects unsafe redirect protocols", async () => {
             isSuccess: true,
             redirectUrl: "javascript:alert(1)"
         })
-    }), url => navigation = url);
+    })), url => navigation = url);
+
+    configureAntiforgery(uauth);
 
     await assert.rejects(
         uauth.post({
-            url: "/auth/logout",
+            url: authUrl("/auth/logout"),
             mode: "logout",
-            clientProfile: "BlazorWasm"
+            clientProfile: "BlazorWasm",
+            trustedOrigin: HUB_ORIGIN
         }),
         /Invalid logout redirect protocol/
     );
 
     assert.equal(navigation, null);
+});
+
+test("authenticated logout uses the same Device ID for CSRF token and POST", async () => {
+    const deviceId = "test-device";
+    let tokenDeviceId = null;
+    let logoutDeviceId = null;
+
+    const uauth = createEnvironment(async (url, options) => {
+        if (url === authUrl("/auth/antiforgery/token")) {
+            tokenDeviceId = options.headers?.["X-UDID"] ?? null;
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    requestToken: "csrf-test-token",
+                    headerName: "X-UAuth-CSRF",
+                    formFieldName: "__RequestVerificationToken"
+                })
+            };
+        }
+
+        assert.equal(url, authUrl("/auth/logout"));
+
+        logoutDeviceId = options.headers?.["X-UDID"] ?? null;
+
+        return {
+            ok: true,
+            status: 200,
+            redirected: false,
+            headers: { get: () => null },
+            text: async () => JSON.stringify({
+                isSuccess: true,
+                redirectUrl: null
+            })
+        };
+    });
+
+    configureAntiforgery(uauth);
+
+    const result = await uauth.post({
+        url: authUrl("/auth/logout"),
+        mode: "logout-observe",
+        clientProfile: "BlazorServer",
+        trustedOrigin: HUB_ORIGIN
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(logoutDeviceId, deviceId);
+    assert.equal(tokenDeviceId, deviceId);
 });

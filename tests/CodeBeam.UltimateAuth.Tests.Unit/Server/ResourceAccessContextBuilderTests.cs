@@ -27,7 +27,7 @@ public sealed class ResourceAccessContextBuilderTests
 
         var http = CreateHttpContext(authenticated: true, userKey);
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read");
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read", ct: TestContext.Current.CancellationToken);
 
         result.IsAuthenticated.Should().BeTrue();
         result.ActorUserKey.Should().Be(userKey);
@@ -40,7 +40,7 @@ public sealed class ResourceAccessContextBuilderTests
     {
         var http = CreateHttpContext(authenticated: false);
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read");
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read", ct: TestContext.Current.CancellationToken);
 
         result.IsAuthenticated.Should().BeFalse();
         result.ActorUserKey.Should().BeNull();
@@ -56,7 +56,7 @@ public sealed class ResourceAccessContextBuilderTests
     {
         var http = CreateHttpContext(authenticated: false);
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, action);
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, action, ct: TestContext.Current.CancellationToken);
 
         result.Resource.Should().Be(expectedResource);
         result.Action.Should().Be(action);
@@ -67,7 +67,7 @@ public sealed class ResourceAccessContextBuilderTests
     {
         var http = CreateHttpContext(authenticated: true, CreateUserKey());
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read");
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read", ct: TestContext.Current.CancellationToken);
 
         result.IsSystemActor.Should().BeFalse();
     }
@@ -77,7 +77,7 @@ public sealed class ResourceAccessContextBuilderTests
     {
         var http = CreateHttpContext(authenticated: true, CreateUserKey());
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read");
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read", ct: TestContext.Current.CancellationToken);
 
         result.TargetUserKey.Should().BeNull();
     }
@@ -89,7 +89,7 @@ public sealed class ResourceAccessContextBuilderTests
 
         var http = CreateHttpContext(authenticated: true, userKey: CreateUserKey(), tenant: tenant);
 
-        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read");
+        var result = await ResourceAccessContextBuilder.CreateAsync(http, "users.read", ct: TestContext.Current.CancellationToken);
 
         result.ActorTenant.Should().Be(tenant);
         result.ResourceTenant.Should().Be(tenant);
@@ -179,7 +179,7 @@ public sealed class ResourceAccessContextBuilderTests
         // Act
         var context = await ResourceAccessContextBuilder.CreateAsync(
             http,
-            "users.read");
+            "users.read", ct: TestContext.Current.CancellationToken);
 
         // Assert
         context.IsAuthenticated.Should().BeTrue();
@@ -255,7 +255,7 @@ public sealed class ResourceAccessContextBuilderTests
         // Act
         var context = await ResourceAccessContextBuilder.CreateAsync(
             http,
-            "users.read");
+            "users.read", ct: TestContext.Current.CancellationToken);
 
         // Assert
         context.ActorRoles.Should().ContainSingle();

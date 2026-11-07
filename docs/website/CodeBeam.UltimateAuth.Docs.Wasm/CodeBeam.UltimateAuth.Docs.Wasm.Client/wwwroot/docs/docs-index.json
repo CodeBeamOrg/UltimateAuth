@@ -320,5 +320,19 @@
     "Order": 2,
     "Group": "migration",
     "GroupOrder": 10
+  },
+  {
+    "Title": "Migrating to v0.1.4",
+    "Slug": "migration/v0.1.4",
+    "Order": 3,
+    "Group": "migration",
+    "GroupOrder": 10
+  },
+  {
+    "Title": "Migrating to v0.2.0",
+    "Slug": "migration/v0.2.0",
+    "Order": 4,
+    "Group": "migration",
+    "GroupOrder": 10
   }
 ]

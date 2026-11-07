@@ -49,7 +49,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         // Act: Change password, then simulate a session failure.
@@ -60,7 +60,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 new TenantExecutionContext(tenant));
 
             var existing = await store.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(existing);
 
@@ -68,7 +68,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 async () =>
                 {
                     await using var transaction =
-                        await db.Database.BeginTransactionAsync();
+                        await db.Database.BeginTransactionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
                     var updated = existing.ChangeSecret(
                         hasher.Hash("new-password"),
@@ -76,7 +76,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
 
                     await store.SaveAsync(
                         updated,
-                        existing.Version);
+                        existing.Version, ct: TestContext.Current.CancellationToken);
 
                     // Simulate a failure during session revocation.
                     throw new InvalidOperationException(
@@ -92,7 +92,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 new TenantExecutionContext(tenant));
 
             var persisted = await store.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persisted);
 
@@ -135,7 +135,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -173,7 +173,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     ct);
 
                 Assert.NotNull(db.Database.CurrentTransaction);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -183,7 +183,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 new TenantExecutionContext(tenant));
 
             var persisted = await store.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persisted);
             Assert.True(
@@ -217,7 +217,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 db,
                 new TenantExecutionContext(tenant));
 
-            await store.AddAsync(credential);
+            await store.AddAsync(credential, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db = CreateDb(connection))
@@ -258,7 +258,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
 
                     throw new InvalidOperationException(
                         "Simulated session revocation failure");
-                }));
+                }, ct: TestContext.Current.CancellationToken));
         }
 
         await using (var db = CreateDb(connection))
@@ -268,7 +268,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                 new TenantExecutionContext(tenant));
 
             var persisted = await store.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persisted);
 
@@ -343,14 +343,14 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     db,
                     new TenantExecutionContext(tenant));
 
-            await credentialStore.AddAsync(credential);
+            await credentialStore.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
             await sessionStore.ExecuteAsync(async ct =>
             {
                 await sessionStore.CreateRootAsync(root, ct);
                 await sessionStore.CreateChainAsync(chain, ct);
                 await sessionStore.CreateSessionAsync(session, ct);
-            });
+            }, ct: TestContext.Current.CancellationToken);
         }
 
         // Act: Change password and revoke session within one atomic operation.
@@ -409,7 +409,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     // Session operation succeeded, but the outer operation fails.
                     throw new InvalidOperationException(
                         "Simulated failure before outer commit");
-                }));
+                }, ct: TestContext.Current.CancellationToken));
         }
 
         // Assert: Both credential and session changes must be rolled back.
@@ -426,7 +426,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     new TenantExecutionContext(tenant));
 
             var persisted = await credentialStore.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persisted);
 
@@ -437,7 +437,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
 
             Assert.Equal(0, persisted.Version);
 
-            var persistedSession = await sessionStore.GetSessionAsync(sessionId);
+            var persistedSession = await sessionStore.GetSessionAsync(sessionId, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persistedSession);
             Assert.False(persistedSession.IsRevoked);
@@ -481,9 +481,9 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     db,
                     new TenantExecutionContext(tenant));
 
-            await credentialStore.AddAsync(credential);
+            await credentialStore.AddAsync(credential, ct: TestContext.Current.CancellationToken);
 
-            await securityStore.AddAsync(securityState);
+            await securityStore.AddAsync(securityState, ct: TestContext.Current.CancellationToken);
 
             var activeReset = securityState.BeginReset(
                 resetTokenHash,
@@ -492,7 +492,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
 
             await securityStore.UpdateAsync(
                 activeReset,
-                securityState.SecurityVersion);
+                securityState.SecurityVersion, ct: TestContext.Current.CancellationToken);
         }
 
         // Act: Consume reset token and change password,
@@ -572,7 +572,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
 
                     throw new InvalidOperationException(
                         "Simulated failure before reset commit");
-                }));
+                }, ct: TestContext.Current.CancellationToken));
         }
 
         // Assert: Both security state and credential must be unchanged.
@@ -589,7 +589,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
                     new TenantExecutionContext(tenant));
 
             var persistedCredential = await credentialStore.GetAsync(
-                new CredentialKey(tenant, credential.Id));
+                new CredentialKey(tenant, credential.Id), ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persistedCredential);
 
@@ -608,7 +608,7 @@ public sealed class EfCoreCredentialAtomicityTests : EfCoreTestBase
             var persistedState = await securityStore.GetAsync(
                 user,
                 AuthenticationSecurityScope.Account,
-                null);
+                null, ct: TestContext.Current.CancellationToken);
 
             Assert.NotNull(persistedState);
 

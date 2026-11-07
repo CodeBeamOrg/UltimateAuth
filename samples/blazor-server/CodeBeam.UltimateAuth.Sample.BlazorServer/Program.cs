@@ -14,6 +14,7 @@ using CodeBeam.UltimateAuth.Users;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;

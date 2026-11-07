@@ -86,6 +86,7 @@ internal static class UAuthEndpointClassification
         UAuthEndpoint.DeleteRole => new(endpoint, UAuthRateLimitGroup.Standard, false),
         UAuthEndpoint.HubEntry => new(endpoint, UAuthRateLimitGroup.Sensitive, true),
         UAuthEndpoint.PasswordPolicy => new(endpoint, UAuthRateLimitGroup.Standard, true),
+        UAuthEndpoint.AntiforgeryToken => new(endpoint, UAuthRateLimitGroup.Frequent, false),
         _ => throw new ArgumentOutOfRangeException(nameof(endpoint))
     };
 }

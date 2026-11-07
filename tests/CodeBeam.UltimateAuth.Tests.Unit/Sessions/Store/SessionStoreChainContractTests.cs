@@ -83,7 +83,7 @@ public abstract class SessionStoreChainContractTests
             await CreateChainGraphAsync(store, Tenant);
 
         var result =
-            await store.GetChainAsync(chain.ChainId);
+            await store.GetChainAsync(chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
 
@@ -107,7 +107,7 @@ public abstract class SessionStoreChainContractTests
 
         var result =
             await store.GetChainAsync(
-                SessionChainId.New());
+                SessionChainId.New(), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -126,7 +126,7 @@ public abstract class SessionStoreChainContractTests
             Now);
 
         await store.ExecuteAsync(
-            ct => store.CreateRootAsync(root, ct));
+            ct => store.CreateRootAsync(root, ct), ct: TestContext.Current.CancellationToken);
 
         var chain = CreateChain(
             root,
@@ -196,11 +196,11 @@ public abstract class SessionStoreChainContractTests
             ct => store.SaveChainAsync(
                 updated,
                 expectedVersion: chain.Version,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetChainAsync(
-                chain.ChainId);
+                chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.LastSeenAt.Should().Be(
@@ -283,11 +283,11 @@ public abstract class SessionStoreChainContractTests
             ct => store.RevokeChainAsync(
                 chain.ChainId,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetChainAsync(
-                chain.ChainId);
+                chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.IsRevoked.Should().BeTrue();
@@ -326,17 +326,17 @@ public abstract class SessionStoreChainContractTests
             ct => store.RevokeChainAsync(
                 chain.ChainId,
                 Now.AddMinutes(5),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         await store.ExecuteAsync(
             ct => store.RevokeChainAsync(
                 chain.ChainId,
                 Now.AddMinutes(10),
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
             await store.GetChainAsync(
-                chain.ChainId);
+                chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.RevokedAt.Should().Be(
@@ -372,7 +372,7 @@ public abstract class SessionStoreChainContractTests
         await store.ExecuteAsync(
             ct => store.CreateChainAsync(
                 secondChainA,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var (_, chainB) =
             await CreateChainGraphAsync(
@@ -382,7 +382,7 @@ public abstract class SessionStoreChainContractTests
 
         var result =
             await store.GetChainsByRootAsync(
-                rootA.RootId);
+                rootA.RootId, ct: TestContext.Current.CancellationToken);
 
         result.Should().HaveCount(2);
 
@@ -421,10 +421,10 @@ public abstract class SessionStoreChainContractTests
         await store.ExecuteAsync(
             ct => store.CreateChainAsync(
                 second,
-                ct));
+                ct), ct: TestContext.Current.CancellationToken);
 
         var result =
-            await store.GetChainsByUserAsync(user);
+            await store.GetChainsByUserAsync(user, ct: TestContext.Current.CancellationToken);
 
         result.Select(x => x.ChainId)
             .Should()
@@ -459,11 +459,11 @@ public abstract class SessionStoreChainContractTests
 
         var fromA =
             await storeA.GetChainAsync(
-                chain.ChainId);
+                chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         var fromB =
             await storeB.GetChainAsync(
-                chain.ChainId);
+                chain.ChainId, ct: TestContext.Current.CancellationToken);
 
         fromA.Should().NotBeNull();
         fromB.Should().BeNull();

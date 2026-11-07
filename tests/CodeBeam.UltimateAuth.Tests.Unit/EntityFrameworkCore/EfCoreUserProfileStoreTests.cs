@@ -40,8 +40,8 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             lastName: "last"
             );
 
-        await store.AddAsync(profile);
-        var result = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
+        var result = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(userKey, result!.UserKey);
@@ -69,8 +69,8 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             lastName: "last"
             );
 
-        await store.AddAsync(profile);
-        var exists = await store.ExistsAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
+        var exists = await store.ExistsAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         Assert.True(exists);
     }
@@ -97,21 +97,21 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(profile);
+            await store1.AddAsync(profile, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+            var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
             var updated = existing!.UpdateName(existing.FirstName, existing.LastName, "new", DateTimeOffset.UtcNow);
-            await store2.SaveAsync(updated, expectedVersion: 0);
+            await store2.SaveAsync(updated, expectedVersion: 0, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db3 = CreateDb(connection))
         {
             var store3 = new EfCoreUserProfileStore<UAuthUserDbContext>(db3, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var result = await store3.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+            var result = await store3.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
             Assert.Equal(1, result!.Version);
             Assert.Equal("new", result.DisplayName);
@@ -140,17 +140,17 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
         await using (var db1 = CreateDb(connection))
         {
             var store1 = new EfCoreUserProfileStore<UAuthUserDbContext>(db1, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            await store1.AddAsync(profile);
+            await store1.AddAsync(profile, ct: TestContext.Current.CancellationToken);
         }
 
         await using (var db2 = CreateDb(connection))
         {
             var store2 = new EfCoreUserProfileStore<UAuthUserDbContext>(db2, new TenantExecutionContext(tenant), new UAuthPaginationOptions());
-            var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+            var existing = await store2.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
             var updated = existing!.UpdateName(existing.FirstName, existing.LastName, "new", DateTimeOffset.UtcNow);
 
             await Assert.ThrowsAsync<UAuthConcurrencyException>(() =>
-                store2.SaveAsync(updated, expectedVersion: 999));
+                store2.SaveAsync(updated, expectedVersion: 999, ct: TestContext.Current.CancellationToken));
         }
     }
 
@@ -179,8 +179,8 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             lastName: "last"
             );
 
-        await store1.AddAsync(profile);
-        var result = await store2.GetAsync(new UserProfileKey(tenant2, userKey, ProfileKey.Default));
+        await store1.AddAsync(profile, ct: TestContext.Current.CancellationToken);
+        var result = await store2.GetAsync(new UserProfileKey(tenant2, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -207,15 +207,15 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             lastName: "last"
             );
 
-        await store.AddAsync(profile);
+        await store.AddAsync(profile, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(tenant, userKey, ProfileKey.Default),
             expectedVersion: 0,
             DeleteMode.Soft,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
-        var result = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
+        var result = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result!.DeletedAt);
@@ -248,11 +248,11 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             DateTimeOffset.UtcNow,
             displayName: "business");
 
-        await store.AddAsync(defaultProfile);
-        await store.AddAsync(businessProfile);
+        await store.AddAsync(defaultProfile, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(businessProfile, ct: TestContext.Current.CancellationToken);
 
-        var p1 = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default));
-        var p2 = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)));
+        var p1 = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
+        var p2 = await store.GetAsync(new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(p1);
         Assert.NotNull(p2);
@@ -276,7 +276,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             userKey,
             ProfileKey.Default,
             DateTimeOffset.UtcNow,
-            displayName: "default"));
+            displayName: "default"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(UserProfile.Create(
             Guid.NewGuid(),
@@ -284,10 +284,10 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             userKey,
             ProfileKey.Parse("business", null),
             DateTimeOffset.UtcNow,
-            displayName: "business"));
+            displayName: "business"), ct: TestContext.Current.CancellationToken);
 
         var result = await store.GetAsync(
-            new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)));
+            new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)), ct: TestContext.Current.CancellationToken);
 
         Assert.Equal("business", result!.DisplayName);
     }
@@ -309,7 +309,7 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             userKey,
             ProfileKey.Default,
             DateTimeOffset.UtcNow,
-            displayName: "default"));
+            displayName: "default"), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(UserProfile.Create(
             Guid.NewGuid(),
@@ -317,11 +317,11 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             userKey,
             ProfileKey.Parse("business", null),
             DateTimeOffset.UtcNow,
-            displayName: "business"));
+            displayName: "business"), ct: TestContext.Current.CancellationToken);
 
         var results = await store.GetByUsersAsync(
             new[] { userKey },
-            ProfileKey.Default);
+            ProfileKey.Default, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(results);
         Assert.Equal(ProfileKey.Default, results[0].ProfileKey);
@@ -352,10 +352,10 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             ProfileKey.Default,
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(profile1);
+        await store.AddAsync(profile1, ct: TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<UAuthConflictException>(() =>
-            store.AddAsync(profile2));
+            store.AddAsync(profile2, ct: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -383,20 +383,20 @@ public class EfCoreUserProfileStoreTests : EfCoreTestBase
             ProfileKey.Parse("business", null),
             DateTimeOffset.UtcNow);
 
-        await store.AddAsync(defaultProfile);
-        await store.AddAsync(businessProfile);
+        await store.AddAsync(defaultProfile, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(businessProfile, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserProfileKey(tenant, userKey, ProfileKey.Default),
             0,
             DeleteMode.Soft,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, ct: TestContext.Current.CancellationToken);
 
         var defaultResult = await store.GetAsync(
-            new UserProfileKey(tenant, userKey, ProfileKey.Default));
+            new UserProfileKey(tenant, userKey, ProfileKey.Default), ct: TestContext.Current.CancellationToken);
 
         var businessResult = await store.GetAsync(
-            new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)));
+            new UserProfileKey(tenant, userKey, ProfileKey.Parse("business", null)), ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(defaultResult!.DeletedAt);
         Assert.Null(businessResult!.DeletedAt);

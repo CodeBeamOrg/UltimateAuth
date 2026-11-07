@@ -44,10 +44,10 @@ public abstract class UserLifecycleStoreContractTests
 
         var lifecycle = CreateLifecycle(TenantA);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new UserLifecycleKey(TenantA, lifecycle.UserKey));
+            new UserLifecycleKey(TenantA, lifecycle.UserKey), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Id.Should().Be(lifecycle.Id);
@@ -66,7 +66,7 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var result = await store.GetAsync(
-            new UserLifecycleKey(TenantA, UserKey.New()));
+            new UserLifecycleKey(TenantA, UserKey.New()), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
     }
@@ -78,10 +78,10 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var lifecycle = CreateLifecycle(TenantA);
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         var result = await store.ExistsAsync(
-            new UserLifecycleKey(TenantA, lifecycle.UserKey));
+            new UserLifecycleKey(TenantA, lifecycle.UserKey), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
     }
@@ -93,7 +93,7 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var result = await store.ExistsAsync(
-            new UserLifecycleKey(TenantA, UserKey.New()));
+            new UserLifecycleKey(TenantA, UserKey.New()), ct: TestContext.Current.CancellationToken);
 
         result.Should().BeFalse();
     }
@@ -106,7 +106,7 @@ public abstract class UserLifecycleStoreContractTests
 
         var user = UserKey.New();
 
-        await store.AddAsync(CreateLifecycle(TenantA, user));
+        await store.AddAsync(CreateLifecycle(TenantA, user), ct: TestContext.Current.CancellationToken);
 
         var act = () => store.AddAsync(
             CreateLifecycle(TenantA, user));
@@ -141,7 +141,7 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var lifecycle = CreateLifecycle(TenantA);
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         var changedAt = Now.AddMinutes(10);
 
@@ -153,10 +153,10 @@ public abstract class UserLifecycleStoreContractTests
 
         await store.SaveAsync(
             lifecycle,
-            expectedVersion: 0);
+            expectedVersion: 0, ct: TestContext.Current.CancellationToken);
 
         var persisted = await store.GetAsync(
-            new UserLifecycleKey(TenantA, lifecycle.UserKey));
+            new UserLifecycleKey(TenantA, lifecycle.UserKey), ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.Status.Should().Be(UserStatus.Suspended);
@@ -188,11 +188,11 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         var lifecycle = CreateLifecycle(TenantA);
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         lifecycle.IncrementSecurityVersion();
 
-        await store.SaveAsync(lifecycle, 0);
+        await store.SaveAsync(lifecycle, 0, ct: TestContext.Current.CancellationToken);
 
         lifecycle.IncrementSecurityVersion();
 
@@ -217,15 +217,15 @@ public abstract class UserLifecycleStoreContractTests
         var lifecycle = CreateLifecycle(TenantA);
         var key = new UserLifecycleKey(TenantA, lifecycle.UserKey);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             key,
             expectedVersion: 0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
-        var persisted = await store.GetAsync(key);
+        var persisted = await store.GetAsync(key, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
         persisted!.IsDeleted.Should().BeTrue();
@@ -242,16 +242,16 @@ public abstract class UserLifecycleStoreContractTests
         var lifecycle = CreateLifecycle(TenantA);
         var key = new UserLifecycleKey(TenantA, lifecycle.UserKey);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             key,
             expectedVersion: 0,
             DeleteMode.Hard,
-            Now);
+            Now, ct: TestContext.Current.CancellationToken);
 
-        (await store.GetAsync(key)).Should().BeNull();
-        (await store.ExistsAsync(key)).Should().BeFalse();
+        (await store.GetAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeNull();
+        (await store.ExistsAsync(key, ct: TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -279,10 +279,10 @@ public abstract class UserLifecycleStoreContractTests
         var lifecycle = CreateLifecycle(TenantA);
         var key = new UserLifecycleKey(TenantA, lifecycle.UserKey);
 
-        await store.AddAsync(lifecycle);
+        await store.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         lifecycle.IncrementSecurityVersion();
-        await store.SaveAsync(lifecycle, 0);
+        await store.SaveAsync(lifecycle, 0, ct: TestContext.Current.CancellationToken);
 
         var act = () => store.DeleteAsync(
             key,
@@ -321,7 +321,7 @@ public abstract class UserLifecycleStoreContractTests
         var storeB = db.CreateStore(TenantB);
 
         var lifecycle = CreateLifecycle(TenantB);
-        await storeB.AddAsync(lifecycle);
+        await storeB.AddAsync(lifecycle, ct: TestContext.Current.CancellationToken);
 
         var act = () => storeA.SaveAsync(
             lifecycle,
@@ -339,14 +339,14 @@ public abstract class UserLifecycleStoreContractTests
         var storeA = db.CreateStore(TenantA);
         var storeB = db.CreateStore(TenantB);
 
-        await storeA.AddAsync(CreateLifecycle(TenantA));
-        await storeB.AddAsync(CreateLifecycle(TenantB));
+        await storeA.AddAsync(CreateLifecycle(TenantA), ct: TestContext.Current.CancellationToken);
+        await storeB.AddAsync(CreateLifecycle(TenantB), ct: TestContext.Current.CancellationToken);
 
         var resultA = await storeA.QueryAsync(
-            new UserLifecycleQuery());
+            new UserLifecycleQuery(), ct: TestContext.Current.CancellationToken);
 
         var resultB = await storeB.QueryAsync(
-            new UserLifecycleQuery());
+            new UserLifecycleQuery(), ct: TestContext.Current.CancellationToken);
 
         resultA.Items.Should().ContainSingle();
         resultA.Items.Single().Tenant.Should().Be(TenantA);
@@ -368,17 +368,17 @@ public abstract class UserLifecycleStoreContractTests
         var active = CreateLifecycle(TenantA);
         var deleted = CreateLifecycle(TenantA);
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserLifecycleKey(TenantA, deleted.UserKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
-            new UserLifecycleQuery());
+            new UserLifecycleQuery(), ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().UserKey.Should().Be(active.UserKey);
@@ -394,20 +394,20 @@ public abstract class UserLifecycleStoreContractTests
         var active = CreateLifecycle(TenantA);
         var deleted = CreateLifecycle(TenantA);
 
-        await store.AddAsync(active);
-        await store.AddAsync(deleted);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(deleted, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserLifecycleKey(TenantA, deleted.UserKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
             {
                 IncludeDeleted = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(2);
@@ -433,14 +433,14 @@ public abstract class UserLifecycleStoreContractTests
             Now.AddMinutes(1),
             UserStatus.Suspended);
 
-        await store.AddAsync(active);
-        await store.AddAsync(suspended);
+        await store.AddAsync(active, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(suspended, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
             {
                 Status = UserStatus.Suspended
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().ContainSingle();
         result.Items.Single().UserKey.Should().Be(suspended.UserKey);
@@ -462,7 +462,7 @@ public abstract class UserLifecycleStoreContractTests
             await store.AddAsync(
                 CreateLifecycle(
                     TenantA,
-                    createdAt: Now.AddMinutes(i)));
+                    createdAt: Now.AddMinutes(i)), ct: TestContext.Current.CancellationToken);
         }
 
         var result = await store.QueryAsync(
@@ -471,7 +471,7 @@ public abstract class UserLifecycleStoreContractTests
                 PageNumber = 2,
                 PageSize = 2,
                 SortBy = nameof(UserLifecycle.CreatedAt)
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(5);
@@ -504,16 +504,16 @@ public abstract class UserLifecycleStoreContractTests
             TenantA,
             createdAt: Now.AddMinutes(2));
 
-        await store.AddAsync(third);
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(third, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
             {
                 SortBy = nameof(UserLifecycle.CreatedAt),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.CreatedAt)
             .Should()
@@ -530,20 +530,20 @@ public abstract class UserLifecycleStoreContractTests
         var store = db.CreateStore(TenantA);
 
         await store.AddAsync(
-            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(1)));
+            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(1)), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
-            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(3)));
+            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(3)), ct: TestContext.Current.CancellationToken);
 
         await store.AddAsync(
-            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(2)));
+            CreateLifecycle(TenantA, createdAt: Now.AddMinutes(2)), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
             {
                 SortBy = nameof(UserLifecycle.CreatedAt),
                 Descending = true
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.CreatedAt)
             .Should()
@@ -563,16 +563,16 @@ public abstract class UserLifecycleStoreContractTests
         var secondUser = UserKey.FromString("user-b");
         var thirdUser = UserKey.FromString("user-c");
 
-        await store.AddAsync(CreateLifecycle(TenantA, thirdUser));
-        await store.AddAsync(CreateLifecycle(TenantA, firstUser));
-        await store.AddAsync(CreateLifecycle(TenantA, secondUser));
+        await store.AddAsync(CreateLifecycle(TenantA, thirdUser), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(CreateLifecycle(TenantA, firstUser), ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(CreateLifecycle(TenantA, secondUser), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
             {
                 SortBy = nameof(UserLifecycle.UserKey),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.UserKey.Value)
             .Should()
@@ -591,20 +591,20 @@ public abstract class UserLifecycleStoreContractTests
         var first = CreateLifecycle(TenantA);
         var second = CreateLifecycle(TenantA);
 
-        await store.AddAsync(first);
-        await store.AddAsync(second);
+        await store.AddAsync(first, ct: TestContext.Current.CancellationToken);
+        await store.AddAsync(second, ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserLifecycleKey(TenantA, first.UserKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(1));
+            Now.AddHours(1), ct: TestContext.Current.CancellationToken);
 
         await store.DeleteAsync(
             new UserLifecycleKey(TenantA, second.UserKey),
             0,
             DeleteMode.Soft,
-            Now.AddHours(2));
+            Now.AddHours(2), ct: TestContext.Current.CancellationToken);
 
         var result = await store.QueryAsync(
             new UserLifecycleQuery
@@ -612,7 +612,7 @@ public abstract class UserLifecycleStoreContractTests
                 IncludeDeleted = true,
                 SortBy = nameof(UserLifecycle.DeletedAt),
                 Descending = false
-            });
+            }, ct: TestContext.Current.CancellationToken);
 
         result.Items.Select(x => x.DeletedAt)
             .Should()

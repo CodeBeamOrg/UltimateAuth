@@ -16,7 +16,6 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         _claimsProvider = claimsProvider;
     }
 
-    // TODO: Improve Device binding
     // Validate runs before AuthFlowContext is set, do not call _authFlow here.
 
     // TODO: Add GetSessionAggregate store method to 1 call instead of 3 calls of root chain session
@@ -61,21 +60,13 @@ internal sealed class UAuthSessionValidator : ISessionValidator
         if (session.SecurityVersionAtCreation != root.SecurityVersion)
             return SessionValidationResult.Invalid(SessionState.SecurityMismatch, session.UserKey, session.SessionId, session.ChainId, root.RootId);
 
-        if (chain.Device.HasDeviceId && context.Device.HasDeviceId)
-        {
-            if (!Equals(chain.Device.DeviceId, context.Device.DeviceId))
-            {
-                if (options.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
-                    return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
+        // TODO: Implement device mismatch behavior based on options, e.g., allow, reject or rebind.
+        var deviceMismatch = !chain.Device.HasDeviceId || !context.Device.HasDeviceId || !Equals(chain.Device.DeviceId, context.Device.DeviceId);
 
-                //if (options.Session.DeviceMismatchBehavior == AllowAndRebind)
-            }
+        if (deviceMismatch && options.DeviceMismatchBehavior == DeviceMismatchBehavior.Reject)
+        {
+            return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
         }
-        //else
-        //{
-        //    // Add SessionValidatorOrigin to seperate UserRequest or background task
-        //    return SessionValidationResult.Invalid(SessionState.DeviceMismatch, chain.UserKey, session.SessionId, chain.ChainId, root.RootId);
-        //}
 
         var claims = await _claimsProvider.GetClaimsAsync(context.Tenant, session.UserKey, ct);
         return SessionValidationResult.Active(context.Tenant, session.UserKey, session.SessionId, session.ChainId, root.RootId, claims, session.CreatedAt, chain.Device.DeviceId);

@@ -65,7 +65,7 @@ public sealed class HttpContextJsonContractTests
         request.Content.Headers.ContentType =
             MediaTypeHeaderValue.Parse(contentType);
 
-        using var response = await host.Client.SendAsync(request);
+        using var response = await host.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -73,7 +73,7 @@ public sealed class HttpContextJsonContractTests
             .MediaType.Should().Be("application/problem+json");
 
         var problem = await response.Content
-            .ReadFromJsonAsync<ProblemDetails>();
+            .ReadFromJsonAsync<ProblemDetails>(cancellationToken: TestContext.Current.CancellationToken);
 
         problem.Should().NotBeNull();
         problem!.Status.Should().Be(400);
@@ -89,12 +89,12 @@ public sealed class HttpContextJsonContractTests
 
         using var response = await host.Client.PostAsJsonAsync(
             Endpoint,
-            new { name = "UltimateAuth" });
+            new { name = "UltimateAuth" }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<JsonTestResult>();
+            .ReadFromJsonAsync<JsonTestResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("UltimateAuth");
@@ -113,12 +113,12 @@ public sealed class HttpContextJsonContractTests
                 Encoding.UTF8.GetBytes("""{"name":"test"}"""))
         };
 
-        using var response = await host.Client.SendAsync(request);
+        using var response = await host.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var problem = await response.Content
-            .ReadFromJsonAsync<ProblemDetails>();
+            .ReadFromJsonAsync<ProblemDetails>(cancellationToken: TestContext.Current.CancellationToken);
 
         problem!.Detail.Should().Be("request_content_type_invalid");
     }
@@ -130,12 +130,12 @@ public sealed class HttpContextJsonContractTests
 
         using var response = await host.Client.PostAsJsonAsync(
             "/test/json-rewind",
-            new { name = "UltimateAuth" });
+            new { name = "UltimateAuth" }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var result = await response.Content
-            .ReadFromJsonAsync<BodyRewindResult>();
+            .ReadFromJsonAsync<BodyRewindResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("UltimateAuth");
@@ -161,7 +161,7 @@ public sealed class HttpContextJsonContractTests
 
         using var response = await host.Client.PostAsync(
             "/test/json-permission",
-            content);
+            content, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -169,7 +169,7 @@ public sealed class HttpContextJsonContractTests
             .MediaType.Should().Be("application/problem+json");
 
         var problem = await response.Content
-            .ReadFromJsonAsync<ProblemDetails>();
+            .ReadFromJsonAsync<ProblemDetails>(cancellationToken: TestContext.Current.CancellationToken);
 
         problem.Should().NotBeNull();
         problem!.Status.Should().Be(400);
