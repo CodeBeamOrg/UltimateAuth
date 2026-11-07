@@ -1,4 +1,6 @@
-﻿namespace CodeBeam.UltimateAuth.Server.Options;
+﻿using Microsoft.AspNetCore.Http;
+
+namespace CodeBeam.UltimateAuth.Server.Options;
 
 /// <summary>
 /// Configures CSRF protection for UltimateAuth endpoints.
@@ -13,8 +15,15 @@ public sealed class UAuthAntiforgeryOptions
     /// </summary>
     public string TokenEndpoint { get; set; } = "/antiforgery/token";
 
+    /// <summary>
+    /// Overrides the antiforgery cookie SameSite policy.
+    /// When null, External Hub deployments use None, other deployments retain ASP.NET Core's Strict default.
+    /// </summary>
+    public SameSiteMode? CookieSameSite { get; set; }
+
     public UAuthAntiforgeryOptions Clone() => new()
     {
-        TokenEndpoint = TokenEndpoint
+        TokenEndpoint = TokenEndpoint,
+        CookieSameSite = CookieSameSite
     };
 }
