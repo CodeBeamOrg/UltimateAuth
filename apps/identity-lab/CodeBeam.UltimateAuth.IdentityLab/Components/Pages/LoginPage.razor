@@ -198,14 +198,16 @@
                                                           Disabled="@_loginBusy"
                                                           Immediate="true" />
 
-                                        <MudButton ButtonType="ButtonType.Submit"
+                                        <MudLoadingButton ButtonType="ButtonType.Submit"
                                                    Variant="Variant.Filled"
                                                    Color="Color.Primary"
                                                    FullWidth="true"
                                                    Size="Size.Large"
+                                                   Loading="@_loginBusy"
+                                                   AutoDelay="0"
                                                    EndIcon="@Icons.Material.Filled.ArrowForward">
                                             @(IsLockedOut ? "Temporarily locked" : "Sign In")
-                                        </MudButton>
+                                        </MudLoadingButton>
 
                                     </div>
                                 </UAuthLoginForm>
