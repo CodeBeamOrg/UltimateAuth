@@ -21,7 +21,7 @@ jobs:
       sdks: ${{ steps.policy.outputs.sdks }}
       solution-frameworks: ${{ steps.policy.outputs.solution-frameworks }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Audit projects and generate compatibility matrix
         id: policy
         env:
