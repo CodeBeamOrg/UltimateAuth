@@ -1,10 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
-using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Net.Http.Json;
@@ -371,6 +372,51 @@ public sealed class RemoteSessionValidatorTests
     }
 
 
+    [Fact]
+    public async Task ValidateSessionAsync_WhenDeviceIdExists_ShouldForwardDeviceId()
+    {
+        var handler = new TestHttpMessageHandler
+        {
+            Response = CreateFailureResponse(HttpStatusCode.Unauthorized)
+        };
+
+        var sut = CreateSut(handler);
+
+        var context = CreateValidationContext() with
+        {
+            Device = TestDevice.Default()
+        };
+
+        await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        handler.DeviceId.Should().Be(context.Device.DeviceId!.Value.Value);
+    }
+
+    [Fact]
+    public async Task ValidateSessionAsync_WhenDeviceIdIsMissing_ShouldNotForwardDeviceId()
+    {
+        var handler = new TestHttpMessageHandler
+        {
+            Response = CreateFailureResponse(HttpStatusCode.Unauthorized)
+        };
+
+        var sut = CreateSut(handler);
+
+        var context = CreateValidationContext() with
+        {
+            Device = DeviceContext.Anonymous()
+        };
+
+        await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        handler.DeviceId.Should().BeNull();
+    }
+
+
     private static RemoteSessionValidator CreateSut(TestHttpMessageHandler handler, HttpContext? httpContext = null)
     {
         var httpClient = new HttpClient(handler)
@@ -418,11 +464,13 @@ public sealed class RemoteSessionValidatorTests
         public Uri? RequestUri { get; private set; }
         public string? Body { get; private set; }
         public string? Cookie { get; private set; }
+        public string? DeviceId { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Method = request.Method;
             RequestUri = request.RequestUri;
+            DeviceId = request.Headers.TryGetValues("X-UDID", out var values) ? values.SingleOrDefault() : null;
 
             if (request.Content is not null)
             {

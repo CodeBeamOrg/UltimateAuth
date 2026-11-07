@@ -36,6 +36,11 @@ internal sealed class RemoteSessionValidator : ISessionValidator
             request.Headers.Add("Cookie", cookie.ToString());
         }
 
+        if (context.Device.DeviceId is { } deviceId)
+        {
+            request.Headers.TryAddWithoutValidation("X-UDID", deviceId.Value);
+        }
+
         var response = await _http.SendAsync(request, ct);
 
         if (!response.IsSuccessStatusCode)

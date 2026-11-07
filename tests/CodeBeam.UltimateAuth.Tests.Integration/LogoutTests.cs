@@ -3511,6 +3511,114 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
             x.StatusCode == HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Logout_AntiforgeryTokenMustUseAuthenticatedDeviceContext()
+    {
+        _factory.Clock.Reset();
+
+        var ct = TestContext.Current.CancellationToken;
+        var user = await _factory.CreateLoginUserAsync(ct: ct);
+        var deviceId = $"csrf-device-{Guid.NewGuid():N}";
+
+        using var client = CreateClient(deviceId);
+
+        using var login = await LoginAsync(
+            client,
+            user.Identifier,
+            user.Secret);
+
+        login.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        var sessionCookie = GetSessionCookie(login);
+
+        client.DefaultRequestHeaders.Add("Cookie", sessionCookie);
+
+        // First reproduce the old JS behavior:
+        // the antiforgery GET does not carry X-UDID.
+        client.DefaultRequestHeaders.Remove("X-UDID");
+
+        using var anonymousTokenResponse = await client.GetAsync(
+            "/auth/antiforgery/token", ct);
+
+        anonymousTokenResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var anonymousToken = await anonymousTokenResponse.Content
+            .ReadFromJsonAsync<AntiforgeryTokenResponse>(
+                cancellationToken: ct);
+
+        anonymousToken.Should().NotBeNull();
+
+        var antiforgeryCookie = GetAntiforgeryCookie(
+            anonymousTokenResponse);
+
+        // The POST has the correct device, but its CSRF token
+        // was obtained in a different authentication context.
+        using var rejectedRequest = new HttpRequestMessage(
+            HttpMethod.Post, "/auth/logout");
+
+        rejectedRequest.Headers.Add("X-UDID", deviceId);
+        rejectedRequest.Headers.Add(
+            anonymousToken!.HeaderName,
+            anonymousToken.RequestToken);
+        rejectedRequest.Headers.Add(
+            "Cookie",
+            $"{sessionCookie}; {antiforgeryCookie}");
+        rejectedRequest.Headers.Add(
+            "X-UAuth-Logout-Mode", "observe");
+
+        using var rejected = await client.SendAsync(
+            rejectedRequest, ct);
+
+        rejected.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var rejectedBody = await rejected.Content.ReadAsStringAsync(ct);
+        rejectedBody.Should().Contain("invalid_antiforgery_token");
+
+        // Correct behavior: obtain the token using the same
+        // Device ID that will be used by the logout POST.
+        using var tokenRequest = new HttpRequestMessage(
+            HttpMethod.Get, "/auth/antiforgery/token");
+
+        tokenRequest.Headers.Add("X-UDID", deviceId);
+        tokenRequest.Headers.Add("Cookie", sessionCookie);
+
+        using var tokenResponse = await client.SendAsync(
+            tokenRequest, ct);
+
+        tokenResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var token = await tokenResponse.Content
+            .ReadFromJsonAsync<AntiforgeryTokenResponse>(
+                cancellationToken: ct);
+
+        token.Should().NotBeNull();
+
+        var validAntiforgeryCookie = GetAntiforgeryCookie(
+            tokenResponse);
+
+        using var logoutRequest = new HttpRequestMessage(
+            HttpMethod.Post, "/auth/logout");
+
+        logoutRequest.Headers.Add("X-UDID", deviceId);
+        logoutRequest.Headers.Add(
+            token!.HeaderName,
+            token.RequestToken);
+        logoutRequest.Headers.Add(
+            "Cookie",
+            $"{sessionCookie}; {validAntiforgeryCookie}");
+        logoutRequest.Headers.Add(
+            "X-UAuth-Logout-Mode", "observe");
+
+        using var logout = await client.SendAsync(
+            logoutRequest, ct);
+
+        var logoutBody = await logout.Content.ReadAsStringAsync(ct);
+
+        logout.StatusCode.Should().Be(
+            HttpStatusCode.OK,
+            logoutBody);
+    }
+
 
     // ------------------------------------------------------------
     // Helpers
@@ -3591,5 +3699,24 @@ public class LogoutTests : IClassFixture<AuthServerFactory>
         }
 
         return firstSegment[(separator + 1)..];
+    }
+
+    private sealed record AntiforgeryTokenResponse(
+        string RequestToken,
+        string HeaderName,
+        string FormFieldName);
+
+    private static string GetAntiforgeryCookie(
+        HttpResponseMessage response)
+    {
+        response.Headers
+            .TryGetValues("Set-Cookie", out var cookies)
+            .Should().BeTrue();
+
+        return cookies!
+            .Select(x => x.Split(';', 2)[0])
+            .First(x => x.TrimStart().StartsWith(
+                ".AspNetCore.Antiforgery.",
+                StringComparison.OrdinalIgnoreCase));
     }
 }

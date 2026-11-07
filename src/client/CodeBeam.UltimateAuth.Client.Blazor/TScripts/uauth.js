@@ -674,7 +674,10 @@ window.uauth.antiforgery = {
             method: "GET",
             credentials: "include",
             cache: "no-store",
-            redirect: "error"
+            redirect: "error",
+            headers: {
+                "X-UDID": window.uauth.deviceId
+            }
         });
 
         if (!response.ok) {
