@@ -82,7 +82,11 @@ jobs:
   deploy:
     name: Deploy
     needs: build
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: >-
+      !cancelled() &&
+      needs.build.result == 'success' &&
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Server
