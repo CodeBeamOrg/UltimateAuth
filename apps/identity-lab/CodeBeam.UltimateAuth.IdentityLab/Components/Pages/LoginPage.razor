@@ -107,7 +107,7 @@
                             </Authorized>
 
                             <NotAuthorized>
-                                <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard" OnTryResult="HandleLoginResult">
+                                <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard" OnTryResult="HandleLoginResult" OnSubmittingChanged="HandleSubmittingChanged">
 
                                     @if (IsLockedOut)
                                     {
@@ -127,10 +127,7 @@
                                                     @LockoutCountdown
                                                 </MudText>
 
-                                                <MudProgressLinear Value="@LockoutProgress"
-                                                                   Color="Color.Error"
-                                                                   Size="Size.Medium"
-                                                                   Rounded="true" />
+                                                <MudProgressLinear Value="@LockoutProgress" Color="Color.Error" Size="Size.Medium" Rounded="true" />
 
                                                 <MudText Typo="Typo.caption" Align="Align.Center">
                                                     Try again after
@@ -187,7 +184,7 @@
                                                       MaxLength="256"
                                                       Required="true"
                                                       RequiredError="Email or username is required."
-                                                      Disabled="IsLockedOut"
+                                                      Disabled="@_loginBusy"
                                                       Immediate="true" />
 
                                         <MudPasswordField T="string"
@@ -198,7 +195,7 @@
                                                           MaxLength="256"
                                                           Required="true"
                                                           RequiredError="Password is required."
-                                                          Disabled="IsLockedOut"
+                                                          Disabled="@_loginBusy"
                                                           Immediate="true" />
 
                                         <MudButton ButtonType="ButtonType.Submit"
@@ -315,8 +312,15 @@
         ?? AuthState.Identity?.PrimaryUserName
         ?? "User";
 
-    private string? CurrentUserName =>
-        AuthState.Identity?.PrimaryUserName;
+    private string? CurrentUserName => AuthState.Identity?.PrimaryUserName;
+
+    private bool _loginBusy;
+
+    private async Task HandleSubmittingChanged(bool submitting)
+    {
+        _loginBusy = submitting;
+        await InvokeAsync(StateHasChanged);
+    }
 
     private void ContinueToDashboard()
     {

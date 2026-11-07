@@ -29,7 +29,7 @@
 
 ---
 
-UltimateAuth is an open-source auth framework with platform-level capabilities that unifies secure session, cookie and token based Auth, modern PKCE flows, Blazor/Maui-ready client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
+UltimateAuth is an open-source auth framework with platform-level capabilities that unifies secure session, cookie and token based Auth, modern PKCE flows, Blazor/MAUI-ready client experiences - eliminating the complexity of traditional Auth systems while providing a clean, lightweight, extensible and developer-first architecture.
 
 ---
 ## Roadmap
@@ -69,6 +69,7 @@ UltimateAuth is designed to deliver a simple, consistent developer experience fr
 **The UltimateAuth philosophy:** Simple from day one, more capable with every release. Version milestones describe expanding capabilities — not a progression from difficult to easy, or from unusable to usable.
 
 ---
+
 
 ### 💜 Join the UltimateAuth Community
 
