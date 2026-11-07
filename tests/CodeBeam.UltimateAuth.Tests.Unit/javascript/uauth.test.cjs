@@ -614,3 +614,53 @@ test("observed logout rejects unsafe redirect protocols", async () => {
 
     assert.equal(navigation, null);
 });
+
+test("authenticated logout uses the same Device ID for CSRF token and POST", async () => {
+    const deviceId = "test-device";
+    let tokenDeviceId = null;
+    let logoutDeviceId = null;
+
+    const uauth = createEnvironment(async (url, options) => {
+        if (url === authUrl("/auth/antiforgery/token")) {
+            tokenDeviceId = options.headers?.["X-UDID"] ?? null;
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    requestToken: "csrf-test-token",
+                    headerName: "X-UAuth-CSRF",
+                    formFieldName: "__RequestVerificationToken"
+                })
+            };
+        }
+
+        assert.equal(url, authUrl("/auth/logout"));
+
+        logoutDeviceId = options.headers?.["X-UDID"] ?? null;
+
+        return {
+            ok: true,
+            status: 200,
+            redirected: false,
+            headers: { get: () => null },
+            text: async () => JSON.stringify({
+                isSuccess: true,
+                redirectUrl: null
+            })
+        };
+    });
+
+    configureAntiforgery(uauth);
+
+    const result = await uauth.post({
+        url: authUrl("/auth/logout"),
+        mode: "logout-observe",
+        clientProfile: "BlazorServer",
+        trustedOrigin: HUB_ORIGIN
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(logoutDeviceId, deviceId);
+    assert.equal(tokenDeviceId, deviceId);
+});
