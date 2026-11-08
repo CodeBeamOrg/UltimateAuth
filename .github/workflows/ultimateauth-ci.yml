@@ -169,7 +169,7 @@ jobs:
 
     - name: Upload framework test and coverage results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: framework-test-results
         path: TestResults/Framework
@@ -274,7 +274,7 @@ jobs:
 
       - name: Upload Identity Lab test and coverage results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: identity-lab-test-results
           path: TestResults/IdentityLab
