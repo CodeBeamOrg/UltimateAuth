@@ -39,3 +39,32 @@ policy. It does not start another session validation or use a system actor.
 - **Existing browser SDK paths:** sandbox member deletion already uses the
   UltimateAuth browser client for the authenticated framework operation; it does
   not construct an authenticated flow in a component event.
+
+## Endpoint responsibility audit (PR #154)
+
+All Lab management routes below are application operations. None is a proxy for
+an equivalent complete UltimateAuth client operation.
+
+| Route (relative to `/api/lab`) | Responsibility retained in Identity Lab |
+| --- | --- |
+| `POST manage/users` | Owner membership, active sandbox capacity, account/role/membership provisioning and gated rollback. Standard user creation alone cannot complete this workflow. |
+| `POST manage/owner-repair/status` | Determine recovery eligibility from persisted Owner identity and sandbox state. |
+| `POST manage/owner-repair` | Reconcile an Owner's sandbox and membership under the recovery rules. |
+| `POST manage/demo-roles/query` | Require active ownership and a regular member target in the same sandbox; return only the fixed demo role identities. Standard role queries do not enforce these application rules. |
+| `POST manage/demo-roles` | Enforce the same sandbox/target rules and the fixed demo-role allowlist. Public framework role mutation is deliberately denied by `LabApplicationPolicy`. |
+| `POST manage/demo-permissions` | Require active sandbox membership and derive only exact demo permissions from the fixed Manager/Customer roles. `GetMyPermissionsAsync` returns general framework permissions with different semantics. |
+| `POST manage/demo-permissions/check` | Re-evaluate those application-specific permissions before a demo operation. |
+| `POST admin/repair/scan` | Ladmin-only cross-sandbox reconciliation snapshot. |
+| `POST admin/repair/owner/{userKey}` | Ladmin-only Owner/sandbox/membership reconciliation. |
+| `POST admin/repair/sandbox/{sandboxId}/delete` | Ladmin-only deletion of an eligible empty sandbox. |
+| `GET admin/sandboxes` (existing) | Ladmin-only application sandbox query. |
+| `GET admin/statistics` (existing) | Ladmin-only application statistics. |
+
+Standard framework operations continue to use their existing UltimateAuth client
+APIs and endpoints (including member account deletion). No public client API
+extension or server-to-server HTTP call is needed.
+
+The HTTP filter keeps the validated `AuthFlowContext` alongside its `AccessContext`
+in the current request. Member provisioning receives both explicitly and passes
+that same flow to rollback. The context provider retains no last-flow field;
+creating another context cannot change the flow used by an in-progress rollback.

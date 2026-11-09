@@ -19,7 +19,8 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
     [Theory]
     [InlineData(null)]
     [InlineData("member-a")]
-    public async Task Anonymous_or_regular_member_cannot_provision(string? actor)
+    [InlineData("owner-a")]
+    public async Task Anonymous_member_or_actor_mismatched_with_flow_cannot_provision(string? actor)
     {
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
@@ -31,19 +32,22 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
             new(db), new(db), users.Object, roles.Object, assignments.Object, new(),
             NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateMemberAsync(
-            Contexts.Create("users.create.admin", actor is null ? null : UserKey.FromString(actor)), new CreateUserRequest(), TestContext.Current.CancellationToken));
+            Contexts.Create("users.create.admin", actor is null ? null : UserKey.FromString(actor)), Contexts.AuthenticatedFlow(LabDatabase.MemberA), new CreateUserRequest(), TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
         users.VerifyNoOtherCalls();
         roles.VerifyNoOtherCalls();
         assignments.VerifyNoOtherCalls();
     }
 
-    [Fact]
-    public async Task Failed_role_assignment_rolls_back_only_created_user_and_token_cannot_be_replayed()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Failed_role_assignment_rolls_back_only_created_user_and_token_cannot_be_replayed(bool cancelProvisioning)
     {
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
         var before = await db.SnapshotAsync();
+        using var provisioningCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var gate = new LabProvisioningRollbackGate();
         var policy = new SandboxUAuthAccessPolicy(db, new LabRootResolver(), gate);
         var createdKey = UserKey.FromString("new-member");
@@ -60,6 +64,9 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
         users.Setup(x => x.DeleteUserAsync(It.IsAny<AccessContext>(), It.IsAny<DeleteUserRequest>(), It.IsAny<CancellationToken>()))
             .Returns(async (AccessContext context, DeleteUserRequest request, CancellationToken ct) =>
             {
+                Assert.Equal(cancelProvisioning, provisioningCts.IsCancellationRequested);
+                Assert.False(ct.IsCancellationRequested);
+                Assert.NotEqual(provisioningCts.Token, ct);
                 rollbackContext = context;
                 rollbackMode = request.Mode;
                 // An unrelated target cannot consume the real token.
@@ -77,13 +84,21 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
         roles.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(roleStore.Object);
         var userStore = new Mock<IUserRoleStore>(MockBehavior.Strict);
         userStore.Setup(x => x.GetAssignmentsAsync(createdKey, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Injected assignment failure"));
+            .Returns(() =>
+            {
+                if (cancelProvisioning)
+                {
+                    provisioningCts.Cancel();
+                    throw new OperationCanceledException(provisioningCts.Token);
+                }
+                throw new InvalidOperationException("Injected assignment failure");
+            });
         var assignments = new Mock<IUserRoleStoreFactory>();
         assignments.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(userStore.Object);
         var service = new LabUserProvisioningService(ActorProvider.For(LabDatabase.OwnerA), new(db), new(db),
             users.Object, roles.Object, assignments.Object, gate, NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<LabPartialProvisioningException>(() => service.CreateMemberAsync(
-            Contexts.Create("users.create.admin", LabDatabase.OwnerA), new CreateUserRequest(), TestContext.Current.CancellationToken));
+            Contexts.Create("users.create.admin", LabDatabase.OwnerA), Contexts.AuthenticatedFlow(LabDatabase.OwnerA), new CreateUserRequest(), provisioningCts.Token));
         Assert.NotNull(rollbackContext);
         Assert.Equal(createdKey, rollbackContext!.TargetUserKey);
         Assert.Equal(DeleteMode.Hard, rollbackMode);

@@ -16,7 +16,7 @@ public static class LabManagementEndpointExtensions
     {
         var group = endpoints.MapGroup("/api/lab/manage").AddEndpointFilter<LabManagementAuthorizationFilter>();
         group.MapPost("/users", async (CreateUserRequest request, HttpContext http, SandboxUserService service, CancellationToken ct) =>
-            Results.Ok(await service.CreateAsync(LabManagementAuthorizationFilter.Context(http), request, ct)))
+            Results.Ok(await service.CreateAsync(LabManagementAuthorizationFilter.Context(http), LabManagementAuthorizationFilter.Flow(http), request, ct)))
             .WithMetadata(new LabOperation(UAuthActions.Users.CreateAdmin, "users"));
 
         group.MapPost("/owner-repair/status", async (HttpContext http, LabOwnerRepairService service, CancellationToken ct) =>

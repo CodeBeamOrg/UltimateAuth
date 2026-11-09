@@ -1,4 +1,5 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using Microsoft.AspNetCore.Antiforgery;
@@ -13,6 +14,8 @@ public sealed class LabManagementAuthorizationFilter(
 {
     public static AccessContext Context(HttpContext http) => (AccessContext)http.Items[typeof(AccessContext)]!;
 
+    public static AuthFlowContext Flow(HttpContext http) => (AuthFlowContext)http.Items[typeof(AuthFlowContext)]!;
+
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)
     {
         var http = invocation.HttpContext;
@@ -25,13 +28,14 @@ public sealed class LabManagementAuthorizationFilter(
             }
 
             var operation = http.GetEndpoint()!.Metadata.GetMetadata<LabOperation>()!;
-            var context = await contextProvider.CreateAsync(operation.Action, operation.Resource, http.RequestAborted);
+            var (flow, context) = await contextProvider.CreateValidatedAsync(operation.Action, operation.Resource, http.RequestAborted);
             if (!context.IsAuthenticated || context.ActorUserKey is null)
                 return Results.Unauthorized();
             if (context.IsSystemActor || context.ActorTenant != TenantKeys.Single || context.IsCrossTenant)
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
 
             http.Items[typeof(AccessContext)] = context;
+            http.Items[typeof(AuthFlowContext)] = flow;
             return await next(invocation);
         }
         catch (UnauthorizedAccessException) { return Results.StatusCode(StatusCodes.Status403Forbidden); }

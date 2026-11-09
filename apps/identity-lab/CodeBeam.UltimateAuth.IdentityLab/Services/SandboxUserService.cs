@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.IdentityLab.Domain;
 using CodeBeam.UltimateAuth.IdentityLab.Persistence;
 using CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
@@ -68,7 +69,7 @@ public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClie
         return new SandboxUsersSnapshot(sandbox.Id, sandbox.Settings.MaxUsers, users);
     }
 
-    public async Task<CreateUserDialogResult> CreateAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
+    public async Task<CreateUserDialogResult> CreateAsync(AccessContext context, AuthFlowContext flow, CreateUserRequest request, CancellationToken ct = default)
     {
         if (!context.IsAuthenticated || context.IsSystemActor || context.ActorUserKey is not UserKey actorUserKey ||
             context.ActorTenant != TenantKeys.Single || context.IsCrossTenant)
@@ -82,7 +83,7 @@ public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClie
         try
         {
             var result = await provisioningService.CreateMemberAsync(
-                context,
+                context, flow,
                 request,
                 ct);
 

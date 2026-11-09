@@ -53,7 +53,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var sp = scope.ServiceProvider;
         var owner = await RegisterAsync(sp, db, "owner");
         var foreignOwner = await RegisterAsync(sp, db, "foreign");
-        var foreign = await Provisioning(sp, db, foreignOwner).CreateMemberAsync(Contexts.Create("users.create.admin", foreignOwner), Request("foreign-member"), TestContext.Current.CancellationToken);
+        var foreign = await Provisioning(sp, db, foreignOwner).CreateMemberAsync(Contexts.Create("users.create.admin", foreignOwner), Contexts.AuthenticatedFlow(foreignOwner), Request("foreign-member"), TestContext.Current.CancellationToken);
         Assert.True(foreign.IsSuccess, foreign.FailureReason);
         var foreignKey = UserKey.FromString(foreign.UserKey!);
 
@@ -69,7 +69,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         client.SetupGet(x => x.Users).Returns(userClient.Object);
         var service = UserService(sp, db, owner, client.Object);
 
-        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Request("member"), TestContext.Current.CancellationToken);
+        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner), Request("member"), TestContext.Current.CancellationToken);
         var visible = await service.GetUsersAsync(owner, TestContext.Current.CancellationToken);
         Assert.NotNull(visible);
         var member = Assert.Single(visible.Users, x => !x.IsOwner).UserKey;
@@ -77,7 +77,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         Assert.DoesNotContain(visible.Users, x => x.UserKey == foreignKey);
         var beforeRejected = await db.SnapshotAsync();
         // The facade reports failures; assert persistence rather than dialog wording.
-        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Request("rejected-member"), TestContext.Current.CancellationToken);
+        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner), Request("rejected-member"), TestContext.Current.CancellationToken);
         Assert.Equal(beforeRejected, await db.SnapshotAsync());
         await using (var fresh = runtime.Services.CreateAsyncScope())
         {
@@ -127,7 +127,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         Assert.NotNull(dashboard);
         Assert.Equal(1, dashboard.MemberCount);
         Assert.Equal(1, dashboard.RemainingCapacity);
-        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Request("replacement"), TestContext.Current.CancellationToken);
+        await service.CreateAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner), Request("replacement"), TestContext.Current.CancellationToken);
         Assert.Equal(2, (await service.GetUsersAsync(owner, TestContext.Current.CancellationToken))!.Users.Count);
         await using var final = db.CreateDbContext();
         Assert.False(await final.SandboxMembers.AnyAsync(x => x.UserKey == member, cancellationToken: TestContext.Current.CancellationToken));
@@ -145,7 +145,7 @@ public sealed class UserWorkflowTests(PostgresFixture postgres) : IClassFixture<
         var sp = scope.ServiceProvider;
         var owner = await RegisterAsync(sp, db, "repair-owner");
         var other = await RegisterAsync(sp, db, "other-owner");
-        var member = await Provisioning(sp, db, owner).CreateMemberAsync(Contexts.Create("users.create.admin", owner), Request("retained-member"), TestContext.Current.CancellationToken);
+        var member = await Provisioning(sp, db, owner).CreateMemberAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner), Request("retained-member"), TestContext.Current.CancellationToken);
         Assert.True(member.IsSuccess, member.FailureReason);
         var roles = sp.GetRequiredService<IRoleStoreFactory>();
         var assignments = sp.GetRequiredService<IUserRoleStoreFactory>();

@@ -22,8 +22,6 @@ internal static class ActorProvider
                 IDictionary<string, object>? attributes, CancellationToken ct) =>
                 Task.FromResult(Contexts.Create(action, actor, id is null ? null : UserKey.FromString(id))));
         var provider = new LabAccessContextProvider(flow.Object, contexts.Object);
-        if (actor.HasValue)
-            provider.CreateAsync("users.create.admin", "users").GetAwaiter().GetResult();
         return provider;
     }
 }

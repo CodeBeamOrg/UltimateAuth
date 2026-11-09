@@ -114,7 +114,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var provider = ActorProvider.For(owner);
         var provisioning = new LabUserProvisioningService(provider, new(db), new(db), users, roles, assignments,
             sp.GetRequiredService<LabProvisioningRollbackGate>(), NullLogger<LabUserProvisioningService>.Instance);
-        var result = await provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner), new CreateUserRequest
+        var result = await provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner), new CreateUserRequest
             { UserName = "member", Email = "member@example.test", Password = "test-password-8!" }, TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess, result.FailureReason);
         var member = UserKey.FromString(result.UserKey!);
@@ -191,7 +191,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var provisioning = new LabUserProvisioningService(ActorProvider.For(owner), new(db), new(db), users,
             roles, failedFactory.Object, sp.GetRequiredService<LabProvisioningRollbackGate>(),
             NullLogger<LabUserProvisioningService>.Instance);
-        var failure = await Assert.ThrowsAsync<LabPartialProvisioningException>(() => provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner),
+        var failure = await Assert.ThrowsAsync<LabPartialProvisioningException>(() => provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner), Contexts.AuthenticatedFlow(owner),
             new CreateUserRequest { UserName = "failed-member", Email = "failed-member@example.test", Password = "Member-test-password-8!" }, TestContext.Current.CancellationToken));
         var partialKey = UserKey.FromString(failure.CreatedUserKey);
         await using var fresh = runtime.Services.CreateAsyncScope();

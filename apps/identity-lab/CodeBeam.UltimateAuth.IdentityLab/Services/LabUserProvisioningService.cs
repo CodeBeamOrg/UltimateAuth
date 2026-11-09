@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Identity;
 
@@ -21,11 +22,12 @@ public sealed class LabUserProvisioningService(
     LabProvisioningRollbackGate rollbackGate,
     ILogger<LabUserProvisioningService> logger)
 {
-    public async Task<UserCreateResult> CreateMemberAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
+    public async Task<UserCreateResult> CreateMemberAsync(AccessContext context, AuthFlowContext flow, CreateUserRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!context.IsAuthenticated ||
+        if (!flow.IsAuthenticated || flow.UserKey != context.ActorUserKey || flow.Tenant != context.ActorTenant ||
+            !context.IsAuthenticated ||
             context.IsSystemActor ||
             context.ActorUserKey is not UserKey authenticatedUserKey ||
             context.ActorTenant != TenantKeys.Single ||
@@ -116,7 +118,7 @@ public sealed class LabUserProvisioningService(
                     new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
                 var deleteContext = await contextProvider.CreateForValidatedUserAsync(
-                    context,
+                    flow, context,
                     UAuthActions.Users.DeleteAdmin,
                     "users",
                     newUserKey,
