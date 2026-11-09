@@ -2,15 +2,12 @@
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Endpoints;
 
-public sealed class LabAdminAuthorizationFilter(LabAccessContextProvider contextProvider, ILabAdminGuard adminGuard) : IEndpointFilter
+public sealed class LabAdminAuthorizationFilter(ILabAdminGuard adminGuard) : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext invocation,
         EndpointFilterDelegate next)
     {
-        var context = await contextProvider.CreateAsync(
-            "identitylab.admin",
-            "identitylab",
-            invocation.HttpContext.RequestAborted);
+        var context = LabManagementAuthorizationFilter.Context(invocation.HttpContext);
 
         if (!context.IsAuthenticated || context.ActorUserKey is null)
             return Results.Unauthorized();
@@ -19,7 +16,7 @@ public sealed class LabAdminAuthorizationFilter(LabAccessContextProvider context
             context,
             invocation.HttpContext.RequestAborted))
         {
-            return Results.Forbid();
+            return Results.StatusCode(StatusCodes.Status403Forbidden);
         }
 
         return await next(invocation);

@@ -79,6 +79,8 @@ builder.Services.AddDbContextFactory<LabDbContext>(options =>
 builder.Services.AddScoped<ILabAdminGuard, LabAdminGuard>();
 builder.Services.AddScoped<LabAccessContextProvider>();
 builder.Services.AddScoped<LabAdminAuthorizationFilter>();
+builder.Services.AddScoped<LabManagementAuthorizationFilter>();
+builder.Services.AddScoped<LabManagementClient>();
 builder.Services.AddScoped<LabAdminService>();
 builder.Services.AddScoped<SandboxService>();
 builder.Services.AddScoped<SandboxAdminService>();
@@ -161,6 +163,7 @@ app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
 app.MapLabAdminEndpoints();
+app.MapLabManagementEndpoints();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
