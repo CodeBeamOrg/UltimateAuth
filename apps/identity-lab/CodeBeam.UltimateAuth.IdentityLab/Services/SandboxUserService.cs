@@ -68,8 +68,12 @@ public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClie
         return new SandboxUsersSnapshot(sandbox.Id, sandbox.Settings.MaxUsers, users);
     }
 
-    public async Task<CreateUserDialogResult> CreateAsync(UserKey actorUserKey, CreateUserRequest request, CancellationToken ct = default)
+    public async Task<CreateUserDialogResult> CreateAsync(AccessContext context, CreateUserRequest request, CancellationToken ct = default)
     {
+        if (!context.IsAuthenticated || context.IsSystemActor || context.ActorUserKey is not UserKey actorUserKey ||
+            context.ActorTenant != TenantKeys.Single || context.IsCrossTenant)
+            return CreateUserDialogResult.Failure("You are not allowed to manage this sandbox.");
+
         var sandbox = await sandboxService.GetByUserAsync(actorUserKey, ct);
 
         if (sandbox is null)
@@ -78,7 +82,7 @@ public sealed class SandboxUserService(SandboxService sandboxService, IUAuthClie
         try
         {
             var result = await provisioningService.CreateMemberAsync(
-                actorUserKey,
+                context,
                 request,
                 ct);
 

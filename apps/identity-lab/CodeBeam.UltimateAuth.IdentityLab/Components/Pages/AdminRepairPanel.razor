@@ -2,8 +2,7 @@
 @using CodeBeam.UltimateAuth.IdentityLab.Contracts
 @using CodeBeam.UltimateAuth.IdentityLab.Services
 
-@inject LabRepairService RepairService
-@inject LabAccessContextProvider ContextProvider
+@inject LabManagementClient Management
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -156,14 +155,6 @@
     private bool _busy;
     private string? _error;
 
-    private async Task<CodeBeam.UltimateAuth.Core.Contracts.AccessContext>
-        GetContextAsync()
-    {
-        return await ContextProvider.CreateAsync(
-            "identitylab.repair.admin",
-            "identitylab.repair");
-    }
-
     private async Task LoadAsync()
     {
         _busy = true;
@@ -171,8 +162,7 @@
 
         try
         {
-            var context = await GetContextAsync();
-            _snapshot = await RepairService.GetSnapshotAsync(context);
+            _snapshot = await Management.SendAsync<RepairSnapshot>("/api/lab/admin/repair/scan");
         }
         catch (Exception)
         {
@@ -197,8 +187,7 @@
 
         await ExecuteAsync(async () =>
         {
-            var context = await GetContextAsync();
-            return await RepairService.RepairOwnerAsync(context, user.UserKey);
+            return await Management.SendAsync<RepairOperationResult>($"/api/lab/admin/repair/owner/{Uri.EscapeDataString(user.UserKey.Value)}");
         });
     }
 
@@ -215,8 +204,7 @@
 
         await ExecuteAsync(async () =>
         {
-            var context = await GetContextAsync();
-            return await RepairService.DeleteEmptySandboxAsync(context, sandbox.SandboxId);
+            return await Management.SendAsync<RepairOperationResult>($"/api/lab/admin/repair/sandbox/{sandbox.SandboxId}/delete");
         });
     }
 

@@ -23,6 +23,23 @@ internal sealed class LabRuntime(ServiceProvider provider) : IAsyncDisposable
     public static async Task<LabRuntime> CreateAsync(LabDatabase database)
     {
         var services = new ServiceCollection();
+        ConfigureServices(services, database);
+        var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+        var runtime = new LabRuntime(provider);
+        try
+        {
+            await SeedAsync(provider);
+            return runtime;
+        }
+        catch
+        {
+            await runtime.DisposeAsync();
+            throw;
+        }
+    }
+
+    internal static void ConfigureServices(IServiceCollection services, LabDatabase database)
+    {
         services.AddLogging();
         services.AddRouting();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
@@ -41,21 +58,14 @@ internal sealed class LabRuntime(ServiceProvider provider) : IAsyncDisposable
             options.Email = "lab-admin@example.test";
             options.Password = "Lab-admin-test-password-8!";
         });
-        var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
-        var runtime = new LabRuntime(provider);
-        try
-        {
-            await using var scope = provider.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<UAuthDbContext>().Database.MigrateAsync();
-            await ActivatorUtilities.CreateInstance<LabAdminSeedContributor>(scope.ServiceProvider).SeedAsync(TenantKeys.Single);
-            await ActivatorUtilities.CreateInstance<LabDemoRoleSeedContributor>(scope.ServiceProvider).SeedAsync(TenantKeys.Single);
-            return runtime;
-        }
-        catch
-        {
-            await runtime.DisposeAsync();
-            throw;
-        }
+    }
+
+    internal static async Task SeedAsync(IServiceProvider provider)
+    {
+        await using var scope = provider.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<UAuthDbContext>().Database.MigrateAsync();
+        await ActivatorUtilities.CreateInstance<LabAdminSeedContributor>(scope.ServiceProvider).SeedAsync(TenantKeys.Single);
+        await ActivatorUtilities.CreateInstance<LabDemoRoleSeedContributor>(scope.ServiceProvider).SeedAsync(TenantKeys.Single);
     }
 
     public ValueTask DisposeAsync() => provider.DisposeAsync();

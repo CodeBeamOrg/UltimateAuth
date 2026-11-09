@@ -17,9 +17,9 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Provisioning;
 public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
     [Theory]
-    [InlineData("owner-b")]
+    [InlineData(null)]
     [InlineData("member-a")]
-    public async Task Forged_actor_or_regular_member_cannot_provision(string requestedActor)
+    public async Task Anonymous_or_regular_member_cannot_provision(string? actor)
     {
         await using var db = await postgres.CreateAsync();
         await db.SeedAsync();
@@ -31,7 +31,7 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
             new(db), new(db), users.Object, roles.Object, assignments.Object, new(),
             NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateMemberAsync(
-            UserKey.FromString(requestedActor), new CreateUserRequest(), TestContext.Current.CancellationToken));
+            Contexts.Create("users.create.admin", actor is null ? null : UserKey.FromString(actor)), new CreateUserRequest(), TestContext.Current.CancellationToken));
         Assert.Equal(before, await db.SnapshotAsync());
         users.VerifyNoOtherCalls();
         roles.VerifyNoOtherCalls();
@@ -83,7 +83,7 @@ public sealed class MemberProvisioningTests(PostgresFixture postgres) : IClassFi
         var service = new LabUserProvisioningService(ActorProvider.For(LabDatabase.OwnerA), new(db), new(db),
             users.Object, roles.Object, assignments.Object, gate, NullLogger<LabUserProvisioningService>.Instance);
         await Assert.ThrowsAsync<LabPartialProvisioningException>(() => service.CreateMemberAsync(
-            LabDatabase.OwnerA, new CreateUserRequest(), TestContext.Current.CancellationToken));
+            Contexts.Create("users.create.admin", LabDatabase.OwnerA), new CreateUserRequest(), TestContext.Current.CancellationToken));
         Assert.NotNull(rollbackContext);
         Assert.Equal(createdKey, rollbackContext!.TargetUserKey);
         Assert.Equal(DeleteMode.Hard, rollbackMode);

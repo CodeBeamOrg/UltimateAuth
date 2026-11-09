@@ -114,13 +114,13 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var provider = ActorProvider.For(owner);
         var provisioning = new LabUserProvisioningService(provider, new(db), new(db), users, roles, assignments,
             sp.GetRequiredService<LabProvisioningRollbackGate>(), NullLogger<LabUserProvisioningService>.Instance);
-        var result = await provisioning.CreateMemberAsync(owner, new CreateUserRequest
+        var result = await provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner), new CreateUserRequest
             { UserName = "member", Email = "member@example.test", Password = "test-password-8!" }, TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess, result.FailureReason);
         var member = UserKey.FromString(result.UserKey!);
-        var demos = new LabDemoRoleService(provider, db, roles, assignments);
-        await demos.SetRoleAsync(member, "Manager", true, TestContext.Current.CancellationToken);
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => demos.SetRoleAsync(member, "Ladmin", true, ct: TestContext.Current.CancellationToken));
+        var demos = new LabDemoRoleService(db, roles, assignments);
+        await demos.SetRoleAsync(Contexts.Create("roles.assign.admin", owner), member, "Manager", true, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => demos.SetRoleAsync(Contexts.Create("roles.assign.admin", owner), member, "Ladmin", true, ct: TestContext.Current.CancellationToken));
         var roleService = sp.GetRequiredService<IUserRoleService>();
         await Assert.ThrowsAsync<CodeBeam.UltimateAuth.Core.Errors.UAuthAuthorizationException>(() =>
             roleService.AssignAsync(Contexts.Create(CodeBeam.UltimateAuth.Core.Defaults.UAuthActions.Authorization.Roles.AssignAdmin,
@@ -191,7 +191,7 @@ public sealed class RegistrationIntegrationTests(PostgresFixture postgres) : ICl
         var provisioning = new LabUserProvisioningService(ActorProvider.For(owner), new(db), new(db), users,
             roles, failedFactory.Object, sp.GetRequiredService<LabProvisioningRollbackGate>(),
             NullLogger<LabUserProvisioningService>.Instance);
-        var failure = await Assert.ThrowsAsync<LabPartialProvisioningException>(() => provisioning.CreateMemberAsync(owner,
+        var failure = await Assert.ThrowsAsync<LabPartialProvisioningException>(() => provisioning.CreateMemberAsync(Contexts.Create("users.create.admin", owner),
             new CreateUserRequest { UserName = "failed-member", Email = "failed-member@example.test", Password = "Member-test-password-8!" }, TestContext.Current.CancellationToken));
         var partialKey = UserKey.FromString(failure.CreatedUserKey);
         await using var fresh = runtime.Services.CreateAsyncScope();
