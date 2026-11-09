@@ -9,8 +9,7 @@
 @attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
 
 @inject LabDashboardService DashboardService
-@inject LabOwnerRepairService OwnerRepairService
-@inject LabAccessContextProvider ContextProvider
+@inject LabManagementClient Management
 @inject ISnackbar Snackbar
 
 <PageTitle>Overview · Identity Lab</PageTitle>
@@ -482,11 +481,7 @@
 
             if (_dashboard is null)
             {
-                var context = await ContextProvider.CreateAsync(
-                    "identitylab.owner.repair.status",
-                    "identitylab.sandbox");
-
-                _repairStatus = await OwnerRepairService.GetStatusAsync(context);
+                _loadRepairStatus = true;
             }
 
             _loadedUserKey = userKey;
@@ -506,6 +501,23 @@
         }
     }
 
+    private bool _loadRepairStatus;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loadRepairStatus) return;
+        _loadRepairStatus = false;
+        try
+        {
+            _repairStatus = await Management.SendAsync<OwnerRepairStatus>("/api/lab/manage/owner-repair/status");
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Unable to load sandbox recovery status.", Severity.Error);
+        }
+        StateHasChanged();
+    }
+
     private async Task RepairSandboxAsync()
     {
         if (_repairing)
@@ -515,11 +527,7 @@
 
         try
         {
-            var context = await ContextProvider.CreateAsync(
-                "identitylab.owner.repair",
-                "identitylab.sandbox");
-
-            var result = await OwnerRepairService.RepairAsync(context);
+            var result = await Management.SendAsync<OwnerRepairResult>("/api/lab/manage/owner-repair");
 
             Snackbar.Add(
                 result.Message,

@@ -3,8 +3,10 @@ using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Identity;
 
@@ -20,17 +22,16 @@ public sealed class LabUserProvisioningService(
     LabProvisioningRollbackGate rollbackGate,
     ILogger<LabUserProvisioningService> logger)
 {
-    public async Task<UserCreateResult> CreateMemberAsync(UserKey actorUserKey, CreateUserRequest request, CancellationToken ct = default)
+    public async Task<UserCreateResult> CreateMemberAsync(AccessContext context, AuthFlowContext flow, CreateUserRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // Obtain the actor from the actual authenticated session.
-        var context = await contextProvider.CreateAsync(UAuthActions.Users.CreateAdmin, "users", ct);
-
-        if (!context.IsAuthenticated ||
+        if (!flow.IsAuthenticated || flow.UserKey != context.ActorUserKey || flow.Tenant != context.ActorTenant ||
+            !context.IsAuthenticated ||
             context.IsSystemActor ||
             context.ActorUserKey is not UserKey authenticatedUserKey ||
-            authenticatedUserKey != actorUserKey)
+            context.ActorTenant != TenantKeys.Single ||
+            context.IsCrossTenant || context.Action != UAuthActions.Users.CreateAdmin)
         {
             throw new UnauthorizedAccessException("Authenticated actor mismatch.");
         }
@@ -56,7 +57,7 @@ public sealed class LabUserProvisioningService(
 
         // Fail before account creation if the required role is absent.
         var roleStore = roleStoreFactory.Create(
-            CodeBeam.UltimateAuth.Core.MultiTenancy.TenantKeys.Single);
+            TenantKeys.Single);
 
         var role = await roleStore.GetByNameAsync("USER", ct);
 
@@ -116,7 +117,8 @@ public sealed class LabUserProvisioningService(
                 using var cleanupCts =
                     new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
-                var deleteContext = await contextProvider.CreateForUserAsync(
+                var deleteContext = await contextProvider.CreateForValidatedUserAsync(
+                    flow, context,
                     UAuthActions.Users.DeleteAdmin,
                     "users",
                     newUserKey,

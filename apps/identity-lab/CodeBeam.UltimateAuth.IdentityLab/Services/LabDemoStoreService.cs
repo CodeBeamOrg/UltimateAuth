@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
@@ -10,20 +11,14 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 public sealed record DemoProduct(int Id, string Name, decimal Price);
 
 public sealed class LabDemoStoreService(
-    LabAccessContextProvider contextProvider,
     IDbContextFactory<LabDbContext> dbFactory,
     IRoleStoreFactory roleStoreFactory,
     IUserRoleStoreFactory userRoleStoreFactory)
 {
     public async Task<IReadOnlySet<string>> GetPermissionsAsync(
-        CancellationToken ct = default)
+        AccessContext context, CancellationToken ct = default)
     {
-        var context = await contextProvider.CreateAsync(
-            LabDemoPermissions.ProductsRead,
-            "demo.products",
-            ct);
-
-        if (!context.IsAuthenticated ||
+        if (context.ActorTenant != TenantKeys.Single || context.IsCrossTenant || context.IsSystemActor || !context.IsAuthenticated ||
             context.ActorUserKey is not UserKey actorKey)
         {
             return new HashSet<string>();
@@ -95,10 +90,10 @@ public sealed class LabDemoStoreService(
     }
 
     public async Task RequireAsync(
-        string permission,
+        AccessContext context, string permission,
         CancellationToken ct = default)
     {
-        var permissions = await GetPermissionsAsync(ct);
+        var permissions = await GetPermissionsAsync(context, ct);
 
         if (!permissions.Contains(permission))
             throw new UnauthorizedAccessException(
