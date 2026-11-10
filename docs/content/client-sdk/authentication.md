@@ -1014,7 +1014,7 @@ Because the component renders an HTML form internally, place the submit button i
 Use `SubmitMode` to control how the authentication attempt is executed.
 
 ```razor
-<UAuthLoginForm Identifier="@email" Secret="@password" SubmitMode="UAuthSubmitMode.TryAndCommit">
+<UAuthLoginForm SubmitMode="UAuthSubmitMode.TryAndCommit">
     ...
 </UAuthLoginForm>
 ```
