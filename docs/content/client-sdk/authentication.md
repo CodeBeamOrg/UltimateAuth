@@ -1036,7 +1036,7 @@ For interactive login forms that need validation feedback, it is generally the r
 The component exposes an `OnTryResult` callback:
 
 ```razor
-<UAuthLoginForm Identifier="@email" Secret="@password" OnTryResult="HandleResult">
+<UAuthLoginForm OnTryResult="HandleResult">
     ...
 </UAuthLoginForm>
 ```
@@ -1100,9 +1100,9 @@ The same component also supports PKCE login completion when hosted within a supp
 Set `LoginType` to `Pkce`:
 
 ```razor
-<UAuthLoginForm LoginType="UAuthLoginType.Pkce" Identifier="@email" Secret="@password" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="HandleLoginResult">
-    <input @bind="email" placeholder="Email" />
-    <input @bind="password" type="password" placeholder="Password" />
+<UAuthLoginForm LoginType="UAuthLoginType.Pkce" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="HandleLoginResult">
+    <input name="Identifier" placeholder="Email" />
+    <input name="Secret" type="password" placeholder="Password" />
     <button type="submit">Continue</button>
 </UAuthLoginForm>
 ```
@@ -1126,7 +1126,7 @@ A Blazor WebAssembly application should initiate PKCE using `BeginPkceAsync`; th
 You can provide an explicit return URL:
 
 ```razor
-<UAuthLoginForm Identifier="@email" Secret="@password" ReturnUrl="/dashboard">
+<UAuthLoginForm ReturnUrl="/dashboard">
     ...
 </UAuthLoginForm>
 ```
@@ -1144,7 +1144,7 @@ This allows a shared login component to participate in different authentication 
 For advanced integrations, the `Endpoint` parameter allows the form's HTML action endpoint to be overridden:
 
 ```razor
-<UAuthLoginForm Identifier="@email" Secret="@password" Endpoint="/custom-login" SubmitMode="UAuthSubmitMode.DirectCommit">
+<UAuthLoginForm Endpoint="/custom-login" SubmitMode="UAuthSubmitMode.DirectCommit">
     ...
 </UAuthLoginForm>
 ```
@@ -1158,9 +1158,9 @@ Note that `Endpoint` affects the form's HTML action. Try-based submissions invok
 `UAuthLoginForm` exposes `SubmitAsync`, allowing submission through a component reference.
 
 ```razor
-<UAuthLoginForm @ref="loginForm" Identifier="@email" Secret="@password" AllowEnterKeyToSubmit="false">
-    <input @bind="email" placeholder="Email" />
-    <input @bind="password" type="password" />
+<UAuthLoginForm @ref="loginForm" AllowEnterKeyToSubmit="false">
+    <input name="Identifier" placeholder="Email" />
+    <input name="Secret" type="password" />
 </UAuthLoginForm>
 
 <button type="button" @onclick="SubmitLoginAsync">
@@ -1169,9 +1169,6 @@ Note that `Endpoint` affects the form's HTML action. Try-based submissions invok
 
 @code {
     private UAuthLoginForm? loginForm;
-
-    private string email = "";
-    private string password = "";
 
     private async Task SubmitLoginAsync()
     {
@@ -1194,7 +1191,7 @@ By default, the component supports Enter-key submission.
 You can disable its built-in hidden submit button:
 
 ```razor
-<UAuthLoginForm Identifier="@email" Secret="@password" AllowEnterKeyToSubmit="false">
+<UAuthLoginForm AllowEnterKeyToSubmit="false">
     ...
 </UAuthLoginForm>
 ```
@@ -1206,7 +1203,7 @@ This option controls the component's built-in Enter-key submit mechanism. Other 
 The component exposes `ReloadAsync` to reload its Hub credentials and flow state.
 
 ```razor
-<UAuthLoginForm @ref="loginForm" LoginType="UAuthLoginType.Pkce" Identifier="@email" Secret="@password">
+<UAuthLoginForm @ref="loginForm" LoginType="UAuthLoginType.Pkce">
     ...
 </UAuthLoginForm>
 
@@ -1231,8 +1228,6 @@ It does not initiate a new PKCE authorization flow by itself.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `Identifier` | `string?` | `null` | Login identifier |
-| `Secret` | `string?` | `null` | Authentication secret |
 | `LoginType` | `UAuthLoginType` | `Password` | Password or PKCE login |
 | `SubmitMode` | `UAuthSubmitMode` | `TryAndCommit` | Submission strategy |
 | `ReturnUrl` | `string?` | `null` | Redirect destination |
@@ -1240,6 +1235,7 @@ It does not initiate a new PKCE authorization flow by itself.
 | `HubSessionId` | `HubSessionId?` | `null` | Explicit Hub session context |
 | `AllowEnterKeyToSubmit` | `bool` | `true` | Built-in Enter-key submit support |
 | `OnTryResult` | `EventCallback<IUAuthTryResult>` | — | Structured try result callback |
+| `OnSubmittingChanged` | `EventCallback<bool>` | — | Submission state change callback |
 | `ChildContent` | `RenderFragment?` | — | Custom form content |
 
 ### When to Use UAuthLoginForm

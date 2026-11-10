@@ -9,8 +9,6 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
 
 public partial class SampleLogin : UAuthPageBase
 {
-    private string? _username;
-    private string? _password;
     private UAuthClientProductInfo? _productInfo;
     private MudTextField<string> _usernameField = default!;
 

@@ -42,7 +42,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Security Expansion      | 0.3.0         | MFA, Reauth                                | 🟡 In Progress | Q1 2027       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hashers | 🔜 Planned     | Q1 2027       |
 | Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                    | 🔜 Planned     | Q2 2027       |
-| Extensibility Expansion | 0.6.0         | Audit, events, hooks                       | 🔜 Planned     | Q2 2027       |
+| Extensibility Expansion | 0.6.0         | Audit, Passwordless Login                  | 🔜 Planned     | Q2 2027       |
 | Performance Expansion   | 0.7.0         | Benchmarks, caching                        | 🔜 Planned     | Q3 2027       |
 | Ecosystem Expansion     | 0.8.0         | Migration tools                            | 🔜 Planned     | Q3 2027       |
 | v1.0                    | 1.0.0         | Locked API, align with .NET 12             | 🔜 Planned     | Q4 2027       |

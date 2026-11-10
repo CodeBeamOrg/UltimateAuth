@@ -9,64 +9,39 @@
 @inject IOptions<UAuthClientOptions> Options
 @inject NavigationManager Navigation
 
-<form @ref="_form"
-      method="post"
-      action="@ResolvedCommitEndpoint"
-      onsubmit="@SubmitAsync"
-      onsubmit:preventDefault>
+<form @ref="_form" method="post" action="@ResolvedCommitEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
 
-    <input type="hidden"
-           name="@UAuthConstants.Form.ClientProfile"
-           value="@ClientProfileValue" />
-
-    <input type="hidden"
-           name="@UAuthConstants.Form.Device"
-           value="@_deviceId" />
+    <input type="hidden" name="@UAuthConstants.Form.ClientProfile" value="@ClientProfileValue" />
+    <input type="hidden" name="@UAuthConstants.Form.Device" value="@_deviceId" />
 
     @if (LoginType == UAuthLoginType.Pkce)
     {
-        <input type="hidden"
-               name="authorization_code"
-               value="@_credentials?.AuthorizationCode" />
-
-        <input type="hidden"
-               name="code_verifier"
-               value="@_credentials?.CodeVerifier" />
-
-        <input type="hidden"
-               name="hub_session_id"
-               value="@EffectiveHubSessionId?.Value" />
+        <input type="hidden" name="authorization_code" value="@_credentials?.AuthorizationCode" />
+        <input type="hidden" name="code_verifier" value="@_credentials?.CodeVerifier" />
+        <input type="hidden" name="hub_session_id" value="@EffectiveHubSessionId?.Value" />
     }
 
-    <input type="hidden"
-           name="@UAuthConstants.Form.ReturnUrl"
-           value="@EffectiveReturnUrl" />
+    <input type="hidden" name="@UAuthConstants.Form.ReturnUrl" value="@EffectiveReturnUrl" />
 
     @if (ChildContent is null)
     {
         <div class="uauth-login-fields">
             <div class="uauth-login-field">
-                <label for="uauth-identifier">Username</label>
-                <input id="uauth-identifier"
-                       class="uauth-login-input"
-                       name="Identifier"
-                       type="text"
-                       autocomplete="username"
-                       required />
+                <label for="uauth-identifier">
+                    Username
+                    <input id="uauth-identifier" class="uauth-login-input" name="Identifier" type="text" autocomplete="username" required />
+                </label>
+                
             </div>
 
             <div class="uauth-login-field">
-                <label for="uauth-secret">Password</label>
-                <input id="uauth-secret"
-                       class="uauth-login-input"
-                       name="Secret"
-                       type="password"
-                       autocomplete="current-password"
-                       required />
+                <label for="uauth-secret">
+                    Password
+                    <input id="uauth-secret" class="uauth-login-input" name="Secret" type="password" autocomplete="current-password" required />
+                </label>
             </div>
 
-            <button class="uauth-login-submit"
-                    type="submit">
+            <button class="uauth-login-submit" type="submit">
                 Sign in
             </button>
         </div>
@@ -77,9 +52,7 @@
 
         @if (AllowEnterKeyToSubmit)
         {
-            <button type="submit"
-                    hidden
-                    aria-hidden="true">
+            <button type="submit" hidden aria-hidden="true">
             </button>
         }
     }
