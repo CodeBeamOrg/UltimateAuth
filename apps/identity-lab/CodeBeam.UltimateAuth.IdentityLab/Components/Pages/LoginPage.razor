@@ -175,9 +175,9 @@
                                                       MaxLength="256"
                                                       Required="true"
                                                       RequiredError="Email or username is required."
-                                                      Disabled="@_loginBusy"
                                                       Immediate="true" />
-
+                                        
+                                        @* Do not add loginbusy disabled to the text and password fields, it will prevent the form from submitting with required fields. *@
                                         <MudPasswordField T="string"
                                                           name="Secret"
                                                           Label="Password"
@@ -186,7 +186,6 @@
                                                           MaxLength="256"
                                                           Required="true"
                                                           RequiredError="Password is required."
-                                                          Disabled="@_loginBusy"
                                                           Immediate="true" />
 
                                         <MudLoadingButton ButtonType="ButtonType.Submit"
