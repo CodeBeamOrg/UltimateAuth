@@ -97,14 +97,12 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
 
     private static void ValidateAllowed(string baseAddress, UAuthServerOptions options)
     {
-        if (options.Hub.AllowedClientOrigins.Count == 0)
-            return;
-
         var normalized = OriginHelper.Normalize(baseAddress);
 
-        if (!options.Hub.AllowedClientOrigins.Any(o => OriginHelper.Normalize(o) == normalized))
+        if (!options.Hub.AllowedClientOrigins.Any(origin => OriginHelper.Normalize(origin) == normalized))
         {
-            throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed.");
+            throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed. " +
+                "The origin is not present in AllowedClientOrigins.");
         }
     }
 }

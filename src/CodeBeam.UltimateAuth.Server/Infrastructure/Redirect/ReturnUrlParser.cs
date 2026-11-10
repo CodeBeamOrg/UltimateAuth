@@ -11,6 +11,14 @@ internal static class ReturnUrlParser
 
         returnUrl = returnUrl.Trim();
 
+        // Reject ambiguous paths, backslashes and control characters.
+        if (returnUrl.StartsWith("//", StringComparison.Ordinal) ||
+            returnUrl.Contains('\\') ||
+            returnUrl.Any(char.IsControl))
+        {
+            throw new UAuthValidationException("return_url_invalid");
+        }
+
         if (returnUrl.StartsWith("/", StringComparison.Ordinal) ||
             returnUrl.StartsWith("./", StringComparison.Ordinal) ||
             returnUrl.StartsWith("../", StringComparison.Ordinal))
@@ -18,13 +26,12 @@ internal static class ReturnUrlParser
             return ReturnUrlInfo.Relative(returnUrl);
         }
 
-        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var abs) && (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+        if (Uri.TryCreate(returnUrl, UriKind.Absolute, out var absolute) &&
+            (absolute.Scheme == Uri.UriSchemeHttp ||
+             absolute.Scheme == Uri.UriSchemeHttps))
         {
-            return ReturnUrlInfo.Absolute(abs);
+            return ReturnUrlInfo.Absolute(absolute);
         }
-
-        if (returnUrl.StartsWith("//", StringComparison.Ordinal))
-            throw new UAuthValidationException("return_url_invalid");
 
         throw new UAuthValidationException("return_url_invalid");
     }
