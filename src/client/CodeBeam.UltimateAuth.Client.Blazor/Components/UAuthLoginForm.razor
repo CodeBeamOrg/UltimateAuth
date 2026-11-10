@@ -42,27 +42,45 @@
            name="@UAuthConstants.Form.ReturnUrl"
            value="@EffectiveReturnUrl" />
 
-    <label for="login-identifier">Username</label>
-    <input id="login-identifier"
-           name="Identifier"
-           type="text"
-           autocomplete="username"
-           required />
-
-    <label for="login-secret">Password</label>
-    <input id="login-secret"
-           name="Secret"
-           type="password"
-           autocomplete="current-password"
-           required />
-
-    @ChildContent
-
-    @if (AllowEnterKeyToSubmit)
+    @if (ChildContent is null)
     {
-        <button type="submit"
-                hidden
-                aria-hidden="true">
-        </button>
+        <div class="uauth-login-fields">
+            <div class="uauth-login-field">
+                <label for="uauth-identifier">Username</label>
+                <input id="uauth-identifier"
+                       class="uauth-login-input"
+                       name="Identifier"
+                       type="text"
+                       autocomplete="username"
+                       required />
+            </div>
+
+            <div class="uauth-login-field">
+                <label for="uauth-secret">Password</label>
+                <input id="uauth-secret"
+                       class="uauth-login-input"
+                       name="Secret"
+                       type="password"
+                       autocomplete="current-password"
+                       required />
+            </div>
+
+            <button class="uauth-login-submit"
+                    type="submit">
+                Sign in
+            </button>
+        </div>
+    }
+    else
+    {
+        @ChildContent
+
+        @if (AllowEnterKeyToSubmit)
+        {
+            <button type="submit"
+                    hidden
+                    aria-hidden="true">
+            </button>
+        }
     }
 </form>
