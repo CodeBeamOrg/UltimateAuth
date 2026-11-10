@@ -895,22 +895,58 @@ The component supports password-based login, PKCE completion through UAuthHub, c
 
 ### Basic Usage
 
-A login form can be implemented with the following component:
+`UAuthLoginForm` provides a complete, ready-to-use login form out of the box. No additional markup or credential bindings are required.
+
+```razor
+<UAuthLoginForm />
+```
+
+That's it. UltimateAuth automatically renders the identifier field, password field, and submit button, and handles the authentication submission workflow.
+
+**Customizing the Form**
+
+When you need a custom layout or styling, simply provide your own form content:
 
 ```razor
 @using CodeBeam.UltimateAuth.Client.Blazor
 
-<UAuthLoginForm Identifier="@email" Secret="@password">
-    <input @bind="email" placeholder="Email" />
-    <input @bind="password" type="password" placeholder="Password" />
+<UAuthLoginForm>
+    <input name="Identifier" placeholder="Email" autocomplete="username" />
+    <input name="Secret" type="password" placeholder="Password" autocomplete="current-password" />
     <button type="submit">Sign in</button>
 </UAuthLoginForm>
-
-@code {
-    private string email = "";
-    private string password = "";
-}
 ```
+
+UltimateAuth handles the authentication workflow in both cases. Your custom fields only need the correct HTML `name` attributes; there is no need to bind credentials to Blazor component state.
+
+### Native Credential Submission
+
+`UAuthLoginForm` reads credentials directly from native browser form fields. It does not accept `Identifier` or `Secret` component parameters.
+
+When providing custom `ChildContent`, the form must contain enabled input elements with the exact names `Identifier` and `Secret`.
+
+Credential values should not be bound to Blazor component state solely for submission. This is particularly important in Blazor Server, where interactive component bindings can transmit credential values over the SignalR connection.
+
+**Important: Do Not Disable Credential Fields During Submission**
+
+HTML inputs marked as `disabled` are excluded from `FormData` and native form submissions.
+
+Do not set `Disabled="@isSubmitting"` on the username or password fields. A login preview may succeed, but the subsequent native commit can fail because the credential fields are missing from the submitted form.
+
+Instead, disable the submit button while leaving the credential inputs enabled.
+
+If you need to prevent editing during submission, consider `readonly` where supported, while accounting for component behavior, browser autofill, and accessibility.
+
+**Custom Form Requirements**
+
+- Use `name="Identifier"` and `name="Secret"` exactly.
+- Keep both credential inputs enabled throughout submission.
+- Avoid duplicate inputs with these names.
+- Use `type="password"` and `autocomplete="current-password"` for password fields.
+- Keep custom submit controls inside `UAuthLoginForm`.
+- Use `OnSubmittingChanged` to manage loading indicators and submit-button state.
+
+`UAuthLoginForm` handles the try and commit orchestration. The native commit includes the browser form fields, device information, and antiforgery data required by the configured authentication flow.
 
 The component automatically uses `TryAndCommit` as its default submission mode.
 
@@ -934,13 +970,13 @@ For example, with MudBlazor:
 @using CodeBeam.UltimateAuth.Client.Blazor
 @using CodeBeam.UltimateAuth.Client
 
-<UAuthLoginForm Identifier="@email" Secret="@password" SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="HandleLoginResult">
+<UAuthLoginForm SubmitMode="UAuthSubmitMode.TryAndCommit" OnTryResult="HandleLoginResult" OnSubmittingChanged="HandleSubmittingChanged">
     <MudStack Spacing="3">
         <MudText Typo="Typo.h5">Sign in</MudText>
-        <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Outlined" />
-        <MudTextField @bind-Value="password" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" />
+        <MudTextField name="Identifier" Label="Email" Variant="Variant.Outlined" />
+        <MudTextField name="Secret" Label="Password" InputType="InputType.Password" Variant="Variant.Outlined" />
 
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth>Sign in</MudButton>
+        <MudButton ButtonType="ButtonType.Submit" Disabled="@_isSubmitting" Variant="Variant.Filled" Color="Color.Primary" FullWidth>Sign in</MudButton>
 
         @if (!string.IsNullOrWhiteSpace(error))
         {
@@ -950,9 +986,14 @@ For example, with MudBlazor:
 </UAuthLoginForm>
 
 @code {
-    private string email = "";
-    private string password = "";
+    private bool _isSubmitting;
     private string? error;
+
+    private Task HandleSubmittingChanged(bool submitting)
+    {
+        _isSubmitting = submitting;
+        return Task.CompletedTask;
+    }
 
     private Task HandleLoginResult(IUAuthTryResult result)
     {

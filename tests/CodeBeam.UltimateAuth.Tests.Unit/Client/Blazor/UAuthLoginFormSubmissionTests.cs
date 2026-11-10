@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -22,7 +23,7 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
     public UAuthLoginFormSubmissionTests()
     {
-        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Mode = JSRuntimeMode.Strict;
         Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
         Services.AddSingleton(_credentials.Object);
         Services.AddSingleton(_flows.Object);
@@ -36,15 +37,30 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
         => Render<UAuthLoginForm>(p => p.Add(x => x.SubmitMode, mode));
 
     private void ConfigureResult(string json)
-        => JSInterop.Setup<JsonElement>("uauth.submitLoginForm").SetResult(Json(json));
+    {
+        using var document = JsonDocument.Parse(json);
+
+        JSInterop
+            .Setup<JsonElement>(
+                "uauth.submitLoginForm",
+                _ => true)
+            .SetResult(document.RootElement.Clone());
+    }
 
     [Theory]
     [InlineData(UAuthSubmitMode.TryOnly)]
     [InlineData(UAuthSubmitMode.TryAndCommit)]
     public async Task Password_Submit_Uses_One_Browser_Interop_Call_And_Emits_Try_Result(UAuthSubmitMode mode)
     {
-        ConfigureResult("""{"isSuccess":true,"previewReceipt":"receipt"}""");
+        ConfigureResult("""
+        {
+            "isSuccess": true,
+            "previewReceipt": "receipt"
+        }
+        """);
+
         IUAuthTryResult? received = null;
+
         var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.SubmitMode, mode)
             .Add(x => x.ReturnUrl, "/dashboard")
@@ -54,14 +70,39 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
 
         received.Should().BeOfType<TryLoginResult>();
         ((TryLoginResult)received!).IsSuccess.Should().BeTrue();
+
         JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
-        var call = JSInterop.Invocations.Single(x => x.Identifier == "uauth.submitLoginForm");
+
+        var call = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.submitLoginForm");
+
         call.Arguments.Should().HaveCount(2);
+
         var options = JsonSerializer.Serialize(call.Arguments[1]);
-        options.Should().Contain($"\"mode\":\"{mode}\"");
-        options.Should().Contain("\"isPkce\":false");
-        options.Should().Contain("/dashboard");
-        options.Should().NotContain("\"Secret\"").And.NotContain("\"Identifier\"");
+
+        using var document = JsonDocument.Parse(options);
+        var root = document.RootElement;
+
+        root.GetProperty("mode")
+            .GetString()
+            .Should().Be(mode.ToString());
+
+        root.GetProperty("isPkce")
+            .GetBoolean()
+            .Should().BeFalse();
+
+        root.GetProperty("tryUrl")
+            .GetString()
+            .Should().Be("/auth/try-login");
+
+        root.GetProperty("commitUrl")
+            .GetString()
+            .Should().Contain(
+                $"{UAuthConstants.Query.ReturnUrl}={Uri.EscapeDataString("/dashboard")}");
+
+        options.Should()
+            .NotContain("\"Secret\"")
+            .And.NotContain("\"Identifier\"");
     }
 
     [Fact]
@@ -127,16 +168,27 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
     [Fact]
     public async Task Submitting_Changed_Is_Reset_After_Interop_Failure()
     {
-        JSInterop.Setup<JsonElement>("uauth.submitLoginForm").SetException(new JSException("submit failed"));
+        JSInterop
+            .Setup<JsonElement>(
+                "uauth.submitLoginForm",
+                _ => true)
+            .SetException(new JSException("submit failed"));
+
         var states = new List<bool>();
+
         var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.OnSubmittingChanged, state => states.Add(state)));
 
         var act = () => cut.InvokeAsync(() => cut.Instance.SubmitAsync());
-        await act.Should().ThrowAsync<JSException>();
+
+        await act.Should()
+            .ThrowAsync<JSException>()
+            .WithMessage("submit failed");
 
         states.Should().Equal(true, false);
         cut.Instance.IsSubmitting.Should().BeFalse();
+
+        JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
     }
 
     [Fact]

@@ -190,25 +190,20 @@ Change `Components/Pages/Home.razor`:
 
 <div class="container mt-5" style="max-width: 400px;">
     <h3>Sign in</h3>
-    <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard">
+    <UAuthLoginForm ReturnUrl="/dashboard">
         <div class="d-block mb-3">
             <label>Username</label>
-            <input @bind="_identifier" class="form-control w-100" autocomplete="username" />
+            <input name="Identifier" class="form-control w-100" autocomplete="username" />
         </div>
 
         <div class="d-block mb-3">
             <label>Password</label>
-            <input type="password" @bind="_password" class="form-control w-100" autocomplete="current-password" />
+            <input type="password" name="Secret" class="form-control w-100" autocomplete="current-password" />
         </div>
 
         <button class="btn btn-primary w-100" type="submit">Sign in</button>
     </UAuthLoginForm>
 </div>
-
-@code {
-    private string _identifier = "";
-    private string _password = "";
-}
 ```
 
 `UAuthLoginForm` handles the login submission through UltimateAuth's client flow.
