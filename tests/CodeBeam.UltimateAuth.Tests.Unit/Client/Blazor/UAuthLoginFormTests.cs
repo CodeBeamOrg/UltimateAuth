@@ -1,18 +1,15 @@
 ﻿using Bunit;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
-using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.JSInterop;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
@@ -61,42 +58,55 @@ public sealed class UAuthLoginFormTests : BunitContext
     }
 
     [Fact]
-    public void Render_RendersIdentifierHiddenInput()
+    public void Render_RendersIdentifierInput()
     {
-        var cut = RenderLoginForm(
-            identifier: "alice@example.com");
+        var cut = RenderLoginForm();
 
         var input = cut.Find("input[name='Identifier']");
 
+        input.GetAttribute("type")
+            .Should()
+            .Be("text");
+
+        input.HasAttribute("hidden")
+            .Should()
+            .BeFalse();
+
         input.GetAttribute("value")
             .Should()
-            .Be("alice@example.com");
+            .BeNullOrEmpty();
     }
 
     [Fact]
-    public void Render_RendersSecretHiddenInput()
+    public void Render_RendersSecretInput()
     {
-        var cut = RenderLoginForm(
-            secret: "super-secret");
+        var cut = RenderLoginForm();
 
         var input = cut.Find("input[name='Secret']");
 
+        input.GetAttribute("type")
+            .Should()
+            .Be("password");
+
+        input.HasAttribute("hidden")
+            .Should()
+            .BeFalse();
+
         input.GetAttribute("value")
             .Should()
-            .Be("super-secret");
+            .BeNullOrEmpty();
     }
 
     [Fact]
-    public void Render_SecretInput_DisablesAutocomplete()
+    public void Render_SecretInput_UsesCurrentPasswordAutocomplete()
     {
-        var cut = RenderLoginForm(
-            secret: "secret");
+        var cut = RenderLoginForm();
 
         var input = cut.Find("input[name='Secret']");
 
         input.GetAttribute("autocomplete")
             .Should()
-            .Be("off");
+            .Be("current-password");
     }
 
     // -----------------------------------------------------------------
@@ -143,17 +153,19 @@ public sealed class UAuthLoginFormTests : BunitContext
     [Theory]
     [InlineData(UAuthSubmitMode.TryOnly)]
     [InlineData(UAuthSubmitMode.TryAndCommit)]
-    public void NonDirectCommit_DoesNotRenderReturnUrlFormField(
-        UAuthSubmitMode submitMode)
+    [InlineData(UAuthSubmitMode.DirectCommit)]
+    public void AllSubmitModes_RenderReturnUrlFormField(UAuthSubmitMode submitMode)
     {
         var cut = RenderLoginForm(
             returnUrl: "/home",
             submitMode: submitMode);
 
-        cut.FindAll(
-                $"input[name='{UAuthConstants.Form.ReturnUrl}']")
+        var input = cut.Find(
+            $"input[name='{UAuthConstants.Form.ReturnUrl}']");
+
+        input.GetAttribute("value")
             .Should()
-            .BeEmpty();
+            .Be("/home");
     }
 
     // -----------------------------------------------------------------
@@ -192,10 +204,13 @@ public sealed class UAuthLoginFormTests : BunitContext
     public void AllowEnterKeyToSubmitTrue_RendersHiddenSubmitButton()
     {
         var cut = RenderLoginForm(
-            allowEnterKeyToSubmit: true);
+            allowEnterKeyToSubmit: true,
+            childContent: builder =>
+                builder.AddMarkupContent(
+                    0,
+                    "<input name='Identifier' />"));
 
-        var buttons = cut.FindAll(
-            "button[type='submit']");
+        var buttons = cut.FindAll("button[type='submit']");
 
         buttons.Should().ContainSingle();
 
@@ -209,10 +224,13 @@ public sealed class UAuthLoginFormTests : BunitContext
     public void AllowEnterKeyToSubmitFalse_DoesNotRenderSubmitButton()
     {
         var cut = RenderLoginForm(
-            allowEnterKeyToSubmit: false);
+            allowEnterKeyToSubmit: false,
+            childContent: builder =>
+                builder.AddMarkupContent(
+                    0,
+                    "<input name='Identifier' />"));
 
-        cut.FindAll(
-                "button[type='submit']")
+        cut.FindAll("button[type='submit']")
             .Should()
             .BeEmpty();
     }
@@ -649,13 +667,26 @@ public sealed class UAuthLoginFormTests : BunitContext
             .Contain($"{UAuthConstants.Query.Hub}=");
     }
 
+    [Fact]
+    public void Render_WithChildContent_DoesNotRenderDefaultCredentialInputs()
+    {
+        var cut = RenderLoginForm(
+            childContent: builder =>
+                builder.AddMarkupContent(
+                    0,
+                    "<div id='custom-login'>Custom login</div>"));
+
+        cut.Find("#custom-login").Should().NotBeNull();
+
+        cut.FindAll("input[name='Identifier']").Should().BeEmpty();
+        cut.FindAll("input[name='Secret']").Should().BeEmpty();
+    }
+
     // -----------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------
 
     private IRenderedComponent<UAuthLoginForm> RenderLoginForm(
-        string? identifier = "alice",
-        string? secret = "secret",
         string? endpoint = null,
         string? returnUrl = null,
         UAuthLoginType loginType = UAuthLoginType.Password,
@@ -666,13 +697,9 @@ public sealed class UAuthLoginFormTests : BunitContext
         return Render<UAuthLoginForm>(parameters =>
         {
             parameters
-                .Add(x => x.Identifier, identifier)
-                .Add(x => x.Secret, secret)
                 .Add(x => x.LoginType, loginType)
                 .Add(x => x.SubmitMode, submitMode)
-                .Add(
-                    x => x.AllowEnterKeyToSubmit,
-                    allowEnterKeyToSubmit);
+                .Add(x => x.AllowEnterKeyToSubmit, allowEnterKeyToSubmit);
 
             if (endpoint is not null)
                 parameters.Add(x => x.Endpoint, endpoint);
@@ -681,19 +708,17 @@ public sealed class UAuthLoginFormTests : BunitContext
                 parameters.Add(x => x.ReturnUrl, returnUrl);
 
             if (childContent is not null)
-                parameters.Add(
-                    x => x.ChildContent,
-                    childContent);
+                parameters.Add(x => x.ChildContent, childContent);
         });
     }
 
     private void SetupPkceHub(
-    HubSessionId hubId,
-    string authorizationCode = "authorization-code",
-    string codeVerifier = "code-verifier",
-    string? returnUrl = "/home",
-    bool exists = true,
-    bool active = true)
+        HubSessionId hubId,
+        string authorizationCode = "authorization-code",
+        string codeVerifier = "code-verifier",
+        string? returnUrl = "/home",
+        bool exists = true,
+        bool active = true)
     {
         var credentials = new HubCredentials
         {
@@ -730,8 +755,6 @@ public sealed class UAuthLoginFormTests : BunitContext
         return Render<UAuthLoginForm>(parameters =>
         {
             parameters
-                .Add(x => x.Identifier, "alice")
-                .Add(x => x.Secret, "secret")
                 .Add(x => x.HubSessionId, hubId)
                 .Add(x => x.LoginType, UAuthLoginType.Pkce)
                 .Add(x => x.SubmitMode, submitMode);

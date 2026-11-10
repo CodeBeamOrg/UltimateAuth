@@ -33,7 +33,12 @@ function createEnvironment(fetchImpl = async () => ({
     };
 
     const document = {
-        baseURI: "https://localhost:6130/"
+        baseURI: "https://localhost:6130/",
+        createElement: () => ({
+            type: "",
+            name: "",
+            value: ""
+        })
     };
 
     const context = vm.createContext({
@@ -45,7 +50,9 @@ function createEnvironment(fetchImpl = async () => ({
         AbortController,
         Map,
         Error,
-        TypeError
+        TypeError,
+        HTMLFormElement: TestForm,
+        FormData: TestFormData
     });
 
     vm.runInContext(script, context);
@@ -663,4 +670,152 @@ test("authenticated logout uses the same Device ID for CSRF token and POST", asy
     assert.equal(result.status, 200);
     assert.equal(logoutDeviceId, deviceId);
     assert.equal(tokenDeviceId, deviceId);
+});
+
+class TestForm {
+    constructor(fields = []) {
+        this.elements = fields.map(field => ({
+            ...field,
+            disabled: field.disabled ?? false
+        }));
+        this.action = "";
+        this.submitCount = 0;
+    }
+
+    appendChild(input) {
+        this.elements.push(input);
+    }
+
+    querySelector(selector) {
+        const match = selector.match(/^input\[name='(.+)'\]$/);
+        return match
+            ? this.elements.find(x => x.name === match[1]) ?? null
+            : null;
+    }
+
+    submit() {
+        this.submitCount++;
+    }
+}
+
+class TestFormData {
+    constructor(form) {
+        this.fields = form.elements.filter(x => !x.disabled && x.name);
+    }
+
+    getAll(name) {
+        return this.fields
+            .filter(x => x.name === name)
+            .map(x => x.value);
+    }
+
+    get(name) {
+        return this.getAll(name)[0] ?? null;
+    }
+}
+
+function createLoginEnvironment() {
+    const uauth = createEnvironment();
+
+// The VM context used by createEnvironment needs these constructors.
+// Expose them in createEnvironment's vm.createContext object.
+    return uauth;
+}
+
+test("submitLoginForm TryOnly reads native credentials without committing", async () => {
+    const uauth = createEnvironment();
+
+    const form = new TestForm([
+        { name: "Identifier", value: "alice" },
+        { name: "Secret", value: "password123" }
+    ]);
+
+    let captured = null;
+
+    uauth.postJson = async options => {
+        captured = options;
+        return {
+            status: 200,
+            body: { isSuccess: true }
+        };
+    };
+
+    const result = await uauth.submitLoginForm(form, {
+        mode: "TryOnly",
+        tryUrl: "/auth/try-login",
+        commitUrl: "/auth/login",
+        clientProfile: "BlazorServer",
+        trustedOrigin: null,
+        isPkce: false
+    });
+
+    assert.equal(result.isSuccess, true);
+    assert.equal(captured.payload.Identifier, "alice");
+    assert.equal(captured.payload.Secret, "password123");
+    assert.equal(form.submitCount, 0);
+});
+
+test("submitLoginForm rejects disabled credential fields", async () => {
+    const uauth = createEnvironment();
+
+    const form = new TestForm([
+        { name: "Identifier", value: "alice", disabled: true },
+        { name: "Secret", value: "password123", disabled: true }
+    ]);
+
+    await assert.rejects(
+        uauth.submitLoginForm(form, {
+            mode: "TryAndCommit",
+            tryUrl: "/auth/try-login",
+            commitUrl: "/auth/login",
+            clientProfile: "BlazorServer",
+            trustedOrigin: null,
+            isPkce: false
+        }),
+        /exactly one Identifier and one Secret/
+    );
+
+    assert.equal(form.submitCount, 0);
+});
+
+test("submitLoginForm TryAndCommit reuses original form", async () => {
+    const uauth = createEnvironment();
+
+    const form = new TestForm([
+        { name: "Identifier", value: "alice" },
+        { name: "Secret", value: "password123" }
+    ]);
+
+    uauth.postJson = async () => ({
+        status: 200,
+        body: {
+            isSuccess: true,
+            previewReceipt: "receipt-123"
+        }
+    });
+
+    uauth.antiforgery.appendToForm = async () => { };
+
+    const result = await uauth.submitLoginForm(form, {
+        mode: "TryAndCommit",
+        tryUrl: "/auth/try-login",
+        commitUrl: "/auth/login",
+        clientProfile: "BlazorServer",
+        trustedOrigin: null,
+        isPkce: false
+    });
+
+    assert.equal(result.isSuccess, true);
+    assert.equal(form.submitCount, 1);
+    assert.equal(form.action, "https://localhost:6130/auth/login");
+
+    assert.equal(
+        form.elements.find(x => x.name === "PreviewReceipt")?.value,
+        "receipt-123"
+    );
+
+    assert.equal(
+        form.elements.filter(x => x.name === "Secret").length,
+        1
+    );
 });

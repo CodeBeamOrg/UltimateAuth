@@ -1,689 +1,256 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
-using AwesomeAssertions;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 using Moq;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
 public sealed class UAuthLoginFormSubmissionTests : BunitContext
 {
-    private readonly Mock<IDeviceIdProvider> _deviceIdProvider = new();
-    private readonly Mock<IUAuthClient> _client = new();
-    private readonly Mock<IFlowClient> _flows = new();
-    private readonly Mock<IHubCredentialResolver> _credentialResolver = new();
-    private readonly Mock<IHubFlowReader> _hubFlowReader = new();
-    private readonly Mock<IHubCapabilities> _hubCapabilities = new();
+    private readonly Mock<IHubCredentialResolver> _credentials = new();
+    private readonly Mock<IHubFlowReader> _flows = new();
+    private readonly Mock<IHubCapabilities> _capabilities = new();
 
     public UAuthLoginFormSubmissionTests()
     {
-        JSInterop.Mode = JSRuntimeMode.Loose;
-
-        _client
-            .SetupGet(x => x.Flows)
-            .Returns(_flows.Object);
-
-        _hubCapabilities
-            .SetupGet(x => x.SupportsPkce)
-            .Returns(true);
-
-        Services.AddSingleton(_deviceIdProvider.Object);
-        Services.AddSingleton(_client.Object);
-        Services.AddSingleton(_credentialResolver.Object);
-        Services.AddSingleton(_hubFlowReader.Object);
-        Services.AddSingleton(_hubCapabilities.Object);
-
-        Services.AddSingleton(
-            Options.Create(new UAuthClientOptions()));
+        JSInterop.Mode = JSRuntimeMode.Strict;
+        Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
+        Services.AddSingleton(_credentials.Object);
+        Services.AddSingleton(_flows.Object);
+        Services.AddSingleton(_capabilities.Object);
+        Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
     }
 
-    // -----------------------------------------------------------------
-    // Password validation
-    // -----------------------------------------------------------------
+    private static JsonElement Json(string value) => JsonDocument.Parse(value).RootElement.Clone();
+
+    private IRenderedComponent<UAuthLoginForm> RenderForm(UAuthSubmitMode mode = UAuthSubmitMode.TryAndCommit)
+        => Render<UAuthLoginForm>(p => p.Add(x => x.SubmitMode, mode));
+
+    private void ConfigureResult(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        JSInterop
+            .Setup<JsonElement>(
+                "uauth.submitLoginForm",
+                _ => true)
+            .SetResult(document.RootElement.Clone());
+    }
 
     [Theory]
-    [InlineData(null, "secret")]
-    [InlineData("", "secret")]
-    [InlineData(" ", "secret")]
-    [InlineData("alice", null)]
-    [InlineData("alice", "")]
-    [InlineData("alice", " ")]
-    public async Task PasswordSubmit_WhenCredentialsMissing_ThrowsValidationException(string? identifier, string? secret)
+    [InlineData(UAuthSubmitMode.TryOnly)]
+    [InlineData(UAuthSubmitMode.TryAndCommit)]
+    public async Task Password_Submit_Uses_One_Browser_Interop_Call_And_Emits_Try_Result(UAuthSubmitMode mode)
     {
-        var cut = RenderPasswordForm(
-            identifier,
-            secret,
-            UAuthSubmitMode.TryOnly);
-
-        var act = () => cut.Instance.SubmitAsync();
-
-        await act.Should().ThrowAsync<UAuthValidationException>();
-    }
-
-    // -----------------------------------------------------------------
-    // Password / TryOnly
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public async Task Password_TryOnly_SendsExpectedLoginRequest()
-    {
-        LoginRequest? captured = null;
-
-        var result = new TryLoginResult
+        ConfigureResult("""
         {
-            IsSuccess = true
-        };
+            "isSuccess": true,
+            "previewReceipt": "receipt"
+        }
+        """);
 
-        _client
-            .Setup(x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                UAuthSubmitMode.TryOnly,
-                It.IsAny<string?>()))
-            .Callback<LoginRequest, UAuthSubmitMode, string?>(
-                (request, _, _) => captured = request)
-            .ReturnsAsync(result);
-
-        var cut = RenderPasswordForm(
-            "alice@example.com",
-            "secret-123",
-            UAuthSubmitMode.TryOnly);
-
-        await cut.Instance.SubmitAsync();
-
-        captured.Should().NotBeNull();
-        captured!.Identifier.Should().Be("alice@example.com");
-        captured.Secret.Should().Be("secret-123");
-    }
-
-    [Fact]
-    public async Task Password_TryOnly_UsesTryOnlyMode()
-    {
-        var result = CreateTryLoginResult();
-
-        _client
-            .Setup(x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                UAuthSubmitMode.TryOnly,
-                It.IsAny<string?>()))
-            .ReturnsAsync(result);
-
-        var cut = RenderPasswordForm(
-            "alice",
-            "secret",
-            UAuthSubmitMode.TryOnly);
-
-        await cut.Instance.SubmitAsync();
-
-        _client.Verify(
-            x => x.Flows.TryLoginAsync(
-                It.Is<LoginRequest>(r =>
-                    r.Identifier == "alice" &&
-                    r.Secret == "secret"),
-                UAuthSubmitMode.TryOnly,
-                It.IsAny<string?>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Password_TryOnly_EmitsTryResult()
-    {
-        var result = new TryLoginResult
-        {
-            IsSuccess = true
-        };
-
-        _client
-            .Setup(x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                UAuthSubmitMode.TryOnly,
-                It.IsAny<string?>()))
-            .ReturnsAsync(result);
-
-        IUAuthTryResult? emitted = null;
+        IUAuthTryResult? received = null;
 
         var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.TryOnly)
-            .Add(x => x.OnTryResult,
-                r => emitted = r));
-
-        await cut.Instance.SubmitAsync();
-
-        emitted.Should().BeSameAs(result);
-    }
-
-    // -----------------------------------------------------------------
-    // Password / TryAndCommit
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public async Task Password_TryAndCommit_SendsEffectiveReturnUrl()
-    {
-        string? capturedReturnUrl = null;
-
-        var result = new TryLoginResult
-        {
-            IsSuccess = true
-        };
-
-        _client
-            .Setup(x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                UAuthSubmitMode.TryAndCommit,
-                It.IsAny<string?>()))
-            .Callback<LoginRequest, UAuthSubmitMode, string?>(
-                (_, _, returnUrl) =>
-                    capturedReturnUrl = returnUrl)
-            .ReturnsAsync(result);
-
-        var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
+            .Add(x => x.SubmitMode, mode)
             .Add(x => x.ReturnUrl, "/dashboard")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.TryAndCommit));
+            .Add(x => x.OnTryResult, result => received = result));
 
-        await cut.Instance.SubmitAsync();
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
-        capturedReturnUrl.Should().Be("/dashboard");
+        received.Should().BeOfType<TryLoginResult>();
+        ((TryLoginResult)received!).IsSuccess.Should().BeTrue();
+
+        JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
+
+        var call = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.submitLoginForm");
+
+        call.Arguments.Should().HaveCount(2);
+
+        var options = JsonSerializer.Serialize(call.Arguments[1]);
+
+        using var document = JsonDocument.Parse(options);
+        var root = document.RootElement;
+
+        root.GetProperty("mode")
+            .GetString()
+            .Should().Be(mode.ToString());
+
+        root.GetProperty("isPkce")
+            .GetBoolean()
+            .Should().BeFalse();
+
+        root.GetProperty("tryUrl")
+            .GetString()
+            .Should().Be("/auth/try-login");
+
+        root.GetProperty("commitUrl")
+            .GetString()
+            .Should().Contain(
+                $"{UAuthConstants.Query.ReturnUrl}={Uri.EscapeDataString("/dashboard")}");
+
+        options.Should()
+            .NotContain("\"Secret\"")
+            .And.NotContain("\"Identifier\"");
     }
 
     [Fact]
-    public async Task Password_TryAndCommit_EmitsTryResult()
+    public async Task DirectCommit_Does_Not_Emit_Try_Result()
     {
-        var result = CreateTryLoginResult();
+        ConfigureResult("null");
 
-        _client
-            .Setup(x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                UAuthSubmitMode.TryAndCommit,
-                It.IsAny<string?>()))
-            .ReturnsAsync(result);
-
-        IUAuthTryResult? emitted = null;
+        var count = 0;
 
         var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
-            .Add(x => x.ReturnUrl, "/home")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.TryAndCommit)
-            .Add(x => x.OnTryResult,
-                r => emitted = r));
-
-        await cut.Instance.SubmitAsync();
-
-        emitted.Should().BeSameAs(result);
-    }
-
-    // -----------------------------------------------------------------
-    // Password / DirectCommit
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public async Task Password_DirectCommit_UsesNativeFormSubmission()
-    {
-        var cut = RenderPasswordForm(
-            "alice",
-            "secret",
-            UAuthSubmitMode.DirectCommit);
-
-        await cut.Instance.SubmitAsync();
-
-        JSInterop.VerifyInvoke("uauth.submitForm");
-    }
-
-    [Fact]
-    public async Task Password_DirectCommit_DoesNotCallTryLogin()
-    {
-        var cut = RenderPasswordForm(
-            "alice",
-            "secret",
-            UAuthSubmitMode.DirectCommit);
-
-        await cut.Instance.SubmitAsync();
-
-        _client.Verify(
-            x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                It.IsAny<UAuthSubmitMode>(),
-                It.IsAny<string?>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Password_DirectCommit_DoesNotEmitTryResult()
-    {
-        var callbackCount = 0;
-
-        var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
             .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit)
-            .Add(x => x.OnTryResult,
-                _ => callbackCount++));
+            .Add(x => x.OnTryResult, _ => count++));
 
-        await cut.Instance.SubmitAsync();
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
-        callbackCount.Should().Be(0);
+        count.Should().Be(0);
+
+        JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
+
+        var call = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.submitLoginForm");
+
+        call.Arguments.Should().HaveCount(2);
+
+        using var document = JsonDocument.Parse(
+            JsonSerializer.Serialize(call.Arguments[1]));
+
+        document.RootElement.GetProperty("mode")
+            .GetString()
+            .Should().Be(nameof(UAuthSubmitMode.DirectCommit));
+
+        cut.Instance.IsSubmitting.Should().BeFalse();
     }
 
     [Fact]
-    public async Task Password_DirectCommit_DoesNotCallFlowClient()
+    public async Task Failed_Try_Result_Is_Forwarded()
     {
-        var cut = RenderPasswordForm(
-            "alice",
-            "secret",
-            UAuthSubmitMode.DirectCommit);
+        ConfigureResult("""{"isSuccess":false,"reason":0,"remainingAttempts":2}""");
+        IUAuthTryResult? received = null;
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.SubmitMode, UAuthSubmitMode.TryOnly)
+            .Add(x => x.OnTryResult, result => received = result));
 
-        await cut.Instance.SubmitAsync();
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
-        _client.Verify(
-            x => x.Flows.TryLoginAsync(
-                It.IsAny<LoginRequest>(),
-                It.IsAny<UAuthSubmitMode>(),
-                It.IsAny<string?>()),
-            Times.Never);
-
-        _client.Verify(
-            x => x.Flows.LoginAsync(
-                It.IsAny<LoginRequest>(),
-                It.IsAny<string?>()),
-            Times.Never);
-    }
-
-    // -----------------------------------------------------------------
-    // PKCE validation
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public void Pkce_WhenHubDoesNotSupportPkce_Throws()
-    {
-        _hubCapabilities
-            .SetupGet(x => x.SupportsPkce)
-            .Returns(false);
-
-        var hubId = HubSessionId.New();
-
-        var act = () => Render<UAuthLoginForm>(p => p
-            .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.HubSessionId, hubId));
-
-        act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("*PKCE login requires UAuthHub*");
+        received.Should().BeOfType<TryLoginResult>();
+        ((TryLoginResult)received!).IsSuccess.Should().BeFalse();
     }
 
     [Fact]
-    public async Task Pkce_WhenCredentialsMissing_Throws()
+    public async Task Rate_Limit_Is_Converted_To_Try_Result()
     {
-        var hubId = HubSessionId.New();
+        ConfigureResult("""{"status":429,"isSuccess":false,"errorCode":"rate_limited"}""");
+        IUAuthTryResult? received = null;
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.SubmitMode, UAuthSubmitMode.TryOnly)
+            .Add(x => x.OnTryResult, result => received = result));
 
-        _credentialResolver
-            .Setup(x => x.ResolveAsync(
-                hubId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((HubCredentials?)null);
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
-        _hubFlowReader
-            .Setup(x => x.GetStateAsync(
-                hubId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateHubState(hubId));
+        received.Should().BeOfType<TryLoginResult>();
+        ((TryLoginResult)received!).Status.Should().Be(429);
+    }
 
-        var cut = RenderPkceForm(
-            hubId,
-            "alice",
-            "secret",
-            UAuthSubmitMode.TryOnly);
+    [Fact]
+    public async Task Submitting_Changed_Is_Raised_And_Reset_After_Success()
+    {
+        ConfigureResult("""{"isSuccess":true}""");
+        var states = new List<bool>();
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.OnSubmittingChanged, state => states.Add(state)));
 
-        var act = () => cut.Instance.SubmitAsync();
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
+
+        states.Should().Equal(true, false);
+        cut.Instance.IsSubmitting.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Submitting_Changed_Is_Reset_After_Interop_Failure()
+    {
+        JSInterop
+            .Setup<JsonElement>(
+                "uauth.submitLoginForm",
+                _ => true)
+            .SetException(new JSException("submit failed"));
+
+        var states = new List<bool>();
+
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.OnSubmittingChanged, state => states.Add(state)));
+
+        var act = () => cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
         await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Missing PKCE credentials.");
-    }
+            .ThrowAsync<JSException>()
+            .WithMessage("submit failed");
 
-    // -----------------------------------------------------------------
-    // PKCE / TryOnly
-    // -----------------------------------------------------------------
+        states.Should().Equal(true, false);
+        cut.Instance.IsSubmitting.Should().BeFalse();
 
-    [Fact]
-    public async Task Pkce_TryOnly_BuildsExpectedRequest()
-    {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(
-            hubId,
-            authorizationCode: "auth-code",
-            codeVerifier: "verifier",
-            returnUrl: "/dashboard");
-
-        PkceCompleteRequest? captured = null;
-
-        var result = new TryPkceLoginResult
-        {
-            IsSuccess = true
-        };
-
-        _client
-            .Setup(x => x.Flows.TryCompletePkceLoginAsync(
-                It.IsAny<PkceCompleteRequest>(),
-                UAuthSubmitMode.TryOnly))
-            .Callback<PkceCompleteRequest, UAuthSubmitMode>(
-                (request, _) => captured = request)
-            .ReturnsAsync(result);
-
-        var cut = RenderPkceForm(
-            hubId,
-            "alice@example.com",
-            "secret-123",
-            UAuthSubmitMode.TryOnly);
-
-        await cut.Instance.SubmitAsync();
-
-        captured.Should().NotBeNull();
-
-        captured!.Identifier.Should().Be("alice@example.com");
-        captured.Secret.Should().Be("secret-123");
-
-        captured.AuthorizationCode.Should().Be("auth-code");
-        captured.CodeVerifier.Should().Be("verifier");
-
-        captured.ReturnUrl.Should().Be("/dashboard");
-        captured.HubSessionId.Should().Be(hubId.Value);
+        JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
     }
 
     [Fact]
-    public async Task Pkce_TryOnly_EmitsTryResult()
+    public async Task Invalid_Interop_Response_Is_Rejected()
+    {
+        ConfigureResult("null");
+        var cut = RenderForm();
+        var act = () => cut.InvokeAsync(() => cut.Instance.SubmitAsync());
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
+    public async Task Pkce_Submit_Uses_Pkce_Interop_Options_And_Result()
     {
         var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        var result = CreateTryPkceLoginResult();
-
-        _client
-            .Setup(x => x.Flows.TryCompletePkceLoginAsync(
-                It.IsAny<PkceCompleteRequest>(),
-                UAuthSubmitMode.TryOnly))
-            .ReturnsAsync(result);
-
-        IUAuthTryResult? emitted = null;
-
+        _capabilities.SetupGet(x => x.SupportsPkce).Returns(true);
+        _credentials.Setup(x => x.ResolveAsync(hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubCredentials { AuthorizationCode = "auth-code", CodeVerifier = "verifier" });
+        ConfigureResult("""{"isSuccess":true}""");
+        IUAuthTryResult? received = null;
         var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.LoginType, UAuthLoginType.Pkce)
             .Add(x => x.HubSessionId, hubId)
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
             .Add(x => x.SubmitMode, UAuthSubmitMode.TryOnly)
-            .Add(x => x.OnTryResult,
-                r => emitted = r));
+            .Add(x => x.OnTryResult, result => received = result));
 
-        await cut.Instance.SubmitAsync();
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
-        emitted.Should().BeSameAs(result);
+        received.Should().BeOfType<TryPkceLoginResult>();
+        var options = JsonSerializer.Serialize(JSInterop.Invocations.Single(x => x.Identifier == "uauth.submitLoginForm").Arguments[1]);
+        options.Should().Contain("\"isPkce\":true");
+        options.Should().Contain(Uri.EscapeDataString(hubId.Value));
+        options.Should().NotContain("auth-code").And.NotContain("verifier");
     }
 
-    // -----------------------------------------------------------------
-    // PKCE / TryAndCommit
-    // -----------------------------------------------------------------
-
     [Fact]
-    public async Task Pkce_TryAndCommit_UsesTryAndCommitMode()
+    public async Task Pkce_Without_Resolved_Credentials_Cannot_Submit()
     {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        var result = new TryPkceLoginResult
-        {
-            IsSuccess = true
-        };
-
-        _client
-            .Setup(x => x.Flows.TryCompletePkceLoginAsync(
-                It.IsAny<PkceCompleteRequest>(),
-                UAuthSubmitMode.TryAndCommit))
-            .ReturnsAsync(result);
-
-        var cut = RenderPkceForm(
-            hubId,
-            "alice",
-            "secret",
-            UAuthSubmitMode.TryAndCommit);
-
-        await cut.Instance.SubmitAsync();
-
-        _client.Verify(
-            x => x.Flows.TryCompletePkceLoginAsync(
-                It.Is<PkceCompleteRequest>(r =>
-                    r.Identifier == "alice" &&
-                    r.Secret == "secret" &&
-                    r.HubSessionId == hubId.Value),
-                UAuthSubmitMode.TryAndCommit),
-            Times.Once);
-    }
-
-    // -----------------------------------------------------------------
-    // PKCE / DirectCommit
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public async Task Pkce_DirectCommit_CompletesPkceDirectly()
-    {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        _flows
-            .Setup(x => x.CompletePkceLoginAsync(
-                It.IsAny<PkceCompleteRequest>()))
-            .Returns(Task.CompletedTask);
-
+        _capabilities.SetupGet(x => x.SupportsPkce).Returns(true);
         var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.HubSessionId, hubId)
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
-            .Add(x => x.ReturnUrl, "/home")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit));
+            .Add(x => x.HubSessionId, HubSessionId.New()));
 
-        await cut.Instance.SubmitAsync();
-
-        _flows.Verify(
-            x => x.CompletePkceLoginAsync(
-                It.Is<PkceCompleteRequest>(r =>
-                    r.Identifier == "alice" &&
-                    r.Secret == "secret" &&
-                    r.ReturnUrl == "/home")),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Pkce_DirectCommit_DoesNotUseNativeFormSubmission()
-    {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        _flows
-            .Setup(x => x.CompletePkceLoginAsync(It.IsAny<PkceCompleteRequest>()))
-            .Returns(Task.CompletedTask);
-
-        var cut = RenderPkceForm(
-            hubId,
-            "alice",
-            "secret",
-            UAuthSubmitMode.DirectCommit);
-
-        await cut.Instance.SubmitAsync();
-
-        JSInterop.Invocations
-            .Should()
-            .NotContain(x => x.Identifier == "uauth.submitForm");
-    }
-
-    [Fact]
-    public async Task Pkce_DirectCommit_DoesNotEmitTryResult()
-    {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        _flows
-            .Setup(x => x.CompletePkceLoginAsync(It.IsAny<PkceCompleteRequest>()))
-            .Returns(Task.CompletedTask);
-
-        var callbackCount = 0;
-
-        var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.HubSessionId, hubId)
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit)
-            .Add(x => x.OnTryResult,
-                _ => callbackCount++));
-
-        await cut.Instance.SubmitAsync();
-
-        callbackCount.Should().Be(0);
-    }
-
-    // -----------------------------------------------------------------
-    // Hub resolution
-    // -----------------------------------------------------------------
-
-    [Fact]
-    public async Task Pkce_HubSessionIdFromQuery_IsUsed()
-    {
-        var hubId = HubSessionId.New();
-
-        SetupPkce(hubId);
-
-        var nav = Services
-            .GetRequiredService<NavigationManager>();
-
-        nav.NavigateTo(
-            $"/login?{UAuthConstants.Query.Hub}={Uri.EscapeDataString(hubId.Value)}");
-
-        var result = CreateTryPkceLoginResult();
-
-        _client
-            .Setup(x => x.Flows.TryCompletePkceLoginAsync(
-                It.IsAny<PkceCompleteRequest>(),
-                UAuthSubmitMode.TryOnly))
-            .ReturnsAsync(result);
-
-        var cut = Render<UAuthLoginForm>(p => p
-            .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.Identifier, "alice")
-            .Add(x => x.Secret, "secret")
-            .Add(x => x.SubmitMode, UAuthSubmitMode.TryOnly));
-
-        await cut.Instance.SubmitAsync();
-
-        _credentialResolver.Verify(
-            x => x.ResolveAsync(
-                hubId,
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    // -----------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------
-
-    private IRenderedComponent<UAuthLoginForm> RenderPasswordForm(
-        string? identifier,
-        string? secret,
-        UAuthSubmitMode mode)
-    {
-        return Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, identifier)
-            .Add(x => x.Secret, secret)
-            .Add(x => x.LoginType, UAuthLoginType.Password)
-            .Add(x => x.SubmitMode, mode));
-    }
-
-    private IRenderedComponent<UAuthLoginForm> RenderPkceForm(
-        HubSessionId hubId,
-        string identifier,
-        string secret,
-        UAuthSubmitMode mode)
-    {
-        return Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, identifier)
-            .Add(x => x.Secret, secret)
-            .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.HubSessionId, hubId)
-            .Add(x => x.SubmitMode, mode));
-    }
-
-    private void SetupPkce(
-        HubSessionId hubId,
-        string authorizationCode = "authorization-code",
-        string codeVerifier = "code-verifier",
-        string returnUrl = "/home")
-    {
-        var credentials = new HubCredentials
-        {
-            AuthorizationCode = authorizationCode,
-            CodeVerifier = codeVerifier
-        };
-
-        _credentialResolver
-            .Setup(x => x.ResolveAsync(
-                hubId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(credentials);
-
-        _hubFlowReader
-            .Setup(x => x.GetStateAsync(
-                hubId,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                CreateHubState(
-                    hubId,
-                    returnUrl));
-    }
-
-    private static HubFlowState CreateHubState(HubSessionId hubId, string returnUrl = "/home")
-    {
-        return new HubFlowState
-        {
-            HubSessionId = hubId,
-            Exists = true,
-            IsActive = true,
-            IsExpired = false,
-            IsCompleted = false,
-            ReturnUrl = returnUrl
-        };
-    }
-
-    private static TryLoginResult CreateTryLoginResult()
-    {
-        return new TryLoginResult
-        {
-            IsSuccess = true
-        };
-    }
-
-    private static TryPkceLoginResult CreateTryPkceLoginResult()
-    {
-        return new TryPkceLoginResult
-        {
-            IsSuccess = true
-        };
+        var act = () => cut.InvokeAsync(() => cut.Instance.SubmitAsync());
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Missing PKCE credentials.");
+        JSInterop.Invocations.Should().NotContain(x => x.Identifier == "uauth.submitLoginForm");
     }
 }

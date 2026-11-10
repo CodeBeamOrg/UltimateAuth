@@ -42,7 +42,7 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 | Security Expansion      | 0.3.0         | MFA, Reauth                                | 🟡 In Progress | Q1 2027       |
 | Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hashers | 🔜 Planned     | Q1 2027       |
 | Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                    | 🔜 Planned     | Q2 2027       |
-| Extensibility Expansion | 0.6.0         | Audit, events, hooks                       | 🔜 Planned     | Q2 2027       |
+| Extensibility Expansion | 0.6.0         | Audit, Passwordless Login                  | 🔜 Planned     | Q2 2027       |
 | Performance Expansion   | 0.7.0         | Benchmarks, caching                        | 🔜 Planned     | Q3 2027       |
 | Ecosystem Expansion     | 0.8.0         | Migration tools                            | 🔜 Planned     | Q3 2027       |
 | v1.0                    | 1.0.0         | Locked API, align with .NET 12             | 🔜 Planned     | Q4 2027       |
@@ -62,9 +62,9 @@ UltimateAuth is designed to deliver a simple, consistent developer experience fr
 | Milestone | Version | Target |
 |---|---|---|
 | **Developer Foundation** | 0.1.x | A functional, security-conscious authentication framework with a complete core architecture, extensibility, and a developer-first API. Suitable for development, early adoption, and production use following application-specific evaluation. |
-| **Production Expansion** | 0.2.0 | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements. |
-| **Advanced Security & Scale** | 0.4.0 | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
-| **Migration & Adoption** | 0.8.0 | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
+| **Production Expansion** | 0.2.x | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements. |
+| **Advanced Security & Scale** | 0.4.x | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
+| **Migration & Adoption** | 0.8.x | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
 
 **The UltimateAuth philosophy:** Simple from day one, more capable with every release. Version milestones describe expanding capabilities — not a progression from difficult to easy, or from unusable to usable.
 
@@ -225,25 +225,20 @@ Change `Components/Pages/Home.razor`:
 
 <div class="container mt-5" style="max-width: 400px;">
     <h3>Sign in</h3>
-    <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard">
+    <UAuthLoginForm ReturnUrl="/dashboard">
         <div class="d-block mb-3">
             <label>Username</label>
-            <input @bind="_identifier" class="form-control w-100" autocomplete="username" />
+            <input name="Identifier" class="form-control w-100" autocomplete="username" />
         </div>
 
         <div class="d-block mb-3">
             <label>Password</label>
-            <input type="password" @bind="_password" class="form-control w-100" autocomplete="current-password" />
+            <input type="password" name="Secret" class="form-control w-100" autocomplete="current-password" />
         </div>
 
         <button class="btn btn-primary w-100" type="submit">Sign in</button>
     </UAuthLoginForm>
 </div>
-
-@code {
-    private string _identifier = "";
-    private string _password = "";
-}
 ```
 
 ### 7. Protect your pages

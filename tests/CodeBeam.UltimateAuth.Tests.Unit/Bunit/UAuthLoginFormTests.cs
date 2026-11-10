@@ -1,214 +1,130 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit;
+namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
-public class UAuthLoginFormTests
+public sealed class UAuthLoginFormContextTests : BunitContext
 {
-    [Fact]
-    public void Should_Render_Form()
+    private readonly Mock<IHubCredentialResolver> _credentials = new();
+    private readonly Mock<IHubFlowReader> _flows = new();
+    private readonly Mock<IHubCapabilities> _capabilities = new();
+
+    public UAuthLoginFormContextTests()
     {
-        using var ctx = new BunitContext();
-
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IUAuthClient>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCapabilities>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var cut = ctx.Render<UAuthLoginForm>();
-
-        cut.Find("form").Should().NotBeNull();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
+        Services.AddSingleton(_credentials.Object);
+        Services.AddSingleton(_flows.Object);
+        Services.AddSingleton(_capabilities.Object);
+        Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
     }
 
     [Fact]
-    public void Should_Render_Identifier_And_Secret_Inputs()
+    public void Default_Form_Renders_Exactly_One_Native_Identifier_And_Secret_And_Submit()
     {
-        using var ctx = new BunitContext();
+        var cut = Render<UAuthLoginForm>();
+        var form = cut.Find("form");
 
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IUAuthClient>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCapabilities>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var cut = ctx.Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "user")
-            .Add(x => x.Secret, "pass"));
-
-        cut.Markup.Should().Contain("name=\"Identifier\"");
-        cut.Markup.Should().Contain("name=\"Secret\"");
+        form.GetAttribute("method").Should().Be("post");
+        cut.FindAll("input[name='Identifier']").Should().ContainSingle();
+        cut.FindAll("input[name='Secret']").Should().ContainSingle();
+        cut.Find("input[name='Secret']").GetAttribute("type").Should().Be("password");
+        cut.Find("input[name='Secret']").GetAttribute("autocomplete").Should().Be("current-password");
+        cut.FindAll("button[type='submit']").Should().ContainSingle();
+        cut.Find("button[type='submit']").HasAttribute("hidden").Should().BeFalse();
     }
 
     [Fact]
-    public async Task Submit_Should_Call_TryLogin()
+    public void Custom_Content_Replaces_Default_Fields_Without_Duplicates()
     {
-        using var ctx = new BunitContext();
+        var cut = Render<UAuthLoginForm>(p => p.Add(x => x.ChildContent, (RenderFragment)(builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "custom-login");
+            builder.OpenElement(2, "input");
+            builder.AddAttribute(3, "name", "Identifier");
+            builder.CloseElement();
+            builder.OpenElement(4, "input");
+            builder.AddAttribute(5, "name", "Secret");
+            builder.AddAttribute(6, "type", "password");
+            builder.CloseElement();
+            builder.CloseElement();
+        })));
 
-        var flowMock = new Mock<IFlowClient>();
+        cut.FindAll(".custom-login").Should().ContainSingle();
+        cut.FindAll("input[name='Identifier']").Should().ContainSingle();
+        cut.FindAll("input[name='Secret']").Should().ContainSingle();
+        cut.FindAll(".uauth-login-fields").Should().BeEmpty();
+    }
 
-        flowMock.Setup(x => x.TryLoginAsync(
-            It.IsAny<LoginRequest>(),
-            It.IsAny<UAuthSubmitMode>(),
-            It.IsAny<string>()))
-            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public void Custom_Content_Respects_Enter_Submit_Fallback(bool allowEnter, int expectedButtons)
+    {
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.AllowEnterKeyToSubmit, allowEnter)
+            .Add(x => x.ChildContent, (RenderFragment)(b => b.AddMarkupContent(0, "<input name='Identifier' /><input name='Secret' />"))));
 
-        var clientMock = new Mock<IUAuthClient>();
-        clientMock.Setup(x => x.Flows).Returns(flowMock.Object);
-
-        ctx.Services.AddSingleton(clientMock.Object);
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCapabilities>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var cut = ctx.Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "user")
-            .Add(x => x.Secret, "pass"));
-
-        await cut.Instance.SubmitAsync();
-
-        flowMock.Verify(x =>
-            x.TryLoginAsync(It.IsAny<LoginRequest>(), It.IsAny<UAuthSubmitMode>(), It.IsAny<string>()),
-            Times.Once);
+        cut.FindAll("button[type='submit']").Should().HaveCount(expectedButtons);
     }
 
     [Fact]
-    public async Task Submit_Should_Throw_When_Missing_Credentials()
+    public void Default_Form_Does_Not_Expose_Credential_Values_As_Component_Parameters()
     {
-        using var ctx = new BunitContext();
+        var parameters = typeof(UAuthLoginForm).GetProperties()
+            .Where(p => p.IsDefined(typeof(ParameterAttribute), inherit: true))
+            .Select(p => p.Name);
 
-        ctx.Services.AddSingleton(Mock.Of<IUAuthClient>());
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCapabilities>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var cut = ctx.Render<UAuthLoginForm>();
-
-        Func<Task> act = async () => await cut.Instance.SubmitAsync();
-
-        await act.Should().ThrowAsync<UAuthValidationException>();
+        parameters.Should().NotContain("Identifier").And.NotContain("Secret");
     }
 
     [Fact]
-    public async Task SubmitPkce_Should_Call_TryCompletePkce()
+    public void Form_Renders_Metadata_And_Explicit_ReturnUrl()
     {
-        using var ctx = new BunitContext();
+        var cut = Render<UAuthLoginForm>(p => p.Add(x => x.ReturnUrl, "/dashboard"));
 
-        var flowMock = new Mock<IFlowClient>();
+        cut.FindAll($"input[name='{UAuthConstants.Form.ClientProfile}']").Should().ContainSingle();
+        cut.FindAll($"input[name='{UAuthConstants.Form.Device}']").Should().ContainSingle();
+        cut.Find($"input[name='{UAuthConstants.Form.ReturnUrl}']")
+            .GetAttribute("value").Should().Be("/dashboard");
+        cut.Find("form").GetAttribute("action").Should().Contain("uauth_return_url=%2Fdashboard");
+    }
 
-        flowMock.Setup(x => x.TryCompletePkceLoginAsync(
-            It.IsAny<PkceCompleteRequest>(),
-            It.IsAny<UAuthSubmitMode>()))
-            .ReturnsAsync(new TryPkceLoginResult { IsSuccess = true });
+    [Fact]
+    public void Pkce_Renders_Hub_Credentials_And_Hub_Query()
+    {
+        var hubId = HubSessionId.New();
+        _capabilities.SetupGet(x => x.SupportsPkce).Returns(true);
+        _credentials.Setup(x => x.ResolveAsync(hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubCredentials { AuthorizationCode = "auth-code", CodeVerifier = "verifier" });
 
-        var clientMock = new Mock<IUAuthClient>();
-        clientMock.Setup(x => x.Flows).Returns(flowMock.Object);
-
-        var credResolver = new Mock<IHubCredentialResolver>();
-        credResolver.Setup(x => x.ResolveAsync(It.IsAny<HubSessionId>()))
-            .ReturnsAsync(new HubCredentials
-            {
-                AuthorizationCode = "code",
-                CodeVerifier = "verifier"
-            });
-
-        var capabilities = new Mock<IHubCapabilities>();
-        capabilities.Setup(x => x.SupportsPkce).Returns(true);
-
-        ctx.Services.AddSingleton(clientMock.Object);
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(credResolver.Object);
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(capabilities.Object);
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var hubSessionId = HubSessionId.New();
-
-        var cut = ctx.Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "user")
-            .Add(x => x.Secret, "pass")
+        var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.LoginType, UAuthLoginType.Pkce)
-            .Add(x => x.HubSessionId, hubSessionId));
+            .Add(x => x.HubSessionId, hubId));
 
-        await cut.InvokeAsync(() => Task.CompletedTask);
-        await cut.Instance.SubmitAsync();
-
-        flowMock.Verify(x =>
-            x.TryCompletePkceLoginAsync(It.IsAny<PkceCompleteRequest>(), It.IsAny<UAuthSubmitMode>()),
-            Times.Once);
+        cut.Find("input[name='authorization_code']").GetAttribute("value").Should().Be("auth-code");
+        cut.Find("input[name='code_verifier']").GetAttribute("value").Should().Be("verifier");
+        cut.Find("input[name='hub_session_id']").GetAttribute("value").Should().Be(hubId.Value);
+        cut.Find("form").GetAttribute("action").Should().Contain(Uri.EscapeDataString(hubId.Value));
     }
 
     [Fact]
-    public async Task Should_Invoke_OnTryResult()
+    public void Pkce_Without_Hub_Support_Is_Rejected()
     {
-        using var ctx = new BunitContext();
-
-        var flowMock = new Mock<IFlowClient>();
-
-        flowMock.Setup(x => x.TryLoginAsync(
-            It.IsAny<LoginRequest>(),
-            It.IsAny<UAuthSubmitMode>(),
-            It.IsAny<string>()))
-            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
-
-        var clientMock = new Mock<IUAuthClient>();
-        clientMock.Setup(x => x.Flows).Returns(flowMock.Object);
-
-        var invoked = false;
-
-        ctx.Services.AddSingleton(clientMock.Object);
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCapabilities>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        var cut = ctx.Render<UAuthLoginForm>(p => p
-            .Add(x => x.Identifier, "user")
-            .Add(x => x.Secret, "pass")
-            .Add(x => x.OnTryResult, EventCallback.Factory.Create<IUAuthTryResult>(this, _ => invoked = true)));
-
-        await cut.Instance.SubmitAsync();
-
-        invoked.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Should_Throw_When_Pkce_Not_Supported()
-    {
-        using var ctx = new BunitContext();
-
-        var capabilities = new Mock<IHubCapabilities>();
-        capabilities.Setup(x => x.SupportsPkce).Returns(false);
-
-        ctx.Services.AddSingleton(capabilities.Object);
-        ctx.Services.AddSingleton(Mock.Of<IUAuthClient>());
-        ctx.Services.AddSingleton(Mock.Of<IDeviceIdProvider>());
-        ctx.Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
-        ctx.Services.AddSingleton(Mock.Of<IHubFlowReader>());
-        ctx.Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
-
-        Action act = () => ctx.Render<UAuthLoginForm>(p => p
-            .Add(x => x.LoginType, UAuthLoginType.Pkce));
-
-        act.Should().Throw<InvalidOperationException>();
+        _capabilities.SetupGet(x => x.SupportsPkce).Returns(false);
+        Action act = () => Render<UAuthLoginForm>(p => p.Add(x => x.LoginType, UAuthLoginType.Pkce));
+        act.Should().Throw<InvalidOperationException>().WithMessage("*PKCE login requires UAuthHub*");
     }
 }

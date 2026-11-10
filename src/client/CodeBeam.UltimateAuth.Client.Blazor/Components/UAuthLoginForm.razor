@@ -1,39 +1,59 @@
-﻿@* TODO: Optional double-submit prevention for native form submit *@
-@namespace CodeBeam.UltimateAuth.Client.Blazor
+﻿@namespace CodeBeam.UltimateAuth.Client.Blazor
 
-@using CodeBeam.UltimateAuth.Client.Device
 @using CodeBeam.UltimateAuth.Client.Options
-@using CodeBeam.UltimateAuth.Core.Abstractions
 @using CodeBeam.UltimateAuth.Core.Defaults
 @using CodeBeam.UltimateAuth.Core.Contracts
-@using CodeBeam.UltimateAuth.Core.Options
 @using Microsoft.Extensions.Options
+
 @inject IJSRuntime JS
 @inject IOptions<UAuthClientOptions> Options
 @inject NavigationManager Navigation
 
-<form @ref="_form" method="post" action="@ResolvedEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
-    <input type="hidden" name="Identifier" value="@Identifier" />
-    <input type="hidden" name="Secret" value="@Secret" autocomplete="off" />
+<form @ref="_form" method="post" action="@ResolvedCommitEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
+
     <input type="hidden" name="@UAuthConstants.Form.ClientProfile" value="@ClientProfileValue" />
     <input type="hidden" name="@UAuthConstants.Form.Device" value="@_deviceId" />
-
 
     @if (LoginType == UAuthLoginType.Pkce)
     {
         <input type="hidden" name="authorization_code" value="@_credentials?.AuthorizationCode" />
         <input type="hidden" name="code_verifier" value="@_credentials?.CodeVerifier" />
+        <input type="hidden" name="hub_session_id" value="@EffectiveHubSessionId?.Value" />
     }
 
-    @if (SubmitMode == UAuthSubmitMode.DirectCommit)
+    <input type="hidden" name="@UAuthConstants.Form.ReturnUrl" value="@EffectiveReturnUrl" />
+
+    @if (ChildContent is null)
     {
-        <input type="hidden" name="@UAuthConstants.Form.ReturnUrl" value="@EffectiveReturnUrl" />
+        <div class="uauth-login-fields">
+            <div class="uauth-login-field">
+                <label>
+                    Username
+                    <input class="uauth-login-input" name="Identifier" type="text" autocomplete="username" required />
+                </label>
+                
+            </div>
+
+            <div class="uauth-login-field">
+                <label>
+                    Password
+                    <input class="uauth-login-input" name="Secret" type="password" autocomplete="current-password" required />
+                </label>
+            </div>
+
+            <button class="uauth-login-submit" type="submit">
+                Sign in
+            </button>
+        </div>
     }
-
-    @ChildContent
-
-    @if (AllowEnterKeyToSubmit)
+    else
     {
-        <button type="submit" hidden aria-hidden="true"></button>
+        @ChildContent
+
+        @if (AllowEnterKeyToSubmit)
+        {
+            <button type="submit" hidden aria-hidden="true">
+            </button>
+        }
     }
 </form>
