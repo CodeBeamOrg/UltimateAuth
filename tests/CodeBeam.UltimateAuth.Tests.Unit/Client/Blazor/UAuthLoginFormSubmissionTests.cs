@@ -108,7 +108,10 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
     [Fact]
     public async Task DirectCommit_Does_Not_Emit_Try_Result()
     {
+        ConfigureResult("null");
+
         var count = 0;
+
         var cut = Render<UAuthLoginForm>(p => p
             .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit)
             .Add(x => x.OnTryResult, _ => count++));
@@ -116,9 +119,22 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
         await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
 
         count.Should().Be(0);
+
         JSInterop.VerifyInvoke("uauth.submitLoginForm", 1);
-        var options = JsonSerializer.Serialize(JSInterop.Invocations.Single(x => x.Identifier == "uauth.submitLoginForm").Arguments[1]);
-        options.Should().Contain("\"mode\":\"DirectCommit\"");
+
+        var call = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.submitLoginForm");
+
+        call.Arguments.Should().HaveCount(2);
+
+        using var document = JsonDocument.Parse(
+            JsonSerializer.Serialize(call.Arguments[1]));
+
+        document.RootElement.GetProperty("mode")
+            .GetString()
+            .Should().Be(nameof(UAuthSubmitMode.DirectCommit));
+
+        cut.Instance.IsSubmitting.Should().BeFalse();
     }
 
     [Fact]
