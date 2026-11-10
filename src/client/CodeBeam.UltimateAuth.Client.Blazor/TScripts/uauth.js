@@ -712,6 +712,164 @@ window.uauth.antiforgery = {
     }
 };
 
+window.uauth.submitLoginForm = async function (form, options) {
+    if (!(form instanceof HTMLFormElement)) {
+        throw new Error("A native HTML form is required.");
+    }
+
+    const {
+        mode,
+        tryUrl,
+        commitUrl,
+        clientProfile,
+        trustedOrigin,
+        isPkce
+    } = options;
+
+    if (!["TryOnly", "TryAndCommit", "DirectCommit"].includes(mode)) {
+        throw new Error("Unsupported UAuth submit mode.");
+    }
+
+    if (!window.uauth.deviceId) {
+        throw new Error("UAuth deviceId is not initialized.");
+    }
+
+    const validatedCommitUrl = window.uauth.validateAuthUrl(
+        commitUrl,
+        trustedOrigin
+    );
+
+    const validatedTryUrl = mode === "DirectCommit"
+        ? null
+        : window.uauth.validateAuthUrl(tryUrl, trustedOrigin);
+
+    // Read credentials from the original browser inputs.
+    // Never return them to Blazor or copy them to hidden inputs.
+    const fields = new FormData(form);
+
+    const identifiers = fields.getAll("Identifier");
+    const secrets = fields.getAll("Secret");
+
+    if (identifiers.length !== 1 || secrets.length !== 1) {
+        throw new Error(
+            "Login form requires exactly one Identifier and one Secret."
+        );
+    }
+
+    const identifier = identifiers[0];
+    const secret = secrets[0];
+
+    if (typeof identifier !== "string" ||
+        typeof secret !== "string" ||
+        !identifier.trim() ||
+        !secret.trim()) {
+        throw new Error("Identifier and Secret are required.");
+    }
+
+    if (isPkce) {
+        for (const name of ["authorization_code", "code_verifier"]) {
+            const values = fields.getAll(name);
+
+            if (values.length !== 1 ||
+                typeof values[0] !== "string" ||
+                !values[0]) {
+                throw new Error(`Missing or duplicate PKCE field: ${name}`);
+            }
+        }
+    }
+
+    // Commit always uses the original form.
+    // No second form and no hidden password copy.
+    form.action = validatedCommitUrl;
+
+    if (mode === "DirectCommit") {
+        await window.uauth.submitForm(form, trustedOrigin);
+        return null;
+    }
+
+    const payload = {
+        Identifier: identifier,
+        Secret: secret
+    };
+
+    if (isPkce) {
+        payload.AuthorizationCode = fields.get("authorization_code");
+        payload.CodeVerifier = fields.get("code_verifier");
+        payload.ReturnUrl = fields.get("__uauth_return_url") ?? "";
+        payload.HubSessionId = fields.get("hub_session_id") ?? "";
+    } else {
+        payload.ReturnUrl = fields.get("__uauth_return_url") ?? "";
+    }
+
+    const response = await window.uauth.postJson({
+        url: validatedTryUrl,
+        payload,
+        clientProfile,
+        trustedOrigin
+    });
+
+    if (!response || !Number.isInteger(response.status)) {
+        throw new Error("Invalid UAuth transport response.");
+    }
+
+    if (response.status === 429) {
+        return {
+            isSuccess: false,
+            status: 429,
+            errorCode: "rate_limited",
+            retryAfter: response.retryAfter ?? null
+        };
+    }
+
+    const isHttpSuccess =
+        response.status >= 200 && response.status < 300;
+
+    const isClientError =
+        response.status >= 400 && response.status < 500;
+
+    if (!isHttpSuccess && !isClientError) {
+        throw new Error(
+            `Unexpected UAuth try response: HTTP ${response.status}.`
+        );
+    }
+
+    const result = response.body;
+
+    if (!result ||
+        typeof result !== "object" ||
+        Array.isArray(result) ||
+        typeof result.isSuccess !== "boolean") {
+        throw new Error("Invalid UAuth try response body.");
+    }
+
+    if (isClientError && result.isSuccess) {
+        throw new Error(
+            "Successful authentication result returned with HTTP error."
+        );
+    }
+
+    if (mode === "TryAndCommit" && result.isSuccess) {
+        if (result.previewReceipt) {
+            let receipt = Array.from(form.elements)
+                .find(element => element.name === "PreviewReceipt");
+
+            if (!receipt) {
+                receipt = document.createElement("input");
+                receipt.type = "hidden";
+                receipt.name = "PreviewReceipt";
+                form.appendChild(receipt);
+            }
+
+            receipt.value = result.previewReceipt;
+        }
+
+        await window.uauth.submitForm(form, trustedOrigin);
+    }
+
+    // Only the non-credential authentication result crosses JS interop.
+    return result;
+};
+
 window.uauth.setDeviceId = function (value) {
     window.uauth.deviceId = value;
 };
