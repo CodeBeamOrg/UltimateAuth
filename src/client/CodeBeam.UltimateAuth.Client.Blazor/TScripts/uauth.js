@@ -793,10 +793,10 @@ window.uauth.submitLoginForm = async function (form, options) {
     };
 
     if (isPkce) {
-        payload.AuthorizationCode = fields.get("authorization_code");
-        payload.CodeVerifier = fields.get("code_verifier");
-        payload.ReturnUrl = fields.get("__uauth_return_url") ?? "";
-        payload.HubSessionId = fields.get("hub_session_id") ?? "";
+        payload.authorization_code = fields.get("authorization_code");
+        payload.code_verifier = fields.get("code_verifier");
+        payload.__uauth_return_url = fields.get("__uauth_return_url") ?? "";
+        payload.hub_session_id = fields.get("hub_session_id") ?? "";
     } else {
         payload.ReturnUrl = fields.get("__uauth_return_url") ?? "";
     }
