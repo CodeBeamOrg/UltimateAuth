@@ -70,15 +70,6 @@
 
                                 <MudDivider Class="mt-14 mb-2" />
 
-                                @* <div class="lab-welcome-session">
-                                    <div class="lab-welcome-session-title">
-                                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success" Size="Size.Small" />
-                                        <strong>Authenticated session</strong>
-                                    </div>
-
-                                    <p>We recognize your account. Your Identity Lab workspace is ready whenever you are.</p>
-                                </div> *@
-
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
                                            Size="Size.Large"
@@ -107,7 +98,7 @@
                             </Authorized>
 
                             <NotAuthorized>
-                                <UAuthLoginForm Identifier="@_identifier" Secret="@_password" ReturnUrl="/dashboard" OnTryResult="HandleLoginResult" OnSubmittingChanged="HandleSubmittingChanged">
+                                <UAuthLoginForm ReturnUrl="/dashboard" OnTryResult="HandleLoginResult" OnSubmittingChanged="HandleSubmittingChanged">
 
                                     @if (IsLockedOut)
                                     {
@@ -174,7 +165,7 @@
                                     <div class="lab-login-fields">
 
                                         <MudTextField T="string"
-                                                      @bind-Value="_identifier"
+                                                      name="Identifier"
                                                       Label="Email or Username"
                                                       Placeholder="Enter your email or username"
                                                       Variant="Variant.Outlined"
@@ -188,7 +179,7 @@
                                                       Immediate="true" />
 
                                         <MudPasswordField T="string"
-                                                          @bind-Value="_password"
+                                                          name="Secret"
                                                           Label="Password"
                                                           Variant="Variant.Outlined"
                                                           autocomplete="current-password"
@@ -208,7 +199,6 @@
                                                    EndIcon="@Icons.Material.Filled.ArrowForward">
                                             @(IsLockedOut ? "Temporarily locked" : "Sign In")
                                         </MudLoadingButton>
-
                                     </div>
                                 </UAuthLoginForm>
 
