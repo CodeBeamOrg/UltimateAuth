@@ -197,12 +197,12 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                     flow,
                     factorState.IsLocked(now)
                         ? AuthFailureReason.LockedOut
-                        : decision.FailureReason ?? AuthFailureReason.Unknown,
+                        : decision.FailureReason ?? AuthFailureReason.InvalidCredentials,
                     lockedUntil,
                     remainingAttempts);
             }
 
-            return CreateFailure(flow, decision.FailureReason);
+            return CreateFailure(flow, decision.FailureReason ?? AuthFailureReason.InvalidCredentials);
         }
 
 

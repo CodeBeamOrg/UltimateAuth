@@ -783,7 +783,9 @@ public class LoginTests : IDisposable
 
         correctResult.Should().NotBeNull();
         correctResult!.IsSuccess.Should().BeFalse();
-        correctResult.Reason.Should().Be(AuthFailureReason.LockedOut);
+        correctResult.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
+        correctResult.RemainingAttempts.Should().BeNull();
+        correctResult.LockoutUntilUtc.Should().BeNull();
     }
 
     [Fact]
@@ -1575,11 +1577,14 @@ public class LoginTests : IDisposable
     [Fact]
     public async Task Login_FailuresWithinFailureWindow_ShouldAccumulateTowardLockout()
     {
-        _factory.Clock.Reset();
+        using var factory = CreateDetailedFailureFactory();
+        factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var user = await factory.CreateLoginUserAsync(
+            ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
+            factory,
             $"failure-window-inside-{Guid.NewGuid():N}");
 
         var first = await TryLoginAsync(
@@ -1592,7 +1597,7 @@ public class LoginTests : IDisposable
         first.RemainingAttempts.Should().Be(1);
         first.LockoutUntilUtc.Should().BeNull();
 
-        _factory.Clock.Advance(TimeSpan.FromMinutes(14));
+        factory.Clock.Advance(TimeSpan.FromMinutes(14));
 
         var second = await TryLoginAsync(
             client,
@@ -1608,11 +1613,14 @@ public class LoginTests : IDisposable
     [Fact]
     public async Task Login_FailureDuringLockout_ShouldNotExtendLockout_WhenExtendLockOnFailureIsDisabled()
     {
-        _factory.Clock.Reset();
+        using var factory = CreateDetailedFailureFactory();
+        factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var user = await factory.CreateLoginUserAsync(
+            ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
+            factory,
             $"lockout-no-extension-{Guid.NewGuid():N}");
 
         var first = await TryLoginAsync(
@@ -1634,7 +1642,7 @@ public class LoginTests : IDisposable
 
         var originalLockoutUntil = second.LockoutUntilUtc!.Value;
 
-        _factory.Clock.Advance(TimeSpan.FromSeconds(5));
+        factory.Clock.Advance(TimeSpan.FromSeconds(5));
 
         var duringLockout = await TryLoginAsync(
             client,
@@ -1647,7 +1655,7 @@ public class LoginTests : IDisposable
         duringLockout.LockoutUntilUtc
             .Should().Be(originalLockoutUntil);
 
-        _factory.Clock.Set(
+        factory.Clock.Set(
             originalLockoutUntil.AddMilliseconds(1));
 
         var login = await LoginAsync(
@@ -1667,14 +1675,18 @@ public class LoginTests : IDisposable
     [Fact]
     public async Task ConcurrentLoginFailures_ShouldNotLoseFailureAttempts()
     {
-        _factory.Clock.Reset();
+        using var factory = CreateDetailedFailureFactory();
+        factory.Clock.Reset();
 
-        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        var user = await factory.CreateLoginUserAsync(
+            ct: TestContext.Current.CancellationToken);
 
         using var client1 = CreateClient(
+            factory,
             $"concurrent-failure-1-{Guid.NewGuid():N}");
 
         using var client2 = CreateClient(
+            factory,
             $"concurrent-failure-2-{Guid.NewGuid():N}");
 
         var task1 = TryLoginAsync(
@@ -1692,6 +1704,7 @@ public class LoginTests : IDisposable
         results.Should().OnlyContain(x => !x.IsSuccess);
 
         using var verificationClient = CreateClient(
+            factory,
             $"concurrent-failure-verification-{Guid.NewGuid():N}");
 
         var verification = await TryLoginAsync(
@@ -1838,9 +1851,19 @@ public class LoginTests : IDisposable
             "another-wrong-password");
 
         failureState.IsSuccess.Should().BeFalse();
-        failureState.Reason.Should().Be(AuthFailureReason.LockedOut);
+        failureState.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
+        failureState.RemainingAttempts.Should().BeNull();
+        failureState.LockoutUntilUtc.Should().BeNull();
     }
 
+
+    private static AuthServerFactory CreateDetailedFailureFactory()
+    {
+        return AuthServerFactory.Create(options =>
+        {
+            options.Login.IncludeFailureDetails = true;
+        });
+    }
 
     private HttpClient CreateClient(string deviceId = "test-device-1234567890123456")
     {
@@ -1858,6 +1881,21 @@ public class LoginTests : IDisposable
         client.DefaultRequestHeaders.Add(
             "X-UDID",
             deviceId);
+
+        return client;
+    }
+
+    private static HttpClient CreateClient(AuthServerFactory factory, string deviceId)
+    {
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false
+            });
+
+        client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
+        client.DefaultRequestHeaders.Add("X-UDID", deviceId);
 
         return client;
     }
