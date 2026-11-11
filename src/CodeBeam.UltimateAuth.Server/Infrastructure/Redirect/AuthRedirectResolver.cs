@@ -68,12 +68,22 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         // Failure payload
         if (failureReason is not null)
         {
+            var publicReason = failureReason;
+
+            if (flow.FlowType == AuthFlowType.Login &&
+                !flow.Options.Login.IncludeFailureDetails &&
+                loginResult is not null &&
+                !loginResult.IsSuccess)
+            {
+                publicReason = AuthFailureReason.InvalidCredentials;
+            }
+
             var payload = new AuthFlowPayload
             {
                 V = 1,
                 Flow = flow.FlowType,
                 Status = "failed",
-                Reason = failureReason
+                Reason = publicReason
             };
 
             if (flow.FlowType == AuthFlowType.Login && loginResult is not null && flow.Options.Login.IncludeFailureDetails)

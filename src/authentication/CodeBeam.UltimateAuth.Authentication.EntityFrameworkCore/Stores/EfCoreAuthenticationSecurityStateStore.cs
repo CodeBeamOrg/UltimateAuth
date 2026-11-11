@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Security;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore;
 
@@ -57,7 +58,15 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
 
         DbSet.Add(entity);
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsSecurityStateUniqueViolation(ex))
+        {
+            DetachEntries(ex);
+            throw new UAuthConflictException("security_state_already_exists");
+        }
     }
 
     public async Task UpdateAsync(AuthenticationSecurityState state, long expectedVersion, CancellationToken ct = default)
@@ -81,7 +90,16 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
 
         AuthenticationSecurityStateMapper.UpdateProjection(state, entity);
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            DetachEntries(ex);
+
+            throw new UAuthConflictException("security_state_version_conflict");
+        }
     }
 
     public async Task DeleteAsync(UserKey userKey, AuthenticationSecurityScope scope, CredentialType? credentialType, CancellationToken ct = default)
@@ -100,5 +118,34 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
         DbSet.Remove(entity);
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    private static void DetachEntries(DbUpdateException exception)
+    {
+        foreach (var entry in exception.Entries)
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
+
+    private static bool IsSecurityStateUniqueViolation(DbUpdateException exception)
+    {
+        if (exception.Entries.Count != 1 || exception.Entries[0].Entity is not AuthenticationSecurityStateProjection)
+        {
+            return false;
+        }
+
+        for (Exception? current = exception.InnerException;
+             current is not null;
+             current = current.InnerException)
+        {
+            if (current is DbException dbException &&
+                dbException.SqlState == "23505")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

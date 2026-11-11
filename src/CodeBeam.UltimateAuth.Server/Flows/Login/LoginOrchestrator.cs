@@ -91,14 +91,14 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                 if (accountState.IsLocked(now))
                 {
-                    return LoginResult.Failed(AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
+                    return CreateFailure(flow, AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
                 factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(flow.Tenant, userKey.Value, request.CredentialType, ct);
 
                 if (factorState.IsLocked(now))
                 {
-                    return LoginResult.Failed(AuthFailureReason.LockedOut, factorState.LockedUntil, 0);
+                    return CreateFailure(flow, AuthFailureReason.LockedOut, factorState.LockedUntil, remainingAttempts: 0);
                 }
 
                 foreach (var provider in _credentialProviders)
@@ -193,16 +193,16 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                     }
                 }
 
-
-                return LoginResult.Failed(
+                return CreateFailure(
+                    flow,
                     factorState.IsLocked(now)
                         ? AuthFailureReason.LockedOut
-                        : decision.FailureReason,
+                        : decision.FailureReason ?? AuthFailureReason.InvalidCredentials,
                     lockedUntil,
                     remainingAttempts);
             }
 
-            return LoginResult.Failed(decision.FailureReason);
+            return CreateFailure(flow, decision.FailureReason ?? AuthFailureReason.InvalidCredentials);
         }
 
 
@@ -215,7 +215,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         }
 
         if (!credentialsValid || userKey is null)
-            return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
+            return CreateFailure(flow, AuthFailureReason.InvalidCredentials);
 
         // After this point, the login is successful. We can reset any failure counts and proceed to create a session.
         if (loginExecution.Mode == LoginExecutionMode.Preview)
@@ -278,5 +278,13 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
+    }
+
+    private static LoginResult CreateFailure(AuthFlowContext flow, AuthFailureReason reason, DateTimeOffset? lockedUntil = null, int? remainingAttempts = null)
+    {
+        if (!flow.Options.Login.IncludeFailureDetails)
+            return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
+
+        return LoginResult.Failed(reason, lockedUntil, remainingAttempts);
     }
 }
