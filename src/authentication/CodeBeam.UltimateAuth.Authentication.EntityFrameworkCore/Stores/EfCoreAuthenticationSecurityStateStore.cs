@@ -62,7 +62,7 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
         {
             await _db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (IsSecurityStateUniqueViolation(ex))
         {
             DetachEntries(ex);
             throw new UAuthConflictException("security_state_already_exists");
@@ -128,13 +128,19 @@ internal sealed class EfCoreAuthenticationSecurityStateStore<TDbContext> : IAuth
         }
     }
 
-    private static bool IsUniqueViolation(DbUpdateException exception)
+    private static bool IsSecurityStateUniqueViolation(DbUpdateException exception)
     {
+        if (exception.Entries.Count != 1 || exception.Entries[0].Entity is not AuthenticationSecurityStateProjection)
+        {
+            return false;
+        }
+
         for (Exception? current = exception.InnerException;
              current is not null;
              current = current.InnerException)
         {
-            if (current is DbException dbException && dbException.SqlState == "23505")
+            if (current is DbException dbException &&
+                dbException.SqlState == "23505")
             {
                 return true;
             }

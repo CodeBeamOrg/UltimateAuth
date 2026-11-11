@@ -15,7 +15,7 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("CodeBeam.UltimateAuth.Authentication.EntityFrameworkCore.AuthenticationSecurityStateProjection", b =>
                 {
@@ -82,7 +82,8 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                     b.HasIndex("Tenant", "UserKey", "Scope");
 
                     b.HasIndex("Tenant", "UserKey", "Scope", "CredentialType")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasAnnotation("Npgsql:NullsDistinct", false);
 
                     b.ToTable("UAuth_Authentication", (string)null);
                 });

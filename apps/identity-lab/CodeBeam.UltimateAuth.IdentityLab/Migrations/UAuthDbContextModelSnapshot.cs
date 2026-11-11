@@ -17,7 +17,7 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -88,6 +88,8 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
 
                     b.HasIndex("Tenant", "UserKey", "Scope", "CredentialType")
                         .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("Tenant", "UserKey", "Scope", "CredentialType"), false);
 
                     b.ToTable("UAuth_Authentication", (string)null);
                 });
