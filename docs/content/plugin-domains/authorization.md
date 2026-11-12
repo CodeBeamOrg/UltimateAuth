@@ -410,6 +410,81 @@ This is the simplest protection boundary.
 
 It does not, by itself, require a particular UltimateAuth action permission.
 
+### Default Account Status Enforcement
+
+UltimateAuth extends ASP.NET Core HTTP authorization with account status enforcement.
+
+When the UltimateAuth Server or Resource API authorization integration is installed, a successfully authenticated user must also have an active account to access an ordinary protected HTTP endpoint.
+
+For example:
+
+```csharp
+[Authorize]
+[HttpGet("orders")]
+public IActionResult GetOrders()
+{
+    return Ok();
+}
+```
+
+An `Active` user may access this endpoint when all applicable authorization requirements are satisfied. A `Suspended` or `SelfSuspended` user receives a forbidden response even if their authentication session remains valid.
+
+The same protection applies to role-based authorization:
+
+```csharp
+[Authorize(Roles = "Admin")]
+[HttpGet("admin/reports")]
+public IActionResult GetReports()
+{
+    return Ok();
+}
+```
+
+Possessing the `Admin` role does not override account suspension.
+
+#### Explicitly Allowing Suspended Users
+
+Some operations must remain available to authenticated users whose accounts are suspended.
+
+For example, an application may allow suspended users to submit a support request:
+
+```csharp
+using CodeBeam.UltimateAuth.Server.Authorization;
+using Microsoft.AspNetCore.Authorization;
+
+[Authorize]
+[UAuthAllowInactive]
+[HttpPost("support/tickets")]
+public IActionResult CreateSupportTicket()
+{
+    return Ok();
+}
+```
+
+`[UAuthAllowInactive]` relaxes the default active-account requirement for the selected endpoint.
+
+It does **not** bypass authentication or other authorization requirements. Users whose accounts are disabled, deleted, or otherwise ineligible are not authorized by this exception.
+
+The exception should only be applied to operations intentionally available to suspended accounts.
+
+#### Resource API Enforcement
+
+Separately hosted Resource APIs apply the same protected HTTP endpoint rules.
+
+The Resource API obtains user status from the UAuthHub's trusted remote session-validation response. It does not need to connect directly to the Hub's user database.
+
+A missing, invalid, or untrusted user status must not be interpreted as an active account. The validation process denies access rather than granting authorization without sufficient information. This behavior is known as **fail-closed**.
+
+#### Blazor UI Authorization
+
+This enforcement applies to protected HTTP endpoints, not automatically to Blazor component rendering.
+
+Applications can use `[UAuthAuthorize]`, `UAuthStateView`, and `UAuthState` to create their preferred UI behavior, including displaying account restrictions and recovery guidance.
+
+Hiding a Blazor page or component is not a substitute for protecting the underlying server operation.
+
+Likewise, directly invoked application services and authorization checks outside the ASP.NET Core authorization middleware must enforce their own appropriate security requirements.
+
 ### Requiring a Named Policy
 
 ASP.NET Core also supports policy-based endpoint authorization.

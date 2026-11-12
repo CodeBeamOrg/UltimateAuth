@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration.ResourceApi;
 
@@ -123,6 +125,28 @@ public sealed class ResourceApiRemoteStatusTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task MissingHubUserStatus_ShouldFailClosed()
+    {
+        var hub = new FakeHubHandler
+        {
+            UserStatus = UserStatus.Active,
+            OmitUserStatus = true
+        };
+
+        await using var host = await CreateHostAsync(hub);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        hub.RequestCount.Should().BeGreaterThan(0);
+    }
+
     private static Task<ResourceApiTestHost> CreateHostAsync(
         FakeHubHandler hub)
     {
@@ -147,24 +171,20 @@ public sealed class ResourceApiRemoteStatusTests
 
     private static void AddSession(HttpClient client)
     {
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer", SessionValue);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", SessionValue);
     }
 
     private sealed class FakeHubHandler : HttpMessageHandler
     {
-        public UserStatus UserStatus { get; set; } =
-            UserStatus.Active;
+        public UserStatus UserStatus { get; set; } = UserStatus.Active;
 
-        public SessionState SessionState { get; set; } =
-            SessionState.Active;
+        public SessionState SessionState { get; set; } = SessionState.Active;
 
         public int RequestCount { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
+        public bool OmitUserStatus { get; set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             RequestCount++;
 
@@ -193,10 +213,32 @@ public sealed class ResourceApiRemoteStatusTests
                 }
             };
 
+            HttpContent content;
+
+            if (OmitUserStatus)
+            {
+                var json = JsonSerializer.SerializeToNode(
+                    dto,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+                json["snapshot"]?["identity"]?
+                    .AsObject()
+                    .Remove("userStatus");
+
+                content = new StringContent(
+                    json.ToJsonString(),
+                    Encoding.UTF8,
+                    "application/json");
+            }
+            else
+            {
+                content = JsonContent.Create(dto);
+            }
+
             return Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = JsonContent.Create(dto)
+                    Content = content
                 });
         }
     }
