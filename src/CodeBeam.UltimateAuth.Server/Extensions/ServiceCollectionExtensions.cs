@@ -302,8 +302,11 @@ public static class ServiceCollectionExtensions
         services.AddAuthentication().AddUAuthScheme();
         services.AddAuthorization();
 
-        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
+        services.AddSingleton<IAuthorizationPolicyProvider>(sp =>
+            new UAuthPolicyProvider(sp.GetRequiredService<IOptions<AuthorizationOptions>>(), enforceActiveUser: true));
+
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, UAuthActiveUserHandler>();
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
