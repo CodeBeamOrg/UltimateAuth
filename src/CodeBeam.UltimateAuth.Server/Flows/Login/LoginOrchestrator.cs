@@ -30,6 +30,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
+    private readonly LoginPasswordVerification _passwordVerification;
     private readonly IClock _clock;
 
     public LoginOrchestrator(
@@ -43,6 +44,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         ISessionStoreFactory storeFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
+        LoginPasswordVerification passwordVerification,
         IClock clock)
     {
         _identifierResolver = identifierResolver;
@@ -55,6 +57,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         _storeFactory = storeFactory;
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
+        _passwordVerification = passwordVerification;
         _clock = clock;
     }
 
@@ -77,6 +80,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         bool userExists = false;
         bool credentialsValid = false;
+        bool performedPasswordVerification = false;
 
         AuthenticationSecurityState? accountState = null;
         AuthenticationSecurityState? factorState = null;
@@ -91,6 +95,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                 if (accountState.IsLocked(now))
                 {
+                    await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
                     return CreateFailure(flow, AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
@@ -98,6 +103,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                 if (factorState.IsLocked(now))
                 {
+                    await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
                     return CreateFailure(flow, AuthFailureReason.LockedOut, factorState.LockedUntil, remainingAttempts: 0);
                 }
 
@@ -110,7 +116,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         if (credential.Type != request.CredentialType || credential.IsDeleted || !credential.Security.IsUsable(now))
                             continue;
 
-                        if (await provider.ValidateAsync(credential, request.Secret, ct))
+                        performedPasswordVerification = true;
+
+                        if (await _passwordVerification.VerifyCredentialAsync(provider, credential, request.Secret, ct))
                         {
                             credentialsValid = true;
                             break;
@@ -121,6 +129,11 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         break;
                 }
             }
+        }
+
+        if (!performedPasswordVerification)
+        {
+            await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency

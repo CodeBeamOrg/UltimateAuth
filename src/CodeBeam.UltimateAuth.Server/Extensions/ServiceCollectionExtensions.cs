@@ -212,6 +212,9 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthFlowContextAccessor, AuthFlowContextAccessor>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
 
+        services.TryAddSingleton<LoginPasswordVerificationState>();
+        services.TryAddScoped<LoginPasswordVerification>();
+
         services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
         services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();
         services.TryAddScoped<IInternalLoginOrchestrator, LoginOrchestrator>();
