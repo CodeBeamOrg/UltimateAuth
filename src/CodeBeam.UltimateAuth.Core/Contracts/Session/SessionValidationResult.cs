@@ -9,6 +9,8 @@ public sealed class SessionValidationResult
 
     public required SessionState State { get; init; }
 
+    public UserStatus? UserStatus { get; init; }
+
     public UserKey? UserKey { get; init; }
 
     public AuthSessionId? SessionId { get; init; }
@@ -35,19 +37,21 @@ public sealed class SessionValidationResult
         SessionRootId rootId,
         ClaimsSnapshot claims,
         DateTimeOffset authenticatedAt,
-        DeviceId? boundDeviceId = null)
-        => new()
-        {
-            Tenant = tenant,
-            State = SessionState.Active,
-            UserKey = userKey,
-            SessionId = sessionId,
-            ChainId = chainId,
-            RootId = rootId,
-            Claims = claims,
-            AuthenticatedAt = authenticatedAt,
-            BoundDeviceId = boundDeviceId
-        };
+        DeviceId? boundDeviceId = null,
+        UserStatus? userStatus = null)
+    => new()
+    {
+        Tenant = tenant,
+        State = SessionState.Active,
+        UserKey = userKey,
+        SessionId = sessionId,
+        ChainId = chainId,
+        RootId = rootId,
+        Claims = claims,
+        AuthenticatedAt = authenticatedAt,
+        BoundDeviceId = boundDeviceId,
+        UserStatus = userStatus
+    };
 
     public static SessionValidationResult Invalid(
         SessionState state,

@@ -324,17 +324,12 @@ public sealed class UAuthResourceApiRegistrationTests
     }
 
     [Fact]
-    public async Task DefaultPolicy_ShouldRequireActiveUser()
+    public async Task DefaultPolicy_ShouldPreserveAuthenticatedUserRequirement()
     {
         var sut = new UAuthPolicyProvider(
-            Options.Create(new AuthorizationOptions()),
-            enforceActiveUser: true);
+            Options.Create(new AuthorizationOptions()));
 
         var policy = await sut.GetDefaultPolicyAsync();
-
-        Assert.Contains(
-            policy.Requirements,
-            x => x is UAuthActiveUserRequirement);
 
         Assert.Contains(
             policy.Requirements,
@@ -350,8 +345,7 @@ public sealed class UAuthResourceApiRegistrationTests
             builder.RequireRole("Admin"));
 
         var sut = new UAuthPolicyProvider(
-            Options.Create(options),
-            enforceActiveUser: true);
+            Options.Create(options));
 
         var policy = await sut.GetPolicyAsync("Reports.Read");
 
@@ -360,10 +354,6 @@ public sealed class UAuthResourceApiRegistrationTests
         Assert.Contains(
             policy.Requirements,
             x => x is RolesAuthorizationRequirement);
-
-        Assert.Contains(
-            policy.Requirements,
-            x => x is UAuthActiveUserRequirement);
 
         Assert.DoesNotContain(
             policy.Requirements,
@@ -374,20 +364,16 @@ public sealed class UAuthResourceApiRegistrationTests
     public async Task UnknownNamedPolicy_ShouldPreserveUAuthActionBehavior()
     {
         var sut = new UAuthPolicyProvider(
-            Options.Create(new AuthorizationOptions()),
-            enforceActiveUser: true);
+            Options.Create(new AuthorizationOptions()));
 
         var policy = await sut.GetPolicyAsync("users.read");
 
         Assert.NotNull(policy);
 
-        Assert.Contains(
-            policy.Requirements,
-            x => x is UAuthActionRequirement);
+        var requirement = Assert.Single(
+            policy.Requirements.OfType<UAuthActionRequirement>());
 
-        Assert.Contains(
-            policy.Requirements,
-            x => x is UAuthActiveUserRequirement);
+        Assert.Equal("users.read", requirement.Action);
     }
 
 

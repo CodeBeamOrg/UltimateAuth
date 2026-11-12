@@ -302,11 +302,15 @@ public static class ServiceCollectionExtensions
         services.AddAuthentication().AddUAuthScheme();
         services.AddAuthorization();
 
-        services.AddSingleton<IAuthorizationPolicyProvider>(sp =>
-            new UAuthPolicyProvider(sp.GetRequiredService<IOptions<AuthorizationOptions>>(), enforceActiveUser: true));
+        //services.AddSingleton<IAuthorizationPolicyProvider>(sp =>
+        //    new UAuthPolicyProvider(sp.GetRequiredService<IOptions<AuthorizationOptions>>(), enforceActiveUser: true));
 
+        //services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        //services.AddScoped<IAuthorizationHandler, UAuthActiveUserHandler>();
+
+        services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
-        services.AddScoped<IAuthorizationHandler, UAuthActiveUserHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
@@ -526,6 +530,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
         {
