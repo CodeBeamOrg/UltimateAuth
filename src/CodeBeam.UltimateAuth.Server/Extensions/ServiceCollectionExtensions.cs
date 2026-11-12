@@ -304,6 +304,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
@@ -523,6 +524,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
         {

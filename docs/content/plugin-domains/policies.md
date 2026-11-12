@@ -474,17 +474,36 @@ An administrator may possess the required action permission while still being pr
 
 ## Example: Requiring an Active User
 
-An active-user policy evaluates whether the relevant identity satisfies the account state requirements for an operation.
+UltimateAuth distinguishes between **authentication eligibility** and **authorization eligibility**.
 
-An authenticated principal may exist even after the corresponding user account has been suspended or otherwise made ineligible.
+An authenticated user may have a valid session while their account is suspended. This is intentional: session validity establishes authentication, but it does not grant unrestricted access to protected operations.
 
-The authorization system therefore needs a way to enforce account eligibility independently of the original authentication event.
+UltimateAuth enforces account eligibility at two different authorization boundaries:
 
-The policy can evaluate the relevant user state and deny operations that require an active account.
+- **UltimateAuth action policies:** The `RequireActiveUserPolicy` checks the current account state for applicable framework operations, with explicitly defined action exceptions.
+- **ASP.NET Core HTTP authorization:** The `UAuthStatusAuthorizationResultHandler` enforces active-user requirements for protected HTTP endpoints in integrated Server and Resource API applications.
 
-Anonymous operations may follow different applicability rules because they do not necessarily have an authenticated user identity.
+The HTTP integration denies ordinary protected resource requests from inactive users by default, even when authentication and role checks succeed.
 
-The exact enforcement behavior also depends on how current user security state is obtained.
+Endpoints explicitly marked with `[UAuthAllowInactive]` may accept authenticated suspended users when the remaining authorization requirements are satisfied.
+
+### Trusted User Status
+
+The source of account state depends on the hosting model.
+
+An integrated Server application resolves user state through `IUserRuntimeStateProvider`.
+
+A separate Resource API receives the user's status through trusted UAuthHub session validation.
+
+Authorization must not assume that a missing or invalid user status means the account is active. This is a **fail-closed** security requirement.
+
+### Scope of Enforcement
+
+ASP.NET Core HTTP authorization and UltimateAuth action-policy enforcement are complementary mechanisms.
+
+Neither automatically replaces authorization checks in arbitrary application-service methods, direct `IAuthorizationService` calls, or client-side UI rendering.
+
+Applications must enforce authorization at the boundaries where protected business operations are actually executed.
 
 ## Policy Decisions and Authentication Modes
 

@@ -21,8 +21,7 @@ public sealed class ResourceApiAuthorizationTests
     private const string SessionValue =
         "test-resource-session-000000000000000000000001";
 
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-1");
+    private static readonly TenantKey Tenant = TenantKeys.Single;
 
     private static readonly UserKey User =
         UserKey.FromString("user-1");
@@ -460,7 +459,8 @@ public sealed class ResourceApiAuthorizationTests
                     chainId: ChainId,
                     rootId: RootId,
                     claims: snapshot,
-                    authenticatedAt: Now));
+                    authenticatedAt: Now,
+                    userStatus: UserStatus.Active));
 
         return validator;
     }

@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Defaults;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Runtime;
@@ -11,9 +12,9 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -320,6 +321,59 @@ public sealed class UAuthResourceApiRegistrationTests
             await resolver.ResolveTenantIdAsync(context);
 
         result.Should().Be("tenant-a");
+    }
+
+    [Fact]
+    public async Task DefaultPolicy_ShouldPreserveAuthenticatedUserRequirement()
+    {
+        var sut = new UAuthPolicyProvider(
+            Options.Create(new AuthorizationOptions()));
+
+        var policy = await sut.GetDefaultPolicyAsync();
+
+        Assert.Contains(
+            policy.Requirements,
+            x => x is DenyAnonymousAuthorizationRequirement);
+    }
+
+    [Fact]
+    public async Task ConfiguredPolicy_ShouldPreserveOriginalRequirements()
+    {
+        var options = new AuthorizationOptions();
+
+        options.AddPolicy("Reports.Read", builder =>
+            builder.RequireRole("Admin"));
+
+        var sut = new UAuthPolicyProvider(
+            Options.Create(options));
+
+        var policy = await sut.GetPolicyAsync("Reports.Read");
+
+        Assert.NotNull(policy);
+
+        Assert.Contains(
+            policy.Requirements,
+            x => x is RolesAuthorizationRequirement);
+
+        Assert.DoesNotContain(
+            policy.Requirements,
+            x => x is UAuthActionRequirement);
+    }
+
+    [Fact]
+    public async Task UnknownNamedPolicy_ShouldPreserveUAuthActionBehavior()
+    {
+        var sut = new UAuthPolicyProvider(
+            Options.Create(new AuthorizationOptions()));
+
+        var policy = await sut.GetPolicyAsync("users.read");
+
+        Assert.NotNull(policy);
+
+        var requirement = Assert.Single(
+            policy.Requirements.OfType<UAuthActionRequirement>());
+
+        Assert.Equal("users.read", requirement.Action);
     }
 
 

@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Server.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -62,5 +63,13 @@ public sealed class TestResourceController : ControllerBase
     public IActionResult UpdateProduct(int id)
     {
         return Ok(new { Id = id });
+    }
+
+    [HttpPost("support/tickets")]
+    [Authorize]
+    [UAuthAllowInactive]
+    public IActionResult CreateSupportTicket()
+    {
+        return Ok();
     }
 }
