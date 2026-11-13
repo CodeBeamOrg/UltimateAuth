@@ -57,11 +57,13 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
             return failure.Enabled ? Results.Redirect(failure.TargetUrl!) : Results.Unauthorized();
         }
 
+
         var suppressFailureAttempt = false;
 
         if (!string.IsNullOrWhiteSpace(request.PreviewReceipt) && authFlow.Device.DeviceId is DeviceId deviceId)
         {
             var key = new AuthArtifactKey(request.PreviewReceipt);
+
             var artifact = await _authStore.GetAsync(key, ctx.RequestAborted) as LoginPreviewArtifact;
 
             if (artifact is not null)
@@ -73,6 +75,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     request.Secret,
                     deviceId);
 
+                // Validate the request context before resolving the user.
                 if (artifact.Matches(
                     authFlow.Tenant,
                     artifact.UserKey,
@@ -82,8 +85,23 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     authFlow.ClientProfile,
                     fingerprint))
                 {
-                    suppressFailureAttempt = true;
-                    await _authStore.ConsumeAsync(key, ctx.RequestAborted);
+                    var resolution = await _loginIdentifierResolver.ResolveAsync(authFlow.Tenant, request.Identifier, ctx.RequestAborted);
+
+                    if (resolution?.UserKey is UserKey currentUserKey && artifact.UserKey == currentUserKey)
+                    {
+                        // Only the successful atomic consumer may suppress duplicate failure accounting.
+                        var consumed = await _authStore.ConsumeAsync(key, ctx.RequestAborted) as LoginPreviewArtifact;
+
+                        suppressFailureAttempt = consumed is not null &&
+                            consumed.Matches(
+                                authFlow.Tenant,
+                                currentUserKey,
+                                CredentialType.Password,
+                                deviceId.Value,
+                                request.Identifier,
+                                authFlow.ClientProfile,
+                                fingerprint);
+                    }
                 }
             }
         }
