@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
@@ -12,7 +13,8 @@ internal sealed class PasswordCredentialWriter(
     IPasswordValidationPipeline pipeline,
     IPasswordCredentialStoreFactory credentialStores,
     IPasswordHistoryStoreFactory historyStores,
-    IUAuthPasswordHasher hasher)
+    IUAuthPasswordHasher hasher,
+    IUAuthPasswordHashWorkLimiter limiter)
 {
     public async Task<PasswordCredential> CreateAsync(TenantKey tenant, UserKey userKey, string password, PasswordPolicyContext context, EffectivePasswordPolicyOptions options,
                                                       DateTimeOffset now, CancellationToken ct)
@@ -27,11 +29,14 @@ internal sealed class PasswordCredentialWriter(
 
         EnsureValid(result);
 
+        var passwordHash = await limiter.ExecuteAsync(UAuthPasswordHashWorkload.CredentialManagement,
+            () => Task.FromResult(hasher.Hash(password)), ct);
+
         var credential = PasswordCredential.Create(
             id: null,
             tenant: tenant,
             userKey: userKey,
-            secretHash: hasher.Hash(password),
+            secretHash: passwordHash,
             security: CredentialSecurityState.Active(),
             metadata: new CredentialMetadata(),
             now: now);
@@ -62,7 +67,7 @@ internal sealed class PasswordCredentialWriter(
 
         var oldVersion = credential.Version;
         var oldHash = credential.SecretHash;
-        var newHash = hasher.Hash(newPassword);
+        var newHash = await limiter.ExecuteAsync(UAuthPasswordHashWorkload.CredentialManagement, () => Task.FromResult(hasher.Hash(newPassword)), ct);
 
         var updated = credential.ChangeSecret(newHash, now);
 
