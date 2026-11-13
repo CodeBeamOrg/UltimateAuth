@@ -3,17 +3,12 @@ using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Credentials;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
-internal sealed class LoginPasswordVerificationState : IDisposable
+internal sealed class LoginPasswordVerificationState
 {
-    // Conservative initial limit for memory-hard hashers.
-    // Shared by real and dummy verifications.
-    internal const int MaxConcurrentVerifications = 2;
-
-    internal readonly SemaphoreSlim Semaphore = new(MaxConcurrentVerifications, MaxConcurrentVerifications);
-
     private readonly object _sync = new();
     private PasswordHash? _dummyHash;
 
@@ -24,10 +19,7 @@ internal sealed class LoginPasswordVerificationState : IDisposable
             if (_dummyHash is { } existing)
                 return existing;
 
-            // A random password, never exposed and never used to log in.
-            // Use the configured hasher and its current cost options.
-            var dummySecret = Convert.ToHexString(
-                RandomNumberGenerator.GetBytes(32));
+            var dummySecret = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
             var hash = hasher.Hash(dummySecret);
 
@@ -35,52 +27,32 @@ internal sealed class LoginPasswordVerificationState : IDisposable
             return hash;
         }
     }
-
-    public void Dispose() => Semaphore.Dispose();
 }
 
-internal sealed class LoginPasswordVerification(IUAuthPasswordHasher hasher, LoginPasswordVerificationState state)
+internal sealed class LoginPasswordVerification(IUAuthPasswordHasher hasher, LoginPasswordVerificationState state, UAuthPasswordHashLimiter limiter)
 {
-    public async Task<bool> VerifyCredentialAsync(ICredentialProvider provider, ICredential credential, string secret, CancellationToken ct)
+    public Task<bool> VerifyCredentialAsync(ICredentialProvider provider, ICredential credential, string secret, CancellationToken ct)
     {
-        if (!await state.Semaphore.WaitAsync(0, ct))
-            throw new PasswordVerificationCapacityException();
-
-        try
-        {
-            return await provider.ValidateAsync(credential, secret, ct);
-        }
-        finally
-        {
-            state.Semaphore.Release();
-        }
+        return limiter.ExecuteAsync(() => provider.ValidateAsync(credential, secret, ct), ct);
     }
 
-    public async Task VerifyDummyAsync(string secret, CancellationToken ct)
+    public Task VerifyDummyAsync(string secret, CancellationToken ct)
     {
-        if (!await state.Semaphore.WaitAsync(0, ct))
-            throw new PasswordVerificationCapacityException();
+        return limiter.ExecuteAsync(
+            () =>
+            {
+                var dummyHash = state.GetDummyHash(hasher);
 
-        try
-        {
-            var dummyHash = state.GetDummyHash(hasher);
-
-            // Perform the actual hash verification.
-            // Its result is deliberately ignored.
-            _ = hasher.Verify(dummyHash, secret);
-        }
-        finally
-        {
-            state.Semaphore.Release();
-        }
+                // Never use the result to authorize login.
+                _ = hasher.Verify(dummyHash, secret);
+            },
+            ct);
     }
 }
 
-internal sealed class PasswordVerificationCapacityException() : UAuthRuntimeException(
-        "password_verification_busy",
-        "Password verification capacity is temporarily exhausted.")
+internal sealed class PasswordVerificationCapacityException()
+    : UAuthRuntimeException("password_verification_busy", "Password verification capacity is temporarily exhausted.")
 {
     public override int StatusCode => 429;
-
     public override string Title => "Too many requests.";
 }

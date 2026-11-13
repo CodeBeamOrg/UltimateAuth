@@ -1,6 +1,7 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Server.Flows;
 using Moq;
 
@@ -76,5 +77,154 @@ public sealed class LoginPasswordVerificationTests
         hasher.Verify(
             x => x.Verify(hash, "any-password"),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ConcurrentVerifications_ShouldRejectRequestsBeyondCapacity()
+    {
+        using var state = new LoginPasswordVerificationState();
+
+        var hasher = new Mock<IUAuthPasswordHasher>();
+        var provider = new Mock<ICredentialProvider>();
+        var credential = new Mock<ICredential>();
+
+        var pending = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        provider
+            .Setup(x => x.ValidateAsync(
+                It.IsAny<ICredential>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(pending.Task);
+
+        var sut = new LoginPasswordVerification(
+            hasher.Object, state);
+
+        var first = sut.VerifyCredentialAsync(
+            provider.Object,
+            credential.Object,
+            "password-1",
+            TestContext.Current.CancellationToken);
+
+        var second = sut.VerifyCredentialAsync(
+            provider.Object,
+            credential.Object,
+            "password-2",
+            TestContext.Current.CancellationToken);
+
+        try
+        {
+            Func<Task> third = () => sut.VerifyCredentialAsync(
+                provider.Object,
+                credential.Object,
+                "password-3",
+                TestContext.Current.CancellationToken);
+
+            await third.Should()
+                .ThrowAsync<PasswordVerificationCapacityException>();
+
+            provider.Verify(
+                x => x.ValidateAsync(
+                    It.IsAny<ICredential>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+        }
+        finally
+        {
+            pending.TrySetResult(false);
+            await Task.WhenAll(first, second);
+        }
+    }
+
+    [Fact]
+    public async Task FailedVerification_ShouldReleaseConcurrencyPermit()
+    {
+        using var state = new LoginPasswordVerificationState();
+
+        var hasher = new Mock<IUAuthPasswordHasher>();
+        var provider = new Mock<ICredentialProvider>();
+        var credential = new Mock<ICredential>();
+
+        provider
+            .Setup(x => x.ValidateAsync(
+                It.IsAny<ICredential>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("test failure"));
+
+        var sut = new LoginPasswordVerification(
+            hasher.Object, state);
+
+        for (var i = 0; i < 3; i++)
+        {
+            Func<Task> act = () => sut.VerifyCredentialAsync(
+                provider.Object,
+                credential.Object,
+                "password",
+                TestContext.Current.CancellationToken);
+
+            await act.Should()
+                .ThrowAsync<InvalidOperationException>();
+        }
+
+        state.Semaphore.CurrentCount.Should()
+            .Be(LoginPasswordVerificationState.MaxConcurrentVerifications);
+    }
+
+    [Fact]
+    public async Task DummyVerification_ShouldRespectSharedCapacity()
+    {
+        using var state = new LoginPasswordVerificationState();
+
+        var hasher = new Mock<IUAuthPasswordHasher>();
+        var provider = new Mock<ICredentialProvider>();
+        var credential = new Mock<ICredential>();
+
+        var pending = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        provider
+            .Setup(x => x.ValidateAsync(
+                It.IsAny<ICredential>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(pending.Task);
+
+        var sut = new LoginPasswordVerification(hasher.Object, state);
+
+        var first = sut.VerifyCredentialAsync(
+            provider.Object, credential.Object, "first",
+            TestContext.Current.CancellationToken);
+
+        var second = sut.VerifyCredentialAsync(
+            provider.Object, credential.Object, "second",
+            TestContext.Current.CancellationToken);
+
+        try
+        {
+            Func<Task> dummy = () => sut.VerifyDummyAsync(
+                "unknown-user-password",
+                TestContext.Current.CancellationToken);
+
+            await dummy.Should()
+                .ThrowAsync<PasswordVerificationCapacityException>();
+
+            hasher.Verify(
+                x => x.Hash(It.IsAny<string>()),
+                Times.Never);
+
+            hasher.Verify(
+                x => x.Verify(
+                    It.IsAny<PasswordHash>(),
+                    It.IsAny<string>()),
+                Times.Never);
+        }
+        finally
+        {
+            pending.TrySetResult(false);
+            await Task.WhenAll(first, second);
+        }
     }
 }

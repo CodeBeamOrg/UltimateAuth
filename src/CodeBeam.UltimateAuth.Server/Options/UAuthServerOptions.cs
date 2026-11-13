@@ -54,7 +54,9 @@ public sealed class UAuthServerOptions
     // -------------------------------------------------------
 
     /// <summary>Startup-only native endpoint throttling; application policies take precedence.</summary>
-    public RateLimiting.UAuthRateLimitingOptions RateLimiting { get; set; } = new();
+    public UAuthRateLimitingOptions RateLimiting { get; set; } = new();
+
+    public UAuthConcurrencyLimitingOptions ConcurrencyLimiting { get; set; } = new();
 
     /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
@@ -121,11 +123,6 @@ public sealed class UAuthServerOptions
 
     public UAuthAntiforgeryOptions Antiforgery { get; set; } = new();
 
-    ///// <summary>
-    ///// If true, login attempts are rate-limited to prevent brute force attacks.
-    ///// </summary>
-    //public bool EnableLoginRateLimiting { get; set; } = true;
-
 
     // -------------------------------------------------------
     // CUSTOMIZATION HOOKS
@@ -150,6 +147,7 @@ public sealed class UAuthServerOptions
             HubDeploymentMode = HubDeploymentMode,
 
             RateLimiting = RateLimiting.Clone(),
+            ConcurrencyLimiting = ConcurrencyLimiting.Clone(),
             Login = Login.Clone(),
             Session = Session.Clone(),
             Token = Token.Clone(),
@@ -174,9 +172,6 @@ public sealed class UAuthServerOptions
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),
             Antiforgery = Antiforgery.Clone(),
-
-            //EnableAntiCsrfProtection = EnableAntiCsrfProtection,
-            //EnableLoginRateLimiting = EnableLoginRateLimiting,
 
             ModeConfigurations = new Dictionary<UAuthMode, Action<UAuthServerOptions>>(ModeConfigurations),
 
