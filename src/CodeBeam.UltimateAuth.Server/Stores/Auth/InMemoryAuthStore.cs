@@ -1,42 +1,145 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
-using System.Collections.Concurrent;
+﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Stores;
 
 internal sealed class InMemoryAuthStore : IAuthStore
 {
-    private sealed record Entry(AuthArtifact Artifact);
+    private readonly object _sync = new();
+    private readonly Dictionary<string, AuthArtifact> _entries = new();
+    private readonly IClock _clock;
+    private readonly int _maxEntries;
+    private DateTimeOffset? _nextExpiration;
 
-    private readonly ConcurrentDictionary<string, Entry> _store = new();
-
-    public Task StoreAsync(AuthArtifactKey key, AuthArtifact artifact, CancellationToken cancellationToken = default)
+    public InMemoryAuthStore(
+        IClock clock,
+        IOptions<UAuthServerOptions> options)
     {
-        _store[key.Value] = new Entry(artifact);
+        _clock = clock;
+        _maxEntries = options.Value.AuthArtifacts.MaxEntries;
+
+        if (_maxEntries <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "AuthArtifacts.MaxEntries must be positive.");
+    }
+
+    public Task StoreAsync(AuthArtifactKey key, AuthArtifact artifact, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(artifact);
+        ct.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            var now = _clock.UtcNow;
+
+            if (artifact.IsExpired(now))
+                throw new ArgumentException("Cannot store an expired auth artifact.", nameof(artifact));
+
+            if (!_entries.ContainsKey(key.Value) && _entries.Count >= _maxEntries)
+            {
+                if (_nextExpiration <= now)
+                    RemoveExpiredUnsafe(now);
+
+                if (_entries.Count >= _maxEntries)
+                    throw new UAuthArtifactStoreFullException();
+            }
+
+            _entries[key.Value] = artifact;
+
+            if (_nextExpiration is null || artifact.ExpiresAt < _nextExpiration.Value)
+            {
+                _nextExpiration = artifact.ExpiresAt;
+            }
+        }
+
         return Task.CompletedTask;
     }
 
-    public Task<AuthArtifact?> GetAsync(AuthArtifactKey key, CancellationToken cancellationToken = default)
+    public Task<AuthArtifact?> GetAsync(AuthArtifactKey key, CancellationToken ct = default)
     {
-        if (!_store.TryGetValue(key.Value, out var entry))
-            return Task.FromResult<AuthArtifact?>(null);
+        ct.ThrowIfCancellationRequested();
 
-        if (entry.Artifact.IsExpired(DateTimeOffset.UtcNow))
+        lock (_sync)
         {
-            _store.TryRemove(key.Value, out _);
-            return Task.FromResult<AuthArtifact?>(null);
-        }
+            if (!_entries.TryGetValue(key.Value, out var artifact))
+                return Task.FromResult<AuthArtifact?>(null);
 
-        return Task.FromResult<AuthArtifact?>(entry.Artifact);
+            if (artifact.IsExpired(_clock.UtcNow))
+            {
+                _entries.Remove(key.Value);
+                return Task.FromResult<AuthArtifact?>(null);
+            }
+
+            return Task.FromResult<AuthArtifact?>(artifact);
+        }
     }
 
-    public Task<AuthArtifact?> ConsumeAsync(AuthArtifactKey key, CancellationToken cancellationToken = default)
+    public Task<AuthArtifact?> ConsumeAsync(AuthArtifactKey key, CancellationToken ct = default)
     {
-        if (!_store.TryRemove(key.Value, out var entry))
-            return Task.FromResult<AuthArtifact?>(null);
+        ct.ThrowIfCancellationRequested();
 
-        if (entry.Artifact.IsExpired(DateTimeOffset.UtcNow))
-            return Task.FromResult<AuthArtifact?>(null);
+        lock (_sync)
+        {
+            if (!_entries.Remove(key.Value, out var artifact))
+                return Task.FromResult<AuthArtifact?>(null);
 
-        return Task.FromResult<AuthArtifact?>(entry.Artifact);
+            if (artifact.IsExpired(_clock.UtcNow))
+                return Task.FromResult<AuthArtifact?>(null);
+
+            return Task.FromResult<AuthArtifact?>(artifact);
+        }
+    }
+
+    /// <summary>
+    /// Removes expired artifacts without requiring requests to access them.
+    /// </summary>
+    internal int CleanupExpired()
+    {
+        lock (_sync)
+        {
+            return RemoveExpiredUnsafe(_clock.UtcNow);
+        }
+    }
+
+    /// <summary>
+    /// For deterministic capacity and cleanup tests.
+    /// </summary>
+    internal int Count
+    {
+        get
+        {
+            lock (_sync)
+                return _entries.Count;
+        }
+    }
+
+    // Must be called only while holding _sync.
+    private int RemoveExpiredUnsafe(DateTimeOffset now)
+    {
+        List<string>? expiredKeys = null;
+        DateTimeOffset? nextExpiration = null;
+
+        foreach (var entry in _entries)
+        {
+            if (entry.Value.IsExpired(now))
+            {
+                (expiredKeys ??= []).Add(entry.Key);
+            }
+            else if (nextExpiration is null || entry.Value.ExpiresAt < nextExpiration.Value)
+            {
+                nextExpiration = entry.Value.ExpiresAt;
+            }
+        }
+
+        if (expiredKeys is not null)
+        {
+            foreach (var key in expiredKeys)
+                _entries.Remove(key);
+        }
+
+        _nextExpiration = nextExpiration;
+
+        return expiredKeys?.Count ?? 0;
     }
 }

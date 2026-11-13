@@ -1242,7 +1242,38 @@ They should not replace security decisions, authentication validation, or applic
 
 See [Advanced Configuration](/docs/configuration/advanced-configuration) for event and extension guidance.
 
-## 25. Effective Server Options
+## 25. In-Memory Auth Artifact Store
+
+UltimateAuth uses a bounded in-memory store by default for temporary authentication artifacts, including PKCE authorization codes and login preview receipts.
+
+Expired artifacts are rejected on access and periodically removed in the background, even when they are never accessed again. The store also enforces a maximum number of entries to prevent unbounded accumulation.
+
+**Default configuration**
+
+| Option | Default | Description |
+|---|---|---|
+| `AuthArtifacts.MaxEntries` | `50,000` | Maximum retained artifacts per application instance |
+| `AuthArtifacts.CleanupInterval` | `1 minute` | Interval between expiration cleanup passes |
+
+These defaults require no additional configuration.
+
+To customize them:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.AuthArtifacts.MaxEntries = 200_000;
+    options.AuthArtifacts.CleanupInterval = TimeSpan.FromMinutes(5);
+});
+```
+
+When capacity is reached, the store attempts to reclaim expired entries. If it remains full, new artifacts are rejected without evicting valid authentication proofs.
+
+Expiration is always enforced when an artifact is accessed or consumed, independently of the cleanup interval. Atomic consume-once semantics are preserved.
+
+**Deployment notes:** Capacity limits are process-local, not shared across application instances. Custom `IAuthStore` implementations are responsible for their own expiration and capacity management. Choose limits according to expected authentication traffic and available memory.
+
+## 26. Effective Server Options
 
 The configured `UAuthServerOptions` instance is the base configuration.
 
@@ -1300,7 +1331,7 @@ Mode defaults and overrides determine the effective values for the resolved mode
 
 For implementation details and inspection of effective options, see [Advanced Configuration](/docs/configuration/advanced-configuration).
 
-## 26. Validation and Configuration Safety
+## 27. Validation and Configuration Safety
 
 UltimateAuth Server registers multiple options validators and enables startup validation.
 
@@ -1360,7 +1391,7 @@ It does not guarantee that every custom service implementation or mode-specific 
 
 When using advanced customization, test the resulting effective configuration and authentication flows.
 
-## 27. Complete Configuration Example
+## 28. Complete Configuration Example
 
 The following example combines several commonly used server settings.
 
@@ -1437,7 +1468,7 @@ This is an illustrative configuration, not a universal production preset.
 
 Applications should choose session lifetimes, authentication modes, credential transport, tenant behavior, and endpoint exposure according to their own deployment and security requirements.
 
-## 28. Common Configuration Mistakes
+## 29. Common Configuration Mistakes
 
 ### Configuring Core Options Separately
 
@@ -1483,7 +1514,7 @@ Do not relax secure transport or cookie protections without understanding the co
 
 Startup validation does not replace testing, infrastructure security, or validation of custom extension implementations.
 
-## 29. Server Options Quick Reference
+## 30. Server Options Quick Reference
 
 | Configuration group | Typical use |
 |---|---|
@@ -1510,6 +1541,7 @@ Startup validation does not replace testing, infrastructure security, or validat
 | `Navigation` | Authentication redirects |
 | `Diagnostics` | Refresh diagnostics |
 | `Events` | Authentication lifecycle callbacks |
+| `AuthArtifacts` | In-memory authentication artifact capacity and expiration cleanup |
 | `ConfigureMode()` | Mode-specific option overrides |
 | `OnConfigureEndpoints` | Advanced endpoint customization |
 
