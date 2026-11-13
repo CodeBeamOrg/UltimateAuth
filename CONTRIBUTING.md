@@ -157,3 +157,15 @@ are needed. Framework-specific package references (notably Blazor, EF Core, and
 TestHost) still need compatible versions when adding a new framework. Retarget
 net10-only application/tool exceptions before eventually removing net10 itself;
 CI rejects that omission rather than silently excluding projects.
+
+### Windows Build Notes
+
+When building the full solution on Windows, Blazor WebAssembly projects may generate long intermediate paths during Webcil conversion.
+
+If a build fails with a path-related error:
+
+- Enable Windows long path support (`LongPathsEnabled = 1`).
+- Alternatively, clone the repository to a short path such as `C:\src\UltimateAuth`.
+- Clean the affected project's `bin` and `obj` directories before rebuilding.
+
+This is a build-environment consideration and does not require changing UltimateAuth's any source code.
