@@ -387,6 +387,16 @@ public sealed class LoginEndpointHandlerTests
                 fixture.HttpContext.RequestAborted))
             .ReturnsAsync(artifact);
 
+        fixture.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                fixture.Flow.Tenant,
+                identifier,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(CreateIdentifierResolution(
+                fixture.Flow.Tenant,
+                userKey,
+                identifier));
+
         LoginExecutionOptions? capturedOptions = null;
 
         fixture.InternalFlow
@@ -521,6 +531,198 @@ public sealed class LoginEndpointHandlerTests
                 It.IsAny<AuthArtifactKey>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WhenReceiptConsumptionFails_DoesNotSuppressFailure()
+    {
+        var fixture = CreateFixture();
+
+        fixture.RedirectResolver
+            .Setup(x => x.ResolveFailure(
+                fixture.Flow,
+                fixture.HttpContext,
+                AuthFailureReason.InvalidCredentials,
+                It.IsAny<LoginResult>()))
+            .Returns(RedirectDecision.None());
+
+        const string receiptValue = "preview-receipt";
+        const string identifier = "alice";
+        const string secret = "password";
+
+        SetLoginJson(
+            fixture.HttpContext,
+            identifier,
+            secret,
+            previewReceipt: receiptValue);
+
+        var deviceId = fixture.Flow.Device.DeviceId!.Value;
+        var userKey = UserKey.New();
+
+        var fingerprint = LoginPreviewFingerprint.Create(
+            fixture.Flow.Tenant,
+            identifier,
+            CredentialType.Password,
+            secret,
+            deviceId);
+
+        var artifact = new LoginPreviewArtifact(
+            fixture.Flow.Tenant,
+            userKey,
+            CredentialType.Password,
+            deviceId.Value,
+            identifier,
+            fixture.Flow.ClientProfile,
+            fingerprint,
+            Now.AddMinutes(5));
+
+        var key = new AuthArtifactKey(receiptValue);
+
+        fixture.AuthStore
+            .Setup(x => x.GetAsync(
+                key,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(artifact);
+
+        fixture.AuthStore
+            .Setup(x => x.ConsumeAsync(
+                key,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync((AuthArtifact?)null);
+
+        fixture.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                fixture.Flow.Tenant,
+                identifier,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(CreateIdentifierResolution(
+                fixture.Flow.Tenant,
+                userKey,
+                identifier));
+
+        LoginExecutionOptions? capturedOptions = null;
+
+        fixture.InternalFlow
+            .Setup(x => x.LoginAsync(
+                fixture.Flow,
+                It.IsAny<LoginRequest>(),
+                It.IsAny<LoginExecutionOptions>(),
+                fixture.HttpContext.RequestAborted))
+            .Callback<AuthFlowContext,
+                LoginRequest,
+                LoginExecutionOptions,
+                CancellationToken>(
+                (_, _, options, _) => capturedOptions = options)
+            .ReturnsAsync(LoginResult.Failed(
+                AuthFailureReason.InvalidCredentials));
+
+        var result = await fixture.Sut.LoginAsync(
+            fixture.HttpContext);
+
+        result.Should().BeOfType<UnauthorizedHttpResult>();
+
+        capturedOptions.Should().NotBeNull();
+
+        capturedOptions!.SuppressFailureAttempt.Should().BeFalse();
+
+        fixture.AuthStore.Verify(x => x.ConsumeAsync(
+            key,
+            fixture.HttpContext.RequestAborted), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WhenIdentifierResolvesToDifferentUser_DoesNotSuppressFailure()
+    {
+        var fixture = CreateFixture();
+
+        const string receiptValue = "preview-receipt";
+        const string identifier = "alice";
+        const string secret = "password";
+
+        SetLoginJson(
+            fixture.HttpContext,
+            identifier,
+            secret,
+            previewReceipt: receiptValue);
+
+        var originalUser = UserKey.New();
+        var currentUser = UserKey.New();
+        var deviceId = fixture.Flow.Device.DeviceId!.Value;
+
+        var artifact = new LoginPreviewArtifact(
+            fixture.Flow.Tenant,
+            originalUser,
+            CredentialType.Password,
+            deviceId.Value,
+            identifier,
+            fixture.Flow.ClientProfile,
+            LoginPreviewFingerprint.Create(
+                fixture.Flow.Tenant,
+                identifier,
+                CredentialType.Password,
+                secret,
+                deviceId),
+            Now.AddMinutes(5));
+
+        var key = new AuthArtifactKey(receiptValue);
+
+        fixture.AuthStore
+            .Setup(x => x.ConsumeAsync(
+                key,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(artifact);
+
+        fixture.AuthStore
+            .Setup(x => x.GetAsync(
+                key,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(artifact);
+
+        fixture.IdentifierResolver
+            .Setup(x => x.ResolveAsync(
+                fixture.Flow.Tenant,
+                identifier,
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(CreateIdentifierResolution(
+                fixture.Flow.Tenant,
+                currentUser,
+                identifier));
+
+        fixture.RedirectResolver
+            .Setup(x => x.ResolveFailure(
+                fixture.Flow,
+                fixture.HttpContext,
+                AuthFailureReason.InvalidCredentials,
+                It.IsAny<LoginResult>()))
+            .Returns(RedirectDecision.None());
+
+        LoginExecutionOptions? capturedOptions = null;
+
+        fixture.InternalFlow
+            .Setup(x => x.LoginAsync(
+                fixture.Flow,
+                It.IsAny<LoginRequest>(),
+                It.IsAny<LoginExecutionOptions>(),
+                fixture.HttpContext.RequestAborted))
+            .Callback<AuthFlowContext,
+                LoginRequest,
+                LoginExecutionOptions,
+                CancellationToken>(
+                (_, _, options, _) => capturedOptions = options)
+            .ReturnsAsync(LoginResult.Failed(
+                AuthFailureReason.InvalidCredentials));
+
+        var result = await fixture.Sut.LoginAsync(
+            fixture.HttpContext);
+
+        result.Should().BeOfType<UnauthorizedHttpResult>();
+
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.SuppressFailureAttempt.Should().BeFalse();
+
+        fixture.AuthStore.Verify(x => x.ConsumeAsync(
+            It.IsAny<AuthArtifactKey>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // =====================================================================
