@@ -1242,7 +1242,7 @@ They should not replace security decisions, authentication validation, or applic
 
 See [Advanced Configuration](/docs/configuration/advanced-configuration) for event and extension guidance.
 
-### 25. In-Memory Auth Artifact Store
+## 25. In-Memory Auth Artifact Store
 
 UltimateAuth uses a bounded in-memory store by default for temporary authentication artifacts, including PKCE authorization codes and login preview receipts.
 

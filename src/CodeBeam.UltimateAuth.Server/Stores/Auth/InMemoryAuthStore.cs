@@ -11,6 +11,7 @@ internal sealed class InMemoryAuthStore : IAuthStore
     private readonly Dictionary<string, AuthArtifact> _entries = new();
     private readonly IClock _clock;
     private readonly int _maxEntries;
+    private DateTimeOffset? _nextExpiration;
 
     public InMemoryAuthStore(
         IClock clock,
@@ -37,13 +38,19 @@ internal sealed class InMemoryAuthStore : IAuthStore
 
             if (!_entries.ContainsKey(key.Value) && _entries.Count >= _maxEntries)
             {
-                RemoveExpiredUnsafe(now);
+                if (_nextExpiration <= now)
+                    RemoveExpiredUnsafe(now);
 
                 if (_entries.Count >= _maxEntries)
                     throw new UAuthArtifactStoreFullException();
             }
 
             _entries[key.Value] = artifact;
+
+            if (_nextExpiration is null || artifact.ExpiresAt < _nextExpiration.Value)
+            {
+                _nextExpiration = artifact.ExpiresAt;
+            }
         }
 
         return Task.CompletedTask;
@@ -110,17 +117,29 @@ internal sealed class InMemoryAuthStore : IAuthStore
     // Must be called only while holding _sync.
     private int RemoveExpiredUnsafe(DateTimeOffset now)
     {
-        var removed = 0;
+        List<string>? expiredKeys = null;
+        DateTimeOffset? nextExpiration = null;
 
-        foreach (var entry in _entries.ToArray())
+        foreach (var entry in _entries)
         {
-            if (!entry.Value.IsExpired(now))
-                continue;
-
-            if (_entries.Remove(entry.Key))
-                removed++;
+            if (entry.Value.IsExpired(now))
+            {
+                (expiredKeys ??= []).Add(entry.Key);
+            }
+            else if (nextExpiration is null || entry.Value.ExpiresAt < nextExpiration.Value)
+            {
+                nextExpiration = entry.Value.ExpiresAt;
+            }
         }
 
-        return removed;
+        if (expiredKeys is not null)
+        {
+            foreach (var key in expiredKeys)
+                _entries.Remove(key);
+        }
+
+        _nextExpiration = nextExpiration;
+
+        return expiredKeys?.Count ?? 0;
     }
 }
