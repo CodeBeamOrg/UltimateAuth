@@ -14,6 +14,7 @@ using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
@@ -1465,6 +1466,8 @@ public sealed class CredentialManagementServiceTests
             var options = Options.Create(
                 TestServerOptions.Default());
 
+            var limiter = new UAuthPasswordHashLimiter(Microsoft.Extensions.Options.Options.Create(TestServerOptions.Default()));
+
             EffectiveOptionsProvider
                 .Setup(x => x.GetEffective(
                     It.IsAny<TenantKey>(),
@@ -1480,7 +1483,8 @@ public sealed class CredentialManagementServiceTests
                 PasswordPipeline.Object,
                 CredentialStoreFactory.Object,
                 HistoryStoreFactory.Object,
-                Hasher.Object);
+                Hasher.Object,
+                limiter);
 
             Sut = new CredentialManagementService(
                 AccessOrchestrator.Object,
@@ -1499,6 +1503,7 @@ public sealed class CredentialManagementServiceTests
                 HistoryStoreFactory.Object,
                 PasswordContextProvider.Object,
                 EffectiveOptionsProvider.Object,
+                limiter,
                 options,
                 Clock.Object);
         }

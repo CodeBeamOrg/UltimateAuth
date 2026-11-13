@@ -7,6 +7,9 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Credentials;
@@ -56,6 +59,7 @@ public sealed class PasswordCredentialWriterTests
         public Mock<IPasswordHistoryStore> History { get; } = new();
         public Mock<IPasswordHistoryStoreFactory> HistoryFactory { get; } = new();
         public Mock<IUAuthPasswordHasher> Hasher { get; } = new();
+        public UAuthPasswordHashLimiter Limiter { get; } = new(Microsoft.Extensions.Options.Options.Create(new UAuthServerOptions()));
 
         public PasswordCredentialWriter Writer { get; }
 
@@ -80,7 +84,8 @@ public sealed class PasswordCredentialWriterTests
                 Pipeline.Object,
                 CredentialFactory.Object,
                 HistoryFactory.Object,
-                Hasher.Object);
+                Hasher.Object,
+                Limiter);
         }
     }
 

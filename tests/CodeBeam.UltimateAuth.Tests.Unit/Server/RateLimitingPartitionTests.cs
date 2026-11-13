@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using CodeBeam.UltimateAuth.Server.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using System.Net;
+using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
