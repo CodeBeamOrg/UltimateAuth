@@ -24,6 +24,7 @@ using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Options.Validators;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Security;
@@ -38,6 +39,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -143,6 +145,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthConcurrencyLimitingValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthArtifactStoreOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -278,6 +281,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
         services.TryAddScoped<ICredentialSessionPolicy, UAuthCredentialSessionPolicy>();
         services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, AuthArtifactCleanupService>());
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
 

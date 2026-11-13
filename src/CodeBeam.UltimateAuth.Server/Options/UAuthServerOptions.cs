@@ -123,6 +123,11 @@ public sealed class UAuthServerOptions
 
     public UAuthAntiforgeryOptions Antiforgery { get; set; } = new();
 
+    /// <summary>
+    /// Capacity and expiration cleanup for the built-in auth artifact store.
+    /// </summary>
+    public UAuthArtifactStoreOptions AuthArtifacts { get; set; } = new();
+
 
     // -------------------------------------------------------
     // CUSTOMIZATION HOOKS
@@ -172,9 +177,9 @@ public sealed class UAuthServerOptions
             Endpoints = Endpoints.Clone(),
             Navigation = Navigation.Clone(),
             Antiforgery = Antiforgery.Clone(),
+            AuthArtifacts = AuthArtifacts.Clone(),
 
             ModeConfigurations = new Dictionary<UAuthMode, Action<UAuthServerOptions>>(ModeConfigurations),
-
             OnConfigureEndpoints = OnConfigureEndpoints,
         };
     }
