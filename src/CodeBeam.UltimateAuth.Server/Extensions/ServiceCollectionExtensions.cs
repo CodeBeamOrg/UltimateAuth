@@ -214,7 +214,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IAuthFlowContextAccessor, AuthFlowContextAccessor>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
 
-        services.TryAddSingleton<IUAuthPasswordHashWorkLimiter, UAuthPasswordHashLimiter>();
+        services.TryAddSingleton<IUAuthPasswordHashLimiter, UAuthPasswordHashLimiter>();
         services.TryAddSingleton<LoginPasswordVerificationState>();
         services.TryAddScoped<LoginPasswordVerification>();
 

@@ -35,7 +35,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly IPasswordHistoryStoreFactory _historyStores;
     private readonly IPasswordPolicyContextProvider _passwordContextProvider;
     private readonly IEffectiveServerOptionsProvider _effectiveServerOptionsProvider;
-    private readonly IUAuthPasswordHashWorkLimiter _limiter;
+    private readonly IUAuthPasswordHashLimiter _limiter;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -56,7 +56,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         IPasswordHistoryStoreFactory historyStores,
         IPasswordPolicyContextProvider passwordContextProvider,
         IEffectiveServerOptionsProvider effectiveOptionsProvider,
-        IUAuthPasswordHashWorkLimiter limiter,
+        IUAuthPasswordHashLimiter limiter,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -171,7 +171,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     if (string.IsNullOrWhiteSpace(request.CurrentSecret))
                         throw new UAuthValidationException("current_secret_required");
 
-                    var currentPasswordValid = await _limiter.ExecuteAsync(UAuthPasswordHashWorkload.CredentialManagement,
+                    var currentPasswordValid = await _limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement,
                         () => Task.FromResult(_hasher.Verify(pwd.SecretHash, request.CurrentSecret)), atomicCt);
 
                     if (!currentPasswordValid)

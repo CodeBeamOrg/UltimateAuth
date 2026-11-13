@@ -14,7 +14,7 @@ internal sealed class PasswordCredentialWriter(
     IPasswordCredentialStoreFactory credentialStores,
     IPasswordHistoryStoreFactory historyStores,
     IUAuthPasswordHasher hasher,
-    IUAuthPasswordHashWorkLimiter limiter)
+    IUAuthPasswordHashLimiter limiter)
 {
     public async Task<PasswordCredential> CreateAsync(TenantKey tenant, UserKey userKey, string password, PasswordPolicyContext context, EffectivePasswordPolicyOptions options,
                                                       DateTimeOffset now, CancellationToken ct)
@@ -29,7 +29,7 @@ internal sealed class PasswordCredentialWriter(
 
         EnsureValid(result);
 
-        var passwordHash = await limiter.ExecuteAsync(UAuthPasswordHashWorkload.CredentialManagement,
+        var passwordHash = await limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement,
             () => Task.FromResult(hasher.Hash(password)), ct);
 
         var credential = PasswordCredential.Create(
@@ -67,7 +67,7 @@ internal sealed class PasswordCredentialWriter(
 
         var oldVersion = credential.Version;
         var oldHash = credential.SecretHash;
-        var newHash = await limiter.ExecuteAsync(UAuthPasswordHashWorkload.CredentialManagement, () => Task.FromResult(hasher.Hash(newPassword)), ct);
+        var newHash = await limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement, () => Task.FromResult(hasher.Hash(newPassword)), ct);
 
         var updated = credential.ChangeSecret(newHash, now);
 

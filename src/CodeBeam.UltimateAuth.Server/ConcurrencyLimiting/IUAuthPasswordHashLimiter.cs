@@ -4,15 +4,15 @@
 /// Coordinates expensive password hashing operations across
 /// the shared budget and workload-specific limits.
 /// </summary>
-public interface IUAuthPasswordHashWorkLimiter
+public interface IUAuthPasswordHashLimiter
 {
     Task<T> ExecuteAsync<T>(
-        UAuthPasswordHashWorkload workload,
+        UAuthPasswordHashCategory workload,
         Func<Task<T>> operation,
         CancellationToken ct = default);
 
     Task ExecuteAsync(
-        UAuthPasswordHashWorkload workload,
+        UAuthPasswordHashCategory workload,
         Action operation,
         CancellationToken ct = default);
 }

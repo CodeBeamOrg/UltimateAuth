@@ -14,6 +14,8 @@ The server enforces request limits. UltimateAuth clients recognize throttled res
 
 No additional rate limiting package is required.
 
+> Rate limiting controls request frequency, while [Concurrency Limiting](/docs/security/concurrency-limiting) restricts the number of expensive password hashing operations executing simultaneously. Both protections are enabled independently and complement each other.
+
 ## Getting started
 
 Rate limiting is enabled by default when using the integrated ASP.NET Core middleware helper.
@@ -39,8 +41,6 @@ app.UseForwardedHeaders();
 app.UseRouting();
 
 app.UseUltimateAuthWithAspNetCore();
-
-app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
 app.MapUAuthHub();

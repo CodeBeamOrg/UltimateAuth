@@ -16,6 +16,8 @@ This guide covers the available configuration groups, their defaults, practical 
 
 Built-in HTTP throttling is configured through `options.RateLimiting`. See [Rate Limiting](/docs/security/rate-limiting) for defaults, middleware ownership, proxy configuration and native-policy integration.
 
+Expensive password hashing operations are protected by `options.ConcurrencyLimiting`, which provides global and workload-specific concurrency budgets. See [Concurrency Limiting](/docs/security/concurrency-limiting) for defaults, queue behavior, timeouts, and configuration.
+
 ## 1. Register UltimateAuth Server
 
 Configure the server through `AddUltimateAuthServer()`:

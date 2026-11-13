@@ -51,21 +51,21 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             await Assert.ThrowsAsync<PasswordVerificationCapacityException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.Login,
-                    () => Task.FromResult(true)));
+                    UAuthPasswordHashCategory.Login,
+                    () => Task.FromResult(true), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -82,21 +82,21 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             await Assert.ThrowsAsync<PasswordVerificationCapacityException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.CredentialManagement,
-                    () => Task.FromResult(true)));
+                    UAuthPasswordHashCategory.CredentialManagement,
+                    () => Task.FromResult(true), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -113,20 +113,20 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var login = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             var result = await limiter.ExecuteAsync(
-                UAuthPasswordHashWorkload.CredentialManagement,
-                () => Task.FromResult(42));
+                UAuthPasswordHashCategory.CredentialManagement,
+                () => Task.FromResult(42), TestContext.Current.CancellationToken);
 
             Assert.Equal(42, result);
         }
@@ -147,31 +147,31 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         var secondStarted = Gate();
 
         var second = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             () =>
             {
                 secondStarted.TrySetResult(true);
                 return Task.FromResult(true);
-            });
+            }, TestContext.Current.CancellationToken);
 
         Assert.False(secondStarted.Task.IsCompleted);
 
         gate.TrySetResult(true);
 
         Assert.True(await first);
-        Assert.True(await second.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.True(await second.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
         Assert.True(secondStarted.Task.IsCompleted);
     }
 
@@ -188,21 +188,21 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             await Assert.ThrowsAsync<PasswordVerificationCapacityException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.Login,
-                    () => Task.FromResult(true)));
+                    UAuthPasswordHashCategory.Login,
+                    () => Task.FromResult(true), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -221,19 +221,19 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         using var cancellation = new CancellationTokenSource();
 
         var waiting = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             () => Task.FromResult(true),
             cancellation.Token);
 
@@ -260,14 +260,14 @@ public sealed class UAuthPasswordHashLimiterTests
         {
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.Login,
+                    UAuthPasswordHashCategory.Login,
                     () => Task.FromException<bool>(
-                        new InvalidOperationException("failure"))));
+                        new InvalidOperationException("failure")), TestContext.Current.CancellationToken));
         }
 
         var result = await limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
-            () => Task.FromResult(true));
+            UAuthPasswordHashCategory.Login,
+            () => Task.FromResult(true), TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }
@@ -282,20 +282,20 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             var second = await limiter.ExecuteAsync(
-                UAuthPasswordHashWorkload.Login,
-                () => Task.FromResult(true));
+                UAuthPasswordHashCategory.Login,
+                () => Task.FromResult(true), TestContext.Current.CancellationToken);
 
             Assert.True(second);
         }
@@ -318,19 +318,19 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         var waiting = Enumerable.Range(0, 5)
             .Select(_ => limiter.ExecuteAsync(
-                UAuthPasswordHashWorkload.Login,
-                () => Task.FromResult(true)))
+                UAuthPasswordHashCategory.Login,
+                () => Task.FromResult(true), TestContext.Current.CancellationToken))
             .ToArray();
 
         try
@@ -339,7 +339,7 @@ public sealed class UAuthPasswordHashLimiterTests
             await first;
 
             var results = await Task.WhenAll(waiting)
-                .WaitAsync(TimeSpan.FromSeconds(5));
+                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
             Assert.All(results, Assert.True);
         }
@@ -362,25 +362,25 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var first = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         var second = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
-            () => Task.FromResult(true));
+            UAuthPasswordHashCategory.Login,
+            () => Task.FromResult(true), TestContext.Current.CancellationToken);
 
         try
         {
             await Assert.ThrowsAsync<PasswordVerificationCapacityException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.Login,
-                    () => Task.FromResult(true)));
+                    UAuthPasswordHashCategory.Login,
+                    () => Task.FromResult(true), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -404,22 +404,22 @@ public sealed class UAuthPasswordHashLimiterTests
         var started = Gate();
 
         var credentialOperation = limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.CredentialManagement,
+            UAuthPasswordHashCategory.CredentialManagement,
             async () =>
             {
                 started.TrySetResult(true);
                 return await gate.Task;
-            });
+            }, TestContext.Current.CancellationToken);
 
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         try
         {
             // Obtains the Login permit, then waits for global capacity.
             await Assert.ThrowsAsync<PasswordVerificationCapacityException>(
                 () => limiter.ExecuteAsync(
-                    UAuthPasswordHashWorkload.Login,
-                    () => Task.FromResult(true)));
+                    UAuthPasswordHashCategory.Login,
+                    () => Task.FromResult(true), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -429,8 +429,8 @@ public sealed class UAuthPasswordHashLimiterTests
 
         // A failed global acquisition must not leak the Login permit.
         var result = await limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
-            () => Task.FromResult(true));
+            UAuthPasswordHashCategory.Login,
+            () => Task.FromResult(true), TestContext.Current.CancellationToken);
 
         Assert.True(result);
     }

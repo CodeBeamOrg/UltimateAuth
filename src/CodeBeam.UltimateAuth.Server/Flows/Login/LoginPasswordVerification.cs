@@ -8,18 +8,18 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 internal sealed class LoginPasswordVerification(
     IUAuthPasswordHasher hasher,
     LoginPasswordVerificationState state,
-    IUAuthPasswordHashWorkLimiter limiter)
+    IUAuthPasswordHashLimiter limiter)
 {
     public Task<bool> VerifyCredentialAsync(ICredentialProvider provider, ICredential credential, string secret, CancellationToken ct)
     {
-        return limiter.ExecuteAsync(UAuthPasswordHashWorkload.Login,
+        return limiter.ExecuteAsync(UAuthPasswordHashCategory.Login,
             () => provider.ValidateAsync(credential, secret, ct), ct);
     }
 
     public Task VerifyDummyAsync(string secret, CancellationToken ct)
     {
         return limiter.ExecuteAsync(
-            UAuthPasswordHashWorkload.Login,
+            UAuthPasswordHashCategory.Login,
             () =>
             {
                 var dummyHash = state.GetDummyHash(hasher);

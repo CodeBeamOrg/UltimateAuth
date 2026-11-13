@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 
-internal sealed class UAuthPasswordHashLimiter : IUAuthPasswordHashWorkLimiter, IDisposable
+internal sealed class UAuthPasswordHashLimiter : IUAuthPasswordHashLimiter, IDisposable
 {
     private readonly ConcurrencyLimiter? _global;
     private readonly ConcurrencyLimiter? _login;
@@ -32,7 +32,7 @@ internal sealed class UAuthPasswordHashLimiter : IUAuthPasswordHashWorkLimiter, 
     }
 
     public async Task<T> ExecuteAsync<T>(
-        UAuthPasswordHashWorkload workload,
+        UAuthPasswordHashCategory workload,
         Func<Task<T>> operation,
         CancellationToken ct = default)
     {
@@ -44,8 +44,8 @@ internal sealed class UAuthPasswordHashLimiter : IUAuthPasswordHashWorkLimiter, 
 
         var (localLimiter, localTimeout) = workload switch
         {
-            UAuthPasswordHashWorkload.Login => (_login!, _loginTimeout),
-            UAuthPasswordHashWorkload.CredentialManagement => (_credentialManagement!, _credentialTimeout),
+            UAuthPasswordHashCategory.Login => (_login!, _loginTimeout),
+            UAuthPasswordHashCategory.CredentialManagement => (_credentialManagement!, _credentialTimeout),
             _ => throw new ArgumentOutOfRangeException(nameof(workload))
         };
 
@@ -70,7 +70,7 @@ internal sealed class UAuthPasswordHashLimiter : IUAuthPasswordHashWorkLimiter, 
     }
 
     public Task ExecuteAsync(
-        UAuthPasswordHashWorkload workload,
+        UAuthPasswordHashCategory workload,
         Action operation,
         CancellationToken ct = default)
     {
