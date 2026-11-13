@@ -105,6 +105,8 @@ AI tools MUST NOT change the authentication mode contract without explicit maint
 
 Revocation behavior MUST remain consistent with the documented guarantees of the effective authentication mode.
 
+Security-sensitive, single-use authentication artifacts MUST enforce expiration, context binding, and atomic consumption. Resource-management optimizations MUST preserve these guarantees.
+
 ---
 
 ## 6. Domain Boundary Rules
@@ -194,6 +196,8 @@ The following changes REQUIRE explicit maintainer approval:
 - Changes to public security contracts.
 
 Approval for one change MUST NOT be interpreted as approval for unrelated changes.
+
+Explicit authorization of a scoped security fix satisfies the approval requirement for that specific change, provided the implementation preserves established architectural invariants. Unrelated security or architectural changes require separate approval.
 
 ### 9.3 Architectural Conflicts
 
