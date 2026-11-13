@@ -1,10 +1,11 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 
 namespace CodeBeam.UltimateAuth.Credentials.Reference;
 
-public sealed class UAuthPasswordHistoryValidator(IPasswordCredentialStoreFactory credentialStoreFactory, IPasswordHistoryStoreFactory historyStoreFactory, IUAuthPasswordHasher hasher) : IPasswordHistoryValidator
+public sealed class UAuthPasswordHistoryValidator(IPasswordCredentialStoreFactory credentialStoreFactory, IPasswordHistoryStoreFactory historyStoreFactory, IUAuthPasswordHasher hasher, IUAuthPasswordHashLimiter limiter) : IPasswordHistoryValidator
 {
     public async Task<PasswordPolicyResult> ValidateAsync(CredentialKey credentialKey, string password, int rememberLast, CancellationToken ct = default)
     {
@@ -20,7 +21,9 @@ public sealed class UAuthPasswordHistoryValidator(IPasswordCredentialStoreFactor
         if (credential is null)
             throw new InvalidOperationException("Password credential was not found.");
 
-        if (hasher.Verify(credential.SecretHash, password))
+        var reused = await limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement, () => Task.FromResult(hasher.Verify(credential.SecretHash, password)), ct);
+
+        if (reused)
             return Reused();
 
         if (rememberLast == 0)
@@ -33,7 +36,10 @@ public sealed class UAuthPasswordHistoryValidator(IPasswordCredentialStoreFactor
         {
             ct.ThrowIfCancellationRequested();
 
-            if (hasher.Verify(entry.SecretHash, password))
+            var isReused = await limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement,
+                () => Task.FromResult(hasher.Verify(entry.SecretHash, password)), ct);
+
+            if (isReused)
                 return Reused();
         }
 

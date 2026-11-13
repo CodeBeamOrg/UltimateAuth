@@ -18,6 +18,7 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Authorization;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -141,6 +142,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthConcurrencyLimitingValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -211,6 +213,10 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<IAuthFlowContextAccessor, AuthFlowContextAccessor>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
+
+        services.TryAddSingleton<IUAuthPasswordHashLimiter, UAuthPasswordHashLimiter>();
+        services.TryAddSingleton<LoginPasswordVerificationState>();
+        services.TryAddScoped<LoginPasswordVerification>();
 
         services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
         services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();

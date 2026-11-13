@@ -200,6 +200,14 @@ The reference password-history validator also checks whether the submitted passw
 
 Password history compares password candidates against protected password representations; it does not require retaining previous passwords in plaintext.
 
+### Performance Considerations
+
+Password history validation requires a separate password hash verification for the current credential and each stored historical credential. These checks can be CPU and memory-intensive, particularly with Argon2.
+
+For example, `RememberLast = 3` may require four password verifications, followed by hashing the new password if validation succeeds.
+
+Choose the history depth according to your application's security requirements and expected workload rather than automatically selecting the maximum. UltimateAuth applies [Concurrency Limiting](/docs/security/concurrency-limiting) to these hashing operations to help protect shared server resources.
+
 ### Persistence
 
 Password history requires an appropriate history store.

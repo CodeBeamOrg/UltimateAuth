@@ -8,6 +8,7 @@ using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference.Internal;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
@@ -34,6 +35,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
     private readonly IPasswordHistoryStoreFactory _historyStores;
     private readonly IPasswordPolicyContextProvider _passwordContextProvider;
     private readonly IEffectiveServerOptionsProvider _effectiveServerOptionsProvider;
+    private readonly IUAuthPasswordHashLimiter _limiter;
     private readonly UAuthServerOptions _options;
     private readonly IClock _clock;
 
@@ -54,6 +56,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         IPasswordHistoryStoreFactory historyStores,
         IPasswordPolicyContextProvider passwordContextProvider,
         IEffectiveServerOptionsProvider effectiveOptionsProvider,
+        IUAuthPasswordHashLimiter limiter,
         IOptions<UAuthServerOptions> options,
         IClock clock)
     {
@@ -73,6 +76,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
         _historyStores = historyStores;
         _passwordContextProvider = passwordContextProvider;
         _effectiveServerOptionsProvider = effectiveOptionsProvider;
+        _limiter = limiter;
         _options = options.Value;
         _clock = clock;
     }
@@ -167,7 +171,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     if (string.IsNullOrWhiteSpace(request.CurrentSecret))
                         throw new UAuthValidationException("current_secret_required");
 
-                    if (!_hasher.Verify(pwd.SecretHash, request.CurrentSecret))
+                    var currentPasswordValid = await _limiter.ExecuteAsync(UAuthPasswordHashCategory.CredentialManagement,
+                        () => Task.FromResult(_hasher.Verify(pwd.SecretHash, request.CurrentSecret)), atomicCt);
+
+                    if (!currentPasswordValid)
                         throw new UAuthConflictException("invalid_credentials");
                 }
 
