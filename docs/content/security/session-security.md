@@ -1,5 +1,5 @@
 ---
-title: Session Security Model
+title: Session Security
 order: 1
 group: security
 ---

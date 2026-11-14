@@ -29,7 +29,7 @@ public static class UAuthConstants
 
     public static class Form
     {
-        public const string ReturnUrl = "return_url";
+        public const string ReturnUrl = "__uauth_return_url";
         public const string Device = "__uauth_device";
         public const string ClientProfile = "__uauth_client_profile";
         public const string FormCacheKey = "__uauth_form";

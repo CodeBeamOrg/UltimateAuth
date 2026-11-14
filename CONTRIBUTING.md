@@ -43,6 +43,25 @@ For substantial architectural changes or new authentication behavior, opening an
 
 Maintainers may suggest revisions, request tests, or help refine the approach. Reviews are intended to improve the contribution, not discourage contributors.
 
+### Pull Request Titles
+
+We prefer concise pull request titles following this convention:
+
+`type(scope): Short Description in Title Case`
+
+Common types include `feat`, `fix`, `refactor`, `test`, `docs`, `perf`, and `chore`.
+
+Examples:
+
+- `fix(security): Enforce Preview Receipt Consumption`
+- `feat(client): Add Unified Session Validation`
+- `test(server): Cover Concurrent Artifact Consumption`
+- `docs(auth): Clarify Authentication Modes`
+
+Use lowercase types and scopes, with a Title Case description.
+
+This is a preferred convention, not a strict requirement. Clear, descriptive titles are always welcome, especially from first-time contributors.
+
 ## Building and testing
 
 The repository contains the `UltimateAuth.slnx` solution and unit/integration test projects.
@@ -138,3 +157,15 @@ are needed. Framework-specific package references (notably Blazor, EF Core, and
 TestHost) still need compatible versions when adding a new framework. Retarget
 net10-only application/tool exceptions before eventually removing net10 itself;
 CI rejects that omission rather than silently excluding projects.
+
+### Windows Build Notes
+
+When building the full solution on Windows, Blazor WebAssembly projects may generate long intermediate paths during Webcil conversion.
+
+If a build fails with a path-related error:
+
+- Enable Windows long path support (`LongPathsEnabled = 1`).
+- Alternatively, clone the repository to a short path such as `C:\src\UltimateAuth`.
+- Clean the affected project's `bin` and `obj` directories before rebuilding.
+
+This is a build-environment consideration and does not require changing UltimateAuth's any source code.

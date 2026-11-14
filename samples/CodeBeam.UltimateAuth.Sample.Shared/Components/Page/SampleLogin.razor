@@ -71,7 +71,7 @@
 
             <MudItem Class="order-0 order-sm-1" xs="12" sm="6">
                 <MudPaper Class="uauth-login-paper pa-8" Elevation="3">
-                    <UAuthLoginForm Identifier="@_username" Secret="@_password" OnTryResult="@HandleTry" ReturnUrl="@(ReturnUrl ?? "/home")">
+                    <UAuthLoginForm OnTryResult="@HandleTry" ReturnUrl="@(ReturnUrl ?? "/home")">
                         <MudStack Class="mud-width-full">
                             <MudStack Row="true" AlignItems="AlignItems.Center">
                                 <UAuthLogo Size="48" ShieldColor="var(--mud-palette-primary)" KeyColor="white" />
@@ -79,8 +79,8 @@
                                     <MudText Style="font-weight: 700" Inline="true" Typo="Typo.h5" Color="Color.Primary">Sign <MudText Inline="true" Style="font-weight: 700" Typo="Typo.h5" Color="Color.Secondary">In</MudText></MudText>
                                 </MudText>
                             </MudStack>
-                            <MudTextField @ref="@_usernameField" @bind-Value="@_username" Variant="Variant.Outlined" Label="Username" Required="true" Immediate="true" HelperText="@(_remainingAttempts != null ? $"Remaining Attempts: {_remainingAttempts}" : null)" />
-                            <MudPasswordField @bind-Value="@_password" Variant="Variant.Outlined" Label="Password" Required="true" Immediate="true" />
+                            <MudTextField T="string" Label="Username" Variant="Variant.Outlined" name="Identifier" autocomplete="username" />
+                            <MudPasswordField T="string" Label="Password" Variant="Variant.Outlined" name="Secret" autocomplete="current-password" />
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_isLocked" ButtonType="ButtonType.Submit">Login</MudButton>
                             @if (_isLocked)
                             {

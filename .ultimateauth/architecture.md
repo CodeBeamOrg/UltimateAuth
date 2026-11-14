@@ -55,7 +55,6 @@ Convenience, performance optimizations, or stylistic preferences MUST NOT overri
 
 ### 1.4 Relationship to Other Documents
 
-- The UltimateAuth Manifesto describes the philosophy, intent, and design values of the framework.
 - This document translates those values into concrete, enforceable architectural rules.
 - Architecture guides and design documents MAY provide explanations or examples, but MUST NOT redefine or contradict this document.
 
@@ -313,7 +312,7 @@ Credential types (e.g. password, passkey, OTP) are modeled as distinct domain co
 The Authorization domain evaluates permissions and access decisions based on authenticated identity.
 
 - Authorization depends on authentication state.
-- Authentication MUST NOT depend on authorization.
+- Establishing authenticated identity MUST NOT depend on application authorization decisions. Authentication endpoints and workflows MAY enforce separate access policies without merging authentication and authorization responsibilities.
 - Authorization logic MUST NOT leak into other domains.
 
 ---
@@ -613,9 +612,7 @@ Clients participate in authentication on a per-request basis.
 
 - Each request is evaluated independently.
 - Client-provided data is treated as input, not authority.
-- Authentication state is resolved server-side for every request.
-
-No client runtime is permitted to cache or infer authentication authority outside server validation.
+- Client runtimes MAY cache or represent authentication state for UI and application coordination. Such state MUST NOT be treated as authoritative without the validation required by the effective authentication mode.
 
 ---
 
@@ -651,7 +648,7 @@ Client SDKs are adapters, not security authorities.
 
 The following guarantees MUST hold across all runtimes:
 
-- Authentication semantics are identical across clients.
+- Authentication security guarantees MUST remain consistent across client runtimes for the same effective authentication mode, while runtime-specific transports and flow adaptations MAY differ.
 - Session validation remains server-authoritative.
 - Revocation behavior is consistent across runtimes.
 - Runtime-specific optimizations MUST NOT weaken security.
@@ -696,7 +693,7 @@ The framework MUST NOT assume that all authentication modes require request-time
 Authentication and authorization context objects define security boundaries.
 
 - AuthFlowContext is immutable after creation.
-- Exactly one AuthFlowContext exists per request.
+- Within an HTTP authentication execution scope, one authoritative AuthFlowContext MUST be established and remain stable. Non-HTTP operations MAY establish contexts through designated framework mechanisms.
 - AccessContext is derived from AuthFlowContext.
 - Context objects MUST NOT be mutated, recreated or bypassed.
 
@@ -739,6 +736,7 @@ Credential material is security-critical and MUST be handled through controlled 
 - Credentials MUST NOT be treated as user identifiers or profile data.
 - Services and transport layers MAY temporarily handle credential material only as required to execute authorized authentication flows.
 - Credential material MUST NOT be propagated to unrelated domains.
+- Credential secrets MUST NOT be unnecessarily exposed through component state, serialization, hidden-field echoes, logs, or unrelated application state.
 
 Credential protection MUST remain independent of the host application's persistence model.
 

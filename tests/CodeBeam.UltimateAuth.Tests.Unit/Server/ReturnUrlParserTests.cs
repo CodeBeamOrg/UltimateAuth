@@ -1,8 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core.Errors;
-using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
-using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using AwesomeAssertions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -42,5 +39,22 @@ public sealed class ReturnUrlParserTests
     {
         Action act = () => ReturnUrlParser.Parse(returnUrl);
         act.Should().Throw<UAuthValidationException>().Which.Code.Should().Be("return_url_invalid");
+    }
+
+
+    [Theory]
+    [InlineData("//evil.example")]
+    [InlineData("///evil.example")]
+    [InlineData("/\\evil.example")]
+    [InlineData("\\\\evil.example")]
+    [InlineData("/dashboard\\evil")]
+    [InlineData("/dashboard\r\nLocation: https://evil.example")]
+    public void Parser_Rejects_Ambiguous_Or_Unsafe_Paths(string returnUrl)
+    {
+        Action act = () => ReturnUrlParser.Parse(returnUrl);
+
+        act.Should()
+            .Throw<UAuthValidationException>()
+            .Which.Code.Should().Be("return_url_invalid");
     }
 }

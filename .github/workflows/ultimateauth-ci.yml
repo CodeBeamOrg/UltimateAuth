@@ -21,7 +21,7 @@ jobs:
       sdks: ${{ steps.policy.outputs.sdks }}
       solution-frameworks: ${{ steps.policy.outputs.solution-frameworks }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Audit projects and generate compatibility matrix
         id: policy
         env:
@@ -103,10 +103,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.frameworks.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup matching SDK
         id: dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.sdk }}
       - name: Select matching SDK
@@ -139,10 +139,10 @@ jobs:
 
     steps:
     - name: 📥 Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: 🧰 Setup .NET SDKs
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
@@ -169,7 +169,7 @@ jobs:
 
     - name: Upload framework test and coverage results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: framework-test-results
         path: TestResults/Framework
@@ -192,10 +192,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup required SDKs
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ needs.frameworks.outputs.sdks }}
 
@@ -274,7 +274,7 @@ jobs:
 
       - name: Upload Identity Lab test and coverage results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: identity-lab-test-results
           path: TestResults/IdentityLab

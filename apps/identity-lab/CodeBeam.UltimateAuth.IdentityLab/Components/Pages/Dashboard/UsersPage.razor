@@ -6,6 +6,7 @@
 @using CodeBeam.UltimateAuth.Users.Contracts
 @layout DashboardLayout
 @inject SandboxUserService SandboxUserService
+@inject LabManagementClient Management
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -407,7 +408,14 @@
         if (actorUserKey is null)
             return CreateUserDialogResult.Failure("You must be signed in.");
 
-        return await SandboxUserService.CreateAsync(actorUserKey.Value, request);
+        try
+        {
+            return await Management.SendAsync<CreateUserDialogResult>("/api/lab/manage/users", request);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return CreateUserDialogResult.Failure("You are not allowed to manage this sandbox.");
+        }
     }
 
     private async Task DeleteUserAsync(SandboxUserItem user)

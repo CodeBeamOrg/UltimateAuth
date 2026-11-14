@@ -1,4 +1,6 @@
-namespace CodeBeam.UltimateAuth.Server.RateLimiting;
+using CodeBeam.UltimateAuth.Server.RateLimiting;
+
+namespace CodeBeam.UltimateAuth.Server.Options;
 
 /// <summary>Startup-only endpoint rate limiting configuration. Counters are process-local.</summary>
 public sealed class UAuthRateLimitingOptions
@@ -16,14 +18,17 @@ public sealed class UAuthRateLimitingOptions
     {
         if (Endpoints.TryGetValue(metadata.Endpoint, out var rule))
             return (rule, metadata.Endpoint.ToString());
+
         if (metadata.Endpoint is UAuthEndpoint.Login or UAuthEndpoint.TryLogin or UAuthEndpoint.PkceComplete or UAuthEndpoint.PkceTryComplete)
             return (Login, "login-verification");
+
         rule = metadata.Group switch
         {
             UAuthRateLimitGroup.Sensitive => Sensitive,
             UAuthRateLimitGroup.Standard => Standard,
             _ => Frequent
         };
+
         // Explicit endpoint overrides replace these security defaults as well.
         rule = metadata.Endpoint switch
         {

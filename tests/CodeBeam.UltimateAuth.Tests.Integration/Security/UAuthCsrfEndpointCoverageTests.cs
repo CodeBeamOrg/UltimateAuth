@@ -107,7 +107,10 @@ public sealed class CsrfEndpointCoverageTests
             ["auth/admin/users/{userKey}/sessions/{sessionId}/revoke"] = UAuthCsrfOperation.AuthenticatedMutation,
             ["auth/admin/users/{userKey}/sessions/chains/{chainId}/revoke"] = UAuthCsrfOperation.AuthenticatedMutation,
             ["auth/admin/users/{userKey}/sessions/revoke-root"] = UAuthCsrfOperation.AuthenticatedMutation,
-            ["auth/admin/users/{userKey}/sessions/revoke-all"] = UAuthCsrfOperation.AuthenticatedMutation
+            ["auth/admin/users/{userKey}/sessions/revoke-all"] = UAuthCsrfOperation.AuthenticatedMutation,
+
+            // Authentication security management
+            ["auth/admin/users/{userKey}/authentication/unlock"] = UAuthCsrfOperation.AuthenticatedMutation,
         };
 
         var actual = endpoints
@@ -154,6 +157,8 @@ public sealed class CsrfEndpointCoverageTests
             "auth/me/authorization/permissions/get",
             "auth/admin/authorization/users/{userKey}/roles/get",
             "auth/admin/authorization/roles/query",
+
+            "auth/admin/users/{userKey}/authentication/lockout/get",
 
             // UAuthHub bootstrap endpoint:
             // Creates a short-lived HubFlowArtifact only.

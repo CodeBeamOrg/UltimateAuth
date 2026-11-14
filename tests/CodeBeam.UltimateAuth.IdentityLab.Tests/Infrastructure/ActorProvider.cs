@@ -14,13 +14,14 @@ internal static class ActorProvider
         // ownership queries and PostgreSQL authorization decisions remain real.
         var flow = new Mock<IAuthFlow>();
         flow.Setup(x => x.BeginAsync(It.IsAny<AuthFlowType>(), It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<AuthFlowContext>((AuthFlowContext)null!));
+            .Returns(new ValueTask<AuthFlowContext>(actor.HasValue ? Contexts.AuthenticatedFlow(actor.Value) : null!));
         var contexts = new Mock<IAccessContextFactory>();
         contexts.Setup(x => x.CreateAsync(It.IsAny<AuthFlowContext>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<IDictionary<string, object>?>(), It.IsAny<CancellationToken>()))
             .Returns((AuthFlowContext _, string action, string resource, string? id,
                 IDictionary<string, object>? attributes, CancellationToken ct) =>
                 Task.FromResult(Contexts.Create(action, actor, id is null ? null : UserKey.FromString(id))));
-        return new LabAccessContextProvider(flow.Object, contexts.Object);
+        var provider = new LabAccessContextProvider(flow.Object, contexts.Object);
+        return provider;
     }
 }

@@ -179,6 +179,8 @@ public class RateLimitingTests
 /auth/users/create|UserCreateAnonymous|Sensitive
 /auth/validate|Validate|Frequent
 /auth/antiforgery/token|AntiforgeryToken|Frequent
+/auth/admin/users/{userKey}/authentication/lockout/get|GetAuthenticationLockoutAdmin|Standard
+/auth/admin/users/{userKey}/authentication/unlock|UnlockAuthenticationAdmin|Sensitive
 """;
         var actual = routes.Cast<RouteEndpoint>().Select(endpoint =>
         {

@@ -34,6 +34,7 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Rendering;
 
 internal sealed partial class PageRenderContext : BunitContext
 {
+    public Mock<CodeBeam.UltimateAuth.Client.Infrastructure.IUAuthRequestClient> Requests { get; } = new(MockBehavior.Strict);
     public Mock<IUAuthClient> Client { get; } = new(MockBehavior.Strict);
     public Mock<ISessionClient> Sessions { get; } = new(MockBehavior.Strict);
     public Mock<IAuthorizationClient> Authorization { get; } = new(MockBehavior.Strict);
@@ -57,6 +58,7 @@ internal sealed partial class PageRenderContext : BunitContext
         Client.SetupGet(x => x.Users).Returns(Users.Object);
         Client.SetupGet(x => x.Identifiers).Returns(Identifiers.Object);
         Services.AddSingleton(Client.Object);
+        Services.AddSingleton(Requests.Object);
         Services.AddSingleton(Options.Create(new UAuthClientOptions()));
         Services.AddSingleton(Options.Create(new UAuthServerOptions()));
         var device = new Mock<IDeviceIdProvider>();
@@ -113,6 +115,7 @@ internal sealed partial class PageRenderContext : BunitContext
         Services.AddSingleton(Mock.Of<IUserRoleStoreFactory>());
         Services.AddSingleton(Mock.Of<IUserLifecycleStoreFactory>());
         Services.AddScoped<LabAccessContextProvider>();
+        Services.AddScoped<CodeBeam.UltimateAuth.IdentityLab.Services.LabManagementClient>();
         Services.AddScoped<SandboxService>();
         Services.AddScoped<ActivityLogService>();
         Services.AddScoped<LabRegistrationService>();

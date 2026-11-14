@@ -30,6 +30,7 @@ builder.Services.AddUltimateAuthServer(o => {
     o.Diagnostics.EnableRefreshDetails = true;
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
+    o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
     o.UserProfile.EnableMultiProfile = true;
 

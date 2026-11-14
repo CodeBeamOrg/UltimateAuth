@@ -62,7 +62,11 @@ public class AuthServerFactory : WebApplicationFactory<Program>
             services.AddSingleton<IClock>(Clock);
 
             // Business-flow tests share a host; limiter contracts use isolated hosts.
-            services.PostConfigure<UAuthServerOptions>(options => options.RateLimiting.Enabled = false);
+            services.PostConfigure<UAuthServerOptions>(options =>
+            {
+                options.RateLimiting.Enabled = false;
+                options.Login.IncludeFailureDetails = false;
+            });
 
             if (_configureServer is not null)
             {

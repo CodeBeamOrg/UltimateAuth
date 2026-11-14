@@ -1,5 +1,5 @@
 ---
-title: Refresh Rotation & Replay Protection
+title: Refresh Rotation & Protection
 order: 3
 group: security
 ---
@@ -465,6 +465,6 @@ UltimateAuth's authentication modes provide different continuation models. Rotat
 ## Next Steps
 
 - [Token Security](/docs/security/token-security) — Access and refresh credential security fundamentals.
-- [Session Security Model](/docs/security/session-security) — Hierarchical validation and revocation boundaries.
+- [Session Security](/docs/security/session-security) — Hierarchical validation and revocation boundaries.
 - [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Session continuity, expiration, and revocation.
 - [Authentication Modes](/docs/fundamentals/auth-modes) — Mode-specific authentication and refresh behavior.

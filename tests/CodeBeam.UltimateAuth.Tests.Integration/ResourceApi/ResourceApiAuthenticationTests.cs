@@ -8,14 +8,13 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Timers;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration.ResourceApi;
 
 public sealed class ResourceApiAuthenticationTests
 {
     private const string SessionValue = "test-resource-session-000000000000000000000001";
-    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-1");
+    private static readonly TenantKey Tenant = TenantKeys.Single;
     private static readonly UserKey User = UserKey.FromString("user-1");
     private static readonly DateTimeOffset Now = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
     private static AuthSessionId SessionId => AuthSessionId.Parse(SessionValue, null);
@@ -224,8 +223,51 @@ public sealed class ResourceApiAuthenticationTests
                 "products.update.admin");
     }
 
-    private static Mock<ISessionValidator> CreateValidator(
-        ClaimsSnapshot claims)
+    [Theory]
+    [InlineData(UserStatus.Active, HttpStatusCode.OK)]
+    [InlineData(UserStatus.Suspended, HttpStatusCode.Forbidden)]
+    [InlineData(UserStatus.SelfSuspended, HttpStatusCode.Forbidden)]
+    [InlineData(UserStatus.Disabled, HttpStatusCode.Forbidden)]
+    [InlineData(UserStatus.Unknown, HttpStatusCode.Forbidden)]
+    public async Task ProtectedEndpoint_ShouldEnforceUserStatus(UserStatus status, HttpStatusCode expected)
+    {
+        var validator = CreateValidator(ClaimsSnapshot.Empty, status);
+
+        await using var host = await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(UserStatus.Active, HttpStatusCode.OK)]
+    [InlineData(UserStatus.Suspended, HttpStatusCode.OK)]
+    [InlineData(UserStatus.SelfSuspended, HttpStatusCode.OK)]
+    [InlineData(UserStatus.Disabled, HttpStatusCode.Forbidden)]
+    [InlineData(UserStatus.Unknown, HttpStatusCode.Forbidden)]
+    public async Task SupportTicket_ShouldAllowOnlyEligibleUsers(UserStatus status, HttpStatusCode expected)
+    {
+        var validator = CreateValidator(ClaimsSnapshot.Empty, status);
+
+        await using var host = await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.PostAsync(
+            "/__tests/resource/support/tickets",
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(expected);
+    }
+
+
+    private static Mock<ISessionValidator> CreateValidator(ClaimsSnapshot claims, UserStatus status = UserStatus.Active)
     {
         var validator = new Mock<ISessionValidator>();
 
@@ -241,7 +283,8 @@ public sealed class ResourceApiAuthenticationTests
                     chainId: ChainId,
                     rootId: RootId,
                     claims: claims,
-                    authenticatedAt: Now));
+                    authenticatedAt: Now,
+                    userStatus: status));
 
         return validator;
     }

@@ -5,7 +5,7 @@
 @using CodeBeam.UltimateAuth.IdentityLab.Authorization
 @using CodeBeam.UltimateAuth.IdentityLab.Services
 
-@inject LabDemoStoreService DemoStoreService
+@inject LabManagementClient Management
 @inject ISnackbar Snackbar
 
 <PageTitle>Demo Store · Identity Lab</PageTitle>
@@ -221,9 +221,11 @@
     private bool Has(string permission) =>
         _permissions.Contains(permission);
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
         await RefreshAccessAsync();
+        StateHasChanged();
     }
 
     private async Task RefreshAccessAsync()
@@ -234,7 +236,7 @@
         try
         {
             _permissions =
-                await DemoStoreService.GetPermissionsAsync();
+                await Management.SendAsync<HashSet<string>>("/api/lab/manage/demo-permissions");
         }
         catch (Exception)
         {
@@ -259,7 +261,7 @@
 
         try
         {
-            await DemoStoreService.RequireAsync(permission);
+            await Management.SendAsync<bool>("/api/lab/manage/demo-permissions/check", new { Permission = permission });
 
             operation();
 

@@ -231,7 +231,8 @@ public sealed class ResourceApiTenantIsolationTests
             chainId: ChainId,
             rootId: RootId,
             claims: ClaimsSnapshot.Empty,
-            authenticatedAt: Now);
+            authenticatedAt: Now,
+            userStatus: UserStatus.Active);
     }
 
     private static void AddSession(HttpClient client)
@@ -242,13 +243,9 @@ public sealed class ResourceApiTenantIsolationTests
                 SessionValue);
     }
 
-    private static void AddTenant(
-        HttpClient client,
-        string tenant)
+    private static void AddTenant(HttpClient client, string tenant)
     {
-        client.DefaultRequestHeaders.Add(
-            TenantHeader,
-            tenant);
+        client.DefaultRequestHeaders.Add(TenantHeader, tenant);
     }
 
     private static async Task<ResourceApiTestHost> CreateMultiTenantHostAsync(ISessionValidator validator)

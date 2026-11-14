@@ -1,5 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Core.Defaults;
+﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
@@ -9,18 +9,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
 
-public sealed class LabDemoRoleService(LabAccessContextProvider contextProvider, IDbContextFactory<LabDbContext> dbFactory,
+public sealed class LabDemoRoleService(IDbContextFactory<LabDbContext> dbFactory,
                                        IRoleStoreFactory roleStoreFactory, IUserRoleStoreFactory userRoleStoreFactory)
 {
-    public async Task SetRoleAsync(UserKey targetUserKey, string roleName, bool assigned, CancellationToken ct = default)
+    public async Task SetRoleAsync(AccessContext context, UserKey targetUserKey, string roleName, bool assigned, CancellationToken ct = default)
     {
         // Never accept arbitrary roles.
         if (!LabRoles.IsDemoRole(roleName))
             throw new UnauthorizedAccessException("Only demo roles can be managed here.");
 
-        var context = await contextProvider.CreateAsync(UAuthActions.Authorization.Roles.AssignAdmin, "authorization.roles", ct);
-
-        if (!context.IsAuthenticated ||
+        if (context.ActorTenant != TenantKeys.Single || context.IsCrossTenant || !context.IsAuthenticated ||
             context.IsSystemActor ||
             context.ActorUserKey is not UserKey actorKey)
         {
@@ -85,11 +83,10 @@ public sealed class LabDemoRoleService(LabAccessContextProvider contextProvider,
         }
     }
 
-    public async Task<IReadOnlyList<string>> GetRolesAsync(UserKey targetUserKey, CancellationToken ct = default)
+    public async Task<IReadOnlyList<string>> GetRolesAsync(AccessContext context, UserKey targetUserKey, CancellationToken ct = default)
     {
-        var context = await contextProvider.CreateAsync(UAuthActions.Authorization.Roles.GetAdmin, "authorization.roles", ct);
-
-        if (!context.IsAuthenticated || context.IsSystemActor || context.ActorUserKey is not UserKey actorKey)
+        if (context.ActorTenant != TenantKeys.Single || context.IsCrossTenant || !context.IsAuthenticated ||
+            context.IsSystemActor || context.ActorUserKey is not UserKey actorKey)
         {
             throw new UnauthorizedAccessException();
         }

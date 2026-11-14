@@ -86,6 +86,7 @@ public class RedirectTests
 
         var resolver = TestRedirectResolver.Create();
         var ctx = TestHttpContext.Create();
+        flow.Options.Hub.AllowedClientOrigins.Add("https://app.example.com");
         var decision = resolver.ResolveSuccess(flow, ctx);
         decision.Enabled.Should().BeTrue();
         decision.TargetUrl.Should().Be("https://app.example.com/dashboard");
@@ -225,5 +226,57 @@ public class RedirectTests
         payload!.Flow.Should().Be(AuthFlowType.Login);
         payload.Status.Should().Be("failed");
         payload.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
+    }
+
+    [Fact]
+    public void Absolute_ReturnUrl_Is_Rejected_When_AllowedOrigins_Is_Empty()
+    {
+        var flow = AuthFlowTestFactory.LoginSuccess(
+            returnUrlInfo: ReturnUrlParser.Parse(
+                "https://evil.example/phishing"),
+            redirect: new EffectiveRedirectResponse(
+                enabled: true,
+                successPath: "/welcome",
+                failurePath: null,
+                failureCodes: null,
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false));
+
+        flow.Options.Hub.AllowedClientOrigins.Clear();
+
+        var resolver = TestRedirectResolver.Create();
+        var ctx = TestHttpContext.Create();
+
+        Action act = () => resolver.ResolveSuccess(flow, ctx);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*not allowed*");
+    }
+
+    [Fact]
+    public void Relative_ReturnUrl_Works_Without_AllowedOrigins()
+    {
+        var flow = AuthFlowTestFactory.LoginSuccess(
+            returnUrlInfo: ReturnUrlParser.Parse("/dashboard"),
+            redirect: new EffectiveRedirectResponse(
+                enabled: true,
+                successPath: "/welcome",
+                failurePath: null,
+                failureCodes: null,
+                allowReturnUrlOverride: true,
+                includeLockoutTiming: true,
+                includeRemainingAttempts: false));
+
+        flow.Options.Hub.AllowedClientOrigins.Clear();
+
+        var resolver = TestRedirectResolver.Create();
+        var ctx = TestHttpContext.Create();
+
+        var decision = resolver.ResolveSuccess(flow, ctx);
+
+        decision.Enabled.Should().BeTrue();
+        decision.TargetUrl.Should().Be("https://app.example.com/dashboard");
     }
 }

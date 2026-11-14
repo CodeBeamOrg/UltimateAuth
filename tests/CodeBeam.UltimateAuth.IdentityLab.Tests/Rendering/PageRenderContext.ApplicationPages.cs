@@ -84,6 +84,11 @@ internal sealed partial class PageRenderContext
 
     public void AddDemoStoreServices()
     {
+        Requests.Setup(x => x.SendJsonAsync("/api/lab/manage/demo-permissions", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CodeBeam.UltimateAuth.Client.Contracts.UAuthTransportResult
+            {
+                Ok = true, Status = 200, Body = System.Text.Json.JsonSerializer.SerializeToElement(Array.Empty<string>())
+            });
         AddLabServices();
         var flow = new Mock<IAuthFlow>(MockBehavior.Strict);
         flow.Setup(x => x.BeginAsync(It.IsAny<AuthFlowType>(), It.IsAny<CancellationToken>()))

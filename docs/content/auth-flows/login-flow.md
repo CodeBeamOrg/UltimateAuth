@@ -148,6 +148,18 @@ For eligible credentials, the orchestrator checks that the credential matches th
 
 This gives the login flow a stable orchestration model while keeping credential-specific verification behind dedicated abstractions.
 
+### Dummy Password Verification
+
+Authentication paths that skip password verification can complete with a different computational cost from paths that validate an existing password credential. This can create observable timing differences.
+
+To reduce this discrepancy, UltimateAuth performs dummy password verification when no real password verification occurs, including cases involving unknown identifiers, ineligible accounts, account or factor lockouts, and missing usable credentials.
+
+The dummy hash is generated using the configured password hasher and cached for reuse. Its verification result is always ignored and can never authorize a login.
+
+This mitigation does **not** guarantee constant-time authentication. Identifier resolution, storage access, historical hash parameters, lockout processing, and server scheduling may still produce timing differences.
+
+Both real and dummy verification share the same resource protection mechanism. See [Concurrency Limiting](/docs/security/concurrency-limiting) for capacity and queue configuration.
+
 ### 5. Resolve device-associated session continuity
 
 Before the authority decision, the orchestrator looks for a session chain associated with the resolved user and device. If a chain exists and its state is active under the configured idle timeout, its `ChainId` can be carried into session issuance.

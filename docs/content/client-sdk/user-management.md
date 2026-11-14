@@ -830,13 +830,47 @@ Refresh affected administrative UI data explicitly when needed.
 
 ## 17. Understanding User Status
 
-UltimateAuth separates account lifecycle status from profile information.
+UltimateAuth separates account lifecycle status from authentication sessions and authorization decisions.
 
-A user may be active, suspended, disabled, locked, awaiting activation, or in another supported lifecycle state.
+**A valid session does not automatically grant access to protected application resources.** Authentication establishes who the user is; authorization determines which operations the user may perform.
 
-Status can affect authentication eligibility, session continuation, and authorization.
+Under the default reference user lifecycle model, account status has the following behavior:
 
-However, the exact enforcement behavior depends on the configured server policies and authentication mode.
+| User Status | Authentication | Standard Protected HTTP Resources |
+|---|---|---|
+| `Active` | Allowed | Allowed, subject to other authorization requirements |
+| `Suspended` | Allowed | Denied by default |
+| `SelfSuspended` | Allowed | Denied by default |
+| `Disabled` | Denied | Denied |
+| Other statuses | Determined by authentication eligibility rules | Denied unless explicitly supported by the applicable authorization rules |
+
+`Suspended` and `SelfSuspended` are intentionally different from `Disabled`.
+
+A suspended user may retain a valid authenticated session while having restricted access to application resources. This makes it possible to provide account status information, support workflows, and appropriate recovery experiences without allowing unrestricted access.
+
+`SelfSuspended` users can transition their own status back to `Active` through the permitted self-service operation. Administratively suspended accounts cannot be reactivated through that same self-service transition.
+
+### Default HTTP Authorization
+
+When using the UltimateAuth Server or Resource API ASP.NET Core integration, protected HTTP endpoints enforce active-user authorization by default.
+
+This includes endpoints protected with standard `[Authorize]`, role-based authorization, and registered ASP.NET Core authorization policies.
+
+An explicitly designated endpoint may allow authenticated suspended users through `[UAuthAllowInactive]`. Such an exception does not bypass authentication, role, permission, or other authorization requirements.
+
+### Existing Sessions
+
+Suspending an account does not inherently revoke its authentication session.
+
+Instead, UltimateAuth separates session validity from resource access. Protected HTTP requests evaluate the applicable user status even when the session remains valid.
+
+For an integrated UltimateAuth Server, the current user state is resolved through the server-side runtime provider. For a separate Resource API, the status is obtained from the trusted UAuthHub session-validation response.
+
+This allows authorization changes to take effect on subsequent protected HTTP requests without requiring suspended users to sign out and sign in again.
+
+These HTTP authorization rules do not automatically replace authorization requirements for direct application-service calls or Blazor component rendering.
+
+For details and endpoint examples, see [Authorization](/docs/plugin-domains/authorization).
 
 ### Self-Service and Administrative Statuses
 

@@ -2,7 +2,7 @@
 @using CodeBeam.UltimateAuth.IdentityLab.Authorization
 @using CodeBeam.UltimateAuth.IdentityLab.Services
 
-@inject LabDemoRoleService DemoRoleService
+@inject LabManagementClient Management
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -118,9 +118,11 @@
     private bool _saving;
     private string? _error;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
         await LoadAsync();
+        StateHasChanged();
     }
 
     private async Task LoadAsync()
@@ -130,7 +132,7 @@
 
         try
         {
-            var roles = await DemoRoleService.GetRolesAsync(UserKey);
+            var roles = await Management.SendAsync<List<string>>("/api/lab/manage/demo-roles/query", new { UserKey = UserKey.Value, Role = "", Assigned = false });
 
             _manager = roles.Contains(
                 LabRoles.Manager,
@@ -165,8 +167,8 @@
 
         try
         {
-            await DemoRoleService.SetRoleAsync(
-                UserKey, role, assigned);
+            await Management.SendAsync<bool>("/api/lab/manage/demo-roles",
+                new { UserKey = UserKey.Value, Role = role, Assigned = assigned });
 
             if (role == LabRoles.Manager)
                 _manager = assigned;

@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
+using System.Text.Json.Serialization;
 
 namespace CodeBeam.UltimateAuth.Core.Contracts;
 
@@ -14,7 +15,7 @@ public sealed record PkceCompleteRequest
 
     public required string Secret { get; init; }
 
-    [JsonPropertyName("return_url")]
+    [JsonPropertyName(UAuthConstants.Form.ReturnUrl)]
     public string? ReturnUrl { get; init; }
 
     [JsonPropertyName("hub_session_id")]

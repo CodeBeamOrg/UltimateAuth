@@ -18,11 +18,13 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Authorization;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.Options.Validators;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using CodeBeam.UltimateAuth.Server.Security;
@@ -37,6 +39,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -141,6 +144,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerSessionResolutionOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPaginationOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthConcurrencyLimitingValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthArtifactStoreOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>
@@ -200,6 +205,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IPkceService, PkceService>();
+        services.TryAddScoped<IAuthenticationLockoutService, AuthenticationLockoutService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
@@ -211,6 +217,10 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<IAuthFlowContextAccessor, AuthFlowContextAccessor>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
+
+        services.TryAddSingleton<IUAuthPasswordHashLimiter, UAuthPasswordHashLimiter>();
+        services.TryAddSingleton<LoginPasswordVerificationState>();
+        services.TryAddScoped<LoginPasswordVerification>();
 
         services.TryAddScoped<ISessionOrchestrator, UAuthSessionOrchestrator>();
         services.TryAddScoped<ILoginOrchestrator, LoginOrchestrator>();
@@ -272,6 +282,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshResponsePolicy, RefreshResponsePolicy>();
         services.TryAddScoped<ICredentialSessionPolicy, UAuthCredentialSessionPolicy>();
         services.TryAddSingleton<IAuthStore, InMemoryAuthStore>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, AuthArtifactCleanupService>());
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.TryAddSingleton<IIdentifierNormalizer, IdentifierNormalizer>();
 
@@ -288,6 +299,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
         services.TryAddScoped<IPasswordPolicyEndpointHandler, PasswordPolicyEndpointHandler>();
+        services.TryAddScoped<IAuthenticationLockoutEndpointHandler, AuthenticationLockoutEndpointHandler>();
 
         // ASP.NET Core Integration
         services.AddAuthentication();
@@ -304,6 +316,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.Configure<UAuthLoginIdentifierOptions>(opt =>
         {
@@ -523,6 +536,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IAuthorizationPolicyProvider, UAuthPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
+        services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
         services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
         {

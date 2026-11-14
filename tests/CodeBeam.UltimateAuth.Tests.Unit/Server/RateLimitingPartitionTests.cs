@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using CodeBeam.UltimateAuth.Server.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using System.Net;
+using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -39,9 +40,9 @@ public class RateLimitingPartitionTests
     public void EveryEndpointHasTheReviewedClassification()
     {
         var all = Enum.GetValues<UAuthEndpoint>().Select(UAuthEndpointClassification.Get).ToArray();
-        Assert.Equal(81, all.Length);
-        Assert.Equal(20, all.Count(x => x.Group == UAuthRateLimitGroup.Sensitive));
-        Assert.Equal(56, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
+        Assert.Equal(83, all.Length);
+        Assert.Equal(21, all.Count(x => x.Group == UAuthRateLimitGroup.Sensitive));
+        Assert.Equal(57, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
         Assert.Equal(5, all.Count(x => x.Group == UAuthRateLimitGroup.Frequent));
         Assert.Equal(UAuthRateLimitGroup.Sensitive, UAuthEndpointClassification.Get(UAuthEndpoint.CredentialResetBeginAnonymous).Group);
         Assert.Equal(UAuthRateLimitGroup.Standard, UAuthEndpointClassification.Get(UAuthEndpoint.VerifyUserIdentifierAdmin).Group);

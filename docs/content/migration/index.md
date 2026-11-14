@@ -20,7 +20,7 @@ Preview and release candidate versions are excluded.
 
 | Version | Migration Impact | What's Changed | Migration Guide |
 |---|---|---|---|
-| **v0.2.0 (In Progress)** | **Medium (Provisional)** | Async authorization APIs, authorization checks, and integration changes | [View Guide](/docs/migration/v0.2.0) |
+| **v0.2.0 (In Progress)** | **Medium (Provisional)** | Authorization changes, native login forms, authentication security defaults, concurrency controls, and persistence updates | [View Guide](/docs/migration/v0.2.0) |
 | **v0.1.4** | **Low** | CSRF protection, antiforgery integration, and interface changes | [View Guide](/docs/migration/v0.1.4) |
 | **v0.1.3** | **None** | Session deletion, revocation, and refresh consistency fixes | Not required |
 | **v0.1.2** | **None** | Password change transaction and session revocation fixes | Not required |

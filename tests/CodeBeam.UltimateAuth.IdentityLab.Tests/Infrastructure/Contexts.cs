@@ -11,7 +11,8 @@ internal static class Contexts
     // AccessContext deliberately has no public constructor. Keep reflection confined
     // to this adapter rather than adding production friend assemblies or public APIs.
     public static AccessContext Create(string action, UserKey? actor = null, UserKey? target = null, bool system = false,
-                                       IReadOnlyDictionary<string, object>? attributes = null, IReadOnlyCollection<UserKey>? targets = null)
+                                       IReadOnlyDictionary<string, object>? attributes = null, IReadOnlyCollection<UserKey>? targets = null, string resource = "identitylab.tests",
+                                       TenantKey? actorTenant = null, TenantKey? resourceTenant = null)
     {
         var constructor = typeof(AccessContext).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
 
@@ -19,14 +20,14 @@ internal static class Contexts
             .Select(parameter => parameter.Name switch
             {
                 "actorUserKey" => (object?)actor,
-                "actorTenant" => TenantKeys.Single,
+                "actorTenant" => actorTenant ?? TenantKeys.Single,
                 "isAuthenticated" => actor.HasValue,
                 "isSystemActor" => system,
                 "actorChainId" => null,
                 "actorRoles" => Array.Empty<AccessActorRole>(),
-                "resource" => "identitylab.tests",
+                "resource" => resource,
                 "targetUserKey" => target,
-                "resourceTenant" => TenantKeys.Single,
+                "resourceTenant" => resourceTenant ?? TenantKeys.Single,
                 "action" => action,
                 "attributes" => attributes ?? new Dictionary<string, object>(),
                 "targetUserKeys" => targets,
@@ -39,15 +40,15 @@ internal static class Contexts
         return (AccessContext)constructor.Invoke(args);
     }
 
-    public static CodeBeam.UltimateAuth.Server.Auth.AuthFlowContext AuthenticatedFlow(UserKey actor)
+    public static CodeBeam.UltimateAuth.Server.Auth.AuthFlowContext AuthenticatedFlow(UserKey actor, bool authenticated = true, bool includeActor = true)
     {
         var constructor = typeof(CodeBeam.UltimateAuth.Server.Auth.AuthFlowContext)
             .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
         var args = constructor.GetParameters().Select(parameter => parameter.Name switch
         {
             "tenantKey" => (object)TenantKeys.Single,
-            "isAuthenticated" => true,
-            "userKey" => actor,
+            "isAuthenticated" => authenticated,
+            "userKey" => includeActor ? actor : null,
             _ => parameter.ParameterType.IsValueType ? Activator.CreateInstance(parameter.ParameterType) : null
         }).ToArray();
         return (CodeBeam.UltimateAuth.Server.Auth.AuthFlowContext)constructor.Invoke(args);

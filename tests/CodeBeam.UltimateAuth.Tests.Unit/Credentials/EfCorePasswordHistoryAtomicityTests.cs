@@ -7,6 +7,8 @@ using CodeBeam.UltimateAuth.Credentials.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Credentials.Options;
 using CodeBeam.UltimateAuth.Credentials.Policies;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
+using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -130,11 +132,14 @@ public sealed class EfCorePasswordHistoryAtomicityTests
             historyFactory.Setup(x => x.Create(Tenant))
                 .Returns(failingHistory.Object);
 
+            using var limiter = new UAuthPasswordHashLimiter(Microsoft.Extensions.Options.Options.Create(new UAuthServerOptions()));
+
             var writer = new PasswordCredentialWriter(
                 pipeline.Object,
                 credentialFactory.Object,
                 historyFactory.Object,
-                hasher.Object);
+                hasher.Object,
+                limiter);
 
             await using var transaction =
                 await db.Database.BeginTransactionAsync(cancellationToken: TestContext.Current.CancellationToken);

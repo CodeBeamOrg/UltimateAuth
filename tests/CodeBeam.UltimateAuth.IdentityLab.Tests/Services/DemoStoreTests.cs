@@ -36,12 +36,12 @@ public sealed class DemoStoreTests(PostgresFixture postgres) : IClassFixture<Pos
             });
         var roles = new Mock<IRoleStoreFactory>();
         roles.Setup(x => x.Create(It.IsAny<TenantKey>())).Returns(store.Object);
-        var service = new LabDemoStoreService(ActorProvider.For(LabDatabase.MemberA), db, roles.Object, users.Object);
-        var actual = await service.GetPermissionsAsync(TestContext.Current.CancellationToken);
+        var service = new LabDemoStoreService(db, roles.Object, users.Object);
+        var actual = await service.GetPermissionsAsync(Contexts.Create("demo.products.read", LabDatabase.MemberA), TestContext.Current.CancellationToken);
         Assert.True(actual.SetEquals(expected));
-        await service.RequireAsync(LabDemoPermissions.ProductsRead, TestContext.Current.CancellationToken);
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RequireAsync("users.delete.admin", TestContext.Current.CancellationToken));
+        await service.RequireAsync(Contexts.Create("demo.products.read", LabDatabase.MemberA), LabDemoPermissions.ProductsRead, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RequireAsync(Contexts.Create("demo.products.read", LabDatabase.MemberA), "users.delete.admin", TestContext.Current.CancellationToken));
         await db.SetStatusAsync(SandboxStatus.Suspended);
-        Assert.Empty(await service.GetPermissionsAsync(TestContext.Current.CancellationToken));
+        Assert.Empty(await service.GetPermissionsAsync(Contexts.Create("demo.products.read", LabDatabase.MemberA), TestContext.Current.CancellationToken));
     }
 }

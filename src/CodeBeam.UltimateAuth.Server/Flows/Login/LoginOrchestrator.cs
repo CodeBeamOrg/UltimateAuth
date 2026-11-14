@@ -30,6 +30,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
     private readonly ISessionStoreFactory _storeFactory;
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
+    private readonly LoginPasswordVerification _passwordVerification;
     private readonly IClock _clock;
 
     public LoginOrchestrator(
@@ -43,6 +44,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         ISessionStoreFactory storeFactory,
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
+        LoginPasswordVerification passwordVerification,
         IClock clock)
     {
         _identifierResolver = identifierResolver;
@@ -55,6 +57,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         _storeFactory = storeFactory;
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
+        _passwordVerification = passwordVerification;
         _clock = clock;
     }
 
@@ -77,6 +80,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         bool userExists = false;
         bool credentialsValid = false;
+        bool performedPasswordVerification = false;
 
         AuthenticationSecurityState? accountState = null;
         AuthenticationSecurityState? factorState = null;
@@ -91,14 +95,16 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
                 if (accountState.IsLocked(now))
                 {
-                    return LoginResult.Failed(AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
+                    await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
+                    return CreateFailure(flow, AuthFailureReason.LockedOut, accountState.LockedUntil, remainingAttempts: 0);
                 }
 
                 factorState = await _authenticationSecurityManager.GetOrCreateFactorAsync(flow.Tenant, userKey.Value, request.CredentialType, ct);
 
                 if (factorState.IsLocked(now))
                 {
-                    return LoginResult.Failed(AuthFailureReason.LockedOut, factorState.LockedUntil, 0);
+                    await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
+                    return CreateFailure(flow, AuthFailureReason.LockedOut, factorState.LockedUntil, remainingAttempts: 0);
                 }
 
                 foreach (var provider in _credentialProviders)
@@ -110,7 +116,9 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         if (credential.Type != request.CredentialType || credential.IsDeleted || !credential.Security.IsUsable(now))
                             continue;
 
-                        if (await provider.ValidateAsync(credential, request.Secret, ct))
+                        performedPasswordVerification = true;
+
+                        if (await _passwordVerification.VerifyCredentialAsync(provider, credential, request.Secret, ct))
                         {
                             credentialsValid = true;
                             break;
@@ -121,6 +129,11 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                         break;
                 }
             }
+        }
+
+        if (!performedPasswordVerification)
+        {
+            await _passwordVerification.VerifyDummyAsync(request.Secret, ct);
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency
@@ -193,16 +206,16 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                     }
                 }
 
-
-                return LoginResult.Failed(
+                return CreateFailure(
+                    flow,
                     factorState.IsLocked(now)
                         ? AuthFailureReason.LockedOut
-                        : decision.FailureReason,
+                        : decision.FailureReason ?? AuthFailureReason.InvalidCredentials,
                     lockedUntil,
                     remainingAttempts);
             }
 
-            return LoginResult.Failed(decision.FailureReason);
+            return CreateFailure(flow, decision.FailureReason ?? AuthFailureReason.InvalidCredentials);
         }
 
 
@@ -215,7 +228,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         }
 
         if (!credentialsValid || userKey is null)
-            return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
+            return CreateFailure(flow, AuthFailureReason.InvalidCredentials);
 
         // After this point, the login is successful. We can reset any failure counts and proceed to create a session.
         if (loginExecution.Mode == LoginExecutionMode.Preview)
@@ -278,5 +291,13 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, issuedSession.Session.SessionId));
 
         return LoginResult.Success(issuedSession.Session.SessionId, tokens);
+    }
+
+    private static LoginResult CreateFailure(AuthFlowContext flow, AuthFailureReason reason, DateTimeOffset? lockedUntil = null, int? remainingAttempts = null)
+    {
+        if (!flow.Options.Login.IncludeFailureDetails)
+            return LoginResult.Failed(AuthFailureReason.InvalidCredentials);
+
+        return LoginResult.Failed(reason, lockedUntil, remainingAttempts);
     }
 }

@@ -65,7 +65,7 @@ public static class UAuthAuthenticationModelBuilder
             e.Property(x => x.ResetAttempts)
                 .IsRequired();
 
-            e.HasIndex(x => new { x.Tenant, x.UserKey, x.Scope, x.CredentialType }).IsUnique();
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.Scope, x.CredentialType }).IsUnique().HasAnnotation("Npgsql:NullsDistinct", false);
             e.HasIndex(x => new { x.Tenant, x.UserKey });
             e.HasIndex(x => new { x.Tenant, x.LockedUntil });
             e.HasIndex(x => new { x.Tenant, x.ResetRequestedAt });
