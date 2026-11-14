@@ -5,6 +5,9 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
+using CodeBeam.UltimateAuth.Server.ConcurrencyLimiting;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Credentials;
@@ -77,10 +80,13 @@ public sealed class UAuthPasswordHistoryValidatorTests
             .Returns((PasswordHash hash, string password) =>
                 hash == Hash(password));
 
+        var limiter = new UAuthPasswordHashLimiter(Options.Create(new UAuthServerOptions()));
+
         var validator = new UAuthPasswordHistoryValidator(
             credentialFactory.Object,
             historyFactory.Object,
-            hasher.Object);
+            hasher.Object,
+            limiter);
 
         return new TestFixture(
             key, user, validator,

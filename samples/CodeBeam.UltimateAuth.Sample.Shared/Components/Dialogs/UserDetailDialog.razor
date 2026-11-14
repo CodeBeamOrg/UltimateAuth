@@ -23,22 +23,18 @@
         <div class="lab-user-detail-content">
             @if (PreviewMode)
             {
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Outlined"
-                          Dense="true">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
                     Preview mode is active. User management actions are disabled.
                 </MudAlert>
             }
 
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true"
-                                   Color="Color.Primary" />
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
             }
             else if (_loadError is not null)
             {
-                <MudAlert Severity="Severity.Error"
-                          Variant="Variant.Outlined">
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
                     @_loadError
                 </MudAlert>
             }
@@ -46,8 +42,7 @@
             {
                 <div class="lab-user-detail-identity">
                     <div class="lab-user-detail-avatar">
-                        <MudIcon Icon="@Icons.Material.Filled.Person"
-                                 Size="Size.Large" />
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
                     </div>
 
                     <div class="lab-user-detail-identity-info">
@@ -55,10 +50,7 @@
                         <span>@UserName</span>
                     </div>
 
-                    <MudChip T="string"
-                             Size="Size.Small"
-                             Color="@GetStatusColor(CurrentStatus)"
-                             Variant="Variant.Outlined">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(CurrentStatus)" Variant="Variant.Outlined">
                         @CurrentStatus
                     </MudChip>
                 </div>
@@ -108,12 +100,7 @@
                 </div>
 
                 <div class="lab-user-detail-status">
-                    <MudSelect T="AdminAssignableUserStatus"
-                               @bind-Value="_status"
-                               Label="Account Status"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               Disabled="@(_isSubmitting || PreviewMode)">
+                    <MudSelect T="AdminAssignableUserStatus" @bind-Value="_status" Label="Account Status" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(_isSubmitting || PreviewMode)">
                         @foreach (var status in Enum.GetValues<AdminAssignableUserStatus>())
                         {
                             <MudSelectItem T="AdminAssignableUserStatus" Value="@status">
@@ -127,6 +114,127 @@
                         Update Status
                     </MudLoadingButton>
                 </div>
+
+                <MudDivider />
+
+                <div class="lab-user-detail-section-heading">
+                    <strong>Authentication Security</strong>
+                    <span>Inspect authentication failures and unlock access.</span>
+                </div>
+
+                @if (_securityLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (!string.IsNullOrWhiteSpace(_securityError))
+                {
+                    <MudAlert Severity="Severity.Error"
+                              Variant="Variant.Outlined">
+                        @_securityError
+                    </MudAlert>
+                }
+
+                <MudStack Spacing="3">
+                    @foreach (var item in _securityItems)
+                    {
+                        <MudPaper @key="item.Scope"
+                                  Outlined="true"
+                                  Class="pa-3">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true"
+                                          AlignItems="AlignItems.Center"
+                                          Justify="Justify.SpaceBetween">
+
+                                    <MudText Typo="Typo.subtitle2">
+                                        @item.Title
+                                    </MudText>
+
+                                    @if (item.State is not null)
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="@(item.State.IsLocked
+                                                     ? Color.Error
+                                                     : Color.Success)"
+                                                 Variant="Variant.Outlined">
+                                            @(item.State.IsLocked
+                                                ? "Locked"
+                                                : "Unlocked")
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string"
+                                                 Size="Size.Small"
+                                                 Color="Color.Default">
+                                            Unknown
+                                        </MudChip>
+                                    }
+                                </MudStack>
+
+                                @if (item.State is not null)
+                                {
+                                    <MudText Typo="Typo.body2">
+                                        Failed attempts: @item.State.FailedAttempts
+                                    </MudText>
+
+                                    @if (item.State.LastFailedAt is not null)
+                                    {
+                                        <MudText Typo="Typo.caption"
+                                                 Color="Color.Secondary">
+                                            Last failure:
+                                            @FormatSecurityTime(item.State.LastFailedAt)
+                                        </MudText>
+                                    }
+
+                                    @if (item.State.LockedUntil is not null)
+                                    {
+                                        <MudText Typo="Typo.caption"
+                                                 Color="Color.Secondary">
+                                            Locked until:
+                                            @FormatSecurityTime(item.State.LockedUntil)
+                                        </MudText>
+                                    }
+
+                                    @if (item.State.RequiresReauthentication)
+                                    {
+                                        <MudAlert Severity="Severity.Warning"
+                                                  Dense="true">
+                                            Reauthentication is required.
+                                        </MudAlert>
+                                    }
+                                }
+
+                                <MudStack Row="true"
+                                          Justify="Justify.FlexEnd">
+                                    <MudLoadingButton Variant="Variant.Outlined"
+                                                      Color="Color.Primary"
+                                                      Size="Size.Small"
+                                                      Loading="@item.Unlocking"
+                                                      Disabled="@(
+                                                      PreviewMode ||
+                                                      _securityLoading ||
+                                                      _securityBusy ||
+                                                      !CanUnlock(item))"
+                                                      OnClick="@(() => UnlockSecurityAsync(item))">
+                                        Unlock
+                                    </MudLoadingButton>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="@(
+                               PreviewMode ||
+                               _securityLoading ||
+                               _securityBusy)"
+                               OnClick="LoadSecurityAsync">
+                        Refresh Security State
+                    </MudButton>
+                </MudStack>
 
                 <MudDivider />
 

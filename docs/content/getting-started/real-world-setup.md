@@ -719,6 +719,18 @@ For permission-specific rules, configure and apply the corresponding authorizati
 
 Do not rely on Blazor UI authorization checks to protect Resource API endpoints.
 
+### Account Status Enforcement
+
+Protected Resource API endpoints enforce active-user authorization by default, including endpoints using `[Authorize]` and role-based authorization.
+
+The Resource API obtains the current user status through trusted UAuthHub session validation. Suspended and SelfSuspended users remain authenticated but cannot access ordinary protected resources.
+
+To allow specific operations for suspended users, explicitly apply `[UAuthAllowInactive]` alongside `[Authorize]`.
+
+The exception does not bypass other authorization requirements.
+
+For the complete behavior and examples, see [Authorization](/docs/plugin-domains/authorization).
+
 ### CORS configuration
 
 The current Resource API integration registers CORS from the configured allowed origins.

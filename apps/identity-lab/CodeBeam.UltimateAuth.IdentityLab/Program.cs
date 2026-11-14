@@ -48,6 +48,7 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Session.IdleTimeout = TimeSpan.FromDays(4);
     o.Login.MaxFailedAttempts = 3;
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
+    o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
 
 

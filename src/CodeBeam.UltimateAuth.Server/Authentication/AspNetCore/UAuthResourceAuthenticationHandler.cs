@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -58,6 +59,8 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
 
         if (!result.IsValid || result.UserKey is null)
             return AuthenticateResult.NoResult();
+
+        Context.Items[UAuthConstants.HttpItems.SessionValidationResult] = result;
 
         var claims = new List<Claim>
         {

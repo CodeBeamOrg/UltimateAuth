@@ -29,6 +29,42 @@
 
 <MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
     <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center">
+        <MudStack Spacing="3" Class="text-center ua-vision" Justify="Justify.Center" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.subtitle2" Class="ua-vision-highlight">Vision of UltimateAuth</MudText>
+            <MudIcon Class="ua-vision-icon-wrapper mt-n1" Style="width: 72px; height: 72px" Icon="@Icons.Material.Filled.EmojiObjects"
+                     Color="Color.Primary" @onmouseenter="() => Layout.SetVisionOverlay(true)"
+                     @onmouseleave="() => Layout.SetVisionOverlay(false)" />
+
+            <MudText Typo="Typo.h4" Class="ua-vision-title mt-8">
+                AUTHENTICATION IS COMPLEX.<br />
+                USING IT SHOULDN’T BE.
+            </MudText>
+
+            <MudText Typo="Typo.body1" Class="ua-vision-text">
+                Security is not about a single “correct” flow.
+                It’s about adapting to context — users, devices, environments and risk.
+                Flexibility brings real security.
+            </MudText>
+
+            <MudText Typo="Typo.caption" Class="ua-vision-footer">
+                Built from real-world Blazor and .NET application needs — not theoretical models.
+            </MudText>
+
+            <MudText Typo="Typo.body2" Class="ua-vision-next mt-6">
+                Discover how this vision becomes reality — from developer experience to the engineering behind it.
+            </MudText>
+            
+            <div class="ua-vision-scroll-cue" aria-hidden="true">
+                <span class="ua-vision-scroll-arrow"></span>
+            </div>
+        </MudStack>
+    </MudContainer>
+</MudPage>
+
+<div class="ua-separator"></div>
+
+<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center">
         <MudStack Spacing="0" Class="mb-8">
             <MudText Typo="Typo.h4"><b>Why UltimateAuth?</b></MudText>
             <MudText Typo="Typo.body1" Class="text-secondary">
@@ -61,34 +97,161 @@
 
 <div class="ua-separator"></div>
 
-<MudPage FullScreen="FullScreen.Full" Row="1" Column="1">
-    <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center">
-        <MudStack Spacing="3" Class="text-center ua-vision" Justify="Justify.Center" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.subtitle2" Class="ua-vision-highlight">Vision of UltimateAuth</MudText>
-            <MudIcon Class="ua-vision-icon-wrapper mt-n1" Style="width: 72px; height: 72px" Icon="@Icons.Material.Filled.EmojiObjects" 
-                     Color="Color.Primary" @onmouseenter="() => Layout.SetVisionOverlay(true)"
-                     @onmouseleave="() => Layout.SetVisionOverlay(false)" />
+<section class="ua-engineering-section"
+         aria-labelledby="ua-engineering-heading">
 
-            <MudText Typo="Typo.h4" Class="ua-vision-title mt-8">
-                AUTHENTICATION IS COMPLEX.<br />
-                USING IT SHOULDN’T BE.
+    <MudContainer MaxWidth="MaxWidth.Large">
+
+        <div class="ua-engineering-heading">
+            <MudText Typo="Typo.overline"
+                     Class="ua-engineering-eyebrow">
+                UNDER THE HOOD
             </MudText>
 
-            <MudText Typo="Typo.body1" Class="ua-vision-text">
-                Security is not about a single “correct” flow.
-                It’s about adapting to context — users, devices, environments and risk.
+            <MudText Typo="Typo.h3"
+                     id="ua-engineering-heading"
+                     Class="ua-engineering-title">
+                <b>Engineered for Trust.</b>
             </MudText>
 
-            <MudText Typo="Typo.subtitle2" Class="ua-vision-highlight">
-                Flexibility brings real security.
+            <MudText Typo="Typo.body1"
+                     Class="ua-engineering-description">
+                Beyond simple APIs lies a carefully designed
+                foundation for security, consistency and control.
             </MudText>
+        </div>
 
-            <MudText Typo="Typo.caption" Class="ua-vision-footer">
-                Built from real-world Blazor and .NET application needs — not theoretical models.
-            </MudText>
-        </MudStack>
+        <MudGrid Spacing="4" Class="ua-engineering-grid">
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="ua-engineering-panel">
+
+                    <div class="ua-engineering-panel-header">
+                        <MudIcon Icon="@Icons.Material.Outlined.Security"
+                                 Size="Size.Large"
+                                 Color="Color.Primary" />
+
+                        <div>
+                            <MudText Typo="Typo.h5">
+                                <b>Security</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.body2"
+                                     Class="text-secondary">
+                                Defense at every authentication boundary.
+                            </MudText>
+                        </div>
+                    </div>
+
+                    <div class="ua-engineering-features">
+
+                        @foreach (var feature in SecurityFeatures)
+                        {
+                            <div class="ua-engineering-feature">
+                                <div class="ua-engineering-feature-mark">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Check"
+                                             Size="Size.Small" />
+                                </div>
+
+                                <div class="ua-engineering-feature-content">
+                                    <MudText Typo="Typo.subtitle2">
+                                        @feature.Title
+                                    </MudText>
+
+                                    <MudText Typo="Typo.body2"
+                                             Class="text-secondary">
+                                        @feature.Description
+                                    </MudText>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+
+                    <div class="ua-engineering-panel-footer">
+                        <MudLink Href="/docs/security/session-security"
+                                 Typo="Typo.body2"
+                                 Color="Color.Primary">
+                            Explore Security
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                     Size="Size.Small" />
+                        </MudLink>
+                    </div>
+
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true"
+                          Class="ua-engineering-panel">
+
+                    <div class="ua-engineering-panel-header">
+                        <MudIcon Icon="@Icons.Material.Outlined.AccountTree"
+                                 Size="Size.Large"
+                                 Color="Color.Primary" />
+
+                        <div>
+                            <MudText Typo="Typo.h5">
+                                <b>Reliability & Control</b>
+                            </MudText>
+
+                            <MudText Typo="Typo.body2"
+                                     Class="text-secondary">
+                                Consistent operations. Predictable lifecycles.
+                            </MudText>
+                        </div>
+                    </div>
+
+                    <div class="ua-engineering-features">
+
+                        @foreach (var feature in EngineeringFeatures)
+                        {
+                            <div class="ua-engineering-feature">
+                                <div class="ua-engineering-feature-mark">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Check"
+                                             Size="Size.Small" />
+                                </div>
+
+                                <div class="ua-engineering-feature-content">
+                                    <MudText Typo="Typo.subtitle2">
+                                        @feature.Title
+                                    </MudText>
+
+                                    <MudText Typo="Typo.body2"
+                                             Class="text-secondary">
+                                        @feature.Description
+                                    </MudText>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+
+                    <div class="ua-engineering-panel-footer">
+                        <MudLink Href="/docs/fundamentals/runtime-architecture"
+                                 Typo="Typo.body2"
+                                 Color="Color.Primary">
+                            Explore Architecture
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                     Size="Size.Small" />
+                        </MudLink>
+                    </div>
+
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+        <MudText Typo="Typo.caption"
+                 Class="ua-engineering-footnote">
+            Capabilities depend on authentication mode and
+            configured providers. See the documentation
+            for supported configurations and implementation details.
+        </MudText>
+
     </MudContainer>
-</MudPage>
+</section>
+
 
 <div class="ua-separator"></div>
 
@@ -121,18 +284,14 @@
                     <MudText Typo="Typo.body1"
                              Class="ua-lab-description my-2">
                         Go beyond documentation and code samples.
-                        Explore UltimateAuth inside a real,
-                        interactive Blazor application.
+                        Explore UltimateAuth inside a real, interactive Blazor application.
                     </MudText>
 
                     <MudText Typo="Typo.body1"
                              Class="ua-lab-description my-2">
-                        Create your own sandbox, manage identities,
-                        inspect sessions, experiment with credentials
-                        and explore authorization — all powered by
-                        UltimateAuth.
+                        Create your own sandbox, manage identities, inspect sessions, experiment with credentials
+                        and explore authorization — all powered by UltimateAuth.
                     </MudText>
-
                 </div>
 
                 <MudGrid Spacing="3" Class="ua-lab-features">
@@ -378,6 +537,100 @@
         new(Icons.Material.Outlined.Groups, "Advanced User Management",
             "Support for multi-profile and multi-identifier users with a full lifecycle model. Go beyond basic identity systems with flexible, real-world user modeling.")
     };
+
+    private readonly record struct TechnicalFeature(
+        string Title,
+        string Description);
+
+    private readonly List<TechnicalFeature> SecurityFeatures =
+    [
+        new(
+        "Argon2id Password Hashing",
+        "Memory-hard credential protection."),
+
+        new(
+            "Dummy Password Verification",
+            "Reduced login timing differences."),
+
+        new(
+            "CSRF & Antiforgery Protection",
+            "Protected state-changing authentication flows."),
+
+        new(
+            "PKCE (S256)",
+            "Proof-bound authorization flows."),
+
+        new(
+            "Refresh Rotation & Reuse Detection",
+            "Replay-aware credential renewal."),
+
+        new(
+            "Account & Factor Lockout",
+            "Configurable failed-attempt protection."),
+
+        new(
+            "Rate Limiting",
+            "Endpoint and request abuse protection."),
+
+        new(
+            "Concurrency Limiting",
+            "Bounded expensive hashing operations."),
+
+        new(
+            "Password Policies & History",
+            "Configurable validation and reuse prevention."),
+
+        new(
+            "Secure Credential Recovery",
+            "Expiring, single-use recovery proofs."),
+
+        new(
+            "Policy-Based Authorization",
+            "Roles, permissions and contextual decisions."),
+
+        new(
+            "Tenant & Actor Isolation",
+            "Explicit security and ownership boundaries.")
+    ];
+
+    private readonly List<TechnicalFeature> EngineeringFeatures =
+    [
+        new(
+        "Atomic Operations",
+        "Coordinated transactional state changes."),
+
+        new(
+            "Optimistic Concurrency",
+            "Version-aware conflict detection."),
+
+        new(
+            "Soft Delete",
+            "Explicit, non-destructive account lifecycle."),
+
+        new(
+            "Session Lineage",
+            "Root, Chain and Session lifecycle tracking."),
+
+        new(
+            "Multi-Identifier Identity Model",
+            "Independent identifiers and ownership rules."),
+
+        new(
+            "Structured User Profiles",
+            "Profile metadata and validation boundaries."),
+
+        new(
+            "Pluggable Persistence",
+            "In-memory and EF Core implementations."),
+
+        new(
+            "Extensible Credential Providers",
+            "Provider-based credential validation."),
+
+        new(
+            "Client Profile Resolution",
+            "Context-aware authentication integration.")
+    ];
 
     record Principle(string Icon, string Title, string Description);
 

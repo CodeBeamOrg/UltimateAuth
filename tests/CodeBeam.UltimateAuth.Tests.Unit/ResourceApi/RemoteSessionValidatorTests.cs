@@ -416,6 +416,38 @@ public sealed class RemoteSessionValidatorTests
         handler.DeviceId.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(UserStatus.Active)]
+    [InlineData(UserStatus.Suspended)]
+    [InlineData(UserStatus.SelfSuspended)]
+    [InlineData(UserStatus.Disabled)]
+    public void ToDomain_ShouldPreserveValidatedUserStatus(UserStatus status)
+    {
+        var dto = new AuthValidationResult
+        {
+            State = SessionState.Active,
+            ChainId = SessionChainId.New(),
+            RootId = SessionRootId.New(),
+            Snapshot = new AuthStateSnapshot
+            {
+                Identity = new AuthIdentitySnapshot
+                {
+                    Tenant = Tenant,
+                    UserKey = UserKey.FromString("user-1"),
+                    UserStatus = status
+                },
+                Claims = ClaimsSnapshot.Empty
+            }
+        };
+
+        var sessionId = AuthSessionId.Parse(SessionValue, null);
+
+        var result = SessionValidationMapper.ToDomain(dto, sessionId);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(status, result.UserStatus);
+    }
+
 
     private static RemoteSessionValidator CreateSut(TestHttpMessageHandler handler, HttpContext? httpContext = null)
     {

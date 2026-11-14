@@ -1,6 +1,6 @@
 ---
 title: Rate Limiting
-order: 8
+order: 9
 group: security
 ---
 
@@ -13,6 +13,8 @@ Rate limiting helps reduce excessive authentication requests, credential attacks
 The server enforces request limits. UltimateAuth clients recognize throttled responses, preserve valid authentication state, and defer selected background operations when appropriate.
 
 No additional rate limiting package is required.
+
+> Rate limiting controls request frequency, while [Concurrency Limiting](/docs/security/concurrency-limiting) restricts the number of expensive password hashing operations executing simultaneously. Both protections are enabled independently and complement each other.
 
 ## Getting started
 
@@ -39,8 +41,6 @@ app.UseForwardedHeaders();
 app.UseRouting();
 
 app.UseUltimateAuthWithAspNetCore();
-
-app.UseAntiforgery();
 
 app.MapUltimateAuthEndpoints();
 app.MapUAuthHub();

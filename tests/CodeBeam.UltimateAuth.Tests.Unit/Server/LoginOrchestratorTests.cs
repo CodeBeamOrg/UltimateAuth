@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Authentication.InMemory;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -8,10 +9,11 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -703,5 +705,158 @@ public class LoginOrchestratorTests
             CredentialType.Password, ct: TestContext.Current.CancellationToken);
 
         (state?.FailedAttempts ?? 0).Should().Be(0);
+    }
+
+
+    [Fact]
+    public async Task UnknownIdentifier_ShouldPerformOneDummyVerification()
+    {
+        var hasher = new CountingPasswordHasher();
+        var runtime = CreateCountingRuntime(hasher);
+
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var result = await runtime.GetLoginOrchestrator().LoginAsync(
+            flow,
+            new LoginRequest
+            {
+                Identifier = "nonexistent-user",
+                Secret = "incorrect-password"
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeFalse();
+
+        hasher.HashCount.Should().Be(1);
+        hasher.DummyCount.Should().Be(1);
+        hasher.RealCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task WrongPassword_ShouldPerformRealVerificationWithoutDummy()
+    {
+        var hasher = new CountingPasswordHasher();
+        var runtime = CreateCountingRuntime(hasher);
+
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var result = await runtime.GetLoginOrchestrator().LoginAsync(
+            flow,
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "incorrect-password"
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeFalse();
+
+        hasher.HashCount.Should().Be(0);
+        hasher.RealCount.Should().Be(1);
+        hasher.DummyCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AlreadyLockedUser_ShouldPerformDummyVerification()
+    {
+        var hasher = new CountingPasswordHasher();
+
+        var runtime = CreateCountingRuntime(
+            hasher,
+            options => options.Login.MaxFailedAttempts = 1);
+
+        var flow = await runtime.CreateLoginFlowAsync();
+
+        var orchestrator = runtime.GetLoginOrchestrator();
+
+        await orchestrator.LoginAsync(
+            flow,
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "wrong-password"
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        // Ignore the verification which caused the lockout.
+        hasher.Reset();
+
+        var result = await orchestrator.LoginAsync(
+            flow,
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "user"
+            },
+            ct: TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeFalse();
+
+        hasher.RealCount.Should().Be(0);
+        hasher.DummyCount.Should().Be(1);
+    }
+
+
+    private sealed class CountingPasswordHasher : IUAuthPasswordHasher
+    {
+        private readonly TestPasswordHasher _inner = new();
+
+        private int _hashCount;
+        private int _realCount;
+        private int _dummyCount;
+
+        public int HashCount => Volatile.Read(ref _hashCount);
+        public int RealCount => Volatile.Read(ref _realCount);
+        public int DummyCount => Volatile.Read(ref _dummyCount);
+
+        public PasswordHash Hash(string password)
+        {
+            Interlocked.Increment(ref _hashCount);
+            return _inner.Hash(password);
+        }
+
+        public bool Verify(PasswordHash hash, string secret)
+        {
+            if (hash.Hash.StartsWith("TEST::", StringComparison.Ordinal) &&
+                hash.Hash.Length == "TEST::".Length + 64)
+            {
+                Interlocked.Increment(ref _dummyCount);
+            }
+            else
+            {
+                Interlocked.Increment(ref _realCount);
+            }
+
+            return _inner.Verify(hash, secret);
+        }
+
+        public bool NeedsRehash(PasswordHash hash)
+            => _inner.NeedsRehash(hash);
+
+        public void Reset()
+        {
+            Interlocked.Exchange(ref _hashCount, 0);
+            Interlocked.Exchange(ref _realCount, 0);
+            Interlocked.Exchange(ref _dummyCount, 0);
+        }
+    }
+
+    private static TestAuthRuntime<UserKey> CreateCountingRuntime(
+    CountingPasswordHasher hasher,
+    Action<UAuthServerOptions>? configureServer = null)
+    {
+        var runtime = new TestAuthRuntime<UserKey>(
+            configureServer: configureServer,
+            configureServices: services =>
+            {
+                services.RemoveAll<IUAuthPasswordHasher>();
+                services.AddSingleton<IUAuthPasswordHasher>(hasher);
+            });
+
+        // SeedRunner may create password hashes.
+        // Count only the login operation.
+        hasher.Reset();
+
+        return runtime;
     }
 }

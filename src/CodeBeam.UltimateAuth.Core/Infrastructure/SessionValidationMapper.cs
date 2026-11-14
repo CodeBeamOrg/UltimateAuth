@@ -47,7 +47,8 @@ public static class SessionValidationMapper
             rootId: rootId,
             claims: dto.Snapshot.Claims,
             authenticatedAt: identity.AuthenticatedAt ?? DateTimeOffset.UtcNow,
-            boundDeviceId: dto.BoundDeviceId);
+            boundDeviceId: dto.BoundDeviceId,
+            userStatus: identity.UserStatus);
     }
 
     public static SessionSecurityContext? ToSecurityContext(SessionValidationResult result)

@@ -68,12 +68,22 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
         // Failure payload
         if (failureReason is not null)
         {
+            var publicReason = failureReason;
+
+            if (flow.FlowType == AuthFlowType.Login &&
+                !flow.Options.Login.IncludeFailureDetails &&
+                loginResult is not null &&
+                !loginResult.IsSuccess)
+            {
+                publicReason = AuthFailureReason.InvalidCredentials;
+            }
+
             var payload = new AuthFlowPayload
             {
                 V = 1,
                 Flow = flow.FlowType,
                 Status = "failed",
-                Reason = failureReason
+                Reason = publicReason
             };
 
             if (flow.FlowType == AuthFlowType.Login && loginResult is not null && flow.Options.Login.IncludeFailureDetails)
@@ -97,14 +107,12 @@ internal sealed class AuthRedirectResolver : IAuthRedirectResolver
 
     private static void ValidateAllowed(string baseAddress, UAuthServerOptions options)
     {
-        if (options.Hub.AllowedClientOrigins.Count == 0)
-            return;
-
         var normalized = OriginHelper.Normalize(baseAddress);
 
-        if (!options.Hub.AllowedClientOrigins.Any(o => OriginHelper.Normalize(o) == normalized))
+        if (!options.Hub.AllowedClientOrigins.Any(origin => OriginHelper.Normalize(origin) == normalized))
         {
-            throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed.");
+            throw new InvalidOperationException($"Redirect to '{baseAddress}' is not allowed. " +
+                "The origin is not present in AllowedClientOrigins.");
         }
     }
 }

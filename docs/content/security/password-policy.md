@@ -200,6 +200,14 @@ The reference password-history validator also checks whether the submitted passw
 
 Password history compares password candidates against protected password representations; it does not require retaining previous passwords in plaintext.
 
+### Performance Considerations
+
+Password history validation requires a separate password hash verification for the current credential and each stored historical credential. These checks can be CPU and memory-intensive, particularly with Argon2.
+
+For example, `RememberLast = 3` may require four password verifications, followed by hashing the new password if validation succeeds.
+
+Choose the history depth according to your application's security requirements and expected workload rather than automatically selecting the maximum. UltimateAuth applies [Concurrency Limiting](/docs/security/concurrency-limiting) to these hashing operations to help protect shared server resources.
+
 ### Persistence
 
 Password history requires an appropriate history store.
@@ -243,11 +251,11 @@ Applications should also consider secure password hashing, transport security, l
 
 Changing a password may also affect existing authentication sessions, depending on the configured credential session policy.
 
-See [Session Security Model](/docs/security/session-security) for the relevant session security boundaries.
+See [Session Security](/docs/security/session-security) for the relevant session security boundaries.
 
 ## Next Steps
 
 - [Credentials Domain](/docs/plugin-domains/credentials) — Understand credential ownership, validation, and lifecycle.
 - [Client SDK — Credentials](/docs/client/credentials) — Retrieve password requirements and implement credential-management flows.
 - [Real-World Setup](/docs/getting-started/real-world-setup) — Configure UltimateAuth in a real application.
-- [Session Security Model](/docs/security/session-security) — Understand the security consequences of credential changes.
+- [Session Security](/docs/security/session-security) — Understand the security consequences of credential changes.

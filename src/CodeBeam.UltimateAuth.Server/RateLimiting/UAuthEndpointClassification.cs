@@ -87,6 +87,9 @@ internal static class UAuthEndpointClassification
         UAuthEndpoint.HubEntry => new(endpoint, UAuthRateLimitGroup.Sensitive, true),
         UAuthEndpoint.PasswordPolicy => new(endpoint, UAuthRateLimitGroup.Standard, true),
         UAuthEndpoint.AntiforgeryToken => new(endpoint, UAuthRateLimitGroup.Frequent, false),
+        UAuthEndpoint.GetAuthenticationLockoutAdmin => new(endpoint, UAuthRateLimitGroup.Standard, false),
+        UAuthEndpoint.UnlockAuthenticationAdmin => new(endpoint, UAuthRateLimitGroup.Sensitive, false),
+
         _ => throw new ArgumentOutOfRangeException(nameof(endpoint))
     };
 }

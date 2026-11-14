@@ -21,8 +21,13 @@ public sealed class UAuthLoginOptions
     /// <summary>
     /// Gets or sets a value indicating whether detailed information about authentication failures (like locked until or
     /// remaining attempts) is included in responses.
+    /// Disabled by default to reduce account enumeration risks.
     /// </summary>
-    public bool IncludeFailureDetails { get; set; } = true;
+    /// <remarks>
+    /// Enabling this option may reveal account existence or lockout state
+    /// to unauthenticated clients. Use only when this disclosure is acceptable.
+    /// </remarks>
+    public bool IncludeFailureDetails { get; set; }
 
     /// <summary>
     /// Gets or sets the time interval during which failed login attempts are counted for lockout purposes.
