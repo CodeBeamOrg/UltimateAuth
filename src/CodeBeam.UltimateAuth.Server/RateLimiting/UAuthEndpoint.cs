@@ -84,6 +84,8 @@ public enum UAuthEndpoint
     HubEntry,
     PasswordPolicy,
     AntiforgeryToken,
+    GetAuthenticationLockoutAdmin,
+    UnlockAuthenticationAdmin,
 }
 
 internal enum UAuthRateLimitGroup { Sensitive, Standard, Frequent }
