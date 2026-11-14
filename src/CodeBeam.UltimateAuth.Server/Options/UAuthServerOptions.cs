@@ -60,7 +60,7 @@ public sealed class UAuthServerOptions
 
     /// <summary>
     /// Controls optional global and per-type active device limits.
-    /// Disabled by default.
+    /// No limits by default.
     /// </summary>
     public UAuthDeviceLimitOptions DeviceLimits { get; set; } = new();
 

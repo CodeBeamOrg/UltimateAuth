@@ -33,6 +33,7 @@ public static class UAuthConstants
         public const string Device = "__uauth_device";
         public const string ClientProfile = "__uauth_client_profile";
         public const string FormCacheKey = "__uauth_form";
+        public const string DeviceType = "__uauth_device_type";
     }
 
     public static class Query
@@ -50,6 +51,7 @@ public static class UAuthConstants
         public const string DeviceId = "X-UDID";
         public const string Refresh = "X-UAuth-Refresh";
         public const string AuthState = "X-UAuth-AuthState";
+        public const string DeviceType = "X-Device-Type";
     }
 
     public static class Routes

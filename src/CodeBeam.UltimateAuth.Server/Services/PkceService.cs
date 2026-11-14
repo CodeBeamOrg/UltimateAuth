@@ -39,11 +39,25 @@ internal sealed class PkceService : IPkceService
 
         var authorizationCode = AuthArtifactKey.New();
 
+        var device = command.Device;
+
+        if (device.DeviceId is DeviceId deviceId)
+        {
+            device = DeviceContext.Create(
+                deviceId,
+                deviceType: string.IsNullOrWhiteSpace(device.DeviceType) ? "web" : device.DeviceType,
+                platform: device.Platform,
+                operatingSystem: device.OperatingSystem,
+                browser: device.Browser,
+                ipAddress: device.IpAddress
+            );
+        }
+
         var snapshot = new PkceContextSnapshot(
             clientProfile: command.ClientProfile,
             tenant: command.Tenant,
             redirectUri: command.RedirectUri,
-            device: command.Device
+            device: device
         );
 
         var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
