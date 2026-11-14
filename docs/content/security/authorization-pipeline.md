@@ -1,5 +1,5 @@
 ---
-title: Authorization Pipeline Internals
+title: Authorization Pipeline
 order: 4
 group: security
 ---

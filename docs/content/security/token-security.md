@@ -554,7 +554,7 @@ The purpose of the token security model is to make those tradeoffs explicit.
 
 ## Next Steps
 
-- [Session Security Model](/docs/security/session-security) — Understand authoritative session validation and hierarchical revocation.
+- [Session Security](/docs/security/session-security) — Understand authoritative session validation and hierarchical revocation.
 - [Authentication Modes](/docs/fundamentals/auth-modes) — Compare credential behavior across modes.
 - [Session Model & Lifecycle](/docs/sessions-devices/session-lifecycle) — Explore session creation, continuation, and invalidation.
 - [Credentials](/docs/plugin-domains/credentials) — Understand credential management and recovery security.
