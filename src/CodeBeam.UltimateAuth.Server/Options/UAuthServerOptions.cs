@@ -59,6 +59,12 @@ public sealed class UAuthServerOptions
     public UAuthConcurrencyLimitingOptions ConcurrencyLimiting { get; set; } = new();
 
     /// <summary>
+    /// Controls optional global and per-type active device limits.
+    /// Disabled by default.
+    /// </summary>
+    public UAuthDeviceLimitOptions DeviceLimits { get; set; } = new();
+
+    /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
     /// This is a safety guardrail, not a mode selection mechanism.
     /// The final mode is still resolved via IEffectiveAuthModeResolver.
@@ -153,6 +159,7 @@ public sealed class UAuthServerOptions
 
             RateLimiting = RateLimiting.Clone(),
             ConcurrencyLimiting = ConcurrencyLimiting.Clone(),
+            DeviceLimits = DeviceLimits.Clone(),
             Login = Login.Clone(),
             Session = Session.Clone(),
             Token = Token.Clone(),
