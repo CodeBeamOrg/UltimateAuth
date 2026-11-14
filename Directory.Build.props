@@ -6,7 +6,7 @@
         <!-- CI may build a supported subset without retargeting single-target applications. -->
         <UltimateAuthBuildTargetFrameworks Condition="'$(UltimateAuthBuildTargetFrameworks)' == ''">$(UltimateAuthTargetFrameworks)</UltimateAuthBuildTargetFrameworks>
 
-		<Version>0.2.0-preview.2</Version>
+		<Version>0.2.0-preview.3</Version>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 		
 		<Authors>CodeBeam</Authors>

@@ -34,18 +34,18 @@ UltimateAuth is an open-source auth framework with platform-level capabilities t
 ---
 ## Roadmap
 
-| Phase                   | Version       | Scope                                      | Status         | Release Date  |
-| ----------------------- | ------------- | -----------------------------------------  | -------------- | ------------  |
-| First Preview           | 0.1.0-preview | Preview Core                               | ✅ Completed   | 07.04.2026    |
-| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked)       | ✅ Completed   | 12.10.2026    |
-| Product Expansion       | 0.2.0         | Full Auth Modes, Rate Limiting             | 🟡 In Progress | Q4 2026       |
-| Security Expansion      | 0.3.0         | MFA, Reauth                                | 🟡 In Progress | Q1 2027       |
-| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hashers | 🔜 Planned     | Q1 2027       |
-| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                    | 🔜 Planned     | Q2 2027       |
-| Extensibility Expansion | 0.6.0         | Audit, Passwordless Login                  | 🔜 Planned     | Q2 2027       |
-| Performance Expansion   | 0.7.0         | Benchmarks, caching                        | 🔜 Planned     | Q3 2027       |
-| Ecosystem Expansion     | 0.8.0         | Migration tools                            | 🔜 Planned     | Q3 2027       |
-| v1.0                    | 1.0.0         | Locked API, align with .NET 12             | 🔜 Planned     | Q4 2027       |
+| Phase                   | Version       | Scope                                      | .NET Support      | Status         | Release Date  |
+| ----------------------- | ------------- | -----------------------------------------  | ----------------- | -------------- | ------------  |
+| First Preview           | 0.1.0-preview | Preview Core                               | .NET 8, 9, 10     | ✅ Completed   | 07.04.2026    |
+| First Release*          | 0.1.0         | Documented & Quality Tested (Client Public API Locked) | .NET 8, 9, 10  | ✅ Completed   | 12.10.2026    |
+| Product Expansion       | 0.2.0         | Full Auth Modes, Rate Limiting             | .NET 8, 9, 10, 11 | 🟡 In Progress | Q4 2026       |
+| Security Expansion      | 0.3.0         | MFA, Reauth                                | .NET 8, 9, 10, 11 | 🟡 In Progress | Q1 2027       |
+| Infrastructure Expansion| 0.4.0         | Redis, Distributed Cache, Password Hashers | .NET 10, 11       | 🔜 Planned     | Q1 2027       |
+| Multi-Tenant Expansion  | 0.5.0         | Multi tenant management                    | .NET 10, 11       | 🔜 Planned     | Q2 2027       |
+| Extensibility Expansion | 0.6.0         | Audit, Passwordless Login                  | .NET 10, 11       | 🔜 Planned     | Q2 2027       |
+| Performance Expansion   | 0.7.0         | Benchmarks, caching                        | .NET 10, 11       | 🔜 Planned     | Q3 2027       |
+| Ecosystem Expansion     | 0.8.0         | Migration tools                            | .NET 10, 11       | 🔜 Planned     | Q3 2027       |
+| v1.0                    | 1.0.0         | Locked API, align with .NET 12             | .NET 10, 11, 12   | 🔜 Planned     | Q4 2027       |
 
 > **UltimateAuth was architected from its first release with extensibility points and foundational support for advanced capabilities, including multi-tenancy, MFA, and reauthentication. Subsequent releases build upon this existing architecture, expanding implementations, improvements and production-ready functionality rather than introducing these concepts from scratch.*
 
@@ -61,15 +61,14 @@ UltimateAuth is designed to deliver a simple, consistent developer experience fr
 
 | Milestone | Version | Target |
 |---|---|---|
-| **Developer Foundation** | 0.1.x | A functional, security-conscious authentication framework with a complete core architecture, extensibility, and a developer-first API. Suitable for development, early adoption, and production use following application-specific evaluation. |
-| **Production Expansion** | 0.2.x | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements. |
-| **Advanced Security & Scale** | 0.4.x | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
-| **Migration & Adoption** | 0.8.x | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
+| **Developer Foundation** (Completed) | 0.1.x | A functional, security-conscious authentication framework with a complete core architecture, extensibility, and a developer-first API. Suitable for development and early adoption. |
+| **Production Expansion** (In Progress) | 0.2.x | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements and custom implementations. |
+| **Advanced Security & Scale** (Planned) | 0.4.x | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
+| **Migration & Adoption** (Planned) | 0.8.x | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
 
 **The UltimateAuth philosophy:** Simple from day one, more capable with every release. Version milestones describe expanding capabilities — not a progression from difficult to easy, or from unusable to usable.
 
 ---
-
 
 ### 💜 Join the UltimateAuth Community
 
