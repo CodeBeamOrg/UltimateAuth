@@ -40,8 +40,6 @@ internal sealed class AuthenticationLockoutService(
             {
                 var userKey = await RequireUserAsync(context, innerCt);
 
-                var before = await GetStateAsync(context, userKey, request.Scope, request.CredentialType, innerCt);
-
                 AuthenticationSecurityState after;
 
                 if (request.Scope == AuthenticationSecurityScope.Account)
