@@ -233,10 +233,17 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
     }
 
     /// <summary>
-    /// Admin/system unlock: clears lock and failures.
+    /// Clears authentication lockout and failure counters.
+    /// Does not alter reauthentication requirements or reset state.
     /// </summary>
     public AuthenticationSecurityState Unlock()
-        => new AuthenticationSecurityState(
+    {
+        if (FailedAttempts == 0 && LastFailedAt is null && LockedUntil is null)
+        {
+            return this;
+        }
+
+        return new AuthenticationSecurityState(
             Id,
             Tenant,
             UserKey,
@@ -252,6 +259,7 @@ public sealed class AuthenticationSecurityState : ITenantEntity, IVersionedEntit
             ResetTokenHash,
             ResetAttempts,
             securityVersion: SecurityVersion + 1);
+    }
 
     public AuthenticationSecurityState LockUntil(DateTimeOffset until, bool overwriteIfShorter = false)
     {

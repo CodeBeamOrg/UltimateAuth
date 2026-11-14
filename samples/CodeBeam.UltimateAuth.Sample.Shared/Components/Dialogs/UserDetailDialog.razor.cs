@@ -17,6 +17,10 @@ public partial class UserDetailDialog
     private bool _isSubmitting;
     private string? _loadError;
 
+    private bool _securityLoading;
+    private bool _securityBusy;
+    private string? _securityError;
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -69,6 +73,9 @@ public partial class UserDetailDialog
         }
 
         await LoadUserAsync();
+
+        if (_user is not null)
+            await LoadSecurityAsync();
     }
 
     private async Task LoadUserAsync()
@@ -219,6 +226,142 @@ public partial class UserDetailDialog
             UserStatus.Disabled => Color.Error,
             _ => Color.Default
         };
+    }
+
+
+    private sealed class SecurityItem(
+        string title,
+        AuthenticationSecurityScope scope,
+        CredentialType? credentialType = null)
+    {
+        public string Title { get; } = title;
+        public AuthenticationSecurityScope Scope { get; } = scope;
+        public CredentialType? CredentialType { get; } = credentialType;
+
+        public AuthenticationLockoutInfo? State { get; set; }
+        public bool Unlocking { get; set; }
+    }
+
+    private readonly List<SecurityItem> _securityItems =
+    [
+        new(
+        "Account Authentication",
+        AuthenticationSecurityScope.Account),
+
+    new(
+        "Password Authentication",
+        AuthenticationSecurityScope.Factor,
+        CredentialType.Password)
+    ];
+
+    private static string FormatSecurityTime(DateTimeOffset? value)
+        => value?.ToLocalTime().ToString("dd MMM yyyy HH:mm:ss") ?? "—";
+
+    private static bool CanUnlock(SecurityItem item)
+    {
+        var state = item.State;
+
+        return state is not null && (state.IsLocked || state.FailedAttempts > 0 || state.LastFailedAt is not null);
+    }
+
+    private async Task LoadSecurityAsync()
+    {
+        if (PreviewMode || _securityLoading || _securityBusy)
+            return;
+
+        _securityLoading = true;
+        _securityError = null;
+
+        try
+        {
+            foreach (var item in _securityItems)
+            {
+                // Do not display stale security information.
+                item.State = null;
+
+                var request = new LockoutQueryRequest(item.Scope, item.CredentialType);
+
+                var result = await UAuthClient.Users.GetAuthenticationLockoutAsync(UserKey, request);
+
+                if (!result.IsSuccess || result.Value is null)
+                {
+                    _securityError = result.ErrorText ?? $"Unable to retrieve {item.Title} state.";
+                    continue;
+                }
+
+                item.State = result.Value;
+            }
+        }
+        catch (Exception)
+        {
+            _securityError = "Unable to retrieve authentication security state.";
+        }
+        finally
+        {
+            _securityLoading = false;
+        }
+    }
+
+    private async Task UnlockSecurityAsync(SecurityItem item)
+    {
+        if (PreviewMode || _securityLoading ||
+            _securityBusy || !CanUnlock(item))
+            return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Unlock Authentication",
+            $"Clear authentication failures and lockout for " +
+            $"'{DisplayName}' ({item.Title})?",
+            yesText: "Unlock",
+            noText: "Cancel");
+
+        if (confirmed != true || _securityBusy)
+            return;
+
+        _securityBusy = true;
+        item.Unlocking = true;
+        _securityError = null;
+
+        try
+        {
+            var request = new UnlockAuthenticationRequest(
+                item.Scope,
+                item.CredentialType);
+
+            var result = await UAuthClient.Users
+                .UnlockAuthenticationAsync(
+                    UserKey,
+                    request);
+
+            if (!result.IsSuccess || result.Value is null)
+            {
+                Snackbar.Add(
+                    result.ErrorText ?? "Unable to unlock authentication.",
+                    Severity.Error);
+                return;
+            }
+
+            // The response contains the resulting security state.
+            item.State = result.Value.State;
+
+            Snackbar.Add(
+                $"{item.Title} unlocked successfully.",
+                Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(
+                "Unable to unlock authentication.",
+                Severity.Error);
+        }
+        finally
+        {
+            item.Unlocking = false;
+            _securityBusy = false;
+        }
+
+        // Read back from the server to verify the final state.
+        await LoadSecurityAsync();
     }
 
     private void Close()

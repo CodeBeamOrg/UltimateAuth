@@ -151,7 +151,7 @@ builder.Services.AddUltimateAuthServer(options =>
 | `LockoutDuration` | 15 minutes | Lockout duration |
 | `FailureWindow` | 15 minutes | Window for counting failed attempts |
 | `ExtendLockOnFailure` | `false` | Extend lockout when another attempt fails during lockout |
-| `IncludeFailureDetails` | `true` | Include detailed authentication failure information |
+| `IncludeFailureDetails` | `false` | Include detailed authentication failure information |
 | `TryLoginDuration` | 180 seconds | Duration associated with the try-login flow |
 
 ### Example: Restrict Login Failure Details

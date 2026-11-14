@@ -407,11 +407,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
                     }
 
                     // Re-read the credential inside the atomic scope.
-                    var currentCredential = await store.GetAsync(
-                        new CredentialKey(
-                            context.ResourceTenant,
-                            pwd.Id),
-                        atomicCt);
+                    var currentCredential = await store.GetAsync(new CredentialKey(context.ResourceTenant, pwd.Id), atomicCt);
 
                     if (currentCredential is not PasswordCredential currentPwd ||
                         currentPwd.UserKey != userKey ||
@@ -431,13 +427,7 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
                     try
                     {
-                        await _passwordWriter.ChangeAsync(
-                            currentPwd,
-                            request.NewSecret,
-                            passwordContext,
-                            passwordOptions,
-                            now,
-                            atomicCt);
+                        await _passwordWriter.ChangeAsync(currentPwd, request.NewSecret, passwordContext, passwordOptions, now, atomicCt);
                     }
                     catch (UAuthValidationException) when (context.IsAnonymousContext)
                     {
@@ -446,7 +436,10 @@ internal sealed class CredentialManagementService : ICredentialManagementService
 
                     var consumed = currentState.ConsumeReset(now);
 
-                    await _authenticationSecurityManager.UpdateAsync(consumed, currentState.SecurityVersion, atomicCt);
+                    // A verified password recovery also clears the password factor lockout.
+                    // Account-level locks and user lifecycle status remain unchanged.
+                    var recovered = consumed.Unlock();
+                    await _authenticationSecurityManager.UpdateAsync(recovered, currentState.SecurityVersion, atomicCt);
 
                     await ApplyCredentialSessionPolicyAsync(
                         context.ResourceTenant,

@@ -7,6 +7,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Core.Security;
 using CodeBeam.UltimateAuth.Credentials;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Options;
@@ -27,8 +28,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class CredentialManagementServiceTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
 
     // ---------------------------------------------------------
     // GetAll
@@ -1172,6 +1172,191 @@ public sealed class CredentialManagementServiceTests
 
         f.HistoryStoreFactory.VerifyNoOtherCalls();
         f.AccessOrchestrator.VerifyNoOtherCalls();
+    }
+
+
+    [Fact]
+    public async Task CompleteResetAsync_ValidRecovery_UnlocksPasswordFactor()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForTargetUser(
+            UserKey.New(),
+            user,
+            UAuthActions.Credentials.CompleteResetAdmin);
+
+        const string identifier = "locked@example.com";
+        const string token = "valid-reset-token";
+        const string tokenHash = "hashed-reset-token";
+
+        var credential = CreateCredential(
+            user, f.OldPasswordHash, version: 3);
+
+        var locked = AuthenticationSecurityState
+            .CreateFactor(
+                context.ResourceTenant,
+                user,
+                CredentialType.Password)
+            .RegisterFailure(
+                Now, 1,
+                TimeSpan.FromMinutes(15),
+                TimeSpan.FromMinutes(15))
+            .BeginReset(
+                tokenHash, Now.AddMinutes(-1),
+                TimeSpan.FromMinutes(10));
+
+        f.IdentifierResolver.Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResolution(context, identifier, user));
+
+        f.SecurityManager.Setup(x => x.GetOrCreateFactorAsync(
+                context.ResourceTenant,
+                user,
+                CredentialType.Password,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(locked);
+
+        f.TokenHasher.Setup(x => x.Verify(tokenHash, token))
+            .Returns(true);
+
+        f.CredentialStore.Setup(x => x.GetByUserAsync(
+                user, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { credential });
+
+        f.CredentialStore.Setup(x => x.GetAsync(
+                new CredentialKey(context.ResourceTenant, credential.Id),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(credential);
+
+        f.Hasher.Setup(x => x.Hash("new-password"))
+            .Returns(f.NewPasswordHash);
+
+        f.CredentialStore.Setup(x => x.SaveAsync(
+                It.Is<PasswordCredential>(
+                    c => c.SecretHash == f.NewPasswordHash),
+                3,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        AuthenticationSecurityState? persistedState = null;
+
+        f.SecurityManager.Setup(x => x.UpdateAsync(
+                It.IsAny<AuthenticationSecurityState>(),
+                locked.SecurityVersion,
+                It.IsAny<CancellationToken>()))
+            .Callback<AuthenticationSecurityState, long, CancellationToken>(
+                (state, _, _) => persistedState = state)
+            .Returns(Task.CompletedTask);
+
+        f.SessionStore.Setup(x => x.RevokeAllChainsAsync(
+                user, Now, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await f.Sut.CompleteResetAsync(
+            context,
+            new CompleteResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetToken = token,
+                NewSecret = "new-password"
+            },
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        persistedState.Should().NotBeNull();
+        persistedState!.IsLocked(Now).Should().BeFalse();
+        persistedState.FailedAttempts.Should().Be(0);
+        persistedState.LastFailedAt.Should().BeNull();
+        persistedState.LockedUntil.Should().BeNull();
+        persistedState.ResetConsumedAt.Should().Be(Now);
+        persistedState.ResetTokenHash.Should().BeNull();
+
+        persistedState.SecurityVersion.Should()
+            .Be(locked.SecurityVersion + 2);
+
+        f.CredentialSessionPolicy.Verify(
+            x => x.Resolve(CredentialChangeReason.Recovery),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CompleteResetAsync_InvalidToken_DoesNotUnlockFactor()
+    {
+        var f = CreateFixture();
+        var user = UserKey.New();
+
+        var context = TestAccessContext.ForTargetUser(
+            UserKey.New(),
+            user,
+            UAuthActions.Credentials.CompleteResetAdmin);
+
+        const string identifier = "locked@example.com";
+        const string tokenHash = "hashed-reset-token";
+
+        var locked = AuthenticationSecurityState
+            .CreateFactor(
+                context.ResourceTenant,
+                user,
+                CredentialType.Password)
+            .RegisterFailure(
+                Now, 1,
+                TimeSpan.FromMinutes(15),
+                TimeSpan.FromMinutes(15))
+            .BeginReset(
+                tokenHash, Now.AddMinutes(-1),
+                TimeSpan.FromMinutes(10));
+
+        f.IdentifierResolver.Setup(x => x.ResolveAsync(
+                context.ResourceTenant,
+                identifier,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResolution(context, identifier, user));
+
+        f.SecurityManager.Setup(x => x.GetOrCreateFactorAsync(
+                context.ResourceTenant,
+                user,
+                CredentialType.Password,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(locked);
+
+        f.TokenHasher.Setup(x => x.Verify(
+                tokenHash, "invalid-token"))
+            .Returns(false);
+
+        f.SecurityManager.Setup(x => x.UpdateAsync(
+                It.IsAny<AuthenticationSecurityState>(),
+                locked.SecurityVersion,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var act = () => f.Sut.CompleteResetAsync(
+            context,
+            new CompleteResetCredentialRequest
+            {
+                Identifier = identifier,
+                CredentialType = CredentialType.Password,
+                ResetToken = "invalid-token",
+                NewSecret = "new-password"
+            });
+
+        await act.Should().ThrowAsync<UAuthConflictException>();
+
+        f.SecurityManager.Verify(x => x.UpdateAsync(
+            It.Is<AuthenticationSecurityState>(
+                s => s.LockedUntil == locked.LockedUntil &&
+                     s.FailedAttempts == locked.FailedAttempts),
+            locked.SecurityVersion,
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        f.CredentialStore.Verify(x => x.SaveAsync(
+            It.IsAny<PasswordCredential>(),
+            It.IsAny<long>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
 

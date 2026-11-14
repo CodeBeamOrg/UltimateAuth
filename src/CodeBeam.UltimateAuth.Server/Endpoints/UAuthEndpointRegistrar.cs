@@ -456,8 +456,20 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
             if (Enabled(UAuthActions.Authorization.Roles.DeleteAdmin))
                 adminAuthz.MapPost("/roles/{roleId}/delete", async ([FromServices] IAuthorizationEndpointHandler h, RoleId roleId, HttpContext ctx)
                     => await h.DeleteRoleAsync(roleId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.DeleteRole);
-
         }
+
+
+        if (options.Endpoints.Authentication != false)
+        {
+            if (Enabled(UAuthActions.Authentication.GetLockoutAdmin))
+                admin.MapPost("/users/{userKey}/authentication/lockout/get", async (IAuthenticationLockoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.GetAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement)).WithUAuthRateLimit(UAuthEndpoint.GetAuthenticationLockoutAdmin);
+
+            if (Enabled(UAuthActions.Authentication.UnlockAdmin))
+                admin.MapPost("/users/{userKey}/authentication/unlock", async (IAuthenticationLockoutEndpointHandler h, UserKey userKey, HttpContext ctx)
+                    => await h.UnlockAsync(userKey, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement),new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.UnlockAuthenticationAdmin);
+        }
+
 
         // IMPORTANT:
         // Escape hatch is invoked AFTER all UltimateAuth endpoints are registered.

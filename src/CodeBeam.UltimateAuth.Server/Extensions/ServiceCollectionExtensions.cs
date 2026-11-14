@@ -205,6 +205,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthInternalFlowService, UAuthFlowService>();
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IPkceService, PkceService>();
+        services.TryAddScoped<IAuthenticationLockoutService, AuthenticationLockoutService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
@@ -298,6 +299,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshEndpointHandler, RefreshEndpointHandler>();
         services.TryAddScoped<IPkceEndpointHandler, PkceEndpointHandler>();
         services.TryAddScoped<IPasswordPolicyEndpointHandler, PasswordPolicyEndpointHandler>();
+        services.TryAddScoped<IAuthenticationLockoutEndpointHandler, AuthenticationLockoutEndpointHandler>();
 
         // ASP.NET Core Integration
         services.AddAuthentication();

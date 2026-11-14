@@ -163,4 +163,17 @@ public interface IUserClient
     /// Deletes a profile of a specific user.
     /// </summary>
     Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, DeleteProfileRequest request);
+
+    /// <summary>
+    /// Retrieves the authentication lockout state of a target user.
+    /// Requires administrative lockout inspection permission.
+    /// </summary>
+    Task<UAuthResult<AuthenticationLockoutInfo>> GetAuthenticationLockoutAsync(UserKey userKey, LockoutQueryRequest request);
+
+    /// <summary>
+    /// Clears an account-level or credential-factor lockout.
+    /// Does not change user lifecycle status or revoke sessions.
+    /// Requires administrative unlock permission.
+    /// </summary>
+    Task<UAuthResult<AuthenticationUnlockResult>> UnlockAuthenticationAsync(UserKey userKey, UnlockAuthenticationRequest request);
 }

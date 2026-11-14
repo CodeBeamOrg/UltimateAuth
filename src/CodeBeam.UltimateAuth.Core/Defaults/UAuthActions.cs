@@ -141,4 +141,13 @@ public static class UAuthActions
             public const string GetSelf = "authorization.permissions.get.self";
         }
     }
+
+
+    public static class Authentication
+    {
+        public const string Wildcard = "authentication.*";
+
+        public const string GetLockoutAdmin = "authentication.lockout.get.admin";
+        public const string UnlockAdmin = "authentication.unlock.admin";
+    }
 }

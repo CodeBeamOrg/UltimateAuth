@@ -251,11 +251,11 @@ Applications should also consider secure password hashing, transport security, l
 
 Changing a password may also affect existing authentication sessions, depending on the configured credential session policy.
 
-See [Session Security Model](/docs/security/session-security) for the relevant session security boundaries.
+See [Session Security](/docs/security/session-security) for the relevant session security boundaries.
 
 ## Next Steps
 
 - [Credentials Domain](/docs/plugin-domains/credentials) — Understand credential ownership, validation, and lifecycle.
 - [Client SDK — Credentials](/docs/client/credentials) — Retrieve password requirements and implement credential-management flows.
 - [Real-World Setup](/docs/getting-started/real-world-setup) — Configure UltimateAuth in a real application.
-- [Session Security Model](/docs/security/session-security) — Understand the security consequences of credential changes.
+- [Session Security](/docs/security/session-security) — Understand the security consequences of credential changes.

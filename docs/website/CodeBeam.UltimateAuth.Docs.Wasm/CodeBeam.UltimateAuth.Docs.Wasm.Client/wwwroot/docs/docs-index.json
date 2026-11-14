@@ -245,7 +245,7 @@
     "GroupOrder": 7
   },
   {
-    "Title": "Session Security Model",
+    "Title": "Session Security",
     "Slug": "security/session-security",
     "Order": 1,
     "Group": "security",
@@ -259,14 +259,14 @@
     "GroupOrder": 8
   },
   {
-    "Title": "Refresh Rotation \u0026 Replay Protection",
+    "Title": "Refresh Rotation \u0026 Protection",
     "Slug": "security/refresh-rotation",
     "Order": 3,
     "Group": "security",
     "GroupOrder": 8
   },
   {
-    "Title": "Authorization Pipeline Internals",
+    "Title": "Authorization Pipeline",
     "Slug": "security/authorization-pipeline",
     "Order": 4,
     "Group": "security",
@@ -280,16 +280,23 @@
     "GroupOrder": 8
   },
   {
+    "Title": "Lockout \u0026 Recovery",
+    "Slug": "security/authentication-lockout",
+    "Order": 8,
+    "Group": "security",
+    "GroupOrder": 8
+  },
+  {
     "Title": "Rate Limiting",
     "Slug": "security/rate-limiting",
-    "Order": 8,
+    "Order": 9,
     "Group": "security",
     "GroupOrder": 8
   },
   {
     "Title": "Concurrency Limiting",
     "Slug": "security/concurrency-limiting",
-    "Order": 9,
+    "Order": 10,
     "Group": "security",
     "GroupOrder": 8
   },
