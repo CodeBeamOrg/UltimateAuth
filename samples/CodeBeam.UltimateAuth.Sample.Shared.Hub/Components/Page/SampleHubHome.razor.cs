@@ -11,9 +11,6 @@ namespace CodeBeam.UltimateAuth.Sample.Shared.Hub.Components.Page;
 
 public partial class SampleHubHome
 {
-    private string? _username;
-    private string? _password;
-
     private UAuthClientProductInfo? _productInfo;
     private UAuthLoginForm _loginForm = null!;
 
