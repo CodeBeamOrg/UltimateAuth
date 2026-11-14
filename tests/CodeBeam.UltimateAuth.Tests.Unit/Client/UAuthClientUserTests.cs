@@ -321,4 +321,77 @@ public class UAuthClientUserTests : UAuthClientTestBase
 
         await act.Should().ThrowAsync<UAuthTransportException>();
     }
+
+    [Fact]
+    public async Task GetAuthenticationLockout_CallsAdminEndpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+        var request = new LockoutQueryRequest(
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password);
+
+        var response = new AuthenticationLockoutInfo(
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password,
+            true, 3, null, null, false, 5);
+
+        Request.Setup(x => x.SendJsonAsync(
+                It.IsAny<string>(),
+                It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateUserClient();
+
+        var result = await client.Users
+            .GetAuthenticationLockoutAsync(userKey, request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(response);
+
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/users/{userKey.Value}/authentication/lockout/get",
+            It.Is<object>(x => ReferenceEquals(x, request))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UnlockAuthentication_CallsAdminEndpoint()
+    {
+        var userKey = UserKey.FromString("user-1");
+        var request = new UnlockAuthenticationRequest(
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password);
+
+        var state = new AuthenticationLockoutInfo(
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password,
+            false, 0, null, null, false, 6);
+
+        var response = new AuthenticationUnlockResult(
+            AuthenticationSecurityScope.Factor,
+            CredentialType.Password,
+            state);
+
+        Request.Setup(x => x.SendJsonAsync(
+                It.IsAny<string>(),
+                It.IsAny<object>()))
+            .ReturnsAsync(SuccessJson(response));
+
+        var client = CreateUserClient();
+
+        var result = await client.Users
+            .UnlockAuthenticationAsync(userKey, request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.State.IsLocked.Should().BeFalse();
+
+        Request.Verify(x => x.SendJsonAsync(
+            $"/auth/admin/users/{userKey.Value}/authentication/unlock",
+            It.Is<object>(x => ReferenceEquals(x, request))),
+            Times.Once);
+
+        Events.Verify(x =>
+            x.PublishAsync(It.IsAny<UAuthStateEventArgs>()),
+            Times.Never);
+    }
 }

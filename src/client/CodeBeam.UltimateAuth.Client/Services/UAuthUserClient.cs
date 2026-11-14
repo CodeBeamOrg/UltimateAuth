@@ -170,4 +170,21 @@ internal sealed class UAuthUserClient : IUserClient
         var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request);
         return UAuthResultMapper.From(raw);
     }
+
+
+    public async Task<UAuthResult<AuthenticationLockoutInfo>> GetAuthenticationLockoutAsync(UserKey userKey, LockoutQueryRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/lockout/get"), request);
+        return UAuthResultMapper.FromJson<AuthenticationLockoutInfo>(raw);
+    }
+
+    public async Task<UAuthResult<AuthenticationUnlockResult>> UnlockAuthenticationAsync(UserKey userKey, UnlockAuthenticationRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/unlock"), request);
+        return UAuthResultMapper.FromJson<AuthenticationUnlockResult>(raw);
+    }
 }
